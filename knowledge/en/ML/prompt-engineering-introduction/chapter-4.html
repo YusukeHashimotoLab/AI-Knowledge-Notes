@@ -1,0 +1,1250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 4: Function Calling and Tool Use - Introduction to Prompt Engineering - AI Terakoya</title>
+    <meta name="description" content="Master Function Calling, Tool Use, and MCP (Model Context Protocol) for building powerful LLM applications that interact with external systems.">
+
+    <style>
+        :root {
+            --color-primary: #2c3e50;
+            --color-primary-dark: #1a252f;
+            --color-accent: #7b2cbf;
+            --color-accent-light: #9d4edd;
+            --color-text: #2d3748;
+            --color-text-light: #4a5568;
+            --color-bg: #ffffff;
+            --color-bg-alt: #f7fafc;
+            --color-border: #e2e8f0;
+            --color-code-bg: #f8f9fa;
+            --color-link: #3182ce;
+            --color-link-hover: #2c5aa0;
+
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+
+            --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+            --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+            --border-radius: 8px;
+            --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-body);
+            line-height: 1.7;
+            color: var(--color-text);
+            background-color: var(--color-bg);
+            font-size: 16px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            padding: var(--spacing-xl) var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+            box-shadow: var(--box-shadow);
+        }
+
+        .header-content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: var(--spacing-sm);
+            line-height: 1.2;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            font-weight: 400;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-md);
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-md) var(--spacing-xl);
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-xl);
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-xs);
+            border-bottom: 3px solid var(--color-accent);
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-lg);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        h4 {
+            font-size: 1.1rem;
+            color: var(--color-primary-dark);
+            margin-top: var(--spacing-md);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        p {
+            margin-bottom: var(--spacing-md);
+            color: var(--color-text);
+        }
+
+        a {
+            color: var(--color-link);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        a:hover {
+            color: var(--color-link-hover);
+            text-decoration: underline;
+        }
+
+        ul, ol {
+            margin-left: var(--spacing-lg);
+            margin-bottom: var(--spacing-md);
+        }
+
+        li {
+            margin-bottom: var(--spacing-xs);
+            color: var(--color-text);
+        }
+
+        pre {
+            background-color: var(--color-code-bg);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            overflow-x: auto;
+            margin-bottom: var(--spacing-md);
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        code {
+            font-family: var(--font-mono);
+            font-size: 0.9em;
+            background-color: var(--color-code-bg);
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+        }
+
+        pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: var(--spacing-md);
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            border: 1px solid var(--color-border);
+            padding: var(--spacing-sm);
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--color-bg-alt);
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        .example-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            border-radius: var(--border-radius);
+        }
+
+        .example-box h4 {
+            color: #1976d2;
+            margin-top: 0;
+        }
+
+        .bad-example {
+            background: #ffebee;
+            border-left: 4px solid #f44336;
+            padding: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            border-radius: var(--border-radius);
+        }
+
+        .bad-example h4 {
+            color: #c62828;
+            margin-top: 0;
+        }
+
+        .good-example {
+            background: #e8f5e9;
+            border-left: 4px solid #4caf50;
+            padding: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            border-radius: var(--border-radius);
+        }
+
+        .good-example h4 {
+            color: #2e7d32;
+            margin-top: 0;
+        }
+
+        .note {
+            background: #fff3e0;
+            border-left: 4px solid #ff9800;
+            padding: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            border-radius: var(--border-radius);
+        }
+
+        .note h4 {
+            color: #f57c00;
+            margin-top: 0;
+        }
+
+        .key-takeaways {
+            background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+            padding: var(--spacing-lg);
+            margin: var(--spacing-lg) 0;
+            border-radius: var(--border-radius);
+            border: 2px solid #4caf50;
+        }
+
+        .key-takeaways h3 {
+            color: #2e7d32;
+            margin-top: 0;
+        }
+
+        .nav-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin: var(--spacing-xl) 0;
+            gap: var(--spacing-sm);
+            flex-wrap: wrap;
+        }
+
+        .nav-button {
+            display: inline-block;
+            padding: 0.8rem 1.5rem;
+            background: var(--color-accent);
+            color: white;
+            border-radius: 6px;
+            text-decoration: none;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        .nav-button:hover {
+            background: var(--color-accent-light);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(123, 44, 191, 0.3);
+        }
+
+        .breadcrumb {
+            background: #f7fafc;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+        }
+
+        .breadcrumb-content {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .breadcrumb a {
+            color: #667eea;
+        }
+
+        .breadcrumb-separator {
+            color: #a0aec0;
+            margin: 0 0.25rem;
+        }
+
+        .breadcrumb-current {
+            color: #4a5568;
+            font-weight: 500;
+        }
+
+        .locale-switcher {
+            display: inline-block;
+            margin-top: 1rem;
+            padding: 0.5rem 1rem;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+
+        .locale-switcher a {
+            color: white;
+            margin: 0 0.5rem;
+            opacity: 0.8;
+        }
+
+        .locale-switcher .active {
+            font-weight: bold;
+            opacity: 1;
+        }
+
+        .disclaimer {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 1.5rem;
+            background: #f8f9fa;
+            border-left: 4px solid #6c757d;
+            border-radius: 4px;
+        }
+
+        .disclaimer h3 {
+            color: #495057;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .disclaimer ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .disclaimer li {
+            padding: 0.5rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+
+        .disclaimer li::before {
+            content: "!";
+            position: absolute;
+            left: 0;
+        }
+
+        footer {
+            margin-top: 4rem;
+            padding: 2rem 0;
+            border-top: 2px solid var(--color-border);
+            text-align: center;
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .mermaid {
+            text-align: center;
+            margin: 2rem 0;
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--color-border);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 var(--spacing-sm) var(--spacing-lg);
+            }
+
+            h1 {
+                font-size: 1.6rem;
+            }
+
+            h2 {
+                font-size: 1.4rem;
+            }
+
+            .nav-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+
+    <!-- Mermaid for diagrams -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof mermaid !== 'undefined') {
+                mermaid.initialize({ startOnLoad: true, theme: 'default' });
+            }
+        });
+    </script>
+
+    <!-- Prism.js for syntax highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+</head>
+<body>
+    <nav class="breadcrumb">
+        <div class="breadcrumb-content">
+            <a href="../../index.html">AI Terakoya Home</a><span class="breadcrumb-separator">></span><a href="../index.html">Machine Learning</a><span class="breadcrumb-separator">></span><a href="./index.html">Introduction to Prompt Engineering</a><span class="breadcrumb-separator">></span><span class="breadcrumb-current">Chapter 4</span>
+        </div>
+    </nav>
+
+    <header>
+        <div class="header-content">
+            <h1>Chapter 4: Function Calling and Tool Use</h1>
+            <p class="subtitle">Building LLM Applications with External Tools and MCP</p>
+            <div class="meta">
+                <span class="meta-item">Reading Time: 25-30 minutes</span>
+                <span class="meta-item">Code Examples: 15</span>
+                <span class="meta-item">Exercises: 5</span>
+                <span class="meta-item">Difficulty: Intermediate-Advanced</span>
+            </div>
+            <div class="locale-switcher">
+                Language: <span class="active">English</span> | <a href="../../../jp/ML/prompt-engineering-introduction/chapter-4.html">Japanese</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <h2 id="introduction">Introduction</h2>
+
+        <p><strong>Function Calling</strong> (also called Tool Use) is a capability that allows LLMs to interact with external systems, APIs, and tools. This transforms LLMs from text generators into powerful agents capable of taking real actions.</p>
+
+        <p>By the end of this chapter, you will be able to:</p>
+        <ul>
+            <li>Define tools using JSON Schema for LLM function calling</li>
+            <li>Implement complete function calling workflows</li>
+            <li>Design tools that follow MCP (Model Context Protocol) standards</li>
+            <li>Handle errors gracefully in tool-using applications</li>
+            <li>Orchestrate multiple tools for complex tasks</li>
+        </ul>
+
+        <h2 id="function-calling-basics">Function Calling Basics</h2>
+
+        <h3>What is Function Calling?</h3>
+
+        <p>Function Calling enables LLMs to:</p>
+        <ol>
+            <li>Understand available tools and their capabilities</li>
+            <li>Decide when to use a tool based on the user's request</li>
+            <li>Generate properly formatted arguments for the tool</li>
+            <li>Incorporate tool results into their response</li>
+        </ol>
+
+        <div class="mermaid">
+sequenceDiagram
+    participant U as User
+    participant L as LLM
+    participant T as Tool
+
+    U->>L: "What's the weather in Tokyo?"
+    Note over L: Decides to use weather tool
+    L->>T: get_weather(location="Tokyo")
+    T->>L: {"temp": 22, "condition": "sunny"}
+    L->>U: "It's 22C and sunny in Tokyo"
+        </div>
+
+        <h3>Tool Definition with JSON Schema</h3>
+
+        <p>Tools are defined using JSON Schema, which describes the function name, description, and parameters:</p>
+
+        <div class="example-box">
+            <h4>Tool Definition Example</h4>
+            <pre><code class="language-json">{
+  "type": "function",
+  "function": {
+    "name": "get_weather",
+    "description": "Get the current weather for a specific location. Returns temperature, conditions, and humidity.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "location": {
+          "type": "string",
+          "description": "City name, e.g., 'Tokyo', 'New York', 'London'"
+        },
+        "unit": {
+          "type": "string",
+          "enum": ["celsius", "fahrenheit"],
+          "description": "Temperature unit (default: celsius)"
+        }
+      },
+      "required": ["location"]
+    }
+  }
+}</code></pre>
+        </div>
+
+        <h3>Complete Function Calling Example</h3>
+
+        <div class="example-box">
+            <h4>OpenAI Function Calling</h4>
+            <pre><code class="language-python">from openai import OpenAI
+import json
+
+client = OpenAI()
+
+# Define the tools
+tools = [
+    {
+        "type": "function",
+        "function": {
+            "name": "get_weather",
+            "description": "Get current weather for a location",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "location": {
+                        "type": "string",
+                        "description": "City name"
+                    }
+                },
+                "required": ["location"]
+            }
+        }
+    }
+]
+
+# Actual function implementation
+def get_weather(location: str) -> dict:
+    # In production, call a weather API
+    return {
+        "location": location,
+        "temperature": 22,
+        "unit": "celsius",
+        "condition": "sunny"
+    }
+
+# Step 1: Send user message with tools
+response = client.chat.completions.create(
+    model="gpt-4o",
+    messages=[{"role": "user", "content": "What's the weather in Tokyo?"}],
+    tools=tools
+)
+
+# Step 2: Check if model wants to use a tool
+message = response.choices[0].message
+
+if message.tool_calls:
+    # Step 3: Execute the tool
+    tool_call = message.tool_calls[0]
+    function_name = tool_call.function.name
+    arguments = json.loads(tool_call.function.arguments)
+
+    # Call the actual function
+    result = get_weather(**arguments)
+
+    # Step 4: Send tool result back to model
+    final_response = client.chat.completions.create(
+        model="gpt-4o",
+        messages=[
+            {"role": "user", "content": "What's the weather in Tokyo?"},
+            message,  # Assistant's tool call message
+            {
+                "role": "tool",
+                "tool_call_id": tool_call.id,
+                "content": json.dumps(result)
+            }
+        ]
+    )
+
+    print(final_response.choices[0].message.content)
+    # "The weather in Tokyo is currently 22C and sunny."</code></pre>
+        </div>
+
+        <h2 id="schema-design">Tool Schema Design</h2>
+
+        <h3>Writing Effective Descriptions</h3>
+
+        <p>The description field is crucial - it helps the LLM decide when to use the tool:</p>
+
+        <div class="bad-example">
+            <h4>Poor Description</h4>
+            <pre><code class="language-json">{
+  "name": "search",
+  "description": "Search function"
+}</code></pre>
+            <p><strong>Problem</strong>: Too vague - LLM doesn't know what it searches or when to use it</p>
+        </div>
+
+        <div class="good-example">
+            <h4>Good Description</h4>
+            <pre><code class="language-json">{
+  "name": "search_knowledge_base",
+  "description": "Search the company's internal knowledge base for policies, procedures, and documentation. Use this when users ask about company rules, HR policies, technical documentation, or internal processes. Returns relevant document snippets with source links."
+}</code></pre>
+        </div>
+
+        <h3>Parameter Design Best Practices</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Practice</th>
+                    <th>Example</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Use descriptive parameter names</td>
+                    <td><code>customer_email</code> not <code>email</code></td>
+                </tr>
+                <tr>
+                    <td>Provide examples in descriptions</td>
+                    <td>"Date in ISO format, e.g., '2024-03-15'"</td>
+                </tr>
+                <tr>
+                    <td>Use enums for limited options</td>
+                    <td><code>"enum": ["low", "medium", "high"]</code></td>
+                </tr>
+                <tr>
+                    <td>Set sensible defaults</td>
+                    <td><code>"default": "en"</code> for language</td>
+                </tr>
+                <tr>
+                    <td>Mark required vs optional clearly</td>
+                    <td><code>"required": ["query"]</code></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>Complex Tool Example</h3>
+
+        <div class="example-box">
+            <h4>Database Query Tool</h4>
+            <pre><code class="language-json">{
+  "type": "function",
+  "function": {
+    "name": "query_database",
+    "description": "Execute a read-only SQL query against the analytics database. Supports SELECT statements only. Use for retrieving customer data, sales metrics, and usage statistics.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string",
+          "description": "SQL SELECT query. Tables available: customers, orders, products, usage_logs. Example: 'SELECT * FROM customers WHERE signup_date > '2024-01-01''"
+        },
+        "limit": {
+          "type": "integer",
+          "description": "Maximum rows to return (default: 100, max: 1000)",
+          "default": 100,
+          "maximum": 1000
+        },
+        "format": {
+          "type": "string",
+          "enum": ["json", "csv", "markdown"],
+          "description": "Output format for results",
+          "default": "json"
+        }
+      },
+      "required": ["query"]
+    }
+  }
+}</code></pre>
+        </div>
+
+        <h2 id="mcp">Model Context Protocol (MCP)</h2>
+
+        <p><strong>MCP</strong> is an open standard (developed by Anthropic) for connecting LLMs to external data sources and tools. It provides a unified interface that works across different LLM providers and applications.</p>
+
+        <h3>MCP Architecture</h3>
+
+        <div class="mermaid">
+graph LR
+    subgraph "MCP Hosts"
+        H1[Claude Desktop]
+        H2[IDE Extensions]
+        H3[Custom Apps]
+    end
+
+    subgraph "MCP Servers"
+        S1[File System]
+        S2[Database]
+        S3[APIs]
+        S4[Web Search]
+    end
+
+    H1 <--> S1
+    H1 <--> S2
+    H2 <--> S3
+    H3 <--> S4
+
+    style H1 fill:#e3f2fd
+    style H2 fill:#e3f2fd
+    style H3 fill:#e3f2fd
+        </div>
+
+        <h3>MCP Concepts</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Concept</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Host</strong></td>
+                    <td>Application that connects to MCP servers (Claude Desktop, IDEs)</td>
+                </tr>
+                <tr>
+                    <td><strong>Server</strong></td>
+                    <td>Service that provides tools, resources, or prompts</td>
+                </tr>
+                <tr>
+                    <td><strong>Tools</strong></td>
+                    <td>Functions the LLM can invoke (like function calling)</td>
+                </tr>
+                <tr>
+                    <td><strong>Resources</strong></td>
+                    <td>Data the LLM can read (files, database records)</td>
+                </tr>
+                <tr>
+                    <td><strong>Prompts</strong></td>
+                    <td>Reusable prompt templates provided by the server</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>Building an MCP Server</h3>
+
+        <div class="example-box">
+            <h4>Simple MCP Server (Python)</h4>
+            <pre><code class="language-python">from mcp.server import Server
+from mcp.types import Tool, TextContent
+import mcp.server.stdio
+
+# Create server instance
+server = Server("weather-server")
+
+# Define tools
+@server.list_tools()
+async def list_tools():
+    return [
+        Tool(
+            name="get_weather",
+            description="Get current weather for a city",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "city": {
+                        "type": "string",
+                        "description": "City name"
+                    }
+                },
+                "required": ["city"]
+            }
+        ),
+        Tool(
+            name="get_forecast",
+            description="Get 5-day weather forecast",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "city": {"type": "string"},
+                    "days": {"type": "integer", "default": 5}
+                },
+                "required": ["city"]
+            }
+        )
+    ]
+
+# Implement tool execution
+@server.call_tool()
+async def call_tool(name: str, arguments: dict):
+    if name == "get_weather":
+        city = arguments["city"]
+        # Call actual weather API here
+        weather_data = fetch_weather(city)
+        return [TextContent(
+            type="text",
+            text=f"Weather in {city}: {weather_data['temp']}C, {weather_data['condition']}"
+        )]
+
+    elif name == "get_forecast":
+        city = arguments["city"]
+        days = arguments.get("days", 5)
+        forecast = fetch_forecast(city, days)
+        return [TextContent(type="text", text=format_forecast(forecast))]
+
+# Run the server
+async def main():
+    async with mcp.server.stdio.stdio_server() as (read, write):
+        await server.run(read, write)
+
+if __name__ == "__main__":
+    import asyncio
+    asyncio.run(main())</code></pre>
+        </div>
+
+        <h3>MCP Configuration</h3>
+
+        <div class="example-box">
+            <h4>Claude Desktop Configuration</h4>
+            <pre><code class="language-json">{
+  "mcpServers": {
+    "weather": {
+      "command": "python",
+      "args": ["/path/to/weather_server.py"]
+    },
+    "database": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-postgres"],
+      "env": {
+        "DATABASE_URL": "postgresql://user:pass@localhost/db"
+      }
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/allowed/path"]
+    }
+  }
+}</code></pre>
+        </div>
+
+        <h2 id="error-handling">Error Handling</h2>
+
+        <p>Robust error handling is critical for tool-using applications. Tools can fail due to network issues, invalid inputs, rate limits, or external service outages.</p>
+
+        <h3>Error Handling Strategies</h3>
+
+        <div class="example-box">
+            <h4>Comprehensive Error Handling</h4>
+            <pre><code class="language-python">import json
+from typing import Union
+
+class ToolError(Exception):
+    """Custom exception for tool errors"""
+    def __init__(self, message: str, recoverable: bool = True):
+        self.message = message
+        self.recoverable = recoverable
+        super().__init__(message)
+
+def execute_tool(tool_name: str, arguments: dict) -> Union[dict, str]:
+    """Execute a tool with comprehensive error handling"""
+    try:
+        # Validate arguments
+        if not validate_arguments(tool_name, arguments):
+            raise ToolError("Invalid arguments provided", recoverable=True)
+
+        # Execute the tool
+        if tool_name == "get_weather":
+            result = get_weather(**arguments)
+        elif tool_name == "search_database":
+            result = search_database(**arguments)
+        else:
+            raise ToolError(f"Unknown tool: {tool_name}", recoverable=False)
+
+        return result
+
+    except ConnectionError as e:
+        # Network issues - suggest retry
+        return {
+            "error": True,
+            "type": "network_error",
+            "message": f"Could not connect to service: {e}",
+            "suggestion": "The service may be temporarily unavailable. Please try again."
+        }
+
+    except RateLimitError as e:
+        # Rate limiting - provide wait time
+        return {
+            "error": True,
+            "type": "rate_limit",
+            "message": "API rate limit exceeded",
+            "retry_after": e.retry_after,
+            "suggestion": f"Please wait {e.retry_after} seconds before retrying."
+        }
+
+    except ValidationError as e:
+        # Invalid input - help fix it
+        return {
+            "error": True,
+            "type": "validation_error",
+            "message": str(e),
+            "suggestion": "Please check the input format and try again."
+        }
+
+    except ToolError as e:
+        return {
+            "error": True,
+            "type": "tool_error",
+            "message": e.message,
+            "recoverable": e.recoverable
+        }
+
+    except Exception as e:
+        # Unexpected error - log and return generic message
+        logger.exception(f"Unexpected error in tool {tool_name}")
+        return {
+            "error": True,
+            "type": "internal_error",
+            "message": "An unexpected error occurred",
+            "suggestion": "Please try a different approach or contact support."
+        }</code></pre>
+        </div>
+
+        <h3>Prompt for Error Recovery</h3>
+
+        <div class="example-box">
+            <h4>System Prompt with Error Handling</h4>
+            <pre><code>You have access to several tools. When using tools:
+
+1. **Before calling a tool**: Verify you have all required parameters
+2. **If a tool returns an error**:
+   - Read the error message and suggestion carefully
+   - If recoverable, try to fix the issue (e.g., correct parameters)
+   - If not recoverable, explain the limitation to the user
+   - Suggest alternative approaches if available
+
+3. **Error response format**:
+   When a tool fails, you'll receive:
+   ```json
+   {
+     "error": true,
+     "type": "error_type",
+     "message": "description",
+     "suggestion": "what to do"
+   }
+   ```
+
+4. **Never**:
+   - Retry the exact same call more than twice
+   - Ignore errors and make up information
+   - Expose internal error details to users
+
+5. **Always**:
+   - Acknowledge limitations honestly
+   - Offer alternative solutions when possible
+   - Ask for clarification if inputs are unclear</code></pre>
+        </div>
+
+        <h2 id="multi-tool">Multi-Tool Orchestration</h2>
+
+        <p>Complex tasks often require coordinating multiple tools. Effective orchestration involves planning tool sequences and handling dependencies.</p>
+
+        <h3>Tool Planning</h3>
+
+        <div class="example-box">
+            <h4>Multi-Tool Task</h4>
+            <pre><code>**User Request**: "Find all customers who haven't logged in for 30 days and send them a re-engagement email"
+
+**Available Tools**:
+1. query_database - Query customer data
+2. send_email - Send emails to customers
+3. log_action - Record actions for audit
+
+**Tool Execution Plan**:
+
+Step 1: Query inactive customers
+Tool: query_database
+Input: {
+  "query": "SELECT email, name, last_login FROM customers WHERE last_login < NOW() - INTERVAL '30 days'"
+}
+
+Step 2: For each customer, send email
+Tool: send_email (loop)
+Input: {
+  "to": "[customer_email]",
+  "template": "re_engagement",
+  "variables": {"name": "[customer_name]", "days_inactive": "[days]"}
+}
+
+Step 3: Log the campaign
+Tool: log_action
+Input: {
+  "action": "re_engagement_campaign",
+  "details": {"customers_contacted": "[count]", "timestamp": "[now]"}
+}</code></pre>
+        </div>
+
+        <h3>Parallel Tool Execution</h3>
+
+        <div class="example-box">
+            <h4>Parallel Tool Calls (OpenAI)</h4>
+            <pre><code class="language-python">from openai import OpenAI
+import json
+import asyncio
+
+client = OpenAI()
+
+# Define multiple tools
+tools = [
+    {"type": "function", "function": {"name": "get_weather", ...}},
+    {"type": "function", "function": {"name": "get_traffic", ...}},
+    {"type": "function", "function": {"name": "get_events", ...}}
+]
+
+response = client.chat.completions.create(
+    model="gpt-4o",
+    messages=[{"role": "user", "content": "Plan my day trip to Tokyo tomorrow"}],
+    tools=tools,
+    parallel_tool_calls=True  # Enable parallel calls
+)
+
+message = response.choices[0].message
+
+if message.tool_calls:
+    # Model requested multiple tools in parallel
+    # Execute them concurrently
+    async def execute_tools(tool_calls):
+        tasks = []
+        for tc in tool_calls:
+            func_name = tc.function.name
+            args = json.loads(tc.function.arguments)
+            tasks.append(execute_tool_async(func_name, args))
+        return await asyncio.gather(*tasks)
+
+    results = asyncio.run(execute_tools(message.tool_calls))
+
+    # Send all results back
+    tool_messages = [
+        {
+            "role": "tool",
+            "tool_call_id": tc.id,
+            "content": json.dumps(result)
+        }
+        for tc, result in zip(message.tool_calls, results)
+    ]
+
+    final_response = client.chat.completions.create(
+        model="gpt-4o",
+        messages=[
+            {"role": "user", "content": "Plan my day trip to Tokyo tomorrow"},
+            message,
+            *tool_messages
+        ]
+    )</code></pre>
+        </div>
+
+        <h3>Tool Chaining Pattern</h3>
+
+        <div class="example-box">
+            <h4>Chained Tool Execution</h4>
+            <pre><code class="language-python">def handle_complex_request(user_message: str, max_iterations: int = 5):
+    """Handle requests that may require multiple tool calls"""
+
+    messages = [{"role": "user", "content": user_message}]
+
+    for i in range(max_iterations):
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=messages,
+            tools=tools
+        )
+
+        assistant_message = response.choices[0].message
+        messages.append(assistant_message)
+
+        # Check if model is done (no more tool calls)
+        if not assistant_message.tool_calls:
+            return assistant_message.content
+
+        # Execute all requested tools
+        for tool_call in assistant_message.tool_calls:
+            result = execute_tool(
+                tool_call.function.name,
+                json.loads(tool_call.function.arguments)
+            )
+            messages.append({
+                "role": "tool",
+                "tool_call_id": tool_call.id,
+                "content": json.dumps(result)
+            })
+
+    # Max iterations reached
+    return "I wasn't able to complete the task within the allowed steps."</code></pre>
+        </div>
+
+        <h2 id="security">Security Considerations</h2>
+
+        <div class="note">
+            <h4>Security Best Practices</h4>
+            <ul>
+                <li><strong>Input validation</strong>: Always validate tool inputs before execution</li>
+                <li><strong>Principle of least privilege</strong>: Tools should only have necessary permissions</li>
+                <li><strong>Rate limiting</strong>: Prevent abuse through rate limits on tool calls</li>
+                <li><strong>Audit logging</strong>: Log all tool executions for security review</li>
+                <li><strong>Sandboxing</strong>: Run dangerous tools in isolated environments</li>
+                <li><strong>User confirmation</strong>: Require confirmation for destructive actions</li>
+            </ul>
+        </div>
+
+        <div class="example-box">
+            <h4>Confirmation for Destructive Actions</h4>
+            <pre><code class="language-python">DESTRUCTIVE_TOOLS = {"delete_file", "drop_table", "send_email", "make_payment"}
+
+def execute_with_confirmation(tool_name: str, arguments: dict, user_id: str):
+    """Execute tool with confirmation for destructive actions"""
+
+    if tool_name in DESTRUCTIVE_TOOLS:
+        # Generate confirmation token
+        token = generate_confirmation_token(tool_name, arguments, user_id)
+
+        return {
+            "requires_confirmation": True,
+            "action": tool_name,
+            "details": arguments,
+            "confirmation_token": token,
+            "message": f"This action will {describe_action(tool_name, arguments)}. Please confirm."
+        }
+
+    # Non-destructive: execute immediately
+    return execute_tool(tool_name, arguments)</code></pre>
+        </div>
+
+        <h2 id="exercises">Exercises</h2>
+
+        <h3>Exercise 1: Tool Definition (Difficulty: Easy)</h3>
+        <div class="note">
+            <p><strong>Task</strong>: Define a JSON Schema for a <code>translate_text</code> tool with:</p>
+            <ul>
+                <li>Required: text to translate, target language</li>
+                <li>Optional: source language (auto-detect if not provided)</li>
+                <li>Enum for supported languages</li>
+            </ul>
+        </div>
+
+        <h3>Exercise 2: Error Handling (Difficulty: Medium)</h3>
+        <div class="note">
+            <p><strong>Task</strong>: Implement error handling for a <code>fetch_stock_price</code> tool that:</p>
+            <ul>
+                <li>Handles network errors with retry logic</li>
+                <li>Validates stock symbols</li>
+                <li>Handles market-closed scenarios</li>
+            </ul>
+        </div>
+
+        <h3>Exercise 3: MCP Server (Difficulty: Medium)</h3>
+        <div class="note">
+            <p><strong>Task</strong>: Design an MCP server for a "Note Taking" application with tools for:</p>
+            <ul>
+                <li><code>create_note</code></li>
+                <li><code>search_notes</code></li>
+                <li><code>update_note</code></li>
+                <li><code>delete_note</code></li>
+            </ul>
+            <p>Include proper schemas and error handling.</p>
+        </div>
+
+        <h3>Exercise 4: Multi-Tool Orchestration (Difficulty: Advanced)</h3>
+        <div class="note">
+            <p><strong>Task</strong>: Create a system prompt and tool definitions for a "Travel Planning Assistant" with:</p>
+            <ul>
+                <li>Flight search</li>
+                <li>Hotel booking</li>
+                <li>Weather forecast</li>
+                <li>Currency conversion</li>
+            </ul>
+            <p>Design the orchestration flow for "Plan a 3-day trip to Paris next month."</p>
+        </div>
+
+        <h3>Exercise 5: Security Implementation (Difficulty: Advanced)</h3>
+        <div class="note">
+            <p><strong>Task</strong>: Implement a secure tool execution wrapper that includes:</p>
+            <ul>
+                <li>Input sanitization</li>
+                <li>Rate limiting (max 10 calls per minute)</li>
+                <li>Audit logging</li>
+                <li>Permission checking based on user role</li>
+            </ul>
+        </div>
+
+        <h2 id="key-takeaways-section">Chapter Summary</h2>
+
+        <div class="key-takeaways">
+            <h3>Key Points</h3>
+            <ul>
+                <li><strong>Function Calling</strong>: Enables LLMs to interact with external systems through well-defined tool interfaces</li>
+                <li><strong>Schema Design</strong>: Clear descriptions and proper parameter definitions are crucial for reliable tool use</li>
+                <li><strong>MCP</strong>: Open standard for connecting LLMs to tools and resources across different platforms</li>
+                <li><strong>Error Handling</strong>: Always implement comprehensive error handling with graceful recovery</li>
+                <li><strong>Multi-Tool Orchestration</strong>: Complex tasks require planning tool sequences and handling parallel/chained execution</li>
+                <li><strong>Security</strong>: Validate inputs, use least privilege, and require confirmation for destructive actions</li>
+            </ul>
+        </div>
+
+        <h2 id="next-steps">Next Steps</h2>
+
+        <p>In Chapter 5, we'll put everything together with practical projects:</p>
+        <ul>
+            <li>Building a document analysis system</li>
+            <li>Vision prompting for multimodal applications</li>
+            <li>Prompt caching for cost optimization</li>
+            <li>Production deployment considerations</li>
+        </ul>
+
+        <div class="nav-buttons">
+            <a href="./chapter-3.html" class="nav-button">Chapter 3</a>
+            <a href="./chapter-5.html" class="nav-button">Chapter 5</a>
+        </div>
+
+        <hr>
+
+        <h2 id="references">References</h2>
+        <ul>
+            <li>OpenAI. (2024). <em>Function Calling Documentation</em></li>
+            <li>Anthropic. (2024). <em>Model Context Protocol Specification</em></li>
+            <li>Google. (2024). <em>Gemini Function Calling Guide</em></li>
+            <li>LangChain. (2024). <em>Tool Use in LangChain</em></li>
+        </ul>
+
+        <hr>
+
+        <p><strong>Update History</strong></p>
+        <ul>
+            <li><strong>2026-01-12</strong>: v2.0 Initial release with MCP coverage</li>
+        </ul>
+
+    </main>
+
+    <section class="disclaimer">
+        <h3>Disclaimer</h3>
+        <ul>
+            <li>This content is provided for educational purposes.</li>
+            <li>Code examples are provided "AS IS" without warranties.</li>
+            <li>Always follow security best practices in production deployments.</li>
+        </ul>
+    </section>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 AI Terakoya - Dr. Yusuke Hashimoto, Tohoku University</p>
+            <p>Licensed under CC BY 4.0</p>
+        </div>
+    </footer>
+</body>
+</html>

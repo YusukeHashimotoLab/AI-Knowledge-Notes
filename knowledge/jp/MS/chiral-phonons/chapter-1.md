@@ -7,6 +7,24 @@ reading_time: "約25分"
 last_updated: "2025-12-19"
 ---
 
+## ビデオ講義
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/WFXDUTY74Ws"
+    title="カイラルフォノン 第1章: 理論的基礎"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> このビデオは以下のテキストと同じ内容をカバーしています。お好みの学習形式をお選びください。
+
+---
+
 [🌐 EN](../../../en/MS/chiral-phonons/chapter-1.md) | 🇯🇵 JP | Last sync: 2025-12-19
 
 # 第1章: カイラルフォノンの理論的基礎

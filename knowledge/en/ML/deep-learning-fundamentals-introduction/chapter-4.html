@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 4: Regularization and Optimization - Deep Learning Fundamentals Introduction - AI Terakoya</title>
+    <meta name="description" content="Learn regularization techniques including L1, L2, Dropout, and Batch Normalization. Master optimization algorithms like Adam and learning rate scheduling for better model training.">
+
+    <style>
+        :root {
+            --color-primary: #2c3e50;
+            --color-primary-dark: #1a252f;
+            --color-accent: #7b2cbf;
+            --color-accent-light: #9d4edd;
+            --color-text: #2d3748;
+            --color-text-light: #4a5568;
+            --color-bg: #ffffff;
+            --color-bg-alt: #f7fafc;
+            --color-border: #e2e8f0;
+            --color-code-bg: #f8f9fa;
+            --color-link: #3182ce;
+            --color-link-hover: #2c5aa0;
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+            --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+            --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+            --border-radius: 8px;
+            --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: var(--font-body); line-height: 1.7; color: var(--color-text); background-color: var(--color-bg); font-size: 16px; }
+        header { background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%); color: white; padding: var(--spacing-xl) var(--spacing-md); margin-bottom: var(--spacing-xl); box-shadow: var(--box-shadow); }
+        .header-content { max-width: 900px; margin: 0 auto; }
+        h1 { font-size: 2rem; font-weight: 700; margin-bottom: var(--spacing-sm); line-height: 1.2; }
+        .subtitle { font-size: 1.1rem; opacity: 0.95; font-weight: 400; margin-bottom: var(--spacing-md); }
+        .meta { display: flex; flex-wrap: wrap; gap: var(--spacing-md); font-size: 0.9rem; opacity: 0.9; }
+        .meta-item { display: flex; align-items: center; gap: 0.3rem; }
+        .container { max-width: 900px; margin: 0 auto; padding: 0 var(--spacing-md) var(--spacing-xl); }
+        h2 { font-size: 1.75rem; color: var(--color-primary); margin-top: var(--spacing-xl); margin-bottom: var(--spacing-md); padding-bottom: var(--spacing-xs); border-bottom: 3px solid var(--color-accent); }
+        h3 { font-size: 1.4rem; color: var(--color-primary); margin-top: var(--spacing-lg); margin-bottom: var(--spacing-sm); }
+        h4 { font-size: 1.1rem; color: var(--color-primary-dark); margin-top: var(--spacing-md); margin-bottom: var(--spacing-sm); }
+        p { margin-bottom: var(--spacing-md); color: var(--color-text); }
+        a { color: var(--color-link); text-decoration: none; transition: color 0.2s; }
+        a:hover { color: var(--color-link-hover); text-decoration: underline; }
+        ul, ol { margin-left: var(--spacing-lg); margin-bottom: var(--spacing-md); }
+        li { margin-bottom: var(--spacing-xs); color: var(--color-text); }
+        pre { background-color: var(--color-code-bg); border: 1px solid var(--color-border); border-radius: var(--border-radius); padding: var(--spacing-md); overflow-x: auto; margin-bottom: var(--spacing-md); font-family: var(--font-mono); font-size: 0.9rem; line-height: 1.5; }
+        code { font-family: var(--font-mono); font-size: 0.9em; background-color: var(--color-code-bg); padding: 0.2em 0.4em; border-radius: 3px; }
+        pre code { background-color: transparent; padding: 0; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: var(--spacing-md); font-size: 0.95rem; }
+        th, td { border: 1px solid var(--color-border); padding: var(--spacing-sm); text-align: left; }
+        th { background-color: var(--color-bg-alt); font-weight: 600; color: var(--color-primary); }
+        .mermaid { text-align: center; margin: var(--spacing-lg) 0; background-color: var(--color-bg-alt); padding: var(--spacing-md); border-radius: var(--border-radius); }
+        details { background-color: var(--color-bg-alt); border: 1px solid var(--color-border); border-radius: var(--border-radius); padding: var(--spacing-md); margin-bottom: var(--spacing-md); }
+        summary { cursor: pointer; font-weight: 600; color: var(--color-primary); user-select: none; padding: var(--spacing-md); margin: calc(-1 * var(--spacing-md)); border-radius: var(--border-radius); }
+        summary:hover { background-color: rgba(123, 44, 191, 0.1); }
+        details[open] summary { margin-bottom: var(--spacing-md); border-bottom: 1px solid var(--color-border); }
+        .chapter-description { margin: 1.5rem 0; padding: 1rem; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-left: 4px solid #7b2cbf; border-radius: 8px; font-size: 1.05rem; line-height: 1.8; color: #2d3748; }
+        .learning-objectives { background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); padding: var(--spacing-lg); border-radius: var(--border-radius); border-left: 4px solid var(--color-accent); margin-bottom: var(--spacing-xl); }
+        .learning-objectives h2 { margin-top: 0; border-bottom: none; }
+        .navigation { display: flex; justify-content: space-between; gap: var(--spacing-md); margin: var(--spacing-xl) 0; padding-top: var(--spacing-lg); border-top: 2px solid var(--color-border); }
+        .nav-button { flex: 1; padding: var(--spacing-md); background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%); color: white; border-radius: var(--border-radius); text-align: center; font-weight: 600; transition: transform 0.2s, box-shadow 0.2s; box-shadow: var(--box-shadow); }
+        .nav-button:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); text-decoration: none; }
+        footer { margin-top: var(--spacing-xl); padding: var(--spacing-lg) var(--spacing-md); background-color: var(--color-bg-alt); border-top: 1px solid var(--color-border); text-align: center; font-size: 0.9rem; color: var(--color-text-light); }
+        .disclaimer { max-width: 900px; margin: 2rem auto; padding: 1.5rem; background: #f8f9fa; border-left: 4px solid #6c757d; border-radius: 4px; }
+        .disclaimer h3 { color: #495057; margin-bottom: 1rem; font-size: 1.1rem; }
+        .disclaimer ul { list-style: none; padding-left: 0; }
+        .disclaimer li { padding: 0.5rem 0; padding-left: 1.5rem; position: relative; font-size: 0.9rem; color: #6c757d; line-height: 1.6; }
+        .disclaimer li::before { content: "..."; position: absolute; left: 0; }
+        .breadcrumb { background: #f7fafc; padding: 0.75rem 1rem; border-bottom: 1px solid #e2e8f0; font-size: 0.9rem; }
+        .breadcrumb-content { max-width: 900px; margin: 0 auto; display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
+        .breadcrumb a { color: #667eea; text-decoration: none; transition: color 0.2s; }
+        .breadcrumb a:hover { color: #764ba2; text-decoration: underline; }
+        .breadcrumb-separator { color: #a0aec0; margin: 0 0.25rem; }
+        .breadcrumb-current { color: #4a5568; font-weight: 500; }
+        .info-box { background: #e3f2fd; border-left: 4px solid #2196f3; padding: var(--spacing-md); margin: var(--spacing-md) 0; border-radius: var(--border-radius); }
+        .warning-box { background: #fff3e0; border-left: 4px solid #ff9800; padding: var(--spacing-md); margin: var(--spacing-md) 0; border-radius: var(--border-radius); }
+        .success-box { background: #e8f5e9; border-left: 4px solid #4caf50; padding: var(--spacing-md); margin: var(--spacing-md) 0; border-radius: var(--border-radius); }
+        @media (max-width: 768px) {
+            h1 { font-size: 1.6rem; }
+            h2 { font-size: 1.4rem; }
+            h3 { font-size: 1.2rem; }
+            .container { padding: 0 var(--spacing-sm) var(--spacing-lg); }
+            .navigation { flex-direction: column; }
+        }
+    </style>
+
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof mermaid !== 'undefined') {
+                mermaid.initialize({ startOnLoad: true, theme: 'default' });
+            }
+        });
+    </script>
+</head>
+<body>
+    <nav class="breadcrumb">
+        <div class="breadcrumb-content">
+            <a href="../../index.html">AI Terakoya Home</a><span class="breadcrumb-separator">></span><a href="../index.html">Machine Learning</a><span class="breadcrumb-separator">></span><a href="./index.html">Deep Learning Fundamentals Introduction</a><span class="breadcrumb-separator">></span><span class="breadcrumb-current">Chapter 4</span>
+        </div>
+    </nav>
+
+    <header>
+        <div class="header-content">
+            <h1>Chapter 4: Regularization and Optimization</h1>
+            <p class="subtitle">Preventing Overfitting and Improving Training Efficiency</p>
+            <div class="meta">
+                <span class="meta-item">Reading Time: 30-35 minutes</span>
+                <span class="meta-item">Code Examples: 8</span>
+                <span class="meta-item">Exercises: 6</span>
+                <span class="meta-item">Difficulty: Intermediate</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="chapter-description">
+            In this chapter, we will learn techniques to improve model generalization and training efficiency. We will cover regularization methods to prevent overfitting, normalization techniques for stable training, and advanced optimization algorithms that adapt learning rates automatically.
+        </div>
+
+        <div class="learning-objectives">
+            <h2>Learning Objectives</h2>
+            <ul>
+                <li>Understand overfitting and the bias-variance tradeoff</li>
+                <li>Master L1 and L2 regularization techniques</li>
+                <li>Implement and apply Dropout correctly</li>
+                <li>Understand Batch Normalization and its variants</li>
+                <li>Know when to use different optimization algorithms (Adam, RMSprop)</li>
+                <li>Apply learning rate scheduling and early stopping</li>
+            </ul>
+        </div>
+
+        <h2 id="overfitting">1. Understanding Overfitting</h2>
+
+        <h3>1.1 Training Error vs Generalization Error</h3>
+
+        <p><strong>Overfitting</strong> occurs when a model learns the training data too well, including its noise and peculiarities, resulting in poor performance on new, unseen data.</p>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Scenario</th>
+                    <th>Training Error</th>
+                    <th>Validation Error</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Underfitting</strong></td>
+                    <td>High</td>
+                    <td>High</td>
+                    <td>Model too simple</td>
+                </tr>
+                <tr>
+                    <td><strong>Good Fit</strong></td>
+                    <td>Low</td>
+                    <td>Low</td>
+                    <td>Optimal</td>
+                </tr>
+                <tr>
+                    <td><strong>Overfitting</strong></td>
+                    <td>Very Low</td>
+                    <td>High</td>
+                    <td>Model memorizing</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>1.2 Bias-Variance Tradeoff</h3>
+
+        <p>The <strong>bias-variance tradeoff</strong> describes the relationship between model complexity and error:</p>
+
+        <p>$$\text{Total Error} = \text{Bias}^2 + \text{Variance} + \text{Irreducible Error}$$</p>
+
+        <ul>
+            <li><strong>Bias</strong>: Error from simplifying assumptions (underfitting)</li>
+            <li><strong>Variance</strong>: Error from sensitivity to training data (overfitting)</li>
+            <li><strong>Irreducible Error</strong>: Noise inherent in the problem</li>
+        </ul>
+
+        <div class="mermaid">
+graph LR
+    A[Model Complexity] --> B{Balance?}
+    B -->|Too Simple| C[High Bias<br/>Underfitting]
+    B -->|Just Right| D[Optimal<br/>Good Generalization]
+    B -->|Too Complex| E[High Variance<br/>Overfitting]
+
+    style D fill:#e8f5e9
+    style C fill:#fff3e0
+    style E fill:#ffebee
+        </div>
+
+        <h2 id="regularization">2. Regularization Techniques</h2>
+
+        <h3>2.1 L1 Regularization (Lasso)</h3>
+
+        <p><strong>L1 regularization</strong> adds the sum of absolute weights to the loss function:</p>
+
+        <p>$$\mathcal{L}_{L1} = \mathcal{L}_{original} + \lambda \sum_{i} |w_i|$$</p>
+
+        <p><strong>Characteristics</strong>:</p>
+        <ul>
+            <li>Promotes <strong>sparsity</strong> (drives some weights to exactly zero)</li>
+            <li>Acts as <strong>feature selection</strong></li>
+            <li>Useful when many features are irrelevant</li>
+        </ul>
+
+        <pre><code class="language-python">import numpy as np
+
+def l1_regularization_loss(weights, lambda_l1=0.01):
+    """
+    Compute L1 regularization term
+
+    Parameters:
+    -----------
+    weights : list of ndarray
+        Network weights
+    lambda_l1 : float
+        Regularization strength
+
+    Returns:
+    --------
+    l1_loss : float
+        L1 regularization term
+    """
+    l1_loss = 0
+    for W in weights:
+        l1_loss += np.sum(np.abs(W))
+    return lambda_l1 * l1_loss
+
+def l1_gradient(W, lambda_l1=0.01):
+    """
+    Gradient of L1 regularization
+    """
+    return lambda_l1 * np.sign(W)
+
+# Example
+np.random.seed(42)
+W = np.random.randn(10, 5)
+
+l1_loss = l1_regularization_loss([W], lambda_l1=0.01)
+l1_grad = l1_gradient(W, lambda_l1=0.01)
+
+print(f"L1 Loss: {l1_loss:.4f}")
+print(f"L1 Gradient mean: {l1_grad.mean():.4f}")
+print(f"Non-zero gradient elements: {np.sum(l1_grad != 0)}")
+</code></pre>
+
+        <h3>2.2 L2 Regularization (Ridge / Weight Decay)</h3>
+
+        <p><strong>L2 regularization</strong> adds the sum of squared weights to the loss:</p>
+
+        <p>$$\mathcal{L}_{L2} = \mathcal{L}_{original} + \frac{\lambda}{2} \sum_{i} w_i^2$$</p>
+
+        <p><strong>Characteristics</strong>:</p>
+        <ul>
+            <li>Penalizes <strong>large weights</strong> more heavily</li>
+            <li>Encourages <strong>smaller, distributed weights</strong></li>
+            <li>Most commonly used regularization in deep learning</li>
+        </ul>
+
+        <pre><code class="language-python">import numpy as np
+
+def l2_regularization_loss(weights, lambda_l2=0.01):
+    """
+    Compute L2 regularization term
+
+    Parameters:
+    -----------
+    weights : list of ndarray
+        Network weights
+    lambda_l2 : float
+        Regularization strength (weight decay)
+
+    Returns:
+    --------
+    l2_loss : float
+        L2 regularization term
+    """
+    l2_loss = 0
+    for W in weights:
+        l2_loss += np.sum(W ** 2)
+    return 0.5 * lambda_l2 * l2_loss
+
+def l2_gradient(W, lambda_l2=0.01):
+    """
+    Gradient of L2 regularization
+    """
+    return lambda_l2 * W
+
+# Example: Compare weight distributions with/without L2
+np.random.seed(42)
+
+# Simulate training effect
+W_original = np.random.randn(100, 50) * 2  # Large weights
+
+# With L2, weights would be smaller
+W_l2 = W_original * 0.5  # Simulated effect
+
+print("Weight statistics:")
+print(f"  Original: mean={W_original.mean():.4f}, std={W_original.std():.4f}")
+print(f"  With L2:  mean={W_l2.mean():.4f}, std={W_l2.std():.4f}")
+print(f"\nL2 loss (original): {l2_regularization_loss([W_original]):.4f}")
+print(f"L2 loss (with L2):  {l2_regularization_loss([W_l2]):.4f}")
+</code></pre>
+
+        <h3>2.3 Dropout</h3>
+
+        <p><strong>Dropout</strong> randomly sets a fraction of neurons to zero during training, forcing the network to learn redundant representations.</p>
+
+        <p><strong>During training</strong>:</p>
+        <p>$$\tilde{h} = h \odot m, \quad m_i \sim \text{Bernoulli}(1-p)$$</p>
+
+        <p><strong>During inference</strong>:</p>
+        <p>$$h_{test} = h \cdot (1-p)$$</p>
+
+        <p>Or equivalently, scale during training (inverted dropout).</p>
+
+        <pre><code class="language-python">import numpy as np
+
+class Dropout:
+    """
+    Dropout layer implementation
+    """
+
+    def __init__(self, drop_rate=0.5):
+        """
+        Parameters:
+        -----------
+        drop_rate : float
+            Probability of dropping a neuron (0 to 1)
+        """
+        self.drop_rate = drop_rate
+        self.mask = None
+        self.training = True
+
+    def forward(self, X):
+        """
+        Forward pass with dropout
+
+        Parameters:
+        -----------
+        X : ndarray
+            Input activations
+
+        Returns:
+        --------
+        output : ndarray
+            Dropped out activations
+        """
+        if self.training and self.drop_rate > 0:
+            # Create binary mask
+            self.mask = np.random.binomial(1, 1 - self.drop_rate, X.shape)
+            # Apply mask and scale (inverted dropout)
+            return X * self.mask / (1 - self.drop_rate)
+        else:
+            return X
+
+    def backward(self, dout):
+        """
+        Backward pass
+        """
+        if self.training and self.drop_rate > 0:
+            return dout * self.mask / (1 - self.drop_rate)
+        else:
+            return dout
+
+    def train(self):
+        self.training = True
+
+    def eval(self):
+        self.training = False
+
+# Example usage
+np.random.seed(42)
+dropout = Dropout(drop_rate=0.5)
+
+X = np.ones((3, 5))  # All ones for clarity
+
+print("Dropout Example (drop_rate=0.5)")
+print("=" * 40)
+print(f"Input:\n{X}")
+
+dropout.train()
+output_train = dropout.forward(X)
+print(f"\nTraining mode output:\n{output_train}")
+print(f"Active neurons: {np.sum(output_train > 0)}/{X.size}")
+
+dropout.eval()
+output_eval = dropout.forward(X)
+print(f"\nEval mode output:\n{output_eval}")
+</code></pre>
+
+        <div class="warning-box">
+            <p><strong>Important</strong>: Always switch to evaluation mode during inference:</p>
+            <ul>
+                <li>PyTorch: <code>model.eval()</code></li>
+                <li>Training: Dropout active, Batch Norm uses batch statistics</li>
+                <li>Inference: Dropout disabled, Batch Norm uses running statistics</li>
+            </ul>
+        </div>
+
+        <h2 id="batch-norm">3. Batch Normalization</h2>
+
+        <h3>3.1 Internal Covariate Shift</h3>
+
+        <p><strong>Internal covariate shift</strong> refers to the change in the distribution of layer inputs during training. Batch Normalization addresses this by normalizing layer inputs.</p>
+
+        <h3>3.2 How Batch Normalization Works</h3>
+
+        <p>For a mini-batch of activations, Batch Norm performs:</p>
+
+        <ol>
+            <li><strong>Compute mean and variance</strong>:
+                <p>$$\mu_B = \frac{1}{m}\sum_{i=1}^{m} x_i, \quad \sigma_B^2 = \frac{1}{m}\sum_{i=1}^{m}(x_i - \mu_B)^2$$</p>
+            </li>
+            <li><strong>Normalize</strong>:
+                <p>$$\hat{x}_i = \frac{x_i - \mu_B}{\sqrt{\sigma_B^2 + \epsilon}}$$</p>
+            </li>
+            <li><strong>Scale and shift</strong> (learnable parameters):
+                <p>$$y_i = \gamma \hat{x}_i + \beta$$</p>
+            </li>
+        </ol>
+
+        <pre><code class="language-python">import numpy as np
+
+class BatchNorm:
+    """
+    Batch Normalization layer
+    """
+
+    def __init__(self, n_features, momentum=0.9, epsilon=1e-5):
+        self.gamma = np.ones((1, n_features))
+        self.beta = np.zeros((1, n_features))
+
+        # Running statistics for inference
+        self.running_mean = np.zeros((1, n_features))
+        self.running_var = np.ones((1, n_features))
+
+        self.momentum = momentum
+        self.epsilon = epsilon
+        self.training = True
+
+        # Cache for backprop
+        self.cache = {}
+
+    def forward(self, X):
+        if self.training:
+            # Compute batch statistics
+            mean = np.mean(X, axis=0, keepdims=True)
+            var = np.var(X, axis=0, keepdims=True)
+
+            # Update running statistics
+            self.running_mean = self.momentum * self.running_mean + (1 - self.momentum) * mean
+            self.running_var = self.momentum * self.running_var + (1 - self.momentum) * var
+
+            # Normalize
+            X_norm = (X - mean) / np.sqrt(var + self.epsilon)
+
+            # Cache for backprop
+            self.cache = {'X': X, 'mean': mean, 'var': var, 'X_norm': X_norm}
+        else:
+            # Use running statistics
+            X_norm = (X - self.running_mean) / np.sqrt(self.running_var + self.epsilon)
+
+        # Scale and shift
+        return self.gamma * X_norm + self.beta
+
+    def train(self):
+        self.training = True
+
+    def eval(self):
+        self.training = False
+
+# Example
+np.random.seed(42)
+bn = BatchNorm(n_features=4)
+
+# Simulated activations (batch_size=8, features=4)
+X = np.random.randn(8, 4) * 5 + 10  # Mean ~10, std ~5
+
+print("Batch Normalization Example")
+print("=" * 40)
+print(f"Input stats: mean={X.mean():.2f}, std={X.std():.2f}")
+
+bn.train()
+output = bn.forward(X)
+print(f"Output stats: mean={output.mean():.4f}, std={output.std():.4f}")
+</code></pre>
+
+        <h3>3.3 Layer Normalization Comparison</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Aspect</th>
+                    <th>Batch Normalization</th>
+                    <th>Layer Normalization</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Normalizes over</strong></td>
+                    <td>Batch dimension</td>
+                    <td>Feature dimension</td>
+                </tr>
+                <tr>
+                    <td><strong>Batch size dependency</strong></td>
+                    <td>Yes (needs large batches)</td>
+                    <td>No</td>
+                </tr>
+                <tr>
+                    <td><strong>Best for</strong></td>
+                    <td>CNNs, feedforward</td>
+                    <td>RNNs, Transformers</td>
+                </tr>
+                <tr>
+                    <td><strong>Inference behavior</strong></td>
+                    <td>Uses running stats</td>
+                    <td>Same as training</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h2 id="optimizers">4. Optimization Algorithms</h2>
+
+        <h3>4.1 SGD with Momentum</h3>
+
+        <p>Covered in Chapter 3. Accumulates velocity to accelerate consistent gradient directions.</p>
+
+        <h3>4.2 AdaGrad</h3>
+
+        <p><strong>AdaGrad</strong> adapts learning rates for each parameter based on historical gradients:</p>
+
+        <p>$$G_t = G_{t-1} + g_t^2$$</p>
+        <p>$$\theta_{t+1} = \theta_t - \frac{\eta}{\sqrt{G_t + \epsilon}} g_t$$</p>
+
+        <p><strong>Problem</strong>: Learning rate monotonically decreases, can become too small.</p>
+
+        <h3>4.3 RMSprop</h3>
+
+        <p><strong>RMSprop</strong> fixes AdaGrad's diminishing learning rate by using exponential moving average:</p>
+
+        <p>$$E[g^2]_t = \beta E[g^2]_{t-1} + (1-\beta) g_t^2$$</p>
+        <p>$$\theta_{t+1} = \theta_t - \frac{\eta}{\sqrt{E[g^2]_t + \epsilon}} g_t$$</p>
+
+        <h3>4.4 Adam / AdamW</h3>
+
+        <p><strong>Adam</strong> (Adaptive Moment Estimation) combines momentum and RMSprop:</p>
+
+        <p>$$m_t = \beta_1 m_{t-1} + (1-\beta_1) g_t \quad \text{(First moment)}$$</p>
+        <p>$$v_t = \beta_2 v_{t-1} + (1-\beta_2) g_t^2 \quad \text{(Second moment)}$$</p>
+        <p>$$\hat{m}_t = \frac{m_t}{1-\beta_1^t}, \quad \hat{v}_t = \frac{v_t}{1-\beta_2^t} \quad \text{(Bias correction)}$$</p>
+        <p>$$\theta_{t+1} = \theta_t - \frac{\eta}{\sqrt{\hat{v}_t} + \epsilon} \hat{m}_t$$</p>
+
+        <pre><code class="language-python">import numpy as np
+
+class Adam:
+    """
+    Adam optimizer implementation
+    """
+
+    def __init__(self, learning_rate=0.001, beta1=0.9, beta2=0.999, epsilon=1e-8):
+        self.lr = learning_rate
+        self.beta1 = beta1
+        self.beta2 = beta2
+        self.epsilon = epsilon
+        self.m = {}  # First moment
+        self.v = {}  # Second moment
+        self.t = 0   # Time step
+
+    def update(self, params, grads):
+        """
+        Update parameters using Adam
+
+        Parameters:
+        -----------
+        params : dict
+            Parameter name -> parameter array
+        grads : dict
+            Parameter name -> gradient array
+        """
+        self.t += 1
+
+        for name in params:
+            if name not in self.m:
+                self.m[name] = np.zeros_like(params[name])
+                self.v[name] = np.zeros_like(params[name])
+
+            # Update biased first moment estimate
+            self.m[name] = self.beta1 * self.m[name] + (1 - self.beta1) * grads[name]
+
+            # Update biased second raw moment estimate
+            self.v[name] = self.beta2 * self.v[name] + (1 - self.beta2) * (grads[name] ** 2)
+
+            # Compute bias-corrected first moment estimate
+            m_hat = self.m[name] / (1 - self.beta1 ** self.t)
+
+            # Compute bias-corrected second raw moment estimate
+            v_hat = self.v[name] / (1 - self.beta2 ** self.t)
+
+            # Update parameters
+            params[name] -= self.lr * m_hat / (np.sqrt(v_hat) + self.epsilon)
+
+# Compare optimizers
+def compare_optimizers():
+    """
+    Compare SGD, Momentum, and Adam on a test function
+    """
+    def rosenbrock(x, y):
+        return (1 - x)**2 + 100 * (y - x**2)**2
+
+    def rosenbrock_grad(x, y):
+        dx = -2 * (1 - x) - 400 * x * (y - x**2)
+        dy = 200 * (y - x**2)
+        return dx, dy
+
+    optimizers = {
+        'SGD': {'lr': 0.0001, 'momentum': 0},
+        'Momentum': {'lr': 0.0001, 'momentum': 0.9},
+        'Adam': {'lr': 0.01}
+    }
+
+    results = {}
+
+    for name, config in optimizers.items():
+        x, y = -1.0, 1.0
+        history = [(x, y, rosenbrock(x, y))]
+
+        if name == 'Adam':
+            m_x, m_y = 0, 0
+            v_x, v_y = 0, 0
+            beta1, beta2 = 0.9, 0.999
+            epsilon = 1e-8
+            lr = config['lr']
+
+            for t in range(1, 1001):
+                dx, dy = rosenbrock_grad(x, y)
+
+                m_x = beta1 * m_x + (1 - beta1) * dx
+                m_y = beta1 * m_y + (1 - beta1) * dy
+
+                v_x = beta2 * v_x + (1 - beta2) * dx**2
+                v_y = beta2 * v_y + (1 - beta2) * dy**2
+
+                m_x_hat = m_x / (1 - beta1**t)
+                m_y_hat = m_y / (1 - beta1**t)
+                v_x_hat = v_x / (1 - beta2**t)
+                v_y_hat = v_y / (1 - beta2**t)
+
+                x -= lr * m_x_hat / (np.sqrt(v_x_hat) + epsilon)
+                y -= lr * m_y_hat / (np.sqrt(v_y_hat) + epsilon)
+
+                history.append((x, y, rosenbrock(x, y)))
+        else:
+            v_x, v_y = 0, 0
+            lr = config['lr']
+            momentum = config['momentum']
+
+            for _ in range(1000):
+                dx, dy = rosenbrock_grad(x, y)
+
+                v_x = momentum * v_x + dx
+                v_y = momentum * v_y + dy
+
+                x -= lr * v_x
+                y -= lr * v_y
+
+                history.append((x, y, rosenbrock(x, y)))
+
+        results[name] = history
+        print(f"{name}: Final (x, y) = ({x:.4f}, {y:.4f}), loss = {rosenbrock(x, y):.6f}")
+
+    return results
+
+print("Optimizer Comparison on Rosenbrock Function")
+print("=" * 50)
+print("Minimum at (1, 1) with value 0")
+print()
+results = compare_optimizers()
+</code></pre>
+
+        <div class="info-box">
+            <p><strong>Optimizer Selection Guidelines</strong></p>
+            <ul>
+                <li><strong>Adam</strong>: Good default, works well for most problems</li>
+                <li><strong>SGD + Momentum</strong>: Often better final performance with tuning</li>
+                <li><strong>AdamW</strong>: Adam with proper weight decay, recommended for transformers</li>
+                <li><strong>RMSprop</strong>: Good for RNNs and non-stationary objectives</li>
+            </ul>
+        </div>
+
+        <h2 id="lr-scheduling">5. Learning Rate Scheduling</h2>
+
+        <h3>5.1 Step Decay</h3>
+
+        <p>Reduce learning rate by a factor at specific epochs:</p>
+
+        <p>$$\eta_t = \eta_0 \cdot \gamma^{\lfloor t / s \rfloor}$$</p>
+
+        <pre><code class="language-python">def step_decay(epoch, initial_lr=0.1, drop_factor=0.5, epochs_drop=10):
+    """
+    Step decay learning rate schedule
+    """
+    return initial_lr * (drop_factor ** (epoch // epochs_drop))
+
+# Example
+print("Step Decay Schedule:")
+for epoch in [0, 10, 20, 30, 40]:
+    lr = step_decay(epoch)
+    print(f"  Epoch {epoch}: lr = {lr:.4f}")
+</code></pre>
+
+        <h3>5.2 Cosine Annealing</h3>
+
+        <p>Smoothly decrease learning rate following a cosine curve:</p>
+
+        <p>$$\eta_t = \eta_{min} + \frac{1}{2}(\eta_{max} - \eta_{min})(1 + \cos(\frac{t \pi}{T}))$$</p>
+
+        <pre><code class="language-python">import numpy as np
+
+def cosine_annealing(epoch, total_epochs, lr_max=0.1, lr_min=0.0001):
+    """
+    Cosine annealing learning rate schedule
+    """
+    return lr_min + 0.5 * (lr_max - lr_min) * (1 + np.cos(np.pi * epoch / total_epochs))
+
+# Example
+print("\nCosine Annealing Schedule (50 epochs):")
+for epoch in [0, 10, 25, 40, 50]:
+    lr = cosine_annealing(epoch, total_epochs=50)
+    print(f"  Epoch {epoch}: lr = {lr:.6f}")
+</code></pre>
+
+        <h3>5.3 Warmup</h3>
+
+        <p><strong>Warmup</strong> gradually increases learning rate at the start of training:</p>
+
+        <pre><code class="language-python">def warmup_schedule(epoch, warmup_epochs=5, base_lr=0.1):
+    """
+    Linear warmup schedule
+    """
+    if epoch < warmup_epochs:
+        return base_lr * (epoch + 1) / warmup_epochs
+    return base_lr
+
+# Example with warmup + cosine decay
+def warmup_cosine(epoch, total_epochs=100, warmup_epochs=10, lr_max=0.1, lr_min=0.0001):
+    if epoch < warmup_epochs:
+        return lr_max * (epoch + 1) / warmup_epochs
+    else:
+        progress = (epoch - warmup_epochs) / (total_epochs - warmup_epochs)
+        return lr_min + 0.5 * (lr_max - lr_min) * (1 + np.cos(np.pi * progress))
+
+print("\nWarmup + Cosine Schedule:")
+for epoch in [0, 5, 10, 50, 100]:
+    lr = warmup_cosine(epoch)
+    print(f"  Epoch {epoch}: lr = {lr:.6f}")
+</code></pre>
+
+        <h2 id="early-stopping">6. Early Stopping</h2>
+
+        <p><strong>Early stopping</strong> monitors validation loss and stops training when it stops improving, preventing overfitting.</p>
+
+        <pre><code class="language-python">class EarlyStopping:
+    """
+    Early stopping to prevent overfitting
+    """
+
+    def __init__(self, patience=10, min_delta=0.0001, restore_best=True):
+        """
+        Parameters:
+        -----------
+        patience : int
+            Number of epochs to wait for improvement
+        min_delta : float
+            Minimum change to qualify as improvement
+        restore_best : bool
+            Whether to restore best weights
+        """
+        self.patience = patience
+        self.min_delta = min_delta
+        self.restore_best = restore_best
+
+        self.best_loss = float('inf')
+        self.counter = 0
+        self.best_weights = None
+
+    def __call__(self, val_loss, model_weights=None):
+        """
+        Check if training should stop
+
+        Returns:
+        --------
+        should_stop : bool
+            True if training should stop
+        """
+        if val_loss < self.best_loss - self.min_delta:
+            self.best_loss = val_loss
+            self.counter = 0
+            if self.restore_best and model_weights is not None:
+                self.best_weights = [w.copy() for w in model_weights]
+            return False
+        else:
+            self.counter += 1
+            if self.counter >= self.patience:
+                print(f"Early stopping triggered after {self.patience} epochs without improvement")
+                return True
+            return False
+
+# Simulate training with early stopping
+np.random.seed(42)
+early_stopping = EarlyStopping(patience=5)
+
+print("Simulated Training with Early Stopping")
+print("=" * 50)
+
+for epoch in range(100):
+    # Simulate val loss: decreases then increases (overfitting)
+    if epoch < 20:
+        val_loss = 1.0 - epoch * 0.03 + np.random.normal(0, 0.02)
+    else:
+        val_loss = 0.4 + (epoch - 20) * 0.02 + np.random.normal(0, 0.02)
+
+    if epoch % 5 == 0:
+        print(f"Epoch {epoch}: val_loss = {val_loss:.4f}")
+
+    if early_stopping(val_loss):
+        print(f"Stopped at epoch {epoch}")
+        print(f"Best validation loss: {early_stopping.best_loss:.4f}")
+        break
+</code></pre>
+
+        <h2 id="exercises">Exercises</h2>
+
+        <details>
+            <summary>Exercise 1: L1 vs L2 Regularization</summary>
+            <p><strong>Problem</strong>: Train two identical networks on the same data, one with L1 and one with L2 regularization:</p>
+            <ol>
+                <li>Compare the weight distributions (histogram)</li>
+                <li>Count the number of near-zero weights (|w| < 0.01)</li>
+                <li>Explain the difference in terms of sparsity</li>
+            </ol>
+        </details>
+
+        <details>
+            <summary>Exercise 2: Dropout Rate Experiment</summary>
+            <p><strong>Problem</strong>: Train networks with dropout rates of [0, 0.1, 0.3, 0.5, 0.7]:</p>
+            <ol>
+                <li>Plot training and validation accuracy for each</li>
+                <li>Find the optimal dropout rate</li>
+                <li>Observe what happens with very high dropout</li>
+            </ol>
+        </details>
+
+        <details>
+            <summary>Exercise 3: Batch Normalization Ablation</summary>
+            <p><strong>Problem</strong>: Compare training with and without Batch Normalization:</p>
+            <ol>
+                <li>Plot loss curves for both</li>
+                <li>Try different learning rates</li>
+                <li>Measure the sensitivity to initialization</li>
+            </ol>
+        </details>
+
+        <details>
+            <summary>Exercise 4: Optimizer Comparison</summary>
+            <p><strong>Problem</strong>: Train the same network with SGD, Momentum, RMSprop, and Adam:</p>
+            <ol>
+                <li>Use the same learning rate initially, then tune each</li>
+                <li>Plot convergence curves</li>
+                <li>Measure final test accuracy</li>
+            </ol>
+        </details>
+
+        <details>
+            <summary>Exercise 5: Learning Rate Schedule Design</summary>
+            <p><strong>Problem</strong>: Implement and compare:</p>
+            <ol>
+                <li>Constant learning rate</li>
+                <li>Step decay (halve every 20 epochs)</li>
+                <li>Cosine annealing</li>
+                <li>Warmup + cosine</li>
+            </ol>
+            <p>Which achieves the best final accuracy?</p>
+        </details>
+
+        <details>
+            <summary>Exercise 6: Early Stopping Analysis</summary>
+            <p><strong>Problem</strong>: Train a network prone to overfitting:</p>
+            <ol>
+                <li>Plot train/val loss without early stopping</li>
+                <li>Implement early stopping with patience=5, 10, 20</li>
+                <li>Compare final test accuracy for each patience value</li>
+            </ol>
+        </details>
+
+        <h2 id="summary">Summary</h2>
+
+        <p>In this chapter, we learned techniques to improve model training:</p>
+
+        <ul>
+            <li><strong>Overfitting</strong>: When models memorize training data; detected by gap between train/val loss</li>
+            <li><strong>L1/L2 Regularization</strong>: Penalize large weights; L1 promotes sparsity, L2 is most common</li>
+            <li><strong>Dropout</strong>: Randomly disable neurons during training for redundant representations</li>
+            <li><strong>Batch Normalization</strong>: Normalize layer inputs for stable, faster training</li>
+            <li><strong>Adam</strong>: Adaptive optimizer combining momentum and per-parameter learning rates</li>
+            <li><strong>Learning Rate Scheduling</strong>: Adjust learning rate during training (warmup, cosine decay)</li>
+            <li><strong>Early Stopping</strong>: Stop training when validation loss stops improving</li>
+        </ul>
+
+        <div class="success-box">
+            <p><strong>Next Chapter Preview</strong>: In Chapter 5, we will apply everything we've learned to practical projects, including MNIST classification, data preprocessing pipelines, model evaluation, and hyperparameter tuning.</p>
+        </div>
+
+        <div class="navigation">
+            <a href="./chapter-3.html" class="nav-button">Chapter 3</a>
+            <a href="./chapter-5.html" class="nav-button">Chapter 5</a>
+        </div>
+    </main>
+
+    <section class="disclaimer">
+        <h3>Disclaimer</h3>
+        <ul>
+            <li>This content is provided solely for educational purposes.</li>
+            <li>Code examples are provided "AS IS" without warranties.</li>
+            <li>Content may be changed without notice.</li>
+        </ul>
+    </section>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 AI Terakoya - Dr. Yusuke Hashimoto, Tohoku University</p>
+            <p>Licensed under CC BY 4.0</p>
+        </div>
+    </footer>
+</body>
+</html>

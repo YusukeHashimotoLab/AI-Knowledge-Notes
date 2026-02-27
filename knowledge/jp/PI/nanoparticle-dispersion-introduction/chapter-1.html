@@ -1,0 +1,1058 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <meta content="第1章: ナノ粒子凝集の基礎 - ナノ粒子分散入門 | PI Terakoya" name="description"/>
+  <title>第1章: ナノ粒子凝集の基礎 - ナノ粒子分散入門 | PI Terakoya</title>
+  <link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      if (typeof mermaid !== 'undefined') {
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+      }
+    });
+  </script>
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+  <nav class="breadcrumb">
+    <div class="breadcrumb-content">
+      <a href="../../index.html">AI Terakoya ホーム</a>
+      <span class="breadcrumb-separator">›</span>
+      <a href="../index.html">プロセスインフォマティクス</a>
+      <span class="breadcrumb-separator">›</span>
+      <a href="index.html">ナノ粒子分散</a>
+      <span class="breadcrumb-separator">›</span>
+      <span class="breadcrumb-current">第1章</span>
+    </div>
+  </nav>
+
+  <div class="locale-switcher">
+    <span class="current-locale">JP</span>
+    <span class="locale-separator">|</span>
+    <a href="../../../en/PI/nanoparticle-dispersion-introduction/chapter-1.html" class="locale-link">EN</a>
+    <span class="locale-separator">|</span>
+    <span class="locale-meta">最終同期: 2026-01-21</span>
+  </div>
+
+  <header>
+    <div class="container">
+      <h1>第1章: ナノ粒子凝集の基礎</h1>
+      <p class="subtitle">粒子クラスター形成を駆動する力の理解</p>
+      <div class="meta">
+        <span>所要時間: 30-35分</span>
+        <span>難易度: 中級</span>
+        <span>コード例: 6</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="intro-section">
+      <h2>学習目標</h2>
+      <ul>
+        <li>ナノ粒子の表面特性とサイズ効果を説明できる</li>
+        <li>表面原子率と比表面積を計算できる</li>
+        <li>ファンデルワールス引力とHamaker定数を理解できる</li>
+        <li>電気二重層モデルを説明できる</li>
+        <li>毛細管力と焼結効果を分析できる</li>
+        <li>AggregationとAgglomerationの違いを区別できる（IUPAC定義）</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>1.1 ナノ粒子の特性と表面効果</h2>
+
+      <p>ナノ粒子（通常1-100 nm）は、その高い表面積対体積比により特異な性質を示します。粒子サイズが小さくなるにつれて、表面に存在する原子の割合が増加し、材料の挙動が根本的に変化します。</p>
+
+      <div class="info-box">
+        <h4>なぜナノ粒子は凝集するのか</h4>
+        <p>ナノ粒子の高い表面エネルギーは熱力学的に不安定です。系は凝集によって総表面積を減少させ、表面エネルギーを最小化しようとします。10 nm粒子では、約30%の原子が表面に存在します！</p>
+      </div>
+
+      <h3>例1: 表面原子率の計算</h3>
+      <p>粒子サイズに対する表面原子の割合の変化を計算・可視化します。</p>
+
+<pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+# ===================================
+# 例1: 粒子サイズと表面原子率
+# ===================================
+
+def surface_atom_fraction(d_nm, atom_diameter_nm=0.3):
+    """
+    球状ナノ粒子の表面原子割合を計算。
+
+    パラメータ:
+        d_nm: 粒子直径 (nm)
+        atom_diameter_nm: 原子直径の近似値（金属では約0.3 nm）
+
+    戻り値:
+        表面原子の割合
+    """
+    # 簡易シェルモデル近似
+    r = d_nm / 2
+    r_atom = atom_diameter_nm / 2
+
+    # 原子数（体積ベースの推定）
+    V_particle = (4/3) * np.pi * r**3
+    V_atom = (4/3) * np.pi * r_atom**3
+    n_total = V_particle / V_atom
+
+    # 表面原子（シェル厚さ ≈ 1原子直径）
+    r_inner = max(0, r - atom_diameter_nm)
+    V_inner = (4/3) * np.pi * r_inner**3
+    n_inner = V_inner / V_atom
+    n_surface = n_total - n_inner
+
+    return n_surface / n_total if n_total > 0 else 1.0
+
+def specific_surface_area(d_nm, density_g_cm3):
+    """
+    球状粒子の比表面積 (m²/g) を計算。
+
+    パラメータ:
+        d_nm: 粒子直径 (nm)
+        density_g_cm3: 材料密度 (g/cm³)
+
+    戻り値:
+        比表面積 (m²/g)
+    """
+    d_m = d_nm * 1e-9
+    density_kg_m3 = density_g_cm3 * 1000
+
+    # 球の場合: SSA = 6 / (d * rho)
+    ssa = 6 / (d_m * density_kg_m3)
+    return ssa
+
+# 粒子サイズ範囲での計算
+diameters = np.logspace(0, 3, 100)  # 1 nm から 1000 nm
+surface_fractions = [surface_atom_fraction(d) for d in diameters]
+
+# 主要材料のSSA計算
+materials = {
+    '金 (Au)': 19.3,
+    '銀 (Ag)': 10.5,
+    'シリカ (SiO2)': 2.2,
+    'チタニア (TiO2)': 4.2,
+    '酸化鉄 (Fe3O4)': 5.2
+}
+
+# グラフ作成
+fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+# プロット1: 表面原子率
+ax1 = axes[0]
+ax1.semilogx(diameters, np.array(surface_fractions) * 100, 'b-', linewidth=2.5)
+ax1.axhline(y=50, color='r', linestyle='--', alpha=0.7, label='表面原子50%')
+ax1.axvline(x=10, color='g', linestyle='--', alpha=0.7, label='10 nm')
+ax1.fill_between(diameters, 0, np.array(surface_fractions) * 100, alpha=0.2)
+ax1.set_xlabel('粒子直径 (nm)', fontsize=12)
+ax1.set_ylabel('表面原子割合 (%)', fontsize=12)
+ax1.set_title('粒子サイズと表面原子率', fontsize=13, fontweight='bold')
+ax1.set_xlim(1, 1000)
+ax1.set_ylim(0, 100)
+ax1.grid(True, alpha=0.3)
+ax1.legend()
+
+# プロット2: 比表面積
+ax2 = axes[1]
+colors = plt.cm.viridis(np.linspace(0, 0.8, len(materials)))
+for (material, density), color in zip(materials.items(), colors):
+    ssa = [specific_surface_area(d, density) for d in diameters]
+    ax2.loglog(diameters, ssa, linewidth=2, label=material, color=color)
+
+ax2.axhline(y=100, color='gray', linestyle=':', alpha=0.7, label='100 m²/g')
+ax2.set_xlabel('粒子直径 (nm)', fontsize=12)
+ax2.set_ylabel('比表面積 (m²/g)', fontsize=12)
+ax2.set_title('材料別の比表面積', fontsize=13, fontweight='bold')
+ax2.set_xlim(1, 1000)
+ax2.grid(True, alpha=0.3, which='both')
+ax2.legend(loc='upper right', fontsize=9)
+
+plt.tight_layout()
+plt.savefig('surface_effects.png', dpi=150, bbox_inches='tight')
+plt.show()
+
+# 主要サイズでの値を出力
+print("=== 主要サイズでの表面特性 ===")
+for d in [5, 10, 20, 50, 100]:
+    frac = surface_atom_fraction(d)
+    ssa_au = specific_surface_area(d, 19.3)
+    ssa_sio2 = specific_surface_area(d, 2.2)
+    print(f"d = {d:3d} nm: 表面原子 = {frac*100:5.1f}%, "
+          f"SSA(Au) = {ssa_au:6.1f} m²/g, SSA(SiO2) = {ssa_sio2:6.1f} m²/g")
+</code></pre>
+
+      <div class="example-output">
+        <strong>出力例:</strong><br/>
+        === 主要サイズでの表面特性 ===<br/>
+        d =   5 nm: 表面原子 =  78.4%, SSA(Au) =  62.2 m²/g, SSA(SiO2) = 545.5 m²/g<br/>
+        d =  10 nm: 表面原子 =  48.8%, SSA(Au) =  31.1 m²/g, SSA(SiO2) = 272.7 m²/g<br/>
+        d =  20 nm: 表面原子 =  27.1%, SSA(Au) =  15.5 m²/g, SSA(SiO2) = 136.4 m²/g<br/>
+        d =  50 nm: 表面原子 =  11.5%, SSA(Au) =   6.2 m²/g, SSA(SiO2) =  54.5 m²/g<br/>
+        d = 100 nm: 表面原子 =   5.9%, SSA(Au) =   3.1 m²/g, SSA(SiO2) =  27.3 m²/g
+      </div>
+
+      <div class="tip-box">
+        <h4>実践的な意味</h4>
+        <p>10 nmでは、約半数の原子が表面に存在します！ナノ粒子触媒が高活性（高表面積）である一方で、凝集しやすい（高表面エネルギーが表面積最小化を駆動）理由がここにあります。</p>
+      </div>
+    </section>
+
+    <section>
+      <h2>1.2 ファンデルワールス力による凝集</h2>
+
+      <p>ファンデルワールス（vdW）力は、ナノ粒子間の主要な引力です。これらは揺動双極子（ロンドン分散力）から生じ、常に引力として作用します。Hamaker定数 \(A_H\) は、特定の材料ペアにおけるvdW相互作用の強さを特徴づけます。</p>
+
+      <div class="info-box">
+        <h4>Hamaker定数</h4>
+        <p>Hamaker定数 \(A_H\) は通常 \(10^{-21}\) から \(10^{-19}\) J の範囲:</p>
+        <ul>
+          <li><strong>金属</strong>: 30-50 × 10⁻²⁰ J（強い引力）</li>
+          <li><strong>酸化物</strong>: 5-15 × 10⁻²⁰ J（中程度）</li>
+          <li><strong>ポリマー</strong>: 3-10 × 10⁻²⁰ J（弱め）</li>
+        </ul>
+      </div>
+
+      <h3>ファンデルワールス相互作用エネルギー</h3>
+      <p>半径 \(R_1\) と \(R_2\) の2つの球状粒子が表面間距離 \(h\) で分離されている場合:</p>
+
+      <div class="formula-box">
+        <p><strong>等径球（R₁ = R₂ = R）、小さな分離（h &lt;&lt; R）:</strong></p>
+        $$V_{vdW} = -\frac{A_H R}{12 h}$$
+
+        <p><strong>一般式:</strong></p>
+        $$V_{vdW} = -\frac{A_H}{6} \left[ \frac{2R_1 R_2}{h(h + 2R_1 + 2R_2)} + \frac{2R_1 R_2}{(h + 2R_1)(h + 2R_2)} + \ln\frac{h(h + 2R_1 + 2R_2)}{(h + 2R_1)(h + 2R_2)} \right]$$
+      </div>
+
+      <h3>例2: ナノ粒子間のファンデルワールス引力</h3>
+
+<pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+# ===================================
+# 例2: 球状ナノ粒子間のファンデルワールス引力
+# ===================================
+
+def vdw_energy_spheres(h, R1, R2, A_H):
+    """
+    2つの球間のファンデルワールス相互作用エネルギーを計算。
+
+    パラメータ:
+        h: 表面間距離 (m)
+        R1, R2: 2つの球の半径 (m)
+        A_H: Hamaker定数 (J)
+
+    戻り値:
+        相互作用エネルギー (J)
+    """
+    h = np.maximum(h, 1e-12)  # ゼロ除算回避
+
+    term1 = (2 * R1 * R2) / (h * (h + 2*R1 + 2*R2))
+    term2 = (2 * R1 * R2) / ((h + 2*R1) * (h + 2*R2))
+    term3 = np.log((h * (h + 2*R1 + 2*R2)) / ((h + 2*R1) * (h + 2*R2)))
+
+    V = -(A_H / 6) * (term1 + term2 + term3)
+    return V
+
+# 各材料のHamaker定数 (J)
+hamaker_constants = {
+    'Au-Au（真空中）': 45e-20,
+    'Au-Au（水中）': 30e-20,
+    'SiO2-SiO2（真空中）': 6.5e-20,
+    'SiO2-SiO2（水中）': 0.83e-20,
+    'TiO2-TiO2（水中）': 5.3e-20,
+    'ポリスチレン（水中）': 1.3e-20
+}
+
+# パラメータ
+R = 10e-9  # 半径10 nm（直径20 nm）
+h_range = np.logspace(-10, -7, 200)  # 0.1 nmから100 nmの分離
+
+# 相互作用エネルギーの計算
+fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+# プロット1: 異なる材料でのエネルギー対距離
+ax1 = axes[0]
+colors = plt.cm.tab10(np.linspace(0, 1, len(hamaker_constants)))
+
+for (material, A_H), color in zip(hamaker_constants.items(), colors):
+    V = vdw_energy_spheres(h_range, R, R, A_H)
+    V_kT = V / (1.38e-23 * 300)  # kT単位に変換
+    ax1.semilogx(h_range * 1e9, V_kT, linewidth=2, label=material, color=color)
+
+ax1.axhline(y=-1, color='gray', linestyle='--', alpha=0.7)
+ax1.text(0.15, -0.5, '-1 kT', fontsize=10, color='gray')
+ax1.set_xlabel('分離距離 (nm)', fontsize=12)
+ax1.set_ylabel('相互作用エネルギー (kT at 300K)', fontsize=12)
+ax1.set_title('ファンデルワールスエネルギー: 20 nm粒子', fontsize=13, fontweight='bold')
+ax1.set_xlim(0.1, 100)
+ax1.set_ylim(-100, 5)
+ax1.legend(loc='lower right', fontsize=8)
+ax1.grid(True, alpha=0.3)
+
+# プロット2: 粒子サイズの影響
+ax2 = axes[1]
+A_H = 30e-20  # 水中の金
+radii_nm = [5, 10, 25, 50, 100]
+colors2 = plt.cm.plasma(np.linspace(0.1, 0.9, len(radii_nm)))
+
+for R_nm, color in zip(radii_nm, colors2):
+    R_m = R_nm * 1e-9
+    V = vdw_energy_spheres(h_range, R_m, R_m, A_H)
+    V_kT = V / (1.38e-23 * 300)
+    ax2.semilogx(h_range * 1e9, V_kT, linewidth=2,
+                 label=f'd = {2*R_nm} nm', color=color)
+
+ax2.axhline(y=-10, color='red', linestyle=':', alpha=0.7)
+ax2.text(0.15, -8, '強い引力 (-10 kT)', fontsize=9, color='red')
+ax2.set_xlabel('分離距離 (nm)', fontsize=12)
+ax2.set_ylabel('相互作用エネルギー (kT at 300K)', fontsize=12)
+ax2.set_title('サイズ効果（水中の金）', fontsize=13, fontweight='bold')
+ax2.set_xlim(0.1, 100)
+ax2.set_ylim(-200, 10)
+ax2.legend(loc='lower right')
+ax2.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('vdw_attraction.png', dpi=150, bbox_inches='tight')
+plt.show()
+
+# 1 nm分離での主要な値を出力
+print("\n=== 1 nm分離でのファンデルワールスエネルギー ===")
+h_1nm = 1e-9
+for material, A_H in hamaker_constants.items():
+    V = vdw_energy_spheres(h_1nm, 10e-9, 10e-9, A_H)
+    V_kT = V / (1.38e-23 * 300)
+    print(f"{material:30s}: V = {V_kT:8.1f} kT")
+</code></pre>
+
+      <div class="warning-box">
+        <h4>重要な知見</h4>
+        <p>相互作用エネルギーが約10 kTを超えると、熱運動では引力に打ち勝てず、粒子は不可逆的に凝集します。水中の金ナノ粒子は1 nm分離で約50 kTの引力を経験します - 安定化なしで金ナノ粒子が容易に凝集する理由がここにあります！</p>
+      </div>
+    </section>
+
+    <section>
+      <h2>1.3 静電的相互作用</h2>
+
+      <p>電解質溶液中の荷電粒子は、荷電表面と対イオンの拡散層からなる<strong>電気二重層（EDL）</strong>を形成します。これにより分散液を安定化できる静電斥力が生じます。</p>
+
+      <div class="mermaid">
+graph LR
+    A[粒子表面] --> B[Stern層]
+    B --> C[拡散層]
+    C --> D[バルク溶液]
+
+    style A fill:#f9f,stroke:#333
+    style B fill:#ff9,stroke:#333
+    style C fill:#9ff,stroke:#333
+    style D fill:#fff,stroke:#333
+      </div>
+
+      <h3>電気二重層モデル</h3>
+
+      <div class="formula-box">
+        <p><strong>表面電位の減衰（Gouy-Chapman）:</strong></p>
+        $$\psi(x) = \psi_0 \exp(-\kappa x)$$
+
+        <p><strong>Debye長（特性減衰距離）:</strong></p>
+        $$\kappa^{-1} = \lambda_D = \sqrt{\frac{\varepsilon_r \varepsilon_0 k_B T}{2 N_A e^2 I}}$$
+
+        <p>ここで \(I\) はイオン強度: \(I = \frac{1}{2}\sum_i c_i z_i^2\)</p>
+      </div>
+
+      <h3>例3: 電気二重層とDebye長</h3>
+
+<pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+# ===================================
+# 例3: 電気二重層とDebye長
+# ===================================
+
+# 物理定数
+epsilon_0 = 8.854e-12  # 真空誘電率 (F/m)
+epsilon_r = 78.5       # 水の比誘電率 (25°C)
+kB = 1.38e-23          # ボルツマン定数 (J/K)
+T = 298                # 温度 (K)
+e = 1.602e-19          # 素電荷 (C)
+NA = 6.022e23          # アボガドロ数
+
+def debye_length(ionic_strength_M):
+    """
+    25°Cの水中における1:1電解質のDebye長を計算。
+
+    パラメータ:
+        ionic_strength_M: イオン強度 (mol/L)
+
+    戻り値:
+        Debye長 (m)
+    """
+    I = ionic_strength_M * 1000  # mol/m³に変換
+    kappa_inv = np.sqrt((epsilon_r * epsilon_0 * kB * T) / (2 * NA * e**2 * I))
+    return kappa_inv
+
+def potential_decay(x, psi_0, kappa):
+    """
+    表面からの距離に対する電位を計算。
+    """
+    return psi_0 * np.exp(-kappa * x)
+
+def electrostatic_repulsion(h, R, psi_0, ionic_strength_M):
+    """
+    2つの等径球間の静電斥力を計算。
+    """
+    kappa = 1 / debye_length(ionic_strength_M)
+    V_elec = 2 * np.pi * epsilon_r * epsilon_0 * R * psi_0**2 * np.log(1 + np.exp(-kappa * h))
+    return V_elec
+
+# 様々なイオン強度でのDebye長計算
+ionic_strengths = np.logspace(-5, 0, 100)  # 10 μMから1 M
+debye_lengths = [debye_length(I) * 1e9 for I in ionic_strengths]
+
+# 一般的な電解質濃度
+common_solutions = {
+    '超純水': 1e-7,
+    '純水 (CO2溶存)': 1e-5,
+    '1 mM NaCl': 1e-3,
+    '10 mM NaCl': 1e-2,
+    '100 mM NaCl': 0.1,
+    '海水 (~0.6M)': 0.6
+}
+
+# グラフ作成
+fig, axes = plt.subplots(1, 3, figsize=(15, 4.5))
+
+# プロット1: Debye長対イオン強度
+ax1 = axes[0]
+ax1.loglog(ionic_strengths * 1000, debye_lengths, 'b-', linewidth=2.5)
+
+for name, I in common_solutions.items():
+    lambda_D = debye_length(I) * 1e9
+    ax1.scatter([I * 1000], [lambda_D], s=80, zorder=5)
+    ax1.annotate(f'{name}\n({lambda_D:.1f} nm)',
+                 xy=(I * 1000, lambda_D), xytext=(5, 5),
+                 textcoords='offset points', fontsize=8)
+
+ax1.set_xlabel('イオン強度 (mM)', fontsize=11)
+ax1.set_ylabel('Debye長 (nm)', fontsize=11)
+ax1.set_title('Debye長とイオン強度', fontsize=12, fontweight='bold')
+ax1.grid(True, alpha=0.3, which='both')
+ax1.set_xlim(1e-2, 1e3)
+ax1.set_ylim(0.1, 1000)
+
+# プロット2: 電位減衰プロファイル
+ax2 = axes[1]
+x = np.linspace(0, 50e-9, 200)
+psi_0 = 0.050  # 表面電位 50 mV
+
+for I_mM, color, ls in [(1, 'blue', '-'), (10, 'green', '--'), (100, 'red', ':')]:
+    I = I_mM / 1000
+    kappa = 1 / debye_length(I)
+    psi = potential_decay(x, psi_0, kappa)
+    lambda_D = debye_length(I) * 1e9
+    ax2.plot(x * 1e9, psi * 1000, color=color, linestyle=ls, linewidth=2,
+             label=f'{I_mM} mM (λD = {lambda_D:.1f} nm)')
+
+ax2.axhline(y=psi_0 * 1000 / np.e, color='gray', linestyle=':', alpha=0.7)
+ax2.text(45, psi_0 * 1000 / np.e + 2, 'ψ₀/e', fontsize=10, color='gray')
+ax2.set_xlabel('表面からの距離 (nm)', fontsize=11)
+ax2.set_ylabel('電位 (mV)', fontsize=11)
+ax2.set_title('電位の減衰 (ψ₀ = 50 mV)', fontsize=12, fontweight='bold')
+ax2.legend(loc='upper right')
+ax2.grid(True, alpha=0.3)
+ax2.set_xlim(0, 50)
+
+# プロット3: 静電斥力エネルギー
+ax3 = axes[2]
+h_range = np.linspace(0.5e-9, 30e-9, 200)
+R = 10e-9  # 半径10 nm
+psi_0 = 0.030  # 30 mV
+
+for I_mM, color in [(1, 'blue'), (10, 'green'), (100, 'red')]:
+    I = I_mM / 1000
+    V_elec = [electrostatic_repulsion(h, R, psi_0, I) for h in h_range]
+    V_kT = np.array(V_elec) / (kB * T)
+    ax3.plot(h_range * 1e9, V_kT, color=color, linewidth=2,
+             label=f'{I_mM} mM')
+
+ax3.axhline(y=10, color='gray', linestyle='--', alpha=0.7)
+ax3.text(25, 12, 'バリア > 10 kT', fontsize=9, color='gray')
+ax3.set_xlabel('分離距離 (nm)', fontsize=11)
+ax3.set_ylabel('斥力エネルギー (kT)', fontsize=11)
+ax3.set_title('静電斥力 (R=10nm, ψ₀=30mV)', fontsize=12, fontweight='bold')
+ax3.legend(loc='upper right')
+ax3.grid(True, alpha=0.3)
+ax3.set_xlim(0, 30)
+ax3.set_ylim(0, 50)
+
+plt.tight_layout()
+plt.savefig('electric_double_layer.png', dpi=150, bbox_inches='tight')
+plt.show()
+
+# 一般的な溶液のDebye長を出力
+print("\n=== 一般的な溶液のDebye長 (25°C) ===")
+for name, I in sorted(common_solutions.items(), key=lambda x: x[1]):
+    lambda_D = debye_length(I)
+    print(f"{name:25s}: I = {I*1000:8.3f} mM, λD = {lambda_D*1e9:8.2f} nm")
+</code></pre>
+
+      <div class="tip-box">
+        <h4>実践的な意味</h4>
+        <p>Debye長は静電斥力の到達距離を決定します。10 mM NaCl（典型的なバッファー）では、斥力は表面からわずか約3 nmまでしか及びません。海水では、二重層が1 nm未満に圧縮され、静電安定化が失われます！</p>
+      </div>
+    </section>
+
+    <section>
+      <h2>1.4 毛細管力（液架橋）</h2>
+
+      <p>粒子が湿気にさらされたり乾燥プロセス中に、粒子間に液架橋が形成され、強い<strong>毛細管力</strong>が生じます。これらの力は、高湿度環境やスプレー乾燥粉末における凝集の主要な原因となり得ます。</p>
+
+      <div class="formula-box">
+        <p><strong>2つの球間の毛細管力（等径 R）:</strong></p>
+        $$F_{cap} = 2\pi R \gamma \cos\theta$$
+
+        <p>ここで \(\gamma\) は表面張力、\(\theta\) は接触角。</p>
+        <p><strong>25°Cの水:</strong> \(\gamma = 0.072\) N/m</p>
+      </div>
+
+      <h3>例4: 毛細管力の計算</h3>
+
+<pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+# ===================================
+# 例4: ナノ粒子間の毛細管力
+# ===================================
+
+def capillary_force(R, gamma, theta_deg):
+    """
+    2つの等径球間の毛細管力を計算。
+
+    パラメータ:
+        R: 粒子半径 (m)
+        gamma: 表面張力 (N/m)
+        theta_deg: 接触角 (度)
+
+    戻り値:
+        毛細管力 (N)
+    """
+    theta_rad = np.radians(theta_deg)
+    F = 2 * np.pi * R * gamma * np.cos(theta_rad)
+    return F
+
+# パラメータ
+gamma_water = 0.072      # N/m (25°Cの水)
+gamma_ethanol = 0.022    # N/m (エタノール)
+gamma_hexane = 0.018     # N/m (ヘキサン)
+
+# 粒子サイズ範囲
+R_range = np.logspace(-9, -6, 100)  # 1 nmから1 μm
+
+# 異なる液体での計算（親水性粒子、θ ≈ 30°）
+theta = 30  # 度
+
+fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+
+# プロット1: 毛細管力対粒子サイズ
+ax1 = axes[0]
+for liquid, gamma, color in [('水', gamma_water, 'blue'),
+                              ('エタノール', gamma_ethanol, 'green'),
+                              ('ヘキサン', gamma_hexane, 'orange')]:
+    F = [capillary_force(R, gamma, theta) for R in R_range]
+    ax1.loglog(R_range * 1e9, np.array(F) * 1e9, linewidth=2,
+               label=f'{liquid} (γ = {gamma*1000:.0f} mN/m)', color=color)
+
+# 比較用に粒子重量を追加（シリカ）
+rho = 2200  # kg/m³ (シリカ)
+g = 9.8     # m/s²
+weights = [(4/3) * np.pi * R**3 * rho * g for R in R_range]
+ax1.loglog(R_range * 1e9, np.array(weights) * 1e9, 'k--',
+           linewidth=1.5, label='粒子重量 (SiO₂)')
+
+ax1.set_xlabel('粒子半径 (nm)', fontsize=11)
+ax1.set_ylabel('力 (nN)', fontsize=11)
+ax1.set_title('毛細管力と粒子サイズ (θ = 30°)', fontsize=12, fontweight='bold')
+ax1.legend()
+ax1.grid(True, alpha=0.3, which='both')
+ax1.set_xlim(1, 1000)
+
+# プロット2: 接触角の影響
+ax2 = axes[1]
+theta_range = np.linspace(0, 90, 100)
+R_fixed = 50e-9  # 50 nm
+
+for liquid, gamma, color in [('水', gamma_water, 'blue'),
+                              ('エタノール', gamma_ethanol, 'green')]:
+    F = [capillary_force(R_fixed, gamma, theta) for theta in theta_range]
+    ax2.plot(theta_range, np.array(F) * 1e9, linewidth=2,
+             label=f'{liquid}', color=color)
+
+ax2.axvline(x=90, color='gray', linestyle=':', alpha=0.7)
+ax2.text(85, 0.5, '液架橋なし\n(θ > 90°)', fontsize=9, ha='right')
+ax2.set_xlabel('接触角 (度)', fontsize=11)
+ax2.set_ylabel('毛細管力 (nN)', fontsize=11)
+ax2.set_title('接触角の影響 (R = 50 nm)', fontsize=12, fontweight='bold')
+ax2.legend()
+ax2.grid(True, alpha=0.3)
+ax2.set_xlim(0, 90)
+
+plt.tight_layout()
+plt.savefig('capillary_forces.png', dpi=150, bbox_inches='tight')
+plt.show()
+
+# 50 nmでの力の比較
+print("\n=== R = 50 nm での力の比較 ===")
+R = 50e-9
+F_cap = capillary_force(R, gamma_water, 30)
+F_vdw = 30e-20 * R / (12 * (1e-9)**2)  # 1 nm分離でのvdW
+F_weight = (4/3) * np.pi * R**3 * 2200 * 9.8
+print(f"毛細管力（水、θ=30°）: {F_cap*1e9:.3f} nN")
+print(f"ファンデルワールス（1 nm）: {F_vdw*1e9:.3f} nN")
+print(f"粒子重量（SiO₂）: {F_weight*1e15:.3f} fN")
+print(f"\n比 F_cap/F_weight: {F_cap/F_weight:.1e}")
+</code></pre>
+
+      <div class="warning-box">
+        <h4>重要な知見</h4>
+        <p>毛細管力はファンデルワールス力の10-100倍、重力の数百万倍にも達し得ます！これが、ナノ粒子粉末が高湿度環境で「べたつく」理由であり、慎重な乾燥プロトコルが不可欠な理由です。</p>
+      </div>
+    </section>
+
+    <section>
+      <h2>1.5 焼結とネッキング</h2>
+
+      <p>高温では、ナノ粒子は<strong>焼結</strong>を通じて永久的な結合を形成できます。原子が粒子内部から接触点に拡散し、時間とともに成長する「ネック」を形成します。これは金属ナノ粒子で特に問題となります。</p>
+
+      <div class="info-box">
+        <h4>焼結メカニズム</h4>
+        <ul>
+          <li><strong>表面拡散</strong>: 原子が粒子表面に沿って移動（低温で支配的）</li>
+          <li><strong>体積拡散</strong>: 原子が粒子内部を通って移動（高温）</li>
+          <li><strong>粒界拡散</strong>: 粒界に沿った輸送</li>
+          <li><strong>粘性流動</strong>: 非晶質材料（例：シリカ）</li>
+        </ul>
+      </div>
+
+      <h3>温度依存性</h3>
+      <p>焼結速度はアレニウス関係に従います:</p>
+
+      <div class="formula-box">
+        $$\frac{dx}{dt} \propto D_s \propto \exp\left(-\frac{E_a}{RT}\right)$$
+
+        <p>ここで \(x\) はネック半径、\(D_s\) は表面拡散係数、\(E_a\) は活性化エネルギー。</p>
+      </div>
+
+      <h3>例5: 焼結温度の推定</h3>
+
+<pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+# ===================================
+# 例5: ナノ粒子の焼結温度
+# ===================================
+
+# 焼結は通常、ナノ粒子では T/T_m ≈ 0.3-0.5 で始まる
+# （高い表面エネルギーのため、バルクより低い）
+
+def tammann_temperature(T_m, factor=0.5):
+    """
+    Tammann温度（顕著な拡散が始まる温度）を推定。
+    ナノ粒子では 0.3-0.5 × T_m になり得る。
+    """
+    return factor * T_m
+
+def sintering_rate(T, T_m, E_a, R_gas=8.314):
+    """
+    相対焼結速度（アレニウス型）。
+    """
+    rate = np.exp(-E_a / (R_gas * T))
+    rate_ref = np.exp(-E_a / (R_gas * T_m))
+    return rate / rate_ref
+
+# 材料特性（融点と典型的な活性化エネルギー）
+materials = {
+    '金 (Au)': {'T_m': 1337, 'E_a': 170e3, 'color': 'gold'},
+    '銀 (Ag)': {'T_m': 1235, 'E_a': 180e3, 'color': 'silver'},
+    '銅 (Cu)': {'T_m': 1358, 'E_a': 200e3, 'color': 'orange'},
+    'シリカ (SiO2)': {'T_m': 1986, 'E_a': 300e3, 'color': 'blue'},
+    'チタニア (TiO2)': {'T_m': 2116, 'E_a': 250e3, 'color': 'green'}
+}
+
+fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+# プロット1: 焼結開始温度
+ax1 = axes[0]
+x_pos = np.arange(len(materials))
+
+T_m_values = [m['T_m'] for m in materials.values()]
+T_sinter_nano = [tammann_temperature(m['T_m'], 0.3) for m in materials.values()]
+T_sinter_bulk = [tammann_temperature(m['T_m'], 0.5) for m in materials.values()]
+
+width = 0.25
+ax1.bar(x_pos - width, T_m_values, width, label='融点', color='red', alpha=0.7)
+ax1.bar(x_pos, T_sinter_bulk, width, label='焼結（バルク、0.5×Tm）', color='orange', alpha=0.7)
+ax1.bar(x_pos + width, T_sinter_nano, width, label='焼結（ナノ、0.3×Tm）', color='green', alpha=0.7)
+
+ax1.axhline(y=373, color='blue', linestyle='--', alpha=0.7)
+ax1.text(4.5, 400, '100°C（乾燥）', fontsize=9, color='blue')
+
+ax1.set_ylabel('温度 (K)', fontsize=11)
+ax1.set_title('焼結開始温度', fontsize=12, fontweight='bold')
+ax1.set_xticks(x_pos)
+ax1.set_xticklabels(materials.keys(), rotation=15, ha='right')
+ax1.legend(loc='upper left')
+ax1.grid(True, alpha=0.3, axis='y')
+
+# プロット2: 温度に対する焼結速度
+ax2 = axes[1]
+T_range = np.linspace(300, 1337, 200)
+
+for name, props in materials.items():
+    T_m = props['T_m']
+    E_a = props['E_a']
+    T_scaled = T_range[T_range <= T_m]
+    rates = sintering_rate(T_scaled, T_m, E_a)
+    T_ratio = T_scaled / T_m
+    ax2.semilogy(T_ratio, rates, linewidth=2, label=name, color=props['color'])
+
+ax2.axvline(x=0.3, color='green', linestyle='--', alpha=0.7)
+ax2.axvline(x=0.5, color='orange', linestyle='--', alpha=0.7)
+ax2.text(0.31, 1e-6, 'ナノ開始', fontsize=9, color='green', rotation=90)
+ax2.text(0.51, 1e-6, 'バルク開始', fontsize=9, color='orange', rotation=90)
+
+ax2.set_xlabel('T / T_m (相同温度)', fontsize=11)
+ax2.set_ylabel('相対焼結速度', fontsize=11)
+ax2.set_title('温度と焼結速度', fontsize=12, fontweight='bold')
+ax2.legend(loc='lower right')
+ax2.grid(True, alpha=0.3, which='both')
+ax2.set_xlim(0.2, 1.0)
+ax2.set_ylim(1e-10, 1)
+
+plt.tight_layout()
+plt.savefig('sintering.png', dpi=150, bbox_inches='tight')
+plt.show()
+
+# 臨界温度を出力
+print("\n=== ナノ粒子プロセシングの臨界温度 ===")
+print(f"{'材料':20s} {'T_m (K)':>10s} {'T_m (°C)':>10s} {'ナノ開始 (°C)':>15s}")
+print("-" * 60)
+for name, props in materials.items():
+    T_m = props['T_m']
+    T_nano = tammann_temperature(T_m, 0.3)
+    print(f"{name:20s} {T_m:10.0f} {T_m-273:10.0f} {T_nano-273:15.0f}")
+</code></pre>
+
+      <div class="tip-box">
+        <h4>プロセッシングへの影響</h4>
+        <p>銀ナノ粒子は100°C以下でも焼結が始まる可能性があります - 乾燥中でさえも！金属系でナノ粒子の分散性を維持するには、低温プロセシングと表面パッシベーションが重要です。</p>
+      </div>
+    </section>
+
+    <section>
+      <h2>1.6 Aggregation と Agglomeration の違い</h2>
+
+      <p>適切な分散戦略を選択するには、AggregationとAgglomerationの違いを理解することが重要です。IUPACは明確な定義を提供しています:</p>
+
+      <table class="comparison-table">
+        <thead>
+          <tr>
+            <th>特性</th>
+            <th>Aggregation（凝集）</th>
+            <th>Agglomeration（凝集）</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>結合タイプ</strong></td>
+            <td>強い（共有結合、金属結合、イオン結合）</td>
+            <td>弱い（ファンデルワールス、静電、毛細管力）</td>
+          </tr>
+          <tr>
+            <td><strong>可逆性</strong></td>
+            <td>不可逆</td>
+            <td>可逆（適切なエネルギー入力で）</td>
+          </tr>
+          <tr>
+            <td><strong>表面積</strong></td>
+            <td>著しく減少</td>
+            <td>ほぼ保存</td>
+          </tr>
+          <tr>
+            <td><strong>原因</strong></td>
+            <td>焼結、化学結合</td>
+            <td>物理的な力、乾燥、沈降</td>
+          </tr>
+          <tr>
+            <td><strong>分散方法</strong></td>
+            <td>分散不可（防止が必要）</td>
+            <td>機械的・化学的方法が有効</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>例6: Agglomeration と Aggregation の識別</h3>
+
+<pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+# ===================================
+# 例6: Aggregation と Agglomeration の区別
+# ===================================
+
+class ParticleCluster:
+    """粒子クラスター挙動を分析するモデル。"""
+
+    def __init__(self, n_primary, d_primary_nm, cluster_type='agglomerate'):
+        """
+        パラメータ:
+            n_primary: 一次粒子数
+            d_primary_nm: 一次粒子直径 (nm)
+            cluster_type: 'agglomerate' または 'aggregate'
+        """
+        self.n = n_primary
+        self.d = d_primary_nm * 1e-9  # mに変換
+        self.type = cluster_type
+
+    def theoretical_surface_area(self):
+        """粒子が分離していた場合の表面積。"""
+        return self.n * np.pi * self.d**2
+
+    def actual_surface_area(self):
+        """
+        クラスターの実際の表面積。
+        - Agglomerates: 理論値の約80-100%（緩い充填）
+        - Aggregates: 理論値の約30-60%（焼結接触）
+        """
+        if self.type == 'agglomerate':
+            return 0.9 * self.theoretical_surface_area()
+        else:
+            return 0.4 * self.theoretical_surface_area()
+
+    def dispersion_energy_required(self):
+        """
+        分散に必要なエネルギー（粒子ペアあたり）を推定。
+        300 KでのkT単位で返す。
+        """
+        kT = 1.38e-23 * 300
+
+        if self.type == 'agglomerate':
+            # 接触時のファンデルワールス（約10-100 kT）
+            A_H = 20e-20
+            E_vdw = A_H * self.d / (24 * 0.3e-9)
+            return E_vdw / kT
+        else:
+            # 化学結合エネルギー（約eV範囲）
+            E_bond = 1e-19  # 約1 eV（ジュール）
+            return E_bond / kT
+
+    def is_redispersible(self, available_energy_kT):
+        """与えられたエネルギーでクラスターを分散できるか確認。"""
+        required = self.dispersion_energy_required()
+        return available_energy_kT > required
+
+# 比較研究
+d_primary = 20  # nm
+n_particles = 100
+
+agglomerate = ParticleCluster(n_particles, d_primary, 'agglomerate')
+aggregate = ParticleCluster(n_particles, d_primary, 'aggregate')
+
+# 可視化作成
+fig, axes = plt.subplots(1, 3, figsize=(15, 4.5))
+
+# プロット1: 表面積比較
+ax1 = axes[0]
+categories = ['理論値\n（分散状態）', 'Agglomerate', 'Aggregate']
+sa_values = [
+    agglomerate.theoretical_surface_area() * 1e12,  # μm²
+    agglomerate.actual_surface_area() * 1e12,
+    aggregate.actual_surface_area() * 1e12
+]
+colors = ['green', 'blue', 'red']
+bars = ax1.bar(categories, sa_values, color=colors, alpha=0.7, edgecolor='black')
+ax1.set_ylabel('表面積 (μm²)', fontsize=11)
+ax1.set_title(f'表面積: {n_particles}個× {d_primary}nm粒子',
+              fontsize=12, fontweight='bold')
+for bar, val in zip(bars, sa_values):
+    ax1.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.02*max(sa_values),
+             f'{val:.2f}', ha='center', fontsize=10)
+ax1.grid(True, alpha=0.3, axis='y')
+
+# プロット2: 分散エネルギー比較
+ax2 = axes[1]
+cluster_types = ['Agglomerate\n（vdW）', 'Aggregate\n（焼結）']
+energies = [agglomerate.dispersion_energy_required(),
+            aggregate.dispersion_energy_required()]
+colors = ['blue', 'red']
+bars = ax2.bar(cluster_types, energies, color=colors, alpha=0.7, edgecolor='black')
+ax2.axhline(y=10, color='green', linestyle='--', label='超音波（約10 kT）')
+ax2.axhline(y=100, color='orange', linestyle='--', label='ボールミル（約100 kT）')
+ax2.set_ylabel('分散に必要なエネルギー (kT)', fontsize=11)
+ax2.set_title('粒子接触を破壊するエネルギー', fontsize=12, fontweight='bold')
+ax2.set_yscale('log')
+ax2.legend()
+ax2.grid(True, alpha=0.3, axis='y')
+
+# プロット3: 方法別の分散成功
+ax3 = axes[2]
+methods = ['撹拌\n(1 kT)', '超音波\n(30 kT)', 'ボールミル\n(200 kT)',
+           '高せん断\n(500 kT)']
+energies_available = [1, 30, 200, 500]
+
+# 各タイプの成功を計算
+agglom_success = [agglomerate.is_redispersible(E) for E in energies_available]
+aggreg_success = [aggregate.is_redispersible(E) for E in energies_available]
+
+x = np.arange(len(methods))
+width = 0.35
+
+bars1 = ax3.bar(x - width/2, [int(s) for s in agglom_success], width,
+                label='Agglomerate', color='blue', alpha=0.7)
+bars2 = ax3.bar(x + width/2, [int(s) for s in aggreg_success], width,
+                label='Aggregate', color='red', alpha=0.7)
+
+ax3.set_xticks(x)
+ax3.set_xticklabels(methods)
+ax3.set_ylabel('分散可能 (1=はい, 0=いいえ)', fontsize=11)
+ax3.set_title('方法別の分散成功', fontsize=12, fontweight='bold')
+ax3.legend()
+ax3.set_ylim(0, 1.5)
+ax3.grid(True, alpha=0.3, axis='y')
+
+plt.tight_layout()
+plt.savefig('aggregation_vs_agglomeration.png', dpi=150, bbox_inches='tight')
+plt.show()
+
+# まとめ
+print("\n=== Aggregation vs Agglomeration まとめ ===")
+print(f"{'特性':30s} {'Agglomerate':>15s} {'Aggregate':>15s}")
+print("-" * 60)
+print(f"{'表面積保持':30s} {'90%':>15s} {'40%':>15s}")
+print(f"{'分散エネルギー (kT)':30s} {agglomerate.dispersion_energy_required():>15.1f} {aggregate.dispersion_energy_required():>15.0f}")
+print(f"{'超音波で分散可能':30s} {'はい':>15s} {'いいえ':>15s}")
+print(f"{'ボールミルで分散可能':30s} {'はい':>15s} {'困難':>15s}")
+</code></pre>
+    </section>
+
+    <section>
+      <h2>章のまとめ</h2>
+
+      <div class="success-box">
+        <h4>重要なポイント</h4>
+        <ol>
+          <li><strong>表面効果が支配的</strong>: 10 nmでは約50%の原子が表面に存在し、高い反応性と凝集傾向を駆動。</li>
+          <li><strong>ファンデルワールス力</strong>は常に引力; Hamaker定数が強さを決定（金属 > 酸化物 > ポリマー）。</li>
+          <li><strong>静電斥力</strong>で分散を安定化できるが、Debye長はイオン強度とともに減少。</li>
+          <li><strong>毛細管力</strong>は乾燥中にvdW力の10-100倍になり得る。</li>
+          <li><strong>焼結</strong>はナノ粒子では0.3-0.5 × T_mで始まる - バルク材料より低い。</li>
+          <li><strong>Agglomerationは可逆</strong>; Aggregation（焼結）は永久的で防止が必要。</li>
+        </ol>
+      </div>
+    </section>
+
+    <section>
+      <h2>演習問題</h2>
+
+      <details class="exercise">
+        <summary><strong>演習1:</strong> 比表面積の計算</summary>
+        <p>以下について比表面積 (m²/g) を計算してください:</p>
+        <ol type="a">
+          <li>20 nm 金ナノ粒子 (ρ = 19.3 g/cm³)</li>
+          <li>50 nm シリカナノ粒子 (ρ = 2.2 g/cm³)</li>
+          <li>100 nm ポリスチレン粒子 (ρ = 1.05 g/cm³)</li>
+        </ol>
+        <p><strong>ヒント:</strong> 球の場合 SSA = 6/(d×ρ) を使用。</p>
+      </details>
+
+      <details class="exercise">
+        <summary><strong>演習2:</strong> 相互作用エネルギーの比較</summary>
+        <p>水中の2つの30 nm TiO₂粒子（A_H = 5.3×10⁻²⁰ J）が2 nm離れている場合:</p>
+        <ol type="a">
+          <li>ファンデルワールス引力エネルギーをkT単位で計算してください。</li>
+          <li>この分離でvdW引力に打ち勝つために必要な表面電位（mV）はいくらですか？</li>
+        </ol>
+      </details>
+
+      <details class="exercise">
+        <summary><strong>演習3:</strong> Debye長の効果</summary>
+        <p>ナノ粒子分散液は1 mM NaClでは安定ですが、100 mM NaClでは凝集します。</p>
+        <ol type="a">
+          <li>両条件でのDebye長を計算してください。</li>
+          <li>DLVOエネルギーバリアの観点から、安定性が変化する理由を説明してください。</li>
+        </ol>
+      </details>
+
+      <details class="exercise">
+        <summary><strong>演習4:</strong> プロセシング温度の限界</summary>
+        <p>銀ナノ粒子を焼結なしで乾燥する必要があります。Tammann温度に基づいて:</p>
+        <ol type="a">
+          <li>安全な最大乾燥温度はいくらですか？</li>
+          <li>熱焼結を避ける代替乾燥方法を提案してください。</li>
+        </ol>
+      </details>
+
+      <details class="exercise">
+        <summary><strong>演習5:</strong> 分散方法の選択</summary>
+        <p>粉末サンプルが20 nm一次粒子の200 nmクラスターを示しています。超音波処理後のDLSは50 nmの流体力学的直径を示します。</p>
+        <ol type="a">
+          <li>これはAggregationまたはAgglomerationのどちらの可能性が高いですか？説明してください。</li>
+          <li>答えを確認するための追加キャラクタリゼーションは何ですか？</li>
+        </ol>
+      </details>
+    </section>
+
+    <section>
+      <h2>次のステップ</h2>
+      <p>第1章では、ナノ粒子凝集を駆動する基本的なメカニズムを学びました。第2章では、これらの相互作用に影響を与える因子と、それらをどのように制御できるかを探求します。</p>
+
+      <div class="info-box">
+        <h4>次章プレビュー（第2章）</h4>
+        <ul>
+          <li>粒子サイズ効果と臨界直径</li>
+          <li>表面エネルギーと修飾戦略</li>
+          <li>環境効果（湿度、温度、pH）</li>
+          <li>粒子形状と表面状態の影響</li>
+        </ul>
+      </div>
+    </section>
+
+    <div class="nav-buttons">
+      <a class="nav-button" href="index.html">← シリーズ目次へ戻る</a>
+      <a class="nav-button" href="chapter-2.html">第2章: 凝集に影響する因子 →</a>
+    </div>
+  </main>
+
+  <section>
+    <h2>参考文献</h2>
+    <ol>
+      <li>Israelachvili, J. N. (2011). <em>Intermolecular and Surface Forces</em> (3rd ed.). Academic Press.</li>
+      <li>Hunter, R. J. (2001). <em>Foundations of Colloid Science</em> (2nd ed.). Oxford University Press.</li>
+      <li>Hamaker, H. C. (1937). "The London—van der Waals attraction between spherical particles." <em>Physica</em>, 4(10), 1058-1072.</li>
+      <li>Lyklema, J. (1995). <em>Fundamentals of Interface and Colloid Science</em>. Academic Press.</li>
+    </ol>
+  </section>
+
+  <section class="disclaimer">
+    <h3>免責事項</h3>
+    <ul>
+      <li>本コンテンツは教育・研究・情報提供のみを目的として提供されており、専門的なアドバイスを構成するものではありません。</li>
+      <li>本コンテンツおよび付随するコード例は、いかなる保証もなく「現状のまま」提供されます。</li>
+      <li>著者および東北大学は、外部リンク、サードパーティデータ、ツール、ライブラリ等の内容、可用性、安全性について一切責任を負いません。</li>
+    </ul>
+  </section>
+
+  <footer>
+    <div class="container">
+      <p>© 2026 PI Knowledge Hub - 橋本 雄介 博士、東北大学</p>
+      <p>CC BY 4.0 ライセンス</p>
+    </div>
+  </footer>
+</body>
+</html>

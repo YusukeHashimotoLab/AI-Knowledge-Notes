@@ -4,6 +4,24 @@ chapter_title: "Chapter 4: Applications and Computational Methods"
 subtitle: "Chiral Phonons Series - From DFT Calculations to Device Applications"
 ---
 
+## Video Lecture
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/eh4l3F1ANtA"
+    title="Chiral Phonons Ch.4: Applications and Computational Methods"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> This video covers the same content as the text below. Choose your preferred learning format.
+
+---
+
 🌐 EN | [🇯🇵 JP](../../../jp/MS/chiral-phonons/chapter-4.md) | Last sync: 2025-12-19
 
 [Materials Science Dojo](../index.html) > [Chiral Phonons](index.md) > Chapter 4

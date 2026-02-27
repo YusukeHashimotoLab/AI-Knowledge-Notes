@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="第4章: 訓練と評価 - 対照学習、事前学習目標、ハルシネーション緩和、ベンチマークを学ぶ">
+    <title>第4章: 訓練と評価 - マルチモーダルAI入門 - AI Terakoya</title>
+
+    <style>
+        :root { --primary-color: #2c3e50; --secondary-color: #9b59b6; --code-bg: #f5f5f5; --border-color: #e0e0e0; --link-color: #9b59b6; --link-hover: #8e44ad; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", Meiryo, sans-serif; line-height: 1.8; color: #333; background: #fff; }
+        .container { max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem; }
+        header { background: linear-gradient(135deg, #9b59b6 0%, #3498db 100%); color: white; padding: 2rem 0; margin-bottom: 2rem; }
+        header .container { padding: 0 1.5rem; }
+        h1 { font-size: 2rem; margin-bottom: 0.5rem; }
+        .subtitle { font-size: 1.1rem; opacity: 0.95; }
+        .meta { display: flex; gap: 1.5rem; flex-wrap: wrap; font-size: 0.9rem; opacity: 0.95; margin-top: 1rem; }
+        h2 { font-size: 1.75rem; margin-top: 2.5rem; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 3px solid var(--secondary-color); color: var(--primary-color); }
+        h3 { font-size: 1.4rem; margin-top: 2rem; margin-bottom: 0.8rem; color: var(--primary-color); }
+        h4 { font-size: 1.2rem; margin-top: 1.5rem; margin-bottom: 0.6rem; color: var(--primary-color); }
+        p { margin-bottom: 1.2rem; }
+        a { color: var(--link-color); text-decoration: none; }
+        a:hover { color: var(--link-hover); text-decoration: underline; }
+        ul, ol { margin-left: 2rem; margin-bottom: 1.2rem; }
+        li { margin-bottom: 0.5rem; }
+        pre { background: var(--code-bg); padding: 1.5rem; border-radius: 8px; overflow-x: auto; margin: 1.5rem 0; border: 1px solid var(--border-color); }
+        code { font-family: "SF Mono", Monaco, Consolas, monospace; font-size: 0.9rem; }
+        :not(pre) > code { background: var(--code-bg); padding: 0.2rem 0.4rem; border-radius: 4px; }
+        table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; }
+        th, td { padding: 0.8rem; border: 1px solid var(--border-color); text-align: left; }
+        th { background: var(--code-bg); font-weight: 600; }
+        .mermaid { text-align: center; margin: 2rem 0; background: white; padding: 1rem; border-radius: 8px; border: 1px solid var(--border-color); }
+        .info-box { background: linear-gradient(135deg, #e8f4fd 0%, #d1e8ff 100%); border-left: 4px solid #3498db; padding: 1.5rem; margin: 1.5rem 0; border-radius: 4px; }
+        .info-box h4 { margin-top: 0; color: #2980b9; }
+        .key-point { background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%); border: 1px solid #c4b5fd; border-radius: 8px; padding: 1.5rem; margin: 1.5rem 0; }
+        .key-point h4 { color: #7c3aed; margin-top: 0; }
+        .warning-box { background: linear-gradient(135deg, #fff3cd 0%, #ffeeba 100%); border-left: 4px solid #f39c12; padding: 1.5rem; margin: 1.5rem 0; }
+        .warning-box h4 { margin-top: 0; color: #d68910; }
+        .nav-buttons { display: flex; justify-content: space-between; margin: 3rem 0; gap: 1rem; flex-wrap: wrap; }
+        .nav-button { display: inline-block; padding: 0.8rem 1.5rem; background: var(--secondary-color); color: white; border-radius: 6px; font-weight: 600; }
+        .nav-button:hover { background: var(--link-hover); color: white; }
+        .locale-switcher { position: absolute; top: 1rem; right: 1rem; background: rgba(255,255,255,0.2); padding: 0.5rem 1rem; border-radius: 20px; }
+        .locale-switcher a { color: white; font-weight: 500; }
+        .locale-meta { color: white; opacity: 0.7; font-size: 0.8rem; margin-left: 0.5rem; }
+        footer { margin-top: 4rem; padding: 2rem 0; border-top: 2px solid var(--border-color); text-align: center; color: #666; font-size: 0.9rem; }
+        .breadcrumb { background: #f7fafc; padding: 0.75rem 1rem; border-bottom: 1px solid #e2e8f0; font-size: 0.9rem; }
+        .breadcrumb-content { max-width: 900px; margin: 0 auto; display: flex; align-items: center; gap: 0.5rem; }
+        .breadcrumb a { color: #9b59b6; }
+        .breadcrumb-separator { color: #a0aec0; margin: 0 0.25rem; }
+        .breadcrumb-current { color: #4a5568; font-weight: 500; }
+        @media (max-width: 768px) { .container { padding: 1rem; } h1 { font-size: 1.6rem; } .locale-switcher { position: static; margin-bottom: 1rem; text-align: center; } }
+    </style>
+
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>document.addEventListener('DOMContentLoaded', function() { if (typeof mermaid !== 'undefined') { mermaid.initialize({ startOnLoad: true, theme: 'default' }); } });</script>
+</head>
+<body>
+    <nav class="breadcrumb">
+        <div class="breadcrumb-content">
+            <a href="../../index.html">AI Terakoya Top</a><span class="breadcrumb-separator">></span><a href="../index.html">機械学習</a><span class="breadcrumb-separator">></span><a href="./index.html">マルチモーダルAI</a><span class="breadcrumb-separator">></span><span class="breadcrumb-current">第4章</span>
+        </div>
+    </nav>
+
+    <header style="position: relative;">
+        <div class="locale-switcher">
+            <a href="../../../en/ML/multimodal-introduction/chapter-4.html">EN</a>
+            <span class="locale-meta">Last sync: 2026-01-15</span>
+        </div>
+        <div class="container">
+            <h1>第4章: 訓練と評価</h1>
+            <p class="subtitle">対照学習、事前学習、ハルシネーション、ベンチマーク</p>
+            <div class="meta">
+                <span>読了時間: 30-35分</span>
+                <span>コード例: 8</span>
+                <span>演習: 4</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+
+        <h2>4.1 マルチモーダルモデルのための対照学習</h2>
+
+        <p>対照学習は現代のVision-Languageモデルの基盤です。マッチするペア間の類似度を最大化し、マッチしないペアとの類似度を最小化することで表現を学習します。</p>
+
+        <h3>InfoNCE損失</h3>
+
+        <div class="info-box">
+            <h4>対照損失の式</h4>
+            <p>N個の画像-テキストペア \((v_i, t_i)\) のバッチに対して:</p>
+            <p>$$\mathcal{L} = -\frac{1}{2N}\sum_{i=1}^{N}\left[\log\frac{\exp(\text{sim}(v_i, t_i)/\tau)}{\sum_{j=1}^{N}\exp(\text{sim}(v_i, t_j)/\tau)} + \log\frac{\exp(\text{sim}(t_i, v_i)/\tau)}{\sum_{j=1}^{N}\exp(\text{sim}(t_i, v_j)/\tau)}\right]$$</p>
+            <p>ここで \(\tau\) は学習可能な温度パラメータ（通常0.07）です。</p>
+        </div>
+
+        <pre><code class="language-python"># 対照損失の実装
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+class ContrastiveLoss(nn.Module):
+    def __init__(self, temperature=0.07):
+        super().__init__()
+        self.temperature = nn.Parameter(torch.tensor(temperature))
+
+    def forward(self, image_embeds, text_embeds):
+        """
+        image_embeds: (N, D) 正規化された画像埋め込み
+        text_embeds: (N, D) 正規化されたテキスト埋め込み
+        """
+        # 類似度行列を計算
+        logits = image_embeds @ text_embeds.T / self.temperature.exp()
+
+        # ラベル: 対角要素がポジティブペア
+        labels = torch.arange(len(image_embeds), device=logits.device)
+
+        # 両方向でクロスエントロピー損失
+        loss_i2t = F.cross_entropy(logits, labels)
+        loss_t2i = F.cross_entropy(logits.T, labels)
+
+        return (loss_i2t + loss_t2i) / 2
+
+# 訓練ループの例
+def train_step(model, images, texts, optimizer, criterion):
+    optimizer.zero_grad()
+
+    # 正規化された埋め込みを取得
+    image_embeds = F.normalize(model.encode_image(images), dim=-1)
+    text_embeds = F.normalize(model.encode_text(texts), dim=-1)
+
+    # 損失を計算
+    loss = criterion(image_embeds, text_embeds)
+
+    loss.backward()
+    optimizer.step()
+
+    return loss.item()</code></pre>
+
+        <h3>大きなバッチサイズ: なぜ重要か</h3>
+
+        <p>対照学習は大きなバッチサイズから大きな恩恵を受けます。</p>
+
+        <table>
+            <tr>
+                <th>バッチサイズ</th>
+                <th>ネガティブサンプル数</th>
+                <th>効果</th>
+            </tr>
+            <tr>
+                <td>256</td>
+                <td>サンプルあたり255</td>
+                <td>弱い識別</td>
+            </tr>
+            <tr>
+                <td>4,096</td>
+                <td>サンプルあたり4,095</td>
+                <td>より良い表現</td>
+            </tr>
+            <tr>
+                <td>32,768</td>
+                <td>サンプルあたり32,767</td>
+                <td>CLIPレベルの品質</td>
+            </tr>
+        </table>
+
+        <pre><code class="language-python"># 効果的な大バッチのための勾配累積
+def train_with_accumulation(model, dataloader, optimizer, criterion,
+                            accumulation_steps=8):
+    """勾配累積で大バッチをシミュレート"""
+    model.train()
+    optimizer.zero_grad()
+
+    for i, (images, texts) in enumerate(dataloader):
+        # フォワードパス
+        image_embeds = F.normalize(model.encode_image(images), dim=-1)
+        text_embeds = F.normalize(model.encode_text(texts), dim=-1)
+
+        # 累積ステップで損失をスケーリング
+        loss = criterion(image_embeds, text_embeds) / accumulation_steps
+        loss.backward()
+
+        # 累積ステップごとに重みを更新
+        if (i + 1) % accumulation_steps == 0:
+            optimizer.step()
+            optimizer.zero_grad()
+
+    return loss.item() * accumulation_steps</code></pre>
+
+        <h2>4.2 事前学習目標</h2>
+
+        <p>現代のマルチモーダルモデルは複数の事前学習目標を組み合わせます。</p>
+
+        <div class="mermaid">
+graph TB
+    subgraph Objectives["事前学習目標"]
+        ITC[画像-テキスト対照]
+        ITM[画像-テキストマッチング]
+        LM[言語モデリング]
+        MIM[マスク画像モデリング]
+    end
+
+    subgraph Purpose
+        ITC --> P1[粗いアライメント]
+        ITM --> P2[細かいアライメント]
+        LM --> P3[生成能力]
+        MIM --> P4[視覚理解]
+    end
+
+    style ITC fill:#e3f2fd
+    style ITM fill:#fff3e0
+    style LM fill:#f3e5f5
+    style MIM fill:#e8f5e9
+        </div>
+
+        <h3>BLIPスタイルのマルチ目標訓練</h3>
+
+        <pre><code class="language-python"># マルチ目標事前学習
+class MultimodalPretraining(nn.Module):
+    def __init__(self, model):
+        super().__init__()
+        self.model = model
+        self.itc_loss = ContrastiveLoss()
+        self.itm_head = nn.Linear(model.hidden_dim, 2)  # 二値分類
+        self.lm_head = nn.Linear(model.hidden_dim, model.vocab_size)
+
+    def forward(self, images, texts, text_labels):
+        # 1. 画像-テキスト対照（ITC）
+        image_embeds = self.model.encode_image(images)
+        text_embeds = self.model.encode_text(texts)
+        itc_loss = self.itc_loss(
+            F.normalize(image_embeds, dim=-1),
+            F.normalize(text_embeds, dim=-1)
+        )
+
+        # 2. ハードネガティブを含む画像-テキストマッチング（ITM）
+        # シャッフルでネガティブペアを作成
+        neg_images = images[torch.randperm(len(images))]
+        pos_hidden = self.model.fuse(images, texts)
+        neg_hidden = self.model.fuse(neg_images, texts)
+
+        pos_logits = self.itm_head(pos_hidden[:, 0])  # CLSトークン
+        neg_logits = self.itm_head(neg_hidden[:, 0])
+
+        itm_labels = torch.cat([
+            torch.ones(len(images)),
+            torch.zeros(len(images))
+        ]).long().to(images.device)
+
+        itm_loss = F.cross_entropy(
+            torch.cat([pos_logits, neg_logits]),
+            itm_labels
+        )
+
+        # 3. 言語モデリング（画像で条件付け）
+        lm_hidden = self.model.generate_hidden(images, texts[:, :-1])
+        lm_logits = self.lm_head(lm_hidden)
+        lm_loss = F.cross_entropy(
+            lm_logits.view(-1, self.model.vocab_size),
+            text_labels[:, 1:].contiguous().view(-1),
+            ignore_index=-100
+        )
+
+        # 損失を結合
+        total_loss = itc_loss + itm_loss + lm_loss
+        return total_loss, {"itc": itc_loss, "itm": itm_loss, "lm": lm_loss}</code></pre>
+
+        <h2>4.3 マルチモーダル事前学習のためのデータセット</h2>
+
+        <table>
+            <tr>
+                <th>データセット</th>
+                <th>サイズ</th>
+                <th>ソース</th>
+                <th>用途</th>
+            </tr>
+            <tr>
+                <td>LAION-5B</td>
+                <td>58.5億ペア</td>
+                <td>Webクロール</td>
+                <td>大規模事前学習</td>
+            </tr>
+            <tr>
+                <td>LAION-400M</td>
+                <td>4億ペア</td>
+                <td>フィルタリングサブセット</td>
+                <td>研究、ファインチューニング</td>
+            </tr>
+            <tr>
+                <td>CC3M/CC12M</td>
+                <td>300万-1200万ペア</td>
+                <td>Conceptual Captions</td>
+                <td>高品質訓練</td>
+            </tr>
+            <tr>
+                <td>COCO Captions</td>
+                <td>33万画像</td>
+                <td>人間によるアノテーション</td>
+                <td>評価、ファインチューニング</td>
+            </tr>
+            <tr>
+                <td>Visual Genome</td>
+                <td>10.8万画像</td>
+                <td>密なアノテーション</td>
+                <td>シーン理解</td>
+            </tr>
+        </table>
+
+        <h2>4.4 マルチモーダルハルシネーション</h2>
+
+        <p>ハルシネーションは、モデルが視覚コンテンツと矛盾するテキストを生成する重要な課題です。</p>
+
+        <div class="warning-box">
+            <h4>マルチモーダルハルシネーションの種類</h4>
+            <ul>
+                <li><strong>オブジェクトハルシネーション</strong>: 画像にないオブジェクトを記述</li>
+                <li><strong>属性ハルシネーション</strong>: 間違った色、サイズ、プロパティ</li>
+                <li><strong>関係ハルシネーション</strong>: 間違った空間的または意味的関係</li>
+                <li><strong>シーンハルシネーション</strong>: 全体的なコンテキストの誤解釈</li>
+            </ul>
+        </div>
+
+        <h3>根本原因</h3>
+
+        <ol>
+            <li><strong>言語事前知識の優位性</strong>: モデルが学習した言語パターンに過度に依存</li>
+            <li><strong>共起バイアス</strong>: 訓練データで一緒に見られることが多いオブジェクト</li>
+            <li><strong>弱い視覚的グラウンディング</strong>: テキストと画像領域間の接続が不十分</li>
+            <li><strong>訓練データのノイズ</strong>: Webスクレイピングデータでの画像-テキストのミスアライメント</li>
+        </ol>
+
+        <h3>検出と緩和</h3>
+
+        <pre><code class="language-python"># CLIPを使ったハルシネーション検出
+import torch
+from transformers import CLIPProcessor, CLIPModel
+
+class HallucinationDetector:
+    def __init__(self, threshold=0.3):
+        self.model = CLIPModel.from_pretrained("openai/clip-vit-large-patch14")
+        self.processor = CLIPProcessor.from_pretrained("openai/clip-vit-large-patch14")
+        self.threshold = threshold
+
+    def check_claim(self, image, claim):
+        """
+        画像についての主張がハルシネーションかどうかを確認。
+        主張が画像によってサポートされればTrue、ハルシネーションの可能性があればFalseを返す。
+        """
+        # 画像と主張をエンコード
+        inputs = self.processor(
+            text=[claim, f"not {claim}"],
+            images=image,
+            return_tensors="pt",
+            padding=True
+        )
+
+        with torch.no_grad():
+            outputs = self.model(**inputs)
+            probs = outputs.logits_per_image.softmax(dim=1)
+
+        # 主張の高い確率 = おそらく真
+        claim_prob = probs[0, 0].item()
+        return claim_prob > self.threshold, claim_prob
+
+    def analyze_caption(self, image, caption):
+        """キャプションを分解して各主張を確認"""
+        # 単純な文分割（本番環境ではNLPライブラリを使用）
+        claims = caption.replace(",", ".").split(".")
+        claims = [c.strip() for c in claims if c.strip()]
+
+        results = []
+        for claim in claims:
+            is_valid, confidence = self.check_claim(image, claim)
+            results.append({
+                "claim": claim,
+                "valid": is_valid,
+                "confidence": confidence
+            })
+
+        return results
+
+# 使用例
+detector = HallucinationDetector()
+results = detector.analyze_caption(image, generated_caption)
+for r in results:
+    status = "有効" if r["valid"] else "ハルシネーション？"
+    print(f"{status} ({r['confidence']:.2f}): {r['claim']}")</code></pre>
+
+        <h3>緩和戦略</h3>
+
+        <table>
+            <tr>
+                <th>戦略</th>
+                <th>段階</th>
+                <th>アプローチ</th>
+            </tr>
+            <tr>
+                <td>対照デコーディング</td>
+                <td>推論</td>
+                <td>VLMロジットからLLMのみのロジットを減算</td>
+            </tr>
+            <tr>
+                <td>ハルシネーションペナルティ付きRLHF</td>
+                <td>訓練</td>
+                <td>報酬モデルがハルシネーションにペナルティ</td>
+            </tr>
+            <tr>
+                <td>視覚的グラウンディング損失</td>
+                <td>訓練</td>
+                <td>明示的な領域-単語アライメント</td>
+            </tr>
+            <tr>
+                <td>Chain-of-Thought</td>
+                <td>推論</td>
+                <td>ステップバイステップの視覚的推論</td>
+            </tr>
+        </table>
+
+        <h2>4.5 評価ベンチマーク</h2>
+
+        <h3>理解ベンチマーク</h3>
+
+        <table>
+            <tr>
+                <th>ベンチマーク</th>
+                <th>タスク</th>
+                <th>メトリクス</th>
+                <th>SOTA（2025）</th>
+            </tr>
+            <tr>
+                <td>VQAv2</td>
+                <td>視覚的QA</td>
+                <td>精度</td>
+                <td>〜87%</td>
+            </tr>
+            <tr>
+                <td>GQA</td>
+                <td>構成的QA</td>
+                <td>精度</td>
+                <td>〜75%</td>
+            </tr>
+            <tr>
+                <td>MMMU</td>
+                <td>マルチモーダル推論</td>
+                <td>精度</td>
+                <td>〜84%（GPT-5.1）</td>
+            </tr>
+            <tr>
+                <td>TextVQA</td>
+                <td>画像内テキスト</td>
+                <td>精度</td>
+                <td>〜82%</td>
+            </tr>
+            <tr>
+                <td>POPE</td>
+                <td>ハルシネーション</td>
+                <td>F1スコア</td>
+                <td>〜90%</td>
+            </tr>
+        </table>
+
+        <h3>生成ベンチマーク</h3>
+
+        <table>
+            <tr>
+                <th>ベンチマーク</th>
+                <th>タスク</th>
+                <th>メトリクス</th>
+            </tr>
+            <tr>
+                <td>GenEval</td>
+                <td>テキストから画像のセマンティクス</td>
+                <td>精度</td>
+            </tr>
+            <tr>
+                <td>DPG-Bench</td>
+                <td>プロンプトフォロー</td>
+                <td>アライメントスコア</td>
+            </tr>
+            <tr>
+                <td>FID</td>
+                <td>画像品質</td>
+                <td>Frechet Inception Distance</td>
+            </tr>
+            <tr>
+                <td>CLIPスコア</td>
+                <td>テキスト-画像アライメント</td>
+                <td>コサイン類似度</td>
+            </tr>
+        </table>
+
+        <pre><code class="language-python"># 生成画像のCLIPスコアを計算
+from torchmetrics.multimodal import CLIPScore
+
+def evaluate_generation(generated_images, prompts):
+    """テキストから画像生成のCLIPスコアを計算"""
+    metric = CLIPScore(model_name_or_path="openai/clip-vit-base-patch16")
+
+    scores = []
+    for image, prompt in zip(generated_images, prompts):
+        # 画像はuint8テンソル（B, C, H, W）である必要がある
+        if isinstance(image, Image.Image):
+            image = transforms.ToTensor()(image).unsqueeze(0) * 255
+            image = image.to(torch.uint8)
+
+        score = metric(image, prompt)
+        scores.append(score.item())
+
+    return {
+        "mean_clip_score": sum(scores) / len(scores),
+        "individual_scores": scores
+    }</code></pre>
+
+        <h2>4.6 マルチモーダルモデルのファインチューニング</h2>
+
+        <pre><code class="language-python"># Vision-LanguageモデルのLoRAファインチューニング
+from peft import LoraConfig, get_peft_model
+from transformers import LlavaForConditionalGeneration
+
+def setup_lora_finetuning(model_name, target_modules=None):
+    """効率的なVLMファインチューニングのためのLoRAを設定"""
+
+    # ベースモデルの読み込み
+    model = LlavaForConditionalGeneration.from_pretrained(
+        model_name,
+        torch_dtype=torch.float16
+    )
+
+    # LLaVAのデフォルトターゲットモジュール
+    if target_modules is None:
+        target_modules = [
+            "q_proj", "v_proj",  # アテンション
+            "mm_projector"       # Vision-Languageコネクタ
+        ]
+
+    # LoRA設定
+    lora_config = LoraConfig(
+        r=16,                    # ランク
+        lora_alpha=32,           # スケーリング
+        target_modules=target_modules,
+        lora_dropout=0.05,
+        bias="none",
+        task_type="CAUSAL_LM"
+    )
+
+    # LoRAを適用
+    model = get_peft_model(model, lora_config)
+
+    # 学習可能なパラメータを表示
+    trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    total = sum(p.numel() for p in model.parameters())
+    print(f"学習可能: {trainable:,} / {total:,} ({100*trainable/total:.2f}%)")
+
+    return model
+
+# 訓練設定
+from transformers import TrainingArguments, Trainer
+
+training_args = TrainingArguments(
+    output_dir="./llava-finetuned",
+    num_train_epochs=3,
+    per_device_train_batch_size=4,
+    gradient_accumulation_steps=4,
+    learning_rate=2e-4,
+    warmup_ratio=0.03,
+    lr_scheduler_type="cosine",
+    fp16=True,
+    logging_steps=10,
+    save_strategy="epoch"
+)</code></pre>
+
+        <h2>4.7 まとめ</h2>
+
+        <div class="key-point">
+            <h4>第4章の重要ポイント</h4>
+            <ul>
+                <li><strong>対照学習</strong>とInfoNCE損失がアラインされた埋め込みを作成</li>
+                <li><strong>大バッチサイズ</strong>（32K+）が品質の高い表現に重要</li>
+                <li><strong>マルチ目標訓練</strong>（ITC + ITM + LM）が多機能モデルを生む</li>
+                <li><strong>ハルシネーション</strong>は複数の緩和アプローチを持つ主要な課題</li>
+                <li><strong>ベンチマーク</strong>（MMMU、VQAv2、GenEval）が異なる能力を測定</li>
+                <li><strong>LoRAファインチューニング</strong>が最小のパラメータで効率的な適応を可能に</li>
+            </ul>
+        </div>
+
+        <h2>演習</h2>
+
+        <h3>演習1: 対照損失の実装</h3>
+        <p>対称的な対照損失を実装し、マッチするペアとマッチしないペアに対して正しい勾配を生成することを確認してください。</p>
+
+        <h3>演習2: ハルシネーション分析</h3>
+        <p>異なるVLMを使って10枚の画像のキャプションを生成してください。ハルシネーションを手動でアノテーションし、モデルごとのハルシネーション率を計算してください。</p>
+
+        <h3>演習3: ベンチマーク評価</h3>
+        <p>VQAv2の検証セット（サブセット）でVLMを実行してください。異なる質問タイプ（yes/no、カウンティング、その他）での精度を比較してください。</p>
+
+        <h3>演習4: LoRAファインチューニング</h3>
+        <p>LoRAを使ってカスタムドメイン（例：医療画像、商品写真）でVLMをファインチューニングしてください。ファインチューニング前後の性能を測定してください。</p>
+
+        <div class="nav-buttons">
+            <a href="./chapter-3.html" class="nav-button">第3章: マルチモーダル生成</a>
+            <a href="./chapter-5.html" class="nav-button">第5章: 応用と将来</a>
+        </div>
+
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 AI Terakoya - 橋本裕輔博士, 東北大学 | v1.0 (2026-01-15)</p>
+            <p>Licensed under CC BY 4.0</p>
+        </div>
+    </footer>
+</body>
+</html>

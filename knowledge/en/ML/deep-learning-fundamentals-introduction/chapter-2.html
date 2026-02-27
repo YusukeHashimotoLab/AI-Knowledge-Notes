@@ -1,0 +1,1577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 2: How Neural Networks Work - Deep Learning Fundamentals Introduction - AI Terakoya</title>
+    <meta name="description" content="Learn forward propagation calculations, weight matrices and bias vectors, computational graphs, and loss functions (MSE, Cross Entropy). Implement fully connected layers in NumPy and PyTorch.">
+
+    <style>
+        :root {
+            --color-primary: #2c3e50;
+            --color-primary-dark: #1a252f;
+            --color-accent: #7b2cbf;
+            --color-accent-light: #9d4edd;
+            --color-text: #2d3748;
+            --color-text-light: #4a5568;
+            --color-bg: #ffffff;
+            --color-bg-alt: #f7fafc;
+            --color-border: #e2e8f0;
+            --color-code-bg: #f8f9fa;
+            --color-link: #3182ce;
+            --color-link-hover: #2c5aa0;
+
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+
+            --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+            --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+            --border-radius: 8px;
+            --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-body);
+            line-height: 1.7;
+            color: var(--color-text);
+            background-color: var(--color-bg);
+            font-size: 16px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            padding: var(--spacing-xl) var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+            box-shadow: var(--box-shadow);
+        }
+
+        .header-content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: var(--spacing-sm);
+            line-height: 1.2;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            font-weight: 400;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-md);
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-md) var(--spacing-xl);
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-xl);
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-xs);
+            border-bottom: 3px solid var(--color-accent);
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-lg);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        h4 {
+            font-size: 1.1rem;
+            color: var(--color-primary-dark);
+            margin-top: var(--spacing-md);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        p {
+            margin-bottom: var(--spacing-md);
+            color: var(--color-text);
+        }
+
+        a {
+            color: var(--color-link);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        a:hover {
+            color: var(--color-link-hover);
+            text-decoration: underline;
+        }
+
+        ul, ol {
+            margin-left: var(--spacing-lg);
+            margin-bottom: var(--spacing-md);
+        }
+
+        li {
+            margin-bottom: var(--spacing-xs);
+            color: var(--color-text);
+        }
+
+        pre {
+            background-color: var(--color-code-bg);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            overflow-x: auto;
+            margin-bottom: var(--spacing-md);
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        code {
+            font-family: var(--font-mono);
+            font-size: 0.9em;
+            background-color: var(--color-code-bg);
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+        }
+
+        pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: var(--spacing-md);
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            border: 1px solid var(--color-border);
+            padding: var(--spacing-sm);
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--color-bg-alt);
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        blockquote {
+            border-left: 4px solid var(--color-accent);
+            padding-left: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            color: var(--color-text-light);
+            font-style: italic;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        .mermaid {
+            text-align: center;
+            margin: var(--spacing-lg) 0;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        details {
+            background-color: var(--color-bg-alt);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+        }
+
+        summary {
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--color-primary);
+            user-select: none;
+            padding: var(--spacing-xs);
+            margin: calc(-1 * var(--spacing-md));
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        summary:hover {
+            background-color: rgba(123, 44, 191, 0.1);
+        }
+
+        details[open] summary {
+            margin-bottom: var(--spacing-md);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .chapter-description {
+            margin: 1.5rem 0;
+            padding: 1rem;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-left: 4px solid #7b2cbf;
+            border-radius: 8px;
+            font-size: 1.05rem;
+            line-height: 1.8;
+            color: #2d3748;
+        }
+
+        .learning-objectives {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: var(--spacing-lg);
+            border-radius: var(--border-radius);
+            border-left: 4px solid var(--color-accent);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .learning-objectives h2 {
+            margin-top: 0;
+            border-bottom: none;
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            gap: var(--spacing-md);
+            margin: var(--spacing-xl) 0;
+            padding-top: var(--spacing-lg);
+            border-top: 2px solid var(--color-border);
+        }
+
+        .nav-button {
+            flex: 1;
+            padding: var(--spacing-md);
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            border-radius: var(--border-radius);
+            text-align: center;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: var(--box-shadow);
+        }
+
+        .nav-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            text-decoration: none;
+        }
+
+        .nav-button.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: #6c757d;
+        }
+
+        .nav-button.disabled:hover {
+            transform: none;
+            box-shadow: var(--box-shadow);
+        }
+
+        footer {
+            margin-top: var(--spacing-xl);
+            padding: var(--spacing-lg) var(--spacing-md);
+            background-color: var(--color-bg-alt);
+            border-top: 1px solid var(--color-border);
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--color-text-light);
+        }
+        .disclaimer {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 1.5rem;
+            background: #f8f9fa;
+            border-left: 4px solid #6c757d;
+            border-radius: 4px;
+        }
+
+        .disclaimer h3 {
+            color: #495057;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .disclaimer ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .disclaimer li {
+            padding: 0.5rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+            font-size: 0.9rem;
+            color: #6c757d;
+            line-height: 1.6;
+        }
+
+        .disclaimer li::before {
+            content: "...";
+            position: absolute;
+            left: 0;
+        }
+
+        .breadcrumb {
+            background: #f7fafc;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+        }
+
+        .breadcrumb-content {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .breadcrumb a {
+            color: #667eea;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .breadcrumb a:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+
+        .breadcrumb-separator {
+            color: #a0aec0;
+            margin: 0 0.25rem;
+        }
+
+        .breadcrumb-current {
+            color: #4a5568;
+            font-weight: 500;
+        }
+
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            border-radius: var(--border-radius);
+        }
+
+        .warning-box {
+            background: #fff3e0;
+            border-left: 4px solid #ff9800;
+            padding: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            border-radius: var(--border-radius);
+        }
+
+        .success-box {
+            background: #e8f5e9;
+            border-left: 4px solid #4caf50;
+            padding: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            border-radius: var(--border-radius);
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.6rem;
+            }
+
+            h2 {
+                font-size: 1.4rem;
+            }
+
+            h3 {
+                font-size: 1.2rem;
+            }
+
+            .container {
+                padding: 0 var(--spacing-sm) var(--spacing-lg);
+            }
+
+            .navigation {
+                flex-direction: column;
+            }
+        }
+    </style>
+
+    <!-- MathJax for mathematical equations -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <!-- Mermaid for diagrams -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+
+    <!-- Prism.js for code highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof mermaid !== 'undefined') {
+                mermaid.initialize({ startOnLoad: true, theme: 'default' });
+            }
+        });
+    </script>
+</head>
+<body>
+    <nav class="breadcrumb">
+        <div class="breadcrumb-content">
+            <a href="../../index.html">AI Terakoya Home</a><span class="breadcrumb-separator">></span><a href="../index.html">Machine Learning</a><span class="breadcrumb-separator">></span><a href="./index.html">Deep Learning Fundamentals Introduction</a><span class="breadcrumb-separator">></span><span class="breadcrumb-current">Chapter 2</span>
+        </div>
+    </nav>
+
+    <header>
+        <div class="header-content">
+            <h1>Chapter 2: How Neural Networks Work</h1>
+            <p class="subtitle">Understanding Forward Propagation, Weight Matrices, and Loss Functions</p>
+            <div class="meta">
+                <span class="meta-item">Reading Time: 35-40 minutes</span>
+                <span class="meta-item">Code Examples: 10</span>
+                <span class="meta-item">Exercises: 6</span>
+                <span class="meta-item">Difficulty: Beginner-Intermediate</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="chapter-description">
+            In this chapter, we will learn how neural networks process data from input to output. We will understand forward propagation calculations, the role of weight matrices and bias vectors, computational graphs, and loss functions used to measure prediction errors.
+        </div>
+
+        <div class="learning-objectives">
+            <h2>Learning Objectives</h2>
+            <ul>
+                <li>Understand the data flow from input to output in forward propagation</li>
+                <li>Master matrix operations for efficient neural network computation</li>
+                <li>Comprehend the roles of weight matrices and bias vectors</li>
+                <li>Learn about computational graphs and their importance for automatic differentiation</li>
+                <li>Understand and implement MSE and Cross Entropy loss functions</li>
+                <li>Implement fully connected layers in NumPy and PyTorch</li>
+            </ul>
+        </div>
+
+        <h2 id="forward-propagation">1. Forward Propagation</h2>
+
+        <h3>1.1 Data Flow from Input to Output</h3>
+
+        <p><strong>Forward propagation</strong> is the process of computing the output of a neural network given an input. Data flows through the network layer by layer, with each layer transforming the data until the final output is produced.</p>
+
+        <div class="mermaid">
+graph LR
+    subgraph Input Layer
+        I1[x1]
+        I2[x2]
+        I3[x3]
+    end
+
+    subgraph Hidden Layer
+        H1[h1]
+        H2[h2]
+    end
+
+    subgraph Output Layer
+        O1[y1]
+        O2[y2]
+    end
+
+    I1 --> H1
+    I1 --> H2
+    I2 --> H1
+    I2 --> H2
+    I3 --> H1
+    I3 --> H2
+
+    H1 --> O1
+    H1 --> O2
+    H2 --> O1
+    H2 --> O2
+
+    style I1 fill:#e3f2fd
+    style I2 fill:#e3f2fd
+    style I3 fill:#e3f2fd
+    style H1 fill:#fff3e0
+    style H2 fill:#fff3e0
+    style O1 fill:#e8f5e9
+    style O2 fill:#e8f5e9
+        </div>
+
+        <p>For each layer, the computation follows these steps:</p>
+        <ol>
+            <li><strong>Linear transformation</strong>: Multiply input by weights and add bias</li>
+            <li><strong>Activation</strong>: Apply non-linear activation function</li>
+        </ol>
+
+        <p>The mathematical expression for a single layer:</p>
+        <p>$$\mathbf{z} = \mathbf{W}\mathbf{x} + \mathbf{b}$$</p>
+        <p>$$\mathbf{a} = f(\mathbf{z})$$</p>
+
+        <p>Where:</p>
+        <ul>
+            <li>$\mathbf{x}$: input vector (or activation from previous layer)</li>
+            <li>$\mathbf{W}$: weight matrix</li>
+            <li>$\mathbf{b}$: bias vector</li>
+            <li>$\mathbf{z}$: pre-activation (linear combination)</li>
+            <li>$f$: activation function</li>
+            <li>$\mathbf{a}$: activation output</li>
+        </ul>
+
+        <h3>1.2 Efficient Computation with Matrix Operations</h3>
+
+        <p>Instead of computing neuron outputs one by one, we use <strong>matrix operations</strong> to process all neurons in a layer simultaneously. This is not only more concise but also significantly faster due to optimized linear algebra libraries.</p>
+
+        <div class="info-box">
+            <p><strong>Why Matrix Operations?</strong></p>
+            <ul>
+                <li><strong>Parallelization</strong>: GPUs can perform thousands of matrix operations simultaneously</li>
+                <li><strong>Optimization</strong>: Libraries like BLAS are highly optimized for matrix multiplication</li>
+                <li><strong>Batch Processing</strong>: Multiple samples can be processed at once</li>
+            </ul>
+        </div>
+
+        <p><strong>Example: Forward pass for a single layer</strong></p>
+
+        <pre><code class="language-python">import numpy as np
+
+def forward_layer(X, W, b, activation_fn):
+    """
+    Forward pass for a single layer
+
+    Parameters:
+    -----------
+    X : ndarray, shape (batch_size, n_input)
+        Input data
+    W : ndarray, shape (n_input, n_output)
+        Weight matrix
+    b : ndarray, shape (1, n_output)
+        Bias vector
+    activation_fn : function
+        Activation function
+
+    Returns:
+    --------
+    A : ndarray, shape (batch_size, n_output)
+        Activation output
+    Z : ndarray, shape (batch_size, n_output)
+        Pre-activation (for backpropagation)
+    """
+    # Linear transformation: Z = X @ W + b
+    Z = np.dot(X, W) + b
+
+    # Apply activation function
+    A = activation_fn(Z)
+
+    return A, Z
+
+# Example usage
+np.random.seed(42)
+
+# Input: 4 samples, 3 features
+X = np.array([
+    [1.0, 2.0, 3.0],
+    [4.0, 5.0, 6.0],
+    [7.0, 8.0, 9.0],
+    [10.0, 11.0, 12.0]
+])
+
+# Weights: 3 inputs -> 2 outputs
+W = np.random.randn(3, 2) * 0.01
+b = np.zeros((1, 2))
+
+# ReLU activation
+relu = lambda x: np.maximum(0, x)
+
+A, Z = forward_layer(X, W, b, relu)
+print("Input shape:", X.shape)
+print("Output shape:", A.shape)
+print("Pre-activation:\n", Z)
+print("Activation:\n", A)
+</code></pre>
+
+        <h3>1.3 Batch Processing</h3>
+
+        <p>In practice, we process multiple samples (a <strong>batch</strong>) at once. This is achieved by stacking samples as rows in a matrix:</p>
+
+        <p>$$\mathbf{Z} = \mathbf{X}\mathbf{W} + \mathbf{b}$$</p>
+
+        <p>Where:</p>
+        <ul>
+            <li>$\mathbf{X}$ has shape $(m, n_{in})$ - $m$ samples, $n_{in}$ input features</li>
+            <li>$\mathbf{W}$ has shape $(n_{in}, n_{out})$ - weight matrix</li>
+            <li>$\mathbf{b}$ has shape $(1, n_{out})$ - bias vector (broadcasted)</li>
+            <li>$\mathbf{Z}$ has shape $(m, n_{out})$ - pre-activations for all samples</li>
+        </ul>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Batch Size</th>
+                    <th>Advantages</th>
+                    <th>Disadvantages</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>1 (SGD)</strong></td>
+                    <td>Frequent updates, can escape local minima</td>
+                    <td>Noisy gradients, slow (no parallelization)</td>
+                </tr>
+                <tr>
+                    <td><strong>32-256</strong></td>
+                    <td>Good balance of speed and gradient quality</td>
+                    <td>May need to tune learning rate</td>
+                </tr>
+                <tr>
+                    <td><strong>Full batch</strong></td>
+                    <td>Accurate gradients</td>
+                    <td>Memory intensive, can get stuck in local minima</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h2 id="weights-biases">2. Weight Matrices and Bias Vectors</h2>
+
+        <h3>2.1 The Role of Weights</h3>
+
+        <p>The <strong>weight matrix</strong> $\mathbf{W}$ determines how strongly each input feature influences each output neuron. Each element $W_{ij}$ represents the connection strength from input $i$ to output $j$.</p>
+
+        <div class="mermaid">
+graph LR
+    subgraph Inputs
+        x1[x1]
+        x2[x2]
+    end
+
+    subgraph Outputs
+        h1[h1]
+        h2[h2]
+        h3[h3]
+    end
+
+    x1 -->|w11| h1
+    x1 -->|w12| h2
+    x1 -->|w13| h3
+    x2 -->|w21| h1
+    x2 -->|w22| h2
+    x2 -->|w23| h3
+
+    style x1 fill:#e3f2fd
+    style x2 fill:#e3f2fd
+    style h1 fill:#fff3e0
+    style h2 fill:#fff3e0
+    style h3 fill:#fff3e0
+        </div>
+
+        <p>For 2 inputs and 3 outputs, the weight matrix is:</p>
+
+        <p>$$\mathbf{W} = \begin{bmatrix} w_{11} & w_{12} & w_{13} \\ w_{21} & w_{22} & w_{23} \end{bmatrix}$$</p>
+
+        <h3>2.2 Weight Initialization</h3>
+
+        <p>Proper weight initialization is crucial for effective training. Poor initialization can lead to vanishing or exploding gradients.</p>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Method</th>
+                    <th>Formula</th>
+                    <th>Best For</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Zero</strong></td>
+                    <td>$W = 0$</td>
+                    <td>Never use (symmetric problem)</td>
+                </tr>
+                <tr>
+                    <td><strong>Random Small</strong></td>
+                    <td>$W \sim \mathcal{N}(0, 0.01)$</td>
+                    <td>Simple networks</td>
+                </tr>
+                <tr>
+                    <td><strong>Xavier/Glorot</strong></td>
+                    <td>$W \sim \mathcal{N}(0, \sqrt{\frac{2}{n_{in} + n_{out}}})$</td>
+                    <td>Sigmoid, tanh</td>
+                </tr>
+                <tr>
+                    <td><strong>He</strong></td>
+                    <td>$W \sim \mathcal{N}(0, \sqrt{\frac{2}{n_{in}}})$</td>
+                    <td>ReLU</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <pre><code class="language-python">import numpy as np
+
+def initialize_weights(n_in, n_out, method='he'):
+    """
+    Initialize weight matrix using different methods
+
+    Parameters:
+    -----------
+    n_in : int
+        Number of input neurons
+    n_out : int
+        Number of output neurons
+    method : str
+        Initialization method ('zeros', 'random', 'xavier', 'he')
+
+    Returns:
+    --------
+    W : ndarray
+        Initialized weight matrix
+    """
+    if method == 'zeros':
+        # Bad: all neurons learn the same thing
+        return np.zeros((n_in, n_out))
+
+    elif method == 'random':
+        # Small random values
+        return np.random.randn(n_in, n_out) * 0.01
+
+    elif method == 'xavier':
+        # Good for sigmoid/tanh
+        std = np.sqrt(2.0 / (n_in + n_out))
+        return np.random.randn(n_in, n_out) * std
+
+    elif method == 'he':
+        # Good for ReLU
+        std = np.sqrt(2.0 / n_in)
+        return np.random.randn(n_in, n_out) * std
+
+    else:
+        raise ValueError(f"Unknown method: {method}")
+
+# Compare initialization methods
+np.random.seed(42)
+n_in, n_out = 784, 256
+
+for method in ['zeros', 'random', 'xavier', 'he']:
+    W = initialize_weights(n_in, n_out, method)
+    print(f"{method:8s}: mean={W.mean():.6f}, std={W.std():.6f}")
+</code></pre>
+
+        <h3>2.3 The Importance of Bias</h3>
+
+        <p>The <strong>bias vector</strong> $\mathbf{b}$ allows the activation function to shift horizontally. Without bias, the pre-activation $z$ would be zero when inputs are zero, limiting the network's expressiveness.</p>
+
+        <div class="info-box">
+            <p><strong>Geometric Interpretation</strong></p>
+            <ul>
+                <li><strong>Weight</strong>: Controls the slope/rotation of the decision boundary</li>
+                <li><strong>Bias</strong>: Controls the position/offset of the decision boundary</li>
+            </ul>
+            <p>Together, they allow the network to fit any linear function passing through any point in space.</p>
+        </div>
+
+        <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+# Demonstrate the effect of bias
+x = np.linspace(-5, 5, 100)
+
+def sigmoid(z):
+    return 1 / (1 + np.exp(-z))
+
+# Different bias values
+biases = [-2, 0, 2]
+w = 1  # Fixed weight
+
+plt.figure(figsize=(10, 4))
+for b in biases:
+    z = w * x + b
+    y = sigmoid(z)
+    plt.plot(x, y, label=f'bias = {b}')
+
+plt.xlabel('Input x')
+plt.ylabel('Output sigmoid(wx + b)')
+plt.title('Effect of Bias on Sigmoid Activation')
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.axhline(y=0.5, color='gray', linestyle='--', alpha=0.5)
+plt.axvline(x=0, color='gray', linestyle='--', alpha=0.5)
+plt.show()
+</code></pre>
+
+        <h2 id="computational-graphs">3. Layer Connections and Computational Graphs</h2>
+
+        <h3>3.1 The Concept of Computational Graphs</h3>
+
+        <p>A <strong>computational graph</strong> is a directed graph that represents the sequence of operations in a neural network. Each node represents an operation (addition, multiplication, activation function), and edges represent data flow.</p>
+
+        <div class="mermaid">
+graph LR
+    x1((x1)) --> mul1[x]
+    w1((w1)) --> mul1
+    mul1 --> add1[+]
+
+    x2((x2)) --> mul2[x]
+    w2((w2)) --> mul2
+    mul2 --> add1
+
+    b((b)) --> add1
+    add1 --> z((z))
+    z --> relu[ReLU]
+    relu --> a((a))
+
+    style x1 fill:#e3f2fd
+    style x2 fill:#e3f2fd
+    style w1 fill:#fff3e0
+    style w2 fill:#fff3e0
+    style b fill:#fff3e0
+    style z fill:#f3e5f5
+    style a fill:#e8f5e9
+        </div>
+
+        <p>The computational graph for a single neuron with 2 inputs:</p>
+        <p>$$z = w_1 x_1 + w_2 x_2 + b$$</p>
+        <p>$$a = \text{ReLU}(z)$$</p>
+
+        <h3>3.2 Foundations of Automatic Differentiation</h3>
+
+        <p>The key benefit of computational graphs is enabling <strong>automatic differentiation</strong>. By storing intermediate values and applying the chain rule, we can efficiently compute gradients for all parameters.</p>
+
+        <div class="warning-box">
+            <p><strong>Chain Rule</strong>: If $y = f(g(x))$, then:</p>
+            <p>$$\frac{dy}{dx} = \frac{dy}{dg} \cdot \frac{dg}{dx}$$</p>
+            <p>This allows us to compute gradients layer by layer from output to input.</p>
+        </div>
+
+        <pre><code class="language-python">import numpy as np
+
+class ComputationalNode:
+    """
+    Simple computational node that stores value and gradient
+    """
+    def __init__(self, value, requires_grad=False):
+        self.value = value
+        self.grad = 0 if requires_grad else None
+        self.requires_grad = requires_grad
+
+def forward_with_cache(X, W, b):
+    """
+    Forward pass that caches intermediate values for backpropagation
+
+    Returns:
+    --------
+    output : ndarray
+        Final output
+    cache : dict
+        Intermediate values needed for backpropagation
+    """
+    # Store inputs
+    cache = {'X': X, 'W': W, 'b': b}
+
+    # Linear transformation
+    Z = np.dot(X, W) + b
+    cache['Z'] = Z
+
+    # ReLU activation
+    A = np.maximum(0, Z)
+    cache['A'] = A
+
+    return A, cache
+
+# Example
+X = np.array([[1.0, 2.0]])
+W = np.array([[0.5, -0.5], [0.3, 0.7]])
+b = np.array([[0.1, -0.1]])
+
+output, cache = forward_with_cache(X, W, b)
+print("Input X:", X)
+print("Pre-activation Z:", cache['Z'])
+print("Output A:", output)
+</code></pre>
+
+        <h3>3.3 Multi-Layer Forward Pass</h3>
+
+        <p>For a network with multiple layers, we chain the forward passes together:</p>
+
+        <pre><code class="language-python">import numpy as np
+
+def relu(x):
+    return np.maximum(0, x)
+
+def softmax(x):
+    exp_x = np.exp(x - np.max(x, axis=1, keepdims=True))
+    return exp_x / np.sum(exp_x, axis=1, keepdims=True)
+
+class MultiLayerNetwork:
+    """
+    Multi-layer neural network with forward propagation
+    """
+
+    def __init__(self, layer_sizes):
+        """
+        Parameters:
+        -----------
+        layer_sizes : list
+            Number of neurons in each layer [input, hidden1, hidden2, ..., output]
+        """
+        self.n_layers = len(layer_sizes) - 1
+        self.weights = []
+        self.biases = []
+
+        # He initialization for ReLU
+        for i in range(self.n_layers):
+            n_in = layer_sizes[i]
+            n_out = layer_sizes[i + 1]
+            W = np.random.randn(n_in, n_out) * np.sqrt(2.0 / n_in)
+            b = np.zeros((1, n_out))
+            self.weights.append(W)
+            self.biases.append(b)
+
+    def forward(self, X):
+        """
+        Forward propagation through all layers
+
+        Parameters:
+        -----------
+        X : ndarray, shape (batch_size, n_input)
+            Input data
+
+        Returns:
+        --------
+        output : ndarray
+            Network output
+        cache : list
+            Intermediate values for each layer
+        """
+        cache = [{'A': X}]  # Store input as first "activation"
+        A = X
+
+        for i in range(self.n_layers):
+            Z = np.dot(A, self.weights[i]) + self.biases[i]
+
+            # Use ReLU for hidden layers, softmax for output
+            if i < self.n_layers - 1:
+                A = relu(Z)
+            else:
+                A = softmax(Z)
+
+            cache.append({'Z': Z, 'A': A})
+
+        return A, cache
+
+# Example: 4 inputs -> 8 hidden -> 4 hidden -> 3 outputs
+np.random.seed(42)
+network = MultiLayerNetwork([4, 8, 4, 3])
+
+# Test data
+X = np.array([
+    [5.1, 3.5, 1.4, 0.2],
+    [6.3, 2.9, 5.6, 1.8],
+    [5.8, 2.7, 5.1, 1.9]
+])
+
+output, cache = network.forward(X)
+print("Input shape:", X.shape)
+print("Output shape:", output.shape)
+print("Predictions (probabilities):\n", output)
+print("Predicted classes:", np.argmax(output, axis=1))
+</code></pre>
+
+        <h2 id="loss-functions">4. Loss Functions</h2>
+
+        <p>A <strong>loss function</strong> (also called cost function or objective function) measures how well the network's predictions match the true targets. The goal of training is to minimize this loss.</p>
+
+        <h3>4.1 Mean Squared Error (MSE)</h3>
+
+        <p>MSE is the standard loss function for <strong>regression problems</strong>. It measures the average squared difference between predictions and true values.</p>
+
+        <p><strong>Formula</strong>:</p>
+        <p>$$\mathcal{L}_{MSE} = \frac{1}{n} \sum_{i=1}^{n} (y_i - \hat{y}_i)^2$$</p>
+
+        <p>Where:</p>
+        <ul>
+            <li>$y_i$: true value</li>
+            <li>$\hat{y}_i$: predicted value</li>
+            <li>$n$: number of samples</li>
+        </ul>
+
+        <p><strong>Characteristics</strong>:</p>
+        <ul>
+            <li>Always non-negative (squared values)</li>
+            <li>Penalizes large errors more than small ones (quadratic)</li>
+            <li>Differentiable everywhere (smooth gradient)</li>
+            <li>Sensitive to outliers</li>
+        </ul>
+
+        <pre><code class="language-python">import numpy as np
+
+def mse_loss(y_true, y_pred):
+    """
+    Mean Squared Error loss
+
+    Parameters:
+    -----------
+    y_true : ndarray
+        True values
+    y_pred : ndarray
+        Predicted values
+
+    Returns:
+    --------
+    loss : float
+        MSE loss value
+    """
+    return np.mean((y_true - y_pred) ** 2)
+
+def mse_gradient(y_true, y_pred):
+    """
+    Gradient of MSE loss with respect to predictions
+
+    Returns:
+    --------
+    gradient : ndarray
+        dL/dy_pred
+    """
+    n = y_true.shape[0]
+    return 2 * (y_pred - y_true) / n
+
+# Example: regression task
+y_true = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
+y_pred = np.array([1.2, 1.8, 3.1, 3.9, 5.2])
+
+loss = mse_loss(y_true, y_pred)
+grad = mse_gradient(y_true, y_pred)
+
+print(f"True values: {y_true}")
+print(f"Predictions: {y_pred}")
+print(f"MSE Loss: {loss:.4f}")
+print(f"Gradient: {grad}")
+</code></pre>
+
+        <h3>4.2 Cross Entropy Loss</h3>
+
+        <p>Cross Entropy is the standard loss function for <strong>classification problems</strong>. It measures the difference between the predicted probability distribution and the true distribution.</p>
+
+        <h4>Binary Cross Entropy (for binary classification)</h4>
+
+        <p>$$\mathcal{L}_{BCE} = -\frac{1}{n} \sum_{i=1}^{n} [y_i \log(\hat{y}_i) + (1-y_i) \log(1-\hat{y}_i)]$$</p>
+
+        <h4>Categorical Cross Entropy (for multi-class classification)</h4>
+
+        <p>$$\mathcal{L}_{CE} = -\frac{1}{n} \sum_{i=1}^{n} \sum_{c=1}^{C} y_{i,c} \log(\hat{y}_{i,c})$$</p>
+
+        <p>Where:</p>
+        <ul>
+            <li>$y_{i,c}$: true label (one-hot encoded)</li>
+            <li>$\hat{y}_{i,c}$: predicted probability for class $c$</li>
+            <li>$C$: number of classes</li>
+        </ul>
+
+        <pre><code class="language-python">import numpy as np
+
+def binary_cross_entropy(y_true, y_pred, epsilon=1e-15):
+    """
+    Binary Cross Entropy loss
+
+    Parameters:
+    -----------
+    y_true : ndarray
+        True binary labels (0 or 1)
+    y_pred : ndarray
+        Predicted probabilities
+    epsilon : float
+        Small value to avoid log(0)
+
+    Returns:
+    --------
+    loss : float
+        BCE loss value
+    """
+    # Clip predictions to avoid log(0)
+    y_pred = np.clip(y_pred, epsilon, 1 - epsilon)
+    return -np.mean(y_true * np.log(y_pred) + (1 - y_true) * np.log(1 - y_pred))
+
+def categorical_cross_entropy(y_true, y_pred, epsilon=1e-15):
+    """
+    Categorical Cross Entropy loss
+
+    Parameters:
+    -----------
+    y_true : ndarray, shape (n_samples, n_classes)
+        True labels (one-hot encoded)
+    y_pred : ndarray, shape (n_samples, n_classes)
+        Predicted probabilities
+
+    Returns:
+    --------
+    loss : float
+        CCE loss value
+    """
+    y_pred = np.clip(y_pred, epsilon, 1 - epsilon)
+    return -np.mean(np.sum(y_true * np.log(y_pred), axis=1))
+
+# Example: multi-class classification
+# 3 samples, 4 classes
+y_true = np.array([
+    [1, 0, 0, 0],  # Class 0
+    [0, 1, 0, 0],  # Class 1
+    [0, 0, 0, 1]   # Class 3
+])
+
+# Good predictions
+y_pred_good = np.array([
+    [0.9, 0.05, 0.03, 0.02],
+    [0.1, 0.7, 0.1, 0.1],
+    [0.05, 0.05, 0.1, 0.8]
+])
+
+# Bad predictions
+y_pred_bad = np.array([
+    [0.25, 0.25, 0.25, 0.25],
+    [0.1, 0.3, 0.3, 0.3],
+    [0.4, 0.3, 0.2, 0.1]
+])
+
+loss_good = categorical_cross_entropy(y_true, y_pred_good)
+loss_bad = categorical_cross_entropy(y_true, y_pred_bad)
+
+print(f"Good predictions - Loss: {loss_good:.4f}")
+print(f"Bad predictions - Loss: {loss_bad:.4f}")
+</code></pre>
+
+        <h3>4.3 Choosing the Right Loss Function</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Task Type</th>
+                    <th>Output Activation</th>
+                    <th>Loss Function</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Regression</strong></td>
+                    <td>Linear (none)</td>
+                    <td>MSE, MAE, Huber</td>
+                </tr>
+                <tr>
+                    <td><strong>Binary Classification</strong></td>
+                    <td>Sigmoid</td>
+                    <td>Binary Cross Entropy</td>
+                </tr>
+                <tr>
+                    <td><strong>Multi-class (single label)</strong></td>
+                    <td>Softmax</td>
+                    <td>Categorical Cross Entropy</td>
+                </tr>
+                <tr>
+                    <td><strong>Multi-label</strong></td>
+                    <td>Sigmoid</td>
+                    <td>Binary Cross Entropy (per label)</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="info-box">
+            <p><strong>Why Cross Entropy for Classification?</strong></p>
+            <ul>
+                <li>Provides stronger gradients when predictions are wrong</li>
+                <li>Naturally pairs with softmax/sigmoid outputs</li>
+                <li>Has information-theoretic interpretation (relative entropy)</li>
+                <li>Leads to faster convergence than MSE for classification</li>
+            </ul>
+        </div>
+
+        <h2 id="implementation">5. Implementing Fully Connected Layers</h2>
+
+        <h3>5.1 NumPy Implementation</h3>
+
+        <pre><code class="language-python">import numpy as np
+
+class DenseLayer:
+    """
+    Fully connected (dense) layer implementation
+    """
+
+    def __init__(self, n_input, n_output, activation='relu'):
+        """
+        Parameters:
+        -----------
+        n_input : int
+            Number of input features
+        n_output : int
+            Number of output neurons
+        activation : str
+            Activation function ('relu', 'sigmoid', 'softmax', 'none')
+        """
+        self.n_input = n_input
+        self.n_output = n_output
+        self.activation = activation
+
+        # He initialization
+        self.W = np.random.randn(n_input, n_output) * np.sqrt(2.0 / n_input)
+        self.b = np.zeros((1, n_output))
+
+        # Cache for backpropagation
+        self.cache = {}
+
+    def _activate(self, Z):
+        """Apply activation function"""
+        if self.activation == 'relu':
+            return np.maximum(0, Z)
+        elif self.activation == 'sigmoid':
+            return 1 / (1 + np.exp(-Z))
+        elif self.activation == 'softmax':
+            exp_Z = np.exp(Z - np.max(Z, axis=1, keepdims=True))
+            return exp_Z / np.sum(exp_Z, axis=1, keepdims=True)
+        elif self.activation == 'none':
+            return Z
+        else:
+            raise ValueError(f"Unknown activation: {self.activation}")
+
+    def forward(self, X):
+        """
+        Forward pass
+
+        Parameters:
+        -----------
+        X : ndarray, shape (batch_size, n_input)
+            Input data
+
+        Returns:
+        --------
+        A : ndarray, shape (batch_size, n_output)
+            Layer output
+        """
+        self.cache['X'] = X
+
+        # Linear transformation
+        Z = np.dot(X, self.W) + self.b
+        self.cache['Z'] = Z
+
+        # Activation
+        A = self._activate(Z)
+        self.cache['A'] = A
+
+        return A
+
+# Build a simple network
+np.random.seed(42)
+
+# Layer 1: 4 inputs -> 8 neurons (ReLU)
+layer1 = DenseLayer(4, 8, activation='relu')
+
+# Layer 2: 8 neurons -> 4 neurons (ReLU)
+layer2 = DenseLayer(8, 4, activation='relu')
+
+# Layer 3: 4 neurons -> 3 outputs (Softmax)
+layer3 = DenseLayer(4, 3, activation='softmax')
+
+# Test forward pass
+X = np.array([
+    [5.1, 3.5, 1.4, 0.2],
+    [6.3, 2.9, 5.6, 1.8],
+    [5.8, 2.7, 5.1, 1.9],
+    [5.0, 3.4, 1.5, 0.2],
+    [6.7, 3.1, 5.6, 2.4]
+])
+
+# Forward through all layers
+A1 = layer1.forward(X)
+A2 = layer2.forward(A1)
+output = layer3.forward(A2)
+
+print("Input shape:", X.shape)
+print("After Layer 1:", A1.shape)
+print("After Layer 2:", A2.shape)
+print("Output shape:", output.shape)
+print("\nPredicted probabilities:\n", output)
+print("\nPredicted classes:", np.argmax(output, axis=1))
+</code></pre>
+
+        <h3>5.2 PyTorch Implementation</h3>
+
+        <pre><code class="language-python">import torch
+import torch.nn as nn
+
+class SimpleNetwork(nn.Module):
+    """
+    Simple fully connected network in PyTorch
+    """
+
+    def __init__(self, input_size, hidden_sizes, output_size):
+        """
+        Parameters:
+        -----------
+        input_size : int
+            Number of input features
+        hidden_sizes : list
+            Number of neurons in each hidden layer
+        output_size : int
+            Number of output classes
+        """
+        super(SimpleNetwork, self).__init__()
+
+        layers = []
+        prev_size = input_size
+
+        # Hidden layers with ReLU
+        for hidden_size in hidden_sizes:
+            layers.append(nn.Linear(prev_size, hidden_size))
+            layers.append(nn.ReLU())
+            prev_size = hidden_size
+
+        # Output layer (no activation - use with CrossEntropyLoss)
+        layers.append(nn.Linear(prev_size, output_size))
+
+        self.network = nn.Sequential(*layers)
+
+    def forward(self, x):
+        return self.network(x)
+
+# Create network
+model = SimpleNetwork(input_size=4, hidden_sizes=[8, 4], output_size=3)
+print("Model architecture:")
+print(model)
+
+# Test data
+X_torch = torch.tensor([
+    [5.1, 3.5, 1.4, 0.2],
+    [6.3, 2.9, 5.6, 1.8],
+    [5.8, 2.7, 5.1, 1.9],
+    [5.0, 3.4, 1.5, 0.2],
+    [6.7, 3.1, 5.6, 2.4]
+], dtype=torch.float32)
+
+# Forward pass
+with torch.no_grad():
+    logits = model(X_torch)
+    probabilities = torch.softmax(logits, dim=1)
+
+print("\nLogits shape:", logits.shape)
+print("Probabilities:\n", probabilities.numpy())
+print("Predicted classes:", torch.argmax(probabilities, dim=1).numpy())
+
+# Loss calculation example
+y_true = torch.tensor([0, 2, 2, 0, 2])  # True class labels
+criterion = nn.CrossEntropyLoss()
+loss = criterion(logits, y_true)
+print(f"\nCross Entropy Loss: {loss.item():.4f}")
+</code></pre>
+
+        <h3>5.3 Complete Forward Pass Example</h3>
+
+        <pre><code class="language-python">import numpy as np
+
+def complete_forward_pass(X, weights, biases):
+    """
+    Complete forward pass through a neural network
+
+    Parameters:
+    -----------
+    X : ndarray
+        Input data
+    weights : list of ndarray
+        Weight matrices for each layer
+    biases : list of ndarray
+        Bias vectors for each layer
+
+    Returns:
+    --------
+    output : ndarray
+        Network output
+    activations : list
+        Activation at each layer (for visualization)
+    """
+    def relu(x):
+        return np.maximum(0, x)
+
+    def softmax(x):
+        exp_x = np.exp(x - np.max(x, axis=1, keepdims=True))
+        return exp_x / np.sum(exp_x, axis=1, keepdims=True)
+
+    activations = [X]
+    A = X
+
+    for i, (W, b) in enumerate(zip(weights, biases)):
+        # Linear transformation
+        Z = np.dot(A, W) + b
+
+        # Activation (softmax for last layer, ReLU for others)
+        if i == len(weights) - 1:
+            A = softmax(Z)
+        else:
+            A = relu(Z)
+
+        activations.append(A)
+
+    return A, activations
+
+# Initialize network
+np.random.seed(42)
+layer_sizes = [4, 8, 4, 3]
+
+weights = []
+biases = []
+for i in range(len(layer_sizes) - 1):
+    n_in, n_out = layer_sizes[i], layer_sizes[i + 1]
+    W = np.random.randn(n_in, n_out) * np.sqrt(2.0 / n_in)
+    b = np.zeros((1, n_out))
+    weights.append(W)
+    biases.append(b)
+
+# Input data (Iris-like)
+X = np.array([
+    [5.1, 3.5, 1.4, 0.2],  # setosa
+    [7.0, 3.2, 4.7, 1.4],  # versicolor
+    [6.3, 3.3, 6.0, 2.5],  # virginica
+])
+
+# Run forward pass
+output, activations = complete_forward_pass(X, weights, biases)
+
+print("Layer-by-layer activations:")
+for i, A in enumerate(activations):
+    print(f"  Layer {i}: shape {A.shape}, mean={A.mean():.4f}, std={A.std():.4f}")
+
+print("\nFinal output (probabilities):")
+print(output)
+print("\nPredicted classes:", np.argmax(output, axis=1))
+</code></pre>
+
+        <h2 id="exercises">Exercises</h2>
+
+        <details>
+            <summary>Exercise 1: Manual Forward Pass Calculation</summary>
+            <p><strong>Problem</strong>: Given the following network with 2 inputs, 2 hidden neurons, and 2 outputs:</p>
+            <ul>
+                <li>Input: $\mathbf{x} = [1, 2]$</li>
+                <li>Weights layer 1: $\mathbf{W}^{(1)} = \begin{bmatrix} 0.1 & 0.2 \\ 0.3 & 0.4 \end{bmatrix}$</li>
+                <li>Bias layer 1: $\mathbf{b}^{(1)} = [0.1, 0.1]$</li>
+                <li>Weights layer 2: $\mathbf{W}^{(2)} = \begin{bmatrix} 0.5 & 0.6 \\ 0.7 & 0.8 \end{bmatrix}$</li>
+                <li>Bias layer 2: $\mathbf{b}^{(2)} = [0.2, 0.2]$</li>
+                <li>Activation: ReLU for hidden layer, Softmax for output</li>
+            </ul>
+            <p>Calculate the output by hand, then verify with code.</p>
+        </details>
+
+        <details>
+            <summary>Exercise 2: Loss Function Comparison</summary>
+            <p><strong>Problem</strong>: For a binary classification problem, compare how MSE and Binary Cross Entropy losses change as the prediction varies from 0 to 1 for a true label of 1.</p>
+            <ol>
+                <li>Plot both loss functions for $\hat{y} \in [0.01, 0.99]$ with $y = 1$</li>
+                <li>Plot the gradients $\frac{dL}{d\hat{y}}$ for both losses</li>
+                <li>Explain why Cross Entropy is preferred for classification</li>
+            </ol>
+        </details>
+
+        <details>
+            <summary>Exercise 3: Implement Huber Loss</summary>
+            <p><strong>Problem</strong>: Implement the Huber loss function, which combines MSE and MAE:</p>
+            <p>$$L_\delta(y, \hat{y}) = \begin{cases} \frac{1}{2}(y - \hat{y})^2 & \text{if } |y - \hat{y}| \leq \delta \\ \delta |y - \hat{y}| - \frac{1}{2}\delta^2 & \text{otherwise} \end{cases}$$</p>
+            <p>Compare its behavior to MSE and MAE for inputs with outliers.</p>
+        </details>
+
+        <details>
+            <summary>Exercise 4: Batch Processing</summary>
+            <p><strong>Problem</strong>: Implement a function that processes data in mini-batches:</p>
+            <ol>
+                <li>Create a dataset of 1000 samples with 10 features</li>
+                <li>Implement batch iteration with configurable batch size</li>
+                <li>Measure the time to process all samples with batch sizes 1, 32, 128, and 1000</li>
+                <li>Plot the relationship between batch size and processing time</li>
+            </ol>
+        </details>
+
+        <details>
+            <summary>Exercise 5: Weight Initialization Experiment</summary>
+            <p><strong>Problem</strong>: Investigate the effect of weight initialization on activation distributions:</p>
+            <ol>
+                <li>Create a 5-layer network (100 -> 100 -> 100 -> 100 -> 10)</li>
+                <li>Initialize with zeros, random small values, Xavier, and He methods</li>
+                <li>Pass random input through the network and record activation statistics (mean, std) at each layer</li>
+                <li>Plot histograms of activations for each initialization method</li>
+            </ol>
+        </details>
+
+        <details>
+            <summary>Exercise 6: Computational Graph Visualization</summary>
+            <p><strong>Problem</strong>: Draw the computational graph for a 2-layer network and trace through a forward pass:</p>
+            <ol>
+                <li>Network: 2 inputs -> 3 hidden (ReLU) -> 2 outputs (Softmax)</li>
+                <li>Draw all operations (multiply, add, activation) as nodes</li>
+                <li>Label edges with tensor shapes</li>
+                <li>Calculate the total number of parameters</li>
+            </ol>
+        </details>
+
+        <h2 id="summary">Summary</h2>
+
+        <p>In this chapter, we learned how neural networks process data:</p>
+
+        <ul>
+            <li><strong>Forward Propagation</strong>: Data flows layer by layer, with each layer performing linear transformation followed by activation</li>
+            <li><strong>Matrix Operations</strong>: Enable efficient batch processing and parallelization</li>
+            <li><strong>Weight Matrices</strong>: Control connection strengths; proper initialization (Xavier, He) is crucial</li>
+            <li><strong>Bias Vectors</strong>: Allow shifting the activation function</li>
+            <li><strong>Computational Graphs</strong>: Represent operations as a graph, enabling automatic differentiation</li>
+            <li><strong>Loss Functions</strong>: MSE for regression, Cross Entropy for classification</li>
+        </ul>
+
+        <div class="success-box">
+            <p><strong>Next Chapter Preview</strong>: In Chapter 3, we will learn about learning algorithms - how neural networks adjust their weights to minimize loss using gradient descent and backpropagation.</p>
+        </div>
+
+        <div class="navigation">
+            <a href="./chapter-1.html" class="nav-button">Chapter 1</a>
+            <a href="./chapter-3.html" class="nav-button">Chapter 3</a>
+        </div>
+    </main>
+
+    <section class="disclaimer">
+        <h3>Disclaimer</h3>
+        <ul>
+            <li>This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical warranties, etc.).</li>
+            <li>This content and accompanying code examples are provided "AS IS" without any warranties, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operability, or safety.</li>
+            <li>The author and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, or libraries.</li>
+            <li>To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+            <li>The content may be changed, updated, or discontinued without notice.</li>
+            <li>The copyright and license of this content are subject to the specified terms (e.g., CC BY 4.0), which typically include no-warranty clauses.</li>
+        </ul>
+    </section>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 AI Terakoya - Dr. Yusuke Hashimoto, Tohoku University</p>
+            <p>Licensed under CC BY 4.0</p>
+        </div>
+    </footer>
+</body>
+</html>

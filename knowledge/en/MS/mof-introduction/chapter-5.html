@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="Chapter 5: Machine Learning and MOF Databases - MS Terakoya" name="description"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chapter 5: Machine Learning and Databases - MS Terakoya</title>
+<style>
+  :root {
+    --color-primary: #2c3e50;
+    --color-primary-dark: #1a252f;
+    --color-accent: #f093fb;
+    --color-accent-light: #f5576c;
+    --color-text: #2d3748;
+    --color-text-light: #4a5568;
+    --color-bg: #ffffff;
+    --color-bg-alt: #f7fafc;
+    --color-border: #e2e8f0;
+    --color-code-bg: #f8f9fa;
+    --color-link: #f093fb;
+    --color-link-hover: #d07be8;
+    --spacing-xs: 0.5rem;
+    --spacing-sm: 1rem;
+    --spacing-md: 1.5rem;
+    --spacing-lg: 2rem;
+    --spacing-xl: 3rem;
+    --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    --border-radius: 8px;
+    --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: var(--font-body); line-height: 1.7; color: var(--color-text); background-color: var(--color-bg); font-size: 16px; }
+  header { background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%); color: white; padding: var(--spacing-xl) var(--spacing-md); margin-bottom: var(--spacing-xl); box-shadow: var(--box-shadow); }
+  .header-content { max-width: 900px; margin: 0 auto; }
+  h1 { font-size: 2rem; font-weight: 700; margin-bottom: var(--spacing-sm); line-height: 1.2; }
+  .subtitle { font-size: 1.1rem; opacity: 0.95; font-weight: 400; margin-bottom: var(--spacing-md); }
+  .meta { display: flex; flex-wrap: wrap; gap: var(--spacing-md); font-size: 0.9rem; opacity: 0.9; }
+  .meta-item { display: flex; align-items: center; gap: 0.3rem; }
+  .container { max-width: 900px; margin: 0 auto; padding: 0 var(--spacing-md) var(--spacing-xl); }
+  h2 { font-size: 1.75rem; color: var(--color-primary); margin-top: var(--spacing-xl); margin-bottom: var(--spacing-md); padding-bottom: var(--spacing-xs); border-bottom: 3px solid var(--color-accent); }
+  h3 { font-size: 1.4rem; color: var(--color-primary); margin-top: var(--spacing-lg); margin-bottom: var(--spacing-sm); }
+  h4 { font-size: 1.1rem; color: var(--color-primary-dark); margin-top: var(--spacing-md); margin-bottom: var(--spacing-sm); }
+  p { margin-bottom: var(--spacing-md); color: var(--color-text); }
+  a { color: var(--color-link); text-decoration: none; transition: color 0.2s; }
+  a:hover { color: var(--color-link-hover); text-decoration: underline; }
+  ul, ol { margin-left: var(--spacing-lg); margin-bottom: var(--spacing-md); }
+  li { margin-bottom: var(--spacing-xs); color: var(--color-text); }
+  pre { background-color: var(--color-code-bg); border: 1px solid var(--color-border); border-radius: var(--border-radius); padding: var(--spacing-md); overflow-x: auto; margin-bottom: var(--spacing-md); font-family: var(--font-mono); font-size: 0.9rem; line-height: 1.5; }
+  code { font-family: var(--font-mono); font-size: 0.9em; background-color: var(--color-code-bg); padding: 0.2em 0.4em; border-radius: 3px; }
+  pre code { background-color: transparent; padding: 0; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: var(--spacing-md); font-size: 0.95rem; }
+  th, td { border: 1px solid var(--color-border); padding: var(--spacing-sm); text-align: left; }
+  th { background-color: var(--color-bg-alt); font-weight: 600; color: var(--color-primary); }
+  blockquote { border-left: 4px solid var(--color-accent); padding-left: var(--spacing-md); margin: var(--spacing-md) 0; color: var(--color-text-light); font-style: italic; background-color: var(--color-bg-alt); padding: var(--spacing-md); border-radius: var(--border-radius); }
+  .info-box { background-color: var(--color-bg-alt); border-left: 4px solid var(--color-accent); padding: var(--spacing-md); margin: var(--spacing-md) 0; border-radius: var(--border-radius); }
+  .info-box h3, .info-box h4 { margin-top: 0; color: var(--color-primary); }
+  .warning-box { background-color: #fff5f5; border-left: 4px solid #fc8181; padding: var(--spacing-md); margin: var(--spacing-md) 0; border-radius: var(--border-radius); }
+  .success-box { background-color: #f0fff4; border-left: 4px solid #68d391; padding: var(--spacing-md); margin: var(--spacing-md) 0; border-radius: var(--border-radius); }
+  .navigation { display: flex; justify-content: space-between; margin-top: var(--spacing-xl); padding-top: var(--spacing-lg); border-top: 1px solid var(--color-border); flex-wrap: wrap; gap: var(--spacing-sm); }
+  .nav-button { display: inline-block; padding: var(--spacing-sm) var(--spacing-md); background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%); color: white; border-radius: var(--border-radius); text-decoration: none; font-weight: 500; transition: transform 0.2s, box-shadow 0.2s; }
+  .nav-button:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(240, 147, 251, 0.4); color: white; text-decoration: none; }
+  .nav-button.secondary { background: var(--color-bg-alt); color: var(--color-primary); border: 1px solid var(--color-border); }
+  .nav-button.secondary:hover { background: var(--color-border); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); }
+  .breadcrumb { background-color: var(--color-bg-alt); padding: var(--spacing-sm) var(--spacing-md); font-size: 0.9rem; }
+  .breadcrumb-content { max-width: 900px; margin: 0 auto; }
+  .breadcrumb a { color: var(--color-text-light); }
+  .breadcrumb-separator { margin: 0 var(--spacing-xs); color: var(--color-text-light); }
+  .breadcrumb-current { color: var(--color-primary); font-weight: 500; }
+  footer { background-color: var(--color-primary-dark); color: white; padding: var(--spacing-lg) var(--spacing-md); margin-top: var(--spacing-xl); text-align: center; }
+  footer p { color: rgba(255, 255, 255, 0.8); margin-bottom: var(--spacing-xs); }
+  .locale-switcher { text-align: right; padding: var(--spacing-xs) var(--spacing-md); font-size: 0.85rem; max-width: 900px; margin: 0 auto; }
+  .locale-link { margin-left: var(--spacing-xs); }
+  .key-term { font-weight: 600; color: var(--color-primary); }
+  @media (max-width: 768px) { h1 { font-size: 1.75rem; } h2 { font-size: 1.5rem; } h3 { font-size: 1.25rem; } .navigation { flex-direction: column; } .nav-button { text-align: center; } }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });</script>
+</head>
+<body>
+<nav class="breadcrumb">
+<div class="breadcrumb-content">
+<a href="../index.html">Materials Science</a>
+<span class="breadcrumb-separator">></span>
+<a href="index.html">MOF Introduction</a>
+<span class="breadcrumb-separator">></span>
+<span class="breadcrumb-current">Chapter 5</span>
+</div>
+</nav>
+<div class="locale-switcher">
+<span>EN</span> |
+<a href="../../../jp/MS/mof-introduction/chapter-5.html" class="locale-link">JP</a>
+</div>
+<header>
+<div class="header-content">
+<h1>Chapter 5: Machine Learning and Databases</h1>
+<p class="subtitle">AI-Driven Discovery and Computational MOF Science</p>
+<div class="meta">
+<span class="meta-item">20-25 min</span>
+<span class="meta-item">Intermediate</span>
+</div>
+</div>
+</header>
+<main class="container">
+<h2>Learning Objectives</h2>
+<ul>
+<li>Understand the landscape of MOF databases</li>
+<li>Learn how machine learning accelerates MOF discovery</li>
+<li>Explore generative AI for designing new MOFs</li>
+<li>Appreciate the integration of computation and experiment</li>
+<li>Recognize future directions in computational MOF science</li>
+</ul>
+
+<h2>5.1 The Need for Computational Approaches</h2>
+
+<h3>The MOF Discovery Challenge</h3>
+<p>With over <strong>100,000 MOF structures</strong> reported and <strong>millions more theoretically possible</strong>, experimental screening of all candidates is impossible. Computational methods and machine learning offer a solution.</p>
+
+<div class="mermaid">
+flowchart TD
+    A[~100,000 Known MOFs] --> B[Millions of<br/>Hypothetical MOFs]
+    B --> C{How to Find<br/>Best MOF?}
+    C --> D[Experimental<br/>Screening]
+    C --> E[Computational<br/>Screening]
+    D --> F[Slow: ~10 MOFs/year<br/>per researcher]
+    E --> G[Fast: ~1 million MOFs<br/>screened in days]
+    G --> H[Top Candidates]
+    H --> I[Targeted<br/>Experiments]
+
+    style E fill:#27ae60,stroke:#1e8449,color:#fff
+    style G fill:#3498db,stroke:#2980b9,color:#fff
+</div>
+
+<h3>Computational Workflow</h3>
+<ol>
+<li><strong>Database mining</strong>: Search existing MOF databases</li>
+<li><strong>Structure generation</strong>: Create hypothetical MOF structures</li>
+<li><strong>Property prediction</strong>: Calculate or predict target properties</li>
+<li><strong>Screening</strong>: Rank candidates by performance</li>
+<li><strong>Experimental validation</strong>: Synthesize and test top candidates</li>
+</ol>
+
+<h2>5.2 Major MOF Databases</h2>
+
+<h3>Cambridge Structural Database (CSD) MOF Subset</h3>
+<div class="info-box">
+<h4>CSD MOF Collection</h4>
+<ul>
+<li><strong>Source</strong>: Cambridge Crystallographic Data Centre (CCDC)</li>
+<li><strong>Content</strong>: ~100,000+ MOF structures (as of 2024)</li>
+<li><strong>Data</strong>: Crystal structures from published literature</li>
+<li><strong>Access</strong>: Subscription required (academic licenses available)</li>
+<li><strong>Features</strong>: High-quality, experimentally verified structures</li>
+</ul>
+</div>
+
+<h3>CoRE MOF Database</h3>
+<div class="info-box">
+<h4>Computation-Ready, Experimental MOF Database</h4>
+<ul>
+<li><strong>Source</strong>: Northwestern University (Snurr group)</li>
+<li><strong>Content</strong>: ~14,000 curated structures (2019 version)</li>
+<li><strong>Data</strong>: Cleaned structures ready for molecular simulation</li>
+<li><strong>Access</strong>: Free (open access)</li>
+<li><strong>Features</strong>: Removed solvent, assigned charges, standardized format</li>
+<li><strong>URL</strong>: github.com/gregchung/gregchung.github.io</li>
+</ul>
+</div>
+
+<h3>QMOF Database</h3>
+<div class="info-box">
+<h4>Quantum MOF Database</h4>
+<ul>
+<li><strong>Source</strong>: Georgia Tech (Sholl group)</li>
+<li><strong>Content</strong>: ~20,000 MOFs with DFT-computed properties</li>
+<li><strong>Data</strong>: Band gaps, partial charges, electronic properties</li>
+<li><strong>Access</strong>: Free (open access)</li>
+<li><strong>Features</strong>: Consistent DFT calculations across all structures</li>
+</ul>
+</div>
+
+<h3>hMOF (Hypothetical MOF) Databases</h3>
+<div class="info-box">
+<h4>Computationally Generated MOFs</h4>
+<ul>
+<li><strong>Content</strong>: 100,000+ to millions of hypothetical structures</li>
+<li><strong>Generation</strong>: Combinatorial assembly of building blocks</li>
+<li><strong>Use</strong>: High-throughput screening for target applications</li>
+<li><strong>Examples</strong>: hMOF database, ToBaCCo-generated MOFs</li>
+</ul>
+</div>
+
+<h3>Comparison of Databases</h3>
+<table>
+<thead>
+<tr>
+<th>Database</th>
+<th>Size</th>
+<th>Type</th>
+<th>Access</th>
+<th>Best For</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CSD MOF</td>
+<td>~100,000</td>
+<td>Experimental</td>
+<td>Subscription</td>
+<td>Literature structures</td>
+</tr>
+<tr>
+<td>CoRE MOF</td>
+<td>~14,000</td>
+<td>Curated experimental</td>
+<td>Free</td>
+<td>Molecular simulation</td>
+</tr>
+<tr>
+<td>QMOF</td>
+<td>~20,000</td>
+<td>DFT-computed</td>
+<td>Free</td>
+<td>Electronic properties</td>
+</tr>
+<tr>
+<td>hMOF</td>
+<td>100,000+</td>
+<td>Hypothetical</td>
+<td>Free</td>
+<td>Discovery screening</td>
+</tr>
+</tbody>
+</table>
+
+<h2>5.3 Machine Learning for MOF Property Prediction</h2>
+
+<h3>Why Machine Learning?</h3>
+<p>First-principles calculations (DFT, molecular dynamics) are accurate but slow. Machine learning models trained on computed or experimental data can predict properties in milliseconds.</p>
+
+<div class="mermaid">
+flowchart LR
+    subgraph Traditional["Traditional Approach"]
+        A1[MOF Structure] --> B1[DFT Calculation]
+        B1 --> C1[Property]
+        B1 -.->|Hours to Days| C1
+    end
+
+    subgraph ML["ML Approach"]
+        A2[MOF Structure] --> B2[Feature Extraction]
+        B2 --> C2[ML Model]
+        C2 --> D2[Property]
+        C2 -.->|Milliseconds| D2
+    end
+
+    style B1 fill:#e74c3c,stroke:#c0392b,color:#fff
+    style C2 fill:#27ae60,stroke:#1e8449,color:#fff
+</div>
+
+<h3>Feature Engineering for MOFs</h3>
+<p>ML models require numerical representations (features) of MOF structures:</p>
+
+<h4>Structural Features</h4>
+<ul>
+<li><strong>Geometric</strong>: Surface area, pore volume, pore size distribution</li>
+<li><strong>Topological</strong>: Network topology, node/linker connectivity</li>
+<li><strong>Chemical</strong>: Metal type, linker functional groups, elemental composition</li>
+</ul>
+
+<h4>Advanced Representations</h4>
+<ul>
+<li><strong>Revised Autocorrelation (RAC)</strong>: Encodes local chemical environment</li>
+<li><strong>Persistent homology</strong>: Captures topological features at multiple scales</li>
+<li><strong>Graph neural networks</strong>: Learn features directly from atomic connectivity</li>
+<li><strong>Crystal graph</strong>: Represents periodic structure as a graph</li>
+</ul>
+
+<h3>Common ML Models for MOFs</h3>
+<table>
+<thead>
+<tr>
+<th>Model Type</th>
+<th>Strengths</th>
+<th>Example Applications</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Random Forest</strong></td>
+<td>Interpretable, handles mixed features</td>
+<td>Gas uptake prediction</td>
+</tr>
+<tr>
+<td><strong>Gradient Boosting</strong></td>
+<td>High accuracy, feature importance</td>
+<td>CO₂/N₂ selectivity</td>
+</tr>
+<tr>
+<td><strong>Neural Networks</strong></td>
+<td>Complex patterns, large datasets</td>
+<td>Multi-property prediction</td>
+</tr>
+<tr>
+<td><strong>Graph Neural Networks</strong></td>
+<td>Direct structure input, transferable</td>
+<td>Stability prediction</td>
+</tr>
+<tr>
+<td><strong>Transformer Models</strong></td>
+<td>Attention mechanism, state-of-the-art</td>
+<td>Property prediction, generation</td>
+</tr>
+</tbody>
+</table>
+
+<h3>Example: Predicting Gas Adsorption</h3>
+<div class="info-box">
+<h4>ML Workflow for CO₂ Uptake Prediction</h4>
+<ol>
+<li><strong>Data collection</strong>: Gather MOF structures + experimental/computed CO₂ uptake</li>
+<li><strong>Feature calculation</strong>: Compute surface area, pore volume, chemical descriptors</li>
+<li><strong>Model training</strong>: Train random forest or neural network on 80% of data</li>
+<li><strong>Validation</strong>: Test on remaining 20%, evaluate R² and MAE</li>
+<li><strong>Screening</strong>: Apply model to hypothetical MOF database</li>
+<li><strong>Selection</strong>: Identify top candidates for synthesis</li>
+</ol>
+</div>
+
+<h3>Success Stories</h3>
+
+<div class="success-box">
+<h4>ML-Guided Discovery of Record CH₄ Storage MOF</h4>
+<p>Researchers used ML to screen millions of hypothetical MOFs for methane storage. The top predicted candidate was synthesized and achieved <strong>record-breaking methane uptake</strong>, validating the computational approach.</p>
+</div>
+
+<div class="success-box">
+<h4>Stability Prediction</h4>
+<p>ML models can now predict whether a hypothetical MOF will be thermally stable or water-stable with >85% accuracy, allowing researchers to focus on synthesizable targets.</p>
+</div>
+
+<h2>5.4 Generative AI for MOF Design</h2>
+
+<h3>Beyond Prediction: Generating New MOFs</h3>
+<p>While predictive ML screens existing candidates, <span class="key-term">generative AI</span> can design entirely new MOF structures optimized for specific properties.</p>
+
+<div class="mermaid">
+flowchart LR
+    A[Target Property<br/>e.g., High CO₂ uptake] --> B[Generative<br/>AI Model]
+    B --> C[New MOF<br/>Structures]
+    C --> D[Validation<br/>Simulation]
+    D --> E[Synthesis &amp;<br/>Testing]
+
+    style B fill:#9b59b6,stroke:#8e44ad,color:#fff
+    style C fill:#27ae60,stroke:#1e8449,color:#fff
+</div>
+
+<h3>Generative Approaches</h3>
+
+<h4>Variational Autoencoders (VAE)</h4>
+<p>VAEs learn a continuous latent space of MOF structures. New MOFs can be generated by sampling from this space or by optimizing in latent space for desired properties.</p>
+
+<h4>Generative Adversarial Networks (GAN)</h4>
+<p>GANs use a generator-discriminator framework to create realistic MOF structures that could plausibly exist.</p>
+
+<h4>Diffusion Models</h4>
+<p>Recent advances apply diffusion models (like those behind image generators) to generate 3D crystal structures, including MOFs.</p>
+
+<h4>Language Models for Chemistry</h4>
+<p>Large language models trained on chemical data can generate SMILES strings for new linkers or suggest synthesis conditions.</p>
+
+<h3>MOF Generation Pipelines</h3>
+<div class="info-box">
+<h4>Inverse Design Workflow</h4>
+<ol>
+<li><strong>Define target</strong>: Specify desired properties (e.g., high H₂ uptake at 298 K)</li>
+<li><strong>Generate candidates</strong>: Use generative model to propose structures</li>
+<li><strong>Filter</strong>: Remove chemically unreasonable structures</li>
+<li><strong>Predict properties</strong>: Use ML to estimate performance</li>
+<li><strong>Simulate</strong>: Run molecular dynamics on top candidates</li>
+<li><strong>Synthesize</strong>: Attempt synthesis of best structures</li>
+</ol>
+</div>
+
+<h3>Challenges in Generative MOF Design</h3>
+<ul>
+<li><strong>Synthesizability</strong>: Generated structures may not be synthetically accessible</li>
+<li><strong>Stability</strong>: Ensuring generated MOFs are thermodynamically stable</li>
+<li><strong>Validity</strong>: Maintaining chemical validity (correct bonding, stoichiometry)</li>
+<li><strong>Diversity</strong>: Avoiding mode collapse to similar structures</li>
+</ul>
+
+<h2>5.5 Molecular Simulation Methods</h2>
+
+<h3>Grand Canonical Monte Carlo (GCMC)</h3>
+<p><span class="key-term">GCMC</span> simulations predict gas adsorption isotherms by simulating gas molecules inserting, deleting, and moving within MOF pores at fixed temperature and chemical potential.</p>
+
+<h4>What GCMC Predicts</h4>
+<ul>
+<li>Gas uptake at various pressures and temperatures</li>
+<li>Adsorption isotherms</li>
+<li>Selectivity between different gases</li>
+<li>Adsorption sites and mechanisms</li>
+</ul>
+
+<h3>Molecular Dynamics (MD)</h3>
+<p><span class="key-term">MD simulations</span> track the motion of atoms over time, providing insights into:</p>
+<ul>
+<li>Diffusion of guest molecules through pores</li>
+<li>Framework flexibility and dynamics</li>
+<li>Thermal stability</li>
+<li>Transport properties</li>
+</ul>
+
+<h3>Density Functional Theory (DFT)</h3>
+<p><span class="key-term">DFT</span> calculations solve quantum mechanical equations to provide:</p>
+<ul>
+<li>Accurate binding energies</li>
+<li>Electronic structure (band gaps, conductivity)</li>
+<li>Partial atomic charges</li>
+<li>Reaction energetics for catalysis</li>
+</ul>
+
+<h3>Multi-Scale Approach</h3>
+<div class="mermaid">
+flowchart TD
+    A[DFT<br/>Electronic structure<br/>Accurate energies] --> B[Force Field<br/>Development]
+    B --> C[GCMC/MD<br/>Adsorption, diffusion<br/>Larger systems]
+    C --> D[ML Models<br/>Rapid screening<br/>Millions of MOFs]
+    D --> E[Experimental<br/>Validation]
+
+    style A fill:#e74c3c,stroke:#c0392b,color:#fff
+    style C fill:#f39c12,stroke:#e67e22,color:#fff
+    style D fill:#27ae60,stroke:#1e8449,color:#fff
+</div>
+
+<h2>5.6 Software and Tools</h2>
+
+<h3>Structure Analysis</h3>
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>Purpose</th>
+<th>Access</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Zeo++</strong></td>
+<td>Pore analysis, surface area calculation</td>
+<td>Free, open source</td>
+</tr>
+<tr>
+<td><strong>PLATON</strong></td>
+<td>Crystal structure analysis</td>
+<td>Free for academics</td>
+</tr>
+<tr>
+<td><strong>CrystalExplorer</strong></td>
+<td>Hirshfeld surface analysis</td>
+<td>Free</td>
+</tr>
+</tbody>
+</table>
+
+<h3>Molecular Simulation</h3>
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>Purpose</th>
+<th>Access</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>RASPA</strong></td>
+<td>GCMC and MD for adsorption</td>
+<td>Free, open source</td>
+</tr>
+<tr>
+<td><strong>LAMMPS</strong></td>
+<td>General MD simulations</td>
+<td>Free, open source</td>
+</tr>
+<tr>
+<td><strong>VASP/Gaussian</strong></td>
+<td>DFT calculations</td>
+<td>Commercial</td>
+</tr>
+<tr>
+<td><strong>CP2K</strong></td>
+<td>DFT (free alternative)</td>
+<td>Free, open source</td>
+</tr>
+</tbody>
+</table>
+
+<h3>Machine Learning</h3>
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>Purpose</th>
+<th>Access</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>MOFid</strong></td>
+<td>MOF identification and featurization</td>
+<td>Free</td>
+</tr>
+<tr>
+<td><strong>matminer</strong></td>
+<td>Materials feature extraction</td>
+<td>Free, Python</td>
+</tr>
+<tr>
+<td><strong>CGCNN</strong></td>
+<td>Crystal graph neural networks</td>
+<td>Free, PyTorch</td>
+</tr>
+<tr>
+<td><strong>MOFTransformer</strong></td>
+<td>Transformer model for MOFs</td>
+<td>Free</td>
+</tr>
+</tbody>
+</table>
+
+<h2>5.7 Future Directions</h2>
+
+<h3>Autonomous MOF Discovery</h3>
+<p>The future points toward <span class="key-term">self-driving laboratories</span> where AI plans experiments, robots execute synthesis, and results feed back to improve models.</p>
+
+<div class="mermaid">
+flowchart LR
+    A[AI Planner] --> B[Robotic<br/>Synthesis]
+    B --> C[Automated<br/>Characterization]
+    C --> D[Data Analysis]
+    D --> A
+
+    style A fill:#9b59b6,stroke:#8e44ad,color:#fff
+    style B fill:#3498db,stroke:#2980b9,color:#fff
+</div>
+
+<h3>Foundation Models for Materials</h3>
+<p>Large pre-trained models (like GPT for language) are being developed for materials science. These could enable:</p>
+<ul>
+<li>Zero-shot property prediction</li>
+<li>Natural language queries about MOFs</li>
+<li>Automated literature synthesis</li>
+<li>Multi-modal understanding (structure + text + spectra)</li>
+</ul>
+
+<h3>Integration with Experiment</h3>
+<p>Closing the loop between computation and experiment:</p>
+<ul>
+<li><strong>Active learning</strong>: AI selects most informative experiments</li>
+<li><strong>Bayesian optimization</strong>: Efficient exploration of synthesis space</li>
+<li><strong>Digital twins</strong>: Virtual models of experimental setups</li>
+</ul>
+
+<h3>Grand Challenges</h3>
+<div class="info-box">
+<h4>Open Problems in Computational MOF Science</h4>
+<ol>
+<li><strong>Synthesizability prediction</strong>: Can we predict which MOFs are actually makeable?</li>
+<li><strong>Long-term stability</strong>: Predicting degradation over months/years</li>
+<li><strong>Multi-objective optimization</strong>: Balancing competing properties</li>
+<li><strong>Transfer learning</strong>: Applying knowledge across different MOF families</li>
+<li><strong>Uncertainty quantification</strong>: Knowing when to trust predictions</li>
+</ol>
+</div>
+
+<h2>Summary</h2>
+
+<div class="success-box">
+<h4>Key Takeaways</h4>
+<ul>
+<li><strong>MOF databases</strong> (CSD, CoRE MOF, QMOF) provide the foundation for computational discovery</li>
+<li><strong>Machine learning</strong> enables rapid property prediction for millions of MOFs</li>
+<li><strong>Feature engineering</strong> translates MOF structures into ML-ready representations</li>
+<li><strong>Generative AI</strong> can design new MOFs optimized for target properties</li>
+<li><strong>Molecular simulation</strong> (GCMC, MD, DFT) provides physical understanding</li>
+<li><strong>Multi-scale approaches</strong> combine accuracy and speed</li>
+<li><strong>Future directions</strong> include autonomous labs and foundation models</li>
+<li>The combination of <strong>AI + experiment</strong> is accelerating MOF discovery</li>
+</ul>
+</div>
+
+<h2>Check Your Understanding</h2>
+
+<div class="info-box">
+<h4>Question 1</h4>
+<p>Why is the CoRE MOF database "computation-ready" while the raw CSD is not?</p>
+<details>
+<summary>Click for Answer</summary>
+<p><strong>Answer:</strong> The CoRE MOF database has been processed to remove solvent molecules from pores, assign partial atomic charges, and standardize file formats. Raw CSD structures often contain disordered atoms, solvent molecules, and missing hydrogens that must be cleaned before molecular simulations can be run reliably.</p>
+</details>
+</div>
+
+<div class="info-box">
+<h4>Question 2</h4>
+<p>What is the main advantage of using graph neural networks (GNNs) for MOF property prediction compared to traditional ML with hand-crafted features?</p>
+<details>
+<summary>Click for Answer</summary>
+<p><strong>Answer:</strong> GNNs can learn relevant features directly from the atomic connectivity graph rather than relying on pre-defined descriptors. This makes them more flexible and often more accurate, especially for properties that depend on local chemical environments that might not be captured by traditional geometric features.</p>
+</details>
+</div>
+
+<div class="info-box">
+<h4>Question 3</h4>
+<p>Why is synthesizability prediction one of the grand challenges in computational MOF discovery?</p>
+<details>
+<summary>Click for Answer</summary>
+<p><strong>Answer:</strong> A computationally designed MOF may be thermodynamically stable but kinetically inaccessible - meaning there's no practical synthesis route to make it. Synthesizability depends on complex factors including precursor availability, solubility, crystallization kinetics, and competing phases. These factors are difficult to model computationally, so many "optimal" predicted MOFs cannot actually be made.</p>
+</details>
+</div>
+
+<h2>Resources for Further Learning</h2>
+
+<h3>Databases</h3>
+<ul>
+<li><strong>CoRE MOF</strong>: github.com/gregchung/gregchung.github.io</li>
+<li><strong>QMOF</strong>: github.com/Andrew-S-Rosen/QMOF</li>
+<li><strong>CSD MOF Subset</strong>: ccdc.cam.ac.uk</li>
+</ul>
+
+<h3>Software</h3>
+<ul>
+<li><strong>Zeo++</strong>: zeoplusplus.org</li>
+<li><strong>RASPA</strong>: github.com/iRASPA/RASPA2</li>
+<li><strong>matminer</strong>: hackingmaterials.github.io/matminer</li>
+</ul>
+
+<h3>Tutorials and Courses</h3>
+<ul>
+<li>Materials Project Workshop materials</li>
+<li>MOF-related sessions at ACS meetings</li>
+<li>Online courses on computational materials science</li>
+</ul>
+
+<div class="navigation">
+<a class="nav-button secondary" href="chapter-4.html">Previous: Applications</a>
+<a class="nav-button" href="index.html">Back to Series Index</a>
+</div>
+</main>
+<footer>
+<p><strong>Author</strong>: MS Knowledge Hub Content Team</p>
+<p><strong>Version</strong>: 1.0 | <strong>Last Updated</strong>: 2026-01-06</p>
+<p><strong>License</strong>: Creative Commons BY 4.0</p>
+</footer>
+</body>
+</html>

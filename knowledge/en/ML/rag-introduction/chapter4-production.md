@@ -3,6 +3,18 @@ title: "Chapter 4: Production Deployment"
 chapter_title: "Chapter 4: Production Deployment"
 ---
 
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/cLtv8Vhuus4"
+    title="RAG Introduction Ch.4: Production Deployment"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
 This chapter covers Production Deployment. You will learn essential concepts and techniques.
 
 ## 1\. System Architecture

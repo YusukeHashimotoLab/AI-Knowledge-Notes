@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Chapter 3: LLM Training and Alignment - RLHF, DPO, Constitutional AI, and Inference-Time Scaling">
+    <title>Chapter 3: LLM Training and Alignment - LLM Basics Introduction - AI Terakoya</title>
+
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --bg-color: #ffffff;
+            --text-color: #333333;
+            --border-color: #e0e0e0;
+            --code-bg: #f5f5f5;
+            --link-color: #3498db;
+            --link-hover: #2980b9;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; line-height: 1.8; color: var(--text-color); background: var(--bg-color); }
+        .container { max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem; }
+        header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 2rem 0; margin-bottom: 2rem; }
+        header .container { padding: 0 1.5rem; }
+        h1 { font-size: 2rem; margin-bottom: 0.5rem; font-weight: 700; }
+        .subtitle { font-size: 1.1rem; opacity: 0.95; margin-bottom: 1rem; }
+        .meta { display: flex; gap: 1.5rem; flex-wrap: wrap; font-size: 0.9rem; opacity: 0.95; margin-top: 1rem; }
+        .meta span { display: inline-flex; align-items: center; gap: 0.3rem; }
+        h2 { font-size: 1.75rem; margin-top: 2.5rem; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 3px solid var(--secondary-color); color: var(--primary-color); }
+        h3 { font-size: 1.4rem; margin-top: 2rem; margin-bottom: 0.8rem; color: var(--primary-color); }
+        h4 { font-size: 1.2rem; margin-top: 1.5rem; margin-bottom: 0.6rem; color: var(--primary-color); }
+        p { margin-bottom: 1.2rem; }
+        a { color: var(--link-color); text-decoration: none; }
+        a:hover { color: var(--link-hover); text-decoration: underline; }
+        ul, ol { margin-left: 2rem; margin-bottom: 1.2rem; }
+        li { margin-bottom: 0.5rem; }
+        pre { background: var(--code-bg); padding: 1.5rem; border-radius: 8px; overflow-x: auto; margin: 1.5rem 0; border: 1px solid var(--border-color); }
+        code { font-family: 'Consolas', 'Monaco', monospace; font-size: 0.9rem; }
+        p code, li code { background: var(--code-bg); padding: 0.2rem 0.4rem; border-radius: 3px; font-size: 0.85rem; }
+        .info-box { background: #e3f2fd; border-left: 4px solid #2196F3; padding: 1.5rem; margin: 1.5rem 0; border-radius: 4px; }
+        .info-box h4 { margin-top: 0; color: #1976D2; }
+        .warning-box { background: #fff3e0; border-left: 4px solid #ff9800; padding: 1.5rem; margin: 1.5rem 0; border-radius: 4px; }
+        .warning-box h4 { margin-top: 0; color: #f57c00; }
+        .success-box { background: #e8f5e9; border-left: 4px solid #4caf50; padding: 1.5rem; margin: 1.5rem 0; border-radius: 4px; }
+        .success-box h4 { margin-top: 0; color: #388e3c; }
+        table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; font-size: 0.9rem; }
+        th, td { padding: 0.8rem; text-align: left; border: 1px solid var(--border-color); }
+        th { background: var(--code-bg); font-weight: 600; color: var(--primary-color); }
+        tr:nth-child(even) { background: #f9f9f9; }
+        .mermaid { text-align: center; margin: 2rem 0; background: white; padding: 1rem; border-radius: 8px; border: 1px solid var(--border-color); }
+        .nav-buttons { display: flex; justify-content: space-between; margin: 3rem 0; gap: 1rem; flex-wrap: wrap; }
+        .nav-button { display: inline-block; padding: 0.8rem 1.5rem; background: var(--secondary-color); color: white; border-radius: 6px; font-weight: 600; }
+        .nav-button:hover { background: var(--link-hover); transform: translateY(-2px); text-decoration: none; }
+        footer { margin-top: 4rem; padding: 2rem 0; border-top: 2px solid var(--border-color); text-align: center; color: #666; font-size: 0.9rem; }
+        .disclaimer { max-width: 900px; margin: 2rem auto; padding: 1.5rem; background: #f8f9fa; border-left: 4px solid #6c757d; border-radius: 4px; }
+        .disclaimer h3 { color: #495057; margin-bottom: 1rem; font-size: 1.1rem; }
+        .disclaimer ul { list-style: none; padding-left: 0; }
+        .disclaimer li { padding: 0.5rem 0 0.5rem 1.5rem; position: relative; font-size: 0.9rem; color: #6c757d; }
+        .disclaimer li::before { content: "\u26a0\ufe0f"; position: absolute; left: 0; }
+        .breadcrumb { background: #f7fafc; padding: 0.75rem 1rem; border-bottom: 1px solid #e2e8f0; font-size: 0.9rem; }
+        .breadcrumb-content { max-width: 900px; margin: 0 auto; display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
+        .breadcrumb a { color: #667eea; }
+        .breadcrumb-separator { color: #a0aec0; margin: 0 0.25rem; }
+        .breadcrumb-current { color: #4a5568; font-weight: 500; }
+        @media (max-width: 768px) { .container { padding: 1rem; } h1 { font-size: 1.6rem; } h2 { font-size: 1.4rem; } }
+    </style>
+
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script>document.addEventListener('DOMContentLoaded', function() { if (typeof mermaid !== 'undefined') { mermaid.initialize({ startOnLoad: true, theme: 'default' }); } });</script>
+</head>
+<body>
+    <nav class="breadcrumb">
+        <div class="breadcrumb-content">
+            <a href="../../index.html">Home</a><span class="breadcrumb-separator">></span><a href="../index.html">Machine Learning</a><span class="breadcrumb-separator">></span><a href="./index.html">LLM Basics Introduction</a><span class="breadcrumb-separator">></span><span class="breadcrumb-current">Chapter 3</span>
+        </div>
+    </nav>
+
+    <header>
+        <div class="container">
+            <h1>Chapter 3: LLM Training and Alignment</h1>
+            <p class="subtitle">From Pre-training to RLHF, DPO, and Inference-Time Scaling</p>
+            <div class="meta">
+                <span>Reading Time: 35-40 min</span>
+                <span>Difficulty: Intermediate</span>
+                <span>Code Examples: 7</span>
+                <span>Exercises: 4</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <h2 id="intro">Introduction</h2>
+        <p>Training a Large Language Model involves two major phases: <strong>pre-training</strong> on massive text corpora, and <strong>alignment</strong> to make the model helpful, harmless, and honest. This chapter covers the evolution of alignment techniques from <strong>RLHF</strong> to <strong>DPO</strong>, the revolutionary <strong>inference-time scaling</strong> that powers reasoning models, and the <strong>scaling laws</strong> that guide LLM development.</p>
+
+        <div class="info-box">
+            <h4>What You'll Learn</h4>
+            <ul>
+                <li>Pre-training objectives and data curation</li>
+                <li>RLHF (Reinforcement Learning from Human Feedback)</li>
+                <li><strong>NEW</strong>: DPO and GRPO - simplified alignment without reward models</li>
+                <li><strong>NEW</strong>: Constitutional AI - self-critique based alignment</li>
+                <li><strong>NEW</strong>: Inference-Time Scaling and reasoning models (o1, o3)</li>
+                <li>Scaling Laws and the Densing Law</li>
+            </ul>
+        </div>
+
+        <h2 id="pretraining">3.1 Pre-training</h2>
+
+        <h3>The Pre-training Objective</h3>
+        <p>Pre-training teaches the model to predict the next token given all previous tokens (autoregressive language modeling):</p>
+        <p>$$\mathcal{L} = -\sum_{t=1}^{T} \log P(x_t | x_1, ..., x_{t-1}; \theta)$$</p>
+
+        <div class="mermaid">
+graph LR
+    A[Raw Text Data] --> B[Filtering & Cleaning]
+    B --> C[Tokenization]
+    C --> D[Pre-training]
+    D --> E[Base Model]
+    E --> F[Alignment]
+    F --> G[Final Model]
+
+    style D fill:#e3f2fd
+    style F fill:#e8f5e9
+        </div>
+
+        <h3>Training Data</h3>
+        <p>Modern LLMs are trained on trillions of tokens from diverse sources:</p>
+        <table>
+            <thead>
+                <tr><th>Source</th><th>Examples</th><th>Purpose</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>Web Crawls</td><td>Common Crawl, C4</td><td>General knowledge</td></tr>
+                <tr><td>Books</td><td>BookCorpus, Gutenberg</td><td>Long-form reasoning</td></tr>
+                <tr><td>Code</td><td>GitHub, Stack Overflow</td><td>Programming ability</td></tr>
+                <tr><td>Scientific</td><td>arXiv, PubMed</td><td>Technical knowledge</td></tr>
+                <tr><td>Conversations</td><td>Reddit, Forums</td><td>Dialogue patterns</td></tr>
+            </tbody>
+        </table>
+
+        <h3>Data Quality Matters</h3>
+        <p>The <strong>Densing Law</strong> (2025) shows that capability density (capability per parameter) doubles every ~3.5 months, primarily driven by:</p>
+        <ul>
+            <li><strong>Data quality</strong>: Better filtering, deduplication, and curation</li>
+            <li><strong>Data diversity</strong>: Balanced mixture of domains</li>
+            <li><strong>Synthetic data</strong>: High-quality generated training examples</li>
+        </ul>
+
+        <h2 id="rlhf">3.2 RLHF (Reinforcement Learning from Human Feedback)</h2>
+
+        <h3>The Three-Stage Pipeline</h3>
+        <p>RLHF, popularized by ChatGPT, aligns models with human preferences through three stages:</p>
+
+        <div class="mermaid">
+graph TD
+    subgraph Stage1["Stage 1: SFT"]
+        A[Base Model] --> B[Supervised Fine-tuning]
+        B --> C[SFT Model]
+    end
+
+    subgraph Stage2["Stage 2: RM Training"]
+        C --> D[Generate Responses]
+        D --> E[Human Rankings]
+        E --> F[Train Reward Model]
+    end
+
+    subgraph Stage3["Stage 3: PPO"]
+        C --> G[Generate]
+        F --> H[Score]
+        G --> H
+        H --> I[PPO Update]
+        I --> J[Aligned Model]
+    end
+
+    style C fill:#fff3e0
+    style F fill:#e3f2fd
+    style J fill:#e8f5e9
+        </div>
+
+        <h3>Stage 1: Supervised Fine-Tuning (SFT)</h3>
+        <p>Fine-tune the base model on high-quality demonstrations:</p>
+        <pre><code class="language-python"># SFT Training Example
+from transformers import AutoModelForCausalLM, Trainer, TrainingArguments
+
+# Load base model
+model = AutoModelForCausalLM.from_pretrained("meta-llama/Llama-3-8b")
+
+# SFT dataset format
+sft_examples = [
+    {"prompt": "Explain quantum computing", "response": "Quantum computing uses..."},
+    {"prompt": "Write a poem about AI", "response": "In circuits deep..."},
+]
+
+# Training arguments
+training_args = TrainingArguments(
+    output_dir="./sft_model",
+    num_train_epochs=3,
+    per_device_train_batch_size=4,
+    learning_rate=2e-5,
+    warmup_steps=100,
+)
+
+# Train
+trainer = Trainer(model=model, args=training_args, train_dataset=sft_dataset)
+trainer.train()</code></pre>
+
+        <h3>Stage 2: Reward Model Training</h3>
+        <p>Train a model to predict human preferences:</p>
+        <pre><code class="language-python">import torch
+import torch.nn as nn
+
+class RewardModel(nn.Module):
+    """Reward model for RLHF"""
+
+    def __init__(self, base_model):
+        super().__init__()
+        self.base_model = base_model
+        self.reward_head = nn.Linear(base_model.config.hidden_size, 1)
+
+    def forward(self, input_ids, attention_mask):
+        # Get hidden states from base model
+        outputs = self.base_model(
+            input_ids=input_ids,
+            attention_mask=attention_mask,
+            output_hidden_states=True
+        )
+        # Use last hidden state of last token
+        last_hidden = outputs.hidden_states[-1][:, -1, :]
+        reward = self.reward_head(last_hidden)
+        return reward
+
+def compute_preference_loss(reward_chosen, reward_rejected):
+    """Bradley-Terry preference loss"""
+    return -torch.log(torch.sigmoid(reward_chosen - reward_rejected)).mean()</code></pre>
+
+        <h3>Stage 3: PPO Training</h3>
+        <p>Use Proximal Policy Optimization to maximize reward while staying close to the SFT model:</p>
+        <p>$$\mathcal{L}_{PPO} = \mathbb{E}\left[\min\left(r_t(\theta)\hat{A}_t, \text{clip}(r_t(\theta), 1-\epsilon, 1+\epsilon)\hat{A}_t\right)\right] - \beta \cdot D_{KL}(\pi_\theta || \pi_{SFT})$$</p>
+
+        <div class="warning-box">
+            <h4>Challenges with RLHF</h4>
+            <ul>
+                <li><strong>Complexity</strong>: Requires training 3 separate models</li>
+                <li><strong>Instability</strong>: PPO is notoriously difficult to tune</li>
+                <li><strong>Cost</strong>: Expensive human annotation for preferences</li>
+                <li><strong>Reward hacking</strong>: Model may exploit reward model weaknesses</li>
+            </ul>
+        </div>
+
+        <h2 id="dpo">3.3 DPO (Direct Preference Optimization)</h2>
+
+        <div class="success-box">
+            <h4>2024-2025 Breakthrough</h4>
+            <p>DPO simplifies alignment by eliminating the reward model and RL loop entirely, achieving <strong>50% compute reduction</strong> while maintaining <strong>95% alignment effectiveness</strong>.</p>
+        </div>
+
+        <h3>The Key Insight</h3>
+        <p>DPO shows that the optimal policy under the RLHF objective has a closed-form solution. Instead of training a reward model, we can directly optimize:</p>
+        <p>$$\mathcal{L}_{DPO}(\pi_\theta; \pi_{ref}) = -\mathbb{E}\left[\log \sigma\left(\beta \log \frac{\pi_\theta(y_w|x)}{\pi_{ref}(y_w|x)} - \beta \log \frac{\pi_\theta(y_l|x)}{\pi_{ref}(y_l|x)}\right)\right]$$</p>
+
+        <p>where \(y_w\) is the preferred response and \(y_l\) is the rejected response.</p>
+
+        <div class="mermaid">
+graph LR
+    subgraph "RLHF (Traditional)"
+        A1[SFT Model] --> B1[Reward Model]
+        B1 --> C1[PPO Training]
+        C1 --> D1[Aligned Model]
+    end
+
+    subgraph "DPO (Simplified)"
+        A2[SFT Model] --> B2[Direct Preference Optimization]
+        B2 --> D2[Aligned Model]
+    end
+
+    style C1 fill:#ffcdd2
+    style B2 fill:#c8e6c9
+        </div>
+
+        <h3>DPO Implementation</h3>
+        <pre><code class="language-python">import torch
+import torch.nn.functional as F
+
+def dpo_loss(
+    policy_chosen_logps: torch.Tensor,
+    policy_rejected_logps: torch.Tensor,
+    reference_chosen_logps: torch.Tensor,
+    reference_rejected_logps: torch.Tensor,
+    beta: float = 0.1
+) -> torch.Tensor:
+    """
+    Direct Preference Optimization loss
+
+    Args:
+        policy_chosen_logps: Log probs of chosen responses under policy
+        policy_rejected_logps: Log probs of rejected responses under policy
+        reference_chosen_logps: Log probs of chosen responses under reference
+        reference_rejected_logps: Log probs of rejected responses under reference
+        beta: Temperature parameter (higher = more conservative updates)
+
+    Returns:
+        DPO loss value
+    """
+    # Compute log ratios
+    chosen_logratios = policy_chosen_logps - reference_chosen_logps
+    rejected_logratios = policy_rejected_logps - reference_rejected_logps
+
+    # DPO loss: -log(sigmoid(beta * (chosen_logratio - rejected_logratio)))
+    logits = beta * (chosen_logratios - rejected_logratios)
+    loss = -F.logsigmoid(logits).mean()
+
+    # Compute metrics for monitoring
+    chosen_rewards = beta * chosen_logratios.detach()
+    rejected_rewards = beta * rejected_logratios.detach()
+    reward_margin = (chosen_rewards - rejected_rewards).mean()
+
+    return loss, {
+        'reward_margin': reward_margin.item(),
+        'chosen_rewards': chosen_rewards.mean().item(),
+        'rejected_rewards': rejected_rewards.mean().item()
+    }
+
+# Example usage
+batch_size = 4
+seq_len = 100
+
+# Simulated log probabilities
+policy_chosen = torch.randn(batch_size) * 0.1 - 50
+policy_rejected = torch.randn(batch_size) * 0.1 - 55
+ref_chosen = torch.randn(batch_size) * 0.1 - 52
+ref_rejected = torch.randn(batch_size) * 0.1 - 54
+
+loss, metrics = dpo_loss(policy_chosen, policy_rejected, ref_chosen, ref_rejected)
+print(f"DPO Loss: {loss.item():.4f}")
+print(f"Reward Margin: {metrics['reward_margin']:.4f}")</code></pre>
+
+        <h3>GRPO (Group Relative Policy Optimization)</h3>
+        <p>GRPO extends DPO by considering groups of responses rather than pairs, further improving training efficiency and stability.</p>
+
+        <h2 id="constitutional">3.4 Constitutional AI</h2>
+
+        <h3>Self-Critique Based Alignment</h3>
+        <p><strong>Constitutional AI</strong> (Anthropic, 2022) replaces human preference labeling with AI self-critique based on a set of principles (a "constitution").</p>
+
+        <div class="mermaid">
+graph TD
+    A[Prompt] --> B[Initial Response]
+    B --> C{Self-Critique}
+    C --> |"Violates principles"| D[Revision]
+    D --> C
+    C --> |"Passes"| E[Final Response]
+
+    F[Constitution] --> C
+
+    style F fill:#e3f2fd
+    style E fill:#e8f5e9
+        </div>
+
+        <h3>Example Constitution Principles</h3>
+        <pre><code class="language-python">CONSTITUTION = [
+    "Please choose the response that is most helpful, harmless, and honest.",
+    "Please choose the response that does not encourage illegal activities.",
+    "Please choose the response that is not racist, sexist, or discriminatory.",
+    "Please choose the response that does not contain personal attacks.",
+    "Please choose the response that provides accurate information.",
+]
+
+def constitutional_critique(response: str, principles: list) -> dict:
+    """
+    Self-critique a response against constitutional principles
+
+    In practice, this would use an LLM to evaluate
+    """
+    critique_prompt = f"""
+Response to evaluate:
+{response}
+
+Evaluate this response against the following principles:
+{chr(10).join(f'{i+1}. {p}' for i, p in enumerate(principles))}
+
+For each principle, indicate if the response:
+- PASSES: Adheres to the principle
+- FAILS: Violates the principle (explain how)
+- UNCERTAIN: Cannot determine
+
+Provide a revised response if any principles are violated.
+"""
+    # In practice: call LLM with critique_prompt
+    return {"critique": critique_prompt, "needs_revision": False}</code></pre>
+
+        <div class="info-box">
+            <h4>Claude's Approach</h4>
+            <p>Claude 3.5 Sonnet layers Constitutional AI penalties on top of RLHF to refuse disallowed requests without losing helpfulness. This hybrid approach combines the best of both methods.</p>
+        </div>
+
+        <h2 id="inference-scaling">3.5 Inference-Time Scaling</h2>
+
+        <div class="warning-box">
+            <h4>2025 Revolution: Test-Time Compute</h4>
+            <p>OpenAI's o1 and o3 models opened a new frontier: instead of just scaling training compute, we can scale <strong>inference-time compute</strong> to improve reasoning quality.</p>
+        </div>
+
+        <h3>The Core Innovation</h3>
+        <p>Traditional scaling law: More training compute = Better model</p>
+        <p>New insight: More inference compute = Better decisions</p>
+
+        <div class="mermaid">
+graph TB
+    subgraph "Traditional LLM"
+        A1[Input] --> B1[Single Forward Pass]
+        B1 --> C1[Output]
+    end
+
+    subgraph "Reasoning Model (o1/o3)"
+        A2[Input] --> B2[Chain of Thought]
+        B2 --> C2[Self-Reflection]
+        C2 --> D2{Good enough?}
+        D2 --> |No| B2
+        D2 --> |Yes| E2[Output]
+    end
+
+    style B2 fill:#e3f2fd
+    style C2 fill:#fff3e0
+        </div>
+
+        <h3>How o1 Works</h3>
+        <p>o1 uses <strong>reinforcement learning</strong> to train the model to:</p>
+        <ol>
+            <li>Generate a long <strong>chain of thought</strong> before answering</li>
+            <li>Recognize and <strong>correct its mistakes</strong></li>
+            <li>Break down complex problems into <strong>simpler steps</strong></li>
+            <li>Try <strong>different approaches</strong> when stuck</li>
+        </ol>
+
+        <h3>Thinking Levels</h3>
+        <table>
+            <thead>
+                <tr><th>Mode</th><th>Compute</th><th>Use Case</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>o3-mini Low</td><td>~1x</td><td>Simple questions, fast responses</td></tr>
+                <tr><td>o3-mini Medium</td><td>~3x</td><td>Moderate reasoning tasks</td></tr>
+                <tr><td>o3-mini High</td><td>~10x</td><td>Complex math, coding, analysis</td></tr>
+                <tr><td>o3 Full</td><td>~100x</td><td>Research-level problems</td></tr>
+            </tbody>
+        </table>
+
+        <h3>TOPS: Thinking-Optimal Scaling</h3>
+        <p>Research shows that optimal thinking time varies by problem difficulty. <strong>TOPS</strong> allows LLMs to decide how many tokens to generate for each problem:</p>
+        <ul>
+            <li>Easy problems: Short reasoning is sufficient</li>
+            <li>Hard problems: Extended reasoning improves accuracy</li>
+            <li>Over-thinking: Can actually hurt performance on simple tasks</li>
+        </ul>
+
+        <pre><code class="language-python">def adaptive_reasoning(model, prompt: str, max_thinking_tokens: int = 10000):
+    """
+    Adaptive reasoning that adjusts thinking depth based on confidence
+
+    This is a simplified illustration of the concept
+    """
+    thinking = ""
+    confidence = 0.0
+
+    while len(thinking.split()) < max_thinking_tokens and confidence < 0.95:
+        # Generate next reasoning step
+        next_step = model.generate(
+            prompt + thinking,
+            max_new_tokens=100,
+            stop_sequences=["Therefore:", "Answer:"]
+        )
+        thinking += next_step
+
+        # Estimate confidence (in practice, more sophisticated)
+        if "I'm confident" in next_step or "The answer is" in next_step:
+            confidence = 0.95
+        elif "Let me reconsider" in next_step:
+            confidence *= 0.8  # Uncertainty detected
+
+    # Generate final answer
+    final_answer = model.generate(
+        prompt + thinking + "\nFinal Answer:",
+        max_new_tokens=500
+    )
+
+    return {
+        "thinking": thinking,
+        "answer": final_answer,
+        "thinking_tokens": len(thinking.split())
+    }</code></pre>
+
+        <h2 id="scaling-laws">3.6 Scaling Laws</h2>
+
+        <h3>Chinchilla Scaling Law</h3>
+        <p>The Chinchilla paper (2022) showed that model size N and data size D should be scaled equally:</p>
+        <p>$$L(N, D) = E + \frac{A}{N^\alpha} + \frac{B}{D^\beta}$$</p>
+        <p>where \(\alpha \approx 0.34\) and \(\beta \approx 0.28\).</p>
+
+        <h3>Densing Law (2025)</h3>
+        <p>The <strong>Densing Law</strong> observes that capability density (capability per parameter) doubles approximately every 3.5 months:</p>
+
+        <div class="success-box">
+            <h4>Implications</h4>
+            <ul>
+                <li>Today's 7B model = Last year's 70B model performance</li>
+                <li>Efficiency gains come from better data, training, and architecture</li>
+                <li>Smaller models become increasingly viable for deployment</li>
+            </ul>
+        </div>
+
+        <table>
+            <thead>
+                <tr><th>Year</th><th>Model</th><th>Params</th><th>Approx. GPT-4 Equivalent</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>2023</td><td>LLaMA 2 70B</td><td>70B</td><td>~50%</td></tr>
+                <tr><td>2024</td><td>LLaMA 3 70B</td><td>70B</td><td>~80%</td></tr>
+                <tr><td>2024</td><td>Mistral Small 3</td><td>24B</td><td>~75%</td></tr>
+                <tr><td>2025</td><td>DeepSeek-R1</td><td>671B (37B active)</td><td>~95%</td></tr>
+                <tr><td>2025</td><td>Qwen3-235B</td><td>235B (22B active)</td><td>~100%</td></tr>
+            </tbody>
+        </table>
+
+        <h2 id="summary">3.7 Chapter Summary</h2>
+
+        <div class="success-box">
+            <h4>Key Takeaways</h4>
+            <ol>
+                <li><strong>Pre-training</strong> teaches general knowledge; alignment makes models helpful and safe</li>
+                <li><strong>RLHF</strong> pioneered alignment but is complex (3 stages, PPO instability)</li>
+                <li><strong>DPO</strong> simplifies alignment to direct optimization on preferences (50% compute savings)</li>
+                <li><strong>Constitutional AI</strong> uses self-critique against principles for scalable alignment</li>
+                <li><strong>Inference-Time Scaling</strong> (o1/o3) trades compute at inference for better reasoning</li>
+                <li><strong>Scaling Laws</strong> guide efficient training; Densing Law shows capability density doubling every 3.5 months</li>
+            </ol>
+        </div>
+
+        <h2 id="exercises">Exercises</h2>
+
+        <h3>Exercise 1: DPO Implementation</h3>
+        <p>Implement a complete DPO training loop using the loss function provided. Train on a small preference dataset and compare with a baseline SFT model.</p>
+
+        <h3>Exercise 2: Constitutional Principles</h3>
+        <p>Design a constitution for a customer service chatbot. Include at least 10 principles covering helpfulness, safety, and brand voice.</p>
+
+        <h3>Exercise 3: Thinking Depth Analysis</h3>
+        <p>Given problems of varying difficulty, analyze how much "thinking" (intermediate reasoning) improves accuracy. Plot accuracy vs. thinking tokens.</p>
+
+        <h3>Exercise 4: Scaling Prediction</h3>
+        <p>Using the Chinchilla scaling law, calculate the optimal model size for a fixed compute budget of \(10^{23}\) FLOPs.</p>
+
+        <h2 id="next">Next Chapter</h2>
+        <p>In the next chapter, we'll explore <strong>LLM Inference and Optimization</strong> - how to efficiently deploy models using quantization, vLLM, and TensorRT-LLM, and how to handle million-token context windows.</p>
+
+        <div class="nav-buttons">
+            <a href="./chapter-2.html" class="nav-button">Previous: Chapter 2</a>
+            <a href="./chapter-4.html" class="nav-button">Next: Chapter 4</a>
+        </div>
+    </main>
+
+    <section class="disclaimer">
+        <h3>Disclaimer</h3>
+        <ul>
+            <li>This content is for educational purposes only and does not provide professional advice.</li>
+            <li>Content is provided "AS IS" without warranties.</li>
+            <li>The author and Tohoku University are not responsible for damages from use.</li>
+            <li>Content may change without notice. Licensed under CC BY 4.0.</li>
+        </ul>
+    </section>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 AI Terakoya - Dr. Yusuke Hashimoto, Tohoku University</p>
+            <p>Licensed under CC BY 4.0</p>
+        </div>
+    </footer>
+</body>
+</html>

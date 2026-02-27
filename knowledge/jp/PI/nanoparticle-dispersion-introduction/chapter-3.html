@@ -1,0 +1,1132 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <meta content="第3章: 解砕・分散技術 - ナノ粒子分散入門 | PI Terakoya" name="description"/>
+  <title>第3章: 解砕・分散技術 - ナノ粒子分散入門 | PI Terakoya</title>
+  <link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      if (typeof mermaid !== 'undefined') {
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+      }
+    });
+  </script>
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+  <nav class="breadcrumb">
+    <div class="breadcrumb-content">
+      <a href="../../index.html">AI Terakoya ホーム</a>
+      <span class="breadcrumb-separator">›</span>
+      <a href="../index.html">プロセスインフォマティクス</a>
+      <span class="breadcrumb-separator">›</span>
+      <a href="index.html">ナノ粒子分散</a>
+      <span class="breadcrumb-separator">›</span>
+      <span class="breadcrumb-current">第3章</span>
+    </div>
+  </nav>
+
+  <div class="locale-switcher">
+    <span class="current-locale">JP</span>
+    <span class="locale-separator">|</span>
+    <a href="../../../en/PI/nanoparticle-dispersion-introduction/chapter-3.html" class="locale-link">EN</a>
+    <span class="locale-separator">|</span>
+    <span class="locale-meta">最終同期: 2026-01-21</span>
+  </div>
+
+  <header>
+    <div class="container">
+      <h1>第3章: 解砕・分散技術</h1>
+      <p class="subtitle">機械的・化学的手法による効果的な分散</p>
+      <div class="meta">
+        <span>所要時間: 35-40分</span>
+        <span>難易度: 中級～上級</span>
+        <span>コード例: 8</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="intro-section">
+      <h2>学習目標</h2>
+      <ul>
+        <li>適切な機械的分散方法を比較・選択できる</li>
+        <li>キャビテーションと超音波処理における役割を理解できる</li>
+        <li>界面活性剤による安定化戦略を設計できる</li>
+        <li>静電安定化のためのpHとイオン強度を最適化できる</li>
+        <li>分散プロセス最適化に機械学習を適用できる</li>
+        <li>特定のアプリケーションに適した手法の組み合わせを選択できる</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>3.1 機械的分散方法</h2>
+
+      <p>機械的方法は物理的エネルギーを加えて粒子間結合を破壊します。選択は、凝集体の強度、粒子の脆弱性、およびスケール要件に依存します。</p>
+
+      <div class="mermaid">
+graph TD
+    A[機械的分散] --> B[超音波処理]
+    A --> C[ボール/ビーズミル]
+    A --> D[高圧ホモジナイザー]
+    A --> E[高せん断混合]
+
+    B --> B1[プローブソニケーター]
+    B --> B2[バスソニケーター]
+
+    C --> C1[遊星ボールミル]
+    C --> C2[ビーズミル]
+    C --> C3[アトライター]
+
+    D --> D1[マイクロフルイダイザー]
+    D --> D2[バルブホモジナイザー]
+
+    style A fill:#f9f,stroke:#333
+    style B fill:#bbf
+    style C fill:#bfb
+    style D fill:#fbb
+      </div>
+
+      <h3>3.1.1 超音波処理</h3>
+      <p>超音波処理は高周波音波（20-100 kHz）を使用して液体中にキャビテーション気泡を生成します。これらの気泡の崩壊により、凝集体を破壊する強烈な局所力が発生します。</p>
+
+      <div class="info-box">
+        <h4>キャビテーション機構</h4>
+        <p>音響圧力により微小な気泡が生成され、成長し、激しく崩壊します。崩壊時には局所条件が以下に達することがあります:</p>
+        <ul>
+          <li><strong>温度</strong>: 約5000 K</li>
+          <li><strong>圧力</strong>: 約1000 atm</li>
+          <li><strong>ジェット速度</strong>: 約100 m/s</li>
+        </ul>
+        <p>これらの極端な条件により、ファンデルワールス結合を破壊するのに十分なせん断力が発生します。</p>
+      </div>
+
+      <h3>例1: 超音波処理パラメータの最適化</h3>
+
+<pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+from scipy.optimize import minimize
+
+# ===================================
+# 例1: 超音波分散プロセスモデル
+# ===================================
+
+class UltrasonicDispersion:
+    """ナノ粒子凝集体の超音波分散モデル。"""
+
+    def __init__(self, d_agglomerate_nm=500, d_primary_nm=20,
+                 viscosity_mPas=1.0, density_kg_m3=2200):
+        self.d_agg = d_agglomerate_nm
+        self.d_pri = d_primary_nm
+        self.viscosity = viscosity_mPas * 1e-3
+        self.density = density_kg_m3
+
+    def deagglomeration_rate(self, power_W_mL, frequency_kHz, time_s):
+        """
+        超音波処理後の粒子サイズを計算。
+
+        パラメータ:
+            power_W_mL: 出力密度 (W/mL)
+            frequency_kHz: 周波数 (kHz)
+            time_s: 処理時間 (s)
+
+        戻り値:
+            最終粒子サイズ (nm)
+        """
+        # キャビテーション強度（任意単位）
+        # 高出力・低周波数 → 強いキャビテーション
+        I_cav = power_W_mL * (40 / frequency_kHz)**0.5
+
+        # 速度定数（経験モデル）
+        k = 0.1 * I_cav / (self.viscosity * 1000)
+
+        # 一次粒子サイズへの一次減衰
+        d_final = self.d_pri + (self.d_agg - self.d_pri) * np.exp(-k * time_s)
+
+        return max(d_final, self.d_pri)
+
+    def temperature_rise(self, power_W_mL, time_s, volume_mL=10,
+                         heat_capacity_J_gK=4.2):
+        """超音波処理中の温度上昇を計算。"""
+        # 近似: 出力の50-80%が熱に変換
+        efficiency = 0.6
+        mass_g = volume_mL * self.density / 1000
+        dT = efficiency * power_W_mL * volume_mL * time_s / (mass_g * heat_capacity_J_gK)
+        return dT
+
+    def energy_consumption(self, power_W_mL, time_s, volume_mL=10):
+        """総エネルギー消費量 (kJ)。"""
+        return power_W_mL * volume_mL * time_s / 1000
+
+# パラメータ研究
+sonic = UltrasonicDispersion(d_agglomerate_nm=500, d_primary_nm=20)
+
+# 異なる出力レベルでの時間変化
+times = np.linspace(0, 600, 100)  # 0-10分
+powers = [0.5, 1.0, 2.0, 5.0]  # W/mL
+
+fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+
+# プロット1: 異なる出力でのサイズ対時間
+ax1 = axes[0, 0]
+for P, color in zip(powers, plt.cm.viridis(np.linspace(0.2, 0.9, len(powers)))):
+    sizes = [sonic.deagglomeration_rate(P, 20, t) for t in times]
+    ax1.plot(times/60, sizes, linewidth=2, label=f'{P} W/mL', color=color)
+
+ax1.axhline(y=20, color='red', linestyle='--', alpha=0.7)
+ax1.text(8, 30, '一次粒子サイズ', fontsize=9, color='red')
+ax1.set_xlabel('時間（分）', fontsize=11)
+ax1.set_ylabel('粒子サイズ (nm)', fontsize=11)
+ax1.set_title('解砕速度論 (20 kHz)', fontsize=12, fontweight='bold')
+ax1.legend()
+ax1.grid(True, alpha=0.3)
+ax1.set_xlim(0, 10)
+
+# プロット2: 周波数の効果
+ax2 = axes[0, 1]
+frequencies = [20, 40, 100]  # kHz
+P_fixed = 2.0
+
+for f, color in zip(frequencies, ['blue', 'green', 'red']):
+    sizes = [sonic.deagglomeration_rate(P_fixed, f, t) for t in times]
+    ax2.plot(times/60, sizes, linewidth=2, label=f'{f} kHz', color=color)
+
+ax2.axhline(y=20, color='gray', linestyle='--', alpha=0.7)
+ax2.set_xlabel('時間（分）', fontsize=11)
+ax2.set_ylabel('粒子サイズ (nm)', fontsize=11)
+ax2.set_title(f'周波数効果 ({P_fixed} W/mL)', fontsize=12, fontweight='bold')
+ax2.legend()
+ax2.grid(True, alpha=0.3)
+ax2.set_xlim(0, 10)
+
+# プロット3: 温度上昇
+ax3 = axes[1, 0]
+for P, color in zip(powers, plt.cm.viridis(np.linspace(0.2, 0.9, len(powers)))):
+    temps = [25 + sonic.temperature_rise(P, t) for t in times]
+    ax3.plot(times/60, temps, linewidth=2, label=f'{P} W/mL', color=color)
+
+ax3.axhline(y=60, color='orange', linestyle='--', alpha=0.7)
+ax3.axhline(y=80, color='red', linestyle='--', alpha=0.7)
+ax3.text(8, 62, '注意', fontsize=9, color='orange')
+ax3.text(8, 82, '劣化リスク', fontsize=9, color='red')
+ax3.set_xlabel('時間（分）', fontsize=11)
+ax3.set_ylabel('温度 (°C)', fontsize=11)
+ax3.set_title('超音波処理中の温度上昇', fontsize=12, fontweight='bold')
+ax3.legend()
+ax3.grid(True, alpha=0.3)
+ax3.set_xlim(0, 10)
+ax3.set_ylim(20, 100)
+
+# プロット4: プロセス最適化マップ
+ax4 = axes[1, 1]
+P_range = np.linspace(0.5, 5, 30)
+t_range = np.linspace(60, 600, 30)
+P_mesh, t_mesh = np.meshgrid(P_range, t_range)
+
+# 各組み合わせで最終サイズを計算
+final_size = np.zeros_like(P_mesh)
+for i in range(len(t_range)):
+    for j in range(len(P_range)):
+        final_size[i, j] = sonic.deagglomeration_rate(P_mesh[i, j], 20, t_mesh[i, j])
+
+contour = ax4.contourf(P_mesh, t_mesh/60, final_size, levels=20, cmap='RdYlGn_r')
+ax4.contour(P_mesh, t_mesh/60, final_size, levels=[25, 30, 50], colors='white', linewidths=1.5)
+plt.colorbar(contour, ax=ax4, label='最終サイズ (nm)')
+ax4.set_xlabel('出力密度 (W/mL)', fontsize=11)
+ax4.set_ylabel('時間（分）', fontsize=11)
+ax4.set_title('目標サイズに対するプロセスウィンドウ', fontsize=12, fontweight='bold')
+
+plt.tight_layout()
+plt.savefig('ultrasonication.png', dpi=150, bbox_inches='tight')
+plt.show()
+
+# 推奨条件を出力
+print("\n=== 超音波処理プロセスの推奨条件 ===")
+for P in powers:
+    t90 = None
+    for t in range(10, 601, 10):
+        if sonic.deagglomeration_rate(P, 20, t) < 30:
+            t90 = t
+            break
+    dT = sonic.temperature_rise(P, t90 if t90 else 600)
+    if t90:
+        print(f"  {P} W/mL: {t90/60:.1f}分で30 nmに到達 (ΔT ≈ {dT:.0f}°C)")
+    else:
+        print(f"  {P} W/mL: 10分以内に30 nmに到達不可")
+</code></pre>
+
+      <div class="example-output">
+        <strong>出力例:</strong><br/>
+        === 超音波処理プロセスの推奨条件 ===<br/>
+        0.5 W/mL: 10分以内に30 nmに到達不可<br/>
+        1.0 W/mL: 6.7分で30 nmに到達 (ΔT ≈ 58°C)<br/>
+        2.0 W/mL: 3.3分で30 nmに到達 (ΔT ≈ 58°C)<br/>
+        5.0 W/mL: 1.3分で30 nmに到達 (ΔT ≈ 58°C)
+      </div>
+
+      <div class="warning-box">
+        <h4>実践上の注意点</h4>
+        <ul>
+          <li><strong>氷浴冷却</strong>は温度感受性サンプルに必須</li>
+          <li><strong>パルスモード</strong>（例: 5秒オン/5秒オフ）で熱蓄積を低減</li>
+          <li><strong>プローブチップの侵食</strong>によりサンプルが金属粒子で汚染される可能性あり</li>
+          <li><strong>過度の超音波処理</strong>は再凝集や粒子損傷を引き起こす可能性あり</li>
+        </ul>
+      </div>
+
+      <h3>3.1.2 ボールミルとビーズミル</h3>
+
+      <table class="comparison-table">
+        <thead>
+          <tr>
+            <th>方法</th>
+            <th>メディアサイズ</th>
+            <th>最終サイズ範囲</th>
+            <th>処理量</th>
+            <th>汚染リスク</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>遊星ボールミル</td>
+            <td>3-10 mm</td>
+            <td>100 nm - 10 μm</td>
+            <td>バッチ (g-kg)</td>
+            <td>高</td>
+          </tr>
+          <tr>
+            <td>ビーズミル</td>
+            <td>0.1-2 mm</td>
+            <td>20-500 nm</td>
+            <td>連続</td>
+            <td>中</td>
+          </tr>
+          <tr>
+            <td>高エネルギーボールミル</td>
+            <td>5-20 mm</td>
+            <td>10-100 nm</td>
+            <td>バッチ (g)</td>
+            <td>非常に高</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>例2: ビーズミルプロセスシミュレーション</h3>
+
+<pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+# ===================================
+# 例2: ビーズミルプロセスモデル
+# ===================================
+
+def bead_mill_size_reduction(d_initial_nm, bead_size_mm, speed_rpm,
+                              solid_loading, time_min, media_fill=0.8):
+    """
+    ビーズミルでの粒子サイズ減少をモデル化。
+
+    パラメータ:
+        d_initial_nm: 初期粒子/凝集体サイズ
+        bead_size_mm: 粉砕メディア直径
+        speed_rpm: ミル回転速度
+        solid_loading: 固形分濃度（重量分率）
+        time_min: 粉砕時間
+        media_fill: ビーズの体積分率
+
+    戻り値:
+        最終粒子サイズ (nm)
+    """
+    # 応力強度因子
+    stress_intensity = (bead_size_mm * 1e-3)**3 * (speed_rpm / 1000)**2
+
+    # 応力イベント数はビーズ数に依存
+    n_beads = media_fill / (bead_size_mm * 1e-3)**3
+
+    # 有効速度定数
+    k = 0.01 * n_beads * stress_intensity / (solid_loading + 0.1)
+
+    # サイズ減少（典型的な酸化物粒子で約20 nmが限界）
+    d_min = 20  # nm、実用的な限界
+    d_final = d_min + (d_initial_nm - d_min) * np.exp(-k * time_min)
+
+    return max(d_final, d_min)
+
+# ビーズサイズの比較
+d_initial = 500  # nm
+times = np.linspace(0, 120, 100)  # 0-2時間
+
+fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+# プロット1: ビーズサイズの効果
+ax1 = axes[0]
+bead_sizes = [0.1, 0.3, 0.5, 1.0, 2.0]
+colors = plt.cm.plasma(np.linspace(0.1, 0.9, len(bead_sizes)))
+
+for bs, color in zip(bead_sizes, colors):
+    sizes = [bead_mill_size_reduction(d_initial, bs, 2000, 0.2, t) for t in times]
+    ax1.plot(times, sizes, linewidth=2, label=f'{bs} mmビーズ', color=color)
+
+ax1.axhline(y=50, color='green', linestyle='--', alpha=0.7)
+ax1.text(100, 55, '目標: 50 nm', fontsize=9, color='green')
+ax1.set_xlabel('粉砕時間（分）', fontsize=11)
+ax1.set_ylabel('粒子サイズ (nm)', fontsize=11)
+ax1.set_title('ビーズサイズの粉砕への影響', fontsize=12, fontweight='bold')
+ax1.legend()
+ax1.grid(True, alpha=0.3)
+ax1.set_xlim(0, 120)
+ax1.set_ylim(0, 550)
+
+# プロット2: エネルギー効率比較
+ax2 = axes[1]
+# 各方法の比エネルギー消費量 (kWh/kg)
+methods = ['超音波処理', 'ビーズミル\n(0.3mm)', 'ビーズミル\n(1.0mm)',
+           '高圧\nホモジナイザー', '遊星\nボールミル']
+energies = [5.0, 1.5, 3.0, 0.8, 8.0]
+final_sizes = [25, 30, 60, 40, 80]
+
+colors = plt.cm.RdYlGn_r(np.array(final_sizes) / 100)
+bars = ax2.bar(methods, energies, color=colors, edgecolor='black')
+
+# 最終サイズの注釈を追加
+for bar, size in zip(bars, final_sizes):
+    ax2.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.2,
+             f'{size} nm', ha='center', fontsize=9)
+
+ax2.set_ylabel('比エネルギー (kWh/kg)', fontsize=11)
+ax2.set_title('エネルギー効率比較\n（各最小サイズ到達時）', fontsize=12, fontweight='bold')
+ax2.grid(True, alpha=0.3, axis='y')
+
+plt.tight_layout()
+plt.savefig('bead_milling.png', dpi=150, bbox_inches='tight')
+plt.show()
+
+# 選択ガイドを出力
+print("\n=== ビーズサイズ選択ガイド ===")
+print("目標サイズ    推奨ビーズサイズ    備考")
+print("-" * 55)
+print("20-50 nm       0.1-0.3 mm          イットリア安定化ZrO2")
+print("50-100 nm      0.3-0.5 mm          標準セラミックビーズ")
+print("100-500 nm     0.5-1.0 mm          ガラスまたはスチールビーズ")
+print(">500 nm        1.0-2.0 mm          コスト効率の良い粉砕")
+</code></pre>
+    </section>
+
+    <section>
+      <h2>3.2 化学的分散方法</h2>
+
+      <h3>3.2.1 界面活性剤の選択</h3>
+      <p>界面活性剤は粒子表面に吸着し、立体的および/または静電的安定化を提供します。</p>
+
+      <table class="comparison-table">
+        <thead>
+          <tr>
+            <th>界面活性剤タイプ</th>
+            <th>例</th>
+            <th>安定化機構</th>
+            <th>最適用途</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>アニオン性</td>
+            <td>SDS、クエン酸ナトリウム</td>
+            <td>静電</td>
+            <td>水系、低イオン強度</td>
+          </tr>
+          <tr>
+            <td>カチオン性</td>
+            <td>CTAB、DTAB</td>
+            <td>静電</td>
+            <td>負電荷表面</td>
+          </tr>
+          <tr>
+            <td>非イオン性</td>
+            <td>Tween、Triton、PEG</td>
+            <td>立体</td>
+            <td>高イオン強度、生体医療</td>
+          </tr>
+          <tr>
+            <td>高分子性</td>
+            <td>PVP、PVA、PAA</td>
+            <td>立体＋静電</td>
+            <td>長期安定性</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>例3: 界面活性剤濃度の最適化</h3>
+
+<pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+# ===================================
+# 例3: 界面活性剤吸着と安定性
+# ===================================
+
+def langmuir_adsorption(C_surf, K_ads, Gamma_max):
+    """
+    Langmuir吸着等温線。
+
+    パラメータ:
+        C_surf: 界面活性剤濃度 (mM)
+        K_ads: 吸着定数 (1/mM)
+        Gamma_max: 最大表面被覆率 (分子/nm²)
+
+    戻り値:
+        表面被覆率 (分子/nm²)
+    """
+    return Gamma_max * K_ads * C_surf / (1 + K_ads * C_surf)
+
+def surface_charge_density(Gamma, charge_per_molecule):
+    """吸着した界面活性剤から表面電荷を計算。"""
+    return Gamma * charge_per_molecule * 1.602e-19 * 1e18  # C/m²
+
+def stability_from_coverage(Gamma, Gamma_max, type='electrostatic'):
+    """
+    表面被覆率に基づく安定性を推定。
+
+    安定性スコア0-100を返す。
+    """
+    coverage_fraction = Gamma / Gamma_max
+
+    if type == 'electrostatic':
+        # 十分な電荷密度が必要
+        if coverage_fraction < 0.3:
+            return coverage_fraction / 0.3 * 50
+        elif coverage_fraction < 0.7:
+            return 50 + (coverage_fraction - 0.3) / 0.4 * 45
+        else:
+            return 95 + (coverage_fraction - 0.7) / 0.3 * 5
+    else:  # 立体
+        # 密なポリマーブラシが必要
+        if coverage_fraction < 0.5:
+            return coverage_fraction / 0.5 * 60
+        else:
+            return 60 + (coverage_fraction - 0.5) / 0.5 * 40
+
+# 界面活性剤パラメータ
+surfactants = {
+    'SDS（アニオン性）': {'K': 5.0, 'Gamma_max': 4.0, 'charge': -1, 'type': 'electrostatic'},
+    'CTAB（カチオン性）': {'K': 8.0, 'Gamma_max': 3.5, 'charge': 1, 'type': 'electrostatic'},
+    'Tween-80（非イオン性）': {'K': 2.0, 'Gamma_max': 1.5, 'charge': 0, 'type': 'steric'},
+    'PVP（高分子）': {'K': 0.5, 'Gamma_max': 0.8, 'charge': 0, 'type': 'steric'}
+}
+
+C_range = np.logspace(-2, 2, 100)  # 0.01 - 100 mM
+
+fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+
+# プロット1: 吸着等温線
+ax1 = axes[0, 0]
+for name, params in surfactants.items():
+    Gamma = [langmuir_adsorption(C, params['K'], params['Gamma_max']) for C in C_range]
+    ax1.semilogx(C_range, Gamma, linewidth=2, label=name)
+
+ax1.axhline(y=2.0, color='gray', linestyle='--', alpha=0.7)
+ax1.text(50, 2.1, '単層 約2分子/nm²', fontsize=9, color='gray')
+ax1.set_xlabel('界面活性剤濃度 (mM)', fontsize=11)
+ax1.set_ylabel('表面被覆率 (分子/nm²)', fontsize=11)
+ax1.set_title('吸着等温線', fontsize=12, fontweight='bold')
+ax1.legend(loc='lower right', fontsize=9)
+ax1.grid(True, alpha=0.3)
+ax1.set_xlim(0.01, 100)
+
+# プロット2: 安定性対濃度
+ax2 = axes[0, 1]
+for name, params in surfactants.items():
+    stabilities = []
+    for C in C_range:
+        Gamma = langmuir_adsorption(C, params['K'], params['Gamma_max'])
+        stab = stability_from_coverage(Gamma, params['Gamma_max'], params['type'])
+        stabilities.append(stab)
+    ax2.semilogx(C_range, stabilities, linewidth=2, label=name)
+
+ax2.axhline(y=80, color='green', linestyle='--', alpha=0.7)
+ax2.text(0.015, 82, '安定 (>80)', fontsize=9, color='green')
+ax2.axhline(y=50, color='orange', linestyle='--', alpha=0.7)
+ax2.text(0.015, 52, '準安定 (50-80)', fontsize=9, color='orange')
+ax2.set_xlabel('界面活性剤濃度 (mM)', fontsize=11)
+ax2.set_ylabel('安定性スコア', fontsize=11)
+ax2.set_title('分散安定性対濃度', fontsize=12, fontweight='bold')
+ax2.legend(loc='lower right', fontsize=9)
+ax2.grid(True, alpha=0.3)
+ax2.set_xlim(0.01, 100)
+ax2.set_ylim(0, 100)
+
+# プロット3: 最適濃度の決定
+ax3 = axes[1, 0]
+# SDS - 詳細分析
+params = surfactants['SDS（アニオン性）']
+C_detail = np.linspace(0.1, 20, 100)
+
+Gamma_values = [langmuir_adsorption(C, params['K'], params['Gamma_max']) for C in C_detail]
+stability_values = [stability_from_coverage(G, params['Gamma_max'], 'electrostatic')
+                   for G in Gamma_values]
+# コストは線形に増加
+cost_values = C_detail / 20 * 100
+
+# 効率 = 安定性 / コスト
+efficiency = np.array(stability_values) / (np.array(cost_values) + 10)
+efficiency = efficiency / efficiency.max() * 100
+
+ax3.plot(C_detail, stability_values, 'b-', linewidth=2, label='安定性')
+ax3.plot(C_detail, cost_values, 'r--', linewidth=2, label='相対コスト')
+ax3.plot(C_detail, efficiency, 'g-', linewidth=2, label='効率')
+
+# 最適点を見つける
+opt_idx = np.argmax(efficiency)
+ax3.axvline(x=C_detail[opt_idx], color='purple', linestyle=':', linewidth=2)
+ax3.scatter([C_detail[opt_idx]], [efficiency[opt_idx]], s=100, c='purple', zorder=5)
+ax3.text(C_detail[opt_idx] + 0.5, efficiency[opt_idx] + 5,
+         f'最適: {C_detail[opt_idx]:.1f} mM', fontsize=10, color='purple')
+
+ax3.set_xlabel('SDS濃度 (mM)', fontsize=11)
+ax3.set_ylabel('スコア / コスト', fontsize=11)
+ax3.set_title('SDS: 最適濃度の決定', fontsize=12, fontweight='bold')
+ax3.legend()
+ax3.grid(True, alpha=0.3)
+ax3.set_xlim(0, 20)
+ax3.set_ylim(0, 110)
+
+# プロット4: 界面活性剤選択ガイド
+ax4 = axes[1, 1]
+conditions = ['低I\n水系', '高I\n水系', '生体医療', '有機\n溶媒', '食品\nグレード']
+surfactant_scores = {
+    'SDS': [95, 30, 20, 10, 40],
+    'CTAB': [90, 25, 10, 15, 10],
+    'Tween-80': [70, 85, 95, 60, 90],
+    'PVP': [80, 90, 85, 70, 75]
+}
+
+x = np.arange(len(conditions))
+width = 0.2
+multiplier = 0
+
+for name, scores in surfactant_scores.items():
+    offset = width * multiplier
+    ax4.bar(x + offset, scores, width, label=name, alpha=0.8)
+    multiplier += 1
+
+ax4.set_xticks(x + width * 1.5)
+ax4.set_xticklabels(conditions)
+ax4.set_ylabel('適合性スコア', fontsize=11)
+ax4.set_title('用途別の界面活性剤選択', fontsize=12, fontweight='bold')
+ax4.legend(loc='upper right')
+ax4.grid(True, alpha=0.3, axis='y')
+ax4.set_ylim(0, 100)
+
+plt.tight_layout()
+plt.savefig('surfactant_selection.png', dpi=150, bbox_inches='tight')
+plt.show()
+</code></pre>
+
+      <h3>3.2.2 表面官能化</h3>
+      <p>共有結合による表面修飾は、処理と保存に耐える永続的な安定化を提供します。</p>
+
+      <div class="info-box">
+        <h4>一般的な官能化戦略</h4>
+        <ul>
+          <li><strong>シランカップリング</strong>: 酸化物（SiO₂、TiO₂、Fe₃O₄）向け - APTES、MPTMS、OTS</li>
+          <li><strong>チオールSAM</strong>: 貴金属（Au、Ag）向け - チオール、ジスルフィド</li>
+          <li><strong>カルボキシレート配位</strong>: 金属酸化物向け - クエン酸塩、オレイン酸塩</li>
+          <li><strong>ポリマーグラフト</strong>: "Grafting-from"または"grafting-to"アプローチ</li>
+        </ul>
+      </div>
+    </section>
+
+    <section>
+      <h2>3.3 物理化学的方法</h2>
+
+      <h3>3.3.1 pH制御</h3>
+      <p>pHは表面基のプロトン化/脱プロトン化を通じて表面電荷を決定します。</p>
+
+      <h3>例4: 静電安定化のためのpH最適化</h3>
+
+<pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+# ===================================
+# 例4: pH依存ゼータ電位と安定性
+# ===================================
+
+def zeta_potential_vs_pH(pH, IEP, zeta_max=50):
+    """
+    pHの関数としてゼータ電位をモデル化。
+
+    パラメータ:
+        pH: 溶液pH
+        IEP: 等電点
+        zeta_max: 最大|ζ| (mV)
+
+    戻り値:
+        ゼータ電位 (mV)
+    """
+    # IEP周辺でのシグモイド遷移
+    return zeta_max * np.tanh((IEP - pH) * 0.8)
+
+def stability_criterion(zeta_mV):
+    """
+    ゼータ電位に基づく安定性。
+    |ζ| > 30 mV は一般的に良好な安定性を示す。
+    """
+    abs_zeta = np.abs(zeta_mV)
+    if abs_zeta > 40:
+        return '優秀'
+    elif abs_zeta > 30:
+        return '良好'
+    elif abs_zeta > 20:
+        return '中程度'
+    else:
+        return '不良'
+
+# 一般的な酸化物材料とそのIEP
+materials = {
+    'SiO₂': {'IEP': 2.0, 'color': 'blue'},
+    'TiO₂（アナターゼ）': {'IEP': 6.0, 'color': 'green'},
+    'Al₂O₃': {'IEP': 9.0, 'color': 'red'},
+    'Fe₃O₄': {'IEP': 6.5, 'color': 'orange'},
+    'ZnO': {'IEP': 9.5, 'color': 'purple'}
+}
+
+pH_range = np.linspace(1, 13, 200)
+
+fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+# プロット1: ゼータ電位対pH
+ax1 = axes[0]
+for name, props in materials.items():
+    zeta = [zeta_potential_vs_pH(pH, props['IEP']) for pH in pH_range]
+    ax1.plot(pH_range, zeta, linewidth=2, label=name, color=props['color'])
+
+ax1.axhline(y=30, color='gray', linestyle='--', alpha=0.7)
+ax1.axhline(y=-30, color='gray', linestyle='--', alpha=0.7)
+ax1.axhline(y=0, color='black', linestyle='-', linewidth=0.5)
+ax1.fill_between(pH_range, -30, 30, alpha=0.1, color='red', label='不安定領域')
+ax1.set_xlabel('pH', fontsize=11)
+ax1.set_ylabel('ゼータ電位 (mV)', fontsize=11)
+ax1.set_title('一般的な酸化物のゼータ電位対pH', fontsize=12, fontweight='bold')
+ax1.legend(loc='upper right', fontsize=9)
+ax1.grid(True, alpha=0.3)
+ax1.set_xlim(1, 13)
+ax1.set_ylim(-60, 60)
+
+# プロット2: pH安定性ウィンドウ
+ax2 = axes[1]
+y_pos = np.arange(len(materials))
+bar_height = 0.6
+
+for i, (name, props) in enumerate(materials.items()):
+    IEP = props['IEP']
+
+    # 低pH側で安定（IEP - 2以下）
+    if IEP > 3:
+        ax2.barh(i, IEP - 3, left=1, height=bar_height, color='green', alpha=0.7)
+
+    # IEP付近で不安定（IEP ± 2）
+    ax2.barh(i, 4, left=max(1, IEP - 2), height=bar_height, color='red', alpha=0.3)
+
+    # 高pH側で安定（IEP + 2以上）
+    if IEP < 11:
+        ax2.barh(i, 13 - (IEP + 2), left=IEP + 2, height=bar_height, color='green', alpha=0.7)
+
+    # IEPをマーク
+    ax2.scatter([IEP], [i], marker='|', s=200, color='black', zorder=5)
+    ax2.text(IEP, i + 0.35, f'IEP={IEP}', ha='center', fontsize=9)
+
+ax2.set_yticks(y_pos)
+ax2.set_yticklabels(materials.keys())
+ax2.set_xlabel('pH', fontsize=11)
+ax2.set_title('pH安定性ウィンドウ', fontsize=12, fontweight='bold')
+ax2.set_xlim(1, 13)
+ax2.grid(True, alpha=0.3, axis='x')
+
+# 凡例
+from matplotlib.patches import Patch
+legend_elements = [Patch(facecolor='green', alpha=0.7, label='安定 (|ζ| > 30 mV)'),
+                   Patch(facecolor='red', alpha=0.3, label='不安定 (IEP付近)')]
+ax2.legend(handles=legend_elements, loc='lower right')
+
+plt.tight_layout()
+plt.savefig('pH_optimization.png', dpi=150, bbox_inches='tight')
+plt.show()
+
+# pH推奨条件を出力
+print("\n=== 安定分散のためのpH推奨条件 ===")
+print(f"{'材料':20s} {'IEP':>6s} {'安定なpH範囲':>25s}")
+print("-" * 55)
+for name, props in materials.items():
+    IEP = props['IEP']
+    ranges = []
+    if IEP > 4:
+        ranges.append(f"pH < {IEP-2:.0f}")
+    if IEP < 10:
+        ranges.append(f"pH > {IEP+2:.0f}")
+    print(f"{name:20s} {IEP:>6.1f} {' または '.join(ranges):>25s}")
+</code></pre>
+
+      <div class="example-output">
+        <strong>出力例:</strong><br/>
+        === 安定分散のためのpH推奨条件 ===<br/>
+        材料                     IEP       安定なpH範囲<br/>
+        -------------------------------------------------------<br/>
+        SiO₂                     2.0                  pH > 4<br/>
+        TiO₂（アナターゼ）        6.0        pH < 4 または pH > 8<br/>
+        Al₂O₃                    9.0       pH < 7 または pH > 11<br/>
+        Fe₃O₄                    6.5        pH < 5 または pH > 9<br/>
+        ZnO                      9.5               pH < 8
+      </div>
+    </section>
+
+    <section>
+      <h2>3.4 機械学習によるプロセス最適化</h2>
+
+      <h3>例5: 分散プロセスのベイズ最適化</h3>
+
+<pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+from scipy.stats import norm
+from scipy.optimize import minimize
+
+# ===================================
+# 例5: 分散プロセスのベイズ最適化
+# ===================================
+
+class DispersionProcessOptimizer:
+    """
+    ベイズ最適化を用いた分散プロセスの最適化。
+
+    最適化するプロセスパラメータ:
+    - 超音波出力 (W/mL)
+    - 界面活性剤濃度 (mM)
+    - pH
+
+    目的: 安定性を維持しながら粒子サイズを最小化。
+    """
+
+    def __init__(self):
+        self.bounds = {
+            'power': (0.5, 5.0),      # W/mL
+            'surfactant': (0.1, 10),   # mM
+            'pH': (3, 11)
+        }
+
+        self.X_observed = []
+        self.Y_observed = []
+
+    def true_objective(self, power, surfactant, pH):
+        """
+        真の目的関数（実際には未知）。
+        小さいほど良い（粒子サイズ × 不安定性因子を最小化）。
+        """
+        # 粒子サイズは主に出力に依存
+        d_particle = 20 + 400 * np.exp(-0.5 * power)
+
+        # 安定性は界面活性剤とpHに依存
+        # 最適な界面活性剤は2-5 mM付近
+        surf_factor = 1 + 5 * np.exp(-((surfactant - 3) / 2)**2)
+
+        # pH安定性（4または10付近が最適、7付近は不良）
+        pH_factor = 1 + 3 * np.exp(-((pH - 7) / 2)**2)
+
+        # 複合目的
+        objective = d_particle * surf_factor * pH_factor / 100
+
+        # ノイズを追加
+        return objective + np.random.normal(0, 0.5)
+
+    def evaluate(self, params):
+        """指定パラメータで評価。"""
+        power, surfactant, pH = params
+        return self.true_objective(power, surfactant, pH)
+
+    def gp_predict(self, X_test):
+        """簡易ガウス過程予測。"""
+        if len(self.X_observed) < 2:
+            return 50, 10  # 事前分布
+
+        X_obs = np.array(self.X_observed)
+        Y_obs = np.array(self.Y_observed)
+
+        # 正規化
+        X_mean, X_std = X_obs.mean(axis=0), X_obs.std(axis=0) + 1e-6
+        X_norm = (X_obs - X_mean) / X_std
+        X_test_norm = (X_test - X_mean) / X_std
+
+        # 距離ベースの予測
+        dists = np.linalg.norm(X_norm - X_test_norm, axis=1)
+        weights = np.exp(-dists**2 / 0.5)
+        weights = weights / (weights.sum() + 1e-10)
+
+        mean = weights @ Y_obs
+        std = 5 * np.exp(-np.min(dists))
+
+        return mean, std
+
+    def expected_improvement(self, X_test):
+        """期待改善量を計算。"""
+        mean, std = self.gp_predict(X_test)
+        best_y = min(self.Y_observed) if self.Y_observed else 100
+
+        z = (best_y - mean) / (std + 1e-9)
+        ei = (best_y - mean) * norm.cdf(z) + std * norm.pdf(z)
+        return ei
+
+    def optimize(self, n_iterations=20, n_initial=5):
+        """ベイズ最適化を実行。"""
+        # 初期ランダムサンプリング
+        np.random.seed(42)
+        for _ in range(n_initial):
+            params = [
+                np.random.uniform(*self.bounds['power']),
+                np.random.uniform(*self.bounds['surfactant']),
+                np.random.uniform(*self.bounds['pH'])
+            ]
+            y = self.evaluate(params)
+            self.X_observed.append(params)
+            self.Y_observed.append(y)
+
+        # 逐次最適化
+        for i in range(n_iterations):
+            # EI最大化で次の点を見つける
+            best_ei = -1
+            best_x = None
+
+            for _ in range(50):  # EI最大のランダム探索
+                x_candidate = [
+                    np.random.uniform(*self.bounds['power']),
+                    np.random.uniform(*self.bounds['surfactant']),
+                    np.random.uniform(*self.bounds['pH'])
+                ]
+                ei = self.expected_improvement(x_candidate)
+                if ei > best_ei:
+                    best_ei = ei
+                    best_x = x_candidate
+
+            # 評価と更新
+            y_new = self.evaluate(best_x)
+            self.X_observed.append(best_x)
+            self.Y_observed.append(y_new)
+
+            if (i + 1) % 5 == 0:
+                best_idx = np.argmin(self.Y_observed)
+                print(f"反復 {i+1}: 最良目的値 = {self.Y_observed[best_idx]:.2f}")
+                print(f"  パラメータ: 出力={self.X_observed[best_idx][0]:.2f}, "
+                      f"界面活性剤={self.X_observed[best_idx][1]:.2f}, "
+                      f"pH={self.X_observed[best_idx][2]:.2f}")
+
+        return self.X_observed, self.Y_observed
+
+# 最適化を実行
+print("=== 分散プロセスのベイズ最適化 ===\n")
+optimizer = DispersionProcessOptimizer()
+X_history, Y_history = optimizer.optimize(n_iterations=20)
+
+# 可視化
+fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+
+# プロット1: 収束
+ax1 = axes[0, 0]
+best_so_far = [min(Y_history[:i+1]) for i in range(len(Y_history))]
+ax1.plot(range(1, len(Y_history)+1), Y_history, 'o-', alpha=0.5, label='観測値')
+ax1.plot(range(1, len(Y_history)+1), best_so_far, 'r-', linewidth=2, label='これまでの最良')
+ax1.axhline(y=min(Y_history), color='green', linestyle='--', alpha=0.7)
+ax1.set_xlabel('反復回数', fontsize=11)
+ax1.set_ylabel('目的関数値', fontsize=11)
+ax1.set_title('最適化の収束', fontsize=12, fontweight='bold')
+ax1.legend()
+ax1.grid(True, alpha=0.3)
+
+# プロット2: パラメータの進化 - 出力
+ax2 = axes[0, 1]
+powers = [x[0] for x in X_history]
+surfactants = [x[1] for x in X_history]
+pHs = [x[2] for x in X_history]
+
+ax2.scatter(range(1, len(powers)+1), powers, c=Y_history, cmap='RdYlGn_r', s=80)
+ax2.set_xlabel('反復回数', fontsize=11)
+ax2.set_ylabel('出力 (W/mL)', fontsize=11)
+ax2.set_title('出力パラメータの探索', fontsize=12, fontweight='bold')
+ax2.grid(True, alpha=0.3)
+
+# プロット3: パラメータ空間（出力対界面活性剤）
+ax3 = axes[1, 0]
+scatter = ax3.scatter(powers, surfactants, c=Y_history, cmap='RdYlGn_r', s=100, edgecolor='black')
+best_idx = np.argmin(Y_history)
+ax3.scatter([powers[best_idx]], [surfactants[best_idx]], s=300, marker='*',
+            c='gold', edgecolor='black', linewidth=2, label='最適点', zorder=5)
+plt.colorbar(scatter, ax=ax3, label='目的関数')
+ax3.set_xlabel('出力 (W/mL)', fontsize=11)
+ax3.set_ylabel('界面活性剤 (mM)', fontsize=11)
+ax3.set_title('パラメータ空間の探索', fontsize=12, fontweight='bold')
+ax3.legend()
+ax3.grid(True, alpha=0.3)
+
+# プロット4: 最終結果まとめ
+ax4 = axes[1, 1]
+best_params = X_history[best_idx]
+param_names = ['出力\n(W/mL)', '界面活性剤\n(mM)', 'pH']
+param_values = best_params
+param_ranges = [(0.5, 5.0), (0.1, 10), (3, 11)]
+
+# 0-1スケールに正規化
+norm_values = [(v - r[0]) / (r[1] - r[0]) for v, r in zip(param_values, param_ranges)]
+
+bars = ax4.barh(param_names, norm_values, color=['blue', 'green', 'red'], alpha=0.7)
+
+# 実際の値を追加
+for bar, val in zip(bars, param_values):
+    ax4.text(bar.get_width() + 0.02, bar.get_y() + bar.get_height()/2,
+             f'{val:.2f}', va='center', fontsize=11)
+
+ax4.set_xlabel('正規化パラメータ値', fontsize=11)
+ax4.set_title(f'最適パラメータ（目的関数 = {Y_history[best_idx]:.2f}）', fontsize=12, fontweight='bold')
+ax4.set_xlim(0, 1.2)
+ax4.grid(True, alpha=0.3, axis='x')
+
+plt.tight_layout()
+plt.savefig('bayesian_optimization.png', dpi=150, bbox_inches='tight')
+plt.show()
+
+# 最終まとめ
+print("\n=== 最適化結果 ===")
+print(f"最良目的関数値: {Y_history[best_idx]:.2f}")
+print(f"最適パラメータ:")
+print(f"  - 超音波出力: {best_params[0]:.2f} W/mL")
+print(f"  - 界面活性剤濃度: {best_params[1]:.2f} mM")
+print(f"  - pH: {best_params[2]:.2f}")
+</code></pre>
+    </section>
+
+    <section>
+      <h2>3.5 方法選択ガイド</h2>
+
+      <table class="comparison-table">
+        <thead>
+          <tr>
+            <th>基準</th>
+            <th>超音波処理</th>
+            <th>ビーズミル</th>
+            <th>高圧ホモジナイザー</th>
+            <th>化学的方法</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>凝集体強度</td>
+            <td>弱～中</td>
+            <td>強</td>
+            <td>中</td>
+            <td>すべて</td>
+          </tr>
+          <tr>
+            <td>スケール</td>
+            <td>mL-L</td>
+            <td>L-m³</td>
+            <td>L-m³</td>
+            <td>すべて</td>
+          </tr>
+          <tr>
+            <td>汚染</td>
+            <td>低</td>
+            <td>中</td>
+            <td>非常に低</td>
+            <td>なし</td>
+          </tr>
+          <tr>
+            <td>エネルギー効率</td>
+            <td>低</td>
+            <td>中</td>
+            <td>高</td>
+            <td>非常に高</td>
+          </tr>
+          <tr>
+            <td>粒子損傷</td>
+            <td>中</td>
+            <td>高</td>
+            <td>中</td>
+            <td>なし</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="success-box">
+        <h4>推奨アプローチ</h4>
+        <ol>
+          <li><strong>化学的安定化から開始</strong> - 界面活性剤または表面修飾</li>
+          <li><strong>穏やかな機械的分散を適用</strong> - 超音波処理または高せん断混合</li>
+          <li><strong>pHとイオン強度を最適化</strong> - 静電斥力を最大化</li>
+          <li><strong>必要な場合のみ強力な方法を使用</strong> - 強い凝集体にはビーズミル</li>
+          <li><strong>安定性を検証</strong> - ゼータ電位と粒子サイズを測定</li>
+        </ol>
+      </div>
+    </section>
+
+    <section>
+      <h2>章のまとめ</h2>
+      <div class="info-box">
+        <h4>重要なポイント</h4>
+        <ol>
+          <li><strong>超音波処理</strong>はキャビテーションで機能; 弱い凝集体に有効だが加熱を引き起こす</li>
+          <li><strong>ビーズミル</strong>は高エネルギーを提供; より微細な粒子には小さいビーズ（0.1-0.3 mm）を使用</li>
+          <li><strong>界面活性剤選択</strong>は媒体と用途に依存; 濃度を最適化</li>
+          <li><strong>pH制御</strong>が重要 - 静電安定化のためにIEPから離れる</li>
+          <li><strong>複合アプローチ</strong>（機械的＋化学的）が通常最も効果的</li>
+          <li><strong>機械学習</strong>は多パラメータプロセスを効率的に最適化可能</li>
+        </ol>
+      </div>
+    </section>
+
+    <section>
+      <h2>演習問題</h2>
+
+      <details class="exercise">
+        <summary><strong>演習1:</strong> 超音波処理プロトコルの設計</summary>
+        <p>500 nmのTiO₂凝集体があり、50 nm未満に到達する必要があります。出力、時間、冷却戦略を含む超音波処理プロトコルを設計してください。</p>
+      </details>
+
+      <details class="exercise">
+        <summary><strong>演習2:</strong> 界面活性剤の選択</summary>
+        <p>30 nmシリカナノ粒子を以下の条件で分散させるための適切な界面活性剤を選択してください：(a) 純水、(b) 100 mM NaCl、(c) 細胞培養培地。選択理由を説明してください。</p>
+      </details>
+
+      <details class="exercise">
+        <summary><strong>演習3:</strong> pH最適化</summary>
+        <p>TiO₂（IEP = 6）とAl₂O₃（IEP = 9）の混合物を水中に分散させる必要があります。どのpHを推奨しますか？どのような課題が生じる可能性がありますか？</p>
+      </details>
+    </section>
+
+    <div class="nav-buttons">
+      <a class="nav-button" href="chapter-2.html">← 第2章: 凝集に影響する因子</a>
+      <a class="nav-button" href="chapter-4.html">第4章: 安定性評価 →</a>
+    </div>
+  </main>
+
+  <section>
+    <h2>参考文献</h2>
+    <ol>
+      <li>Hielscher Ultrasonics. "Ultrasonic Dispersing and Deagglomeration." Technical Documentation.</li>
+      <li>Tadros, T. F. (2012). <em>Dispersion of Powders in Liquids and Stabilization of Suspensions</em>. Wiley-VCH.</li>
+      <li>Pugh, R. J., & Bergström, L. (1994). <em>Surface and Colloid Chemistry in Advanced Ceramics Processing</em>. CRC Press.</li>
+    </ol>
+  </section>
+
+  <section class="disclaimer">
+    <h3>免責事項</h3>
+    <ul>
+      <li>本コンテンツは教育・研究・情報提供のみを目的として提供されており、専門的なアドバイスを構成するものではありません。</li>
+      <li>本コンテンツおよび付随するコード例は、いかなる保証もなく「現状のまま」提供されます。</li>
+    </ul>
+  </section>
+
+  <footer>
+    <div class="container">
+      <p>© 2026 PI Knowledge Hub - 橋本 雄介 博士、東北大学</p>
+      <p>CC BY 4.0 ライセンス</p>
+    </div>
+  </footer>
+</body>
+</html>

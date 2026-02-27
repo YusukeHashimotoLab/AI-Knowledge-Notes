@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第4章：正則化と最適化テクニック - ディープラーニング基礎入門 - AI Terakoya</title>
+    <meta name="description" content="L1、L2、Dropout、Batch Normalizationなどの正則化手法と、Adam、学習率スケジューリングなどの最適化アルゴリズムを学びます。">
+
+    <style>
+        :root {
+            --color-primary: #2c3e50;
+            --color-primary-dark: #1a252f;
+            --color-accent: #7b2cbf;
+            --color-accent-light: #9d4edd;
+            --color-text: #2d3748;
+            --color-text-light: #4a5568;
+            --color-bg: #ffffff;
+            --color-bg-alt: #f7fafc;
+            --color-border: #e2e8f0;
+            --color-code-bg: #f8f9fa;
+            --color-link: #3182ce;
+            --color-link-hover: #2c5aa0;
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+            --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+            --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+            --border-radius: 8px;
+            --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: var(--font-body); line-height: 1.7; color: var(--color-text); background-color: var(--color-bg); font-size: 16px; }
+        header { background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%); color: white; padding: var(--spacing-xl) var(--spacing-md); margin-bottom: var(--spacing-xl); box-shadow: var(--box-shadow); }
+        .header-content { max-width: 900px; margin: 0 auto; }
+        h1 { font-size: 2rem; font-weight: 700; margin-bottom: var(--spacing-sm); line-height: 1.2; }
+        .subtitle { font-size: 1.1rem; opacity: 0.95; font-weight: 400; margin-bottom: var(--spacing-md); }
+        .meta { display: flex; flex-wrap: wrap; gap: var(--spacing-md); font-size: 0.9rem; opacity: 0.9; }
+        .container { max-width: 900px; margin: 0 auto; padding: 0 var(--spacing-md) var(--spacing-xl); }
+        h2 { font-size: 1.75rem; color: var(--color-primary); margin-top: var(--spacing-xl); margin-bottom: var(--spacing-md); padding-bottom: var(--spacing-xs); border-bottom: 3px solid var(--color-accent); }
+        h3 { font-size: 1.4rem; color: var(--color-primary); margin-top: var(--spacing-lg); margin-bottom: var(--spacing-sm); }
+        h4 { font-size: 1.1rem; color: var(--color-primary-dark); margin-top: var(--spacing-md); margin-bottom: var(--spacing-sm); }
+        p { margin-bottom: var(--spacing-md); }
+        a { color: var(--color-link); text-decoration: none; }
+        a:hover { color: var(--color-link-hover); text-decoration: underline; }
+        ul, ol { margin-left: var(--spacing-lg); margin-bottom: var(--spacing-md); }
+        li { margin-bottom: var(--spacing-xs); }
+        pre { background-color: var(--color-code-bg); border: 1px solid var(--color-border); border-radius: var(--border-radius); padding: var(--spacing-md); overflow-x: auto; margin-bottom: var(--spacing-md); font-family: var(--font-mono); font-size: 0.9rem; line-height: 1.5; }
+        code { font-family: var(--font-mono); font-size: 0.9em; background-color: var(--color-code-bg); padding: 0.2em 0.4em; border-radius: 3px; }
+        pre code { background-color: transparent; padding: 0; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: var(--spacing-md); font-size: 0.95rem; }
+        th, td { border: 1px solid var(--color-border); padding: var(--spacing-sm); text-align: left; }
+        th { background-color: var(--color-bg-alt); font-weight: 600; color: var(--color-primary); }
+        details { background-color: var(--color-bg-alt); border: 1px solid var(--color-border); border-radius: var(--border-radius); padding: var(--spacing-md); margin-bottom: var(--spacing-md); }
+        summary { cursor: pointer; font-weight: 600; color: var(--color-primary); padding: var(--spacing-md); margin: calc(-1 * var(--spacing-md)); border-radius: var(--border-radius); }
+        summary:hover { background-color: rgba(123, 44, 191, 0.1); }
+        details[open] summary { margin-bottom: var(--spacing-md); border-bottom: 1px solid var(--color-border); }
+        .chapter-description { margin: 1.5rem 0; padding: 1rem; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-left: 4px solid #7b2cbf; border-radius: 8px; font-size: 1.05rem; line-height: 1.8; }
+        .learning-objectives { background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); padding: var(--spacing-lg); border-radius: var(--border-radius); border-left: 4px solid var(--color-accent); margin-bottom: var(--spacing-xl); }
+        .learning-objectives h2 { margin-top: 0; border-bottom: none; }
+        .navigation { display: flex; justify-content: space-between; gap: var(--spacing-md); margin: var(--spacing-xl) 0; padding-top: var(--spacing-lg); border-top: 2px solid var(--color-border); }
+        .nav-button { flex: 1; padding: var(--spacing-md); background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%); color: white; border-radius: var(--border-radius); text-align: center; font-weight: 600; transition: transform 0.2s, box-shadow 0.2s; box-shadow: var(--box-shadow); }
+        .nav-button:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); text-decoration: none; }
+        footer { margin-top: var(--spacing-xl); padding: var(--spacing-lg) var(--spacing-md); background-color: var(--color-bg-alt); border-top: 1px solid var(--color-border); text-align: center; font-size: 0.9rem; color: var(--color-text-light); }
+        .disclaimer { max-width: 900px; margin: 2rem auto; padding: 1.5rem; background: #f8f9fa; border-left: 4px solid #6c757d; border-radius: 4px; }
+        .disclaimer h3 { color: #495057; margin-bottom: 1rem; font-size: 1.1rem; }
+        .disclaimer ul { list-style: none; padding-left: 0; }
+        .disclaimer li { padding: 0.5rem 0; padding-left: 1.5rem; position: relative; font-size: 0.9rem; color: #6c757d; }
+        .disclaimer li::before { content: "⚠️"; position: absolute; left: 0; }
+        .breadcrumb { background: #f7fafc; padding: 0.75rem 1rem; border-bottom: 1px solid #e2e8f0; font-size: 0.9rem; }
+        .breadcrumb-content { max-width: 900px; margin: 0 auto; display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
+        .breadcrumb a { color: #667eea; }
+        .breadcrumb-separator { color: #a0aec0; margin: 0 0.25rem; }
+        .breadcrumb-current { color: #4a5568; font-weight: 500; }
+        .info-box { background: #e3f2fd; border-left: 4px solid #2196f3; padding: var(--spacing-md); margin: var(--spacing-md) 0; border-radius: var(--border-radius); }
+        .warning-box { background: #fff3e0; border-left: 4px solid #ff9800; padding: var(--spacing-md); margin: var(--spacing-md) 0; border-radius: var(--border-radius); }
+        .success-box { background: #e8f5e9; border-left: 4px solid #4caf50; padding: var(--spacing-md); margin: var(--spacing-md) 0; border-radius: var(--border-radius); }
+        @media (max-width: 768px) {
+            h1 { font-size: 1.6rem; }
+            h2 { font-size: 1.4rem; }
+            .navigation { flex-direction: column; }
+        }
+    </style>
+
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+</head>
+<body>
+    <nav class="breadcrumb">
+        <div class="breadcrumb-content">
+            <a href="../../index.html">AI寺子屋トップ</a><span class="breadcrumb-separator">›</span><a href="../index.html">機械学習</a><span class="breadcrumb-separator">›</span><a href="./index.html">ディープラーニング基礎入門</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">第4章</span>
+        </div>
+    </nav>
+
+    <header>
+        <div class="header-content">
+            <h1>第4章：正則化と最適化テクニック</h1>
+            <p class="subtitle">過学習を防ぎ、学習効率を向上させる</p>
+            <div class="meta">
+                <span class="meta-item">📖 読了時間: 30-35分</span>
+                <span class="meta-item">💻 コード例: 8個</span>
+                <span class="meta-item">📝 演習: 6問</span>
+                <span class="meta-item">📊 難易度: 中級</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="chapter-description">
+            この章では、モデルの汎化性能と学習効率を向上させる技術を学びます。過学習を防ぐ正則化手法、安定した学習のための正規化技術、学習率を自動調整する高度な最適化アルゴリズムをカバーします。
+        </div>
+
+        <div class="learning-objectives">
+            <h2>学習目標</h2>
+            <ul>
+                <li>過学習とバイアス-バリアンスのトレードオフを理解する</li>
+                <li>L1およびL2正則化テクニックをマスターする</li>
+                <li>Dropoutを正しく実装・適用する</li>
+                <li>Batch Normalizationとその変種を理解する</li>
+                <li>異なる最適化アルゴリズム（Adam、RMSprop）の使い分けを知る</li>
+                <li>学習率スケジューリングと早期終了を適用する</li>
+            </ul>
+        </div>
+
+        <h2 id="overfitting">1. 過学習（Overfitting）の理解</h2>
+
+        <h3>1.1 訓練誤差と汎化誤差</h3>
+
+        <p><strong>過学習</strong>は、モデルが訓練データをノイズや特殊性を含めて学習しすぎ、新しい未知のデータでの性能が悪くなる現象です。</p>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>シナリオ</th>
+                    <th>訓練誤差</th>
+                    <th>検証誤差</th>
+                    <th>状態</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>過少学習</strong></td>
+                    <td>高い</td>
+                    <td>高い</td>
+                    <td>モデルが単純すぎる</td>
+                </tr>
+                <tr>
+                    <td><strong>良好なフィット</strong></td>
+                    <td>低い</td>
+                    <td>低い</td>
+                    <td>最適</td>
+                </tr>
+                <tr>
+                    <td><strong>過学習</strong></td>
+                    <td>非常に低い</td>
+                    <td>高い</td>
+                    <td>モデルが暗記</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>1.2 バイアス-バリアンス トレードオフ</h3>
+
+        <p><strong>バイアス-バリアンスのトレードオフ</strong>は、モデルの複雑さと誤差の関係を説明します：</p>
+
+        <p>$$\text{総誤差} = \text{バイアス}^2 + \text{バリアンス} + \text{既約誤差}$$</p>
+
+        <ul>
+            <li><strong>バイアス</strong>：単純化仮定からの誤差（過少学習）</li>
+            <li><strong>バリアンス</strong>：訓練データへの感度からの誤差（過学習）</li>
+            <li><strong>既約誤差</strong>：問題に固有のノイズ</li>
+        </ul>
+
+        <h2 id="regularization">2. 正則化手法</h2>
+
+        <h3>2.1 L1正則化（Lasso）</h3>
+
+        <p><strong>L1正則化</strong>は重みの絶対値の和を損失関数に追加します：</p>
+
+        <p>$$\mathcal{L}_{L1} = \mathcal{L}_{original} + \lambda \sum_{i} |w_i|$$</p>
+
+        <p><strong>特徴</strong>：</p>
+        <ul>
+            <li><strong>スパース性</strong>を促進（一部の重みを正確にゼロに）</li>
+            <li><strong>特徴選択</strong>として機能</li>
+            <li>多くの特徴が無関係な場合に有用</li>
+        </ul>
+
+        <h3>2.2 L2正則化（Ridge / Weight Decay）</h3>
+
+        <p><strong>L2正則化</strong>は重みの二乗和を損失に追加します：</p>
+
+        <p>$$\mathcal{L}_{L2} = \mathcal{L}_{original} + \frac{\lambda}{2} \sum_{i} w_i^2$$</p>
+
+        <p><strong>特徴</strong>：</p>
+        <ul>
+            <li><strong>大きな重み</strong>をより強くペナルティ</li>
+            <li><strong>小さく分散した重み</strong>を促進</li>
+            <li>ディープラーニングで最も一般的に使用</li>
+        </ul>
+
+        <h3>2.3 Dropout</h3>
+
+        <p><strong>Dropout</strong>は訓練中にニューロンの一部をランダムにゼロに設定し、ネットワークに冗長な表現の学習を強制します。</p>
+
+        <pre><code class="language-python">import numpy as np
+
+class Dropout:
+    """Dropoutレイヤーの実装"""
+
+    def __init__(self, drop_rate=0.5):
+        self.drop_rate = drop_rate
+        self.mask = None
+        self.training = True
+
+    def forward(self, X):
+        if self.training and self.drop_rate > 0:
+            self.mask = np.random.binomial(1, 1 - self.drop_rate, X.shape)
+            return X * self.mask / (1 - self.drop_rate)
+        return X
+
+    def train(self):
+        self.training = True
+
+    def eval(self):
+        self.training = False
+
+# 使用例
+dropout = Dropout(drop_rate=0.5)
+X = np.ones((3, 5))
+
+dropout.train()
+output_train = dropout.forward(X)
+print("訓練モード出力:\n", output_train)
+</code></pre>
+
+        <div class="warning-box">
+            <p><strong>重要</strong>：推論時は必ず評価モードに切り替えてください：</p>
+            <ul>
+                <li>PyTorch: <code>model.eval()</code></li>
+                <li>訓練時: Dropoutが有効、Batch Normはバッチ統計を使用</li>
+                <li>推論時: Dropoutは無効、Batch Normは累積統計を使用</li>
+            </ul>
+        </div>
+
+        <h2 id="batch-norm">3. Batch Normalization</h2>
+
+        <h3>3.1 内部共変量シフト</h3>
+
+        <p><strong>内部共変量シフト</strong>とは、訓練中に層の入力分布が変化する現象です。Batch Normalizationは層の入力を正規化することでこれに対処します。</p>
+
+        <h3>3.2 Batch Normの仕組み</h3>
+
+        <p>ミニバッチの活性化に対して、Batch Normは以下を実行します：</p>
+
+        <ol>
+            <li><strong>平均と分散を計算</strong>：
+                <p>$$\mu_B = \frac{1}{m}\sum_{i=1}^{m} x_i, \quad \sigma_B^2 = \frac{1}{m}\sum_{i=1}^{m}(x_i - \mu_B)^2$$</p>
+            </li>
+            <li><strong>正規化</strong>：
+                <p>$$\hat{x}_i = \frac{x_i - \mu_B}{\sqrt{\sigma_B^2 + \epsilon}}$$</p>
+            </li>
+            <li><strong>スケールとシフト</strong>（学習可能パラメータ）：
+                <p>$$y_i = \gamma \hat{x}_i + \beta$$</p>
+            </li>
+        </ol>
+
+        <h3>3.3 Layer Normalizationとの比較</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>側面</th>
+                    <th>Batch Normalization</th>
+                    <th>Layer Normalization</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>正規化対象</strong></td>
+                    <td>バッチ次元</td>
+                    <td>特徴次元</td>
+                </tr>
+                <tr>
+                    <td><strong>バッチサイズ依存</strong></td>
+                    <td>あり（大きなバッチが必要）</td>
+                    <td>なし</td>
+                </tr>
+                <tr>
+                    <td><strong>最適な用途</strong></td>
+                    <td>CNN、フィードフォワード</td>
+                    <td>RNN、Transformer</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h2 id="optimizers">4. 最適化アルゴリズム</h2>
+
+        <h3>4.1 AdaGrad</h3>
+
+        <p><strong>AdaGrad</strong>は過去の勾配に基づいて各パラメータの学習率を適応的に調整します。</p>
+
+        <h3>4.2 RMSprop</h3>
+
+        <p><strong>RMSprop</strong>は指数移動平均を使用してAdaGradの学習率減少問題を解決します。</p>
+
+        <h3>4.3 Adam / AdamW</h3>
+
+        <p><strong>Adam</strong>（Adaptive Moment Estimation）はモメンタムとRMSpropを組み合わせます：</p>
+
+        <p>$$m_t = \beta_1 m_{t-1} + (1-\beta_1) g_t \quad \text{（第1モーメント）}$$</p>
+        <p>$$v_t = \beta_2 v_{t-1} + (1-\beta_2) g_t^2 \quad \text{（第2モーメント）}$$</p>
+        <p>$$\theta_{t+1} = \theta_t - \frac{\eta}{\sqrt{\hat{v}_t} + \epsilon} \hat{m}_t$$</p>
+
+        <div class="info-box">
+            <p><strong>オプティマイザ選択ガイドライン</strong></p>
+            <ul>
+                <li><strong>Adam</strong>：良いデフォルト、ほとんどの問題でうまく機能</li>
+                <li><strong>SGD + Momentum</strong>：チューニングにより最終性能が向上することが多い</li>
+                <li><strong>AdamW</strong>：適切な重み減衰を持つAdam、Transformerに推奨</li>
+                <li><strong>RMSprop</strong>：RNNや非定常な目的に適している</li>
+            </ul>
+        </div>
+
+        <h2 id="lr-scheduling">5. 学習率スケジューリング</h2>
+
+        <h3>5.1 Step Decay</h3>
+
+        <p>特定のエポックで学習率を係数で減少：</p>
+
+        <p>$$\eta_t = \eta_0 \cdot \gamma^{\lfloor t / s \rfloor}$$</p>
+
+        <h3>5.2 Cosine Annealing</h3>
+
+        <p>コサインカーブに従って学習率を滑らかに減少：</p>
+
+        <p>$$\eta_t = \eta_{min} + \frac{1}{2}(\eta_{max} - \eta_{min})(1 + \cos(\frac{t \pi}{T}))$$</p>
+
+        <h3>5.3 Warmup</h3>
+
+        <p><strong>Warmup</strong>は訓練開始時に学習率を徐々に増加させます。</p>
+
+        <h2 id="early-stopping">6. Early Stopping</h2>
+
+        <p><strong>早期終了</strong>は検証損失を監視し、改善が止まったら訓練を停止して過学習を防ぎます。</p>
+
+        <pre><code class="language-python">class EarlyStopping:
+    """過学習を防ぐ早期終了"""
+
+    def __init__(self, patience=10, min_delta=0.0001):
+        self.patience = patience
+        self.min_delta = min_delta
+        self.best_loss = float('inf')
+        self.counter = 0
+
+    def __call__(self, val_loss):
+        if val_loss < self.best_loss - self.min_delta:
+            self.best_loss = val_loss
+            self.counter = 0
+            return False
+        else:
+            self.counter += 1
+            if self.counter >= self.patience:
+                print(f"早期終了: {self.patience}エポック改善なし")
+                return True
+            return False
+</code></pre>
+
+        <h2 id="exercises">演習問題</h2>
+
+        <details>
+            <summary>演習1：L1 vs L2正則化</summary>
+            <p><strong>問題</strong>：同じデータでL1とL2正則化を使って訓練し、重み分布とスパース性を比較してください。</p>
+        </details>
+
+        <details>
+            <summary>演習2：Dropout率の実験</summary>
+            <p><strong>問題</strong>：Dropout率[0, 0.1, 0.3, 0.5, 0.7]でネットワークを訓練し、最適な率を見つけてください。</p>
+        </details>
+
+        <details>
+            <summary>演習3：Batch Normalizationのアブレーション</summary>
+            <p><strong>問題</strong>：Batch Normalizationあり/なしで訓練を比較し、損失曲線と学習率への感度を確認してください。</p>
+        </details>
+
+        <details>
+            <summary>演習4：オプティマイザの比較</summary>
+            <p><strong>問題</strong>：SGD、Momentum、RMSprop、Adamで同じネットワークを訓練し、収束曲線を比較してください。</p>
+        </details>
+
+        <details>
+            <summary>演習5：学習率スケジュールの設計</summary>
+            <p><strong>問題</strong>：固定、Step Decay、Cosine Annealing、Warmup+Cosineを実装し比較してください。</p>
+        </details>
+
+        <details>
+            <summary>演習6：早期終了の分析</summary>
+            <p><strong>問題</strong>：patience=5, 10, 20で早期終了を実装し、最終テスト精度を比較してください。</p>
+        </details>
+
+        <h2 id="summary">まとめ</h2>
+
+        <p>この章では、モデル訓練を改善する技術を学びました：</p>
+
+        <ul>
+            <li><strong>過学習</strong>：モデルが訓練データを暗記；訓練/検証損失のギャップで検出</li>
+            <li><strong>L1/L2正則化</strong>：大きな重みをペナルティ；L1はスパース性を促進、L2が最も一般的</li>
+            <li><strong>Dropout</strong>：訓練中にランダムにニューロンを無効化して冗長な表現を学習</li>
+            <li><strong>Batch Normalization</strong>：層の入力を正規化して安定した高速な訓練</li>
+            <li><strong>Adam</strong>：モメンタムとパラメータごとの学習率を組み合わせた適応的オプティマイザ</li>
+            <li><strong>学習率スケジューリング</strong>：訓練中に学習率を調整（warmup、cosine decay）</li>
+            <li><strong>早期終了</strong>：検証損失が改善しなくなったら訓練を停止</li>
+        </ul>
+
+        <div class="success-box">
+            <p><strong>次章の予告</strong>：第5章では、学んだすべてを実践プロジェクトに適用します。MNISTの分類、データ前処理パイプライン、モデル評価、ハイパーパラメータチューニングを行います。</p>
+        </div>
+
+        <div class="navigation">
+            <a href="./chapter-3.html" class="nav-button">← 第3章</a>
+            <a href="./chapter-5.html" class="nav-button">第5章 →</a>
+        </div>
+    </main>
+
+    <section class="disclaimer">
+        <h3>免責事項</h3>
+        <ul>
+            <li>本コンテンツは教育目的のみで提供されています。</li>
+            <li>コード例は保証なしで提供されています。</li>
+            <li>内容は予告なく変更される場合があります。</li>
+        </ul>
+    </section>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 AI Terakoya - Dr. Yusuke Hashimoto, Tohoku University</p>
+            <p>Licensed under CC BY 4.0</p>
+        </div>
+    </footer>
+</body>
+</html>

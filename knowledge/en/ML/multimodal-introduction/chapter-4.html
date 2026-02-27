@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Chapter 4: Training and Evaluation - Learn contrastive learning, pre-training objectives, hallucination mitigation, and benchmarks">
+    <title>Chapter 4: Training and Evaluation - Multimodal AI Introduction - AI Terakoya</title>
+
+    <style>
+        :root { --primary-color: #2c3e50; --secondary-color: #9b59b6; --code-bg: #f5f5f5; --border-color: #e0e0e0; --link-color: #9b59b6; --link-hover: #8e44ad; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", Meiryo, sans-serif; line-height: 1.8; color: #333; background: #fff; }
+        .container { max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem; }
+        header { background: linear-gradient(135deg, #9b59b6 0%, #3498db 100%); color: white; padding: 2rem 0; margin-bottom: 2rem; }
+        header .container { padding: 0 1.5rem; }
+        h1 { font-size: 2rem; margin-bottom: 0.5rem; }
+        .subtitle { font-size: 1.1rem; opacity: 0.95; }
+        .meta { display: flex; gap: 1.5rem; flex-wrap: wrap; font-size: 0.9rem; opacity: 0.95; margin-top: 1rem; }
+        h2 { font-size: 1.75rem; margin-top: 2.5rem; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 3px solid var(--secondary-color); color: var(--primary-color); }
+        h3 { font-size: 1.4rem; margin-top: 2rem; margin-bottom: 0.8rem; color: var(--primary-color); }
+        h4 { font-size: 1.2rem; margin-top: 1.5rem; margin-bottom: 0.6rem; color: var(--primary-color); }
+        p { margin-bottom: 1.2rem; }
+        a { color: var(--link-color); text-decoration: none; }
+        a:hover { color: var(--link-hover); text-decoration: underline; }
+        ul, ol { margin-left: 2rem; margin-bottom: 1.2rem; }
+        li { margin-bottom: 0.5rem; }
+        pre { background: var(--code-bg); padding: 1.5rem; border-radius: 8px; overflow-x: auto; margin: 1.5rem 0; border: 1px solid var(--border-color); }
+        code { font-family: "SF Mono", Monaco, Consolas, monospace; font-size: 0.9rem; }
+        :not(pre) > code { background: var(--code-bg); padding: 0.2rem 0.4rem; border-radius: 4px; }
+        table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; }
+        th, td { padding: 0.8rem; border: 1px solid var(--border-color); text-align: left; }
+        th { background: var(--code-bg); font-weight: 600; }
+        .mermaid { text-align: center; margin: 2rem 0; background: white; padding: 1rem; border-radius: 8px; border: 1px solid var(--border-color); }
+        .info-box { background: linear-gradient(135deg, #e8f4fd 0%, #d1e8ff 100%); border-left: 4px solid #3498db; padding: 1.5rem; margin: 1.5rem 0; border-radius: 4px; }
+        .info-box h4 { margin-top: 0; color: #2980b9; }
+        .key-point { background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%); border: 1px solid #c4b5fd; border-radius: 8px; padding: 1.5rem; margin: 1.5rem 0; }
+        .key-point h4 { color: #7c3aed; margin-top: 0; }
+        .warning-box { background: linear-gradient(135deg, #fff3cd 0%, #ffeeba 100%); border-left: 4px solid #f39c12; padding: 1.5rem; margin: 1.5rem 0; }
+        .warning-box h4 { margin-top: 0; color: #d68910; }
+        .nav-buttons { display: flex; justify-content: space-between; margin: 3rem 0; gap: 1rem; flex-wrap: wrap; }
+        .nav-button { display: inline-block; padding: 0.8rem 1.5rem; background: var(--secondary-color); color: white; border-radius: 6px; font-weight: 600; }
+        .nav-button:hover { background: var(--link-hover); color: white; }
+        .locale-switcher { position: absolute; top: 1rem; right: 1rem; background: rgba(255,255,255,0.2); padding: 0.5rem 1rem; border-radius: 20px; }
+        .locale-switcher a { color: white; font-weight: 500; }
+        .locale-meta { color: white; opacity: 0.7; font-size: 0.8rem; margin-left: 0.5rem; }
+        footer { margin-top: 4rem; padding: 2rem 0; border-top: 2px solid var(--border-color); text-align: center; color: #666; font-size: 0.9rem; }
+        .breadcrumb { background: #f7fafc; padding: 0.75rem 1rem; border-bottom: 1px solid #e2e8f0; font-size: 0.9rem; }
+        .breadcrumb-content { max-width: 900px; margin: 0 auto; display: flex; align-items: center; gap: 0.5rem; }
+        .breadcrumb a { color: #9b59b6; }
+        .breadcrumb-separator { color: #a0aec0; margin: 0 0.25rem; }
+        .breadcrumb-current { color: #4a5568; font-weight: 500; }
+        @media (max-width: 768px) { .container { padding: 1rem; } h1 { font-size: 1.6rem; } .locale-switcher { position: static; margin-bottom: 1rem; text-align: center; } }
+    </style>
+
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>document.addEventListener('DOMContentLoaded', function() { if (typeof mermaid !== 'undefined') { mermaid.initialize({ startOnLoad: true, theme: 'default' }); } });</script>
+</head>
+<body>
+    <nav class="breadcrumb">
+        <div class="breadcrumb-content">
+            <a href="../../index.html">AI Terakoya Top</a><span class="breadcrumb-separator">></span><a href="../index.html">Machine Learning</a><span class="breadcrumb-separator">></span><a href="./index.html">Multimodal AI</a><span class="breadcrumb-separator">></span><span class="breadcrumb-current">Chapter 4</span>
+        </div>
+    </nav>
+
+    <header style="position: relative;">
+        <div class="locale-switcher">
+            <a href="../../../jp/ML/multimodal-introduction/chapter-4.html">JP</a>
+            <span class="locale-meta">Last sync: 2026-01-15</span>
+        </div>
+        <div class="container">
+            <h1>Chapter 4: Training and Evaluation</h1>
+            <p class="subtitle">Contrastive Learning, Pre-training, Hallucination, and Benchmarks</p>
+            <div class="meta">
+                <span>Reading Time: 30-35 min</span>
+                <span>Code Examples: 8</span>
+                <span>Exercises: 4</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+
+        <h2>4.1 Contrastive Learning for Multimodal Models</h2>
+
+        <p>Contrastive learning is the foundation of modern vision-language models. It learns representations by maximizing similarity between matched pairs while minimizing similarity with unmatched pairs.</p>
+
+        <h3>InfoNCE Loss</h3>
+
+        <div class="info-box">
+            <h4>Contrastive Loss Formula</h4>
+            <p>For a batch of N image-text pairs \((v_i, t_i)\):</p>
+            <p>$$\mathcal{L} = -\frac{1}{2N}\sum_{i=1}^{N}\left[\log\frac{\exp(\text{sim}(v_i, t_i)/\tau)}{\sum_{j=1}^{N}\exp(\text{sim}(v_i, t_j)/\tau)} + \log\frac{\exp(\text{sim}(t_i, v_i)/\tau)}{\sum_{j=1}^{N}\exp(\text{sim}(t_i, v_j)/\tau)}\right]$$</p>
+            <p>Where \(\tau\) is a learnable temperature parameter (typically 0.07).</p>
+        </div>
+
+        <pre><code class="language-python"># Implementing Contrastive Loss
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+class ContrastiveLoss(nn.Module):
+    def __init__(self, temperature=0.07):
+        super().__init__()
+        self.temperature = nn.Parameter(torch.tensor(temperature))
+
+    def forward(self, image_embeds, text_embeds):
+        """
+        image_embeds: (N, D) normalized image embeddings
+        text_embeds: (N, D) normalized text embeddings
+        """
+        # Compute similarity matrix
+        logits = image_embeds @ text_embeds.T / self.temperature.exp()
+
+        # Labels: diagonal elements are positive pairs
+        labels = torch.arange(len(image_embeds), device=logits.device)
+
+        # Cross-entropy loss in both directions
+        loss_i2t = F.cross_entropy(logits, labels)
+        loss_t2i = F.cross_entropy(logits.T, labels)
+
+        return (loss_i2t + loss_t2i) / 2
+
+# Training loop example
+def train_step(model, images, texts, optimizer, criterion):
+    optimizer.zero_grad()
+
+    # Get normalized embeddings
+    image_embeds = F.normalize(model.encode_image(images), dim=-1)
+    text_embeds = F.normalize(model.encode_text(texts), dim=-1)
+
+    # Compute loss
+    loss = criterion(image_embeds, text_embeds)
+
+    loss.backward()
+    optimizer.step()
+
+    return loss.item()</code></pre>
+
+        <h3>Large Batch Sizes: Why They Matter</h3>
+
+        <p>Contrastive learning benefits significantly from large batch sizes:</p>
+
+        <table>
+            <tr>
+                <th>Batch Size</th>
+                <th>Negative Samples</th>
+                <th>Effect</th>
+            </tr>
+            <tr>
+                <td>256</td>
+                <td>255 per sample</td>
+                <td>Weak discrimination</td>
+            </tr>
+            <tr>
+                <td>4,096</td>
+                <td>4,095 per sample</td>
+                <td>Better representations</td>
+            </tr>
+            <tr>
+                <td>32,768</td>
+                <td>32,767 per sample</td>
+                <td>CLIP-level quality</td>
+            </tr>
+        </table>
+
+        <pre><code class="language-python"># Gradient accumulation for effective large batches
+def train_with_accumulation(model, dataloader, optimizer, criterion,
+                            accumulation_steps=8):
+    """Simulate large batch with gradient accumulation"""
+    model.train()
+    optimizer.zero_grad()
+
+    for i, (images, texts) in enumerate(dataloader):
+        # Forward pass
+        image_embeds = F.normalize(model.encode_image(images), dim=-1)
+        text_embeds = F.normalize(model.encode_text(texts), dim=-1)
+
+        # Scale loss by accumulation steps
+        loss = criterion(image_embeds, text_embeds) / accumulation_steps
+        loss.backward()
+
+        # Update weights every accumulation_steps
+        if (i + 1) % accumulation_steps == 0:
+            optimizer.step()
+            optimizer.zero_grad()
+
+    return loss.item() * accumulation_steps</code></pre>
+
+        <h2>4.2 Pre-training Objectives</h2>
+
+        <p>Modern multimodal models combine multiple pre-training objectives:</p>
+
+        <div class="mermaid">
+graph TB
+    subgraph Objectives["Pre-training Objectives"]
+        ITC[Image-Text Contrastive]
+        ITM[Image-Text Matching]
+        LM[Language Modeling]
+        MIM[Masked Image Modeling]
+    end
+
+    subgraph Purpose
+        ITC --> P1[Coarse alignment]
+        ITM --> P2[Fine-grained alignment]
+        LM --> P3[Generation capability]
+        MIM --> P4[Visual understanding]
+    end
+
+    style ITC fill:#e3f2fd
+    style ITM fill:#fff3e0
+    style LM fill:#f3e5f5
+    style MIM fill:#e8f5e9
+        </div>
+
+        <h3>BLIP-style Multi-Objective Training</h3>
+
+        <pre><code class="language-python"># Multi-objective pre-training
+class MultimodalPretraining(nn.Module):
+    def __init__(self, model):
+        super().__init__()
+        self.model = model
+        self.itc_loss = ContrastiveLoss()
+        self.itm_head = nn.Linear(model.hidden_dim, 2)  # Binary classification
+        self.lm_head = nn.Linear(model.hidden_dim, model.vocab_size)
+
+    def forward(self, images, texts, text_labels):
+        # 1. Image-Text Contrastive (ITC)
+        image_embeds = self.model.encode_image(images)
+        text_embeds = self.model.encode_text(texts)
+        itc_loss = self.itc_loss(
+            F.normalize(image_embeds, dim=-1),
+            F.normalize(text_embeds, dim=-1)
+        )
+
+        # 2. Image-Text Matching (ITM) with hard negatives
+        # Create negative pairs by shuffling
+        neg_images = images[torch.randperm(len(images))]
+        pos_hidden = self.model.fuse(images, texts)
+        neg_hidden = self.model.fuse(neg_images, texts)
+
+        pos_logits = self.itm_head(pos_hidden[:, 0])  # CLS token
+        neg_logits = self.itm_head(neg_hidden[:, 0])
+
+        itm_labels = torch.cat([
+            torch.ones(len(images)),
+            torch.zeros(len(images))
+        ]).long().to(images.device)
+
+        itm_loss = F.cross_entropy(
+            torch.cat([pos_logits, neg_logits]),
+            itm_labels
+        )
+
+        # 3. Language Modeling (conditioned on image)
+        lm_hidden = self.model.generate_hidden(images, texts[:, :-1])
+        lm_logits = self.lm_head(lm_hidden)
+        lm_loss = F.cross_entropy(
+            lm_logits.view(-1, self.model.vocab_size),
+            text_labels[:, 1:].contiguous().view(-1),
+            ignore_index=-100
+        )
+
+        # Combine losses
+        total_loss = itc_loss + itm_loss + lm_loss
+        return total_loss, {"itc": itc_loss, "itm": itm_loss, "lm": lm_loss}</code></pre>
+
+        <h2>4.3 Datasets for Multimodal Pre-training</h2>
+
+        <table>
+            <tr>
+                <th>Dataset</th>
+                <th>Size</th>
+                <th>Source</th>
+                <th>Use Case</th>
+            </tr>
+            <tr>
+                <td>LAION-5B</td>
+                <td>5.85B pairs</td>
+                <td>Web-crawled</td>
+                <td>Large-scale pre-training</td>
+            </tr>
+            <tr>
+                <td>LAION-400M</td>
+                <td>400M pairs</td>
+                <td>Filtered subset</td>
+                <td>Research, fine-tuning</td>
+            </tr>
+            <tr>
+                <td>CC3M/CC12M</td>
+                <td>3-12M pairs</td>
+                <td>Conceptual Captions</td>
+                <td>High-quality training</td>
+            </tr>
+            <tr>
+                <td>COCO Captions</td>
+                <td>330K images</td>
+                <td>Human annotated</td>
+                <td>Evaluation, fine-tuning</td>
+            </tr>
+            <tr>
+                <td>Visual Genome</td>
+                <td>108K images</td>
+                <td>Dense annotations</td>
+                <td>Scene understanding</td>
+            </tr>
+        </table>
+
+        <h2>4.4 Multimodal Hallucination</h2>
+
+        <p>Hallucination is a critical challenge where models generate text inconsistent with visual content:</p>
+
+        <div class="warning-box">
+            <h4>Types of Multimodal Hallucination</h4>
+            <ul>
+                <li><strong>Object Hallucination</strong>: Describing objects not in the image</li>
+                <li><strong>Attribute Hallucination</strong>: Wrong colors, sizes, or properties</li>
+                <li><strong>Relationship Hallucination</strong>: Incorrect spatial or semantic relationships</li>
+                <li><strong>Scene Hallucination</strong>: Misinterpreting the overall context</li>
+            </ul>
+        </div>
+
+        <h3>Root Causes</h3>
+
+        <ol>
+            <li><strong>Language Prior Dominance</strong>: Model relies too heavily on learned language patterns</li>
+            <li><strong>Co-occurrence Bias</strong>: Objects frequently seen together in training data</li>
+            <li><strong>Weak Visual Grounding</strong>: Insufficient connection between text and image regions</li>
+            <li><strong>Training Data Noise</strong>: Misaligned image-text pairs in web-scraped data</li>
+        </ol>
+
+        <h3>Detection and Mitigation</h3>
+
+        <pre><code class="language-python"># Hallucination Detection using CLIP
+import torch
+from transformers import CLIPProcessor, CLIPModel
+
+class HallucinationDetector:
+    def __init__(self, threshold=0.3):
+        self.model = CLIPModel.from_pretrained("openai/clip-vit-large-patch14")
+        self.processor = CLIPProcessor.from_pretrained("openai/clip-vit-large-patch14")
+        self.threshold = threshold
+
+    def check_claim(self, image, claim):
+        """
+        Check if a claim about an image is likely hallucinated.
+        Returns True if claim is supported by image, False if likely hallucinated.
+        """
+        # Encode image and claim
+        inputs = self.processor(
+            text=[claim, f"not {claim}"],
+            images=image,
+            return_tensors="pt",
+            padding=True
+        )
+
+        with torch.no_grad():
+            outputs = self.model(**inputs)
+            probs = outputs.logits_per_image.softmax(dim=1)
+
+        # High probability for claim = likely true
+        claim_prob = probs[0, 0].item()
+        return claim_prob > self.threshold, claim_prob
+
+    def analyze_caption(self, image, caption):
+        """Break down caption and check each claim"""
+        # Simple sentence splitting (use NLP library for production)
+        claims = caption.replace(",", ".").split(".")
+        claims = [c.strip() for c in claims if c.strip()]
+
+        results = []
+        for claim in claims:
+            is_valid, confidence = self.check_claim(image, claim)
+            results.append({
+                "claim": claim,
+                "valid": is_valid,
+                "confidence": confidence
+            })
+
+        return results
+
+# Usage
+detector = HallucinationDetector()
+results = detector.analyze_caption(image, generated_caption)
+for r in results:
+    status = "Valid" if r["valid"] else "Hallucinated?"
+    print(f"{status} ({r['confidence']:.2f}): {r['claim']}")</code></pre>
+
+        <h3>Mitigation Strategies</h3>
+
+        <table>
+            <tr>
+                <th>Strategy</th>
+                <th>Stage</th>
+                <th>Approach</th>
+            </tr>
+            <tr>
+                <td>Contrastive Decoding</td>
+                <td>Inference</td>
+                <td>Subtract LLM-only logits from VLM logits</td>
+            </tr>
+            <tr>
+                <td>RLHF with Hallucination Penalty</td>
+                <td>Training</td>
+                <td>Reward model penalizes hallucinations</td>
+            </tr>
+            <tr>
+                <td>Visual Grounding Loss</td>
+                <td>Training</td>
+                <td>Explicit region-word alignment</td>
+            </tr>
+            <tr>
+                <td>Chain-of-Thought</td>
+                <td>Inference</td>
+                <td>Step-by-step visual reasoning</td>
+            </tr>
+        </table>
+
+        <h2>4.5 Evaluation Benchmarks</h2>
+
+        <h3>Understanding Benchmarks</h3>
+
+        <table>
+            <tr>
+                <th>Benchmark</th>
+                <th>Task</th>
+                <th>Metrics</th>
+                <th>SOTA (2025)</th>
+            </tr>
+            <tr>
+                <td>VQAv2</td>
+                <td>Visual QA</td>
+                <td>Accuracy</td>
+                <td>~87%</td>
+            </tr>
+            <tr>
+                <td>GQA</td>
+                <td>Compositional QA</td>
+                <td>Accuracy</td>
+                <td>~75%</td>
+            </tr>
+            <tr>
+                <td>MMMU</td>
+                <td>Multimodal Reasoning</td>
+                <td>Accuracy</td>
+                <td>~84% (GPT-5.1)</td>
+            </tr>
+            <tr>
+                <td>TextVQA</td>
+                <td>Text in Images</td>
+                <td>Accuracy</td>
+                <td>~82%</td>
+            </tr>
+            <tr>
+                <td>POPE</td>
+                <td>Hallucination</td>
+                <td>F1 Score</td>
+                <td>~90%</td>
+            </tr>
+        </table>
+
+        <h3>Generation Benchmarks</h3>
+
+        <table>
+            <tr>
+                <th>Benchmark</th>
+                <th>Task</th>
+                <th>Metrics</th>
+            </tr>
+            <tr>
+                <td>GenEval</td>
+                <td>Text-to-Image Semantics</td>
+                <td>Accuracy</td>
+            </tr>
+            <tr>
+                <td>DPG-Bench</td>
+                <td>Prompt Following</td>
+                <td>Alignment Score</td>
+            </tr>
+            <tr>
+                <td>FID</td>
+                <td>Image Quality</td>
+                <td>Frechet Inception Distance</td>
+            </tr>
+            <tr>
+                <td>CLIP Score</td>
+                <td>Text-Image Alignment</td>
+                <td>Cosine Similarity</td>
+            </tr>
+        </table>
+
+        <pre><code class="language-python"># Computing CLIP Score for Generated Images
+from torchmetrics.multimodal import CLIPScore
+
+def evaluate_generation(generated_images, prompts):
+    """Compute CLIP score for text-to-image generation"""
+    metric = CLIPScore(model_name_or_path="openai/clip-vit-base-patch16")
+
+    scores = []
+    for image, prompt in zip(generated_images, prompts):
+        # Image should be uint8 tensor (B, C, H, W)
+        if isinstance(image, Image.Image):
+            image = transforms.ToTensor()(image).unsqueeze(0) * 255
+            image = image.to(torch.uint8)
+
+        score = metric(image, prompt)
+        scores.append(score.item())
+
+    return {
+        "mean_clip_score": sum(scores) / len(scores),
+        "individual_scores": scores
+    }</code></pre>
+
+        <h2>4.6 Fine-tuning Multimodal Models</h2>
+
+        <pre><code class="language-python"># LoRA Fine-tuning for Vision-Language Models
+from peft import LoraConfig, get_peft_model
+from transformers import LlavaForConditionalGeneration
+
+def setup_lora_finetuning(model_name, target_modules=None):
+    """Configure LoRA for efficient VLM fine-tuning"""
+
+    # Load base model
+    model = LlavaForConditionalGeneration.from_pretrained(
+        model_name,
+        torch_dtype=torch.float16
+    )
+
+    # Default target modules for LLaVA
+    if target_modules is None:
+        target_modules = [
+            "q_proj", "v_proj",  # Attention
+            "mm_projector"       # Vision-language connector
+        ]
+
+    # LoRA configuration
+    lora_config = LoraConfig(
+        r=16,                    # Rank
+        lora_alpha=32,           # Scaling
+        target_modules=target_modules,
+        lora_dropout=0.05,
+        bias="none",
+        task_type="CAUSAL_LM"
+    )
+
+    # Apply LoRA
+    model = get_peft_model(model, lora_config)
+
+    # Print trainable parameters
+    trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    total = sum(p.numel() for p in model.parameters())
+    print(f"Trainable: {trainable:,} / {total:,} ({100*trainable/total:.2f}%)")
+
+    return model
+
+# Training configuration
+from transformers import TrainingArguments, Trainer
+
+training_args = TrainingArguments(
+    output_dir="./llava-finetuned",
+    num_train_epochs=3,
+    per_device_train_batch_size=4,
+    gradient_accumulation_steps=4,
+    learning_rate=2e-4,
+    warmup_ratio=0.03,
+    lr_scheduler_type="cosine",
+    fp16=True,
+    logging_steps=10,
+    save_strategy="epoch"
+)</code></pre>
+
+        <h2>4.7 Summary</h2>
+
+        <div class="key-point">
+            <h4>Chapter 4 Key Takeaways</h4>
+            <ul>
+                <li><strong>Contrastive learning</strong> with InfoNCE loss creates aligned embeddings</li>
+                <li><strong>Large batch sizes</strong> (32K+) are critical for quality representations</li>
+                <li><strong>Multi-objective training</strong> (ITC + ITM + LM) yields versatile models</li>
+                <li><strong>Hallucination</strong> remains a key challenge with multiple mitigation approaches</li>
+                <li><strong>Benchmarks</strong> like MMMU, VQAv2, and GenEval measure different capabilities</li>
+                <li><strong>LoRA fine-tuning</strong> enables efficient adaptation with minimal parameters</li>
+            </ul>
+        </div>
+
+        <h2>Exercises</h2>
+
+        <h3>Exercise 1: Implement Contrastive Loss</h3>
+        <p>Implement the symmetric contrastive loss and verify it produces the correct gradients for matched vs. unmatched pairs.</p>
+
+        <h3>Exercise 2: Hallucination Analysis</h3>
+        <p>Generate captions for 10 images using different VLMs. Manually annotate hallucinations and calculate the hallucination rate per model.</p>
+
+        <h3>Exercise 3: Benchmark Evaluation</h3>
+        <p>Run a VLM on the VQAv2 validation set (subset). Compare accuracy across different question types (yes/no, counting, other).</p>
+
+        <h3>Exercise 4: LoRA Fine-tuning</h3>
+        <p>Fine-tune a VLM on a custom domain (e.g., medical images, product photos) using LoRA. Measure performance before and after fine-tuning.</p>
+
+        <div class="nav-buttons">
+            <a href="./chapter-3.html" class="nav-button">Chapter 3: Multimodal Generation</a>
+            <a href="./chapter-5.html" class="nav-button">Chapter 5: Applications and Future</a>
+        </div>
+
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 AI Terakoya - Dr. Yusuke Hashimoto, Tohoku University | v1.0 (2026-01-15)</p>
+            <p>Licensed under CC BY 4.0</p>
+        </div>
+    </footer>
+</body>
+</html>

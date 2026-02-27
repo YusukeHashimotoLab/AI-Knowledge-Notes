@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第3章：高度なプロンプト技術 - プロンプトエンジニアリング入門 - AI Terakoya</title>
+    <meta name="description" content="Tree of Thought、Self-Consistency、ReActパターン、o1/o3推論モデル向けプロンプティング戦略など高度なプロンプト技術を習得します。">
+
+    <style>
+        :root {
+            --color-primary: #2c3e50;
+            --color-primary-dark: #1a252f;
+            --color-accent: #7b2cbf;
+            --color-accent-light: #9d4edd;
+            --color-text: #2d3748;
+            --color-text-light: #4a5568;
+            --color-bg: #ffffff;
+            --color-bg-alt: #f7fafc;
+            --color-border: #e2e8f0;
+            --color-code-bg: #f8f9fa;
+            --color-link: #3182ce;
+            --color-link-hover: #2c5aa0;
+
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+
+            --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+            --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+            --border-radius: 8px;
+            --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body { font-family: var(--font-body); line-height: 1.7; color: var(--color-text); background-color: var(--color-bg); font-size: 16px; }
+
+        header { background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%); color: white; padding: var(--spacing-xl) var(--spacing-md); margin-bottom: var(--spacing-xl); box-shadow: var(--box-shadow); }
+        .header-content { max-width: 900px; margin: 0 auto; }
+        h1 { font-size: 2rem; font-weight: 700; margin-bottom: var(--spacing-sm); line-height: 1.2; }
+        .subtitle { font-size: 1.1rem; opacity: 0.95; font-weight: 400; margin-bottom: var(--spacing-md); }
+        .meta { display: flex; flex-wrap: wrap; gap: var(--spacing-md); font-size: 0.9rem; opacity: 0.9; }
+        .container { max-width: 900px; margin: 0 auto; padding: 0 var(--spacing-md) var(--spacing-xl); }
+
+        h2 { font-size: 1.75rem; color: var(--color-primary); margin-top: var(--spacing-xl); margin-bottom: var(--spacing-md); padding-bottom: var(--spacing-xs); border-bottom: 3px solid var(--color-accent); }
+        h3 { font-size: 1.4rem; color: var(--color-primary); margin-top: var(--spacing-lg); margin-bottom: var(--spacing-sm); }
+        h4 { font-size: 1.1rem; color: var(--color-primary-dark); margin-top: var(--spacing-md); margin-bottom: var(--spacing-sm); }
+        p { margin-bottom: var(--spacing-md); color: var(--color-text); }
+        a { color: var(--color-link); text-decoration: none; transition: color 0.2s; }
+        a:hover { color: var(--color-link-hover); text-decoration: underline; }
+        ul, ol { margin-left: var(--spacing-lg); margin-bottom: var(--spacing-md); }
+        li { margin-bottom: var(--spacing-xs); color: var(--color-text); }
+
+        pre { background-color: var(--color-code-bg); border: 1px solid var(--color-border); border-radius: var(--border-radius); padding: var(--spacing-md); overflow-x: auto; margin-bottom: var(--spacing-md); font-family: var(--font-mono); font-size: 0.9rem; line-height: 1.5; }
+        code { font-family: var(--font-mono); font-size: 0.9em; background-color: var(--color-code-bg); padding: 0.2em 0.4em; border-radius: 3px; }
+        pre code { background-color: transparent; padding: 0; }
+
+        table { width: 100%; border-collapse: collapse; margin-bottom: var(--spacing-md); font-size: 0.95rem; }
+        th, td { border: 1px solid var(--color-border); padding: var(--spacing-sm); text-align: left; }
+        th { background-color: var(--color-bg-alt); font-weight: 600; color: var(--color-primary); }
+
+        .example-box { background: #e3f2fd; border-left: 4px solid #2196f3; padding: var(--spacing-md); margin: var(--spacing-md) 0; border-radius: var(--border-radius); }
+        .example-box h4 { color: #1976d2; margin-top: 0; }
+        .bad-example { background: #ffebee; border-left: 4px solid #f44336; padding: var(--spacing-md); margin: var(--spacing-md) 0; border-radius: var(--border-radius); }
+        .bad-example h4 { color: #c62828; margin-top: 0; }
+        .good-example { background: #e8f5e9; border-left: 4px solid #4caf50; padding: var(--spacing-md); margin: var(--spacing-md) 0; border-radius: var(--border-radius); }
+        .good-example h4 { color: #2e7d32; margin-top: 0; }
+        .note { background: #fff3e0; border-left: 4px solid #ff9800; padding: var(--spacing-md); margin: var(--spacing-md) 0; border-radius: var(--border-radius); }
+        .note h4 { color: #f57c00; margin-top: 0; }
+
+        .key-takeaways { background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); padding: var(--spacing-lg); margin: var(--spacing-lg) 0; border-radius: var(--border-radius); border: 2px solid #4caf50; }
+        .key-takeaways h3 { color: #2e7d32; margin-top: 0; }
+
+        .nav-buttons { display: flex; justify-content: space-between; margin: var(--spacing-xl) 0; gap: var(--spacing-sm); flex-wrap: wrap; }
+        .nav-button { display: inline-block; padding: 0.8rem 1.5rem; background: var(--color-accent); color: white; border-radius: 6px; text-decoration: none; transition: all 0.3s; font-weight: 600; }
+        .nav-button:hover { background: var(--color-accent-light); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(123, 44, 191, 0.3); }
+
+        .breadcrumb { background: #f7fafc; padding: 0.75rem 1rem; border-bottom: 1px solid #e2e8f0; font-size: 0.9rem; }
+        .breadcrumb-content { max-width: 900px; margin: 0 auto; display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
+        .breadcrumb a { color: #667eea; }
+        .breadcrumb-separator { color: #a0aec0; margin: 0 0.25rem; }
+        .breadcrumb-current { color: #4a5568; font-weight: 500; }
+
+        .locale-switcher { display: inline-block; margin-top: 1rem; padding: 0.5rem 1rem; background: rgba(255, 255, 255, 0.2); border-radius: 6px; font-size: 0.9rem; }
+        .locale-switcher a { color: white; margin: 0 0.5rem; opacity: 0.8; }
+        .locale-switcher .active { font-weight: bold; opacity: 1; }
+
+        .disclaimer { max-width: 900px; margin: 2rem auto; padding: 1.5rem; background: #f8f9fa; border-left: 4px solid #6c757d; border-radius: 4px; }
+        .disclaimer h3 { color: #495057; margin-bottom: 1rem; font-size: 1.1rem; }
+        .disclaimer ul { list-style: none; padding-left: 0; }
+        .disclaimer li { padding: 0.5rem 0; padding-left: 1.5rem; position: relative; font-size: 0.9rem; color: #6c757d; }
+        .disclaimer li::before { content: "!"; position: absolute; left: 0; }
+
+        footer { margin-top: 4rem; padding: 2rem 0; border-top: 2px solid var(--color-border); text-align: center; color: #666; font-size: 0.9rem; }
+
+        .mermaid { text-align: center; margin: 2rem 0; background: white; padding: 1rem; border-radius: 8px; border: 1px solid var(--color-border); }
+
+        @media (max-width: 768px) {
+            .container { padding: 0 var(--spacing-sm) var(--spacing-lg); }
+            h1 { font-size: 1.6rem; }
+            h2 { font-size: 1.4rem; }
+            .nav-buttons { flex-direction: column; }
+        }
+    </style>
+
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof mermaid !== 'undefined') {
+                mermaid.initialize({ startOnLoad: true, theme: 'default' });
+            }
+        });
+    </script>
+
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+</head>
+<body>
+    <nav class="breadcrumb">
+        <div class="breadcrumb-content">
+            <a href="../../index.html">AI Terakoya ホーム</a><span class="breadcrumb-separator">></span><a href="../index.html">機械学習</a><span class="breadcrumb-separator">></span><a href="./index.html">プロンプトエンジニアリング入門</a><span class="breadcrumb-separator">></span><span class="breadcrumb-current">第3章</span>
+        </div>
+    </nav>
+
+    <header>
+        <div class="header-content">
+            <h1>第3章：高度なプロンプト技術</h1>
+            <p class="subtitle">Tree of Thought、Self-Consistency、ReAct、推論モデルプロンプト</p>
+            <div class="meta">
+                <span>読了時間：25-30分</span>
+                <span>プロンプト例：12</span>
+                <span>演習問題：5</span>
+                <span>難易度：中級-上級</span>
+            </div>
+            <div class="locale-switcher">
+                言語：<span class="active">日本語</span> | <a href="../../../en/ML/prompt-engineering-introduction/chapter-3.html">English</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <h2 id="introduction">はじめに</h2>
+
+        <p>第1章と第2章の基礎をベースに、この章では複雑な推論タスクでLLMの性能を大幅に向上させる<strong>高度なプロンプト技術</strong>を扱います。これらの技術は2025-2026年時点でのプロンプトエンジニアリングの最先端を代表しています。</p>
+
+        <p>この章を終えると、以下のことができるようになります：</p>
+        <ul>
+            <li>複雑な問題解決のためのTree of Thought（ToT）を実装する</li>
+            <li>回答の信頼性を向上させるためにSelf-Consistencyを使用する</li>
+            <li>アクションを伴う推論のためのReActパターンを適用する</li>
+            <li>推論モデル（o1、o3、DeepSeek-R1）向けの効果的なプロンプトを作成する</li>
+            <li>マルチターン会話フローを設計する</li>
+            <li>複雑なワークフローのためのプロンプトチェーンを構築する</li>
+        </ul>
+
+        <h2 id="tree-of-thought">Tree of Thought（ToT）</h2>
+
+        <p><strong>Tree of Thought</strong>プロンプティングは、LLMに複数の推論パスを同時に探索させ、各パスを評価し、最も有望な方向を選択させることを促します。計画、探索、または創造的な探求が必要な問題に特に効果的です。</p>
+
+        <h3>Tree of Thoughtの仕組み</h3>
+
+        <div class="mermaid">
+graph TD
+    A[問題] --> B1[思考1]
+    A --> B2[思考2]
+    A --> B3[思考3]
+    B1 --> C1[評価: 70%]
+    B2 --> C2[評価: 85%]
+    B3 --> C3[評価: 40%]
+    C2 --> D1[パス2を継続]
+    D1 --> E1[思考2.1]
+    D1 --> E2[思考2.2]
+    E1 --> F1[最終回答]
+
+    style C2 fill:#4caf50
+    style F1 fill:#2196f3
+        </div>
+
+        <h3>基本的なToTプロンプト</h3>
+
+        <div class="example-box">
+            <h4>Tree of Thoughtの例</h4>
+            <pre><code>Tree of Thought推論を使用してこの問題を解決してください。
+
+**問題**：農夫がオオカミ、ヤギ、キャベツと一緒に川を渡る必要があります。
+ボートは農夫と1つのアイテムしか運べません。一人にされると：
+- オオカミはヤギを食べる
+- ヤギはキャベツを食べる
+
+**手順**：
+1. 3つの異なる初期の手を生成
+2. 各手を評価（安全/危険と理由）
+3. 最良の手を選択して続行
+4. 解決するまで繰り返す
+
+**各ステップの形式**：
+```
+手の選択肢 [N]:
+- アクション: [何を渡すか]
+- 手の後の状態: [誰/何がどこにいるか]
+- 評価: [安全/危険] - [理由]
+- スコア: [1-10]
+```
+
+ツリー探索を開始してください：</code></pre>
+        </div>
+
+        <h2 id="self-consistency">Self-Consistency</h2>
+
+        <p><strong>Self-Consistency</strong>は、複数の独立した推論パスを生成し、最も一般的な回答を選択することで信頼性を向上させます。これにより、個々の推論エラーの影響を軽減できます。</p>
+
+        <div class="example-box">
+            <h4>Self-Consistencyプロンプト</h4>
+            <pre><code>この問題を5回、異なる推論アプローチを使用して解決してください。
+その後、最も一貫した回答を報告してください。
+
+**問題**：店ですべての商品に20%の割引があります。レジでさらに10%引かれます。
+100ドルの商品で合計何パーセント節約できますか？
+
+**アプローチ1**：順次パーセンテージ計算
+[推論...]
+回答1: ___
+
+**アプローチ2**：最終価格から逆算
+[推論...]
+回答2: ___
+
+...
+
+**最終回答**: [最も一般的な回答]
+**信頼度**: [一貫性に基づく]</code></pre>
+        </div>
+
+        <h2 id="react">ReActパターン</h2>
+
+        <p><strong>ReAct</strong>（Reasoning + Acting）は、LLMが問題についての推論とアクション（情報検索やツール使用など）を交互に行うプロンプティングパターンです。これはAIエージェントの基盤となります。</p>
+
+        <div class="mermaid">
+graph LR
+    A[質問] --> B[思考]
+    B --> C[アクション]
+    C --> D[観察]
+    D --> E{完了?}
+    E -->|いいえ| B
+    E -->|はい| F[回答]
+
+    style B fill:#fff3e0
+    style C fill:#e3f2fd
+    style D fill:#e8f5e9
+        </div>
+
+        <div class="example-box">
+            <h4>ReActパターンテンプレート</h4>
+            <pre><code>ReAct形式を使用して以下の質問に回答してください。
+以下のアクションにアクセスできます：
+- Search[クエリ]: Wikipediaで情報を検索
+- Calculate[式]: 数学計算を実行
+- Lookup[用語]: 現在のコンテキストで特定の用語を検索
+
+**質問**: 2024年オリンピックを開催した国の人口密度は？
+
+**形式**:
+思考1: [最初に何をすべきかの推論]
+アクション1: [アクション名][入力]
+観察1: [学んだこと]
+
+思考2: [次の推論ステップ]
+アクション2: [次のアクション]
+観察2: [結果]
+
+... 回答が得られるまで続ける ...
+
+最終回答: [観察に基づく回答]
+
+開始:</code></pre>
+        </div>
+
+        <h2 id="reasoning-models">推論モデル向けプロンプティング（o1/o3）</h2>
+
+        <p>OpenAIの<strong>o1</strong>と<strong>o3</strong>モデル（およびDeepSeek-R1などの同様の推論モデル）は、応答前に内部「思考」トークンを使用します。これらのモデルは標準的なLLMとは異なるプロンプティング戦略を必要とします。</p>
+
+        <h3>標準LLMとの主な違い</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>標準LLM（GPT-4、Claude）</th>
+                    <th>推論モデル（o1、o3、DeepSeek-R1）</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>詳細な指示が有効</td>
+                    <td>簡潔で明確な目標を好む</td>
+                </tr>
+                <tr>
+                    <td>明示的なCoTプロンプティングが必要</td>
+                    <td>内部でCoTを実行（自動）</td>
+                </tr>
+                <tr>
+                    <td>Few-shot例が出力を改善</td>
+                    <td>Few-shotは実際にパフォーマンスを低下させる可能性</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>o1/o3のベストプラクティス</h3>
+
+        <div class="note">
+            <h4>推論モデル向けガイドライン</h4>
+            <ol>
+                <li><strong>簡潔に</strong>：問題を明確に述べ、過度に説明しない</li>
+                <li><strong>「ステップバイステップで考えて」と言わない</strong>：自動的に行う</li>
+                <li><strong>Few-shot例を避ける</strong>：推論を制約する可能性がある</li>
+                <li><strong>デリミタを使用</strong>：入力の異なる部分を明確に分離</li>
+                <li><strong>出力形式を最後に指定</strong>：「最終回答を...として提供」</li>
+            </ol>
+        </div>
+
+        <div class="bad-example">
+            <h4>o1/o3向けの悪いプロンプト</h4>
+            <pre><code>あなたは専門の数学者です。ステップバイステップで考え、すべての作業を示してください。
+
+類似の問題を解く方法の例を示します：
+[長い例...]
+
+この問題を慎重に解き、すべてのケースを考慮してください：
+ランダムな5枚のポーカーハンドがちょうど1ペアを含む確率は？</code></pre>
+            <p><strong>問題</strong>：システムプロンプト、CoT指示、Few-shot例、過度の指定</p>
+        </div>
+
+        <div class="good-example">
+            <h4>o1/o3向けの良いプロンプト</h4>
+            <pre><code>ランダムな5枚のポーカーハンドがちょうど1ペアを含む確率を計算してください
+（1つのランクのカード2枚、異なるランクのカード3枚）。
+
+最終回答を約分された分数と小数（小数点以下4桁）として提供してください。</code></pre>
+            <p><strong>なぜ効果的か</strong>：簡潔な問題文、明確な出力形式、モデルが自由に推論できる</p>
+        </div>
+
+        <h2 id="multi-turn">マルチターン会話設計</h2>
+
+        <p>効果的な<strong>マルチターン会話</strong>の設計には、メッセージ間でコンテキストがどのように構築されるかを計画し、会話状態を管理することが含まれます。</p>
+
+        <h3>会話フローパターン</h3>
+
+        <h4>ファネルパターン</h4>
+        <p>広く始め、徐々に焦点を絞る：</p>
+
+        <div class="example-box">
+            <h4>ファネル会話</h4>
+            <pre><code>**ターン1（ユーザー）**: Pythonプロジェクトで助けが必要です
+**ターン1（AI）**: 喜んでお手伝いします！教えていただけますか：
+- どんな種類のプロジェクト（Webアプリ、データ分析、自動化）？
+- どんな具体的な課題に直面していますか？
+
+**ターン2（ユーザー）**: Webスクレイピングプロジェクトです。動的コンテンツで困っています。
+**ターン2（AI）**: 動的コンテンツは通常JavaScriptレンダリングが必要です。
+- どのWebサイトをスクレイピングしていますか？
+- SeleniumやPlaywrightを試しましたか？
+
+**ターン3（ユーザー）**: BeautifulSoupを使っています。コンテンツはAJAXでロードされます。
+**ターン3（AI）**: BeautifulSoupはJavaScriptを処理できません。オプションは次の通り：
+[AJAXコンテンツ向けの具体的な解決策...]</code></pre>
+        </div>
+
+        <h2 id="prompt-chains">プロンプトチェーン</h2>
+
+        <p><strong>プロンプトチェーン</strong>は、一つのプロンプトの出力が別のプロンプトの入力になるように複数のプロンプトを接続します。これにより、単一プロンプトの能力を超える複雑なワークフローが可能になります。</p>
+
+        <div class="example-box">
+            <h4>ドキュメント分析チェーン</h4>
+            <pre><code class="language-python">def analyze_document(document):
+    # ステップ1: キー情報を抽出
+    extraction_prompt = f"""
+    このドキュメントから抽出:
+    - 主要トピック（リスト）
+    - キーエンティティ（人物、組織、場所）
+    - 言及された日付と数値
+    - アクションアイテム（あれば）
+
+    ドキュメント:
+    {document}
+
+    JSONとして返してください。
+    """
+    extracted = call_llm(extraction_prompt)
+
+    # ステップ2: 感情とトーンを分析
+    analysis_prompt = f"""
+    この抽出された情報に基づいて:
+    {extracted}
+
+    分析:
+    - 全体的な感情（ポジティブ/ネガティブ/ニュートラル）
+    - トーン（フォーマル/インフォーマル/緊急/ルーティン）
+    - 主な懸念事項や優先事項
+
+    JSONとして返してください。
+    """
+    analysis = call_llm(analysis_prompt)
+
+    # ステップ3: エグゼクティブサマリーを生成
+    summary_prompt = f"""
+    以下を組み合わせてエグゼクティブサマリーを作成:
+    抽出情報: {extracted}
+    分析: {analysis}
+    """
+    return call_llm(summary_prompt)</code></pre>
+        </div>
+
+        <h2 id="exercises">演習問題</h2>
+
+        <h3>演習1：Tree of Thought（難易度：中）</h3>
+        <div class="note">
+            <p><strong>課題</strong>：以下の制約で東京への3日間の旅行を計画するためにTree of Thoughtを使用してください：</p>
+            <ul>
+                <li>予算：合計5万円（航空券除く）</li>
+                <li>必須訪問：渋谷、浅草、1つの美術館</li>
+                <li>食事制限：ベジタリアン</li>
+            </ul>
+        </div>
+
+        <h3>演習2：Self-Consistency（難易度：中）</h3>
+        <div class="note">
+            <p><strong>課題</strong>：以下を決定するためのSelf-Consistencyプロンプトを設計してください：</p>
+            <p>「企業がAIを使って求職者をスクリーニングすることは倫理的か？」</p>
+        </div>
+
+        <h3>演習3：ReActパターン（難易度：中）</h3>
+        <div class="note">
+            <p><strong>課題</strong>：以下ができる「リサーチアシスタント」のReActプロンプトを作成してください：</p>
+            <ul>
+                <li>学術論文を検索</li>
+                <li>発見を要約</li>
+                <li>方法論を比較</li>
+                <li>研究ギャップを特定</li>
+            </ul>
+        </div>
+
+        <h3>演習4：推論モデルプロンプト（難易度：上級）</h3>
+        <div class="note">
+            <p><strong>課題</strong>：このプロンプトをo1/o3向けに書き直してください：</p>
+            <pre><code>あなたは専門のソフトウェアアーキテクトです。この問題について
+ステップバイステップで慎重に考えてください。良いアーキテクチャの例を示します...
+
+1日1000万ユーザーを処理するEコマースプラットフォーム向けの
+スケーラブルなマイクロサービスアーキテクチャを設計してください。</code></pre>
+        </div>
+
+        <h3>演習5：プロンプトチェーン（難易度：上級）</h3>
+        <div class="note">
+            <p><strong>課題</strong>：「コードレビュー自動化」のための4ステップのプロンプトチェーンを設計してください。</p>
+        </div>
+
+        <h2 id="key-takeaways-section">章のまとめ</h2>
+
+        <div class="key-takeaways">
+            <h3>重要ポイント</h3>
+            <ul>
+                <li><strong>Tree of Thought</strong>：複数の推論パスを探索、評価し、複雑な問題に最適なものを選択</li>
+                <li><strong>Self-Consistency</strong>：複数の回答を生成し、信頼性向上のため最も一般的なものを選択</li>
+                <li><strong>ReAct</strong>：推論とアクションを交互に実行；AIエージェントの基盤</li>
+                <li><strong>推論モデル（o1/o3）</strong>：簡潔なプロンプトを使用、CoT指示とFew-shot例を避ける</li>
+                <li><strong>マルチターン設計</strong>：会話フローを計画し、コンテキストを明示的に管理</li>
+                <li><strong>プロンプトチェーン</strong>：単一プロンプトの能力を超える複雑なワークフローのために複数のプロンプトを接続</li>
+            </ul>
+        </div>
+
+        <h2 id="next-steps">次のステップ</h2>
+
+        <p>第4章では、Function CallingとTool Useを探求します：</p>
+        <ul>
+            <li>Function Callingの基礎</li>
+            <li>ツール定義とスキーマ設計</li>
+            <li>MCP（Model Context Protocol）統合</li>
+            <li>ツール使用のエラーハンドリング</li>
+            <li>マルチツールオーケストレーション</li>
+        </ul>
+
+        <div class="nav-buttons">
+            <a href="./chapter-2.html" class="nav-button">第2章</a>
+            <a href="./chapter-4.html" class="nav-button">第4章</a>
+        </div>
+
+        <hr>
+
+        <h2 id="references">参考文献</h2>
+        <ul>
+            <li>Yao, S., et al. (2023). <em>Tree of Thoughts: Deliberate Problem Solving with Large Language Models</em></li>
+            <li>Wang, X., et al. (2023). <em>Self-Consistency Improves Chain of Thought Reasoning in Language Models</em></li>
+            <li>Yao, S., et al. (2022). <em>ReAct: Synergizing Reasoning and Acting in Language Models</em></li>
+            <li>OpenAI. (2024). <em>o1 System Card and Prompting Guide</em></li>
+        </ul>
+
+        <hr>
+
+        <p><strong>更新履歴</strong></p>
+        <ul>
+            <li><strong>2026-01-12</strong>：v2.0 o1/o3プロンプティング戦略を含む初版リリース</li>
+        </ul>
+
+    </main>
+
+    <section class="disclaimer">
+        <h3>免責事項</h3>
+        <ul>
+            <li>本コンテンツは教育、研究、情報提供目的で提供されています。</li>
+            <li>本コンテンツおよびプロンプト例は、いかなる保証もなく「現状のまま」提供されます。</li>
+            <li>外部LLMサービスの利用規約は、それぞれのサービスプロバイダーの責任です。</li>
+        </ul>
+    </section>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 AI Terakoya - 橋本優介博士、東北大学</p>
+            <p>CC BY 4.0ライセンス</p>
+        </div>
+    </footer>
+</body>
+</html>

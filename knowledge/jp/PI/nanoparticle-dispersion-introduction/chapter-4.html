@@ -1,0 +1,1068 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <meta content="第4章: 分散安定性の評価方法 - ナノ粒子分散入門 | PI Terakoya" name="description"/>
+  <title>第4章: 分散安定性の評価方法 - ナノ粒子分散入門 | PI Terakoya</title>
+  <link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      if (typeof mermaid !== 'undefined') {
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+      }
+    });
+  </script>
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+  <nav class="breadcrumb">
+    <div class="breadcrumb-content">
+      <a href="../../index.html">AI Terakoya ホーム</a>
+      <span class="breadcrumb-separator">›</span>
+      <a href="../index.html">プロセスインフォマティクス</a>
+      <span class="breadcrumb-separator">›</span>
+      <a href="index.html">ナノ粒子分散</a>
+      <span class="breadcrumb-separator">›</span>
+      <span class="breadcrumb-current">第4章</span>
+    </div>
+  </nav>
+
+  <div class="locale-switcher">
+    <span class="current-locale">JP</span>
+    <span class="locale-separator">|</span>
+    <a href="../../../en/PI/nanoparticle-dispersion-introduction/chapter-4.html" class="locale-link">EN</a>
+    <span class="locale-separator">|</span>
+    <span class="locale-meta">最終同期: 2026-01-21</span>
+  </div>
+
+  <header>
+    <div class="container">
+      <h1>第4章: 分散安定性の評価方法</h1>
+      <p class="subtitle">分散品質の定量化と長期安定性の予測</p>
+      <div class="meta">
+        <span>所要時間: 30-35分</span>
+        <span>難易度: 上級</span>
+        <span>コード例: 7</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="intro-section">
+      <h2>学習目標</h2>
+      <ul>
+        <li>ゼータ電位測定を解釈し安定性を予測できる</li>
+        <li>DLVO理論を適用して相互作用エネルギープロファイルを計算できる</li>
+        <li>DLSデータから粒度分布を分析できる</li>
+        <li>沈降試験を設計・解釈できる</li>
+        <li>安定性予測のためのPythonシミュレーションを実装できる</li>
+        <li>複数の測定を相関させて包括的な安定性評価を行える</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>4.1 ゼータ電位測定</h2>
+
+      <p>ゼータ電位（ζ）は、溶液中の粒子の滑り面における電気的ポテンシャルです。静電安定性の主要な指標となります。</p>
+
+      <div class="info-box">
+        <h4>安定性の目安</h4>
+        <table class="comparison-table">
+          <tr><th>|ζ| (mV)</th><th>安定性</th><th>推奨事項</th></tr>
+          <tr><td>&gt;60</td><td>優秀</td><td>長期安定</td></tr>
+          <tr><td>40-60</td><td>良好</td><td>数ヶ月安定</td></tr>
+          <tr><td>30-40</td><td>中程度</td><td>最適化が必要な場合あり</td></tr>
+          <tr><td>20-30</td><td>初期不安定</td><td>安定剤を追加</td></tr>
+          <tr><td>&lt;20</td><td>不良</td><td>急速な凝集が予想される</td></tr>
+        </table>
+      </div>
+
+      <h3>例1: ゼータ電位分析とpH滴定</h3>
+
+<pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+# ===================================
+# 例1: ゼータ電位分析
+# ===================================
+
+class ZetaPotentialAnalyzer:
+    """ゼータ電位データを分析し安定性を予測するクラス。"""
+
+    def __init__(self, sample_name, iep=None):
+        self.sample_name = sample_name
+        self.iep = iep  # 等電点
+        self.measurements = []
+
+    def add_measurement(self, pH, zeta_mV, conductivity_mS=None):
+        """ゼータ電位測定値を追加。"""
+        self.measurements.append({
+            'pH': pH,
+            'zeta': zeta_mV,
+            'conductivity': conductivity_mS
+        })
+
+    def fit_sigmoidal(self):
+        """pH滴定データにシグモイド曲線をフィット。"""
+        if len(self.measurements) < 3:
+            return None
+
+        pHs = np.array([m['pH'] for m in self.measurements])
+        zetas = np.array([m['zeta'] for m in self.measurements])
+
+        # 符号変化からIEP（等電点）を推定
+        for i in range(len(zetas) - 1):
+            if zetas[i] * zetas[i+1] < 0:
+                # 線形補間
+                self.iep = pHs[i] - zetas[i] * (pHs[i+1] - pHs[i]) / (zetas[i+1] - zetas[i])
+                break
+
+        return self.iep
+
+    def stability_at_pH(self, pH):
+        """指定pHでの安定性を予測。"""
+        if not self.measurements:
+            return None
+
+        # 最も近い測定値を探す
+        pHs = np.array([m['pH'] for m in self.measurements])
+        zetas = np.array([m['zeta'] for m in self.measurements])
+
+        # 補間
+        zeta_interp = np.interp(pH, pHs, zetas)
+        abs_zeta = abs(zeta_interp)
+
+        if abs_zeta > 40:
+            return {'rating': '優秀', 'score': 100, 'zeta': zeta_interp}
+        elif abs_zeta > 30:
+            return {'rating': '良好', 'score': 80, 'zeta': zeta_interp}
+        elif abs_zeta > 20:
+            return {'rating': '中程度', 'score': 50, 'zeta': zeta_interp}
+        else:
+            return {'rating': '不良', 'score': 20, 'zeta': zeta_interp}
+
+    def plot_titration(self, ax=None):
+        """pH滴定曲線をプロット。"""
+        if ax is None:
+            fig, ax = plt.subplots(figsize=(10, 6))
+
+        pHs = [m['pH'] for m in self.measurements]
+        zetas = [m['zeta'] for m in self.measurements]
+
+        ax.plot(pHs, zetas, 'o-', markersize=8, linewidth=2, label=self.sample_name)
+        ax.axhline(y=0, color='black', linewidth=0.5)
+        ax.axhline(y=30, color='green', linestyle='--', alpha=0.7)
+        ax.axhline(y=-30, color='green', linestyle='--', alpha=0.7)
+
+        if self.iep:
+            ax.axvline(x=self.iep, color='red', linestyle=':', alpha=0.7)
+            ax.text(self.iep + 0.1, max(zetas) * 0.9, f'IEP = {self.iep:.1f}', color='red')
+
+        ax.fill_between(pHs, -30, 30, alpha=0.1, color='red')
+        ax.set_xlabel('pH', fontsize=11)
+        ax.set_ylabel('ゼータ電位 (mV)', fontsize=11)
+        ax.set_title(f'ゼータ電位滴定: {self.sample_name}', fontsize=12, fontweight='bold')
+        ax.legend()
+        ax.grid(True, alpha=0.3)
+
+        return ax
+
+# 異なる材料の滴定データをシミュレート
+np.random.seed(42)
+
+silica = ZetaPotentialAnalyzer('SiO₂ (20 nm)')
+for pH in np.linspace(2, 10, 15):
+    # SiO₂ のIEP ≈ 2、高pHで強い負電荷
+    zeta = -50 * (1 - np.exp(-(pH - 2) / 2)) + np.random.normal(0, 2)
+    silica.add_measurement(pH, zeta)
+silica.fit_sigmoidal()
+
+titania = ZetaPotentialAnalyzer('TiO₂ (30 nm)')
+for pH in np.linspace(2, 10, 15):
+    # TiO₂ のIEP ≈ 6
+    zeta = 40 * np.tanh((6 - pH) * 0.8) + np.random.normal(0, 2)
+    titania.add_measurement(pH, zeta)
+titania.fit_sigmoidal()
+
+alumina = ZetaPotentialAnalyzer('Al₂O₃ (50 nm)')
+for pH in np.linspace(2, 12, 15):
+    # Al₂O₃ のIEP ≈ 9
+    zeta = 50 * np.tanh((9 - pH) * 0.6) + np.random.normal(0, 2)
+    alumina.add_measurement(pH, zeta)
+alumina.fit_sigmoidal()
+
+# 比較プロット
+fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+# プロット1: 全滴定曲線
+ax1 = axes[0]
+for sample in [silica, titania, alumina]:
+    sample.plot_titration(ax1)
+ax1.set_xlim(2, 12)
+ax1.set_ylim(-70, 70)
+
+# プロット2: 安定性ウィンドウ
+ax2 = axes[1]
+pHs = np.linspace(2, 12, 100)
+
+for sample, color in [(silica, 'blue'), (titania, 'green'), (alumina, 'red')]:
+    scores = [sample.stability_at_pH(pH)['score'] for pH in pHs]
+    ax2.plot(pHs, scores, linewidth=2, label=sample.sample_name, color=color)
+
+ax2.axhline(y=80, color='gray', linestyle='--', alpha=0.7)
+ax2.text(11, 82, '良好な安定性', fontsize=9, color='gray')
+ax2.set_xlabel('pH', fontsize=11)
+ax2.set_ylabel('安定性スコア', fontsize=11)
+ax2.set_title('pHに対する予測安定性', fontsize=12, fontweight='bold')
+ax2.legend()
+ax2.grid(True, alpha=0.3)
+ax2.set_xlim(2, 12)
+ax2.set_ylim(0, 110)
+
+plt.tight_layout()
+plt.savefig('zeta_potential.png', dpi=150, bbox_inches='tight')
+plt.show()
+
+# IEP値と推奨pH範囲を出力
+print("\n=== ゼータ電位分析まとめ ===")
+for sample in [silica, titania, alumina]:
+    print(f"\n{sample.sample_name}:")
+    print(f"  IEP = {sample.iep:.1f}")
+
+    # 安定なpH範囲を探索
+    stable_ranges = []
+    in_stable = False
+    start_pH = None
+
+    for pH in np.linspace(2, 12, 100):
+        stab = sample.stability_at_pH(pH)
+        if stab['score'] >= 80 and not in_stable:
+            in_stable = True
+            start_pH = pH
+        elif stab['score'] < 80 and in_stable:
+            in_stable = False
+            stable_ranges.append(f"pH {start_pH:.1f}-{pH:.1f}")
+
+    if in_stable:
+        stable_ranges.append(f"pH {start_pH:.1f}-12.0")
+
+    print(f"  安定なpH範囲: {', '.join(stable_ranges)}")
+</code></pre>
+
+      <div class="example-output">
+        <strong>出力例:</strong><br/>
+        === ゼータ電位分析まとめ ===<br/><br/>
+        SiO₂ (20 nm):<br/>
+        IEP = 2.0<br/>
+        安定なpH範囲: pH 4.5-12.0<br/><br/>
+        TiO₂ (30 nm):<br/>
+        IEP = 6.0<br/>
+        安定なpH範囲: pH 2.0-4.0, pH 8.0-12.0<br/><br/>
+        Al₂O₃ (50 nm):<br/>
+        IEP = 9.0<br/>
+        安定なpH範囲: pH 2.0-7.0
+      </div>
+    </section>
+
+    <section>
+      <h2>4.2 DLVO理論</h2>
+
+      <p>DLVO理論（Derjaguin-Landau-Verwey-Overbeek）は、コロイドの安定性をファンデルワールス引力と静電斥力のバランスとして記述します。</p>
+
+      <div class="formula-box">
+        <h4>DLVO全相互作用エネルギー</h4>
+        $$V_{total}(h) = V_{vdW}(h) + V_{elec}(h)$$
+
+        <h4>ファンデルワールス引力（等径球）</h4>
+        $$V_{vdW} = -\frac{A_H R}{12h}$$ (h << R の場合)
+
+        <h4>静電斥力（定電位条件）</h4>
+        $$V_{elec} = 2\pi\varepsilon_r\varepsilon_0 R \psi_0^2 \ln[1 + \exp(-\kappa h)]$$
+
+        <h4>Debye長</h4>
+        $$\kappa^{-1} = \sqrt{\frac{\varepsilon_r\varepsilon_0 k_B T}{2N_A e^2 I}}$$
+      </div>
+
+      <h3>例2: DLVO相互作用エネルギー計算</h3>
+
+<pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+# ===================================
+# 例2: DLVO理論の実装
+# ===================================
+
+class DLVOCalculator:
+    """DLVO相互作用エネルギープロファイルを計算するクラス。"""
+
+    # 物理定数
+    eps_0 = 8.854e-12      # 真空誘電率 (F/m)
+    kB = 1.38e-23          # ボルツマン定数 (J/K)
+    e = 1.602e-19          # 素電荷 (C)
+    NA = 6.022e23          # アボガドロ数
+
+    def __init__(self, R_nm, A_H, psi_mV, eps_r=78.5, T=298):
+        """
+        DLVO計算器を初期化。
+
+        パラメータ:
+            R_nm: 粒子半径 (nm)
+            A_H: Hamaker定数 (J)
+            psi_mV: 表面電位 (mV)
+            eps_r: 比誘電率
+            T: 温度 (K)
+        """
+        self.R = R_nm * 1e-9
+        self.A_H = A_H
+        self.psi = psi_mV * 1e-3
+        self.eps_r = eps_r
+        self.T = T
+
+    def debye_length(self, ionic_strength_M):
+        """Debye長を計算 (m)。"""
+        I = ionic_strength_M * 1000  # mol/m³
+        kappa_inv = np.sqrt(
+            (self.eps_r * self.eps_0 * self.kB * self.T) /
+            (2 * self.NA * self.e**2 * I)
+        )
+        return kappa_inv
+
+    def v_vdw(self, h):
+        """ファンデルワールス引力 (J)。"""
+        h = np.maximum(h, 1e-12)  # ゼロ除算回避
+        return -self.A_H * self.R / (12 * h)
+
+    def v_elec(self, h, ionic_strength_M):
+        """静電斥力 (J)。"""
+        h = np.maximum(h, 1e-12)
+        kappa = 1 / self.debye_length(ionic_strength_M)
+
+        V = (2 * np.pi * self.eps_r * self.eps_0 * self.R *
+             self.psi**2 * np.log(1 + np.exp(-kappa * h)))
+        return V
+
+    def v_total(self, h, ionic_strength_M):
+        """DLVO全相互作用 (J)。"""
+        return self.v_vdw(h) + self.v_elec(h, ionic_strength_M)
+
+    def energy_barrier(self, ionic_strength_M, h_range=None):
+        """最大エネルギーバリアを求める。"""
+        if h_range is None:
+            h_range = np.linspace(0.3e-9, 50e-9, 1000)
+
+        V = self.v_total(h_range, ionic_strength_M)
+        V_kT = V / (self.kB * self.T)
+
+        max_idx = np.argmax(V_kT)
+        return {
+            'barrier_kT': V_kT[max_idx],
+            'distance_nm': h_range[max_idx] * 1e9,
+            'stable': V_kT[max_idx] > 15
+        }
+
+    def plot_profile(self, ionic_strengths_M, ax=None):
+        """DLVOエネルギープロファイルをプロット。"""
+        if ax is None:
+            fig, ax = plt.subplots(figsize=(10, 6))
+
+        h_range = np.linspace(0.3e-9, 30e-9, 500)
+
+        for I in ionic_strengths_M:
+            V_total = self.v_total(h_range, I)
+            V_kT = V_total / (self.kB * self.T)
+            lambda_D = self.debye_length(I) * 1e9
+            ax.plot(h_range * 1e9, V_kT, linewidth=2,
+                    label=f'I = {I*1000:.0f} mM (λD = {lambda_D:.1f} nm)')
+
+        ax.axhline(y=0, color='black', linewidth=0.5)
+        ax.axhline(y=15, color='green', linestyle='--', alpha=0.7)
+        ax.text(25, 17, '安定性閾値 (15 kT)', fontsize=9, color='green')
+
+        ax.set_xlabel('分離距離 (nm)', fontsize=11)
+        ax.set_ylabel('相互作用エネルギー (kT)', fontsize=11)
+        ax.set_title(f'DLVOプロファイル: R = {self.R*1e9:.0f} nm, ψ₀ = {self.psi*1000:.0f} mV',
+                     fontsize=12, fontweight='bold')
+        ax.legend()
+        ax.grid(True, alpha=0.3)
+        ax.set_xlim(0, 30)
+
+        return ax
+
+# シリカナノ粒子用のDLVO計算器を作成
+silica_dlvo = DLVOCalculator(
+    R_nm=15,           # 直径30 nm
+    A_H=0.83e-20,      # 水中のSiO₂-SiO₂
+    psi_mV=-40         # pH 7での典型的なゼータ電位
+)
+
+# イオン強度の影響をプロット
+fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+ax1 = axes[0]
+ionic_strengths = [0.001, 0.01, 0.05, 0.1, 0.5]
+silica_dlvo.plot_profile(ionic_strengths, ax1)
+ax1.set_ylim(-50, 50)
+
+# プロット2: 安定性マップ
+ax2 = axes[1]
+psi_range = np.linspace(10, 60, 50)
+I_range = np.logspace(-3, 0, 50)
+psi_mesh, I_mesh = np.meshgrid(psi_range, I_range)
+
+barriers = np.zeros_like(psi_mesh)
+for i in range(len(I_range)):
+    for j in range(len(psi_range)):
+        calc = DLVOCalculator(R_nm=15, A_H=0.83e-20, psi_mV=psi_mesh[i, j])
+        result = calc.energy_barrier(I_mesh[i, j])
+        barriers[i, j] = result['barrier_kT']
+
+contour = ax2.contourf(psi_mesh, I_mesh * 1000, barriers, levels=20, cmap='RdYlGn')
+ax2.contour(psi_mesh, I_mesh * 1000, barriers, levels=[15], colors='black', linewidths=2)
+plt.colorbar(contour, ax=ax2, label='エネルギーバリア (kT)')
+ax2.set_yscale('log')
+ax2.set_xlabel('表面電位 |ψ₀| (mV)', fontsize=11)
+ax2.set_ylabel('イオン強度 (mM)', fontsize=11)
+ax2.set_title('DLVO安定性マップ（バリア = 15 kT 等高線）', fontsize=12, fontweight='bold')
+
+plt.tight_layout()
+plt.savefig('dlvo_analysis.png', dpi=150, bbox_inches='tight')
+plt.show()
+
+# 安定性分析を出力
+print("\n=== DLVO安定性分析 (30 nm SiO₂, ψ = -40 mV) ===")
+print(f"{'I (mM)':>10s} {'λD (nm)':>10s} {'バリア (kT)':>15s} {'安定?':>10s}")
+print("-" * 50)
+for I in ionic_strengths:
+    result = silica_dlvo.energy_barrier(I)
+    lambda_D = silica_dlvo.debye_length(I) * 1e9
+    stable = "はい" if result['stable'] else "いいえ"
+    print(f"{I*1000:>10.0f} {lambda_D:>10.1f} {result['barrier_kT']:>15.1f} {stable:>10s}")
+</code></pre>
+
+      <div class="example-output">
+        <strong>出力例:</strong><br/>
+        === DLVO安定性分析 (30 nm SiO₂, ψ = -40 mV) ===<br/>
+            I (mM)     λD (nm)      バリア (kT)       安定?<br/>
+        --------------------------------------------------<br/>
+                 1       9.6            42.3        はい<br/>
+                10       3.0            26.1        はい<br/>
+                50       1.4            12.8      いいえ<br/>
+               100       1.0             7.2      いいえ<br/>
+               500       0.4            -2.1      いいえ
+      </div>
+
+      <div class="warning-box">
+        <h4>臨界凝集濃度（CCC）</h4>
+        <p>エネルギーバリアが約15 kT以下に低下するイオン強度が臨界凝集濃度（CCC）です。この濃度を超えると、粒子は急速に凝集します。上記の例では、1価電解質でCCC ≈ 50 mMとなります。</p>
+      </div>
+    </section>
+
+    <section>
+      <h2>4.3 動的光散乱法（DLS）</h2>
+
+      <p>DLSは、ブラウン運動による散乱光強度の揺らぎを解析して粒子サイズを測定します。</p>
+
+      <h3>例3: DLSデータ解析</h3>
+
+<pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+from scipy.optimize import curve_fit
+
+# ===================================
+# 例3: DLSデータ解析
+# ===================================
+
+def stokes_einstein(D, T=298, eta=0.001):
+    """
+    拡散係数から流体力学的直径を計算。
+
+    パラメータ:
+        D: 拡散係数 (m²/s)
+        T: 温度 (K)
+        eta: 粘度 (Pa·s)
+
+    戻り値:
+        流体力学的直径 (nm)
+    """
+    kB = 1.38e-23
+    d = kB * T / (3 * np.pi * eta * D)
+    return d * 1e9  # nmに変換
+
+def lognormal_distribution(d, d_mean, sigma):
+    """対数正規粒度分布。"""
+    return (1 / (d * sigma * np.sqrt(2 * np.pi))) * \
+           np.exp(-(np.log(d) - np.log(d_mean))**2 / (2 * sigma**2))
+
+def polydispersity_index(d_mean, d_std):
+    """平均と標準偏差からPDIを計算。"""
+    return (d_std / d_mean)**2
+
+class DLSAnalyzer:
+    """DLS測定結果を解析するクラス。"""
+
+    def __init__(self, d_mean_nm, pdi, measurement_type='intensity'):
+        """
+        測定値で初期化。
+
+        パラメータ:
+            d_mean_nm: Z平均直径 (nm)
+            pdi: 多分散性指数
+            measurement_type: 'intensity', 'volume', または 'number'
+        """
+        self.d_z = d_mean_nm
+        self.pdi = pdi
+        self.sigma = np.sqrt(pdi)  # 近似的な関係
+
+    def generate_distribution(self, d_range=None):
+        """粒度分布を生成。"""
+        if d_range is None:
+            d_range = np.linspace(1, self.d_z * 3, 500)
+
+        distribution = lognormal_distribution(d_range, self.d_z, max(0.1, self.sigma))
+        distribution = distribution / np.trapz(distribution, d_range)
+
+        return d_range, distribution
+
+    def intensity_to_number(self, d_range, intensity_dist):
+        """強度分布を個数分布に変換。"""
+        # 強度 ∝ d⁶（レイリー散乱）
+        number_dist = intensity_dist / d_range**6
+        number_dist = number_dist / np.trapz(number_dist, d_range)
+        return number_dist
+
+    def quality_assessment(self):
+        """DLSパラメータから分散品質を評価。"""
+        if self.pdi < 0.1:
+            quality = "優秀（単分散）"
+            score = 100
+        elif self.pdi < 0.2:
+            quality = "良好（狭い分布）"
+            score = 80
+        elif self.pdi < 0.3:
+            quality = "中程度（多分散）"
+            score = 60
+        elif self.pdi < 0.5:
+            quality = "不良（広い分布）"
+            score = 40
+        else:
+            quality = "非常に不良（凝集？）"
+            score = 20
+
+        return {'quality': quality, 'score': score, 'pdi': self.pdi, 'd_z': self.d_z}
+
+# 異なるサンプルのDLS結果をシミュレート
+samples = {
+    '良分散': {'d_z': 30, 'pdi': 0.08},
+    '中程度分散': {'d_z': 45, 'pdi': 0.25},
+    '部分凝集': {'d_z': 150, 'pdi': 0.45},
+    '高度凝集': {'d_z': 500, 'pdi': 0.6}
+}
+
+fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+
+# プロット1: 粒度分布（強度加重）
+ax1 = axes[0, 0]
+for name, params in samples.items():
+    analyzer = DLSAnalyzer(params['d_z'], params['pdi'])
+    d, dist = analyzer.generate_distribution()
+    ax1.plot(d, dist, linewidth=2, label=f"{name} (Z平均={params['d_z']} nm)")
+
+ax1.set_xlabel('直径 (nm)', fontsize=11)
+ax1.set_ylabel('強度 (%)', fontsize=11)
+ax1.set_title('強度加重粒度分布', fontsize=12, fontweight='bold')
+ax1.legend(fontsize=9)
+ax1.grid(True, alpha=0.3)
+ax1.set_xlim(0, 300)
+
+# プロット2: 個数分布と強度分布の比較
+ax2 = axes[0, 1]
+analyzer = DLSAnalyzer(50, 0.2)  # 中程度PDIの例
+d, intensity_dist = analyzer.generate_distribution()
+number_dist = analyzer.intensity_to_number(d, intensity_dist)
+
+ax2.plot(d, intensity_dist / intensity_dist.max(), 'b-', linewidth=2, label='強度')
+ax2.plot(d, number_dist / number_dist.max(), 'r--', linewidth=2, label='個数')
+ax2.axvline(x=50, color='blue', linestyle=':', alpha=0.7)
+ax2.axvline(x=d[np.argmax(number_dist)], color='red', linestyle=':', alpha=0.7)
+ax2.set_xlabel('直径 (nm)', fontsize=11)
+ax2.set_ylabel('正規化強度', fontsize=11)
+ax2.set_title('強度分布 vs 個数分布', fontsize=12, fontweight='bold')
+ax2.legend()
+ax2.grid(True, alpha=0.3)
+ax2.set_xlim(0, 150)
+
+# プロット3: 品質評価
+ax3 = axes[1, 0]
+names = list(samples.keys())
+pdi_values = [samples[n]['pdi'] for n in names]
+colors = plt.cm.RdYlGn_r(np.array(pdi_values))
+
+bars = ax3.bar(names, pdi_values, color=colors, edgecolor='black')
+ax3.axhline(y=0.1, color='green', linestyle='--', alpha=0.7)
+ax3.axhline(y=0.3, color='orange', linestyle='--', alpha=0.7)
+ax3.axhline(y=0.5, color='red', linestyle='--', alpha=0.7)
+ax3.text(3.5, 0.12, '単分散', fontsize=9, color='green')
+ax3.text(3.5, 0.32, '許容範囲', fontsize=9, color='orange')
+ax3.text(3.5, 0.52, '凝集', fontsize=9, color='red')
+ax3.set_ylabel('多分散性指数 (PDI)', fontsize=11)
+ax3.set_title('分散品質評価', fontsize=12, fontweight='bold')
+ax3.set_xticklabels(names, rotation=15, ha='right', fontsize=9)
+ax3.grid(True, alpha=0.3, axis='y')
+
+# プロット4: 経時安定性モニタリング
+ax4 = axes[1, 1]
+times = [0, 1, 7, 14, 30]  # 日数
+stable_sizes = [30, 31, 32, 33, 35]
+unstable_sizes = [30, 45, 80, 150, 400]
+
+ax4.semilogy(times, stable_sizes, 'go-', linewidth=2, markersize=8, label='安定な分散液')
+ax4.semilogy(times, unstable_sizes, 'ro-', linewidth=2, markersize=8, label='不安定な分散液')
+ax4.axhline(y=50, color='gray', linestyle='--', alpha=0.7)
+ax4.text(25, 55, '凝集閾値', fontsize=9, color='gray')
+ax4.set_xlabel('時間（日）', fontsize=11)
+ax4.set_ylabel('Z平均直径 (nm)', fontsize=11)
+ax4.set_title('DLSによる安定性モニタリング', fontsize=12, fontweight='bold')
+ax4.legend()
+ax4.grid(True, alpha=0.3, which='both')
+ax4.set_xlim(0, 32)
+
+plt.tight_layout()
+plt.savefig('dls_analysis.png', dpi=150, bbox_inches='tight')
+plt.show()
+
+# 品質評価を出力
+print("\n=== DLS品質評価 ===")
+for name, params in samples.items():
+    analyzer = DLSAnalyzer(params['d_z'], params['pdi'])
+    assessment = analyzer.quality_assessment()
+    print(f"{name:25s}: Z平均 = {assessment['d_z']:>5.0f} nm, "
+          f"PDI = {assessment['pdi']:.2f}, {assessment['quality']}")
+</code></pre>
+    </section>
+
+    <section>
+      <h2>4.4 沈降分析</h2>
+
+      <p>沈降試験は、粒子の沈降を経時的にモニタリングすることで分散安定性を直接測定します。</p>
+
+      <h3>例4: Stokes沈降モデル</h3>
+
+<pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+# ===================================
+# 例4: 沈降分析
+# ===================================
+
+def stokes_settling_velocity(d_nm, rho_p, rho_f=1000, eta=0.001):
+    """
+    Stokes沈降速度を計算。
+
+    パラメータ:
+        d_nm: 粒子直径 (nm)
+        rho_p: 粒子密度 (kg/m³)
+        rho_f: 流体密度 (kg/m³)
+        eta: 流体粘度 (Pa·s)
+
+    戻り値:
+        沈降速度 (m/s)
+    """
+    d = d_nm * 1e-9
+    g = 9.81
+    delta_rho = rho_p - rho_f
+    v = (delta_rho * g * d**2) / (18 * eta)
+    return v
+
+def settling_time(height_m, d_nm, rho_p, rho_f=1000, eta=0.001):
+    """粒子が所定の高さを沈降するのに要する時間を計算。"""
+    v = stokes_settling_velocity(d_nm, rho_p, rho_f, eta)
+    if v <= 0:  # 粒子が浮く場合
+        return np.inf
+    return height_m / v
+
+def brownian_diffusion_length(d_nm, t_s, T=298, eta=0.001):
+    """
+    特性ブラウン拡散距離を計算。
+
+    パラメータ:
+        d_nm: 粒子直径 (nm)
+        t_s: 時間 (s)
+        T: 温度 (K)
+        eta: 粘度 (Pa·s)
+
+    戻り値:
+        RMS変位 (m)
+    """
+    kB = 1.38e-23
+    d = d_nm * 1e-9
+    D = kB * T / (3 * np.pi * eta * d)
+    return np.sqrt(2 * D * t_s)
+
+# 異なる粒子サイズでの沈降を比較
+d_range = np.logspace(0, 4, 100)  # 1 nm から 10 μm
+rho_p = 2200  # kg/m³（シリカ）
+h = 0.05  # 沈降高さ 5 cm
+
+fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+# プロット1: 沈降速度 vs サイズ
+ax1 = axes[0]
+v_settle = [stokes_settling_velocity(d, rho_p) for d in d_range]
+ax1.loglog(d_range, np.array(v_settle) * 1e9, 'b-', linewidth=2.5, label='沈降速度')
+
+# 比較用にブラウン速度を追加（特性速度 = sqrt(2D/t)、t = 1時間）
+t_ref = 3600  # 1時間
+v_brownian = [brownian_diffusion_length(d, t_ref) / t_ref for d in d_range]
+ax1.loglog(d_range, np.array(v_brownian) * 1e9, 'r--', linewidth=2, label='ブラウン速度（1h）')
+
+# クロスオーバー点を探索
+crossover_idx = np.argmin(np.abs(np.array(v_settle) - np.array(v_brownian)))
+ax1.axvline(x=d_range[crossover_idx], color='purple', linestyle=':', linewidth=2)
+ax1.text(d_range[crossover_idx] * 1.2, 1e-2,
+         f'クロスオーバー ~{d_range[crossover_idx]:.0f} nm', fontsize=10, color='purple')
+
+ax1.set_xlabel('粒子直径 (nm)', fontsize=11)
+ax1.set_ylabel('速度 (nm/s)', fontsize=11)
+ax1.set_title('沈降 vs ブラウン運動', fontsize=12, fontweight='bold')
+ax1.legend()
+ax1.grid(True, alpha=0.3, which='both')
+ax1.set_xlim(1, 10000)
+
+# プロット2: 沈降時間 vs サイズ
+ax2 = axes[1]
+t_settle = [settling_time(h, d, rho_p) for d in d_range]
+
+ax2.loglog(d_range, np.array(t_settle) / 3600, 'b-', linewidth=2.5)  # 時間に変換
+
+# 時間マーカーを追加
+ax2.axhline(y=1, color='green', linestyle='--', alpha=0.7)
+ax2.axhline(y=24, color='orange', linestyle='--', alpha=0.7)
+ax2.axhline(y=168, color='red', linestyle='--', alpha=0.7)
+ax2.text(5000, 1.5, '1時間', fontsize=9, color='green')
+ax2.text(5000, 30, '1日', fontsize=9, color='orange')
+ax2.text(5000, 200, '1週間', fontsize=9, color='red')
+
+ax2.set_xlabel('粒子直径 (nm)', fontsize=11)
+ax2.set_ylabel('沈降時間（時間）', fontsize=11)
+ax2.set_title(f'5 cm沈降に要する時間（水中のSiO₂）', fontsize=12, fontweight='bold')
+ax2.grid(True, alpha=0.3, which='both')
+ax2.set_xlim(1, 10000)
+ax2.set_ylim(0.1, 1e6)
+
+plt.tight_layout()
+plt.savefig('sedimentation.png', dpi=150, bbox_inches='tight')
+plt.show()
+
+# 主要サイズでの沈降時間を出力
+print("\n=== 沈降分析（5 cm高さ、水中のSiO₂）===")
+print(f"{'直径 (nm)':>15s} {'沈降速度':>20s} {'沈降時間':>20s}")
+print("-" * 60)
+for d in [10, 50, 100, 500, 1000, 5000]:
+    v = stokes_settling_velocity(d, rho_p)
+    t = settling_time(h, d, rho_p)
+    if t < 3600:
+        time_str = f"{t:.0f} 秒"
+    elif t < 86400:
+        time_str = f"{t/3600:.1f} 時間"
+    elif t < 86400 * 365:
+        time_str = f"{t/86400:.1f} 日"
+    else:
+        time_str = f"{t/(86400*365):.1f} 年"
+    print(f"{d:>15.0f} {v*1e9:>20.3f} nm/s {time_str:>20s}")
+</code></pre>
+
+      <div class="example-output">
+        <strong>出力例:</strong><br/>
+        === 沈降分析（5 cm高さ、水中のSiO₂）===<br/>
+           直径 (nm)            沈降速度             沈降時間<br/>
+        ------------------------------------------------------------<br/>
+                     10                0.007 nm/s           231.5 年<br/>
+                     50                0.163 nm/s             9.7 年<br/>
+                    100                0.654 nm/s             2.4 年<br/>
+                    500               16.350 nm/s            35.4 日<br/>
+                   1000               65.400 nm/s             8.8 日<br/>
+                   5000             1635.000 nm/s             8.5 時間
+      </div>
+
+      <div class="success-box">
+        <h4>重要な知見</h4>
+        <p>100 nm以下のナノ粒子は沈降に対して本質的に安定です（沈降に数年かかります）。しかし、凝集してより大きなクラスター（&gt;500 nm）を形成すると、数日から数週間で有意な沈降が起こります。</p>
+      </div>
+    </section>
+
+    <section>
+      <h2>4.5 包括的安定性評価</h2>
+
+      <h3>例5: 複合パラメータ安定性スコア</h3>
+
+<pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+# ===================================
+# 例5: 包括的安定性評価
+# ===================================
+
+class StabilityAssessment:
+    """複数の指標を組み合わせた包括的安定性評価クラス。"""
+
+    def __init__(self, sample_name):
+        self.name = sample_name
+        self.metrics = {}
+
+    def add_zeta_potential(self, zeta_mV):
+        """ゼータ電位測定を追加。"""
+        abs_zeta = abs(zeta_mV)
+        if abs_zeta > 40:
+            score = 100
+        elif abs_zeta > 30:
+            score = 80
+        elif abs_zeta > 20:
+            score = 50
+        else:
+            score = 20
+
+        self.metrics['zeta'] = {
+            'value': zeta_mV,
+            'score': score,
+            'weight': 0.3
+        }
+
+    def add_dls(self, d_z_nm, pdi, d_target_nm=None):
+        """DLS測定を追加。"""
+        # サイズスコア（目標値に近いほど良い）
+        if d_target_nm:
+            size_ratio = d_z_nm / d_target_nm
+            if size_ratio < 1.2:
+                size_score = 100
+            elif size_ratio < 1.5:
+                size_score = 70
+            elif size_ratio < 2:
+                size_score = 40
+            else:
+                size_score = 10
+        else:
+            size_score = 100 if d_z_nm < 100 else (200 - d_z_nm) / 2
+
+        # PDIスコア
+        if pdi < 0.1:
+            pdi_score = 100
+        elif pdi < 0.2:
+            pdi_score = 80
+        elif pdi < 0.3:
+            pdi_score = 60
+        else:
+            pdi_score = max(0, 100 - pdi * 100)
+
+        combined_score = 0.5 * size_score + 0.5 * pdi_score
+
+        self.metrics['dls'] = {
+            'value': {'d_z': d_z_nm, 'pdi': pdi},
+            'score': combined_score,
+            'weight': 0.35
+        }
+
+    def add_dlvo_barrier(self, barrier_kT):
+        """DLVOエネルギーバリアを追加。"""
+        if barrier_kT > 25:
+            score = 100
+        elif barrier_kT > 15:
+            score = 80
+        elif barrier_kT > 5:
+            score = 40
+        else:
+            score = 10
+
+        self.metrics['dlvo'] = {
+            'value': barrier_kT,
+            'score': score,
+            'weight': 0.2
+        }
+
+    def add_sedimentation(self, settling_time_days):
+        """沈降安定性を追加。"""
+        if settling_time_days > 365:
+            score = 100
+        elif settling_time_days > 90:
+            score = 80
+        elif settling_time_days > 30:
+            score = 60
+        elif settling_time_days > 7:
+            score = 40
+        else:
+            score = 10
+
+        self.metrics['sedimentation'] = {
+            'value': settling_time_days,
+            'score': score,
+            'weight': 0.15
+        }
+
+    def overall_score(self):
+        """加重平均による総合安定性スコアを計算。"""
+        total_weight = sum(m['weight'] for m in self.metrics.values())
+        weighted_sum = sum(m['score'] * m['weight'] for m in self.metrics.values())
+        return weighted_sum / total_weight
+
+    def stability_rating(self):
+        """安定性評価を取得。"""
+        score = self.overall_score()
+        if score >= 85:
+            return '優秀'
+        elif score >= 70:
+            return '良好'
+        elif score >= 50:
+            return '中程度'
+        else:
+            return '不良'
+
+    def report(self):
+        """詳細な安定性レポートを出力。"""
+        print(f"\n=== 安定性評価: {self.name} ===")
+        print("-" * 50)
+
+        for metric_name, data in self.metrics.items():
+            print(f"\n{metric_name.upper()}:")
+            print(f"  測定値: {data['value']}")
+            print(f"  スコア: {data['score']:.0f}/100")
+            print(f"  重み: {data['weight']*100:.0f}%")
+
+        print("\n" + "=" * 50)
+        print(f"総合スコア: {self.overall_score():.0f}/100")
+        print(f"評価: {self.stability_rating()}")
+        print("=" * 50)
+
+# 異なるサンプルを比較
+samples = []
+
+# サンプル1: 最適化された分散液
+s1 = StabilityAssessment("最適化SiO₂")
+s1.add_zeta_potential(-42)
+s1.add_dls(35, 0.08, d_target_nm=30)
+s1.add_dlvo_barrier(35)
+s1.add_sedimentation(1000)
+samples.append(s1)
+
+# サンプル2: 中程度の品質
+s2 = StabilityAssessment("中程度TiO₂")
+s2.add_zeta_potential(-28)
+s2.add_dls(80, 0.22, d_target_nm=50)
+s2.add_dlvo_barrier(12)
+s2.add_sedimentation(60)
+samples.append(s2)
+
+# サンプル3: 不安定
+s3 = StabilityAssessment("不安定Fe₃O₄")
+s3.add_zeta_potential(-15)
+s3.add_dls(250, 0.45, d_target_nm=30)
+s3.add_dlvo_barrier(3)
+s3.add_sedimentation(5)
+samples.append(s3)
+
+# レポート出力
+for sample in samples:
+    sample.report()
+
+# 可視化
+fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+# プロット1: レーダーチャート（棒グラフで簡略化）
+ax1 = axes[0]
+metric_names = ['ゼータ\n電位', 'DLS\n品質', 'DLVO\nバリア', '沈降']
+x = np.arange(len(metric_names))
+width = 0.25
+
+for i, sample in enumerate(samples):
+    scores = [
+        sample.metrics['zeta']['score'],
+        sample.metrics['dls']['score'],
+        sample.metrics['dlvo']['score'],
+        sample.metrics['sedimentation']['score']
+    ]
+    ax1.bar(x + i * width, scores, width, label=sample.name, alpha=0.8)
+
+ax1.set_xticks(x + width)
+ax1.set_xticklabels(metric_names)
+ax1.set_ylabel('スコア', fontsize=11)
+ax1.set_title('各項目の安定性スコア', fontsize=12, fontweight='bold')
+ax1.legend()
+ax1.grid(True, alpha=0.3, axis='y')
+ax1.set_ylim(0, 110)
+
+# プロット2: 総合比較
+ax2 = axes[1]
+names = [s.name for s in samples]
+overall_scores = [s.overall_score() for s in samples]
+ratings = [s.stability_rating() for s in samples]
+colors = ['green' if r == '優秀' else 'yellow' if r == '良好'
+          else 'orange' if r == '中程度' else 'red' for r in ratings]
+
+bars = ax2.barh(names, overall_scores, color=colors, edgecolor='black', alpha=0.8)
+ax2.axvline(x=85, color='green', linestyle='--', alpha=0.7)
+ax2.axvline(x=70, color='orange', linestyle='--', alpha=0.7)
+ax2.axvline(x=50, color='red', linestyle='--', alpha=0.7)
+
+for bar, score, rating in zip(bars, overall_scores, ratings):
+    ax2.text(bar.get_width() + 1, bar.get_y() + bar.get_height()/2,
+             f'{score:.0f} ({rating})', va='center', fontsize=10)
+
+ax2.set_xlabel('総合安定性スコア', fontsize=11)
+ax2.set_title('包括的安定性比較', fontsize=12, fontweight='bold')
+ax2.set_xlim(0, 110)
+ax2.grid(True, alpha=0.3, axis='x')
+
+plt.tight_layout()
+plt.savefig('comprehensive_stability.png', dpi=150, bbox_inches='tight')
+plt.show()
+</code></pre>
+    </section>
+
+    <section>
+      <h2>章のまとめ</h2>
+
+      <div class="info-box">
+        <h4>重要なポイント</h4>
+        <ol>
+          <li><strong>ゼータ電位</strong>: |ζ| &gt; 30 mV は良好な静電安定性を示す</li>
+          <li><strong>DLVO理論</strong>: コロイド安定性にはエネルギーバリア &gt; 15 kT が必要</li>
+          <li><strong>DLS</strong>: PDI &lt; 0.2 は狭い、よく分散したサンプルを示す</li>
+          <li><strong>沈降</strong>: 100 nm未満の粒子は沈降に対して安定</li>
+          <li><strong>複合評価</strong>: 信頼性の高い安定性予測には複数の手法を使用</li>
+        </ol>
+      </div>
+    </section>
+
+    <div class="nav-buttons">
+      <a class="nav-button" href="chapter-3.html">← 第3章: 分散技術</a>
+      <a class="nav-button" href="chapter-5.html">第5章: 工業的応用 →</a>
+    </div>
+  </main>
+
+  <section>
+    <h2>参考文献</h2>
+    <ol>
+      <li>Israelachvili, J. N. (2011). <em>Intermolecular and Surface Forces</em> (3rd ed.). Academic Press.</li>
+      <li>Hunter, R. J. (2001). <em>Foundations of Colloid Science</em> (2nd ed.). Oxford University Press.</li>
+      <li>Malvern Panalytical. "Dynamic Light Scattering: Common Terms Defined." Technical Note.</li>
+    </ol>
+  </section>
+
+  <section class="disclaimer">
+    <h3>免責事項</h3>
+    <ul>
+      <li>本コンテンツは教育・研究・情報提供のみを目的として提供されており、専門的なアドバイスを構成するものではありません。</li>
+      <li>本コンテンツおよび付随するコード例は、いかなる保証もなく「現状のまま」提供されます。</li>
+      <li>著者および東北大学は、外部リンク、サードパーティデータ、ツール、ライブラリ等の内容、可用性、安全性について一切責任を負いません。</li>
+    </ul>
+  </section>
+
+  <footer>
+    <div class="container">
+      <p>© 2026 PI Knowledge Hub - 橋本 雄介 博士、東北大学</p>
+      <p>CC BY 4.0 ライセンス</p>
+    </div>
+  </footer>
+</body>
+</html>

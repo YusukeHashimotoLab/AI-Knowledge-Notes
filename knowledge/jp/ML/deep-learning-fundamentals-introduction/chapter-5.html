@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第5章：実践プロジェクト - ディープラーニング基礎入門 - AI Terakoya</title>
+    <meta name="description" content="MNISTデータセットでの画像分類、データ前処理、PyTorch訓練パイプライン、モデル評価、ハイパーパラメータチューニング、モデルの保存と推論を学びます。">
+
+    <style>
+        :root {
+            --color-primary: #2c3e50;
+            --color-primary-dark: #1a252f;
+            --color-accent: #7b2cbf;
+            --color-accent-light: #9d4edd;
+            --color-text: #2d3748;
+            --color-text-light: #4a5568;
+            --color-bg: #ffffff;
+            --color-bg-alt: #f7fafc;
+            --color-border: #e2e8f0;
+            --color-code-bg: #f8f9fa;
+            --color-link: #3182ce;
+            --color-link-hover: #2c5aa0;
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+            --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+            --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+            --border-radius: 8px;
+            --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: var(--font-body); line-height: 1.7; color: var(--color-text); background-color: var(--color-bg); font-size: 16px; }
+        header { background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%); color: white; padding: var(--spacing-xl) var(--spacing-md); margin-bottom: var(--spacing-xl); box-shadow: var(--box-shadow); }
+        .header-content { max-width: 900px; margin: 0 auto; }
+        h1 { font-size: 2rem; font-weight: 700; margin-bottom: var(--spacing-sm); line-height: 1.2; }
+        .subtitle { font-size: 1.1rem; opacity: 0.95; font-weight: 400; margin-bottom: var(--spacing-md); }
+        .meta { display: flex; flex-wrap: wrap; gap: var(--spacing-md); font-size: 0.9rem; opacity: 0.9; }
+        .container { max-width: 900px; margin: 0 auto; padding: 0 var(--spacing-md) var(--spacing-xl); }
+        h2 { font-size: 1.75rem; color: var(--color-primary); margin-top: var(--spacing-xl); margin-bottom: var(--spacing-md); padding-bottom: var(--spacing-xs); border-bottom: 3px solid var(--color-accent); }
+        h3 { font-size: 1.4rem; color: var(--color-primary); margin-top: var(--spacing-lg); margin-bottom: var(--spacing-sm); }
+        h4 { font-size: 1.1rem; color: var(--color-primary-dark); margin-top: var(--spacing-md); margin-bottom: var(--spacing-sm); }
+        p { margin-bottom: var(--spacing-md); }
+        a { color: var(--color-link); text-decoration: none; }
+        a:hover { color: var(--color-link-hover); text-decoration: underline; }
+        ul, ol { margin-left: var(--spacing-lg); margin-bottom: var(--spacing-md); }
+        li { margin-bottom: var(--spacing-xs); }
+        pre { background-color: var(--color-code-bg); border: 1px solid var(--color-border); border-radius: var(--border-radius); padding: var(--spacing-md); overflow-x: auto; margin-bottom: var(--spacing-md); font-family: var(--font-mono); font-size: 0.9rem; line-height: 1.5; }
+        code { font-family: var(--font-mono); font-size: 0.9em; background-color: var(--color-code-bg); padding: 0.2em 0.4em; border-radius: 3px; }
+        pre code { background-color: transparent; padding: 0; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: var(--spacing-md); font-size: 0.95rem; }
+        th, td { border: 1px solid var(--color-border); padding: var(--spacing-sm); text-align: left; }
+        th { background-color: var(--color-bg-alt); font-weight: 600; color: var(--color-primary); }
+        details { background-color: var(--color-bg-alt); border: 1px solid var(--color-border); border-radius: var(--border-radius); padding: var(--spacing-md); margin-bottom: var(--spacing-md); }
+        summary { cursor: pointer; font-weight: 600; color: var(--color-primary); padding: var(--spacing-md); margin: calc(-1 * var(--spacing-md)); border-radius: var(--border-radius); }
+        summary:hover { background-color: rgba(123, 44, 191, 0.1); }
+        details[open] summary { margin-bottom: var(--spacing-md); border-bottom: 1px solid var(--color-border); }
+        .chapter-description { margin: 1.5rem 0; padding: 1rem; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-left: 4px solid #7b2cbf; border-radius: 8px; font-size: 1.05rem; line-height: 1.8; }
+        .learning-objectives { background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); padding: var(--spacing-lg); border-radius: var(--border-radius); border-left: 4px solid var(--color-accent); margin-bottom: var(--spacing-xl); }
+        .learning-objectives h2 { margin-top: 0; border-bottom: none; }
+        .navigation { display: flex; justify-content: space-between; gap: var(--spacing-md); margin: var(--spacing-xl) 0; padding-top: var(--spacing-lg); border-top: 2px solid var(--color-border); }
+        .nav-button { flex: 1; padding: var(--spacing-md); background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%); color: white; border-radius: var(--border-radius); text-align: center; font-weight: 600; transition: transform 0.2s, box-shadow 0.2s; box-shadow: var(--box-shadow); }
+        .nav-button:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); text-decoration: none; }
+        footer { margin-top: var(--spacing-xl); padding: var(--spacing-lg) var(--spacing-md); background-color: var(--color-bg-alt); border-top: 1px solid var(--color-border); text-align: center; font-size: 0.9rem; color: var(--color-text-light); }
+        .disclaimer { max-width: 900px; margin: 2rem auto; padding: 1.5rem; background: #f8f9fa; border-left: 4px solid #6c757d; border-radius: 4px; }
+        .disclaimer h3 { color: #495057; margin-bottom: 1rem; font-size: 1.1rem; }
+        .disclaimer ul { list-style: none; padding-left: 0; }
+        .disclaimer li { padding: 0.5rem 0; padding-left: 1.5rem; position: relative; font-size: 0.9rem; color: #6c757d; }
+        .disclaimer li::before { content: "⚠️"; position: absolute; left: 0; }
+        .breadcrumb { background: #f7fafc; padding: 0.75rem 1rem; border-bottom: 1px solid #e2e8f0; font-size: 0.9rem; }
+        .breadcrumb-content { max-width: 900px; margin: 0 auto; display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
+        .breadcrumb a { color: #667eea; }
+        .breadcrumb-separator { color: #a0aec0; margin: 0 0.25rem; }
+        .breadcrumb-current { color: #4a5568; font-weight: 500; }
+        .info-box { background: #e3f2fd; border-left: 4px solid #2196f3; padding: var(--spacing-md); margin: var(--spacing-md) 0; border-radius: var(--border-radius); }
+        .warning-box { background: #fff3e0; border-left: 4px solid #ff9800; padding: var(--spacing-md); margin: var(--spacing-md) 0; border-radius: var(--border-radius); }
+        .success-box { background: #e8f5e9; border-left: 4px solid #4caf50; padding: var(--spacing-md); margin: var(--spacing-md) 0; border-radius: var(--border-radius); }
+        @media (max-width: 768px) {
+            h1 { font-size: 1.6rem; }
+            h2 { font-size: 1.4rem; }
+            .navigation { flex-direction: column; }
+        }
+    </style>
+
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+</head>
+<body>
+    <nav class="breadcrumb">
+        <div class="breadcrumb-content">
+            <a href="../../index.html">AI寺子屋トップ</a><span class="breadcrumb-separator">›</span><a href="../index.html">機械学習</a><span class="breadcrumb-separator">›</span><a href="./index.html">ディープラーニング基礎入門</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">第5章</span>
+        </div>
+    </nav>
+
+    <header>
+        <div class="header-content">
+            <h1>第5章：実践プロジェクト</h1>
+            <p class="subtitle">エンドツーエンドのディープラーニングアプリケーションを構築する</p>
+            <div class="meta">
+                <span class="meta-item">📖 読了時間: 40-45分</span>
+                <span class="meta-item">💻 コード例: 6個</span>
+                <span class="meta-item">📝 演習: 5問</span>
+                <span class="meta-item">📊 難易度: 中級〜上級</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="chapter-description">
+            この章では、これまでの章で学んだすべてを応用して、完全な画像分類システムを構築します。MNISTデータセットを使用し、完全なPyTorch訓練パイプラインを実装し、モデル性能を評価し、ハイパーパラメータをチューニングし、推論用にモデルを保存・読み込みます。
+        </div>
+
+        <div class="learning-objectives">
+            <h2>学習目標</h2>
+            <ul>
+                <li>MNISTデータセットの読み込みと探索</li>
+                <li>適切なデータ前処理と正規化の実装</li>
+                <li>PyTorchでの完全な訓練ループの構築</li>
+                <li>精度、適合率、再現率、混同行列を使用したモデル評価</li>
+                <li>グリッドサーチとランダムサーチによるハイパーパラメータチューニング</li>
+                <li>訓練済みモデルの保存と推論用の読み込み</li>
+            </ul>
+        </div>
+
+        <h2 id="mnist">1. MNISTデータセットでの画像分類</h2>
+
+        <h3>1.1 データセットの読み込みと探索</h3>
+
+        <p><strong>MNISTデータセット</strong>は、手書き数字（0-9）の70,000枚のグレースケール画像を含み、各画像は28x28ピクセルです。ディープラーニングの「Hello World」です。</p>
+
+        <pre><code class="language-python">import torch
+from torchvision import datasets, transforms
+from torch.utils.data import DataLoader
+
+# データ変換の定義
+transform = transforms.Compose([
+    transforms.ToTensor(),  # テンソルに変換 [0, 1]
+    transforms.Normalize((0.1307,), (0.3081,))  # MNIST平均と標準偏差
+])
+
+# MNISTデータセットのダウンロードと読み込み
+train_dataset = datasets.MNIST(
+    root='./data',
+    train=True,
+    download=True,
+    transform=transform
+)
+
+test_dataset = datasets.MNIST(
+    root='./data',
+    train=False,
+    download=True,
+    transform=transform
+)
+
+print("MNISTデータセット統計")
+print("=" * 40)
+print(f"訓練サンプル数: {len(train_dataset)}")
+print(f"テストサンプル数: {len(test_dataset)}")
+print(f"画像形状: {train_dataset[0][0].shape}")
+print(f"クラス数: {len(train_dataset.classes)}")
+</code></pre>
+
+        <h3>1.2 データの前処理と正規化</h3>
+
+        <p>適切な前処理は良いモデル性能に不可欠です：</p>
+
+        <ul>
+            <li><strong>ToTensor()</strong>：PIL画像をPyTorchテンソルに変換し、[0, 1]にスケール</li>
+            <li><strong>Normalize()</strong>：データセットの平均と標準偏差で標準化</li>
+        </ul>
+
+        <h2 id="preprocessing">2. データ前処理とバッチ処理</h2>
+
+        <h3>2.1 DataLoaderの使用</h3>
+
+        <p><strong>DataLoader</strong>はバッチ処理、シャッフル、並列データ読み込みを処理します：</p>
+
+        <pre><code class="language-python">BATCH_SIZE = 64
+
+train_loader = DataLoader(
+    train_dataset,
+    batch_size=BATCH_SIZE,
+    shuffle=True,     # 訓練データをシャッフル
+    num_workers=2,    # 並列データ読み込み
+    pin_memory=True   # 高速GPU転送
+)
+
+test_loader = DataLoader(
+    test_dataset,
+    batch_size=BATCH_SIZE,
+    shuffle=False,    # テストデータはシャッフルしない
+    num_workers=2,
+    pin_memory=True
+)
+
+print(f"バッチサイズ: {BATCH_SIZE}")
+print(f"訓練バッチ数: {len(train_loader)}")
+print(f"テストバッチ数: {len(test_loader)}")
+</code></pre>
+
+        <h3>2.2 データ拡張（Data Augmentation）</h3>
+
+        <p><strong>データ拡張</strong>は訓練データのサイズと多様性を人工的に増加させます：</p>
+
+        <pre><code class="language-python">from torchvision import transforms
+
+# 拡張付き訓練変換
+train_transform = transforms.Compose([
+    transforms.RandomRotation(10),           # ±10度回転
+    transforms.RandomAffine(
+        degrees=0,
+        translate=(0.1, 0.1),               # 10%までシフト
+        scale=(0.9, 1.1)                    # 90-110%スケール
+    ),
+    transforms.ToTensor(),
+    transforms.Normalize((0.1307,), (0.3081,))
+])
+</code></pre>
+
+        <h2 id="model">3. モデル構築と学習ループ</h2>
+
+        <h3>3.1 PyTorchでのモデル定義</h3>
+
+        <pre><code class="language-python">import torch.nn as nn
+import torch.nn.functional as F
+
+class MNISTClassifier(nn.Module):
+    """
+    MNIST分類用ニューラルネットワーク
+
+    アーキテクチャ:
+    - 入力: 784 (28x28をフラット化)
+    - 隠れ層1: 256ユニット + ReLU + Dropout
+    - 隠れ層2: 128ユニット + ReLU + Dropout
+    - 出力: 10クラス
+    """
+
+    def __init__(self, dropout_rate=0.3):
+        super(MNISTClassifier, self).__init__()
+
+        self.flatten = nn.Flatten()
+
+        self.fc1 = nn.Linear(28 * 28, 256)
+        self.bn1 = nn.BatchNorm1d(256)
+        self.dropout1 = nn.Dropout(dropout_rate)
+
+        self.fc2 = nn.Linear(256, 128)
+        self.bn2 = nn.BatchNorm1d(128)
+        self.dropout2 = nn.Dropout(dropout_rate)
+
+        self.fc3 = nn.Linear(128, 10)
+
+    def forward(self, x):
+        x = self.flatten(x)
+        x = F.relu(self.bn1(self.fc1(x)))
+        x = self.dropout1(x)
+        x = F.relu(self.bn2(self.fc2(x)))
+        x = self.dropout2(x)
+        x = self.fc3(x)
+        return x
+
+# モデル作成
+model = MNISTClassifier(dropout_rate=0.3)
+print("モデルアーキテクチャ:")
+print(model)
+
+# パラメータ数カウント
+total_params = sum(p.numel() for p in model.parameters())
+print(f"\n総パラメータ数: {total_params:,}")
+</code></pre>
+
+        <h3>3.2 訓練ループの実装</h3>
+
+        <pre><code class="language-python">def train_epoch(model, train_loader, criterion, optimizer, device):
+    """1エポックの訓練"""
+    model.train()
+    running_loss = 0.0
+    correct = 0
+    total = 0
+
+    for images, labels in train_loader:
+        images, labels = images.to(device), labels.to(device)
+
+        optimizer.zero_grad()
+        outputs = model(images)
+        loss = criterion(outputs, labels)
+        loss.backward()
+        optimizer.step()
+
+        running_loss += loss.item() * images.size(0)
+        _, predicted = torch.max(outputs.data, 1)
+        total += labels.size(0)
+        correct += (predicted == labels).sum().item()
+
+    return running_loss / total, correct / total
+
+def validate(model, val_loader, criterion, device):
+    """モデルの検証"""
+    model.eval()
+    running_loss = 0.0
+    correct = 0
+    total = 0
+
+    with torch.no_grad():
+        for images, labels in val_loader:
+            images, labels = images.to(device), labels.to(device)
+            outputs = model(images)
+            loss = criterion(outputs, labels)
+
+            running_loss += loss.item() * images.size(0)
+            _, predicted = torch.max(outputs.data, 1)
+            total += labels.size(0)
+            correct += (predicted == labels).sum().item()
+
+    return running_loss / total, correct / total
+</code></pre>
+
+        <h2 id="evaluation">4. 性能評価と混同行列</h2>
+
+        <h3>4.1 精度、適合率、再現率、F1スコア</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>メトリクス</th>
+                    <th>式</th>
+                    <th>解釈</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>精度（Accuracy）</strong></td>
+                    <td>$\frac{TP + TN}{TP + TN + FP + FN}$</td>
+                    <td>全体的な正確さ</td>
+                </tr>
+                <tr>
+                    <td><strong>適合率（Precision）</strong></td>
+                    <td>$\frac{TP}{TP + FP}$</td>
+                    <td>予測陽性のうち正解の割合</td>
+                </tr>
+                <tr>
+                    <td><strong>再現率（Recall）</strong></td>
+                    <td>$\frac{TP}{TP + FN}$</td>
+                    <td>実際の陽性のうち検出できた割合</td>
+                </tr>
+                <tr>
+                    <td><strong>F1スコア</strong></td>
+                    <td>$2 \cdot \frac{適合率 \cdot 再現率}{適合率 + 再現率}$</td>
+                    <td>適合率と再現率の調和平均</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>4.2 混同行列の可視化</h3>
+
+        <pre><code class="language-python">import numpy as np
+
+def confusion_matrix(y_true, y_pred, num_classes=10):
+    """混同行列の計算"""
+    cm = np.zeros((num_classes, num_classes), dtype=int)
+    for true, pred in zip(y_true, y_pred):
+        cm[true, pred] += 1
+    return cm
+
+def print_confusion_matrix(cm, class_names=None):
+    """混同行列の表示"""
+    num_classes = cm.shape[0]
+    if class_names is None:
+        class_names = [str(i) for i in range(num_classes)]
+
+    print("混同行列")
+    print("=" * 60)
+    print("行: 真のラベル, 列: 予測ラベル")
+</code></pre>
+
+        <h2 id="tuning">5. ハイパーパラメータチューニング</h2>
+
+        <h3>5.1 グリッドサーチ</h3>
+
+        <pre><code class="language-python">import itertools
+
+def grid_search(param_grid, train_fn, eval_fn):
+    """グリッドサーチによるハイパーパラメータチューニング"""
+    keys = list(param_grid.keys())
+    values = list(param_grid.values())
+    combinations = list(itertools.product(*values))
+
+    best_score = float('-inf')
+    best_params = None
+
+    for combo in combinations:
+        params = dict(zip(keys, combo))
+        model = train_fn(params)
+        score = eval_fn(model)
+
+        if score > best_score:
+            best_score = score
+            best_params = params
+
+    return best_params
+
+# パラメータグリッド例
+param_grid = {
+    'learning_rate': [0.001, 0.01],
+    'dropout_rate': [0.3, 0.5],
+    'hidden_size': [128, 256]
+}
+</code></pre>
+
+        <h3>5.2 ランダムサーチ</h3>
+
+        <pre><code class="language-python">import numpy as np
+
+def random_search(param_distributions, train_fn, eval_fn, n_iter=10):
+    """ランダムサーチによるハイパーパラメータチューニング"""
+    best_score = float('-inf')
+    best_params = None
+
+    for i in range(n_iter):
+        params = {k: v() for k, v in param_distributions.items()}
+        model = train_fn(params)
+        score = eval_fn(model)
+
+        if score > best_score:
+            best_score = score
+            best_params = params
+
+    return best_params
+
+# 連続分布の例
+param_distributions = {
+    'learning_rate': lambda: 10 ** np.random.uniform(-4, -2),
+    'dropout_rate': lambda: np.random.uniform(0.1, 0.5),
+    'hidden_size': lambda: np.random.choice([64, 128, 256, 512])
+}
+</code></pre>
+
+        <h2 id="saving">6. モデルの保存と推論</h2>
+
+        <h3>6.1 state_dictの保存と読み込み</h3>
+
+        <pre><code class="language-python">import torch
+
+def save_model(model, path, optimizer=None, epoch=None, metrics=None):
+    """モデルチェックポイントの保存"""
+    checkpoint = {
+        'model_state_dict': model.state_dict(),
+        'model_architecture': str(model)
+    }
+
+    if optimizer is not None:
+        checkpoint['optimizer_state_dict'] = optimizer.state_dict()
+    if epoch is not None:
+        checkpoint['epoch'] = epoch
+    if metrics is not None:
+        checkpoint['metrics'] = metrics
+
+    torch.save(checkpoint, path)
+    print(f"モデルを {path} に保存しました")
+
+def load_model(model, path, optimizer=None):
+    """モデルチェックポイントの読み込み"""
+    checkpoint = torch.load(path, map_location='cpu')
+    model.load_state_dict(checkpoint['model_state_dict'])
+
+    if optimizer is not None and 'optimizer_state_dict' in checkpoint:
+        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+
+    print(f"モデルを {path} から読み込みました")
+    return checkpoint
+</code></pre>
+
+        <h3>6.2 推論モードでの予測</h3>
+
+        <pre><code class="language-python">import torch.nn.functional as F
+
+def predict(model, images, device='cpu'):
+    """訓練済みモデルでの予測"""
+    model.eval()
+    model = model.to(device)
+    images = images.to(device)
+
+    with torch.no_grad():
+        logits = model(images)
+        probabilities = F.softmax(logits, dim=1)
+        predictions = torch.argmax(probabilities, dim=1)
+
+    return predictions, probabilities
+
+def predict_single(model, image, device='cpu'):
+    """単一画像の予測"""
+    if image.dim() == 3:
+        image = image.unsqueeze(0)
+
+    predictions, probabilities = predict(model, image, device)
+
+    prediction = predictions[0].item()
+    confidence = probabilities[0, prediction].item()
+
+    return prediction, confidence
+</code></pre>
+
+        <h2 id="exercises">演習問題</h2>
+
+        <details>
+            <summary>演習1：Fashion-MNIST分類</summary>
+            <p><strong>問題</strong>：学んだすべてをFashion-MNIST（衣類アイテム）に適用してください。95%以上の精度を達成し、混同行列を作成して最も混同されやすいクラスを特定してください。</p>
+        </details>
+
+        <details>
+            <summary>演習2：データ拡張のアブレーション</summary>
+            <p><strong>問題</strong>：データ拡張あり/なしでモデルを訓練し、検証精度と過学習の挙動を比較してください。</p>
+        </details>
+
+        <details>
+            <summary>演習3：学習率スケジューリングの比較</summary>
+            <p><strong>問題</strong>：固定、StepLR、ReduceLROnPlateau、CosineAnnealingLRを比較し、各スケジュールの学習率と検証精度をプロットしてください。</p>
+        </details>
+
+        <details>
+            <summary>演習4：モデル複雑度の分析</summary>
+            <p><strong>問題</strong>：隠れユニット数[64, 128, 256, 512]でモデルを作成し、訓練/検証精度とモデルサイズの関係をプロットして最適な複雑度を見つけてください。</p>
+        </details>
+
+        <details>
+            <summary>演習5：エンドツーエンドプロジェクト</summary>
+            <p><strong>問題</strong>：完全な数字認識システムを構築してください：最良のモデルを訓練、適切な検証と早期終了を実装、最良のモデルチェックポイントを保存、28x28画像配列を受け取る予測関数を作成、最終テスト精度・混同行列・クラスごとのF1スコアを報告。</p>
+        </details>
+
+        <h2 id="summary">まとめ</h2>
+
+        <p>この章では、ディープラーニングの概念を応用して完全な画像分類システムを構築しました：</p>
+
+        <ul>
+            <li><strong>MNISTデータセット</strong>：70,000枚の手書き数字画像を持つ標準ベンチマーク</li>
+            <li><strong>データパイプライン</strong>：バッチ処理用DataLoader、前処理と拡張用transforms</li>
+            <li><strong>訓練ループ</strong>：順伝播、損失計算、逆伝播、オプティマイザ更新</li>
+            <li><strong>評価</strong>：精度、適合率、再現率、F1スコア、混同行列</li>
+            <li><strong>ハイパーパラメータチューニング</strong>：グリッドサーチとランダムサーチ戦略</li>
+            <li><strong>モデル管理</strong>：チェックポイントの保存/読み込み、推論モード予測</li>
+        </ul>
+
+        <div class="success-box">
+            <p><strong>おめでとうございます！</strong>ディープラーニング基礎コースを修了しました。以下の基盤を得ました：</p>
+            <ul>
+                <li>ゼロからニューラルネットワークを構築・訓練する</li>
+                <li>最適化と正則化技術を理解する</li>
+                <li>モデル性能を体系的に評価する</li>
+                <li>ディープラーニングを実世界の問題に適用する</li>
+            </ul>
+            <p><strong>次のステップ</strong>：コンピュータビジョン用CNN、シーケンス用RNN、またはNLP用Transformerを探求しましょう！</p>
+        </div>
+
+        <div class="navigation">
+            <a href="./chapter-4.html" class="nav-button">← 第4章</a>
+            <a href="./index.html" class="nav-button">シリーズトップへ</a>
+        </div>
+    </main>
+
+    <section class="disclaimer">
+        <h3>免責事項</h3>
+        <ul>
+            <li>本コンテンツは教育目的のみで提供されています。</li>
+            <li>コード例は保証なしで提供されています。</li>
+            <li>内容は予告なく変更される場合があります。</li>
+        </ul>
+    </section>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 AI Terakoya - Dr. Yusuke Hashimoto, Tohoku University</p>
+            <p>Licensed under CC BY 4.0</p>
+        </div>
+    </footer>
+</body>
+</html>

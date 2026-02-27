@@ -4,6 +4,24 @@ chapter_title: "第3章"
 subtitle: "円偏光ラマン分光法から超高速分光法まで"
 ---
 
+## ビデオ講義
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/2zZUqP-cboU"
+    title="カイラルフォノン 第3章: 実験的検出"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> このビデオは以下のテキストと同じ内容をカバーしています。お好みの学習形式をお選びください。
+
+---
+
 [🌐 EN](../../../en/MS/chiral-phonons/chapter-3.md) | 🇯🇵 JP | Last sync: 2025-12-19
 
 [材料科学道場](../index.html) > [カイラルフォノン](index.md) > 第3章

@@ -37,7 +37,7 @@
 <span class="locale-separator">|</span>
 <a href="../../../jp/ML/nlp-introduction/chapter3-transformer-bert.html" class="locale-link">🇯🇵 JP</a>
 <span class="locale-separator">|</span>
-<span class="locale-meta">Last sync: 2025-11-16</span>
+<span class="locale-meta">Last sync: 2026-01</span>
 </div>
 <header>
 <div class="header-content">
@@ -494,7 +494,59 @@ print(f"Input shape: {x.shape}")
 print(f"Output shape: {output.shape}")
 </code></pre>
 <hr/>
-<h2>3.6 BERT (Bidirectional Encoder Representations from Transformers)</h2>
+<h2>3.6 Efficient Transformers</h2>
+<p>The standard Transformer has O(n²) complexity due to the self-attention mechanism, which becomes a bottleneck for long sequences. <strong>Efficient Transformers</strong> address this limitation through various architectural innovations.</p>
+
+<h3>FlashAttention</h3>
+<p><strong>FlashAttention</strong> (2022) is an IO-aware exact attention algorithm that significantly speeds up training and inference without approximating attention computations.</p>
+<ul>
+<li><strong>Key Innovation</strong>: Reduces memory reads/writes by fusing attention operations into a single GPU kernel</li>
+<li><strong>Benefits</strong>: 2-4x speedup on training, enables longer context lengths</li>
+<li><strong>Adoption</strong>: Now standard in most modern LLM training pipelines (PyTorch 2.0+, HuggingFace)</li>
+</ul>
+
+<h3>Sparse Attention Patterns</h3>
+<p>Instead of attending to all tokens, <strong>sparse attention</strong> limits attention to specific patterns:</p>
+<table>
+<thead>
+<tr>
+<th>Pattern</th>
+<th>Description</th>
+<th>Complexity</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Local (Sliding Window)</strong></td>
+<td>Attend only to nearby tokens</td>
+<td>O(n × w)</td>
+</tr>
+<tr>
+<td><strong>Strided</strong></td>
+<td>Attend to every k-th token</td>
+<td>O(n × n/k)</td>
+</tr>
+<tr>
+<td><strong>Global + Local</strong></td>
+<td>Few global tokens + local window (Longformer, BigBird)</td>
+<td>O(n × (g + w))</td>
+</tr>
+</tbody>
+</table>
+
+<h3>Linear Attention Variants</h3>
+<p>These approaches approximate or reformulate attention to achieve O(n) complexity:</p>
+<ul>
+<li><strong>Linear Transformer</strong>: Uses kernel feature maps to decompose attention</li>
+<li><strong>Performer</strong>: Random feature approximation of softmax attention</li>
+<li><strong>State Space Models (Mamba)</strong>: Selective state spaces as an alternative to attention (emerging in 2024-2025)</li>
+</ul>
+<blockquote>
+<p><strong>Practical Note</strong>: For most NLP tasks with sequence lengths under 4096 tokens, standard Transformer with FlashAttention remains the recommended approach. Sparse/linear variants become valuable for very long documents or specialized applications.</p>
+</blockquote>
+
+<hr/>
+<h2>3.7 BERT (Bidirectional Encoder Representations from Transformers)</h2>
 <h3>Features of BERT</h3>
 <p><strong>BERT</strong> is a bidirectional pre-training model announced by Google in 2018.</p>
 <blockquote>
@@ -610,8 +662,68 @@ Attention Mask: tensor([[1, 1, 1, 1, 1, 1, 1, 1]])
 Last Hidden States shape: torch.Size([1, 8, 768])
 Pooler Output shape: torch.Size([1, 768])
 </code></pre>
+<h3>BERT Variants and Modern Encoder Models</h3>
+<p>Since BERT's release, numerous variants have improved upon the original architecture:</p>
+<table>
+<thead>
+<tr>
+<th>Model</th>
+<th>Key Innovation</th>
+<th>Improvement</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>RoBERTa</strong></td>
+<td>Removes NSP, dynamic masking, larger batches</td>
+<td>Better downstream performance</td>
+</tr>
+<tr>
+<td><strong>ALBERT</strong></td>
+<td>Parameter sharing, factorized embeddings</td>
+<td>Smaller model size</td>
+</tr>
+<tr>
+<td><strong>DistilBERT</strong></td>
+<td>Knowledge distillation</td>
+<td>40% smaller, 60% faster</td>
+</tr>
+<tr>
+<td><strong>DeBERTa</strong></td>
+<td>Disentangled attention (content + position)</td>
+<td>State-of-the-art on many benchmarks</td>
+</tr>
+<tr>
+<td><strong>ELECTRA</strong></td>
+<td>Replaced Token Detection (discriminator)</td>
+<td>More sample-efficient pre-training</td>
+</tr>
+</tbody>
+</table>
+
+<h4>DeBERTa: Disentangled Attention</h4>
+<p><strong>DeBERTa</strong> (Decoding-enhanced BERT with disentangled attention) improves BERT by separating content and positional representations:</p>
+<ul>
+<li><strong>Disentangled Attention</strong>: Uses two separate vectors for content and position, computing attention with both</li>
+<li><strong>Enhanced Mask Decoder</strong>: Incorporates absolute position in the decoder layer</li>
+<li><strong>Performance</strong>: DeBERTa-v3 achieves strong results with fewer parameters</li>
+</ul>
+
+<h4>ELECTRA: Replaced Token Detection</h4>
+<p><strong>ELECTRA</strong> uses a more efficient pre-training objective:</p>
+<ul>
+<li><strong>Generator-Discriminator Setup</strong>: Small generator creates corrupted text; discriminator identifies replaced tokens</li>
+<li><strong>All-Token Learning</strong>: Unlike MLM (15% tokens), ELECTRA learns from every token</li>
+<li><strong>Efficiency</strong>: Matches BERT performance with 1/4 the compute</li>
+</ul>
+<pre><code># ELECTRA pre-training concept
+Original:  "The chef cooked a delicious meal"
+Generator: "The chef [made] a delicious [dish]"  # replaces some tokens
+Task:      [orig][orig][repl][orig][orig][repl]  # discriminator identifies replaced tokens
+</code></pre>
+
 <hr/>
-<h2>3.7 Fine-tuning BERT</h2>
+<h2>3.8 Fine-tuning BERT</h2>
 <h3>Text Classification Task</h3>
 <pre><code class="language-python"># Requirements:
 # - Python 3.9+
@@ -763,7 +875,72 @@ Confidence: 0.9812
 Start position: 50, End position: 54
 </code></pre>
 <hr/>
-<h2>3.8 Japanese BERT Models</h2>
+<h2>3.9 Parameter-Efficient Fine-Tuning (PEFT)</h2>
+<p>Fine-tuning all parameters of large models is computationally expensive and requires storing separate model copies per task. <strong>Parameter-Efficient Fine-Tuning (PEFT)</strong> methods update only a small fraction of parameters while achieving comparable performance.</p>
+
+<h3>LoRA (Low-Rank Adaptation)</h3>
+<p><strong>LoRA</strong> freezes pre-trained weights and injects trainable low-rank matrices into each layer:</p>
+<ul>
+<li><strong>Core Idea</strong>: Weight update $\Delta W$ is decomposed as $\Delta W = BA$ where $B \in \mathbb{R}^{d \times r}$, $A \in \mathbb{R}^{r \times k}$, and $r \ll \min(d, k)$</li>
+<li><strong>Benefits</strong>: Reduces trainable parameters by 10,000x while maintaining performance</li>
+<li><strong>Deployment</strong>: LoRA weights can be merged with base model or swapped at inference time</li>
+</ul>
+<pre><code class="language-python"># Using LoRA with PEFT library
+from peft import get_peft_model, LoraConfig, TaskType
+
+# Configure LoRA
+lora_config = LoraConfig(
+    task_type=TaskType.SEQ_CLS,
+    r=8,                      # Rank of the update matrices
+    lora_alpha=32,            # Scaling factor
+    lora_dropout=0.1,
+    target_modules=["query", "value"]  # Apply to attention layers
+)
+
+# Apply LoRA to model
+model = get_peft_model(base_model, lora_config)
+print(f"Trainable params: {model.num_parameters(only_trainable=True):,}")
+# Typically ~0.1% of original parameters
+</code></pre>
+
+<h3>Other PEFT Methods</h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Approach</th>
+<th>Trainable Params</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Adapters</strong></td>
+<td>Insert small bottleneck layers between Transformer blocks</td>
+<td>~2-4%</td>
+</tr>
+<tr>
+<td><strong>Prefix Tuning</strong></td>
+<td>Prepend trainable continuous vectors to input</td>
+<td>~0.1-1%</td>
+</tr>
+<tr>
+<td><strong>Prompt Tuning</strong></td>
+<td>Learn soft prompts in embedding space</td>
+<td>~0.01%</td>
+</tr>
+<tr>
+<td><strong>QLoRA</strong></td>
+<td>LoRA + 4-bit quantization</td>
+<td>~0.1% + reduced memory</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Note</strong>: For detailed coverage of PEFT methods and their applications to large language models, see <a href="chapter4-large-language-models.html">Chapter 4: Large Language Models</a>.</p>
+</blockquote>
+
+<hr/>
+<h2>3.10 Japanese BERT Models</h2>
 <h3>Representative Japanese BERT Models</h3>
 <table>
 <thead>
@@ -889,7 +1066,7 @@ for text in texts:
     print(f"Prediction: {label} (confidence: {confidence:.4f})")
 </code></pre>
 <hr/>
-<h2>3.9 BERT Application Techniques</h2>
+<h2>3.11 BERT Application Techniques</h2>
 <h3>Feature Extraction</h3>
 <p>Use BERT as a fixed feature extractor.</p>
 <pre><code class="language-python"># Requirements:
@@ -1080,7 +1257,7 @@ trainer = Trainer(
 print("Domain-adapted model ready")
 </code></pre>
 <hr/>
-<h2>3.10 Chapter Summary</h2>
+<h2>3.12 Chapter Summary</h2>
 <h3>What We Learned</h3>
 <ol>
 <li><p><strong>Transformer Architecture</strong></p>

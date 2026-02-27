@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第5章：実践プロジェクト - プロンプトエンジニアリング入門 - AI Terakoya</title>
+    <meta name="description" content="ドキュメント分析、ビジョンプロンプティング、プロンプトキャッシング、本番デプロイメント戦略など、実践的なプロジェクトにプロンプトエンジニアリングスキルを適用します。">
+
+    <style>
+        :root {
+            --color-primary: #2c3e50;
+            --color-primary-dark: #1a252f;
+            --color-accent: #7b2cbf;
+            --color-accent-light: #9d4edd;
+            --color-text: #2d3748;
+            --color-text-light: #4a5568;
+            --color-bg: #ffffff;
+            --color-bg-alt: #f7fafc;
+            --color-border: #e2e8f0;
+            --color-code-bg: #f8f9fa;
+            --color-link: #3182ce;
+            --color-link-hover: #2c5aa0;
+
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+
+            --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+            --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+            --border-radius: 8px;
+            --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body { font-family: var(--font-body); line-height: 1.7; color: var(--color-text); background-color: var(--color-bg); font-size: 16px; }
+
+        header { background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%); color: white; padding: var(--spacing-xl) var(--spacing-md); margin-bottom: var(--spacing-xl); box-shadow: var(--box-shadow); }
+        .header-content { max-width: 900px; margin: 0 auto; }
+        h1 { font-size: 2rem; font-weight: 700; margin-bottom: var(--spacing-sm); line-height: 1.2; }
+        .subtitle { font-size: 1.1rem; opacity: 0.95; font-weight: 400; margin-bottom: var(--spacing-md); }
+        .meta { display: flex; flex-wrap: wrap; gap: var(--spacing-md); font-size: 0.9rem; opacity: 0.9; }
+        .container { max-width: 900px; margin: 0 auto; padding: 0 var(--spacing-md) var(--spacing-xl); }
+
+        h2 { font-size: 1.75rem; color: var(--color-primary); margin-top: var(--spacing-xl); margin-bottom: var(--spacing-md); padding-bottom: var(--spacing-xs); border-bottom: 3px solid var(--color-accent); }
+        h3 { font-size: 1.4rem; color: var(--color-primary); margin-top: var(--spacing-lg); margin-bottom: var(--spacing-sm); }
+        h4 { font-size: 1.1rem; color: var(--color-primary-dark); margin-top: var(--spacing-md); margin-bottom: var(--spacing-sm); }
+        p { margin-bottom: var(--spacing-md); color: var(--color-text); }
+        a { color: var(--color-link); text-decoration: none; transition: color 0.2s; }
+        a:hover { color: var(--color-link-hover); text-decoration: underline; }
+        ul, ol { margin-left: var(--spacing-lg); margin-bottom: var(--spacing-md); }
+        li { margin-bottom: var(--spacing-xs); color: var(--color-text); }
+
+        pre { background-color: var(--color-code-bg); border: 1px solid var(--color-border); border-radius: var(--border-radius); padding: var(--spacing-md); overflow-x: auto; margin-bottom: var(--spacing-md); font-family: var(--font-mono); font-size: 0.9rem; line-height: 1.5; }
+        code { font-family: var(--font-mono); font-size: 0.9em; background-color: var(--color-code-bg); padding: 0.2em 0.4em; border-radius: 3px; }
+        pre code { background-color: transparent; padding: 0; }
+
+        table { width: 100%; border-collapse: collapse; margin-bottom: var(--spacing-md); font-size: 0.95rem; }
+        th, td { border: 1px solid var(--color-border); padding: var(--spacing-sm); text-align: left; }
+        th { background-color: var(--color-bg-alt); font-weight: 600; color: var(--color-primary); }
+
+        .example-box { background: #e3f2fd; border-left: 4px solid #2196f3; padding: var(--spacing-md); margin: var(--spacing-md) 0; border-radius: var(--border-radius); }
+        .example-box h4 { color: #1976d2; margin-top: 0; }
+        .note { background: #fff3e0; border-left: 4px solid #ff9800; padding: var(--spacing-md); margin: var(--spacing-md) 0; border-radius: var(--border-radius); }
+        .note h4 { color: #f57c00; margin-top: 0; }
+
+        .key-takeaways { background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); padding: var(--spacing-lg); margin: var(--spacing-lg) 0; border-radius: var(--border-radius); border: 2px solid #4caf50; }
+        .key-takeaways h3 { color: #2e7d32; margin-top: 0; }
+
+        .project-box { background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%); border-left: 4px solid #9c27b0; padding: var(--spacing-lg); margin: var(--spacing-lg) 0; border-radius: var(--border-radius); }
+        .project-box h3 { color: #7b1fa2; margin-top: 0; }
+
+        .nav-buttons { display: flex; justify-content: space-between; margin: var(--spacing-xl) 0; gap: var(--spacing-sm); flex-wrap: wrap; }
+        .nav-button { display: inline-block; padding: 0.8rem 1.5rem; background: var(--color-accent); color: white; border-radius: 6px; text-decoration: none; transition: all 0.3s; font-weight: 600; }
+        .nav-button:hover { background: var(--color-accent-light); transform: translateY(-2px); }
+
+        .breadcrumb { background: #f7fafc; padding: 0.75rem 1rem; border-bottom: 1px solid #e2e8f0; font-size: 0.9rem; }
+        .breadcrumb-content { max-width: 900px; margin: 0 auto; display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
+        .breadcrumb a { color: #667eea; }
+        .breadcrumb-separator { color: #a0aec0; margin: 0 0.25rem; }
+        .breadcrumb-current { color: #4a5568; font-weight: 500; }
+
+        .locale-switcher { display: inline-block; margin-top: 1rem; padding: 0.5rem 1rem; background: rgba(255, 255, 255, 0.2); border-radius: 6px; font-size: 0.9rem; }
+        .locale-switcher a { color: white; margin: 0 0.5rem; opacity: 0.8; }
+        .locale-switcher .active { font-weight: bold; opacity: 1; }
+
+        .disclaimer { max-width: 900px; margin: 2rem auto; padding: 1.5rem; background: #f8f9fa; border-left: 4px solid #6c757d; border-radius: 4px; }
+        .disclaimer h3 { color: #495057; margin-bottom: 1rem; font-size: 1.1rem; }
+        .disclaimer ul { list-style: none; padding-left: 0; }
+        .disclaimer li { padding: 0.5rem 0; padding-left: 1.5rem; position: relative; font-size: 0.9rem; color: #6c757d; }
+        .disclaimer li::before { content: "!"; position: absolute; left: 0; }
+
+        footer { margin-top: 4rem; padding: 2rem 0; border-top: 2px solid var(--color-border); text-align: center; color: #666; font-size: 0.9rem; }
+
+        .mermaid { text-align: center; margin: 2rem 0; background: white; padding: 1rem; border-radius: 8px; border: 1px solid var(--color-border); }
+
+        @media (max-width: 768px) {
+            .container { padding: 0 var(--spacing-sm) var(--spacing-lg); }
+            h1 { font-size: 1.6rem; }
+            h2 { font-size: 1.4rem; }
+            .nav-buttons { flex-direction: column; }
+        }
+    </style>
+
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof mermaid !== 'undefined') {
+                mermaid.initialize({ startOnLoad: true, theme: 'default' });
+            }
+        });
+    </script>
+
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+</head>
+<body>
+    <nav class="breadcrumb">
+        <div class="breadcrumb-content">
+            <a href="../../index.html">AI Terakoya ホーム</a><span class="breadcrumb-separator">></span><a href="../index.html">機械学習</a><span class="breadcrumb-separator">></span><a href="./index.html">プロンプトエンジニアリング入門</a><span class="breadcrumb-separator">></span><span class="breadcrumb-current">第5章</span>
+        </div>
+    </nav>
+
+    <header>
+        <div class="header-content">
+            <h1>第5章：実践プロジェクト</h1>
+            <p class="subtitle">実世界のアプリケーション：ビジョン、キャッシング、本番デプロイメント</p>
+            <div class="meta">
+                <span>読了時間：25-30分</span>
+                <span>プロジェクト：4</span>
+                <span>コード例：12</span>
+                <span>難易度：中級-上級</span>
+            </div>
+            <div class="locale-switcher">
+                言語：<span class="active">日本語</span> | <a href="../../../en/ML/prompt-engineering-introduction/chapter-5.html">English</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <h2 id="introduction">はじめに</h2>
+
+        <p>この最終章では、学んだすべてを実世界のアプリケーション構築にまとめます。<strong>ビジョンプロンプティング</strong>、<strong>プロンプトキャッシング</strong>、<strong>本番デプロイメント戦略</strong>など、最新のプロンプトエンジニアリング技術を実践する4つのプロジェクトを扱います。</p>
+
+        <p>この章を終えると、以下のものが完成します：</p>
+        <ul>
+            <li>構造化抽出を伴うドキュメント分析システム</li>
+            <li>マルチモーダルプロンプトを使用したビジョンベースアプリケーション</li>
+            <li>コスト最適化のためのプロンプトキャッシング実装</li>
+            <li>本番デプロイメントのベストプラクティス</li>
+        </ul>
+
+        <h2 id="project1">プロジェクト1：ドキュメント分析システム</h2>
+
+        <div class="project-box">
+            <h3>プロジェクト概要</h3>
+            <p><strong>目標</strong>：ビジネスドキュメント（請求書、契約書、レポート）を分析し、構造化情報を抽出するシステムを構築</p>
+            <p><strong>使用技術</strong>：構造化出力、プロンプトチェーン、エラーハンドリング</p>
+            <p><strong>難易度</strong>：中級</p>
+        </div>
+
+        <h3>システムアーキテクチャ</h3>
+
+        <div class="mermaid">
+graph LR
+    A[ドキュメント入力] --> B[分類]
+    B --> C{ドキュメントタイプ}
+    C -->|請求書| D[請求書抽出器]
+    C -->|契約書| E[契約書分析器]
+    C -->|レポート| F[レポート要約器]
+    D --> G[構造化出力]
+    E --> G
+    F --> G
+    G --> H[検証]
+    H --> I[データベース/API]
+        </div>
+
+        <h3>実装</h3>
+
+        <div class="example-box">
+            <h4>ドキュメント分類</h4>
+            <pre><code class="language-python">from openai import OpenAI
+from pydantic import BaseModel
+from typing import Literal
+
+client = OpenAI()
+
+class DocumentClassification(BaseModel):
+    document_type: Literal["invoice", "contract", "report", "other"]
+    confidence: float
+    language: str
+    page_count_estimate: int
+
+def classify_document(text: str) -> DocumentClassification:
+    """ドキュメントを分類し、構造化メタデータを返す"""
+
+    response = client.beta.chat.completions.parse(
+        model="gpt-4o",
+        messages=[
+            {
+                "role": "system",
+                "content": """ドキュメントタイプを分類し、メタデータを抽出してください。
+                ドキュメントタイプ：
+                - invoice：請求書、領収書、支払い要求
+                - contract：契約書、利用規約、NDA
+                - report：分析、要約、研究文書
+                - other：その他"""
+            },
+            {"role": "user", "content": text[:4000]}
+        ],
+        response_format=DocumentClassification
+    )
+
+    return response.choices[0].message.parsed</code></pre>
+        </div>
+
+        <div class="example-box">
+            <h4>請求書抽出</h4>
+            <pre><code class="language-python">from pydantic import BaseModel
+from typing import Optional
+from datetime import date
+
+class LineItem(BaseModel):
+    description: str
+    quantity: float
+    unit_price: float
+    total: float
+
+class InvoiceData(BaseModel):
+    invoice_number: str
+    vendor_name: str
+    customer_name: str
+    invoice_date: date
+    line_items: list[LineItem]
+    subtotal: float
+    tax_amount: float = 0
+    total_amount: float
+    currency: str = "JPY"
+
+def extract_invoice(text: str) -> InvoiceData:
+    """請求書テキストから構造化データを抽出"""
+
+    response = client.beta.chat.completions.parse(
+        model="gpt-4o",
+        messages=[
+            {
+                "role": "system",
+                "content": """すべての請求書情報を構造化フォーマットに抽出してください。
+                - 日付はISO形式（YYYY-MM-DD）でパース
+                - 明示されていない場合は合計を計算
+                - ドキュメントの通貨を使用
+                - 数量と価格を含むすべての明細を抽出"""
+            },
+            {"role": "user", "content": text}
+        ],
+        response_format=InvoiceData
+    )
+
+    return response.choices[0].message.parsed</code></pre>
+        </div>
+
+        <h2 id="project2">プロジェクト2：ビジョンプロンプティングアプリケーション</h2>
+
+        <div class="project-box">
+            <h3>プロジェクト概要</h3>
+            <p><strong>目標</strong>：製品品質検査のために画像を分析するマルチモーダルアプリケーションを構築</p>
+            <p><strong>使用技術</strong>：ビジョンプロンプティング、構造化出力、画像付きFew-shot</p>
+            <p><strong>難易度</strong>：中級</p>
+        </div>
+
+        <h3>ビジョンプロンプティングの基礎</h3>
+
+        <p>最新のLLM（GPT-4V、Claude 3.5、Gemini）はテキストと一緒に画像入力をサポートしています。これにより強力な視覚理解アプリケーションが可能になります。</p>
+
+        <div class="example-box">
+            <h4>基本的な画像分析</h4>
+            <pre><code class="language-python">import base64
+from openai import OpenAI
+
+client = OpenAI()
+
+def encode_image(image_path: str) -> str:
+    """画像をbase64にエンコード"""
+    with open(image_path, "rb") as f:
+        return base64.standard_b64encode(f.read()).decode("utf-8")
+
+def analyze_image(image_path: str, prompt: str) -> str:
+    """カスタムプロンプトで画像を分析"""
+
+    base64_image = encode_image(image_path)
+
+    response = client.chat.completions.create(
+        model="gpt-4o",
+        messages=[
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": prompt},
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:image/jpeg;base64,{base64_image}",
+                            "detail": "high"  # 詳細分析用
+                        }
+                    }
+                ]
+            }
+        ],
+        max_tokens=1000
+    )
+
+    return response.choices[0].message.content
+
+# 使用例
+result = analyze_image(
+    "product.jpg",
+    "この製品画像で見える欠陥や品質問題を説明してください。"
+)</code></pre>
+        </div>
+
+        <h3>品質検査システム</h3>
+
+        <div class="example-box">
+            <h4>製品品質検査器</h4>
+            <pre><code class="language-python">from pydantic import BaseModel
+from typing import Literal
+from enum import Enum
+
+class DefectType(str, Enum):
+    SCRATCH = "傷"
+    DENT = "へこみ"
+    DISCOLORATION = "変色"
+    CRACK = "ひび"
+    MISSING_PART = "部品欠損"
+    CONTAMINATION = "汚染"
+    OTHER = "その他"
+
+class Defect(BaseModel):
+    type: DefectType
+    location: str  # 例："左上隅", "中央"
+    severity: Literal["軽微", "中程度", "重大"]
+    description: str
+
+class QualityInspection(BaseModel):
+    product_identified: str
+    overall_quality: Literal["合格", "不合格", "要レビュー"]
+    confidence: float
+    defects_found: list[Defect]
+    recommendations: list[str]
+
+def inspect_product(image_path: str, product_type: str) -> QualityInspection:
+    """製品画像の品質検査を実行"""
+
+    base64_image = encode_image(image_path)
+
+    response = client.beta.chat.completions.parse(
+        model="gpt-4o",
+        messages=[
+            {
+                "role": "system",
+                "content": f"""あなたは{product_type}製品の品質管理検査員です。
+                画像を分析し、欠陥や品質問題を検出してください。
+
+                品質基準：
+                - 軽微な欠陥：機能に影響しない見た目の問題
+                - 中程度の欠陥：顧客満足に影響する可能性のある目に見える問題
+                - 重大な欠陥：機能問題または安全上の懸念
+
+                合格基準：重大な欠陥なし、軽微な欠陥は最大2つ
+                不合格基準：重大な欠陥あり、または中程度の欠陥が3つ以上
+                要レビュー：人間の判断が必要なエッジケース"""
+            },
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": "この製品画像を検査し、詳細な品質評価を提供してください。"},
+                    {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}}
+                ]
+            }
+        ],
+        response_format=QualityInspection
+    )
+
+    return response.choices[0].message.parsed</code></pre>
+        </div>
+
+        <h2 id="project3">プロジェクト3：コスト最適化のためのプロンプトキャッシング</h2>
+
+        <div class="project-box">
+            <h3>プロジェクト概要</h3>
+            <p><strong>目標</strong>：APIコストを50-90%削減するプロンプトキャッシング戦略を実装</p>
+            <p><strong>使用技術</strong>：プロンプトキャッシング、トークン最適化、バッチ処理</p>
+            <p><strong>難易度</strong>：中級</p>
+        </div>
+
+        <h3>プロンプトキャッシングの理解</h3>
+
+        <p><strong>プロンプトキャッシング</strong>（Anthropic ClaudeとOpenAIで利用可能）により、頻繁に再利用されるプロンプトのプレフィックスをキャッシュできます。キャッシュされたトークンは後続のリクエストで大幅にコストが削減されます。</p>
+
+        <div class="mermaid">
+graph TD
+    A[長いシステムプロンプト] -->|初回リクエスト| B[フル処理]
+    A -->|キャッシュ済み| C[後続リクエスト]
+    B -->|コスト: ¥X| D[応答1]
+    C -->|コスト: ¥0.1X| E[応答2-N]
+
+    style C fill:#e8f5e9
+    style E fill:#e8f5e9
+        </div>
+
+        <h3>Anthropicプロンプトキャッシング</h3>
+
+        <div class="example-box">
+            <h4>Claudeプロンプトキャッシング</h4>
+            <pre><code class="language-python">import anthropic
+
+client = anthropic.Anthropic()
+
+# キャッシュされる大きなシステムプロンプト
+SYSTEM_PROMPT = """あなたは深い知識を持つ専門法務アシスタントです：
+
+[5000トークン以上の法的コンテキスト、判例参照、
+管轄固有のルール、ドキュメントテンプレートなどを含む]
+
+あなたの役割は、弁護士のドキュメント作成、契約レビュー、
+法的調査の支援です。
+"""  # これは10Kトークン以上になる可能性がある
+
+def query_legal_assistant(user_query: str):
+    """プロンプトキャッシングを有効にしてクエリ"""
+
+    response = client.messages.create(
+        model="claude-sonnet-4-20250514",
+        max_tokens=1024,
+        system=[
+            {
+                "type": "text",
+                "text": SYSTEM_PROMPT,
+                "cache_control": {"type": "ephemeral"}  # キャッシングを有効化
+            }
+        ],
+        messages=[
+            {"role": "user", "content": user_query}
+        ]
+    )
+
+    # 応答でキャッシュ使用状況を確認
+    print(f"入力トークン: {response.usage.input_tokens}")
+    print(f"キャッシュ読み取りトークン: {response.usage.cache_read_input_tokens}")
+    print(f"キャッシュ作成トークン: {response.usage.cache_creation_input_tokens}")
+
+    return response.content[0].text
+
+# 初回呼び出し：キャッシュを作成（高コスト）
+result1 = query_legal_assistant("このNDA条項をレビューしてください...")
+
+# 後続呼び出し：キャッシュを使用（キャッシュされたトークンで90%コスト削減）
+result2 = query_legal_assistant("機密保持契約を作成してください...")
+result3 = query_legal_assistant("要件は何ですか...")</code></pre>
+        </div>
+
+        <h3>コスト比較</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>シナリオ</th>
+                    <th>キャッシングなし</th>
+                    <th>キャッシングあり</th>
+                    <th>節約</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>10Kトークンシステムプロンプト、100リクエスト</td>
+                    <td>¥450</td>
+                    <td>¥50</td>
+                    <td>89%</td>
+                </tr>
+                <tr>
+                    <td>8Kコンテキスト付きRAG、50リクエスト</td>
+                    <td>¥180</td>
+                    <td>¥23</td>
+                    <td>87%</td>
+                </tr>
+                <tr>
+                    <td>コードレビュー（フルコードベース）、20リクエスト</td>
+                    <td>¥300</td>
+                    <td>¥38</td>
+                    <td>87%</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h2 id="project4">プロジェクト4：本番デプロイメント</h2>
+
+        <div class="project-box">
+            <h3>プロジェクト概要</h3>
+            <p><strong>目標</strong>：適切なモニタリング、エラーハンドリング、スケーリングを備えたプロンプトベースアプリケーションをデプロイ</p>
+            <p><strong>使用技術</strong>：オブザーバビリティ、レート制限、フォールバック戦略</p>
+            <p><strong>難易度</strong>：上級</p>
+        </div>
+
+        <h3>本番アーキテクチャ</h3>
+
+        <div class="mermaid">
+graph TD
+    A[クライアント] --> B[APIゲートウェイ]
+    B --> C[レートリミッター]
+    C --> D[リクエストルーター]
+    D --> E[プライマリLLM]
+    D --> F[フォールバックLLM]
+    E --> G[レスポンスキャッシュ]
+    F --> G
+    G --> H[モニタリング]
+    H --> I[ロギング]
+    H --> J[メトリクス]
+    H --> K[アラート]
+        </div>
+
+        <h3>堅牢なLLMクライアント</h3>
+
+        <div class="example-box">
+            <h4>本番対応クライアント</h4>
+            <pre><code class="language-python">import time
+from openai import OpenAI
+from anthropic import Anthropic
+from tenacity import retry, stop_after_attempt, wait_exponential
+import logging
+
+logger = logging.getLogger(__name__)
+
+class ProductionLLMClient:
+    """フォールバックとモニタリングを備えた本番対応LLMクライアント"""
+
+    def __init__(self):
+        self.openai = OpenAI()
+        self.anthropic = Anthropic()
+        self.metrics = MetricsCollector()
+
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=4, max=60)
+    )
+    def _call_openai(self, messages: list, **kwargs) -> str:
+        """リトライロジック付きでOpenAIを呼び出す"""
+        start = time.time()
+        try:
+            response = self.openai.chat.completions.create(
+                model=kwargs.get("model", "gpt-4o"),
+                messages=messages,
+                **kwargs
+            )
+            self.metrics.record("openai_success", time.time() - start)
+            return response.choices[0].message.content
+        except Exception as e:
+            self.metrics.record("openai_error", time.time() - start)
+            logger.error(f"OpenAIエラー: {e}")
+            raise
+
+    def complete(self, messages: list, primary: str = "openai", **kwargs) -> str:
+        """自動フォールバック付きで完了"""
+        try:
+            if primary == "openai":
+                return self._call_openai(messages, **kwargs)
+            else:
+                return self._call_anthropic(messages, **kwargs)
+        except Exception as e:
+            logger.warning(f"プライマリプロバイダーが失敗、フォールバックを試行: {e}")
+            # 他のプロバイダーにフォールバック
+            try:
+                if primary == "openai":
+                    return self._call_anthropic(messages, **kwargs)
+                else:
+                    return self._call_openai(messages, **kwargs)
+            except Exception as e2:
+                logger.error(f"すべてのプロバイダーが失敗: {e2}")
+                raise RuntimeError("すべてのLLMプロバイダーが利用不可")</code></pre>
+        </div>
+
+        <h3>本番チェックリスト</h3>
+
+        <div class="note">
+            <h4>デプロイメントチェックリスト</h4>
+            <ul>
+                <li><strong>エラーハンドリング</strong>：リトライロジック、フォールバックプロバイダー、グレースフルデグラデーション</li>
+                <li><strong>レート制限</strong>：ユーザーごとの制限、グローバルスロットリング、キュー管理</li>
+                <li><strong>キャッシング</strong>：レスポンスキャッシング、プロンプトキャッシング、埋め込みキャッシング</li>
+                <li><strong>モニタリング</strong>：レイテンシ、成功率、トークン使用量、コスト追跡</li>
+                <li><strong>ロギング</strong>：リクエスト/レスポンスロギング（サニタイズ済み）、エラー追跡</li>
+                <li><strong>セキュリティ</strong>：入力検証、出力フィルタリング、PII処理</li>
+                <li><strong>コスト管理</strong>：予算アラート、使用量上限、コスト配分</li>
+                <li><strong>テスト</strong>：プロンプト回帰テスト、負荷テスト、カオステスト</li>
+            </ul>
+        </div>
+
+        <h2 id="exercises">最終演習</h2>
+
+        <h3>演習1：ドキュメントプロセッサ拡張（難易度：中）</h3>
+        <div class="note">
+            <p><strong>課題</strong>：ドキュメント分析システムを拡張して以下を処理：</p>
+            <ul>
+                <li>PDFドキュメント（最初にテキストを抽出）</li>
+                <li>多言語サポート（検出と翻訳）</li>
+                <li>抽出フィールドの信頼度スコアリング</li>
+            </ul>
+        </div>
+
+        <h3>演習2：ビジョンアプリケーション（難易度：中）</h3>
+        <div class="note">
+            <p><strong>課題</strong>：以下ができるレシートスキャナーを構築：</p>
+            <ul>
+                <li>レシートの写真を受け入れる</li>
+                <li>店舗、日付、商品、合計を抽出</li>
+                <li>経費を自動分類</li>
+                <li>画質が悪い場合も適切に処理</li>
+            </ul>
+        </div>
+
+        <h3>演習3：キャッシング実装（難易度：中）</h3>
+        <div class="note">
+            <p><strong>課題</strong>：以下を行うチャットボットのキャッシングレイヤーを実装：</p>
+            <ul>
+                <li>システムプロンプトとナレッジベースをキャッシュ</li>
+                <li>キャッシュヒット率とコスト節約を追跡</li>
+                <li>知識が更新されたときに自動的にキャッシュを無効化</li>
+            </ul>
+        </div>
+
+        <h3>演習4：本番API（難易度：上級）</h3>
+        <div class="note">
+            <p><strong>課題</strong>：以下を備えた本番対応APIエンドポイントを構築：</p>
+            <ul>
+                <li>フォールバック付きProductionLLMClientを実装</li>
+                <li>レート制限を含める（1分あたり10リクエスト/ユーザー）</li>
+                <li>Prometheusメトリクスをエクスポート</li>
+                <li>相関IDですべてのリクエストをログ</li>
+            </ul>
+        </div>
+
+        <h3>演習5：完全プロジェクト（難易度：上級）</h3>
+        <div class="note">
+            <p><strong>課題</strong>：すべての技術を組み合わせて「スマート会議ノート」アプリケーションを構築：</p>
+            <ul>
+                <li>入力：会議のトランスクリプト（テキストまたは音声）</li>
+                <li>処理：アクションアイテム、決定事項、参加者を抽出</li>
+                <li>出力：フォローアップタスク付き構造化要約</li>
+                <li>機能：プロンプトキャッシング、エラーハンドリング、モニタリング</li>
+            </ul>
+        </div>
+
+        <h2 id="key-takeaways-section">シリーズまとめ</h2>
+
+        <div class="key-takeaways">
+            <h3>このシリーズの重要ポイント</h3>
+            <ul>
+                <li><strong>第1章</strong>：プロンプトの基礎 - 明確さ、具体性、コンテキスト、制約</li>
+                <li><strong>第2章</strong>：基本技術 - ロールプロンプティング、構造化出力、JSONモード</li>
+                <li><strong>第3章</strong>：高度な技術 - Tree of Thought、ReAct、推論モデルプロンプト</li>
+                <li><strong>第4章</strong>：Function Calling - ツール定義、MCP、エラーハンドリング、オーケストレーション</li>
+                <li><strong>第5章</strong>：本番 - ビジョンプロンプティング、キャッシング、デプロイメントベストプラクティス</li>
+            </ul>
+        </div>
+
+        <h2 id="next-steps">次のステップ</h2>
+
+        <p>プロンプトエンジニアリング入門シリーズの完了おめでとうございます！推奨される次のステップ：</p>
+
+        <ul>
+            <li><strong>実践</strong>：これらの技術を自分のプロジェクトに適用</li>
+            <li><strong>探求</strong>：<a href="../ai-agents-introduction/index.html">AIエージェント入門</a>シリーズを試す</li>
+            <li><strong>深化</strong>：<a href="../llm-basics-introduction/index.html">LLM基礎入門</a>で理論的基盤を学ぶ</li>
+            <li><strong>構築</strong>：独自のプロンプトライブラリとテンプレートを作成</li>
+            <li><strong>共有</strong>：プロンプトエンジニアリングコミュニティに貢献</li>
+        </ul>
+
+        <div class="nav-buttons">
+            <a href="./chapter-4.html" class="nav-button">第4章</a>
+            <a href="./index.html" class="nav-button">シリーズ目次</a>
+        </div>
+
+        <hr>
+
+        <h2 id="references">参考文献</h2>
+        <ul>
+            <li>OpenAI. (2024). <em>Vision Guide</em></li>
+            <li>Anthropic. (2024). <em>Prompt Caching Documentation</em></li>
+            <li>Google. (2024). <em>Gemini Vision Capabilities</em></li>
+            <li>LangChain. (2024). <em>Production Deployment Guide</em></li>
+        </ul>
+
+        <hr>
+
+        <p><strong>更新履歴</strong></p>
+        <ul>
+            <li><strong>2026-01-12</strong>：v2.0 ビジョンとキャッシングプロジェクトを含む初版リリース</li>
+        </ul>
+
+    </main>
+
+    <section class="disclaimer">
+        <h3>免責事項</h3>
+        <ul>
+            <li>本コンテンツは教育目的で提供されています。</li>
+            <li>コード例は保証なしに「現状のまま」提供されます。</li>
+            <li>本番デプロイメント前に必ず十分にテストしてください。</li>
+        </ul>
+    </section>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 AI Terakoya - 橋本優介博士、東北大学</p>
+            <p>CC BY 4.0ライセンス</p>
+        </div>
+    </footer>
+</body>
+</html>

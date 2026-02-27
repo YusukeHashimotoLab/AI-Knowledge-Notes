@@ -3,6 +3,18 @@ title: "Chapter 3: Advanced RAG Techniques"
 chapter_title: "Chapter 3: Advanced RAG Techniques"
 ---
 
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/o7jK2shb68c"
+    title="RAG Introduction Ch.3: Advanced RAG Techniques"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
 This chapter covers advanced topics in Advanced RAG Techniques. You will master essential concepts and techniques.
 
 ## 1\. Query Optimization

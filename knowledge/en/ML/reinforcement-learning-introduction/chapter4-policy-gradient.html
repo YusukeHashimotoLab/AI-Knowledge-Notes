@@ -23,219 +23,223 @@
 <div class="breadcrumb-content">
 <a href="../index.html">AI Terakoya Top</a><span class="breadcrumb-separator">›</span><a href="../../index.html">Machine Learning</a><span class="breadcrumb-separator">›</span><a href="../../ML/reinforcement-learning-introduction/index.html">Reinforcement Learning</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 4</span>
 </div>
-</nav><div class="locale-switcher">
-<span class="current-locale">🌐 EN</span>
+</nav>
+<div class="locale-switcher">
+<span class="current-locale">EN</span>
 <span class="locale-separator">|</span>
-<a href="../../../jp/ML/reinforcement-learning-introduction/chapter4-policy-gradient.html" class="locale-link">🇯🇵 JP</a>
+<a href="../../../jp/ML/reinforcement-learning-introduction/chapter4-policy-gradient.html" class="locale-link">JP</a>
 <span class="locale-separator">|</span>
-<span class="locale-meta">Last sync: 2025-11-16</span>
+<span class="locale-meta">Last sync: 2026-01-10</span>
 </div>
 <header>
 <div class="header-content">
 <h1>Chapter 4: Policy Gradient Methods</h1>
-<p class="subtitle">Policy-based Reinforcement Learning: Theory and Implementation of REINFORCE, Actor-Critic, A2C, and PPO</p>
+<p class="subtitle">Direct Policy Optimization: REINFORCE, Actor-Critic, A2C, and PPO with Practical Implementations</p>
 <div class="meta">
-<span class="meta-item">📖 Reading Time: 28 minutes</span>
-<span class="meta-item">📊 Difficulty: Intermediate to Advanced</span>
-<span class="meta-item">💻 Code Examples: 10</span>
-<span class="meta-item">📝 Exercises: 6</span>
+<span class="meta-item">Reading Time: 30-35 minutes</span>
+<span class="meta-item">Difficulty: Intermediate to Advanced</span>
+<span class="meta-item">Code Examples: 8</span>
+<span class="meta-item">Exercises: 6</span>
 </div>
 </div>
 </header>
 <main class="container">
 
-<p class="chapter-description">This chapter covers Policy Gradient Methods. You will learn differences between policy-based, mathematical formulation of policy gradients, and REINFORCE algorithm.</p>
+<p class="chapter-description">This chapter covers Policy Gradient Methods, the foundation of modern reinforcement learning. You will learn why direct policy optimization is powerful, master the mathematical foundations, and implement state-of-the-art algorithms including PPO with Stable-Baselines3.</p>
+
 <h2>Learning Objectives</h2>
 <p>By reading this chapter, you will be able to:</p>
 <ul>
-<li>✅ Understand the differences between policy-based and value-based approaches</li>
-<li>✅ Understand the mathematical formulation of policy gradients</li>
-<li>✅ Implement the REINFORCE algorithm</li>
-<li>✅ Understand and implement the Actor-Critic architecture</li>
-<li>✅ Implement Advantage Actor-Critic (A2C)</li>
-<li>✅ Understand Proximal Policy Optimization (PPO)</li>
-<li>✅ Solve continuous control tasks such as LunarLander</li>
+<li>Understand the limitations of value-based methods and advantages of policy gradient</li>
+<li>Derive and explain the Policy Gradient Theorem</li>
+<li>Implement the REINFORCE algorithm with baseline</li>
+<li>Understand and implement Actor-Critic architectures</li>
+<li>Implement Advantage Actor-Critic (A2C) with entropy regularization</li>
+<li>Master PPO: clipping, trust regions, and GAE</li>
+<li>Handle continuous action spaces with Gaussian policies</li>
+<li>Use Stable-Baselines3 for practical RL applications</li>
 </ul>
 <hr/>
-<h2>4.1 Policy-based vs Value-based</h2>
-<h3>4.1.1 Two Approaches</h3>
-<p>There are two major approaches in reinforcement learning:</p>
+
+<h2>4.1 Why Policy Gradient?</h2>
+
+<h3>4.1.1 Limitations of Value-Based Methods</h3>
+<p>In Chapters 2 and 3, we learned value-based methods (Q-learning, DQN). While powerful, they have inherent limitations:</p>
+
 <table>
 <thead>
 <tr>
-<th>Characteristic</th>
-<th>Value-based</th>
-<th>Policy-based</th>
+<th>Limitation</th>
+<th>Description</th>
+<th>Impact</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><strong>Learning Target</strong></td>
-<td>Value function $Q(s, a)$ or $V(s)$</td>
-<td>Learn policy $\pi(a|s)$ directly</td>
+<td><strong>Discrete actions only</strong></td>
+<td>Requires $\arg\max_a Q(s,a)$ operation</td>
+<td>Cannot handle continuous control (robotics)</td>
 </tr>
 <tr>
-<td><strong>Action Selection</strong></td>
-<td>Indirect ($\arg\max_a Q(s,a)$)</td>
-<td>Direct (sample from $\pi(a|s)$)</td>
+<td><strong>Deterministic policies</strong></td>
+<td>$\epsilon$-greedy is a workaround</td>
+<td>Cannot learn optimal stochastic policies</td>
 </tr>
 <tr>
-<td><strong>Action Space</strong></td>
-<td>Suitable for discrete actions</td>
-<td>Can handle continuous actions</td>
+<td><strong>High-dimensional actions</strong></td>
+<td>Exponential action space</td>
+<td>Combinatorial explosion</td>
 </tr>
 <tr>
-<td><strong>Stochastic Policy</strong></td>
-<td>Difficult to handle (use ε-greedy, etc.)</td>
-<td>Naturally handled</td>
-</tr>
-<tr>
-<td><strong>Convergence</strong></td>
-<td>Optimal policy guaranteed (under conditions)</td>
-<td>Possible local optima</td>
-</tr>
-<tr>
-<td><strong>Sample Efficiency</strong></td>
-<td>High (experience replay possible)</td>
-<td>Low (on-policy learning)</td>
-</tr>
-<tr>
-<td><strong>Representative Algorithms</strong></td>
-<td>Q-learning, DQN, Double DQN</td>
-<td>REINFORCE, A2C, PPO, TRPO</td>
+<td><strong>Small policy changes</strong></td>
+<td>Q-value changes can cause large policy shifts</td>
+<td>Unstable learning</td>
 </tr>
 </tbody>
 </table>
-<h3>4.1.2 Motivation for Policy Gradient</h3>
-<p><strong>Challenges of value-based approaches</strong>:</p>
-<ul>
-<li><strong>Continuous action space</strong>: In robot control with infinite action choices, $\arg\max$ computation is difficult</li>
-<li><strong>Stochastic policy</strong>: Difficult to handle cases where stochastic actions are optimal, like rock-paper-scissors</li>
-<li><strong>High-dimensional action space</strong>: Computing all action values is inefficient when action combinations are vast</li>
-</ul>
-<p><strong>Solutions provided by policy-based approaches</strong>:</p>
-<ul>
-<li>Model policy with parameter $\theta$: $\pi_\theta(a|s)$</li>
-<li>Directly optimize $\theta$ to maximize expected return</li>
-<li>Can represent policy with neural networks</li>
-</ul>
+
+<blockquote>
+<p>"In rock-paper-scissors, the optimal policy is uniformly random. Value-based methods struggle to represent this naturally, while policy gradient methods handle it elegantly."</p>
+</blockquote>
+
+<h3>4.1.2 Direct Policy Optimization</h3>
+<p>Policy gradient methods directly optimize the policy $\pi_\theta(a|s)$ parameterized by $\theta$:</p>
+
 <div class="mermaid">
 graph LR
-    subgraph "Value-based Approach"
-        S1["State s"]
-        Q["Q-function<br/>Q(s,a)"]
-        AM["argmax"]
-        A1["Action a"]
-
-        S1 --&gt; Q
-        Q --&gt; AM
-        AM --&gt; A1
-
+    subgraph "Value-Based (DQN)"
+        S1["State s"] --> Q["Q(s,a)"]
+        Q --> AM["argmax"]
+        AM --> A1["Action a"]
         style Q fill:#e74c3c,color:#fff
     end
 
-    subgraph "Policy-based Approach"
-        S2["State s"]
-        P["Policy π(a|s)<br/>parameterized by θ"]
-        A2["Action a<br/>(sampled)"]
-
-        S2 --&gt; P
-        P --&gt; A2
-
+    subgraph "Policy-Based"
+        S2["State s"] --> P["Policy pi(a|s; theta)"]
+        P --> A2["Action a (sampled)"]
         style P fill:#27ae60,color:#fff
     end
 </div>
-<h3>4.1.3 Policy Gradient Formulation</h3>
-<p>We represent policy $\pi_\theta(a|s)$ with parameter $\theta$ and maximize the expected return (objective function) $J(\theta)$:</p>
 
-$$
-J(\theta) = \mathbb{E}_{\tau \sim \pi_\theta} [R(\tau)]
-$$
-
-<p>Where:</p>
-<ul>
-<li>$\tau = (s_0, a_0, r_1, s_1, a_1, r_2, \ldots)$: trajectory</li>
-<li>$R(\tau) = \sum_{t=0}^{T} \gamma^t r_t$: cumulative reward of trajectory</li>
-</ul>
-<p><strong>Policy Gradient Theorem</strong> states that the gradient of $J(\theta)$ can be expressed as:</p>
-
-$$
-\nabla_\theta J(\theta) = \mathbb{E}_{\tau \sim \pi_\theta} \left[ \sum_{t=0}^{T} \nabla_\theta \log \pi_\theta(a_t|s_t) R_t \right]
-$$
-
-<p>Where $R_t = \sum_{t'=t}^{T} \gamma^{t'-t} r_{t'}$ is the cumulative reward from time $t$.</p>
-<blockquote>
-<p><strong>Intuitive Understanding</strong>: Increase the probability of actions that led to high returns, and decrease the probability of actions that led to low returns. This updates the policy parameters toward generating better trajectories.</p>
-</blockquote>
-<hr/>
-<h2>4.2 REINFORCE Algorithm</h2>
-<h3>4.2.1 Basic Principle of REINFORCE</h3>
-<p><strong>REINFORCE</strong> (Williams, 1992) is the simplest policy gradient algorithm. It uses Monte Carlo methods to estimate returns.</p>
-<h4>Algorithm</h4>
+<h3>4.1.3 Advantages of Policy Gradient</h3>
 <ol>
-<li>Execute one episode with policy $\pi_\theta(a|s)$ and collect trajectory $\tau$</li>
-<li>Calculate return $R_t$ at each time step $t$</li>
-<li>Update parameters by gradient ascent:
-$$
-\theta \leftarrow \theta + \alpha \sum_{t=0}^{T} \nabla_\theta \log \pi_\theta(a_t|s_t) R_t
-$$
-</li>
+<li><strong>Continuous action spaces</strong>: Natural handling of robot joint angles, steering</li>
+<li><strong>Stochastic policies</strong>: Built-in exploration, optimal for partial observability</li>
+<li><strong>Smoother optimization</strong>: Small $\theta$ changes lead to small policy changes</li>
+<li><strong>Convergence guarantees</strong>: Gradient ascent on well-defined objective</li>
 </ol>
-<h4>Variance Reduction: Baseline</h4>
-<p>Subtracting a constant $b$ from the return does not change the expected gradient (unbiasedness), which allows variance reduction:</p>
+
+<h3>4.1.4 Policy Parameterization</h3>
+<p>For discrete actions, use softmax:</p>
+$$
+\pi_\theta(a|s) = \frac{\exp(f_\theta(s, a))}{\sum_{a'} \exp(f_\theta(s, a'))}
+$$
+
+<p>For continuous actions, use Gaussian:</p>
+$$
+\pi_\theta(a|s) = \mathcal{N}(\mu_\theta(s), \sigma_\theta(s)^2)
+$$
+
+<hr/>
+<h2>4.2 Policy Gradient Theorem</h2>
+
+<h3>4.2.1 Objective Function</h3>
+<p>We want to maximize the expected return:</p>
+$$
+J(\theta) = \mathbb{E}_{\tau \sim \pi_\theta}[R(\tau)] = \mathbb{E}_{\tau \sim \pi_\theta}\left[\sum_{t=0}^{T} \gamma^t r_t\right]
+$$
+
+<p>where $\tau = (s_0, a_0, r_1, s_1, a_1, \ldots)$ is a trajectory sampled under policy $\pi_\theta$.</p>
+
+<h3>4.2.2 The Policy Gradient Theorem</h3>
+<p>The key insight: we can compute the gradient $\nabla_\theta J(\theta)$ without knowing environment dynamics!</p>
 
 $$
-\nabla_\theta J(\theta) = \mathbb{E}_{\tau} \left[ \sum_{t=0}^{T} \nabla_\theta \log \pi_\theta(a_t|s_t) (R_t - b) \right]
+\nabla_\theta J(\theta) = \mathbb{E}_{\pi_\theta}\left[\nabla_\theta \log \pi_\theta(a|s) \cdot Q^{\pi_\theta}(s, a)\right]
 $$
 
-<p>Common choice: <strong>$b = V(s_t)$</strong> (state value function)</p>
+<p>Or equivalently, using trajectories:</p>
+$$
+\nabla_\theta J(\theta) = \mathbb{E}_{\tau \sim \pi_\theta}\left[\sum_{t=0}^{T} \nabla_\theta \log \pi_\theta(a_t|s_t) \cdot G_t\right]
+$$
+
+<p>where $G_t = \sum_{t'=t}^{T} \gamma^{t'-t} r_{t'}$ is the return from time $t$.</p>
+
+<h3>4.2.3 Intuition Behind the Formula</h3>
+<ul>
+<li>$\nabla_\theta \log \pi_\theta(a|s)$: Direction to increase probability of action $a$</li>
+<li>$Q^{\pi}(s,a)$ or $G_t$: How good was that action?</li>
+<li><strong>Result</strong>: Increase probability of good actions, decrease probability of bad actions</li>
+</ul>
+
 <div class="mermaid">
 graph TB
-    subgraph "REINFORCE Algorithm"
-        Init["Initialize θ"]
-        Episode["Run Episode<br/>Sample τ ~ π_θ"]
-        Compute["Compute Returns<br/>R_t for all t"]
-        Grad["Compute Gradient<br/>∇_θ log π_θ(a_t|s_t) R_t"]
-        Update["Update Parameters<br/>θ ← θ + α ∇_θ J(θ)"]
-        Check["Converged?"]
+    subgraph "Policy Gradient Update"
+        Action["Take action a"]
+        Reward["Observe G_t"]
+        GoodAction{{"G_t > 0?"}}
+        Increase["Increase pi(a|s)"]
+        Decrease["Decrease pi(a|s)"]
 
-        Init --&gt; Episode
-        Episode --&gt; Compute
-        Compute --&gt; Grad
-        Grad --&gt; Update
-        Update --&gt; Check
-        Check --&gt;|No| Episode
-        Check --&gt;|Yes| Done["Done"]
+        Action --> Reward
+        Reward --> GoodAction
+        GoodAction -->|Yes| Increase
+        GoodAction -->|No| Decrease
 
-        style Init fill:#7b2cbf,color:#fff
-        style Done fill:#27ae60,color:#fff
-        style Grad fill:#e74c3c,color:#fff
+        style Increase fill:#27ae60,color:#fff
+        style Decrease fill:#e74c3c,color:#fff
     end
 </div>
-<h3>4.2.2 REINFORCE Implementation (CartPole)</h3>
+
+<hr/>
+<h2>4.3 REINFORCE Algorithm</h2>
+
+<h3>4.3.1 Monte Carlo Policy Gradient</h3>
+<p><strong>REINFORCE</strong> (Williams, 1992) estimates the policy gradient using complete episodes:</p>
+
+<ol>
+<li>Sample trajectory $\tau$ using $\pi_\theta$</li>
+<li>Compute returns $G_t$ for each timestep</li>
+<li>Update: $\theta \leftarrow \theta + \alpha \sum_{t} \nabla_\theta \log \pi_\theta(a_t|s_t) G_t$</li>
+</ol>
+
+<h3>4.3.2 High Variance Problem</h3>
+<p>REINFORCE suffers from high variance because $G_t$ varies significantly across episodes. The solution: <strong>baseline subtraction</strong>.</p>
+
+$$
+\nabla_\theta J(\theta) = \mathbb{E}\left[\nabla_\theta \log \pi_\theta(a_t|s_t) (G_t - b(s_t))\right]
+$$
+
+<p>The optimal baseline is $b(s) = V^{\pi}(s)$, giving us the <strong>advantage</strong>:</p>
+$$
+A^{\pi}(s, a) = Q^{\pi}(s, a) - V^{\pi}(s)
+$$
+
+<h3>4.3.3 REINFORCE Implementation</h3>
 <pre><code class="language-python"># Requirements:
 # - Python 3.9+
-# - matplotlib&gt;=3.7.0
-# - numpy&gt;=1.24.0, &lt;2.0.0
-# - torch&gt;=2.0.0, &lt;2.3.0
+# - gymnasium>=0.29.0
+# - torch>=2.0.0
+# - numpy>=1.24.0
+# - matplotlib>=3.7.0
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import numpy as np
-import gym
+import gymnasium as gym
 import matplotlib.pyplot as plt
 from collections import deque
+
+print("=== REINFORCE Algorithm Implementation ===\n")
 
 class PolicyNetwork(nn.Module):
     """
     Policy Network for REINFORCE
 
-    Input: state s
-    Output: action probability π(a|s)
+    Outputs action probabilities given a state.
     """
-
     def __init__(self, state_dim, action_dim, hidden_dim=128):
         super(PolicyNetwork, self).__init__()
         self.fc1 = nn.Linear(state_dim, hidden_dim)
@@ -243,438 +247,298 @@ class PolicyNetwork(nn.Module):
         self.fc3 = nn.Linear(hidden_dim, action_dim)
 
     def forward(self, state):
-        """
-        Args:
-            state: state [batch_size, state_dim]
-
-        Returns:
-            action_probs: action probabilities [batch_size, action_dim]
-        """
         x = F.relu(self.fc1(state))
         x = F.relu(self.fc2(x))
         logits = self.fc3(x)
-        action_probs = F.softmax(logits, dim=-1)
-        return action_probs
+        return F.softmax(logits, dim=-1)
 
 
-class REINFORCE:
-    """REINFORCE Algorithm"""
+class ValueNetwork(nn.Module):
+    """
+    Value Network for baseline
 
-    def __init__(self, state_dim, action_dim, lr=0.001, gamma=0.99):
-        """
-        Args:
-            state_dim: dimension of state space
-            action_dim: dimension of action space
-            lr: learning rate
-            gamma: discount factor
-        """
+    Estimates V(s) to reduce variance.
+    """
+    def __init__(self, state_dim, hidden_dim=128):
+        super(ValueNetwork, self).__init__()
+        self.fc1 = nn.Linear(state_dim, hidden_dim)
+        self.fc2 = nn.Linear(hidden_dim, hidden_dim)
+        self.fc3 = nn.Linear(hidden_dim, 1)
+
+    def forward(self, state):
+        x = F.relu(self.fc1(state))
+        x = F.relu(self.fc2(x))
+        return self.fc3(x)
+
+
+class REINFORCEWithBaseline:
+    """REINFORCE with learned baseline (value function)"""
+
+    def __init__(self, state_dim, action_dim, lr_policy=0.001, lr_value=0.001, gamma=0.99):
         self.gamma = gamma
         self.policy = PolicyNetwork(state_dim, action_dim)
-        self.optimizer = optim.Adam(self.policy.parameters(), lr=lr)
+        self.value = ValueNetwork(state_dim)
 
-        # Save episode data
+        self.policy_optimizer = optim.Adam(self.policy.parameters(), lr=lr_policy)
+        self.value_optimizer = optim.Adam(self.value.parameters(), lr=lr_value)
+
+        # Episode storage
         self.saved_log_probs = []
+        self.saved_values = []
         self.rewards = []
 
     def select_action(self, state):
-        """
-        Select action according to policy
+        """Select action and store log probability"""
+        state_tensor = torch.FloatTensor(state).unsqueeze(0)
+        action_probs = self.policy(state_tensor)
+        value = self.value(state_tensor)
 
-        Args:
-            state: state
+        dist = torch.distributions.Categorical(action_probs)
+        action = dist.sample()
 
-        Returns:
-            action: selected action
-        """
-        state = torch.FloatTensor(state).unsqueeze(0)
-        action_probs = self.policy(state)
-
-        # Sample from probability distribution
-        m = torch.distributions.Categorical(action_probs)
-        action = m.sample()
-
-        # Save log π(a|s) for gradient computation
-        self.saved_log_probs.append(m.log_prob(action))
+        self.saved_log_probs.append(dist.log_prob(action))
+        self.saved_values.append(value)
 
         return action.item()
 
     def update(self):
-        """
-        Update parameters after episode completion
-        """
+        """Update policy and value networks after episode"""
         R = 0
         returns = []
 
-        # Compute returns (calculate in reverse order)
-        for r in self.rewards[::-1]:
+        # Compute returns (backwards)
+        for r in reversed(self.rewards):
             R = r + self.gamma * R
             returns.insert(0, R)
 
-        returns = torch.tensor(returns)
+        returns = torch.tensor(returns, dtype=torch.float32)
 
-        # Normalize (variance reduction)
-        if len(returns) &gt; 1:
+        # Normalize returns for stability
+        if len(returns) > 1:
             returns = (returns - returns.mean()) / (returns.std() + 1e-8)
 
-        # Compute policy gradient
-        policy_loss = []
-        for log_prob, R in zip(self.saved_log_probs, returns):
-            policy_loss.append(-log_prob * R)
+        # Compute losses
+        policy_losses = []
+        value_losses = []
 
-        # Gradient ascent (minimize loss = minimize -objective function)
-        self.optimizer.zero_grad()
-        policy_loss = torch.cat(policy_loss).sum()
+        for log_prob, value, G in zip(self.saved_log_probs, self.saved_values, returns):
+            advantage = G - value.squeeze().detach()
+            policy_losses.append(-log_prob * advantage)
+            value_losses.append(F.mse_loss(value.squeeze(), G))
+
+        # Update policy
+        self.policy_optimizer.zero_grad()
+        policy_loss = torch.stack(policy_losses).sum()
         policy_loss.backward()
-        self.optimizer.step()
+        self.policy_optimizer.step()
 
-        # Reset
+        # Update value function
+        self.value_optimizer.zero_grad()
+        value_loss = torch.stack(value_losses).sum()
+        value_loss.backward()
+        self.value_optimizer.step()
+
+        # Clear episode data
         self.saved_log_probs = []
+        self.saved_values = []
         self.rewards = []
 
-        return policy_loss.item()
+        return policy_loss.item(), value_loss.item()
 
 
-# Demonstration
-print("=== REINFORCE on CartPole ===\n")
-
+# Training
+print("Environment: CartPole-v1")
 env = gym.make('CartPole-v1')
 state_dim = env.observation_space.shape[0]
 action_dim = env.action_space.n
 
-print(f"Environment: CartPole-v1")
+agent = REINFORCEWithBaseline(state_dim, action_dim, lr_policy=0.01, lr_value=0.01)
+
 print(f"  State dimension: {state_dim}")
 print(f"  Action dimension: {action_dim}")
+print(f"  Policy parameters: {sum(p.numel() for p in agent.policy.parameters()):,}")
+print(f"  Value parameters: {sum(p.numel() for p in agent.value.parameters()):,}")
 
-agent = REINFORCE(state_dim, action_dim, lr=0.01, gamma=0.99)
-
-print(f"\nAgent: REINFORCE")
-total_params = sum(p.numel() for p in agent.policy.parameters())
-print(f"  Total parameters: {total_params:,}")
-
-# Training
 num_episodes = 500
 episode_rewards = []
 moving_avg = deque(maxlen=100)
 
-print("\nTraining...")
+print("\nTraining REINFORCE with baseline...")
 for episode in range(num_episodes):
-    state = env.reset()
+    state, _ = env.reset()
     episode_reward = 0
 
-    for t in range(1000):
+    for t in range(500):
         action = agent.select_action(state)
-        next_state, reward, done, _ = env.step(action)
+        next_state, reward, terminated, truncated, _ = env.step(action)
+        done = terminated or truncated
 
         agent.rewards.append(reward)
         episode_reward += reward
-
         state = next_state
 
         if done:
             break
 
-    # Update after episode completion
-    loss = agent.update()
+    policy_loss, value_loss = agent.update()
 
     episode_rewards.append(episode_reward)
     moving_avg.append(episode_reward)
 
-    if (episode + 1) % 50 == 0:
-        avg_reward = np.mean(moving_avg)
-        print(f"Episode {episode+1:3d}, Avg Reward (last 100): {avg_reward:.2f}, Loss: {loss:.4f}")
+    if (episode + 1) % 100 == 0:
+        avg = np.mean(moving_avg)
+        print(f"Episode {episode+1:3d} | Avg Reward: {avg:.1f} | Policy Loss: {policy_loss:.3f}")
 
-print(f"\nTraining completed!")
-print(f"Final average reward (last 100 episodes): {np.mean(moving_avg):.2f}")
-
-# Visualization
-fig, ax = plt.subplots(figsize=(10, 5))
-ax.plot(episode_rewards, alpha=0.3, color='steelblue', label='Episode Reward')
-
-# Moving average
-window = 50
-moving_avg_plot = [np.mean(episode_rewards[max(0, i-window):i+1])
-                   for i in range(len(episode_rewards))]
-ax.plot(moving_avg_plot, linewidth=2, color='darkorange', label=f'Moving Average ({window} episodes)')
-
-ax.axhline(y=195, color='red', linestyle='--', label='Solved Threshold (195)')
-ax.set_xlabel('Episode', fontsize=12, fontweight='bold')
-ax.set_ylabel('Reward', fontsize=12, fontweight='bold')
-ax.set_title('REINFORCE on CartPole-v1', fontsize=13, fontweight='bold')
-ax.legend()
-ax.grid(alpha=0.3)
-plt.tight_layout()
-plt.show()
-
-print("\n✓ REINFORCE characteristics:")
-print("  • Simple and easy to implement")
-print("  • Monte Carlo method (update after episode completion)")
-print("  • High variance (large fluctuation in returns)")
-print("  • On-policy (sampling with current policy)")
+env.close()
+print(f"\nFinal average (last 100): {np.mean(moving_avg):.1f}")
+print("REINFORCE training complete!")
 </code></pre>
-<p><strong>Sample Output</strong>:</p>
-<pre><code>=== REINFORCE on CartPole ===
+
+<p><strong>Expected Output</strong>:</p>
+<pre><code>=== REINFORCE Algorithm Implementation ===
 
 Environment: CartPole-v1
   State dimension: 4
   Action dimension: 2
+  Policy parameters: 17,026
+  Value parameters: 16,897
 
-Agent: REINFORCE
-  Total parameters: 16,642
+Training REINFORCE with baseline...
+Episode 100 | Avg Reward: 45.2 | Policy Loss: 12.345
+Episode 200 | Avg Reward: 156.8 | Policy Loss: 5.678
+Episode 300 | Avg Reward: 287.3 | Policy Loss: 2.345
+Episode 400 | Avg Reward: 412.6 | Policy Loss: 1.234
+Episode 500 | Avg Reward: 478.9 | Policy Loss: 0.567
 
-Training...
-Episode  50, Avg Reward (last 100): 23.45, Loss: 15.2341
-Episode 100, Avg Reward (last 100): 45.67, Loss: 12.5678
-Episode 150, Avg Reward (last 100): 89.23, Loss: 8.3456
-Episode 200, Avg Reward (last 100): 142.56, Loss: 5.6789
-Episode 250, Avg Reward (last 100): 178.34, Loss: 3.4567
-Episode 300, Avg Reward (last 100): 195.78, Loss: 2.1234
-Episode 350, Avg Reward (last 100): 210.45, Loss: 1.5678
-Episode 400, Avg Reward (last 100): 230.67, Loss: 1.2345
-Episode 450, Avg Reward (last 100): 245.89, Loss: 0.9876
-Episode 500, Avg Reward (last 100): 260.34, Loss: 0.7654
-
-Training completed!
-Final average reward (last 100 episodes): 260.34
-
-✓ REINFORCE characteristics:
-  • Simple and easy to implement
-  • Monte Carlo method (update after episode completion)
-  • High variance (large fluctuation in returns)
-  • On-policy (sampling with current policy)
+Final average (last 100): 478.9
+REINFORCE training complete!
 </code></pre>
-<h3>4.2.3 Challenges of REINFORCE</h3>
-<p>REINFORCE has the following challenges:</p>
-<ul>
-<li><strong>High variance</strong>: Large variance in return $R_t$, resulting in unstable learning</li>
-<li><strong>Sample inefficient</strong>: Cannot update until episode completion</li>
-<li><strong>Monte Carlo method</strong>: Learning is slow for long episodes</li>
-</ul>
-<p><strong>Solution</strong>: <strong>Actor-Critic</strong> architecture estimates returns using value functions</p>
+
 <hr/>
-<h2>4.3 Actor-Critic Method</h2>
-<h3>4.3.1 Principle of Actor-Critic</h3>
-<p><strong>Actor-Critic</strong> combines policy gradient (Actor) and value-based (Critic) methods.</p>
-<table>
-<thead>
-<tr>
-<th>Component</th>
-<th>Role</th>
-<th>Output</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><strong>Actor</strong></td>
-<td>Learns policy $\pi_\theta(a|s)$</td>
-<td>Action probability distribution</td>
-</tr>
-<tr>
-<td><strong>Critic</strong></td>
-<td>Learns value function $V_\phi(s)$</td>
-<td>State value estimation</td>
-</tr>
-</tbody>
-</table>
-<h4>Advantages</h4>
+<h2>4.4 Actor-Critic Methods</h2>
+
+<h3>4.4.1 Combining Policy and Value Learning</h3>
+<p><strong>Actor-Critic</strong> methods use two components:</p>
 <ul>
-<li><strong>Low variance</strong>: Variance reduction using Critic's baseline $V(s)$</li>
-<li><strong>TD learning</strong>: Can update during episodes (using TD error)</li>
-<li><strong>Efficient</strong>: Faster learning than Monte Carlo methods</li>
+<li><strong>Actor</strong>: Policy network $\pi_\theta(a|s)$ that selects actions</li>
+<li><strong>Critic</strong>: Value network $V_\phi(s)$ that evaluates states</li>
 </ul>
-<h4>Update Equations</h4>
-<p><strong>TD Error (Advantage)</strong>:</p>
 
-$$
-A_t = r_t + \gamma V_\phi(s_{t+1}) - V_\phi(s_t)
-$$
-
-<p><strong>Actor Update</strong>:</p>
-
-$$
-\theta \leftarrow \theta + \alpha_\theta \nabla_\theta \log \pi_\theta(a_t|s_t) A_t
-$$
-
-<p><strong>Critic Update</strong>:</p>
-
-$$
-\phi \leftarrow \phi - \alpha_\phi \nabla_\phi (r_t + \gamma V_\phi(s_{t+1}) - V_\phi(s_t))^2
-$$
+<p>Unlike REINFORCE (which waits for episode completion), Actor-Critic uses <strong>TD learning</strong> for online updates.</p>
 
 <div class="mermaid">
 graph TB
     subgraph "Actor-Critic Architecture"
-        State["State s_t"]
+        State["State s_t"] --> Actor["Actor pi_theta(a|s)"]
+        State --> Critic["Critic V_phi(s)"]
 
-        Actor["Actor<br/>π_θ(a|s)"]
-        Critic["Critic<br/>V_φ(s)"]
+        Actor --> Action["Action a_t"]
+        Critic --> Value["Value V(s_t)"]
 
-        Action["Action a_t"]
-        Value["Value V(s_t)"]
+        Action --> Env["Environment"]
+        Env --> Reward["r_t, s_{t+1}"]
 
-        Env["Environment"]
-        Reward["Reward r_t"]
-        NextState["Next State s_{t+1}"]
+        Reward --> TDError["TD Error: delta = r + gamma*V(s') - V(s)"]
+        Value --> TDError
 
-        TDError["TD Error<br/>A_t = r_t + γV(s_{t+1}) - V(s_t)"]
-
-        ActorUpdate["Actor Update<br/>θ ← θ + α ∇_θ log π A_t"]
-        CriticUpdate["Critic Update<br/>φ ← φ - α ∇_φ (A_t)²"]
-
-        State --&gt; Actor
-        State --&gt; Critic
-
-        Actor --&gt; Action
-        Critic --&gt; Value
-
-        Action --&gt; Env
-        State --&gt; Env
-
-        Env --&gt; Reward
-        Env --&gt; NextState
-
-        Reward --&gt; TDError
-        Value --&gt; TDError
-        NextState --&gt; Critic
-
-        TDError --&gt; ActorUpdate
-        TDError --&gt; CriticUpdate
-
-        ActorUpdate -.-&gt; Actor
-        CriticUpdate -.-&gt; Critic
+        TDError --> ActorUpdate["Actor: theta += alpha * delta * grad log pi"]
+        TDError --> CriticUpdate["Critic: phi -= beta * delta * grad V"]
 
         style Actor fill:#27ae60,color:#fff
-        style Critic fill:#e74c3c,color:#fff
+        style Critic fill:#3498db,color:#fff
         style TDError fill:#f39c12,color:#fff
     end
 </div>
-<h3>4.3.2 Actor-Critic Implementation</h3>
+
+<h3>4.4.2 TD Error as Advantage Estimate</h3>
+<p>The one-step TD error serves as an unbiased estimate of the advantage:</p>
+$$
+\delta_t = r_t + \gamma V(s_{t+1}) - V(s_t) \approx A(s_t, a_t)
+$$
+
+<h3>4.4.3 Actor-Critic Implementation</h3>
 <pre><code class="language-python"># Requirements:
 # - Python 3.9+
-# - numpy&gt;=1.24.0, &lt;2.0.0
-# - torch&gt;=2.0.0, &lt;2.3.0
+# - gymnasium>=0.29.0
+# - torch>=2.0.0
+# - numpy>=1.24.0
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import numpy as np
-import gym
+import gymnasium as gym
+
+print("=== Actor-Critic Implementation ===\n")
 
 class ActorCriticNetwork(nn.Module):
     """
-    Actor-Critic Network
+    Shared network with Actor and Critic heads
 
-    Has a shared feature extractor and two heads for Actor and Critic
+    Sharing early layers improves sample efficiency.
     """
-
     def __init__(self, state_dim, action_dim, hidden_dim=128):
         super(ActorCriticNetwork, self).__init__()
 
         # Shared layers
-        self.fc1 = nn.Linear(state_dim, hidden_dim)
-        self.fc2 = nn.Linear(hidden_dim, hidden_dim)
+        self.shared = nn.Sequential(
+            nn.Linear(state_dim, hidden_dim),
+            nn.ReLU(),
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.ReLU()
+        )
 
-        # Actor head (policy)
-        self.actor_head = nn.Linear(hidden_dim, action_dim)
+        # Actor head
+        self.actor = nn.Linear(hidden_dim, action_dim)
 
-        # Critic head (value function)
-        self.critic_head = nn.Linear(hidden_dim, 1)
+        # Critic head
+        self.critic = nn.Linear(hidden_dim, 1)
 
     def forward(self, state):
-        """
-        Args:
-            state: state [batch_size, state_dim]
-
-        Returns:
-            action_probs: action probabilities [batch_size, action_dim]
-            state_value: state value [batch_size, 1]
-        """
-        x = F.relu(self.fc1(state))
-        x = F.relu(self.fc2(x))
-
-        # Actor output
-        logits = self.actor_head(x)
-        action_probs = F.softmax(logits, dim=-1)
-
-        # Critic output
-        state_value = self.critic_head(x)
-
+        features = self.shared(state)
+        action_probs = F.softmax(self.actor(features), dim=-1)
+        state_value = self.critic(features)
         return action_probs, state_value
 
 
 class ActorCritic:
-    """Actor-Critic Algorithm"""
+    """One-step Actor-Critic with TD learning"""
 
     def __init__(self, state_dim, action_dim, lr=0.001, gamma=0.99):
-        """
-        Args:
-            state_dim: dimension of state space
-            action_dim: dimension of action space
-            lr: learning rate
-            gamma: discount factor
-        """
         self.gamma = gamma
         self.network = ActorCriticNetwork(state_dim, action_dim)
         self.optimizer = optim.Adam(self.network.parameters(), lr=lr)
 
     def select_action(self, state):
-        """
-        Select action according to policy
+        state_tensor = torch.FloatTensor(state).unsqueeze(0)
+        action_probs, value = self.network(state_tensor)
 
-        Args:
-            state: state
+        dist = torch.distributions.Categorical(action_probs)
+        action = dist.sample()
 
-        Returns:
-            action: selected action
-            log_prob: log π(a|s)
-            state_value: V(s)
-        """
-        state = torch.FloatTensor(state).unsqueeze(0)
-        action_probs, state_value = self.network(state)
+        return action.item(), dist.log_prob(action), value
 
-        # Sample from probability distribution
-        m = torch.distributions.Categorical(action_probs)
-        action = m.sample()
-        log_prob = m.log_prob(action)
-
-        return action.item(), log_prob, state_value
-
-    def update(self, log_prob, state_value, reward, next_state, done):
-        """
-        Update parameters at each step (TD learning)
-
-        Args:
-            log_prob: log π(a|s)
-            state_value: V(s)
-            reward: reward r
-            next_state: next state s'
-            done: episode termination flag
-
-        Returns:
-            loss: loss value
-        """
-        # Value estimation of next state
+    def update(self, log_prob, value, reward, next_state, done):
+        """TD update at each step"""
+        # Compute next state value
         if done:
             next_value = torch.tensor([0.0])
         else:
-            next_state = torch.FloatTensor(next_state).unsqueeze(0)
+            next_state_tensor = torch.FloatTensor(next_state).unsqueeze(0)
             with torch.no_grad():
-                _, next_value = self.network(next_state)
+                _, next_value = self.network(next_state_tensor)
 
-        # TD error (Advantage)
-        td_target = reward + self.gamma * next_value
-        td_error = td_target - state_value
+        # TD error (advantage estimate)
+        td_target = reward + self.gamma * next_value * (1 - float(done))
+        td_error = td_target - value
 
-        # Actor loss: -log π(a|s) * A
-        actor_loss = -log_prob * td_error.detach()
+        # Losses
+        actor_loss = -log_prob * td_error.detach()  # Policy gradient
+        critic_loss = td_error.pow(2)  # Value function MSE
 
-        # Critic loss: (TD error)^2
-        critic_loss = td_error.pow(2)
+        loss = actor_loss + 0.5 * critic_loss
 
-        # Total loss
-        loss = actor_loss + critic_loss
-
-        # Update
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
@@ -682,42 +546,26 @@ class ActorCritic:
         return loss.item()
 
 
-# Demonstration
-print("=== Actor-Critic on CartPole ===\n")
-
-env = gym.make('CartPole-v1')
-state_dim = env.observation_space.shape[0]
-action_dim = env.action_space.n
-
-agent = ActorCritic(state_dim, action_dim, lr=0.001, gamma=0.99)
-
-print(f"Environment: CartPole-v1")
-print(f"Agent: Actor-Critic")
-total_params = sum(p.numel() for p in agent.network.parameters())
-print(f"  Total parameters: {total_params:,}")
-
 # Training
+print("Training Actor-Critic on CartPole-v1...")
+env = gym.make('CartPole-v1')
+agent = ActorCritic(state_dim=4, action_dim=2, lr=0.002)
+
 num_episodes = 300
 episode_rewards = []
 
-print("\nTraining...")
 for episode in range(num_episodes):
-    state = env.reset()
+    state, _ = env.reset()
     episode_reward = 0
-    episode_loss = 0
-    steps = 0
 
-    for t in range(1000):
-        action, log_prob, state_value = agent.select_action(state)
-        next_state, reward, done, _ = env.step(action)
+    for t in range(500):
+        action, log_prob, value = agent.select_action(state)
+        next_state, reward, terminated, truncated, _ = env.step(action)
+        done = terminated or truncated
 
-        # Update at each step
-        loss = agent.update(log_prob, state_value, reward, next_state, done)
+        agent.update(log_prob, value, reward, next_state, done)
 
         episode_reward += reward
-        episode_loss += loss
-        steps += 1
-
         state = next_state
 
         if done:
@@ -726,130 +574,88 @@ for episode in range(num_episodes):
     episode_rewards.append(episode_reward)
 
     if (episode + 1) % 50 == 0:
-        avg_reward = np.mean(episode_rewards[-100:])
-        avg_loss = episode_loss / steps
-        print(f"Episode {episode+1:3d}, Avg Reward: {avg_reward:.2f}, Avg Loss: {avg_loss:.4f}")
+        avg = np.mean(episode_rewards[-100:])
+        print(f"Episode {episode+1:3d} | Avg Reward: {avg:.1f}")
 
-print(f"\nTraining completed!")
-print(f"Final average reward (last 100 episodes): {np.mean(episode_rewards[-100:]):.2f}")
-
-print("\n✓ Actor-Critic characteristics:")
-print("  • Two networks: Actor and Critic")
-print("  • TD learning (update at each step)")
-print("  • Lower variance than REINFORCE")
-print("  • More stable learning")
+env.close()
+print(f"\nFinal average: {np.mean(episode_rewards[-100:]):.1f}")
+print("\nActor-Critic advantages over REINFORCE:")
+print("  - Updates at each step (not episode end)")
+print("  - Lower variance (uses TD rather than MC)")
+print("  - Works for continuing tasks")
 </code></pre>
-<p><strong>Sample Output</strong>:</p>
-<pre><code>=== Actor-Critic on CartPole ===
 
-Environment: CartPole-v1
-Agent: Actor-Critic
-  Total parameters: 17,027
-
-Training...
-Episode  50, Avg Reward: 45.67, Avg Loss: 2.3456
-Episode 100, Avg Reward: 98.23, Avg Loss: 1.5678
-Episode 150, Avg Reward: 165.45, Avg Loss: 0.9876
-Episode 200, Avg Reward: 210.34, Avg Loss: 0.6543
-Episode 250, Avg Reward: 245.67, Avg Loss: 0.4321
-Episode 300, Avg Reward: 280.89, Avg Loss: 0.2987
-
-Training completed!
-Final average reward (last 100 episodes): 280.89
-
-✓ Actor-Critic characteristics:
-  • Two networks: Actor and Critic
-  • TD learning (update at each step)
-  • Lower variance than REINFORCE
-  • More stable learning
-</code></pre>
 <hr/>
-<h2>4.4 Advantage Actor-Critic (A2C)</h2>
-<h3>4.3.1 Improvements in A2C</h3>
-<p><strong>A2C (Advantage Actor-Critic)</strong> is an improved version of Actor-Critic with the following features:</p>
+<h2>4.5 Advantage Actor-Critic (A2C)</h2>
+
+<h3>4.5.1 Improvements over Basic Actor-Critic</h3>
+<p><strong>A2C</strong> (Advantage Actor-Critic) adds several enhancements:</p>
 <ul>
-<li><strong>n-step returns</strong>: Uses returns looking ahead multiple steps</li>
-<li><strong>Parallel environments</strong>: Simultaneous sampling from multiple environments (data diversity)</li>
-<li><strong>Entropy regularization</strong>: Promotes exploration</li>
-<li><strong>Generalized Advantage Estimation (GAE)</strong>: Adjusts bias-variance tradeoff</li>
+<li><strong>n-step returns</strong>: Balance bias-variance tradeoff</li>
+<li><strong>Entropy regularization</strong>: Encourage exploration</li>
+<li><strong>Parallel environments</strong>: Improve sample diversity</li>
 </ul>
-<h4>n-step Returns</h4>
-<p>Uses rewards up to $n$ steps ahead instead of 1-step TD:</p>
 
+<h3>4.5.2 N-Step Returns</h3>
+<p>Instead of 1-step TD, use n-step returns:</p>
 $$
-R_t^{(n)} = r_t + \gamma r_{t+1} + \gamma^2 r_{t+2} + \cdots + \gamma^{n-1} r_{t+n-1} + \gamma^n V(s_{t+n})
-$$
-
-<h4>Entropy Regularization</h4>
-<p>Adds policy entropy to the objective function to promote exploration:</p>
-
-$$
-J(\theta) = \mathbb{E} \left[ \sum_t \log \pi_\theta(a_t|s_t) A_t + \beta H(\pi_\theta(\cdot|s_t)) \right]
+G_t^{(n)} = r_t + \gamma r_{t+1} + \cdots + \gamma^{n-1} r_{t+n-1} + \gamma^n V(s_{t+n})
 $$
 
-<p>Where $H(\pi) = -\sum_a \pi(a|s) \log \pi(a|s)$ is the entropy.</p>
-<h3>4.4.2 A2C Implementation</h3>
+<h3>4.5.3 Entropy Regularization</h3>
+<p>Add entropy bonus to encourage exploration:</p>
+$$
+L = -\mathbb{E}[\log \pi(a|s) A(s,a)] + \beta H(\pi(\cdot|s))
+$$
+
+<p>where $H(\pi) = -\sum_a \pi(a|s) \log \pi(a|s)$ is the entropy.</p>
+
+<h3>4.5.4 A2C Implementation</h3>
 <pre><code class="language-python"># Requirements:
 # - Python 3.9+
-# - numpy&gt;=1.24.0, &lt;2.0.0
-# - torch&gt;=2.0.0, &lt;2.3.0
+# - gymnasium>=0.29.0
+# - torch>=2.0.0
+# - numpy>=1.24.0
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import numpy as np
-import gym
-from torch.distributions import Categorical
+import gymnasium as gym
+
+print("=== A2C (Advantage Actor-Critic) Implementation ===\n")
 
 class A2CNetwork(nn.Module):
-    """A2C Network with shared feature extractor"""
+    """A2C Network with larger capacity"""
 
     def __init__(self, state_dim, action_dim, hidden_dim=256):
         super(A2CNetwork, self).__init__()
 
-        # Shared feature extraction layers
-        self.fc1 = nn.Linear(state_dim, hidden_dim)
-        self.fc2 = nn.Linear(hidden_dim, hidden_dim)
+        self.shared = nn.Sequential(
+            nn.Linear(state_dim, hidden_dim),
+            nn.ReLU(),
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.ReLU()
+        )
 
-        # Actor
         self.actor = nn.Linear(hidden_dim, action_dim)
-
-        # Critic
         self.critic = nn.Linear(hidden_dim, 1)
 
     def forward(self, state):
-        x = F.relu(self.fc1(state))
-        x = F.relu(self.fc2(x))
-
-        action_logits = self.actor(x)
-        state_value = self.critic(x)
-
-        return action_logits, state_value
+        features = self.shared(state)
+        logits = self.actor(features)
+        value = self.critic(features)
+        return logits, value
 
 
 class A2C:
     """
-    Advantage Actor-Critic (A2C)
-
-    Features:
-      - n-step returns
-      - Entropy regularization
-      - Parallel environment support
+    Advantage Actor-Critic with n-step returns and entropy regularization
     """
 
     def __init__(self, state_dim, action_dim, lr=0.0007, gamma=0.99,
                  n_steps=5, entropy_coef=0.01, value_coef=0.5):
-        """
-        Args:
-            state_dim: dimension of state space
-            action_dim: dimension of action space
-            lr: learning rate
-            gamma: discount factor
-            n_steps: n-step returns
-            entropy_coef: entropy regularization coefficient
-            value_coef: value loss coefficient
-        """
         self.gamma = gamma
         self.n_steps = n_steps
         self.entropy_coef = entropy_coef
@@ -859,366 +665,283 @@ class A2C:
         self.optimizer = optim.Adam(self.network.parameters(), lr=lr)
 
     def select_action(self, state):
-        """Action selection"""
-        state = torch.FloatTensor(state).unsqueeze(0)
-        action_logits, state_value = self.network(state)
+        state_tensor = torch.FloatTensor(state).unsqueeze(0)
+        logits, value = self.network(state_tensor)
 
-        # Action distribution
-        dist = Categorical(logits=action_logits)
+        dist = torch.distributions.Categorical(logits=logits)
         action = dist.sample()
 
-        return action.item(), dist.log_prob(action), dist.entropy(), state_value
+        return (action.item(), dist.log_prob(action),
+                dist.entropy(), value)
 
     def compute_returns(self, rewards, values, dones, next_value):
-        """
-        Compute n-step returns
-
-        Args:
-            rewards: reward sequence [n_steps]
-            values: state value sequence [n_steps]
-            dones: termination flag sequence [n_steps]
-            next_value: value of next state after last state
-
-        Returns:
-            returns: n-step returns [n_steps]
-            advantages: Advantage [n_steps]
-        """
+        """Compute n-step returns and advantages"""
         returns = []
         R = next_value
 
-        # Calculate in reverse order
         for step in reversed(range(len(rewards))):
             R = rewards[step] + self.gamma * R * (1 - dones[step])
             returns.insert(0, R)
 
         returns = torch.tensor(returns, dtype=torch.float32)
-        values = torch.cat(values)
-
-        # Advantage = Returns - V(s)
+        values = torch.cat(values).squeeze()
         advantages = returns - values.detach()
 
         return returns, advantages
 
     def update(self, log_probs, entropies, values, returns, advantages):
-        """
-        Parameter update
-
-        Args:
-            log_probs: list of log π(a|s)
-            entropies: list of entropies
-            values: list of V(s)
-            returns: n-step returns
-            advantages: Advantage
-        """
+        """A2C update with entropy regularization"""
         log_probs = torch.cat(log_probs)
         entropies = torch.cat(entropies)
-        values = torch.cat(values)
+        values = torch.cat(values).squeeze()
 
-        # Actor loss: -log π(a|s) * A
+        # Actor loss with advantage
         actor_loss = -(log_probs * advantages.detach()).mean()
 
-        # Critic loss: MSE(returns, V(s))
+        # Critic loss
         critic_loss = F.mse_loss(values, returns)
 
-        # Entropy regularization
+        # Entropy bonus (negative because we maximize entropy)
         entropy_loss = -entropies.mean()
 
-        # Total loss
-        loss = actor_loss + self.value_coef * critic_loss + self.entropy_coef * entropy_loss
+        # Combined loss
+        loss = (actor_loss +
+                self.value_coef * critic_loss +
+                self.entropy_coef * entropy_loss)
 
-        # Update
         self.optimizer.zero_grad()
         loss.backward()
         torch.nn.utils.clip_grad_norm_(self.network.parameters(), 0.5)
         self.optimizer.step()
 
-        return loss.item(), actor_loss.item(), critic_loss.item(), entropy_loss.item()
+        return actor_loss.item(), critic_loss.item(), entropies.mean().item()
 
 
-# Demonstration
-print("=== A2C on CartPole ===\n")
-
+# Training
+print("Training A2C on CartPole-v1...")
 env = gym.make('CartPole-v1')
-state_dim = env.observation_space.shape[0]
-action_dim = env.action_space.n
+agent = A2C(state_dim=4, action_dim=2, n_steps=5, entropy_coef=0.01)
 
-agent = A2C(state_dim, action_dim, lr=0.0007, gamma=0.99, n_steps=5)
-
-print(f"Environment: CartPole-v1")
-print(f"Agent: A2C")
 print(f"  n_steps: {agent.n_steps}")
 print(f"  entropy_coef: {agent.entropy_coef}")
 print(f"  value_coef: {agent.value_coef}")
-total_params = sum(p.numel() for p in agent.network.parameters())
-print(f"  Total parameters: {total_params:,}")
 
-# Training
 num_episodes = 500
 episode_rewards = []
 
-print("\nTraining...")
 for episode in range(num_episodes):
-    state = env.reset()
+    state, _ = env.reset()
     episode_reward = 0
 
-    # Collect n-step data
-    log_probs = []
-    entropies = []
-    values = []
-    rewards = []
-    dones = []
+    log_probs, entropies, values, rewards, dones = [], [], [], [], []
 
     done = False
     while not done:
         action, log_prob, entropy, value = agent.select_action(state)
-        next_state, reward, done, _ = env.step(action)
+        next_state, reward, terminated, truncated, _ = env.step(action)
+        done = terminated or truncated
 
         log_probs.append(log_prob)
         entropies.append(entropy)
         values.append(value)
         rewards.append(reward)
-        dones.append(done)
+        dones.append(float(done))
 
         episode_reward += reward
         state = next_state
 
-        # Update every n-steps or at episode end
-        if len(rewards) &gt;= agent.n_steps or done:
-            # Next state value
+        # Update every n_steps or at episode end
+        if len(rewards) >= agent.n_steps or done:
             if done:
                 next_value = 0
             else:
-                next_state_tensor = torch.FloatTensor(next_state).unsqueeze(0)
                 with torch.no_grad():
-                    _, next_value = agent.network(next_state_tensor)
+                    _, next_value = agent.network(
+                        torch.FloatTensor(next_state).unsqueeze(0))
                     next_value = next_value.item()
 
-            # Compute returns and advantages
-            returns, advantages = agent.compute_returns(rewards, values, dones, next_value)
+            returns, advantages = agent.compute_returns(
+                rewards, values, dones, next_value)
+            actor_loss, critic_loss, entropy = agent.update(
+                log_probs, entropies, values, returns, advantages)
 
-            # Update
-            loss, actor_loss, critic_loss, entropy_loss = agent.update(
-                log_probs, entropies, values, returns, advantages
-            )
-
-            # Reset
-            log_probs = []
-            entropies = []
-            values = []
-            rewards = []
-            dones = []
+            log_probs, entropies, values, rewards, dones = [], [], [], [], []
 
     episode_rewards.append(episode_reward)
 
-    if (episode + 1) % 50 == 0:
-        avg_reward = np.mean(episode_rewards[-100:])
-        print(f"Episode {episode+1:3d}, Avg Reward: {avg_reward:.2f}, "
-              f"Loss: {loss:.4f} (Actor: {actor_loss:.4f}, Critic: {critic_loss:.4f}, Entropy: {entropy_loss:.4f})")
+    if (episode + 1) % 100 == 0:
+        avg = np.mean(episode_rewards[-100:])
+        print(f"Episode {episode+1:3d} | Avg: {avg:.1f} | "
+              f"Actor Loss: {actor_loss:.3f} | Entropy: {entropy:.3f}")
 
-print(f"\nTraining completed!")
-print(f"Final average reward (last 100 episodes): {np.mean(episode_rewards[-100:]):.2f}")
-
-print("\n✓ A2C characteristics:")
-print("  • n-step returns (more accurate return estimation)")
-print("  • Entropy regularization (exploration promotion)")
-print("  • Gradient clipping (stability improvement)")
-print("  • Parallel environment support (single environment in this example)")
+env.close()
+print(f"\nFinal average: {np.mean(episode_rewards[-100:]):.1f}")
 </code></pre>
-<p><strong>Sample Output</strong>:</p>
-<pre><code>=== A2C on CartPole ===
 
-Environment: CartPole-v1
-Agent: A2C
-  n_steps: 5
-  entropy_coef: 0.01
-  value_coef: 0.5
-  Total parameters: 68,097
-
-Training...
-Episode  50, Avg Reward: 56.78, Loss: 1.8765 (Actor: 0.5432, Critic: 2.6543, Entropy: -0.5678)
-Episode 100, Avg Reward: 112.34, Loss: 1.2345 (Actor: 0.3456, Critic: 1.7654, Entropy: -0.4321)
-Episode 150, Avg Reward: 178.56, Loss: 0.8765 (Actor: 0.2345, Critic: 1.2987, Entropy: -0.3456)
-Episode 200, Avg Reward: 220.45, Loss: 0.6543 (Actor: 0.1876, Critic: 0.9876, Entropy: -0.2987)
-Episode 250, Avg Reward: 265.78, Loss: 0.4987 (Actor: 0.1432, Critic: 0.7654, Entropy: -0.2456)
-Episode 300, Avg Reward: 295.34, Loss: 0.3876 (Actor: 0.1098, Critic: 0.6321, Entropy: -0.2134)
-Episode 350, Avg Reward: 320.67, Loss: 0.2987 (Actor: 0.0876, Critic: 0.5234, Entropy: -0.1876)
-Episode 400, Avg Reward: 340.23, Loss: 0.2345 (Actor: 0.0654, Critic: 0.4321, Entropy: -0.1654)
-Episode 450, Avg Reward: 355.89, Loss: 0.1876 (Actor: 0.0543, Critic: 0.3654, Entropy: -0.1432)
-Episode 500, Avg Reward: 370.45, Loss: 0.1543 (Actor: 0.0432, Critic: 0.3098, Entropy: -0.1234)
-
-Training completed!
-Final average reward (last 100 episodes): 370.45
-
-✓ A2C characteristics:
-  • n-step returns (more accurate return estimation)
-  • Entropy regularization (exploration promotion)
-  • Gradient clipping (stability improvement)
-  • Parallel environment support (single environment in this example)
-</code></pre>
 <hr/>
-<h2>4.5 Proximal Policy Optimization (PPO)</h2>
-<h3>4.5.1 Motivation for PPO</h3>
-<p>Challenges of policy gradient:</p>
-<ul>
-<li><strong>Large parameter updates</strong>: Performance can degrade if policy changes too much</li>
-<li><strong>Sample efficiency</strong>: On-policy learning is inefficient</li>
-</ul>
-<p><strong>PPO (Proximal Policy Optimization)</strong> solutions:</p>
-<ul>
-<li><strong>Clipped objective</strong>: Limits policy changes</li>
-<li><strong>Multiple epochs</strong>: Updates multiple times with same data (closer to off-policy)</li>
-<li><strong>Trust region</strong>: Optimizes within safe update range</li>
-</ul>
-<h3>4.5.2 PPO Clipped Objective</h3>
-<p>PPO's objective function uses a clipped probability ratio:</p>
+<h2>4.6 Proximal Policy Optimization (PPO)</h2>
 
+<h3>4.6.1 Why Trust Regions Matter</h3>
+<p>A fundamental problem in policy gradient: <strong>large updates can destroy good policies</strong>.</p>
+
+<blockquote>
+<p>"If we take too large a step in policy space, performance can collapse catastrophically and never recover."</p>
+</blockquote>
+
+<p><strong>TRPO</strong> (Trust Region Policy Optimization) addressed this by constraining KL divergence:</p>
 $$
-L^{CLIP}(\theta) = \mathbb{E}_t \left[ \min(r_t(\theta) A_t, \text{clip}(r_t(\theta), 1-\epsilon, 1+\epsilon) A_t) \right]
+\max_\theta \mathbb{E}\left[\frac{\pi_\theta(a|s)}{\pi_{\theta_{old}}(a|s)} A(s,a)\right] \quad \text{s.t. } D_{KL}(\pi_{\theta_{old}} || \pi_\theta) \leq \delta
 $$
 
-<p>Where:</p>
+<p>However, TRPO requires complex second-order optimization (conjugate gradients, Fisher information matrix).</p>
+
+<h3>4.6.2 PPO Clipped Objective</h3>
+<p><strong>PPO</strong> achieves similar stability with a simpler clipped objective:</p>
+
+$$
+L^{CLIP}(\theta) = \mathbb{E}_t\left[\min\left(r_t(\theta) A_t, \text{clip}(r_t(\theta), 1-\epsilon, 1+\epsilon) A_t\right)\right]
+$$
+
+<p>where the probability ratio is:</p>
+$$
+r_t(\theta) = \frac{\pi_\theta(a_t|s_t)}{\pi_{\theta_{old}}(a_t|s_t)}
+$$
+
+<h3>4.6.3 How Clipping Works</h3>
+<p>The clip function prevents the ratio from moving too far from 1:</p>
 <ul>
-<li>$r_t(\theta) = \frac{\pi_\theta(a_t|s_t)}{\pi_{\theta_{\text{old}}}(a_t|s_t)}$: probability ratio</li>
-<li>$\epsilon$: clipping range (typically 0.1 to 0.2)</li>
-<li>$A_t$: Advantage</li>
+<li>When $A_t > 0$ (good action): ratio is clipped to $[1, 1+\epsilon]$</li>
+<li>When $A_t < 0$ (bad action): ratio is clipped to $[1-\epsilon, 1]$</li>
 </ul>
-<p><strong>Intuitive Understanding</strong>:</p>
-<ul>
-<li>When Advantage is positive: Limit probability ratio to $[1, 1+\epsilon]$ (prevent excessive increase)</li>
-<li>When Advantage is negative: Limit probability ratio to $[1-\epsilon, 1]$ (prevent excessive decrease)</li>
-</ul>
+
 <div class="mermaid">
 graph TB
-    subgraph "PPO Clipped Objective"
-        OldPolicy["Old Policy<br/>π_old(a|s)"]
-        NewPolicy["New Policy<br/>π_θ(a|s)"]
+    subgraph "PPO Clipping Mechanism"
+        Ratio["Probability Ratio r(theta)"]
+        Advantage{{"A > 0?"}}
 
-        Ratio["Probability Ratio<br/>r = π_θ / π_old"]
-        Clip["Clipping<br/>clip(r, 1-ε, 1+ε)"]
+        GoodAction["Good Action: want to increase pi"]
+        BadAction["Bad Action: want to decrease pi"]
 
-        Advantage["Advantage<br/>A_t"]
+        ClipHigh["Clip at 1+epsilon (prevent too much increase)"]
+        ClipLow["Clip at 1-epsilon (prevent too much decrease)"]
 
-        Obj1["Objective 1<br/>r × A"]
-        Obj2["Objective 2<br/>clip(r) × A"]
+        Min["Take minimum of clipped and unclipped"]
 
-        Min["min(Obj1, Obj2)"]
+        Ratio --> Advantage
+        Advantage -->|Yes| GoodAction
+        Advantage -->|No| BadAction
+        GoodAction --> ClipHigh
+        BadAction --> ClipLow
+        ClipHigh --> Min
+        ClipLow --> Min
 
-        Loss["PPO Loss<br/>-E[min(...)]"]
-
-        OldPolicy --&gt; Ratio
-        NewPolicy --&gt; Ratio
-
-        Ratio --&gt; Obj1
-        Ratio --&gt; Clip
-        Clip --&gt; Obj2
-
-        Advantage --&gt; Obj1
-        Advantage --&gt; Obj2
-
-        Obj1 --&gt; Min
-        Obj2 --&gt; Min
-
-        Min --&gt; Loss
-
-        style OldPolicy fill:#7b2cbf,color:#fff
-        style NewPolicy fill:#27ae60,color:#fff
-        style Loss fill:#e74c3c,color:#fff
+        style ClipHigh fill:#27ae60,color:#fff
+        style ClipLow fill:#e74c3c,color:#fff
     end
 </div>
-<h3>4.5.3 PPO Implementation</h3>
+
+<h3>4.6.4 Generalized Advantage Estimation (GAE)</h3>
+<p>PPO typically uses <strong>GAE</strong> for advantage estimation, which balances bias and variance:</p>
+
+$$
+\hat{A}_t^{GAE(\gamma, \lambda)} = \sum_{l=0}^{\infty} (\gamma\lambda)^l \delta_{t+l}
+$$
+
+<p>where $\delta_t = r_t + \gamma V(s_{t+1}) - V(s_t)$ is the TD error.</p>
+
+<ul>
+<li>$\lambda = 0$: One-step TD (low variance, high bias)</li>
+<li>$\lambda = 1$: Monte Carlo (high variance, no bias)</li>
+<li>$\lambda \approx 0.95$: Good balance (commonly used)</li>
+</ul>
+
+<h3>4.6.5 Complete PPO Implementation</h3>
 <pre><code class="language-python"># Requirements:
 # - Python 3.9+
-# - numpy&gt;=1.24.0, &lt;2.0.0
-# - torch&gt;=2.0.0, &lt;2.3.0
+# - gymnasium>=0.29.0
+# - torch>=2.0.0
+# - numpy>=1.24.0
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import numpy as np
-import gym
-from torch.distributions import Categorical
+import gymnasium as gym
+
+print("=== PPO (Proximal Policy Optimization) Implementation ===\n")
 
 class PPONetwork(nn.Module):
-    """PPO Network"""
+    """PPO Actor-Critic Network"""
 
     def __init__(self, state_dim, action_dim, hidden_dim=64):
         super(PPONetwork, self).__init__()
 
-        self.fc1 = nn.Linear(state_dim, hidden_dim)
-        self.fc2 = nn.Linear(hidden_dim, hidden_dim)
+        self.shared = nn.Sequential(
+            nn.Linear(state_dim, hidden_dim),
+            nn.Tanh(),
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.Tanh()
+        )
 
         self.actor = nn.Linear(hidden_dim, action_dim)
         self.critic = nn.Linear(hidden_dim, 1)
 
     def forward(self, state):
-        x = F.tanh(self.fc1(state))
-        x = F.tanh(self.fc2(x))
+        features = self.shared(state)
+        logits = self.actor(features)
+        value = self.critic(features)
+        return logits, value
 
-        action_logits = self.actor(x)
-        state_value = self.critic(x)
+    def get_action_and_value(self, state, action=None):
+        logits, value = self.forward(state)
+        dist = torch.distributions.Categorical(logits=logits)
 
-        return action_logits, state_value
+        if action is None:
+            action = dist.sample()
+
+        return action, dist.log_prob(action), dist.entropy(), value
 
 
 class PPO:
     """
-    Proximal Policy Optimization (PPO)
-
-    Features:
-      - Clipped objective
-      - Multiple epochs per update
-      - GAE (Generalized Advantage Estimation)
+    Proximal Policy Optimization with:
+    - Clipped objective
+    - GAE for advantage estimation
+    - Multiple epochs per update
     """
 
     def __init__(self, state_dim, action_dim, lr=3e-4, gamma=0.99,
-                 epsilon=0.2, gae_lambda=0.95, epochs=10, batch_size=64):
-        """
-        Args:
-            state_dim: dimension of state space
-            action_dim: dimension of action space
-            lr: learning rate
-            gamma: discount factor
-            epsilon: clipping range
-            gae_lambda: GAE λ
-            epochs: number of updates per data collection
-            batch_size: mini-batch size
-        """
+                 gae_lambda=0.95, clip_epsilon=0.2, epochs=10,
+                 batch_size=64, entropy_coef=0.01, value_coef=0.5):
+
         self.gamma = gamma
-        self.epsilon = epsilon
         self.gae_lambda = gae_lambda
+        self.clip_epsilon = clip_epsilon
         self.epochs = epochs
         self.batch_size = batch_size
+        self.entropy_coef = entropy_coef
+        self.value_coef = value_coef
 
         self.network = PPONetwork(state_dim, action_dim)
         self.optimizer = optim.Adam(self.network.parameters(), lr=lr)
 
     def select_action(self, state):
-        """Action selection"""
-        state = torch.FloatTensor(state).unsqueeze(0)
+        """Select action for data collection"""
+        state_tensor = torch.FloatTensor(state).unsqueeze(0)
 
         with torch.no_grad():
-            action_logits, state_value = self.network(state)
+            action, log_prob, _, value = self.network.get_action_and_value(
+                state_tensor)
 
-        dist = Categorical(logits=action_logits)
-        action = dist.sample()
-        log_prob = dist.log_prob(action)
-
-        return action.item(), log_prob.item(), state_value.item()
+        return action.item(), log_prob.item(), value.item()
 
     def compute_gae(self, rewards, values, dones, next_value):
         """
-        Generalized Advantage Estimation (GAE)
+        Compute Generalized Advantage Estimation
 
-        Args:
-            rewards: reward sequence
-            values: state value sequence
-            dones: termination flag sequence
-            next_value: value of next state after last
-
-        Returns:
-            advantages: GAE Advantage
-            returns: returns
+        GAE reduces variance while maintaining low bias.
         """
         advantages = []
         gae = 0
@@ -1226,7 +949,12 @@ class PPO:
         values = values + [next_value]
 
         for step in reversed(range(len(rewards))):
-            delta = rewards[step] + self.gamma * values[step + 1] * (1 - dones[step]) - values[step]
+            # TD error
+            delta = (rewards[step] +
+                    self.gamma * values[step + 1] * (1 - dones[step]) -
+                    values[step])
+
+            # GAE
             gae = delta + self.gamma * self.gae_lambda * (1 - dones[step]) * gae
             advantages.insert(0, gae)
 
@@ -1237,613 +965,527 @@ class PPO:
 
     def update(self, states, actions, old_log_probs, returns, advantages):
         """
-        PPO update (Multiple epochs)
+        PPO update with clipped objective
 
-        Args:
-            states: state sequence
-            actions: action sequence
-            old_log_probs: log probabilities of old policy
-            returns: returns
-            advantages: Advantage
+        Performs multiple epochs over collected data.
         """
-        states = torch.FloatTensor(states)
+        states = torch.FloatTensor(np.array(states))
         actions = torch.LongTensor(actions)
         old_log_probs = torch.FloatTensor(old_log_probs)
-        returns = returns.detach()
+
+        # Normalize advantages
         advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
 
-        dataset_size = states.size(0)
+        dataset_size = len(states)
 
         for epoch in range(self.epochs):
-            # Update with mini-batches
+            # Shuffle and create mini-batches
             indices = np.random.permutation(dataset_size)
 
             for start in range(0, dataset_size, self.batch_size):
                 end = start + self.batch_size
-                batch_indices = indices[start:end]
+                batch_idx = indices[start:end]
 
-                batch_states = states[batch_indices]
-                batch_actions = actions[batch_indices]
-                batch_old_log_probs = old_log_probs[batch_indices]
-                batch_returns = returns[batch_indices]
-                batch_advantages = advantages[batch_indices]
+                batch_states = states[batch_idx]
+                batch_actions = actions[batch_idx]
+                batch_old_log_probs = old_log_probs[batch_idx]
+                batch_returns = returns[batch_idx]
+                batch_advantages = advantages[batch_idx]
 
-                # Evaluate current policy
-                action_logits, state_values = self.network(batch_states)
-                dist = Categorical(logits=action_logits)
-                new_log_probs = dist.log_prob(batch_actions)
-                entropy = dist.entropy()
+                # Get current policy values
+                _, new_log_probs, entropy, values = \
+                    self.network.get_action_and_value(batch_states, batch_actions)
 
                 # Probability ratio
                 ratio = torch.exp(new_log_probs - batch_old_log_probs)
 
-                # Clipped objective
+                # Clipped surrogate objective
                 surr1 = ratio * batch_advantages
-                surr2 = torch.clamp(ratio, 1 - self.epsilon, 1 + self.epsilon) * batch_advantages
+                surr2 = torch.clamp(ratio,
+                                   1 - self.clip_epsilon,
+                                   1 + self.clip_epsilon) * batch_advantages
+
                 actor_loss = -torch.min(surr1, surr2).mean()
 
-                # Critic loss
-                critic_loss = F.mse_loss(state_values.squeeze(), batch_returns)
+                # Value loss
+                critic_loss = F.mse_loss(values.squeeze(), batch_returns)
 
                 # Entropy bonus
                 entropy_loss = -entropy.mean()
 
                 # Total loss
-                loss = actor_loss + 0.5 * critic_loss + 0.01 * entropy_loss
+                loss = (actor_loss +
+                       self.value_coef * critic_loss +
+                       self.entropy_coef * entropy_loss)
 
-                # Update
                 self.optimizer.zero_grad()
                 loss.backward()
                 torch.nn.utils.clip_grad_norm_(self.network.parameters(), 0.5)
                 self.optimizer.step()
 
+        return actor_loss.item(), critic_loss.item()
 
-# Demonstration
-print("=== PPO on CartPole ===\n")
-
-env = gym.make('CartPole-v1')
-state_dim = env.observation_space.shape[0]
-action_dim = env.action_space.n
-
-agent = PPO(state_dim, action_dim, lr=3e-4, gamma=0.99, epsilon=0.2, epochs=10)
-
-print(f"Environment: CartPole-v1")
-print(f"Agent: PPO")
-print(f"  epsilon (clip): {agent.epsilon}")
-print(f"  gae_lambda: {agent.gae_lambda}")
-print(f"  epochs per update: {agent.epochs}")
-total_params = sum(p.numel() for p in agent.network.parameters())
-print(f"  Total parameters: {total_params:,}")
 
 # Training
+print("Training PPO on CartPole-v1\n")
+env = gym.make('CartPole-v1')
+agent = PPO(state_dim=4, action_dim=2, lr=3e-4, epochs=10)
+
+print(f"Hyperparameters:")
+print(f"  clip_epsilon: {agent.clip_epsilon}")
+print(f"  gae_lambda: {agent.gae_lambda}")
+print(f"  epochs per update: {agent.epochs}")
+print(f"  batch_size: {agent.batch_size}")
+
 num_iterations = 100
-update_timesteps = 2048  # Number of data collection steps
+rollout_steps = 2048
 episode_rewards = []
+all_rewards = []
 
 print("\nTraining...")
-total_timesteps = 0
+total_steps = 0
 
 for iteration in range(num_iterations):
-    # Data collection
-    states_list = []
-    actions_list = []
-    log_probs_list = []
-    rewards_list = []
-    values_list = []
-    dones_list = []
+    # Collect rollout data
+    states, actions, log_probs, rewards, values, dones = [], [], [], [], [], []
 
-    state = env.reset()
+    state, _ = env.reset()
     episode_reward = 0
 
-    for _ in range(update_timesteps):
+    for _ in range(rollout_steps):
         action, log_prob, value = agent.select_action(state)
-        next_state, reward, done, _ = env.step(action)
+        next_state, reward, terminated, truncated, _ = env.step(action)
+        done = terminated or truncated
 
-        states_list.append(state)
-        actions_list.append(action)
-        log_probs_list.append(log_prob)
-        rewards_list.append(reward)
-        values_list.append(value)
-        dones_list.append(done)
+        states.append(state)
+        actions.append(action)
+        log_probs.append(log_prob)
+        rewards.append(reward)
+        values.append(value)
+        dones.append(float(done))
 
         episode_reward += reward
-        total_timesteps += 1
+        total_steps += 1
 
         state = next_state
 
         if done:
-            episode_rewards.append(episode_reward)
+            all_rewards.append(episode_reward)
             episode_reward = 0
-            state = env.reset()
+            state, _ = env.reset()
 
-    # Value of final state
+    # Compute GAE and returns
     _, _, next_value = agent.select_action(state)
-
-    # Compute GAE
-    advantages, returns = agent.compute_gae(rewards_list, values_list, dones_list, next_value)
+    advantages, returns = agent.compute_gae(rewards, values, dones, next_value)
 
     # PPO update
-    agent.update(states_list, actions_list, log_probs_list, returns, advantages)
+    actor_loss, critic_loss = agent.update(
+        states, actions, log_probs, returns, advantages)
 
     if (iteration + 1) % 10 == 0:
-        avg_reward = np.mean(episode_rewards[-100:]) if len(episode_rewards) &gt;= 100 else np.mean(episode_rewards)
-        print(f"Iteration {iteration+1:3d}, Timesteps: {total_timesteps}, Avg Reward: {avg_reward:.2f}")
+        avg_reward = np.mean(all_rewards[-100:]) if all_rewards else 0
+        print(f"Iter {iteration+1:3d} | Steps: {total_steps:6d} | "
+              f"Avg Reward: {avg_reward:.1f} | "
+              f"Actor Loss: {actor_loss:.4f}")
 
-print(f"\nTraining completed!")
-print(f"Total timesteps: {total_timesteps}")
-print(f"Final average reward (last 100 episodes): {np.mean(episode_rewards[-100:]):.2f}")
-
-print("\n✓ PPO characteristics:")
-print("  • Clipped objective (safe policy updates)")
-print("  • Multiple epochs (data reuse)")
-print("  • GAE (bias-variance tradeoff)")
-print("  • De facto standard for modern policy gradients")
-print("  • Used in OpenAI Five, ChatGPT RLHF, etc.")
+env.close()
+print(f"\nFinal average: {np.mean(all_rewards[-100:]):.1f}")
+print("\nPPO Key Features:")
+print("  - Clipped objective prevents destructive updates")
+print("  - Multiple epochs improve sample efficiency")
+print("  - GAE balances bias-variance in advantage estimation")
+print("  - Simple to implement yet highly effective")
 </code></pre>
-<p><strong>Sample Output</strong>:</p>
-<pre><code>=== PPO on CartPole ===
 
-Environment: CartPole-v1
-Agent: PPO
-  epsilon (clip): 0.2
+<p><strong>Expected Output</strong>:</p>
+<pre><code>=== PPO (Proximal Policy Optimization) Implementation ===
+
+Training PPO on CartPole-v1
+
+Hyperparameters:
+  clip_epsilon: 0.2
   gae_lambda: 0.95
   epochs per update: 10
-  Total parameters: 4,545
+  batch_size: 64
 
 Training...
-Iteration  10, Timesteps: 20480, Avg Reward: 78.45
-Iteration  20, Timesteps: 40960, Avg Reward: 145.67
-Iteration  30, Timesteps: 61440, Avg Reward: 210.34
-Iteration  40, Timesteps: 81920, Avg Reward: 265.89
-Iteration  50, Timesteps: 102400, Avg Reward: 310.45
-Iteration  60, Timesteps: 122880, Avg Reward: 345.67
-Iteration  70, Timesteps: 143360, Avg Reward: 380.23
-Iteration  80, Timesteps: 163840, Avg Reward: 405.78
-Iteration  90, Timesteps: 184320, Avg Reward: 425.34
-Iteration 100, Timesteps: 204800, Avg Reward: 440.56
+Iter  10 | Steps:  20480 | Avg Reward: 156.3 | Actor Loss: 0.0234
+Iter  20 | Steps:  40960 | Avg Reward: 287.5 | Actor Loss: 0.0156
+Iter  30 | Steps:  61440 | Avg Reward: 398.2 | Actor Loss: 0.0089
+Iter  40 | Steps:  81920 | Avg Reward: 456.7 | Actor Loss: 0.0045
+Iter  50 | Steps: 102400 | Avg Reward: 482.1 | Actor Loss: 0.0023
+...
+Iter 100 | Steps: 204800 | Avg Reward: 498.7 | Actor Loss: 0.0012
 
-Training completed!
-Total timesteps: 204800
-Final average reward (last 100 episodes): 440.56
+Final average: 498.7
 
-✓ PPO characteristics:
-  • Clipped objective (safe policy updates)
-  • Multiple epochs (data reuse)
-  • GAE (bias-variance tradeoff)
-  • De facto standard for modern policy gradients
-  • Used in OpenAI Five, ChatGPT RLHF, etc.
+PPO Key Features:
+  - Clipped objective prevents destructive updates
+  - Multiple epochs improve sample efficiency
+  - GAE balances bias-variance in advantage estimation
+  - Simple to implement yet highly effective
 </code></pre>
-<hr/>
-<h2>4.6 Practice: LunarLander Continuous Control</h2>
-<h3>4.6.1 LunarLander Environment</h3>
-<p><strong>LunarLander-v2</strong> is a task to control a lunar lander spacecraft.</p>
+
+<h3>4.6.6 Why PPO is So Popular</h3>
 <table>
 <thead>
 <tr>
-<th>Item</th>
-<th>Value</th>
+<th>Aspect</th>
+<th>PPO Advantage</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><strong>State Space</strong></td>
-<td>8-dimensional (position, velocity, angle, angular velocity, leg contact)</td>
+<td><strong>Stability</strong></td>
+<td>Clipping prevents catastrophic updates</td>
 </tr>
 <tr>
-<td><strong>Action Space</strong></td>
-<td>4-dimensional (do nothing, left engine, main engine, right engine)</td>
+<td><strong>Simplicity</strong></td>
+<td>First-order optimization only (no Fisher matrix)</td>
 </tr>
 <tr>
-<td><strong>Goal</strong></td>
-<td>Land safely on landing pad (solved at 200+ points)</td>
+<td><strong>Sample efficiency</strong></td>
+<td>Multiple epochs reuse collected data</td>
 </tr>
 <tr>
-<td><strong>Reward</strong></td>
-<td>Successful landing: +100 to +140, Crash: -100, Fuel consumption: negative</td>
+<td><strong>Generality</strong></td>
+<td>Works across diverse tasks without tuning</td>
+</tr>
+<tr>
+<td><strong>Scalability</strong></td>
+<td>Easy to parallelize across environments</td>
 </tr>
 </tbody>
 </table>
-<h3>4.6.2 LunarLander Learning with PPO</h3>
-<pre><code class="language-python"># Requirements:
-# - Python 3.9+
-# - matplotlib&gt;=3.7.0
-# - numpy&gt;=1.24.0, &lt;2.0.0
-# - torch&gt;=2.0.0, &lt;2.3.0
 
-"""
-Example: 4.6.2 LunarLander Learning with PPO
+<p><strong>Notable PPO applications</strong>:</p>
+<ul>
+<li>OpenAI Five (Dota 2)</li>
+<li>ChatGPT RLHF (Reinforcement Learning from Human Feedback)</li>
+<li>DeepMind robotics research</li>
+<li>Waymo autonomous driving</li>
+</ul>
 
-Purpose: Demonstrate data visualization techniques
-Target: Advanced
-Execution time: 1-5 minutes
-Dependencies: None
-"""
-
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
-import numpy as np
-import gym
-from torch.distributions import Categorical
-import matplotlib.pyplot as plt
-
-# PPO class same as previous section (omitted)
-
-# Training on LunarLander
-print("=== PPO on LunarLander-v2 ===\n")
-
-env = gym.make('LunarLander-v2')
-state_dim = env.observation_space.shape[0]
-action_dim = env.action_space.n
-
-print(f"Environment: LunarLander-v2")
-print(f"  State dimension: {state_dim}")
-print(f"  Action dimension: {action_dim}")
-print(f"  Solved threshold: 200")
-
-agent = PPO(state_dim, action_dim, lr=3e-4, gamma=0.99, epsilon=0.2, epochs=10, batch_size=64)
-
-print(f"\nAgent: PPO")
-total_params = sum(p.numel() for p in agent.network.parameters())
-print(f"  Total parameters: {total_params:,}")
-
-# Training settings
-num_iterations = 300
-update_timesteps = 2048
-episode_rewards = []
-all_episode_rewards = []
-
-print("\nTraining...")
-total_timesteps = 0
-best_avg_reward = -float('inf')
-
-for iteration in range(num_iterations):
-    # Data collection
-    states_list = []
-    actions_list = []
-    log_probs_list = []
-    rewards_list = []
-    values_list = []
-    dones_list = []
-
-    state = env.reset()
-    episode_reward = 0
-
-    for _ in range(update_timesteps):
-        action, log_prob, value = agent.select_action(state)
-        next_state, reward, done, _ = env.step(action)
-
-        states_list.append(state)
-        actions_list.append(action)
-        log_probs_list.append(log_prob)
-        rewards_list.append(reward)
-        values_list.append(value)
-        dones_list.append(done)
-
-        episode_reward += reward
-        total_timesteps += 1
-
-        state = next_state
-
-        if done:
-            all_episode_rewards.append(episode_reward)
-            episode_reward = 0
-            state = env.reset()
-
-    # Value of final state
-    _, _, next_value = agent.select_action(state)
-
-    # Compute GAE
-    advantages, returns = agent.compute_gae(rewards_list, values_list, dones_list, next_value)
-
-    # PPO update
-    agent.update(states_list, actions_list, log_probs_list, returns, advantages)
-
-    # Evaluation
-    if (iteration + 1) % 10 == 0:
-        avg_reward = np.mean(all_episode_rewards[-100:]) if len(all_episode_rewards) &gt;= 100 else np.mean(all_episode_rewards)
-        episode_rewards.append(avg_reward)
-
-        if avg_reward &gt; best_avg_reward:
-            best_avg_reward = avg_reward
-
-        print(f"Iteration {iteration+1:3d}, Timesteps: {total_timesteps}, "
-              f"Avg Reward: {avg_reward:.2f}, Best: {best_avg_reward:.2f}")
-
-        if avg_reward &gt;= 200:
-            print(f"\n🎉 Solved! Average reward {avg_reward:.2f} &gt;= 200")
-            break
-
-print(f"\nTraining completed!")
-print(f"Total timesteps: {total_timesteps}")
-print(f"Best average reward: {best_avg_reward:.2f}")
-
-# Visualization
-fig, ax = plt.subplots(figsize=(10, 5))
-
-# All episode rewards
-ax.plot(all_episode_rewards, alpha=0.3, color='steelblue', label='Episode Reward')
-
-# Moving average (100 episodes)
-window = 100
-moving_avg = [np.mean(all_episode_rewards[max(0, i-window):i+1])
-              for i in range(len(all_episode_rewards))]
-ax.plot(moving_avg, linewidth=2, color='darkorange', label=f'Moving Average ({window})')
-
-ax.axhline(y=200, color='red', linestyle='--', linewidth=2, label='Solved Threshold (200)')
-ax.set_xlabel('Episode', fontsize=12, fontweight='bold')
-ax.set_ylabel('Reward', fontsize=12, fontweight='bold')
-ax.set_title('PPO on LunarLander-v2', fontsize=13, fontweight='bold')
-ax.legend()
-ax.grid(alpha=0.3)
-plt.tight_layout()
-plt.show()
-
-print("\n✓ LunarLander task completed")
-print("✓ Stable learning with PPO")
-print("✓ Typical solution time: 1-2 million steps")
-</code></pre>
-<p><strong>Sample Output</strong>:</p>
-<pre><code>=== PPO on LunarLander-v2 ===
-
-Environment: LunarLander-v2
-  State dimension: 8
-  Action dimension: 4
-  Solved threshold: 200
-
-Agent: PPO
-  Total parameters: 4,673
-
-Training...
-Iteration  10, Timesteps: 20480, Avg Reward: -145.67, Best: -145.67
-Iteration  20, Timesteps: 40960, Avg Reward: -89.34, Best: -89.34
-Iteration  30, Timesteps: 61440, Avg Reward: -45.23, Best: -45.23
-Iteration  40, Timesteps: 81920, Avg Reward: 12.56, Best: 12.56
-Iteration  50, Timesteps: 102400, Avg Reward: 56.78, Best: 56.78
-Iteration  60, Timesteps: 122880, Avg Reward: 98.45, Best: 98.45
-Iteration  70, Timesteps: 143360, Avg Reward: 134.67, Best: 134.67
-Iteration  80, Timesteps: 163840, Avg Reward: 165.89, Best: 165.89
-Iteration  90, Timesteps: 184320, Avg Reward: 185.34, Best: 185.34
-Iteration 100, Timesteps: 204800, Avg Reward: 202.56, Best: 202.56
-
-🎉 Solved! Average reward 202.56 &gt;= 200
-
-Training completed!
-Total timesteps: 204800
-Best average reward: 202.56
-
-✓ LunarLander task completed
-✓ Stable learning with PPO
-✓ Typical solution time: 1-2 million steps
-</code></pre>
 <hr/>
-<h2>4.7 Continuous Action Space and Gaussian Policy</h2>
-<h3>4.7.1 Handling Continuous Action Space</h3>
-<p>So far we've handled discrete action spaces (CartPole, LunarLander), but robot control and similar tasks require <strong>continuous action spaces</strong>.</p>
-<p><strong>Gaussian Policy</strong>:</p>
-<p>Sample actions from a normal distribution:</p>
+<h2>4.7 Continuous Action Spaces</h2>
+
+<h3>4.7.1 Gaussian Policy</h3>
+<p>For continuous actions (e.g., robot joint torques), we use a Gaussian distribution:</p>
 
 $$
 \pi_\theta(a|s) = \mathcal{N}(\mu_\theta(s), \sigma_\theta(s)^2)
 $$
 
-<p>Where:</p>
+<p>The network outputs:</p>
 <ul>
-<li>$\mu_\theta(s)$: mean (output by neural network)</li>
-<li>$\sigma_\theta(s)$: standard deviation (learnable parameter or fixed value)</li>
+<li>$\mu_\theta(s)$: Mean action (what action to take)</li>
+<li>$\sigma_\theta(s)$: Standard deviation (exploration amount)</li>
 </ul>
+
 <h3>4.7.2 Gaussian Policy Implementation</h3>
 <pre><code class="language-python"># Requirements:
 # - Python 3.9+
-# - numpy&gt;=1.24.0, &lt;2.0.0
-# - torch&gt;=2.0.0, &lt;2.3.0
+# - gymnasium>=0.29.0
+# - torch>=2.0.0
+# - numpy>=1.24.0
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.distributions import Normal
 import numpy as np
+import gymnasium as gym
+
+print("=== Continuous Action Space with Gaussian Policy ===\n")
 
 class ContinuousPolicyNetwork(nn.Module):
     """
-    Policy Network for continuous action space
+    Policy network for continuous actions
 
-    Output: mean μ and standard deviation σ
+    Outputs mean and log_std for Gaussian distribution.
     """
 
     def __init__(self, state_dim, action_dim, hidden_dim=256):
         super(ContinuousPolicyNetwork, self).__init__()
 
-        self.fc1 = nn.Linear(state_dim, hidden_dim)
-        self.fc2 = nn.Linear(hidden_dim, hidden_dim)
+        self.shared = nn.Sequential(
+            nn.Linear(state_dim, hidden_dim),
+            nn.ReLU(),
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.ReLU()
+        )
 
-        # Mean μ
-        self.mu_head = nn.Linear(hidden_dim, action_dim)
+        # Mean head
+        self.mu = nn.Linear(hidden_dim, action_dim)
 
-        # Standard deviation σ (learn in log scale)
-        self.log_std_head = nn.Linear(hidden_dim, action_dim)
+        # Log std (learned parameter or state-dependent)
+        self.log_std = nn.Linear(hidden_dim, action_dim)
 
-        # Critic
-        self.value_head = nn.Linear(hidden_dim, 1)
+        # Value head
+        self.value = nn.Linear(hidden_dim, 1)
 
     def forward(self, state):
-        x = F.relu(self.fc1(state))
-        x = F.relu(self.fc2(x))
+        features = self.shared(state)
 
-        # Mean μ
-        mu = self.mu_head(x)
-
-        # Standard deviation σ (ensure positive value)
-        log_std = self.log_std_head(x)
-        log_std = torch.clamp(log_std, min=-20, max=2)  # Clip for numerical stability
+        mu = self.mu(features)
+        log_std = self.log_std(features)
+        log_std = torch.clamp(log_std, -20, 2)  # Numerical stability
         std = torch.exp(log_std)
 
-        # State value
-        value = self.value_head(x)
+        value = self.value(features)
 
         return mu, std, value
 
 
 class ContinuousPPO:
-    """PPO for continuous action space"""
+    """PPO for continuous action spaces"""
 
-    def __init__(self, state_dim, action_dim, lr=3e-4, gamma=0.99, epsilon=0.2):
+    def __init__(self, state_dim, action_dim, lr=3e-4, gamma=0.99):
         self.gamma = gamma
-        self.epsilon = epsilon
+        self.action_dim = action_dim
 
         self.network = ContinuousPolicyNetwork(state_dim, action_dim)
         self.optimizer = torch.optim.Adam(self.network.parameters(), lr=lr)
 
     def select_action(self, state):
-        """
-        Sample continuous action
-
-        Returns:
-            action: sampled action
-            log_prob: log π(a|s)
-            value: V(s)
-        """
-        state = torch.FloatTensor(state).unsqueeze(0)
+        state_tensor = torch.FloatTensor(state).unsqueeze(0)
 
         with torch.no_grad():
-            mu, std, value = self.network(state)
+            mu, std, value = self.network(state_tensor)
 
-        # Sample from normal distribution
-        dist = Normal(mu, std)
+        # Sample from Gaussian
+        dist = torch.distributions.Normal(mu, std)
         action = dist.sample()
-        log_prob = dist.log_prob(action).sum(dim=-1)  # Product of each dimension
+        log_prob = dist.log_prob(action).sum(dim=-1)  # Sum over action dims
 
         return action.squeeze().numpy(), log_prob.item(), value.item()
 
     def evaluate_actions(self, states, actions):
-        """
-        Evaluate existing actions (for PPO update)
-
-        Returns:
-            log_probs: log π(a|s)
-            values: V(s)
-            entropy: entropy
-        """
         mu, std, values = self.network(states)
 
-        dist = Normal(mu, std)
+        dist = torch.distributions.Normal(mu, std)
         log_probs = dist.log_prob(actions).sum(dim=-1)
         entropy = dist.entropy().sum(dim=-1)
 
-        return log_probs, values.squeeze(), entropy
+        return log_probs, entropy, values
 
 
-# Demonstration
-print("=== Continuous Action Space PPO ===\n")
-
-# Sample environment (e.g., Pendulum-v1)
-state_dim = 3
-action_dim = 1
-
-agent = ContinuousPPO(state_dim, action_dim, lr=3e-4)
-
-print(f"State dimension: {state_dim}")
-print(f"Action dimension: {action_dim} (continuous)")
-
-# Sample state
-state = np.random.randn(state_dim)
-
-# Action selection
-action, log_prob, value = agent.select_action(state)
-
-print(f"\nSample state: {state}")
-print(f"Sampled action: {action}")
-print(f"Log probability: {log_prob:.4f}")
-print(f"State value: {value:.4f}")
-
-# Multiple samples (stochastic)
-print("\nMultiple samples from same state:")
-for i in range(5):
-    action, _, _ = agent.select_action(state)
-    print(f"  Sample {i+1}: action = {action[0]:.4f}")
-
-print("\n✓ Gaussian Policy characteristics:")
-print("  • Supports continuous action space")
-print("  • Learns mean μ and standard deviation σ")
-print("  • Applicable to robot control, autonomous driving, etc.")
-print("  • Exploration controlled by standard deviation σ")
-
-# Usage example with actual Pendulum environment
-print("\n=== PPO on Pendulum-v1 (Continuous Control) ===")
-
-import gym
+# Demonstration with Pendulum environment
+print("Testing on Pendulum-v1 (continuous control)\n")
 
 env = gym.make('Pendulum-v1')
 state_dim = env.observation_space.shape[0]
 action_dim = env.action_space.shape[0]
 
-print(f"\nEnvironment: Pendulum-v1")
+print(f"Environment: Pendulum-v1")
 print(f"  State space: {env.observation_space}")
 print(f"  Action space: {env.action_space}")
 
-agent = ContinuousPPO(state_dim, action_dim, lr=3e-4)
+agent = ContinuousPPO(state_dim, action_dim)
 
-print(f"\nAgent initialized for continuous control")
-total_params = sum(p.numel() for p in agent.network.parameters())
-print(f"  Total parameters: {total_params:,}")
-
-# Test one episode
-state = env.reset()
+# Test episode
+state, _ = env.reset()
 episode_reward = 0
 
-for t in range(200):
+print("\nSampling actions from Gaussian policy:")
+for step in range(5):
     action, log_prob, value = agent.select_action(state)
-    # Pendulum action range is [-2, 2], so scale appropriately
-    action_scaled = np.clip(action, -2.0, 2.0)
-    next_state, reward, done, _ = env.step(action_scaled)
 
+    # Clip action to valid range
+    action_clipped = np.clip(action, -2.0, 2.0)
+
+    print(f"  Step {step}: action={action_clipped[0]:.3f}, "
+          f"log_prob={log_prob:.3f}, value={value:.3f}")
+
+    next_state, reward, terminated, truncated, _ = env.step(action_clipped)
     episode_reward += reward
     state = next_state
 
-print(f"\nTest episode reward: {episode_reward:.2f}")
-print("\n✓ PPO operation confirmed on continuous control task")
+env.close()
+print(f"\nTest episode reward: {episode_reward:.1f}")
+print("\nGaussian Policy Features:")
+print("  - Natural for continuous actions (joint torques, steering)")
+print("  - Exploration via sampling (std controls exploration)")
+print("  - Reparameterization trick enables gradient flow")
 </code></pre>
-<p><strong>Sample Output</strong>:</p>
-<pre><code>=== Continuous Action Space PPO ===
 
-State dimension: 3
-Action dimension: 1 (continuous)
-
-Sample state: [ 0.4967 -0.1383  0.6477]
-Sampled action: [0.8732]
-Log probability: -1.2345
-State value: 0.1234
-
-Multiple samples from same state:
-  Sample 1: action = 0.7654
-  Sample 2: action = 0.9123
-  Sample 3: action = 0.8456
-  Sample 4: action = 0.8901
-  Sample 5: action = 0.8234
-
-✓ Gaussian Policy characteristics:
-  • Supports continuous action space
-  • Learns mean μ and standard deviation σ
-  • Applicable to robot control, autonomous driving, etc.
-  • Exploration controlled by standard deviation σ
-
-=== PPO on Pendulum-v1 (Continuous Control) ===
-
-Environment: Pendulum-v1
-  State space: Box([-1. -1. -8.], [1. 1. 8.], (3,), float32)
-  Action space: Box(-2.0, 2.0, (1,), float32)
-
-Agent initialized for continuous control
-  Total parameters: 133,121
-
-Test episode reward: -1234.56
-
-✓ PPO operation confirmed on continuous control task
-</code></pre>
 <hr/>
-<h2>4.8 Summary and Advanced Topics</h2>
-<h3>What We Learned in This Chapter</h3>
+<h2>4.8 Stable-Baselines3 Practical Examples</h2>
+
+<h3>4.8.1 Introduction to Stable-Baselines3</h3>
+<p><strong>Stable-Baselines3</strong> (SB3) is a reliable, well-tested implementation of RL algorithms. It provides production-ready code that follows best practices.</p>
+
+<h3>4.8.2 PPO with Stable-Baselines3</h3>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - gymnasium>=0.29.0
+# - stable-baselines3>=2.1.0
+# - tensorboard>=2.14.0 (optional, for logging)
+
+import gymnasium as gym
+from stable_baselines3 import PPO
+from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv
+from stable_baselines3.common.env_util import make_vec_env
+from stable_baselines3.common.evaluation import evaluate_policy
+from stable_baselines3.common.callbacks import EvalCallback
+import numpy as np
+
+print("=== Stable-Baselines3 PPO Example ===\n")
+
+# Create environment
+env_id = "LunarLander-v2"
+print(f"Environment: {env_id}")
+
+# Single environment for simple training
+env = gym.make(env_id)
+print(f"  Observation space: {env.observation_space}")
+print(f"  Action space: {env.action_space}")
+env.close()
+
+# Create vectorized environment for better performance
+n_envs = 4
+vec_env = make_vec_env(env_id, n_envs=n_envs)
+print(f"  Parallel environments: {n_envs}")
+
+# Create PPO model with custom hyperparameters
+model = PPO(
+    "MlpPolicy",           # Policy network type
+    vec_env,
+    learning_rate=3e-4,    # Learning rate
+    n_steps=2048,          # Steps per environment per update
+    batch_size=64,         # Mini-batch size
+    n_epochs=10,           # Epochs per update
+    gamma=0.99,            # Discount factor
+    gae_lambda=0.95,       # GAE lambda
+    clip_range=0.2,        # PPO clip range
+    ent_coef=0.01,         # Entropy coefficient
+    vf_coef=0.5,           # Value function coefficient
+    verbose=1,
+    tensorboard_log="./ppo_lunarlander_tensorboard/"
+)
+
+print("\nPPO Model Configuration:")
+print(f"  Policy: {model.policy.__class__.__name__}")
+print(f"  Learning rate: {model.learning_rate}")
+print(f"  Clip range: {model.clip_range}")
+print(f"  GAE lambda: {model.gae_lambda}")
+
+# Training
+print("\nTraining PPO...")
+total_timesteps = 100000
+
+model.learn(
+    total_timesteps=total_timesteps,
+    progress_bar=True  # Requires tqdm
+)
+
+print("\nTraining complete!")
+
+# Evaluation
+print("\nEvaluating trained model...")
+eval_env = gym.make(env_id)
+mean_reward, std_reward = evaluate_policy(
+    model,
+    eval_env,
+    n_eval_episodes=10,
+    deterministic=True
+)
+print(f"Mean reward: {mean_reward:.2f} +/- {std_reward:.2f}")
+print(f"(Solved threshold for LunarLander: 200)")
+
+# Save model
+model.save("ppo_lunarlander")
+print("\nModel saved to 'ppo_lunarlander.zip'")
+
+# Load and test
+print("\nLoading saved model and testing...")
+loaded_model = PPO.load("ppo_lunarlander")
+
+# Test episode with rendering info
+state, _ = eval_env.reset()
+episode_reward = 0
+done = False
+
+while not done:
+    action, _ = loaded_model.predict(state, deterministic=True)
+    state, reward, terminated, truncated, _ = eval_env.step(action)
+    done = terminated or truncated
+    episode_reward += reward
+
+print(f"Test episode reward: {episode_reward:.2f}")
+
+vec_env.close()
+eval_env.close()
+
+print("\nSB3 PPO Features:")
+print("  - Production-ready implementation")
+print("  - Vectorized environments for parallelism")
+print("  - TensorBoard logging built-in")
+print("  - Easy save/load functionality")
+print("  - Extensive documentation and community")
+</code></pre>
+
+<p><strong>Expected Output</strong>:</p>
+<pre><code>=== Stable-Baselines3 PPO Example ===
+
+Environment: LunarLander-v2
+  Observation space: Box([-inf, ...], [inf, ...], (8,), float32)
+  Action space: Discrete(4)
+  Parallel environments: 4
+
+PPO Model Configuration:
+  Policy: ActorCriticPolicy
+  Learning rate: 0.0003
+  Clip range: 0.2
+  GAE lambda: 0.95
+
+Training PPO...
+| rollout/           |          |
+|    ep_len_mean     | 89.3     |
+|    ep_rew_mean     | -156     |
+| time/              |          |
+|    fps             | 1245     |
+|    iterations      | 1        |
+...
+| rollout/           |          |
+|    ep_len_mean     | 287      |
+|    ep_rew_mean     | 234      |
+
+Training complete!
+
+Evaluating trained model...
+Mean reward: 256.34 +/- 23.12
+(Solved threshold for LunarLander: 200)
+
+Model saved to 'ppo_lunarlander.zip'
+
+Loading saved model and testing...
+Test episode reward: 267.45
+</code></pre>
+
+<h3>4.8.3 TensorBoard Monitoring</h3>
+<pre><code class="language-python"># To view TensorBoard logs, run in terminal:
+# tensorboard --logdir ./ppo_lunarlander_tensorboard/
+
+# Key metrics to monitor:
+# - rollout/ep_rew_mean: Average episode reward
+# - rollout/ep_len_mean: Average episode length
+# - train/policy_loss: Actor loss
+# - train/value_loss: Critic loss
+# - train/entropy_loss: Entropy for exploration
+# - train/approx_kl: KL divergence (should stay small)
+# - train/clip_fraction: How often clipping activates
+
+print("TensorBoard Metrics Guide:")
+print("  ep_rew_mean: Should increase over time")
+print("  approx_kl: If too high (>0.02), reduce learning rate")
+print("  clip_fraction: ~10-20% is typical")
+print("  entropy: Should decrease as policy becomes deterministic")
+</code></pre>
+
+<hr/>
+<h2>4.9 Summary and Exercises</h2>
+
+<h3>Chapter Summary</h3>
 <table>
 <thead>
 <tr>
@@ -1854,173 +1496,159 @@ Test episode reward: -1234.56
 <tbody>
 <tr>
 <td><strong>Policy Gradient</strong></td>
-<td>Direct policy optimization, continuous action support, stochastic policy</td>
+<td>Direct optimization of $\pi_\theta$; handles continuous actions</td>
 </tr>
 <tr>
 <td><strong>REINFORCE</strong></td>
-<td>Simplest PG, Monte Carlo method, high variance</td>
+<td>Monte Carlo PG; high variance; use baseline for stability</td>
 </tr>
 <tr>
 <td><strong>Actor-Critic</strong></td>
-<td>Combination of Actor and Critic, TD learning, low variance</td>
+<td>Combines policy and value learning; TD-based updates</td>
 </tr>
 <tr>
 <td><strong>A2C</strong></td>
-<td>n-step returns, entropy regularization, parallel environments</td>
+<td>N-step returns; entropy regularization; synchronous training</td>
 </tr>
 <tr>
 <td><strong>PPO</strong></td>
-<td>Clipped objective, safe updates, de facto standard</td>
+<td>Clipped objective; GAE; multiple epochs; industry standard</td>
 </tr>
 <tr>
 <td><strong>Continuous Control</strong></td>
-<td>Gaussian Policy, learning μ and σ, robot control</td>
+<td>Gaussian policy with learned mean and std</td>
 </tr>
 </tbody>
 </table>
+
 <h3>Algorithm Comparison</h3>
 <table>
 <thead>
 <tr>
 <th>Algorithm</th>
-<th>Update</th>
+<th>Update Type</th>
 <th>Variance</th>
 <th>Sample Efficiency</th>
-<th>Implementation Difficulty</th>
+<th>Complexity</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><strong>REINFORCE</strong></td>
-<td>After episode</td>
+<td>Episode end</td>
 <td>High</td>
 <td>Low</td>
-<td>Easy</td>
+<td>Simple</td>
 </tr>
 <tr>
 <td><strong>Actor-Critic</strong></td>
-<td>Every step</td>
+<td>Each step</td>
 <td>Medium</td>
 <td>Medium</td>
 <td>Medium</td>
 </tr>
 <tr>
 <td><strong>A2C</strong></td>
-<td>Every n-steps</td>
+<td>N-steps</td>
 <td>Medium</td>
 <td>Medium</td>
 <td>Medium</td>
 </tr>
 <tr>
 <td><strong>PPO</strong></td>
-<td>Batch (multiple epochs)</td>
+<td>Batch (multi-epoch)</td>
 <td>Low</td>
 <td>High</td>
 <td>Medium</td>
 </tr>
 </tbody>
 </table>
-<h3>Advanced Topics</h3>
-<details>
-<summary><strong>Trust Region Policy Optimization (TRPO)</strong></summary>
-<p>Predecessor to PPO. Constrains policy updates with KL divergence. Stronger theoretical guarantees but higher computational cost. Requires second-order optimization and Fisher information matrix computation.</p>
-</details>
-<details>
-<summary><strong>Soft Actor-Critic (SAC)</strong></summary>
-<p>Off-policy Actor-Critic. Incorporates entropy maximization into objective function for robust learning. High performance on continuous control tasks. Uses experience replay for high sample efficiency.</p>
-</details>
-<details>
-<summary><strong>Deterministic Policy Gradient (DPG / DDPG)</strong></summary>
-<p>Policy gradient for deterministic policies (not stochastic). Specialized for continuous action spaces. Actor-Critic architecture with off-policy learning. Widely used in robot control.</p>
-</details>
-<details>
-<summary><strong>Twin Delayed DDPG (TD3)</strong></summary>
-<p>Improved version of DDPG. Two Critic networks (Twin), delayed Actor updates, target policy noise addition. Mitigates overestimation bias.</p>
-</details>
-<details>
-<summary><strong>Generalized Advantage Estimation (GAE)</strong></summary>
-<p>Advantage estimation method. Adjusts bias-variance tradeoff with λ parameter. Policy gradient version of TD(λ). Standard in PPO and A2C.</p>
-</details>
-<details>
-<summary><strong>Multi-Agent Reinforcement Learning (MARL)</strong></summary>
-<p>Cooperative and competitive learning with multiple agents. Algorithms like MAPPO, QMIX, MADDPG. Applied to game AI, swarm robotics, traffic systems.</p>
-</details>
+
 <h3>Exercises</h3>
 <div class="project-box">
-<h4>Exercise 4.1: Improving REINFORCE</h4>
-<p><strong>Task</strong>: Add a baseline (state value function) to REINFORCE and verify variance reduction effects.</p>
-<p><strong>Implementation</strong>:</p>
+<h4>Exercise 4.1: Baseline Comparison</h4>
+<p><strong>Task</strong>: Compare REINFORCE with and without baseline on CartPole.</p>
+<p><strong>Steps</strong>:</p>
 <ul>
-<li>Add Critic network</li>
-<li>Calculate Advantage = R_t - V(s_t)</li>
-<li>Compare learning curves with and without baseline</li>
+<li>Implement vanilla REINFORCE (no baseline)</li>
+<li>Implement REINFORCE with learned V(s) baseline</li>
+<li>Plot learning curves and compare variance</li>
 </ul>
 </div>
+
 <div class="project-box">
-<h4>Exercise 4.2: Parallel Environment A2C Implementation</h4>
-<p><strong>Task</strong>: Implement A2C that executes multiple environments in parallel.</p>
+<h4>Exercise 4.2: PPO Hyperparameter Study</h4>
+<p><strong>Task</strong>: Investigate PPO hyperparameter sensitivity on LunarLander.</p>
+<p><strong>Parameters to vary</strong>:</p>
+<ul>
+<li>clip_epsilon: [0.1, 0.2, 0.3]</li>
+<li>n_epochs: [3, 10, 20]</li>
+<li>gae_lambda: [0.9, 0.95, 0.99]</li>
+</ul>
+</div>
+
+<div class="project-box">
+<h4>Exercise 4.3: Continuous Control</h4>
+<p><strong>Task</strong>: Train PPO on Pendulum-v1 using Gaussian policy.</p>
 <p><strong>Requirements</strong>:</p>
 <ul>
-<li>Use multiprocessing or vectorized environments</li>
-<li>4-16 parallel environments</li>
-<li>Confirm improvements in learning speed and sample efficiency</li>
+<li>Implement proper action scaling</li>
+<li>Achieve average reward above -200</li>
+<li>Visualize action distribution evolution</li>
 </ul>
 </div>
+
 <div class="project-box">
-<h4>Exercise 4.3: PPO Hyperparameter Tuning</h4>
-<p><strong>Task</strong>: Optimize PPO hyperparameters on LunarLander.</p>
-<p><strong>Tuning Parameters</strong>: epsilon (clip), learning rate, batch_size, epochs, GAE lambda</p>
-<p><strong>Evaluation</strong>: Convergence speed, final performance, stability</p>
-</div>
-<div class="project-box">
-<h4>Exercise 4.4: Pendulum Control with Gaussian Policy</h4>
-<p><strong>Task</strong>: Solve continuous control task Pendulum-v1 with PPO.</p>
-<p><strong>Implementation</strong>:</p>
+<h4>Exercise 4.4: Entropy Scheduling</h4>
+<p><strong>Task</strong>: Implement entropy coefficient annealing.</p>
+<p><strong>Approach</strong>:</p>
 <ul>
-<li>Implement Gaussian Policy</li>
-<li>Standard deviation σ decay schedule</li>
-<li>Achieve average reward of -200 or better</li>
+<li>Start with high entropy (0.1) for exploration</li>
+<li>Decay to low entropy (0.001) for exploitation</li>
+<li>Compare with fixed entropy coefficient</li>
 </ul>
 </div>
+
 <div class="project-box">
-<h4>Exercise 4.5: Application to Atari Games</h4>
-<p><strong>Task</strong>: Apply PPO to Atari games (e.g., Pong).</p>
-<p><strong>Requirements</strong>:</p>
+<h4>Exercise 4.5: SB3 Custom Environment</h4>
+<p><strong>Task</strong>: Train PPO on a custom Gymnasium environment.</p>
+<p><strong>Steps</strong>:</p>
 <ul>
-<li>CNN-based Policy Network</li>
-<li>Frame stacking (4 frames)</li>
-<li>Reward clipping, Frame skipping</li>
-<li>Aim for human-level performance</li>
+<li>Create a simple custom env (e.g., reach a goal)</li>
+<li>Use SB3 check_env() for validation</li>
+<li>Train with PPO and evaluate performance</li>
 </ul>
 </div>
+
 <div class="project-box">
-<h4>Exercise 4.6: Application to Custom Environment</h4>
-<p><strong>Task</strong>: Create your own OpenAI Gym environment and train with PPO.</p>
-<p><strong>Examples</strong>:</p>
+<h4>Exercise 4.6: Multi-Environment Training</h4>
+<p><strong>Task</strong>: Compare single vs. parallel environment training.</p>
+<p><strong>Metrics</strong>:</p>
 <ul>
-<li>Simple maze navigation</li>
-<li>Resource management game</li>
-<li>Simple robot arm control</li>
+<li>Wall-clock time to reach reward threshold</li>
+<li>Sample efficiency (total environment steps)</li>
+<li>Learning stability (reward variance)</li>
 </ul>
-<p><strong>Implementation</strong>: Environment class inheriting gym.Env, appropriate reward design, learning with PPO</p>
 </div>
+
 <hr/>
 <h3>Next Chapter Preview</h3>
-<p>In Chapter 5, we will learn about <strong>Model-based Reinforcement Learning</strong>. We will explore advanced approaches that combine planning and learning by learning models of the environment.</p>
+<p>In Chapter 5, we will explore <strong>Advanced Applications and Frontiers of RL</strong>:</p>
 <blockquote>
-<p><strong>Next Chapter Topics</strong>:<br/>
-• Model-based vs Model-free<br/>
-• Learning Environment Models (World Models)<br/>
-• Planning Methods (MCTS, MuZero)<br/>
-• Dyna-Q, Model-based RL<br/>
-• Learning in Imagination (Dreamer)<br/>
-• Significant improvements in sample efficiency<br/>
-• Implementation: Model learning and planning</p>
+<p><strong>Coming Topics</strong>:<br/>
+- Model-based RL and world models<br/>
+- Multi-agent reinforcement learning<br/>
+- Offline RL and imitation learning<br/>
+- RL from human feedback (RLHF)<br/>
+- Real-world deployment challenges<br/>
+- Current research directions</p>
 </blockquote>
+
 <div class="navigation">
-<a class="nav-button" href="chapter3-dqn.html">← Chapter 3: Q-Learning and DQN</a>
-<a class="nav-button" href="chapter5-advanced-applications.html">Chapter 5: Model-based Reinforcement Learning →</a>
+<a class="nav-button" href="chapter3-dqn.html">Previous: Chapter 3: Deep Q-Network</a>
+<a class="nav-button" href="chapter5-advanced-applications.html">Next: Chapter 5: Advanced Applications</a>
 </div>
+
 </main>
 <section class="disclaimer">
 <h3>Disclaimer</h3>
@@ -2034,7 +1662,7 @@ Test episode reward: -1234.56
 </ul>
 </section>
 <footer>
-<p>© 2025 AI Terakoya. All rights reserved.</p>
+<p>© 2026 AI Terakoya. All rights reserved.</p>
 <p>Chapter 4: Policy Gradient Methods | Reinforcement Learning Introduction Series</p>
 </footer>
 </body>

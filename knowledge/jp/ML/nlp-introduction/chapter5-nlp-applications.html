@@ -469,7 +469,7 @@
 <span class="locale-separator">|</span>
 <a href="../../../en/ML/nlp-introduction/chapter5-nlp-applications.html" class="locale-link">🇬🇧 EN</a>
 <span class="locale-separator">|</span>
-<span class="locale-meta">Last sync: 2025-11-16</span>
+<span class="locale-meta">Last sync: 2026-01</span>
 </div>
 <nav class="breadcrumb">
         <div class="breadcrumb-content">
@@ -2067,6 +2067,452 @@ response = requests.post(
 )
 print(response.json())
 </code></pre>
+
+<hr>
+
+<h2>5.5.1 AIエージェントとエージェントAI（2024-2025）</h2>
+
+<p><strong>AIエージェント</strong>は、LLMを推論エンジンとして使用し、自律的にタスクを計画・実行できるシステムです。従来のNLPパイプラインとは異なり、エージェントは環境と対話し、ツールを使用し、複雑な問題を反復的に解決できます。</p>
+
+<h3>エージェントアーキテクチャ</h3>
+
+<pre><code class="language-mermaid">graph TD
+    A[ユーザー目標] --> B[LLM推論エンジン]
+    B --> C{計画}
+    C --> D[アクション1: 検索]
+    C --> E[アクション2: 計算]
+    C --> F[アクション3: API呼び出し]
+    D --> G[観察/結果]
+    E --> G
+    F --> G
+    G --> H{目標達成?}
+    H -->|いいえ| B
+    H -->|はい| I[最終回答]
+
+    style B fill:#e3f2fd
+    style C fill:#fff3e0
+    style I fill:#e8f5e9
+</code></pre>
+
+<h3>主要なエージェントパターン</h3>
+
+<table>
+<thead>
+<tr>
+<th>パターン</th>
+<th>説明</th>
+<th>使用例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>ReAct</strong></td>
+<td>推論（Reasoning）と行動（Acting）の交互実行</td>
+<td>ツール使用、情報検索</td>
+</tr>
+<tr>
+<td><strong>反省（Reflection）</strong></td>
+<td>出力を評価し改善を繰り返す</td>
+<td>コード生成、文章執筆</td>
+</tr>
+<tr>
+<td><strong>計画と実行</strong></td>
+<td>先にサブタスクを計画してから実行</td>
+<td>複雑なワークフロー</td>
+</tr>
+<tr>
+<td><strong>マルチエージェント</strong></td>
+<td>複数のエージェントが協調</td>
+<td>議論、チームシミュレーション</td>
+</tr>
+</tbody>
+</table>
+
+<h3>シンプルなエージェント実装例</h3>
+
+<pre><code class="language-python">"""シンプルなReActパターンエージェント"""
+
+class SimpleAgent:
+    def __init__(self, llm, tools):
+        """
+        Args:
+            llm: 言語モデル（推論エンジン）
+            tools: 利用可能なツールの辞書
+        """
+        self.llm = llm
+        self.tools = tools  # Dict[str, Callable]
+
+    def run(self, goal, max_steps=5):
+        """エージェントループを実行
+
+        Args:
+            goal: 達成したい目標
+            max_steps: 最大ステップ数
+        """
+        context = f"目標: {goal}\n利用可能なツール: {list(self.tools.keys())}\n"
+
+        for step in range(max_steps):
+            # 次のアクションを決定
+            prompt = f"""{context}
+
+ステップ {step + 1}: 次に何をすべきですか？
+以下のいずれかで回答してください：
+- TOOL: <tool_name> | <input> （ツールを使用）
+- FINAL ANSWER: <answer> （目標達成）
+"""
+            response = self.llm(prompt)
+
+            # 最終回答をチェック
+            if "FINAL ANSWER:" in response:
+                return response.split("FINAL ANSWER:")[-1].strip()
+
+            # ツール実行
+            if "TOOL:" in response:
+                tool_call = response.split("TOOL:")[-1].strip()
+                tool_name, tool_input = tool_call.split("|")
+                tool_name = tool_name.strip()
+                tool_input = tool_input.strip()
+
+                if tool_name in self.tools:
+                    result = self.tools[tool_name](tool_input)
+                    context += f"\nアクション: {tool_name}({tool_input})\n観察: {result}\n"
+
+        return "最大ステップに到達。目標を達成できませんでした。"
+
+# 使用例
+def search_tool(query):
+    """検索をシミュレート"""
+    return f"'{query}'の検索結果: 関連情報が見つかりました"
+
+def calculator_tool(expression):
+    """計算を実行"""
+    try:
+        return str(eval(expression))
+    except:
+        return "計算エラー"
+
+# agent = SimpleAgent(
+#     llm=your_llm_function,
+#     tools={"search": search_tool, "calculator": calculator_tool}
+# )
+# result = agent.run("東京の人口を検索して、それが日本の総人口の何%か計算してください")
+</code></pre>
+
+<h3>エージェントフレームワーク（2024-2025）</h3>
+
+<table>
+<thead>
+<tr>
+<th>フレームワーク</th>
+<th>特徴</th>
+<th>適用シーン</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>LangChain Agents</strong></td>
+<td>豊富なツール統合、柔軟なチェーン構築</td>
+<td>汎用エージェント</td>
+</tr>
+<tr>
+<td><strong>AutoGPT</strong></td>
+<td>完全自律型、長期目標追求</td>
+<td>研究、実験</td>
+</tr>
+<tr>
+<td><strong>CrewAI</strong></td>
+<td>マルチエージェントオーケストレーション</td>
+<td>チームシミュレーション</td>
+</tr>
+<tr>
+<td><strong>Claude Artifacts</strong></td>
+<td>コード生成・実行の統合環境</td>
+<td>インタラクティブ開発</td>
+</tr>
+</tbody>
+</table>
+
+<hr>
+
+<h2>5.5.2 LLMによるコード生成</h2>
+
+<p><strong>コード生成</strong>は、LLMの最も影響力のあるアプリケーションの一つとなっています。自然言語による指示からコードを生成する能力は、ソフトウェア開発の生産性を大幅に向上させています。</p>
+
+<h3>主要なコード生成モデル</h3>
+
+<table>
+<thead>
+<tr>
+<th>モデル</th>
+<th>提供元</th>
+<th>HumanEvalスコア</th>
+<th>特徴</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>GPT-4</strong></td>
+<td>OpenAI</td>
+<td>~85%</td>
+<td>高品質、多言語対応</td>
+</tr>
+<tr>
+<td><strong>Claude 3.5 Sonnet</strong></td>
+<td>Anthropic</td>
+<td>~88%</td>
+<td>長文コンテキスト、安全性重視</td>
+</tr>
+<tr>
+<td><strong>Codex</strong></td>
+<td>OpenAI</td>
+<td>~72%</td>
+<td>GitHub Copilotの基盤</td>
+</tr>
+<tr>
+<td><strong>CodeLlama</strong></td>
+<td>Meta</td>
+<td>~62%</td>
+<td>オープンソース、カスタマイズ可能</td>
+</tr>
+<tr>
+<td><strong>StarCoder2</strong></td>
+<td>BigCode</td>
+<td>~46%</td>
+<td>完全オープン、600言語以上</td>
+</tr>
+</tbody>
+</table>
+
+<h3>コード生成の応用例</h3>
+
+<pre><code class="language-python"># コード生成用プロンプト例
+
+def generate_code_prompt(task_description, language="python"):
+    """コード生成用のプロンプトを作成"""
+    return f"""以下のタスクを{language}で実装してください。
+
+タスク: {task_description}
+
+要件:
+- クリーンで読みやすいコードを書く
+- 適切なエラーハンドリングを含める
+- docstringでドキュメントを追加
+- 型ヒントを使用（Pythonの場合）
+
+コード:
+```{language}
+"""
+
+# 使用例
+task = "与えられたリストから重複を除去し、ソートして返す関数"
+prompt = generate_code_prompt(task)
+# LLMにプロンプトを送信してコードを生成
+
+# 生成されるコード例:
+def remove_duplicates_and_sort(items: list) -> list:
+    """リストから重複を除去してソート
+
+    Args:
+        items: 処理対象のリスト
+
+    Returns:
+        重複を除去してソートしたリスト
+    """
+    if not items:
+        return []
+    return sorted(set(items))
+</code></pre>
+
+<h3>コーディングアシスタントの比較</h3>
+
+<table>
+<thead>
+<tr>
+<th>ツール</th>
+<th>統合環境</th>
+<th>特徴</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>GitHub Copilot</strong></td>
+<td>VS Code, JetBrains, etc.</td>
+<td>インライン補完、チャット</td>
+</tr>
+<tr>
+<td><strong>Cursor</strong></td>
+<td>専用IDE</td>
+<td>AI-firstエディタ、高度な編集</td>
+</tr>
+<tr>
+<td><strong>Claude Code</strong></td>
+<td>CLI</td>
+<td>ターミナルベース、エージェント機能</td>
+</tr>
+<tr>
+<td><strong>Amazon CodeWhisperer</strong></td>
+<td>AWS統合</td>
+<td>セキュリティスキャン、AWSサービス</td>
+</tr>
+</tbody>
+</table>
+
+<hr>
+
+<h2>5.5.3 本番環境への考慮事項</h2>
+
+<p>NLPシステムを本番環境にデプロイする際には、精度だけでなく、レイテンシ、スループット、コスト、スケーラビリティを考慮する必要があります。</p>
+
+<h3>本番環境のメトリクス</h3>
+
+<table>
+<thead>
+<tr>
+<th>メトリクス</th>
+<th>目標値（例）</th>
+<th>測定方法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>レイテンシ（P50）</strong></td>
+<td>&lt; 100ms</td>
+<td>リクエストの50%が収まる時間</td>
+</tr>
+<tr>
+<td><strong>レイテンシ（P99）</strong></td>
+<td>&lt; 500ms</td>
+<td>リクエストの99%が収まる時間</td>
+</tr>
+<tr>
+<td><strong>スループット</strong></td>
+<td>&gt; 100 req/s</td>
+<td>1秒あたりの処理リクエスト数</td>
+</tr>
+<tr>
+<td><strong>GPU使用率</strong></td>
+<td>70-85%</td>
+<td>最適なリソース利用</td>
+</tr>
+<tr>
+<td><strong>コスト/推論</strong></td>
+<td>&lt; $0.01</td>
+<td>1リクエストあたりのコスト</td>
+</tr>
+</tbody>
+</table>
+
+<h3>最適化テクニック</h3>
+
+<pre><code class="language-python"># 本番環境での最適化例
+
+from functools import lru_cache
+import torch
+from transformers import AutoModelForSequenceClassification, AutoTokenizer
+
+class ProductionNLPService:
+    def __init__(self, model_name="distilbert-base-uncased-finetuned-sst-2-english"):
+        # 量子化されたモデルをロード
+        self.model = AutoModelForSequenceClassification.from_pretrained(
+            model_name,
+            torch_dtype=torch.float16  # FP16で推論
+        )
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
+
+        # 推論モードに設定
+        self.model.eval()
+
+        # GPUが利用可能な場合は使用
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.model.to(self.device)
+
+    @lru_cache(maxsize=1000)
+    def cached_predict(self, text: str) -> str:
+        """キャッシュ付き予測（同じ入力の再計算を回避）"""
+        return self._predict(text)
+
+    def _predict(self, text: str) -> str:
+        """実際の推論処理"""
+        with torch.no_grad():  # 勾配計算を無効化
+            inputs = self.tokenizer(
+                text,
+                return_tensors="pt",
+                truncation=True,
+                max_length=512
+            ).to(self.device)
+
+            outputs = self.model(**inputs)
+            prediction = torch.argmax(outputs.logits, dim=-1)
+
+        return "positive" if prediction.item() == 1 else "negative"
+
+    def batch_predict(self, texts: list, batch_size=32) -> list:
+        """バッチ処理で効率的に推論"""
+        results = []
+        for i in range(0, len(texts), batch_size):
+            batch = texts[i:i+batch_size]
+            inputs = self.tokenizer(
+                batch,
+                return_tensors="pt",
+                truncation=True,
+                padding=True,
+                max_length=512
+            ).to(self.device)
+
+            with torch.no_grad():
+                outputs = self.model(**inputs)
+                predictions = torch.argmax(outputs.logits, dim=-1)
+
+            results.extend([
+                "positive" if p == 1 else "negative"
+                for p in predictions.tolist()
+            ])
+
+        return results
+</code></pre>
+
+<h3>RAG vs ファインチューニング：選択ガイド</h3>
+
+<div style="background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); padding: 1.5rem; border-radius: 8px; margin: 1.5rem 0;">
+<h4>選択基準</h4>
+
+<table>
+<thead>
+<tr>
+<th>基準</th>
+<th>RAG推奨</th>
+<th>ファインチューニング推奨</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>知識更新頻度</strong></td>
+<td>頻繁（毎日〜毎週）</td>
+<td>稀（月単位以上）</td>
+</tr>
+<tr>
+<td><strong>データ量</strong></td>
+<td>大量の文書</td>
+<td>数百〜数千のサンプル</td>
+</tr>
+<tr>
+<td><strong>タスクの種類</strong></td>
+<td>知識検索、QA</td>
+<td>分類、生成スタイル変更</td>
+</tr>
+<tr>
+<td><strong>推論コスト</strong></td>
+<td>高い（検索+生成）</td>
+<td>低い（モデル推論のみ）</td>
+</tr>
+<tr>
+<td><strong>初期投資</strong></td>
+<td>低い</td>
+<td>高い（学習コスト）</td>
+</tr>
+</tbody>
+</table>
+</div>
 
 <hr>
 

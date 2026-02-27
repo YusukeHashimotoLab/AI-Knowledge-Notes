@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="Chapter 2: Planning, Control, and Key Players - AI Terakoya" name="description"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chapter 2: Planning, Control, and Key Players - AI Terakoya</title>
+<link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+<script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+<script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+<script async="" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<nav class="breadcrumb">
+<div class="breadcrumb-content">
+<a href="../index.html">AI Terakoya Top</a><span class="breadcrumb-separator">></span><a href="../../index.html">Machine Learning</a><span class="breadcrumb-separator">></span><a href="./index.html">Autonomous Driving</a><span class="breadcrumb-separator">></span><span class="breadcrumb-current">Chapter 2</span>
+</div>
+</nav>
+<div class="locale-switcher">
+<span class="current-locale">EN</span>
+<span class="locale-separator">|</span>
+<a href="../../../jp/ML/autonomous-driving-introduction/chapter2-planning-control-players.html" class="locale-link">JP</a>
+<span class="locale-separator">|</span>
+<span class="locale-meta">Last sync: 2026-01</span>
+</div>
+<header>
+<div class="header-content">
+<h1>Chapter 2: Planning, Control, and Key Players</h1>
+<p class="subtitle">Decision-Making Algorithms, Vehicle Control Systems, and the Autonomous Driving Industry Landscape</p>
+<div class="meta">
+<span class="meta-item">Reading Time: 90-100 minutes</span>
+<span class="meta-item">Difficulty: Intermediate</span>
+</div>
+</div>
+</header>
+<main class="container">
+
+<p class="chapter-description">This chapter covers the planning and control layers of the autonomous driving stack, from classical path planning algorithms to modern End-to-End neural architectures. We then survey the major industry players shaping the autonomous driving landscape as of early 2026, including their technologies, deployment status, and strategic directions.</p>
+
+<h2>Learning Objectives</h2>
+<p>By completing this chapter, you will be able to:</p>
+<ul>
+<li>Compare classical, ML-based, and hybrid path planning approaches and their trade-offs</li>
+<li>Understand behavior prediction methods from physics models to Transformer-based architectures</li>
+<li>Explain knowledge-driven vs. data-driven decision-making and the hybrid mainstream</li>
+<li>Analyze the End-to-End vs. modular architecture debate and 2025-2026 frontiers</li>
+<li>Describe PID and MPC control strategies with their mathematical foundations</li>
+<li>Identify the major autonomous driving companies, their technology stacks, and deployment status</li>
+</ul>
+<hr/>
+
+<!-- ============================================================ -->
+<!-- SECTION 4: PLANNING TECHNOLOGIES                              -->
+<!-- ============================================================ -->
+
+<h2>4. Planning Technologies</h2>
+
+<p>Planning is the "brain" of an autonomous vehicle, responsible for deciding <strong>where to go</strong> and <strong>how to get there</strong> safely and efficiently. This section covers the three core planning sub-problems: path planning, behavior prediction, and decision-making, along with the critical architectural debate between modular and End-to-End approaches.</p>
+
+<h3>4.1 Path Planning</h3>
+
+<p>Path planning computes a feasible trajectory from the vehicle's current position to a goal, considering obstacles, road geometry, traffic rules, and dynamic constraints. Approaches fall into three broad categories: traditional (algorithmic), machine learning-based, and hybrid methods.</p>
+
+<h4>Traditional Methods</h4>
+
+<p><strong>Graph-based methods</strong> discretize the environment into a graph of nodes and edges, then search for optimal paths:</p>
+<ul>
+<li><strong>A* (A-star)</strong>: Uses a heuristic function $h(n)$ to guide search toward the goal efficiently. Guarantees optimality when the heuristic is admissible. Widely used for global route planning on road networks.</li>
+<li><strong>Dijkstra's Algorithm</strong>: Explores all possible paths uniformly without heuristic guidance. Guarantees shortest path but is computationally more expensive than A* for large graphs.</li>
+<li><strong>D* (Dynamic A*)</strong>: Designed for dynamic environments where edge costs can change during traversal. Re-plans efficiently by reusing previous search results, making it suitable for real-time navigation with changing obstacles.</li>
+</ul>
+
+<p><strong>Sampling-based methods</strong> explore the configuration space through random sampling, making them effective in high-dimensional or complex environments:</p>
+<ul>
+<li><strong>RRT (Rapidly-exploring Random Trees)</strong>: Incrementally builds a tree by sampling random points in the configuration space and extending the nearest tree node toward them. Fast exploration but produces sub-optimal, jagged paths.</li>
+<li><strong>RRT*</strong>: An asymptotically optimal variant of RRT that rewires the tree as new samples are added, converging toward the optimal path given sufficient samples.</li>
+<li><strong>PRM (Probabilistic Roadmap)</strong>: Pre-computes a roadmap by sampling the free space and connecting nearby samples. Efficient for multi-query planning in static environments.</li>
+</ul>
+
+<p><strong>Optimization-based methods</strong> formulate path planning as a continuous optimization problem, minimizing a cost function (e.g., path length, curvature, jerk) subject to vehicle kinematic and dynamic constraints.</p>
+
+<p><strong>Interpolation curves</strong> generate smooth, drivable paths from waypoints:</p>
+<ul>
+<li><strong>Spline curves</strong>: Piecewise polynomial curves (cubic, B-spline) that pass through or approximate waypoints with controllable smoothness.</li>
+<li><strong>Bezier curves</strong>: Defined by control points, providing intuitive shape control and guaranteed smoothness. Commonly used for lane-change and turn maneuver generation.</li>
+</ul>
+
+<h4>ML-Based Methods</h4>
+
+<p>Machine learning-based path planning (approximately <strong>25% of recent research</strong>) leverages learned representations for:</p>
+<ul>
+<li><strong>Learning capability</strong>: Neural networks can learn complex cost functions and driving behaviors from large-scale data, capturing nuances that are difficult to hand-engineer.</li>
+<li><strong>Fast response</strong>: Once trained, neural network inference is typically faster than iterative optimization, enabling real-time planning in complex scenarios.</li>
+<li>Common architectures include convolutional neural networks for spatial reasoning, graph neural networks for traffic interaction modeling, and reinforcement learning for sequential decision-making.</li>
+</ul>
+
+<h4>Hybrid Methods</h4>
+
+<p>Hybrid approaches (approximately <strong>27% of recent research</strong>, and the <strong>latest trend</strong>) combine the strengths of multiple method families:</p>
+<ul>
+<li>Classical algorithms provide safety guarantees and interpretability, while ML components handle complex perception-dependent planning.</li>
+<li>Example: Using a neural network to predict a cost map, then running A* or optimization on that cost map for the final trajectory.</li>
+<li>This combination addresses the reliability concerns of pure ML approaches while gaining the adaptability that pure classical methods lack.</li>
+</ul>
+
+<h4>Comparison of Path Planning Approaches</h4>
+
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Traditional (Graph/Sampling/Optimization)</th>
+<th>ML-Based</th>
+<th>Hybrid</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Share of Research</strong></td>
+<td>~48%</td>
+<td>~25%</td>
+<td>~27% (growing)</td>
+</tr>
+<tr>
+<td><strong>Optimality</strong></td>
+<td>Provable (A*, RRT*)</td>
+<td>No formal guarantees</td>
+<td>Partial guarantees</td>
+</tr>
+<tr>
+<td><strong>Adaptability</strong></td>
+<td>Limited to hand-designed rules</td>
+<td>Learns from data</td>
+<td>Best of both worlds</td>
+</tr>
+<tr>
+<td><strong>Real-time Performance</strong></td>
+<td>Varies (optimization can be slow)</td>
+<td>Fast inference</td>
+<td>Moderate to fast</td>
+</tr>
+<tr>
+<td><strong>Interpretability</strong></td>
+<td>High</td>
+<td>Low (black box)</td>
+<td>Moderate</td>
+</tr>
+<tr>
+<td><strong>Safety Guarantees</strong></td>
+<td>Formal verification possible</td>
+<td>Difficult to verify</td>
+<td>Partial verification</td>
+</tr>
+<tr>
+<td><strong>Data Requirements</strong></td>
+<td>None</td>
+<td>Large-scale driving data</td>
+<td>Moderate</td>
+</tr>
+<tr>
+<td><strong>Handling Dynamic Obstacles</strong></td>
+<td>D* (replanning), moderate</td>
+<td>Strong (learned patterns)</td>
+<td>Strong</td>
+</tr>
+<tr>
+<td><strong>Example Methods</strong></td>
+<td>A*, RRT*, Spline, Bezier</td>
+<td>NN planners, RL planners</td>
+<td>NN cost map + A*, learned + optimization</td>
+</tr>
+</tbody>
+</table>
+
+<h3>4.2 Behavior Prediction</h3>
+
+<p>Behavior prediction forecasts the future trajectories and intentions of surrounding traffic participants (vehicles, pedestrians, cyclists). Accurate prediction is essential for safe planning, as the ego vehicle must anticipate others' movements to avoid collisions and navigate smoothly.</p>
+
+<h4>Physics Model-Based Prediction</h4>
+<ul>
+<li><strong>Constant Velocity / Constant Acceleration models</strong>: Assume the target will continue at its current speed or acceleration. Simple and computationally cheap, but inaccurate for complex maneuvers (turns, lane changes).</li>
+<li><strong>Bicycle model</strong>: Models a vehicle as a two-wheeled system with front-wheel steering. Captures basic vehicle kinematics (turning radius, slip angle) for short-horizon prediction. More accurate than constant velocity but still limited for multi-agent interactions.</li>
+</ul>
+
+<h4>Probability Distribution-Based Prediction</h4>
+<ul>
+<li><strong>Gaussian Processes (GP)</strong>: Non-parametric probabilistic models that provide uncertainty estimates over predicted trajectories. Well-suited for capturing trajectory variability but computationally expensive for large datasets.</li>
+<li><strong>Hidden Markov Models (HMM)</strong>: Model driving behavior as transitions between discrete hidden states (e.g., lane-keeping, lane-changing, turning). Effective for intention recognition but struggle with continuous trajectory prediction.</li>
+</ul>
+
+<h4>Deep Learning-Based Prediction</h4>
+<ul>
+<li><strong>LSTM / GRU</strong>: Recurrent neural networks that model temporal sequences of trajectory points. Capture long-range temporal dependencies in driving behavior. Widely used as baseline architectures for trajectory prediction.</li>
+<li><strong>Graph Neural Networks (GNN)</strong>: Model traffic scenes as graphs where nodes represent traffic participants and edges represent their interactions (spatial proximity, social forces). Excel at capturing complex multi-agent interactions that are difficult to model explicitly.</li>
+<li><strong>Transformer-based models</strong>: Apply self-attention mechanisms to trajectory sequences, capturing both temporal dynamics and spatial interactions simultaneously. Current state-of-the-art for trajectory prediction benchmarks (e.g., Argoverse, nuScenes prediction challenge).</li>
+</ul>
+
+<h4>Reinforcement Learning-Based Prediction</h4>
+<ul>
+<li>Models other agents as RL agents interacting with the environment, predicting their actions based on learned reward functions.</li>
+<li>Particularly effective for modeling strategic interactions (e.g., merging, negotiating intersections) where agents' decisions depend on each other.</li>
+</ul>
+
+<h3>4.3 Decision-Making Algorithms</h3>
+
+<p>Decision-making determines the high-level driving strategy: when to change lanes, how to navigate intersections, when to yield, and how to respond to unexpected situations.</p>
+
+<h4>Knowledge-Driven Approaches</h4>
+<ul>
+<li><strong>Finite State Machines (FSM)</strong>: Define driving behavior as transitions between discrete states (e.g., cruising, following, overtaking). Simple, interpretable, and easy to implement, but struggle with complex scenarios requiring many states and transitions.</li>
+<li><strong>Decision Trees</strong>: Hierarchical rule-based structures that decompose decisions into a sequence of binary choices. Transparent and debuggable, but brittle when encountering scenarios outside the predefined rules.</li>
+<li><strong>Partially Observable Markov Decision Processes (POMDP)</strong>: Formalize driving as sequential decision-making under uncertainty, where the true state of other agents is partially observable. Theoretically principled but computationally intractable for real-world driving complexity without approximations.</li>
+<li><strong>Game Theory</strong>: Models driving as a multi-player game where each agent optimizes its own objective. Captures strategic interactions (e.g., merging negotiation) but assumes rationality of other drivers, which may not hold in practice.</li>
+</ul>
+
+<h4>Data-Driven Approaches</h4>
+<ul>
+<li><strong>Imitation Learning</strong>: Learns driving policies directly from expert demonstrations (human driving data). Produces natural driving behavior but suffers from distribution shift: the model encounters states during deployment that were not present in the training data.</li>
+<li><strong>Reinforcement Learning (RL)</strong>: Learns driving policies through trial-and-error interaction with an environment (typically simulated). Can discover novel strategies beyond human demonstrations but requires careful reward shaping and extensive simulation training.</li>
+<li><strong>Inverse Reinforcement Learning (IRL)</strong>: Infers the reward function that explains observed expert behavior, then uses it to derive a driving policy. More robust than direct imitation learning as it captures the underlying objectives rather than surface-level behavior.</li>
+</ul>
+
+<h4>Hybrid Approaches: The 2025 Mainstream</h4>
+<p>The integration of knowledge-driven and data-driven methods represents the <strong>mainstream approach in 2025</strong>. Hybrid systems use rule-based components for safety-critical decisions (e.g., hard braking, emergency maneuvers) while leveraging learned components for nuanced decisions (e.g., comfortable lane-change timing, social navigation). This architecture provides both the reliability of explicit rules and the adaptability of learned behaviors.</p>
+
+<h3>4.4 End-to-End vs. Modular Architectures</h3>
+
+<p>The fundamental architectural choice in autonomous driving is between modular (pipeline) and End-to-End (E2E) approaches. This debate has intensified as deep learning capabilities have grown.</p>
+
+<h4>Architecture Comparison</h4>
+
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Modular (Pipeline)</th>
+<th>End-to-End (E2E)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Structure</strong></td>
+<td>Perception, Prediction, Planning, and Control are independently designed modules connected in sequence</td>
+<td>A single neural network maps sensor inputs directly to control outputs (steering, throttle, brake)</td>
+</tr>
+<tr>
+<td><strong>Advantages</strong></td>
+<td>High interpretability; each module can be independently developed, tested, and debugged; clear failure attribution; leverages domain expertise</td>
+<td>Minimized information loss between stages; globally optimized for the driving task; no hand-designed interfaces between modules</td>
+</tr>
+<tr>
+<td><strong>Disadvantages</strong></td>
+<td>Cumulative errors propagate through the pipeline; information loss at module interfaces; complex integration; suboptimal global performance</td>
+<td>Black box problem; difficult to debug failures; requires massive training data; safety verification is challenging</td>
+</tr>
+</tbody>
+</table>
+
+<h4>2025-2026 Frontier: Beyond the Binary Choice</h4>
+
+<p>The latest research transcends the simple modular vs. E2E dichotomy, introducing architectures that combine the benefits of both:</p>
+
+<p><strong>Vision-Language-Action (VLA) Models</strong></p>
+<ul>
+<li>Map sensor data through language-based causal reasoning to generate driving trajectories. The language intermediate representation provides interpretability while maintaining end-to-end optimization.</li>
+<li><strong>DiffVLA++</strong>: Aligns VLA models with End-to-End driving objectives using a metric-guided scorer, bridging the gap between language understanding and precise vehicle control.</li>
+</ul>
+
+<p><strong>LLM-Based Decision Making</strong></p>
+<ul>
+<li><strong>LeAD (Language-enhanced Autonomous Driving)</strong>: Leverages large language models for high-level reasoning about driving scenarios, translating complex traffic situations into actionable decisions.</li>
+<li><strong>EMMA</strong>: A framework that uses language models as the backbone for driving, processing multi-modal inputs and generating structured driving outputs.</li>
+</ul>
+
+<p><strong>Diffusion Model Planning</strong></p>
+<ul>
+<li><strong>TrajDiff</strong>: Applies diffusion models to trajectory planning with self-supervised BEV (Bird's Eye View) heatmap conditioning. Generates diverse, high-quality trajectory samples that capture the multi-modal nature of driving decisions.</li>
+</ul>
+
+<p><strong>Sparse Representation Approaches</strong></p>
+<ul>
+<li><strong>SparseDrive</strong>: Uses deformable attention mechanisms for unified instance-level perception and planning. By operating on sparse representations rather than dense feature maps, it achieves both computational efficiency and strong performance on perception and planning benchmarks.</li>
+</ul>
+
+<hr/>
+
+<!-- ============================================================ -->
+<!-- SECTION 5: CONTROL TECHNOLOGIES                               -->
+<!-- ============================================================ -->
+
+<h2>5. Control Technologies</h2>
+
+<p>Control is the final layer of the autonomous driving stack, translating planned trajectories into actual vehicle commands (steering angle, throttle, brake pressure). The control system must execute the planned path accurately while maintaining vehicle stability and passenger comfort.</p>
+
+<h3>5.1 PID Control</h3>
+
+<p>PID (Proportional-Integral-Derivative) control is the most fundamental and widely used feedback control method. It computes a control signal based on three terms derived from the tracking error $e(t)$:</p>
+
+<ul>
+<li><strong>P (Proportional)</strong>: Produces a control output proportional to the current error. Larger error leads to stronger correction. Alone, it cannot eliminate steady-state error.</li>
+<li><strong>I (Integral)</strong>: Accumulates past errors over time, eliminating steady-state error that the P term cannot remove. However, excessive integral gain can cause overshoot and oscillation (integral windup).</li>
+<li><strong>D (Derivative)</strong>: Responds to the rate of change of the error, providing damping that suppresses oscillations and improves transient response. Acts as a "predictive" term that anticipates future error trends.</li>
+</ul>
+
+<p>The PID control law is expressed as:</p>
+
+$$u(t) = K_p e(t) + K_i \int_0^t e(\tau) \, d\tau + K_d \frac{de(t)}{dt}$$
+
+<p>where:</p>
+<ul>
+<li>$u(t)$ is the control output (e.g., steering angle correction)</li>
+<li>$e(t) = r(t) - y(t)$ is the tracking error (reference minus actual)</li>
+<li>$K_p$, $K_i$, $K_d$ are the proportional, integral, and derivative gains</li>
+</ul>
+
+<div class="mermaid">
+graph LR
+    R["Reference<br/>r(t)"] --> SUM(("+&minus;"))
+    SUM --> E["e(t)"]
+    E --> P["K_p &middot; e(t)<br/>Proportional"]
+    E --> I["K_i &middot; &int;e d&tau;<br/>Integral"]
+    E --> D["K_d &middot; de/dt<br/>Derivative"]
+    P --> ADD(("+"))
+    I --> ADD
+    D --> ADD
+    ADD --> U["u(t)<br/>Control Output"]
+    U --> PLANT["Vehicle<br/>Plant"]
+    PLANT --> Y["y(t)<br/>Output"]
+    Y --> |Feedback| SUM
+</div>
+
+<h4>Advantages</h4>
+<ul>
+<li><strong>No model needed</strong>: Does not require a mathematical model of the vehicle dynamics, making it applicable to a wide range of systems.</li>
+<li><strong>Very low computational cost</strong>: Requires only basic arithmetic operations per control cycle, easily running at 1 kHz+ on embedded processors.</li>
+<li><strong>Easy implementation</strong>: Straightforward to implement, tune (via Ziegler-Nichols or manual methods), and debug.</li>
+</ul>
+
+<h4>Disadvantages</h4>
+<ul>
+<li><strong>Cannot explicitly handle constraints</strong>: Has no mechanism to enforce actuator limits (max steering angle, max braking force) or state constraints (speed limits, lane boundaries) within the control law itself.</li>
+<li><strong>Difficult for nonlinear systems</strong>: Fixed gains cannot adapt to the highly nonlinear dynamics of vehicles at varying speeds, road surfaces, and loading conditions without gain scheduling.</li>
+</ul>
+
+<h3>5.2 MPC (Model Predictive Control)</h3>
+
+<p>Model Predictive Control (MPC) is an advanced control strategy that computes optimal control inputs by solving an optimization problem over a finite prediction horizon at each time step. It uses a mathematical model of the vehicle to predict future states and optimize a cost function subject to constraints.</p>
+
+<h4>Core Principle: Receding Horizon</h4>
+<p>At each time step, MPC:</p>
+<ol>
+<li>Predicts the vehicle's future states over a horizon of $N$ steps using the vehicle dynamics model.</li>
+<li>Solves an optimization problem to find the control sequence that minimizes a cost function (tracking error, control effort, comfort).</li>
+<li>Applies only the <strong>first</strong> control input from the optimal sequence.</li>
+<li>Advances one time step, receives new state measurements, and repeats the process.</li>
+</ol>
+
+<p>This "receding horizon" approach continuously re-optimizes as new information becomes available, providing robustness to model inaccuracies and disturbances.</p>
+
+<h4>MPC Optimization Formulation</h4>
+
+<p>The general MPC optimization problem can be expressed as:</p>
+
+$$\min_{u_0, \ldots, u_{N-1}} \sum_{k=0}^{N-1} \left[ \| x_k - x_k^{\text{ref}} \|_Q^2 + \| u_k \|_R^2 \right] + \| x_N - x_N^{\text{ref}} \|_P^2$$
+
+<p>subject to:</p>
+
+$$x_{k+1} = f(x_k, u_k) \quad \text{(vehicle dynamics model)}$$
+$$x_k \in \mathcal{X} \quad \text{(state constraints: speed limits, lane boundaries)}$$
+$$u_k \in \mathcal{U} \quad \text{(input constraints: steering limits, acceleration limits)}$$
+
+<p>where:</p>
+<ul>
+<li>$x_k$ is the predicted state at step $k$ (position, heading, velocity)</li>
+<li>$u_k$ is the control input at step $k$ (steering angle, acceleration)</li>
+<li>$x_k^{\text{ref}}$ is the reference trajectory from the planning module</li>
+<li>$Q$, $R$, $P$ are weight matrices for state tracking, control effort, and terminal cost</li>
+<li>$N$ is the prediction horizon length</li>
+<li>$f(\cdot)$ is the vehicle dynamics model (kinematic or dynamic bicycle model)</li>
+</ul>
+
+<h4>Advantages</h4>
+<ul>
+<li><strong>Systematic constraint handling</strong>: Explicitly incorporates actuator limits, speed constraints, and safety boundaries into the optimization, ensuring the vehicle always operates within safe bounds.</li>
+<li><strong>Predictive control</strong>: Looks ahead along the planned trajectory, enabling proactive control (e.g., slowing down before a sharp turn) rather than reactive correction.</li>
+<li><strong>Nonlinear support</strong>: Nonlinear MPC (NMPC) can use full nonlinear vehicle dynamics models, providing accurate control across the entire operating envelope.</li>
+</ul>
+
+<h4>Disadvantages</h4>
+<ul>
+<li><strong>High computational cost</strong>: Solving an optimization problem at each control cycle (typically 10-50 Hz) requires significant compute, especially for nonlinear models and long horizons.</li>
+<li><strong>Requires accurate model</strong>: Performance degrades if the vehicle dynamics model is inaccurate (e.g., incorrect tire parameters, unmodeled dynamics). Model identification and adaptation are ongoing challenges.</li>
+</ul>
+
+<h3>5.3 2025-2026 Latest Control Technologies</h3>
+
+<p>Recent advances in autonomous vehicle control focus on combining classical and learning-based methods to achieve both safety and adaptability:</p>
+
+<p><strong>MPS (MPC + Stanley Integration)</strong></p>
+<ul>
+<li>Combines MPC for <strong>longitudinal control</strong> (speed and acceleration management) with the <strong>Stanley lateral controller</strong> (cross-track error-based steering). This separation leverages MPC's predictive optimization for speed profiles while using Stanley's proven geometric approach for path tracking.</li>
+</ul>
+
+<p><strong>DDMPC (Data-Driven MPC)</strong></p>
+<ul>
+<li>Replaces the physics-based vehicle model in MPC with a data-driven model learned from real driving data. This approach captures complex, hard-to-model dynamics (tire-road interactions, suspension effects) that physics models may approximate poorly, while retaining MPC's constraint handling and optimization framework.</li>
+</ul>
+
+<p><strong>Adaptive MPC + PSO Optimization</strong></p>
+<ul>
+<li>Uses an improved Particle Swarm Optimization (PSO) algorithm to adaptively tune MPC parameters (prediction horizon, weight matrices) in real-time based on driving conditions. This addresses the limitation of fixed MPC parameters that cannot perform optimally across all scenarios (highway cruising vs. tight urban turns).</li>
+</ul>
+
+<p><strong>Variable Prediction Horizon MPC</strong></p>
+<ul>
+<li>Dynamically adjusts the MPC prediction horizon $N$ in response to vehicle speed changes. At higher speeds, a longer horizon provides more look-ahead for safer planning; at lower speeds, a shorter horizon reduces computation while maintaining responsiveness. This variable approach balances safety and computational efficiency across the full speed range.</li>
+</ul>
+
+<p><strong>DRL + MPC-PID Hybrid Control</strong></p>
+<ul>
+<li>A Deep Reinforcement Learning (DRL) agent learns from the online operational information of both MPC and PID controllers. The DRL component learns to blend or switch between MPC and PID outputs based on the current driving situation, combining MPC's optimality for complex scenarios with PID's simplicity and speed for straightforward situations. This hybrid architecture reduces overall computational load while maintaining control quality.</li>
+</ul>
+
+<hr/>
+
+<!-- ============================================================ -->
+<!-- SECTION 6: MAJOR COMPANIES / PLAYERS                          -->
+<!-- ============================================================ -->
+
+<h2>6. Major Companies and Players</h2>
+
+<p>The autonomous driving industry features a diverse ecosystem of technology companies, automakers, and startups, each pursuing different strategies and levels of autonomy. This section profiles 14 major players as of early 2026.</p>
+
+<h3>6.1 Waymo (Alphabet)</h3>
+
+<p>Waymo, Alphabet's autonomous driving subsidiary, operates the world's most advanced <strong>Level 4 robotaxi</strong> service. Its technology stack relies on <strong>LiDAR + camera + radar sensor fusion</strong>, providing robust redundant perception.</p>
+
+<h4>Current Deployment (2025)</h4>
+<ul>
+<li><strong>Operational cities</strong>: San Francisco, Los Angeles, Phoenix, Austin, and Atlanta (5 cities)</li>
+<li><strong>Ride volume</strong>: 450,000 rides per week (up 157% from 175,000 at the start of the year)</li>
+<li><strong>Cumulative rides</strong>: Over 14 million total completed rides</li>
+</ul>
+
+<h4>2026 Expansion Plan</h4>
+<ul>
+<li><strong>New US cities</strong>: Dallas, Denver, Detroit, Houston, Las Vegas, Miami, Nashville, and others, targeting <strong>15+ cities</strong></li>
+<li><strong>Ride target</strong>: 1 million rides per week</li>
+<li><strong>International expansion</strong>: London launch planned; Tokyo test driving in partnership with GO (taxi-hailing platform) and Nihon Kotsu (Japan's largest taxi operator)</li>
+</ul>
+
+<h4>Gen 6 Hardware</h4>
+<ul>
+<li><strong>Cameras</strong>: 13 (reduced from 29 in previous generation)</li>
+<li><strong>LiDAR</strong>: 4 units (reduced from 5)</li>
+<li><strong>Radar</strong>: 6 units</li>
+<li><strong>Coverage</strong>: 360-degree field of view with 500-meter range</li>
+<li>Significant per-vehicle cost reduction through sensor consolidation while maintaining or improving perception capability</li>
+</ul>
+
+<h3>6.2 Tesla</h3>
+
+<p>Tesla pursues a <strong>vision-only</strong> approach consistently, relying exclusively on cameras without LiDAR or radar, leveraging its massive fleet data advantage.</p>
+
+<h4>FSD (Full Self-Driving) Supervised</h4>
+<ul>
+<li>Currently operates at <strong>Level 2</strong> (driver supervision required at all times)</li>
+<li><strong>6.9 billion miles</strong> of accumulated driving data from the Tesla fleet, providing an unmatched training dataset</li>
+</ul>
+
+<h4>Robotaxi Program</h4>
+<ul>
+<li><strong>June 2025 launch</strong>: Austin, Texas with safety operators present in vehicles</li>
+<li>Uses modified Model Y vehicles, approximately <strong>135 vehicles</strong> in the initial fleet</li>
+</ul>
+
+<h4>2026 Plans</h4>
+<ul>
+<li><strong>Cybercab production start</strong>: Purpose-built robotaxi with no steering wheel or pedals, designed from the ground up for autonomous operation</li>
+<li>Planned launch of unsupervised FSD (no safety operator)</li>
+<li><strong>Subscription-only model</strong>: Cybercab will not be sold to individual buyers but operated as a fleet service</li>
+</ul>
+
+<h3>6.3 Cruise (GM)</h3>
+
+<p>Cruise, once General Motors' flagship autonomous driving venture, underwent a dramatic strategic pivot following a serious safety incident.</p>
+
+<h4>Key Timeline</h4>
+<ul>
+<li><strong>October 2023</strong>: A pedestrian dragging incident in San Francisco halted all driverless operations. A Cruise vehicle struck a pedestrian who had been hit by another car, then dragged the person approximately 20 feet while attempting to pull over.</li>
+<li><strong>December 2024</strong>: GM formally withdrew from the robotaxi business, citing the cost of reaching scale. The decision eliminated over <strong>$1 billion per year</strong> in operating costs.</li>
+<li><strong>2025</strong>: Cruise hired the former head of Tesla Autopilot and pivoted to developing personal autonomous driving technology, focusing on evolving GM's <strong>Super Cruise</strong> highway hands-free system into a more capable personal AD platform rather than operating a robotaxi fleet.</li>
+</ul>
+
+<h3>6.4 Baidu Apollo Go (China)</h3>
+
+<p>Baidu's Apollo Go is China's largest and most advanced robotaxi platform, leading the country's autonomous driving deployment.</p>
+
+<h4>Deployment Scale</h4>
+<ul>
+<li><strong>Operational in 10 Chinese cities</strong>, with Wuhan as the largest operational base featuring <strong>600+ vehicles</strong></li>
+<li><strong>February 2025</strong>: All services fully removed safety drivers from vehicles, achieving true driverless operation across the fleet</li>
+<li><strong>Ride volume</strong>: 250,000 rides per week; <strong>17 million+ cumulative rides</strong></li>
+<li><strong>Growth</strong>: Q2 2025 ride volume up <strong>148% year-over-year</strong></li>
+</ul>
+
+<h4>Economics</h4>
+<ul>
+<li><strong>Gen 6 vehicle cost</strong>: $28,600 per unit, a dramatic reduction that makes fleet economics viable</li>
+<li>Approaching <strong>breakeven in Wuhan</strong>, the first city-level profitability milestone for any robotaxi operator globally</li>
+</ul>
+
+<h4>International Expansion</h4>
+<ul>
+<li><strong>Middle East</strong>: Operations in Dubai and Abu Dhabi</li>
+<li><strong>Hong Kong</strong>: Service expansion underway</li>
+<li><strong>Global partnership with Uber</strong> for ride-hailing integration</li>
+</ul>
+
+<h3>6.5 Mobileye (Intel)</h3>
+
+<p>Mobileye, an Intel subsidiary, is the dominant supplier of advanced driver-assistance system (ADAS) chips and software, with its technology embedded in vehicles from most major automakers.</p>
+
+<h4>Technology and Market Position</h4>
+<ul>
+<li><strong>EyeQ6 Lite / EyeQ6 High</strong>: Latest generation ADAS/AD processing chips, with Lite targeting L2+ and High targeting L4 applications</li>
+<li><strong>230 million+ vehicles</strong> worldwide equipped with Mobileye technology, representing the largest installed base in the industry</li>
+</ul>
+
+<h4>Robotaxi Program</h4>
+<ul>
+<li><strong>VW/MOIA robotaxi</strong>: Volkswagen's ID. Buzz electric van equipped with Mobileye Drive Level 4 system, planned for <strong>US launch in 2026</strong></li>
+</ul>
+
+<h4>Challenges</h4>
+<ul>
+<li><strong>December 2025</strong>: Approximately 200 layoffs due to declining demand from some OEM customers, reflecting the broader industry's slower-than-expected adoption timeline for higher autonomy levels</li>
+</ul>
+
+<h3>6.6 NVIDIA</h3>
+
+<p>NVIDIA provides the foundational computing platform for autonomous driving, spanning training infrastructure, simulation, and in-vehicle processing.</p>
+
+<h4>DRIVE Platform</h4>
+<ul>
+<li><strong>DGX (Training)</strong>: GPU clusters for training perception, prediction, and planning neural networks at scale</li>
+<li><strong>Omniverse + Cosmos (Simulation)</strong>: Physics-accurate digital twin simulation environment for testing autonomous driving systems in synthetic scenarios at massive scale</li>
+<li><strong>DRIVE AGX (In-Vehicle)</strong>: Production-grade in-vehicle computing platform providing the processing power for real-time autonomous driving inference</li>
+</ul>
+
+<h4>Alpamayo (CES 2026)</h4>
+<ul>
+<li>NVIDIA's flagship autonomous driving AI system announced at CES 2026</li>
+<li><strong>10 billion parameter</strong> Vision-Language-Action (VLA) model, combined with <strong>AlpaSim</strong> simulation environment and <strong>100 TB</strong> of driving data</li>
+<li>CEO Jensen Huang described it as <strong>"Physical AI's ChatGPT moment"</strong>, signaling NVIDIA's belief that autonomous driving AI has reached an inflection point comparable to the emergence of conversational AI</li>
+</ul>
+
+<h4>Partnerships and Revenue</h4>
+<ul>
+<li><strong>Major partners</strong>: GM, Lucid, Mercedes-Benz, Uber</li>
+<li><strong>Auto business forecast</strong>: $5 billion revenue by 2026, reflecting NVIDIA's growing role as the essential computing backbone of the autonomous driving industry</li>
+</ul>
+
+<h3>6.7 Chinese Startups</h3>
+
+<h4>Pony.ai</h4>
+<ul>
+<li><strong>2024 Nasdaq IPO</strong>: Successfully listed on Nasdaq, establishing itself as a public company in the autonomous driving space</li>
+<li><strong>L4 commercial operations</strong> in Guangzhou, Shenzhen, and Beijing</li>
+<li><strong>Fleet</strong>: 961 vehicles total, of which 667 are the latest Gen 7 platform</li>
+<li><strong>Economics</strong>: Achieved city-level breakeven, demonstrating commercial viability of its robotaxi operations</li>
+</ul>
+
+<h4>WeRide</h4>
+<ul>
+<li><strong>2024 Nasdaq IPO</strong>: Also listed on Nasdaq, providing public market validation</li>
+<li><strong>Licensed in 5 countries</strong> with operations across <strong>10 countries</strong>, making it the most internationally diversified Chinese AD company</li>
+<li><strong>Revenue growth</strong>: Q2 revenue up <strong>60.8% year-over-year</strong></li>
+</ul>
+
+<h4>AutoX</h4>
+<ul>
+<li>Operates robotaxi services in multiple cities across China</li>
+<li>Focuses on fully driverless operations in urban environments</li>
+</ul>
+
+<h3>6.8 Argo AI (Closed)</h3>
+
+<p>Argo AI serves as a cautionary tale about the challenges of commercializing Level 4 autonomous driving.</p>
+
+<ul>
+<li><strong>Founded 2017</strong> with major backing from Ford and Volkswagen, accumulating <strong>$3.6 billion+</strong> in total investment</li>
+<li><strong>Closed October 2022</strong>: Both Ford and VW concluded that L4 commercialization was <strong>"far further out than initially expected"</strong></li>
+<li>Ford recorded a <strong>$2.7 billion write-down</strong> on its Argo AI investment</li>
+<li>The closure highlighted the gap between technical demos and scalable commercial deployment, influencing the entire industry's approach to L4 investment timelines</li>
+</ul>
+
+<h3>6.9 Zoox (Amazon)</h3>
+
+<p>Zoox, acquired by Amazon in 2020, takes a unique approach with a purpose-built autonomous vehicle designed from scratch rather than retrofitting existing cars.</p>
+
+<h4>Vehicle Design</h4>
+<ul>
+<li><strong>Purpose-built design</strong>: Bidirectional 4-passenger vehicle with no steering wheel or pedals</li>
+<li><strong>16-hour operational range</strong>, designed for continuous urban shuttle service</li>
+<li>Symmetrical design allows the vehicle to travel in either direction without turning around</li>
+</ul>
+
+<h4>Deployment Status</h4>
+<ul>
+<li><strong>2025</strong>: Launched free public service in Las Vegas and San Francisco</li>
+<li><strong>Milestones</strong>: Over 1 million autonomous miles driven; approximately <strong>50 vehicles</strong> in operation</li>
+</ul>
+
+<h4>2026 Plans</h4>
+<ul>
+<li>Transition to <strong>paid commercial service</strong> in Las Vegas</li>
+<li>Continued fleet expansion and service area growth</li>
+</ul>
+
+<h3>6.10 Motional (Hyundai / Aptiv)</h3>
+
+<p>Motional is a joint venture between Hyundai Motor Group and Aptiv, focused on developing Level 4 robotaxi technology.</p>
+
+<ul>
+<li><strong>Vehicle platform</strong>: Hyundai IONIQ 5-based Level 4 robotaxi</li>
+<li><strong>Ownership changes</strong>: Aptiv reduced its stake from <strong>50% to 15%</strong>, reflecting reduced commitment and shifting strategic priorities</li>
+<li><strong>Timeline delays</strong>: Robotaxi commercialization delayed to <strong>2026</strong>, running approximately 2 years behind the original plan</li>
+<li>The reduced investment and timeline delays illustrate the broader industry trend of L4 commercialization taking longer than initially projected</li>
+</ul>
+
+<h3>6.11 Toyota (Woven by Toyota)</h3>
+
+<p>Toyota pursues autonomous driving through its Woven by Toyota subsidiary, combining a software platform strategy with a unique physical testing environment.</p>
+
+<h4>Arene Software Platform</h4>
+<ul>
+<li><strong>May 2025</strong>: First deployed on the RAV4, marking its production debut</li>
+<li>Comprises three components: <strong>SDK</strong> (development tools), <strong>Tools</strong> (testing and validation), and <strong>Data platform</strong> (fleet data collection and management)</li>
+<li>Designed as an open platform that can be shared with other automakers and mobility providers</li>
+</ul>
+
+<h4>Woven City</h4>
+<ul>
+<li>A purpose-built test city at the base of Mt. Fuji, designed as a living laboratory for autonomous vehicles, robotics, smart home technology, and urban AI infrastructure</li>
+<li><strong>Phase 1 construction completed</strong> in summer 2024</li>
+<li>Provides a controlled real-world environment for testing autonomous driving and mobility technologies at scale</li>
+</ul>
+
+<h4>Strategic Partnerships</h4>
+<ul>
+<li><strong>NTT joint investment</strong>: 500 billion yen (approximately $3.3 billion) partnership to develop an AI-powered mobility platform integrating autonomous driving, communication infrastructure, and smart city technology</li>
+</ul>
+
+<h4>Robotaxi Plans</h4>
+<ul>
+<li><strong>Odaiba (Tokyo)</strong>: Level 4 robotaxi free service launched, with plans to transition to paid downtown service as the technology matures and regulatory approvals are obtained</li>
+</ul>
+
+<h3>6.12 Honda</h3>
+
+<p>Honda has been a pioneer in production-vehicle autonomy, achieving a historic world first with Level 3 deployment.</p>
+
+<h4>SENSING Elite (Level 3)</h4>
+<ul>
+<li><strong>2021</strong>: World's first Level 3 production vehicle, the Honda Legend sedan (limited to 100 units, lease-only in Japan)</li>
+<li>Enabled highway traffic jam <strong>hands-off and eyes-off</strong> driving: the driver could divert attention from the road while the system was active in congested highway conditions below 30 km/h</li>
+<li>Represented a historic milestone in autonomous driving regulation and technology deployment</li>
+</ul>
+
+<h4>SENSING 360+ (2025)</h4>
+<ul>
+<li><strong>2025 Honda Accord</strong>: First deployment of the SENSING 360+ system</li>
+<li>Provides highway <strong>hands-off driving</strong> at Level 2+, allowing the driver to remove hands from the steering wheel while the system maintains lane centering and adaptive cruise control</li>
+<li>Uses a combination of cameras and radar for 360-degree sensing coverage</li>
+</ul>
+
+<h3>6.13 Nissan ProPILOT</h3>
+
+<p>Nissan's ProPILOT system is the company's advanced driver assistance platform, evolving toward greater autonomy through AI integration.</p>
+
+<h4>ProPILOT Assist 2.1</h4>
+<ul>
+<li>Latest version launching with the <strong>2026 Nissan Rogue and Armada</strong></li>
+<li>Enhanced highway driving assistance with improved lane centering, adaptive cruise control, and hands-free driving capability on compatible highways</li>
+</ul>
+
+<h4>Next-Generation ProPILOT</h4>
+<ul>
+<li>Integrates <strong>Wayve AI</strong> (a UK-based AI driving startup) technology with <strong>LiDAR</strong> sensors</li>
+<li><strong>Urban-capable</strong>: Designed to handle complex city driving scenarios, not just highway driving</li>
+<li>Planned <strong>FY2027 Japan launch</strong> at Level 2, with Wayve's learned driving models providing adaptable behavior in diverse urban environments</li>
+</ul>
+
+<h3>6.14 Sony Honda Mobility AFEELA</h3>
+
+<p>AFEELA is the product of a joint venture between Sony and Honda, combining Sony's sensor and entertainment expertise with Honda's automotive manufacturing capabilities.</p>
+
+<h4>AFEELA 1 Sedan</h4>
+<ul>
+<li><strong>Starting price</strong>: $89,900+</li>
+<li><strong>40 sensors</strong>: 18 cameras + 1 LiDAR + 9 radars + 12 ultrasonic sensors, providing the most sensor-dense production vehicle configuration available</li>
+<li><strong>Processing power</strong>: 800 TOPS (Tera Operations Per Second), providing substantial headroom for current and future autonomous driving capabilities</li>
+</ul>
+
+<h4>Autonomy Roadmap</h4>
+<ul>
+<li><strong>Launch</strong>: Level 2+ autonomous driving capability at initial delivery</li>
+<li><strong>OTA evolution</strong>: Planned over-the-air software updates to progressively unlock Level 3, and eventually Level 4 capability as the technology and regulatory landscape matures</li>
+</ul>
+
+<h4>Launch Timeline</h4>
+<ul>
+<li><strong>Late 2026</strong>: California delivery begins (US market first)</li>
+<li><strong>2027</strong>: Japan delivery</li>
+</ul>
+
+<hr/>
+
+<h2>Chapter Summary</h2>
+
+<p>This chapter covered the planning, control, and industry landscape of autonomous driving:</p>
+
+<ul>
+<li><strong>Path planning</strong> spans traditional algorithms (A*, RRT*), ML-based methods, and hybrid approaches that combine the strengths of both. Hybrid methods represent the latest trend at 27% of research.</li>
+<li><strong>Behavior prediction</strong> has evolved from simple physics models to deep learning architectures (GNN, Transformer) that capture complex multi-agent interactions.</li>
+<li><strong>Decision-making</strong> in 2025 is dominated by hybrid knowledge-driven and data-driven approaches, balancing safety guarantees with learned adaptability.</li>
+<li>The <strong>End-to-End vs. modular</strong> debate is being transcended by VLA models, LLM-based reasoning, and diffusion model planning that combine interpretability with global optimization.</li>
+<li><strong>PID control</strong> provides simplicity and speed, while <strong>MPC</strong> offers constraint handling and predictive optimization. Latest advances combine both with learning-based methods.</li>
+<li>The <strong>industry landscape</strong> shows Waymo leading in deployment scale, Tesla leveraging fleet data, Baidu Apollo Go approaching profitability in China, NVIDIA providing the essential computing platform, and Japanese automakers pursuing distinct strategies from L3 pioneering (Honda) to software platforms (Toyota) and sensor-dense EVs (AFEELA).</li>
+</ul>
+
+<div class="navigation">
+<a class="nav-button" href="chapter1-ad-fundamentals.html">&larr; Previous: AD Fundamentals</a>
+<a class="nav-button" href="chapter3-commercial-ai-frontiers.html">Next: Commercial Deployment &amp; AI/ML &rarr;</a>
+</div>
+</main>
+<section class="disclaimer"><h3>Disclaimer</h3><ul>
+<li>This content is provided for educational, research, and informational purposes only and does not constitute professional advice.</li>
+<li>This content is provided "AS IS" without any warranty, express or implied.</li>
+<li>The creators and Tohoku University assume no responsibility for external links, third-party data, tools, or libraries.</li>
+<li>To the maximum extent permitted by applicable law, the creators and Tohoku University shall not be liable for any damages arising from the use of this content.</li>
+<li>The content is subject to change without notice.</li>
+<li>Licensed under CC BY 4.0.</li>
+</ul></section>
+<footer>
+<p><strong>Author</strong>: AI Terakoya Content Team</p>
+<p><strong>Version</strong>: 1.0 | <strong>Created</strong>: 2026-01-29</p>
+<p><strong>License</strong>: Creative Commons BY 4.0</p>
+<p>&copy; 2025 AI Terakoya. All rights reserved.</p>
+</footer>
+</body>
+</html>

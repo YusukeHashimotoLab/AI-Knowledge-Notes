@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第2章：ニューラルネットワークの仕組み - ディープラーニング基礎入門 - AI Terakoya</title>
+    <meta name="description" content="順伝播の計算、重み行列とバイアスベクトル、計算グラフ、損失関数（MSE、Cross Entropy）について学びます。NumPyとPyTorchによる全結合層の実装を行います。">
+
+    <style>
+        :root {
+            --color-primary: #2c3e50;
+            --color-primary-dark: #1a252f;
+            --color-accent: #7b2cbf;
+            --color-accent-light: #9d4edd;
+            --color-text: #2d3748;
+            --color-text-light: #4a5568;
+            --color-bg: #ffffff;
+            --color-bg-alt: #f7fafc;
+            --color-border: #e2e8f0;
+            --color-code-bg: #f8f9fa;
+            --color-link: #3182ce;
+            --color-link-hover: #2c5aa0;
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+            --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+            --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+            --border-radius: 8px;
+            --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: var(--font-body); line-height: 1.7; color: var(--color-text); background-color: var(--color-bg); font-size: 16px; }
+        header { background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%); color: white; padding: var(--spacing-xl) var(--spacing-md); margin-bottom: var(--spacing-xl); box-shadow: var(--box-shadow); }
+        .header-content { max-width: 900px; margin: 0 auto; }
+        h1 { font-size: 2rem; font-weight: 700; margin-bottom: var(--spacing-sm); line-height: 1.2; }
+        .subtitle { font-size: 1.1rem; opacity: 0.95; font-weight: 400; margin-bottom: var(--spacing-md); }
+        .meta { display: flex; flex-wrap: wrap; gap: var(--spacing-md); font-size: 0.9rem; opacity: 0.9; }
+        .meta-item { display: flex; align-items: center; gap: 0.3rem; }
+        .container { max-width: 900px; margin: 0 auto; padding: 0 var(--spacing-md) var(--spacing-xl); }
+        h2 { font-size: 1.75rem; color: var(--color-primary); margin-top: var(--spacing-xl); margin-bottom: var(--spacing-md); padding-bottom: var(--spacing-xs); border-bottom: 3px solid var(--color-accent); }
+        h3 { font-size: 1.4rem; color: var(--color-primary); margin-top: var(--spacing-lg); margin-bottom: var(--spacing-sm); }
+        h4 { font-size: 1.1rem; color: var(--color-primary-dark); margin-top: var(--spacing-md); margin-bottom: var(--spacing-sm); }
+        p { margin-bottom: var(--spacing-md); color: var(--color-text); }
+        a { color: var(--color-link); text-decoration: none; transition: color 0.2s; }
+        a:hover { color: var(--color-link-hover); text-decoration: underline; }
+        ul, ol { margin-left: var(--spacing-lg); margin-bottom: var(--spacing-md); }
+        li { margin-bottom: var(--spacing-xs); color: var(--color-text); }
+        pre { background-color: var(--color-code-bg); border: 1px solid var(--color-border); border-radius: var(--border-radius); padding: var(--spacing-md); overflow-x: auto; margin-bottom: var(--spacing-md); font-family: var(--font-mono); font-size: 0.9rem; line-height: 1.5; }
+        code { font-family: var(--font-mono); font-size: 0.9em; background-color: var(--color-code-bg); padding: 0.2em 0.4em; border-radius: 3px; }
+        pre code { background-color: transparent; padding: 0; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: var(--spacing-md); font-size: 0.95rem; }
+        th, td { border: 1px solid var(--color-border); padding: var(--spacing-sm); text-align: left; }
+        th { background-color: var(--color-bg-alt); font-weight: 600; color: var(--color-primary); }
+        .mermaid { text-align: center; margin: var(--spacing-lg) 0; background-color: var(--color-bg-alt); padding: var(--spacing-md); border-radius: var(--border-radius); }
+        details { background-color: var(--color-bg-alt); border: 1px solid var(--color-border); border-radius: var(--border-radius); padding: var(--spacing-md); margin-bottom: var(--spacing-md); }
+        summary { cursor: pointer; font-weight: 600; color: var(--color-primary); user-select: none; padding: var(--spacing-md); margin: calc(-1 * var(--spacing-md)); border-radius: var(--border-radius); }
+        summary:hover { background-color: rgba(123, 44, 191, 0.1); }
+        details[open] summary { margin-bottom: var(--spacing-md); border-bottom: 1px solid var(--color-border); }
+        .chapter-description { margin: 1.5rem 0; padding: 1rem; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-left: 4px solid #7b2cbf; border-radius: 8px; font-size: 1.05rem; line-height: 1.8; color: #2d3748; }
+        .learning-objectives { background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); padding: var(--spacing-lg); border-radius: var(--border-radius); border-left: 4px solid var(--color-accent); margin-bottom: var(--spacing-xl); }
+        .learning-objectives h2 { margin-top: 0; border-bottom: none; }
+        .navigation { display: flex; justify-content: space-between; gap: var(--spacing-md); margin: var(--spacing-xl) 0; padding-top: var(--spacing-lg); border-top: 2px solid var(--color-border); }
+        .nav-button { flex: 1; padding: var(--spacing-md); background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%); color: white; border-radius: var(--border-radius); text-align: center; font-weight: 600; transition: transform 0.2s, box-shadow 0.2s; box-shadow: var(--box-shadow); }
+        .nav-button:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); text-decoration: none; }
+        footer { margin-top: var(--spacing-xl); padding: var(--spacing-lg) var(--spacing-md); background-color: var(--color-bg-alt); border-top: 1px solid var(--color-border); text-align: center; font-size: 0.9rem; color: var(--color-text-light); }
+        .disclaimer { max-width: 900px; margin: 2rem auto; padding: 1.5rem; background: #f8f9fa; border-left: 4px solid #6c757d; border-radius: 4px; }
+        .disclaimer h3 { color: #495057; margin-bottom: 1rem; font-size: 1.1rem; }
+        .disclaimer ul { list-style: none; padding-left: 0; }
+        .disclaimer li { padding: 0.5rem 0; padding-left: 1.5rem; position: relative; font-size: 0.9rem; color: #6c757d; line-height: 1.6; }
+        .disclaimer li::before { content: "⚠️"; position: absolute; left: 0; }
+        .breadcrumb { background: #f7fafc; padding: 0.75rem 1rem; border-bottom: 1px solid #e2e8f0; font-size: 0.9rem; }
+        .breadcrumb-content { max-width: 900px; margin: 0 auto; display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
+        .breadcrumb a { color: #667eea; text-decoration: none; transition: color 0.2s; }
+        .breadcrumb a:hover { color: #764ba2; text-decoration: underline; }
+        .breadcrumb-separator { color: #a0aec0; margin: 0 0.25rem; }
+        .breadcrumb-current { color: #4a5568; font-weight: 500; }
+        .info-box { background: #e3f2fd; border-left: 4px solid #2196f3; padding: var(--spacing-md); margin: var(--spacing-md) 0; border-radius: var(--border-radius); }
+        .warning-box { background: #fff3e0; border-left: 4px solid #ff9800; padding: var(--spacing-md); margin: var(--spacing-md) 0; border-radius: var(--border-radius); }
+        .success-box { background: #e8f5e9; border-left: 4px solid #4caf50; padding: var(--spacing-md); margin: var(--spacing-md) 0; border-radius: var(--border-radius); }
+        @media (max-width: 768px) {
+            h1 { font-size: 1.6rem; }
+            h2 { font-size: 1.4rem; }
+            h3 { font-size: 1.2rem; }
+            .container { padding: 0 var(--spacing-sm) var(--spacing-lg); }
+            .navigation { flex-direction: column; }
+        }
+    </style>
+
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof mermaid !== 'undefined') {
+                mermaid.initialize({ startOnLoad: true, theme: 'default' });
+            }
+        });
+    </script>
+</head>
+<body>
+    <nav class="breadcrumb">
+        <div class="breadcrumb-content">
+            <a href="../../index.html">AI寺子屋トップ</a><span class="breadcrumb-separator">›</span><a href="../index.html">機械学習</a><span class="breadcrumb-separator">›</span><a href="./index.html">ディープラーニング基礎入門</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">第2章</span>
+        </div>
+    </nav>
+
+    <header>
+        <div class="header-content">
+            <h1>第2章：ニューラルネットワークの仕組み</h1>
+            <p class="subtitle">順伝播、重み行列、損失関数を理解する</p>
+            <div class="meta">
+                <span class="meta-item">📖 読了時間: 35-40分</span>
+                <span class="meta-item">💻 コード例: 10個</span>
+                <span class="meta-item">📝 演習: 6問</span>
+                <span class="meta-item">📊 難易度: 初級〜中級</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="chapter-description">
+            この章では、ニューラルネットワークが入力から出力までどのようにデータを処理するかを学びます。順伝播の計算、重み行列とバイアスベクトルの役割、計算グラフ、そして予測誤差を測定する損失関数について理解します。
+        </div>
+
+        <div class="learning-objectives">
+            <h2>学習目標</h2>
+            <ul>
+                <li>順伝播における入力から出力までのデータフローを理解する</li>
+                <li>効率的なニューラルネットワーク計算のための行列演算をマスターする</li>
+                <li>重み行列とバイアスベクトルの役割を理解する</li>
+                <li>計算グラフと自動微分への重要性を学ぶ</li>
+                <li>MSEとCross Entropy損失関数を理解し実装する</li>
+                <li>NumPyとPyTorchで全結合層を実装する</li>
+            </ul>
+        </div>
+
+        <h2 id="forward-propagation">1. 順伝播（Forward Propagation）</h2>
+
+        <h3>1.1 入力から出力までのデータフロー</h3>
+
+        <p><strong>順伝播</strong>とは、入力が与えられたときにニューラルネットワークの出力を計算するプロセスです。データは層ごとにネットワークを流れ、各層でデータが変換され、最終的な出力が生成されます。</p>
+
+        <div class="mermaid">
+graph LR
+    subgraph 入力層
+        I1[x1]
+        I2[x2]
+        I3[x3]
+    end
+
+    subgraph 隠れ層
+        H1[h1]
+        H2[h2]
+    end
+
+    subgraph 出力層
+        O1[y1]
+        O2[y2]
+    end
+
+    I1 --> H1
+    I1 --> H2
+    I2 --> H1
+    I2 --> H2
+    I3 --> H1
+    I3 --> H2
+
+    H1 --> O1
+    H1 --> O2
+    H2 --> O1
+    H2 --> O2
+
+    style I1 fill:#e3f2fd
+    style I2 fill:#e3f2fd
+    style I3 fill:#e3f2fd
+    style H1 fill:#fff3e0
+    style H2 fill:#fff3e0
+    style O1 fill:#e8f5e9
+    style O2 fill:#e8f5e9
+        </div>
+
+        <p>各層での計算は以下のステップで行われます：</p>
+        <ol>
+            <li><strong>線形変換</strong>：入力に重みを掛けてバイアスを加える</li>
+            <li><strong>活性化</strong>：非線形活性化関数を適用する</li>
+        </ol>
+
+        <p>単一層の数式表現：</p>
+        <p>$$\mathbf{z} = \mathbf{W}\mathbf{x} + \mathbf{b}$$</p>
+        <p>$$\mathbf{a} = f(\mathbf{z})$$</p>
+
+        <p>ここで：</p>
+        <ul>
+            <li>$\mathbf{x}$：入力ベクトル（または前の層からの活性化）</li>
+            <li>$\mathbf{W}$：重み行列</li>
+            <li>$\mathbf{b}$：バイアスベクトル</li>
+            <li>$\mathbf{z}$：活性化前の値（線形結合）</li>
+            <li>$f$：活性化関数</li>
+            <li>$\mathbf{a}$：活性化出力</li>
+        </ul>
+
+        <h3>1.2 行列演算による効率的な計算</h3>
+
+        <p>ニューロンの出力を1つずつ計算する代わりに、<strong>行列演算</strong>を使用して層内のすべてのニューロンを同時に処理します。これはより簡潔なだけでなく、最適化された線形代数ライブラリにより大幅に高速です。</p>
+
+        <div class="info-box">
+            <p><strong>なぜ行列演算？</strong></p>
+            <ul>
+                <li><strong>並列化</strong>：GPUは数千の行列演算を同時に実行可能</li>
+                <li><strong>最適化</strong>：BLASなどのライブラリは行列乗算に高度に最適化</li>
+                <li><strong>バッチ処理</strong>：複数のサンプルを一度に処理可能</li>
+            </ul>
+        </div>
+
+        <pre><code class="language-python">import numpy as np
+
+def forward_layer(X, W, b, activation_fn):
+    """
+    単一層の順伝播
+
+    Parameters:
+    -----------
+    X : ndarray, shape (batch_size, n_input)
+        入力データ
+    W : ndarray, shape (n_input, n_output)
+        重み行列
+    b : ndarray, shape (1, n_output)
+        バイアスベクトル
+    activation_fn : function
+        活性化関数
+
+    Returns:
+    --------
+    A : ndarray, shape (batch_size, n_output)
+        活性化出力
+    Z : ndarray, shape (batch_size, n_output)
+        活性化前の値（逆伝播用）
+    """
+    # 線形変換: Z = X @ W + b
+    Z = np.dot(X, W) + b
+
+    # 活性化関数を適用
+    A = activation_fn(Z)
+
+    return A, Z
+
+# 使用例
+np.random.seed(42)
+
+# 入力: 4サンプル、3特徴量
+X = np.array([
+    [1.0, 2.0, 3.0],
+    [4.0, 5.0, 6.0],
+    [7.0, 8.0, 9.0],
+    [10.0, 11.0, 12.0]
+])
+
+# 重み: 3入力 -> 2出力
+W = np.random.randn(3, 2) * 0.01
+b = np.zeros((1, 2))
+
+# ReLU活性化
+relu = lambda x: np.maximum(0, x)
+
+A, Z = forward_layer(X, W, b, relu)
+print("入力形状:", X.shape)
+print("出力形状:", A.shape)
+</code></pre>
+
+        <h2 id="weights-biases">2. 重み行列とバイアスベクトル</h2>
+
+        <h3>2.1 重みの役割</h3>
+
+        <p><strong>重み行列</strong> $\mathbf{W}$ は、各入力特徴量が各出力ニューロンにどれだけ強く影響するかを決定します。</p>
+
+        <h3>2.2 重みの初期化</h3>
+
+        <p>適切な重みの初期化は効果的な学習に不可欠です。</p>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>方法</th>
+                    <th>式</th>
+                    <th>適用場面</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>ゼロ初期化</strong></td>
+                    <td>$W = 0$</td>
+                    <td>使用禁止（対称性の問題）</td>
+                </tr>
+                <tr>
+                    <td><strong>小さなランダム値</strong></td>
+                    <td>$W \sim \mathcal{N}(0, 0.01)$</td>
+                    <td>単純なネットワーク</td>
+                </tr>
+                <tr>
+                    <td><strong>Xavier/Glorot</strong></td>
+                    <td>$W \sim \mathcal{N}(0, \sqrt{\frac{2}{n_{in} + n_{out}}})$</td>
+                    <td>Sigmoid、tanh</td>
+                </tr>
+                <tr>
+                    <td><strong>He</strong></td>
+                    <td>$W \sim \mathcal{N}(0, \sqrt{\frac{2}{n_{in}}})$</td>
+                    <td>ReLU</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>2.3 バイアスの重要性</h3>
+
+        <p><strong>バイアスベクトル</strong> $\mathbf{b}$ は活性化関数を水平方向にシフトさせます。バイアスがなければ、入力がゼロのときに活性化前の値 $z$ もゼロになり、ネットワークの表現力が制限されます。</p>
+
+        <h2 id="computational-graphs">3. 層の接続と計算グラフ</h2>
+
+        <h3>3.1 計算グラフの概念</h3>
+
+        <p><strong>計算グラフ</strong>は、ニューラルネットワークにおける演算の順序を表す有向グラフです。各ノードは演算（加算、乗算、活性化関数）を表し、エッジはデータフローを表します。</p>
+
+        <h3>3.2 自動微分の基礎</h3>
+
+        <p>計算グラフの主な利点は<strong>自動微分</strong>を可能にすることです。中間値を保存し連鎖律を適用することで、すべてのパラメータに対する勾配を効率的に計算できます。</p>
+
+        <div class="warning-box">
+            <p><strong>連鎖律（Chain Rule）</strong>：$y = f(g(x))$ のとき</p>
+            <p>$$\frac{dy}{dx} = \frac{dy}{dg} \cdot \frac{dg}{dx}$$</p>
+            <p>これにより、出力から入力へ層ごとに勾配を計算できます。</p>
+        </div>
+
+        <h2 id="loss-functions">4. 損失関数（MSE、Cross Entropy）</h2>
+
+        <p><strong>損失関数</strong>（コスト関数、目的関数とも呼ばれる）は、ネットワークの予測が真の値とどれだけ一致しているかを測定します。学習の目標はこの損失を最小化することです。</p>
+
+        <h3>4.1 回帰問題：MSE（Mean Squared Error）</h3>
+
+        <p>MSEは<strong>回帰問題</strong>の標準的な損失関数です。</p>
+
+        <p><strong>式</strong>：</p>
+        <p>$$\mathcal{L}_{MSE} = \frac{1}{n} \sum_{i=1}^{n} (y_i - \hat{y}_i)^2$$</p>
+
+        <pre><code class="language-python">import numpy as np
+
+def mse_loss(y_true, y_pred):
+    """
+    平均二乗誤差損失
+
+    Parameters:
+    -----------
+    y_true : ndarray
+        真の値
+    y_pred : ndarray
+        予測値
+
+    Returns:
+    --------
+    loss : float
+        MSE損失値
+    """
+    return np.mean((y_true - y_pred) ** 2)
+
+# 使用例
+y_true = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
+y_pred = np.array([1.2, 1.8, 3.1, 3.9, 5.2])
+
+loss = mse_loss(y_true, y_pred)
+print(f"MSE損失: {loss:.4f}")
+</code></pre>
+
+        <h3>4.2 分類問題：Cross Entropy Loss</h3>
+
+        <p>Cross Entropyは<strong>分類問題</strong>の標準的な損失関数です。</p>
+
+        <h4>多クラス分類のCategorical Cross Entropy</h4>
+
+        <p>$$\mathcal{L}_{CE} = -\frac{1}{n} \sum_{i=1}^{n} \sum_{c=1}^{C} y_{i,c} \log(\hat{y}_{i,c})$$</p>
+
+        <pre><code class="language-python">import numpy as np
+
+def categorical_cross_entropy(y_true, y_pred, epsilon=1e-15):
+    """
+    Categorical Cross Entropy損失
+
+    Parameters:
+    -----------
+    y_true : ndarray, shape (n_samples, n_classes)
+        真のラベル（one-hot encoded）
+    y_pred : ndarray, shape (n_samples, n_classes)
+        予測確率
+
+    Returns:
+    --------
+    loss : float
+        CCE損失値
+    """
+    y_pred = np.clip(y_pred, epsilon, 1 - epsilon)
+    return -np.mean(np.sum(y_true * np.log(y_pred), axis=1))
+
+# 使用例
+y_true = np.array([
+    [1, 0, 0, 0],  # クラス0
+    [0, 1, 0, 0],  # クラス1
+    [0, 0, 0, 1]   # クラス3
+])
+
+y_pred_good = np.array([
+    [0.9, 0.05, 0.03, 0.02],
+    [0.1, 0.7, 0.1, 0.1],
+    [0.05, 0.05, 0.1, 0.8]
+])
+
+loss = categorical_cross_entropy(y_true, y_pred_good)
+print(f"Cross Entropy損失: {loss:.4f}")
+</code></pre>
+
+        <h3>4.3 損失関数の選択基準</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>タスク</th>
+                    <th>出力活性化</th>
+                    <th>損失関数</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>回帰</strong></td>
+                    <td>線形（なし）</td>
+                    <td>MSE、MAE、Huber</td>
+                </tr>
+                <tr>
+                    <td><strong>二値分類</strong></td>
+                    <td>Sigmoid</td>
+                    <td>Binary Cross Entropy</td>
+                </tr>
+                <tr>
+                    <td><strong>多クラス分類</strong></td>
+                    <td>Softmax</td>
+                    <td>Categorical Cross Entropy</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h2 id="implementation">5. 完全結合層の実装</h2>
+
+        <h3>5.1 NumPyによる実装</h3>
+
+        <pre><code class="language-python">import numpy as np
+
+class DenseLayer:
+    """
+    全結合（Dense）層の実装
+    """
+
+    def __init__(self, n_input, n_output, activation='relu'):
+        self.n_input = n_input
+        self.n_output = n_output
+        self.activation = activation
+
+        # He初期化
+        self.W = np.random.randn(n_input, n_output) * np.sqrt(2.0 / n_input)
+        self.b = np.zeros((1, n_output))
+
+        self.cache = {}
+
+    def _activate(self, Z):
+        if self.activation == 'relu':
+            return np.maximum(0, Z)
+        elif self.activation == 'softmax':
+            exp_Z = np.exp(Z - np.max(Z, axis=1, keepdims=True))
+            return exp_Z / np.sum(exp_Z, axis=1, keepdims=True)
+        else:
+            return Z
+
+    def forward(self, X):
+        self.cache['X'] = X
+        Z = np.dot(X, self.W) + self.b
+        self.cache['Z'] = Z
+        A = self._activate(Z)
+        self.cache['A'] = A
+        return A
+
+# ネットワーク構築
+np.random.seed(42)
+layer1 = DenseLayer(4, 8, activation='relu')
+layer2 = DenseLayer(8, 3, activation='softmax')
+
+X = np.array([[5.1, 3.5, 1.4, 0.2]])
+A1 = layer1.forward(X)
+output = layer2.forward(A1)
+
+print("入力形状:", X.shape)
+print("出力形状:", output.shape)
+print("予測確率:", output)
+</code></pre>
+
+        <h3>5.2 PyTorchによる実装</h3>
+
+        <pre><code class="language-python">import torch
+import torch.nn as nn
+
+class SimpleNetwork(nn.Module):
+    """
+    PyTorchによるシンプルな全結合ネットワーク
+    """
+
+    def __init__(self, input_size, hidden_sizes, output_size):
+        super(SimpleNetwork, self).__init__()
+
+        layers = []
+        prev_size = input_size
+
+        for hidden_size in hidden_sizes:
+            layers.append(nn.Linear(prev_size, hidden_size))
+            layers.append(nn.ReLU())
+            prev_size = hidden_size
+
+        layers.append(nn.Linear(prev_size, output_size))
+
+        self.network = nn.Sequential(*layers)
+
+    def forward(self, x):
+        return self.network(x)
+
+# モデル作成
+model = SimpleNetwork(input_size=4, hidden_sizes=[8, 4], output_size=3)
+print("モデルアーキテクチャ:")
+print(model)
+</code></pre>
+
+        <h2 id="exercises">演習問題</h2>
+
+        <details>
+            <summary>演習1：手動での順伝播計算</summary>
+            <p><strong>問題</strong>：2入力、2隠れニューロン、2出力のネットワークで、与えられた重みとバイアスを使って出力を手計算し、コードで検証してください。</p>
+        </details>
+
+        <details>
+            <summary>演習2：損失関数の比較</summary>
+            <p><strong>問題</strong>：二値分類問題で、MSEとBinary Cross Entropyの損失がどのように変化するかを比較し、なぜ分類にはCross Entropyが好まれるか説明してください。</p>
+        </details>
+
+        <details>
+            <summary>演習3：Huber損失の実装</summary>
+            <p><strong>問題</strong>：MSEとMAEを組み合わせたHuber損失を実装し、外れ値に対する挙動をMSE、MAEと比較してください。</p>
+        </details>
+
+        <details>
+            <summary>演習4：バッチ処理</summary>
+            <p><strong>問題</strong>：ミニバッチでデータを処理する関数を実装し、バッチサイズ1、32、128、1000での処理時間を測定してください。</p>
+        </details>
+
+        <details>
+            <summary>演習5：重み初期化の実験</summary>
+            <p><strong>問題</strong>：5層ネットワークで、ゼロ、ランダム小、Xavier、He初期化を比較し、各層での活性化の統計量をプロットしてください。</p>
+        </details>
+
+        <details>
+            <summary>演習6：計算グラフの可視化</summary>
+            <p><strong>問題</strong>：2層ネットワークの計算グラフを描き、すべての演算をノードとして、エッジにテンソル形状をラベル付けしてください。</p>
+        </details>
+
+        <h2 id="summary">まとめ</h2>
+
+        <p>この章では、ニューラルネットワークがデータを処理する仕組みを学びました：</p>
+
+        <ul>
+            <li><strong>順伝播</strong>：データは層ごとに流れ、各層で線形変換と活性化が行われる</li>
+            <li><strong>行列演算</strong>：効率的なバッチ処理と並列化を可能にする</li>
+            <li><strong>重み行列</strong>：接続強度を制御し、適切な初期化（Xavier、He）が重要</li>
+            <li><strong>バイアスベクトル</strong>：活性化関数のシフトを可能にする</li>
+            <li><strong>計算グラフ</strong>：演算をグラフとして表現し、自動微分を可能にする</li>
+            <li><strong>損失関数</strong>：回帰にはMSE、分類にはCross Entropy</li>
+        </ul>
+
+        <div class="success-box">
+            <p><strong>次章の予告</strong>：第3章では、学習アルゴリズム—勾配降下法と誤差逆伝播法を使ってニューラルネットワークが損失を最小化するために重みをどのように調整するかを学びます。</p>
+        </div>
+
+        <div class="navigation">
+            <a href="./chapter-1.html" class="nav-button">← 第1章</a>
+            <a href="./chapter-3.html" class="nav-button">第3章 →</a>
+        </div>
+    </main>
+
+    <section class="disclaimer">
+        <h3>免責事項</h3>
+        <ul>
+            <li>本コンテンツは教育・研究・情報提供のみを目的としています。</li>
+            <li>コード例は「現状有姿」で提供され、いかなる保証もありません。</li>
+            <li>内容は予告なく変更されることがあります。</li>
+        </ul>
+    </section>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 AI Terakoya - Dr. Yusuke Hashimoto, Tohoku University</p>
+            <p>Licensed under CC BY 4.0</p>
+        </div>
+    </footer>
+</body>
+</html>

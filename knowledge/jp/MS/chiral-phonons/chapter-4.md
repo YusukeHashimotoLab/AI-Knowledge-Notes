@@ -4,6 +4,24 @@ chapter_title: "第4章: 応用と計算手法"
 subtitle: "フォノン角運動量の計算、バレートロニクス応用、新興デバイス概念"
 ---
 
+## ビデオ講義
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/eh4l3F1ANtA"
+    title="カイラルフォノン 第4章: 応用と計算手法"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> このビデオは以下のテキストと同じ内容をカバーしています。お好みの学習形式をお選びください。
+
+---
+
 [🌐 EN](<../../../en/MS/chiral-phonons/chapter-4.md>) | 🇯🇵 JP | Last sync: 2025-12-19
 
 [材料科学道場](<../index.html>) > [カイラルフォノン](<index.md>) > 第4章

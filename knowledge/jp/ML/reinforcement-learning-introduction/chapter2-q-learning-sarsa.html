@@ -1,786 +1,463 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-<meta content="第2章：Q学習とSARSA - AI Terakoya" name="description"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>第2章：Q学習とSARSA - AI Terakoya</title>
-
-    <style>
-        :root {
-            --color-primary: #2c3e50;
-            --color-primary-dark: #1a252f;
-            --color-accent: #7b2cbf;
-            --color-accent-light: #9d4edd;
-            --color-text: #2d3748;
-            --color-text-light: #4a5568;
-            --color-bg: #ffffff;
-            --color-bg-alt: #f7fafc;
-            --color-border: #e2e8f0;
-            --color-code-bg: #f8f9fa;
-            --color-link: #3182ce;
-            --color-link-hover: #2c5aa0;
-
-            --spacing-xs: 0.5rem;
-            --spacing-sm: 1rem;
-            --spacing-md: 1.5rem;
-            --spacing-lg: 2rem;
-            --spacing-xl: 3rem;
-
-            --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
-
-            --border-radius: 8px;
-            --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+<meta charset="utf-8"/>
+<meta content="第2章：Q学習とSARSA - 強化学習のためのテーブル形式手法" name="description"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>第2章：Q学習とSARSA - AI寺子屋</title>
+<link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+<script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({ startOnLoad: true, theme: 'default' });
+</script>
+<!-- MathJax for LaTeX equation rendering -->
+<script>
+    MathJax = {
+        tex: {
+            inlineMath: [['$', '$'], ['\\(', '\\)']],
+            displayMath: [['$$', '$$'], ['\\[', '\\]']],
+            processEscapes: true,
+            processEnvironments: true
+        },
+        options: {
+            skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+            ignoreHtmlClass: 'mermaid'
         }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: var(--font-body);
-            line-height: 1.7;
-            color: var(--color-text);
-            background-color: var(--color-bg);
-            font-size: 16px;
-        }
-
-        header {
-            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
-            color: white;
-            padding: var(--spacing-xl) var(--spacing-md);
-            margin-bottom: var(--spacing-xl);
-            box-shadow: var(--box-shadow);
-        }
-
-        .header-content {
-            max-width: 900px;
-            margin: 0 auto;
-        }
-
-        h1 {
-            font-size: 2rem;
-            font-weight: 700;
-            margin-bottom: var(--spacing-sm);
-            line-height: 1.2;
-        }
-
-        .subtitle {
-            font-size: 1.1rem;
-            opacity: 0.95;
-            font-weight: 400;
-            margin-bottom: var(--spacing-md);
-        }
-
-        .meta {
-            display: flex;
-            flex-wrap: wrap;
-            gap: var(--spacing-md);
-            font-size: 0.9rem;
-            opacity: 0.9;
-        }
-
-        .meta-item {
-            display: flex;
-            align-items: center;
-            gap: 0.3rem;
-        }
-
-        .container {
-            max-width: 900px;
-            margin: 0 auto;
-            padding: 0 var(--spacing-md) var(--spacing-xl);
-        }
-
-        h2 {
-            font-size: 1.75rem;
-            color: var(--color-primary);
-            margin-top: var(--spacing-xl);
-            margin-bottom: var(--spacing-md);
-            padding-bottom: var(--spacing-xs);
-            border-bottom: 3px solid var(--color-accent);
-        }
-
-        h3 {
-            font-size: 1.4rem;
-            color: var(--color-primary);
-            margin-top: var(--spacing-lg);
-            margin-bottom: var(--spacing-sm);
-        }
-
-        h4 {
-            font-size: 1.1rem;
-            color: var(--color-primary-dark);
-            margin-top: var(--spacing-md);
-            margin-bottom: var(--spacing-sm);
-        }
-
-        p {
-            margin-bottom: var(--spacing-md);
-            color: var(--color-text);
-        }
-
-        a {
-            color: var(--color-link);
-            text-decoration: none;
-            transition: color 0.2s;
-        }
-
-        a:hover {
-            color: var(--color-link-hover);
-            text-decoration: underline;
-        }
-
-        ul, ol {
-            margin-left: var(--spacing-lg);
-            margin-bottom: var(--spacing-md);
-        }
-
-        li {
-            margin-bottom: var(--spacing-xs);
-            color: var(--color-text);
-        }
-
-        pre {
-            background-color: var(--color-code-bg);
-            border: 1px solid var(--color-border);
-            border-radius: var(--border-radius);
-            padding: var(--spacing-md);
-            overflow-x: auto;
-            margin-bottom: var(--spacing-md);
-            font-family: var(--font-mono);
-            font-size: 0.9rem;
-            line-height: 1.5;
-        }
-
-        code {
-            font-family: var(--font-mono);
-            font-size: 0.9em;
-            background-color: var(--color-code-bg);
-            padding: 0.2em 0.4em;
-            border-radius: 3px;
-        }
-
-        pre code {
-            background-color: transparent;
-            padding: 0;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: var(--spacing-md);
-            font-size: 0.95rem;
-        }
-
-        th, td {
-            border: 1px solid var(--color-border);
-            padding: var(--spacing-sm);
-            text-align: left;
-        }
-
-        th {
-            background-color: var(--color-bg-alt);
-            font-weight: 600;
-            color: var(--color-primary);
-        }
-
-        blockquote {
-            border-left: 4px solid var(--color-accent);
-            padding-left: var(--spacing-md);
-            margin: var(--spacing-md) 0;
-            color: var(--color-text-light);
-            font-style: italic;
-            background-color: var(--color-bg-alt);
-            padding: var(--spacing-md);
-            border-radius: var(--border-radius);
-        }
-
-        .mermaid {
-            text-align: center;
-            margin: var(--spacing-lg) 0;
-            background-color: var(--color-bg-alt);
-            padding: var(--spacing-md);
-            border-radius: var(--border-radius);
-        }
-
-        details {
-            background-color: var(--color-bg-alt);
-            border: 1px solid var(--color-border);
-            border-radius: var(--border-radius);
-            padding: var(--spacing-md);
-            margin-bottom: var(--spacing-md);
-        }
-
-        summary {
-            cursor: pointer;
-            font-weight: 600;
-            color: var(--color-primary);
-            user-select: none;
-            padding: var(--spacing-xs);
-            margin: calc(-1 * var(--spacing-md));
-            padding: var(--spacing-md);
-            border-radius: var(--border-radius);
-        }
-
-        summary:hover {
-            background-color: rgba(123, 44, 191, 0.1);
-        }
-
-        details[open] summary {
-            margin-bottom: var(--spacing-md);
-            border-bottom: 1px solid var(--color-border);
-        }
-
-        .navigation {
-            display: flex;
-            justify-content: space-between;
-            gap: var(--spacing-md);
-            margin: var(--spacing-xl) 0;
-            padding-top: var(--spacing-lg);
-            border-top: 2px solid var(--color-border);
-        }
-
-        .nav-button {
-            flex: 1;
-            padding: var(--spacing-md);
-            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
-            color: white;
-            border-radius: var(--border-radius);
-            text-align: center;
-            font-weight: 600;
-            transition: transform 0.2s, box-shadow 0.2s;
-            box-shadow: var(--box-shadow);
-        }
-
-        .nav-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            text-decoration: none;
-        }
-
-        footer {
-            margin-top: var(--spacing-xl);
-            padding: var(--spacing-lg) var(--spacing-md);
-            background-color: var(--color-bg-alt);
-            border-top: 1px solid var(--color-border);
-            text-align: center;
-            font-size: 0.9rem;
-            color: var(--color-text-light);
-        }
-        .disclaimer {
-            max-width: 900px;
-            margin: 2rem auto;
-            padding: 1.5rem;
-            background: #f8f9fa;
-            border-left: 4px solid #6c757d;
-            border-radius: 4px;
-        }
-
-        .disclaimer h3 {
-            color: #495057;
-            margin-bottom: 1rem;
-            font-size: 1.1rem;
-        }
-
-        .disclaimer ul {
-            list-style: none;
-            padding-left: 0;
-        }
-
-        .disclaimer li {
-            padding: 0.5rem 0;
-            padding-left: 1.5rem;
-            position: relative;
-            font-size: 0.9rem;
-            color: #6c757d;
-            line-height: 1.6;
-        }
-
-        .disclaimer li::before {
-            content: "⚠️";
-            position: absolute;
-            left: 0;
-        }
-
-
-        @media (max-width: 768px) {
-            h1 {
-                font-size: 1.5rem;
-            }
-
-            h2 {
-                font-size: 1.4rem;
-            }
-
-            h3 {
-                font-size: 1.2rem;
-            }
-
-            .meta {
-                font-size: 0.85rem;
-            }
-
-            .navigation {
-                flex-direction: column;
-            }
-
-            table {
-                font-size: 0.85rem;
-            }
-
-            th, td {
-                padding: var(--spacing-xs);
-            }
-        }
-    
-        
-    
-        /* Breadcrumb styles */
-        .breadcrumb {
-            background: #f7fafc;
-            padding: 0.75rem 1rem;
-            border-bottom: 1px solid #e2e8f0;
-            font-size: 0.9rem;
-        }
-
-        .breadcrumb-content {
-            max-width: 900px;
-            margin: 0 auto;
-            display: flex;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 0.5rem;
-        }
-
-        .breadcrumb a {
-            color: #667eea;
-            text-decoration: none;
-            transition: color 0.2s;
-        }
-
-        .breadcrumb a:hover {
-            color: #764ba2;
-            text-decoration: underline;
-        }
-
-        .breadcrumb-separator {
-            color: #a0aec0;
-            margin: 0 0.25rem;
-        }
-
-        .breadcrumb-current {
-            color: #4a5568;
-            font-weight: 500;
-        }
-    </style>
-
-    <script type="module">
-        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
-        mermaid.initialize({ startOnLoad: true, theme: 'default' });
-    </script>
-
-    <!-- MathJax for LaTeX equation rendering -->
-    <script>
-        MathJax = {
-            tex: {
-                inlineMath: [['$', '$'], ['\\(', '\\)']],
-                displayMath: [['$$', '$$'], ['\\[', '\\]']],
-                processEscapes: true,
-                processEnvironments: true
-            },
-            options: {
-                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
-                ignoreHtmlClass: 'mermaid'
-            }
-        };
-    </script>
-    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" id="MathJax-script" async></script>
-
-    <style>
-        /* Locale Switcher Styles */
-        .locale-switcher {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.5rem 1rem;
-            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-            border-radius: 6px;
-            font-size: 0.9rem;
-            margin-bottom: 1rem;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        }
-
-        .current-locale {
-            font-weight: 600;
-            color: #7b2cbf;
-            display: flex;
-            align-items: center;
-            gap: 0.25rem;
-        }
-
-        .locale-separator {
-            color: #adb5bd;
-            font-weight: 300;
-        }
-
-        .locale-link {
-            color: #f093fb;
-            text-decoration: none;
-            font-weight: 500;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            gap: 0.25rem;
-            padding: 0.2rem 0.5rem;
-            border-radius: 4px;
-        }
-
-        .locale-link:hover {
-            background: rgba(240, 147, 251, 0.1);
-            color: #d07be8;
-            transform: translateY(-1px);
-        }
-
-        .locale-meta {
-            color: #868e96;
-            font-size: 0.85rem;
-            font-style: italic;
-            margin-left: auto;
-        }
-
-        @media (max-width: 768px) {
-            .locale-switcher {
-                font-size: 0.85rem;
-                padding: 0.4rem 0.8rem;
-            }
-            .locale-meta {
-                display: none;
-            }
-        }
-    </style>
+    };
+</script>
+<script async="" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 </head>
 <body>
-            <div class="locale-switcher">
-<span class="current-locale">🌐 JP</span>
-<span class="locale-separator">|</span>
-<a href="../../../en/ML/reinforcement-learning-introduction/chapter2-q-learning-sarsa.html" class="locale-link">🇬🇧 EN</a>
-<span class="locale-separator">|</span>
-<span class="locale-meta">Last sync: 2025-11-16</span>
-</div>
 <nav class="breadcrumb">
-        <div class="breadcrumb-content">
-            <a href="../../index.html">AI寺子屋トップ</a><span class="breadcrumb-separator">›</span><a href="../../ML/index.html">機械学習</a><span class="breadcrumb-separator">›</span><a href="../../ML/reinforcement-learning-introduction/index.html">Reinforcement Learning</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 2</span>
-        </div>
-    </nav>
+<div class="breadcrumb-content">
+<a href="../index.html">AI寺子屋ホーム</a><span class="breadcrumb-separator">></span><a href="../../index.html">機械学習</a><span class="breadcrumb-separator">></span><a href="./index.html">強化学習</a><span class="breadcrumb-separator">></span><span class="breadcrumb-current">第2章</span>
+</div>
+</nav>
+<div class="locale-switcher">
+<span class="current-locale">JP</span>
+<span class="locale-separator">|</span>
+<a href="../../../en/ML/reinforcement-learning-introduction/chapter2-q-learning-sarsa.html" class="locale-link">EN</a>
+<span class="locale-separator">|</span>
+<span class="locale-meta">最終更新: 2026-01</span>
+</div>
+<header>
+<div class="header-content">
+<h1>第2章：Q学習とSARSA</h1>
+<p class="subtitle">離散状態-行動空間のためのテーブル形式TD制御手法をマスターする</p>
+<div class="meta">
+<span class="meta-item">読了時間: 25-30分</span>
+<span class="meta-item">難易度: 中級</span>
+<span class="meta-item">コード例: 8</span>
+<span class="meta-item">演習問題: 5</span>
+</div>
+</div>
+</header>
+<main class="container">
 
-        <header>
-        <div class="header-content">
-            <h1>第2章：Q学習とSARSA</h1>
-            <p class="subtitle">時間差分学習による価値関数の推定と行動方策の最適化</p>
-            <div class="meta">
-                <span class="meta-item">📖 読了時間: 25-30分</span>
-                <span class="meta-item">📊 難易度: 初級〜中級</span>
-                <span class="meta-item">💻 コード例: 8個</span>
-                <span class="meta-item">📝 演習問題: 5問</span>
-            </div>
-        </div>
-    </header>
-
-    <main class="container">
+<p class="chapter-description">本章では、2つの基本的なTD制御アルゴリズムであるQ学習（オフポリシー）とSARSA（オンポリシー）を学びます。Qテーブルに状態-行動価値を格納する方法を理解し、両アルゴリズムをゼロから実装します。また、古典的な崖歩き問題（Cliff Walking）を通じて、それぞれのアルゴリズムをいつ使用すべきかを理解します。</p>
 
 <h2>学習目標</h2>
-<p>この章を読むことで、以下を習得できます：</p>
+<p>本章を修了すると、以下のことができるようになります：</p>
 <ul>
-<li>✅ 時間差分（TD）学習の基本原理とモンテカルロ法との違いを理解する</li>
-<li>✅ Q学習アルゴリズム（オフポリシー型）の仕組みと更新式を説明できる</li>
-<li>✅ SARSAアルゴリズム（オンポリシー型）の特徴と適用場面を理解する</li>
-<li>✅ ε-greedy方策による探索と活用のバランス調整ができる</li>
-<li>✅ 学習率と割引率のハイパーパラメータの影響を説明できる</li>
-<li>✅ OpenAI GymのTaxi-v3やCliff Walking環境で実装できる</li>
+<li>Qテーブルの概念と、テーブル形式手法が適切な場面を理解する</li>
+<li>Q学習の更新則と、なぜそれがオフポリシーであるかを説明できる</li>
+<li>SARSAの更新則と、なぜそれがオンポリシーであるかを説明できる</li>
+<li>リスクに敏感な環境でのQ学習とSARSAの挙動を比較できる</li>
+<li>複数の探索戦略（イプシロン貪欲法、ボルツマン法、UCB）を実装できる</li>
+<li>崖歩き問題に両アルゴリズムを適用できる</li>
+<li>分散削減技法としてのExpected SARSAを理解する</li>
 </ul>
+<hr/>
 
-<hr>
+<h2>2.1 テーブル形式手法入門</h2>
 
-<h2>2.1 時間差分（TD）学習の基礎</h2>
+<h3>Qテーブルの概念</h3>
+<p><strong>離散的な</strong>状態空間と行動空間を持つ強化学習では、すべての状態-行動ペアの価値をテーブルに格納できます。このテーブルは<strong>Qテーブル</strong>と呼ばれ、各（状態、行動）ペアを期待累積報酬を表す値にマッピングします。</p>
 
-<h3>モンテカルロ法の課題</h3>
-
-<p>第1章で学んだモンテカルロ法は、<strong>エピソード終了まで待つ必要がある</strong>という制約がありました：</p>
-
-$$
-V(s_t) \leftarrow V(s_t) + \alpha [G_t - V(s_t)]
-$$
-
-<p>ここで $G_t = r_{t+1} + \gamma r_{t+2} + \gamma^2 r_{t+3} + \cdots$ は実際の収益（リターン）です。</p>
-
-<h3>時間差分学習の基本アイデア</h3>
-
-<p><strong>時間差分（Temporal Difference: TD）学習</strong>は、エピソード終了を待たずに、<strong>1ステップごとに価値関数を更新</strong>します：</p>
-
-$$
-V(s_t) \leftarrow V(s_t) + \alpha [r_{t+1} + \gamma V(s_{t+1}) - V(s_t)]
-$$
-
-<p>ここで：</p>
+<p>Qテーブルは2次元配列で、以下のように構成されます：</p>
 <ul>
-<li>$r_{t+1} + \gamma V(s_{t+1})$：<strong>TD目標</strong>（TD target）</li>
-<li>$\delta_t = r_{t+1} + \gamma V(s_{t+1}) - V(s_t)$：<strong>TD誤差</strong>（TD error）</li>
-<li>$\alpha$：学習率（learning rate）</li>
+<li><strong>行</strong>は状態 $s \in S$ に対応</li>
+<li><strong>列</strong>は行動 $a \in A$ に対応</li>
+<li>各セル $Q(s, a)$ は状態 $s$ で行動 $a$ を取ることの推定価値を格納</li>
 </ul>
 
 <div class="mermaid">
-graph LR
-    S1["状態 s_t"] --> A["行動 a_t"]
-    A --> S2["状態 s_t+1"]
-    S2 --> R["報酬 r_t+1"]
-    R --> Update["V(s_t) 更新"]
-    S2 --> Update
+graph TD
+    subgraph Q-Table
+        direction TB
+        H["&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| a0 | a1 | a2 | a3 |"]
+        R0["s0 | 0.5| 0.8| 0.2| 0.1|"]
+        R1["s1 | 0.3| 0.9| 0.4| 0.2|"]
+        R2["s2 | 0.7| 0.1| 0.6| 0.3|"]
+        R3["...| ...| ...| ...| ...|"]
+    end
 
-    style S1 fill:#b3e5fc
-    style S2 fill:#c5e1a5
-    style R fill:#fff9c4
+    Agent["エージェント"] --> Lookup["Q(s, a) 参照"]
+    Lookup --> Action["行動を選択"]
+    Action --> Env["環境"]
+    Env --> Update["Q(s, a) を更新"]
+    Update --> Agent
+
+    style Agent fill:#e3f2fd
+    style Env fill:#fff3e0
+    style Lookup fill:#e8f5e9
     style Update fill:#ffab91
 </div>
 
-<h3>TD(0)の実装</h3>
-
-<pre><code class="language-python">import numpy as np
-import gym
-
-def td_0_prediction(env, policy, num_episodes=1000, alpha=0.1, gamma=0.99):
-    """
-    TD(0)による状態価値関数の推定
-
-    Args:
-        env: 環境
-        policy: 方策 (状態 -> 行動確率分布)
-        num_episodes: エピソード数
-        alpha: 学習率
-        gamma: 割引率
-
-    Returns:
-        V: 状態価値関数
-    """
-    # 状態価値関数の初期化
-    V = np.zeros(env.observation_space.n)
-
-    for episode in range(num_episodes):
-        state, _ = env.reset()
-
-        while True:
-            # 方策に従って行動選択
-            action = np.random.choice(env.action_space.n, p=policy[state])
-
-            # 環境との相互作用
-            next_state, reward, terminated, truncated, _ = env.step(action)
-            done = terminated or truncated
-
-            # TD(0)更新
-            td_target = reward + gamma * V[next_state]
-            td_error = td_target - V[state]
-            V[state] = V[state] + alpha * td_error
-
-            if done:
-                break
-
-            state = next_state
-
-    return V
-
-
-# 使用例：FrozenLake環境
-print("=== TD(0)による価値関数推定 ===")
-
-env = gym.make('FrozenLake-v1', is_slippery=False)
-
-# ランダム方策
-policy = np.ones((env.observation_space.n, env.action_space.n)) / env.action_space.n
-
-# TD(0)実行
-V = td_0_prediction(env, policy, num_episodes=1000, alpha=0.1, gamma=0.99)
-
-print(f"状態価値関数:\n{V.reshape(4, 4)}")
-env.close()
-</code></pre>
-
-<h3>モンテカルロ法とTD学習の比較</h3>
+<h3>テーブル形式手法が有効な場合（そうでない場合）</h3>
 
 <table>
 <thead>
 <tr>
-<th>項目</th>
-<th>モンテカルロ法</th>
-<th>TD学習</th>
+<th>シナリオ</th>
+<th>テーブル形式手法</th>
+<th>理由</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><strong>更新タイミング</strong></td>
-<td>エピソード終了後</td>
-<td>各ステップ後</td>
+<td><strong>小規模な離散状態空間</strong></td>
+<td>非常に有効</td>
+<td>すべての状態を列挙可能</td>
 </tr>
 <tr>
-<td><strong>収益の計算</strong></td>
-<td>実際の収益 $G_t$</td>
-<td>推定収益 $r + \gamma V(s')$</td>
+<td><strong>グリッドワールド、ボードゲーム</strong></td>
+<td>有効</td>
+<td>有限で数え上げ可能な状態</td>
 </tr>
 <tr>
-<td><strong>バイアス</strong></td>
-<td>なし（不偏推定）</td>
-<td>あり（初期値に依存）</td>
-</tr>
-<tr>
-<td><strong>分散</strong></td>
-<td>高い</td>
-<td>低い</td>
-</tr>
-<tr>
-<td><strong>継続タスク</strong></td>
+<td><strong>連続状態</strong>（例：ロボットの関節）</td>
 <td>適用不可</td>
-<td>適用可能</td>
+<td>無限の状態、格納不可能</td>
 </tr>
 <tr>
-<td><strong>収束速度</strong></td>
-<td>遅い</td>
-<td>速い</td>
+<td><strong>高次元状態</strong>（例：画像）</td>
+<td>適用不可</td>
+<td>状態空間の指数的爆発</td>
+</tr>
+<tr>
+<td><strong>非常に大きな離散空間</strong></td>
+<td>非現実的</td>
+<td>メモリとサンプル効率の問題</td>
 </tr>
 </tbody>
 </table>
 
 <blockquote>
-<p>「TD学習は、ブートストラップ（自己の推定値を使って更新）により、効率的な学習を実現します」</p>
+<p><strong>経験則</strong>：$|S| \times |A| < 10^6$ の場合、テーブル形式手法は実用的です。それ以上の場合は、関数近似（第3章：DQN）を検討してください。</p>
 </blockquote>
 
-<hr>
+<h3>状態-行動価値の格納</h3>
 
-<h2>2.2 Q学習（Q-Learning）</h2>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy>=1.24.0
+# - gymnasium>=0.29.0
 
-<h3>行動価値関数Q(s, a)</h3>
+import numpy as np
+import gymnasium as gym
 
-<p>状態価値関数 $V(s)$ の代わりに、<strong>行動価値関数</strong> $Q(s, a)$ を学習します：</p>
+class QTable:
+    """
+    離散状態-行動空間のためのQテーブル実装
 
-$$
-Q(s, a) = \mathbb{E}[G_t | S_t = s, A_t = a]
-$$
+    Q値の格納と取得のためのクリーンなインターフェースを提供し、
+    初期化戦略もサポートしています。
+    """
 
-<p>これは「状態 $s$ で行動 $a$ を取った後の期待収益」を表します。</p>
+    def __init__(self, n_states: int, n_actions: int, init_value: float = 0.0):
+        """
+        Qテーブルを初期化
 
-<h3>Q学習の更新式</h3>
+        Args:
+            n_states: 離散状態の数
+            n_actions: 離散行動の数
+            init_value: すべてのペアの初期Q値（0より大きい場合は楽観的初期化）
+        """
+        self.n_states = n_states
+        self.n_actions = n_actions
+        self.table = np.full((n_states, n_actions), init_value)
 
-<p><strong>Q学習</strong>は、TD学習を行動価値関数に適用したものです：</p>
+        # 分析用に訪問回数を追跡
+        self.visit_counts = np.zeros((n_states, n_actions), dtype=int)
+
+    def get_value(self, state: int, action: int) -> float:
+        """Q(s, a) を取得"""
+        return self.table[state, action]
+
+    def set_value(self, state: int, action: int, value: float):
+        """Q(s, a) を設定"""
+        self.table[state, action] = value
+        self.visit_counts[state, action] += 1
+
+    def get_best_action(self, state: int) -> int:
+        """argmax_a Q(s, a) を取得"""
+        return int(np.argmax(self.table[state]))
+
+    def get_max_value(self, state: int) -> float:
+        """max_a Q(s, a) を取得"""
+        return float(np.max(self.table[state]))
+
+    def get_action_values(self, state: int) -> np.ndarray:
+        """すべての行動に対する Q(s, :) を取得"""
+        return self.table[state].copy()
+
+
+# FrozenLake環境でのデモンストレーション
+print("=== Qテーブルのデモンストレーション ===\n")
+
+env = gym.make('FrozenLake-v1', is_slippery=False)
+
+n_states = env.observation_space.n  # 16状態（4x4グリッド）
+n_actions = env.action_space.n      # 4行動（左、下、右、上）
+
+print(f"状態空間のサイズ: {n_states}")
+print(f"行動空間のサイズ: {n_actions}")
+print(f"Qテーブルの形状: ({n_states}, {n_actions})")
+print(f"エントリ総数: {n_states * n_actions}")
+
+# 楽観的初期化でQテーブルを作成
+q_table = QTable(n_states, n_actions, init_value=1.0)
+
+print(f"\n初期Qテーブル（最初の4状態）:")
+print(q_table.table[:4])
+
+env.close()
+</code></pre>
+
+<hr/>
+
+<h2>2.2 Q学習アルゴリズム</h2>
+
+<h3>オフポリシーTD制御</h3>
+
+<p><strong>Q学習</strong>は<strong>オフポリシー</strong>の時間差分制御アルゴリズムです。追従しているポリシーに関係なく、最適行動価値関数 $Q^*$ を直接学習します。</p>
+
+<h4>Q学習の更新則</h4>
+
+<p>Q学習の核となる更新式は以下の通りです：</p>
 
 $$
 Q(s_t, a_t) \leftarrow Q(s_t, a_t) + \alpha \left[ r_{t+1} + \gamma \max_{a'} Q(s_{t+1}, a') - Q(s_t, a_t) \right]
 $$
 
-<p>重要なポイント：</p>
+<p>ここで：</p>
 <ul>
-<li>$\max_{a'} Q(s_{t+1}, a')$：次状態での<strong>最良の行動</strong>の価値を使う</li>
-<li><strong>オフポリシー型</strong>：実際の行動と更新に使う行動が異なる</li>
-<li>最適方策を直接学習できる</li>
+<li>$\alpha \in (0, 1]$ は<strong>学習率</strong></li>
+<li>$\gamma \in [0, 1]$ は<strong>割引率</strong></li>
+<li>$r_{t+1} + \gamma \max_{a'} Q(s_{t+1}, a')$ は<strong>TD目標値</strong></li>
+<li>$\delta_t = r_{t+1} + \gamma \max_{a'} Q(s_{t+1}, a') - Q(s_t, a_t)$ は<strong>TD誤差</strong></li>
 </ul>
 
 <div class="mermaid">
-graph TB
-    Start["状態 s, 行動 a"] --> Execute["環境実行"]
-    Execute --> Observe["s', r 観測"]
-    Observe --> MaxQ["max_a' Q(s', a')"]
-    MaxQ --> Target["TD目標 = r + γ max Q(s', a')"]
-    Target --> Update["Q(s,a) 更新"]
-    Update --> Next["次ステップ"]
+graph LR
+    S["状態 s"] --> A["行動 a<br/>（イプシロン貪欲法）"]
+    A --> E["環境"]
+    E --> R["報酬 r"]
+    E --> Sp["次状態 s'"]
+    Sp --> Max["max Q(s', a')"]
+    Max --> Target["TD目標値:<br/>r + gamma * max Q"]
+    Target --> Update["Q(s,a) を更新"]
 
-    style Start fill:#b3e5fc
-    style MaxQ fill:#fff59d
-    style Update fill:#ffab91
+    style S fill:#b3e5fc
+    style A fill:#c5e1a5
+    style R fill:#fff9c4
+    style Max fill:#ffab91
+    style Update fill:#f8bbd9
 </div>
 
-<h3>Q学習アルゴリズムの実装</h3>
+<h3>Q学習がオフポリシーである理由</h3>
 
-<pre><code class="language-python">import numpy as np
-import gym
+<p>重要な洞察は、更新における<strong>max</strong>演算子です：</p>
+<ul>
+<li><strong>行動ポリシー</strong>：エージェントは探索的なポリシー（例：イプシロン貪欲法）に従う</li>
+<li><strong>ターゲットポリシー</strong>：更新には $\max_{a'} Q(s_{t+1}, a')$ を使用し、これは<strong>貪欲な</strong>行動</li>
+</ul>
+
+<p>エージェントは最適なポリシーを学習しながら自由に探索できます。この行動ポリシーとターゲットポリシーの分離が、Q学習を「オフポリシー」にしている理由です。</p>
+
+<h3>収束特性</h3>
+
+<p>Q学習は以下の条件の下で $Q^*$ に収束します：</p>
+<ol>
+<li>すべての状態-行動ペアが無限回訪問される</li>
+<li>学習率 $\alpha_t$ が以下を満たす：$\sum_t \alpha_t = \infty$ かつ $\sum_t \alpha_t^2 < \infty$</li>
+<li>報酬が有界である</li>
+</ol>
+
+<p>実際には、固定された小さな学習率（例：$\alpha = 0.1$）がほとんどのテーブル形式問題でうまく機能します。</p>
+
+<h3>Q学習の完全な実装</h3>
+
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy>=1.24.0
+# - gymnasium>=0.29.0
+# - matplotlib>=3.7.0
+
+import numpy as np
+import gymnasium as gym
+import matplotlib.pyplot as plt
+from typing import Tuple, List
 
 class QLearningAgent:
-    """Q学習エージェント"""
+    """
+    イプシロン貪欲探索を用いたQ学習エージェント
 
-    def __init__(self, n_states, n_actions, alpha=0.1, gamma=0.99, epsilon=0.1):
+    次の行動の最大値でブートストラップすることにより、
+    Q*を直接学習するオフポリシーTD制御アルゴリズムを実装しています。
+    """
+
+    def __init__(
+        self,
+        n_states: int,
+        n_actions: int,
+        alpha: float = 0.1,
+        gamma: float = 0.99,
+        epsilon: float = 0.1,
+        epsilon_decay: float = 1.0,
+        epsilon_min: float = 0.01
+    ):
         """
+        Q学習エージェントを初期化
+
         Args:
-            n_states: 状態数
-            n_actions: 行動数
+            n_states: 離散状態の数
+            n_actions: 離散行動の数
             alpha: 学習率
             gamma: 割引率
-            epsilon: ε-greedy のε
+            epsilon: 初期探索率
+            epsilon_decay: 各エピソード後のイプシロン減衰係数
+            epsilon_min: イプシロンの最小値
         """
-        self.Q = np.zeros((n_states, n_actions))
+        self.n_states = n_states
+        self.n_actions = n_actions
         self.alpha = alpha
         self.gamma = gamma
         self.epsilon = epsilon
-        self.n_actions = n_actions
+        self.epsilon_decay = epsilon_decay
+        self.epsilon_min = epsilon_min
 
-    def select_action(self, state):
-        """ε-greedy方策で行動選択"""
-        if np.random.rand() < self.epsilon:
-            # ランダム行動（探索）
+        # Qテーブルをゼロで初期化
+        self.Q = np.zeros((n_states, n_actions))
+
+    def select_action(self, state: int) -> int:
+        """
+        イプシロン貪欲ポリシーを使用して行動を選択
+
+        Args:
+            state: 現在の状態
+
+        Returns:
+            選択された行動
+        """
+        if np.random.random() < self.epsilon:
+            # 探索：ランダムな行動
             return np.random.randint(self.n_actions)
         else:
-            # 最良行動（活用）
-            return np.argmax(self.Q[state])
+            # 活用：貪欲な行動
+            return int(np.argmax(self.Q[state]))
 
-    def update(self, state, action, reward, next_state, done):
-        """Q値の更新"""
+    def update(
+        self,
+        state: int,
+        action: int,
+        reward: float,
+        next_state: int,
+        done: bool
+    ):
+        """
+        Q学習の更新則を使用してQ値を更新
+
+        Q(s,a) <- Q(s,a) + alpha * [r + gamma * max_a' Q(s',a') - Q(s,a)]
+
+        Args:
+            state: 現在の状態
+            action: 実行した行動
+            reward: 受け取った報酬
+            next_state: 次の状態
+            done: エピソードが終了したかどうか
+        """
         if done:
-            # 終端状態
+            # 終端状態には将来の価値がない
             td_target = reward
         else:
-            # Q学習の更新式
+            # Q学習：次の状態のQ値の最大値を使用
             td_target = reward + self.gamma * np.max(self.Q[next_state])
 
+        # TD誤差
         td_error = td_target - self.Q[state, action]
+
+        # Q値を更新
         self.Q[state, action] += self.alpha * td_error
 
+    def decay_epsilon(self):
+        """各エピソード後に探索率を減衰"""
+        self.epsilon = max(self.epsilon_min, self.epsilon * self.epsilon_decay)
 
-def train_q_learning(env, agent, num_episodes=1000):
-    """Q学習の訓練"""
+
+def train_q_learning(
+    env: gym.Env,
+    agent: QLearningAgent,
+    n_episodes: int = 1000,
+    max_steps: int = 200
+) -> Tuple[List[float], List[int]]:
+    """
+    環境でQ学習エージェントを訓練
+
+    Args:
+        env: Gymnasium環境
+        agent: Q学習エージェント
+        n_episodes: 訓練エピソード数
+        max_steps: エピソードあたりの最大ステップ数
+
+    Returns:
+        (エピソード報酬, エピソード長) のタプル
+    """
     episode_rewards = []
+    episode_lengths = []
 
-    for episode in range(num_episodes):
+    for episode in range(n_episodes):
         state, _ = env.reset()
         total_reward = 0
+        steps = 0
 
-        while True:
-            # 行動選択
+        for step in range(max_steps):
+            # 行動を選択
             action = agent.select_action(state)
 
-            # 環境実行
+            # 行動を実行
             next_state, reward, terminated, truncated, _ = env.step(action)
             done = terminated or truncated
 
-            # Q値更新
+            # Q値を更新
             agent.update(state, action, reward, next_state, done)
 
             total_reward += reward
+            steps += 1
 
             if done:
                 break
 
             state = next_state
 
-        episode_rewards.append(total_reward)
+        # イプシロンを減衰
+        agent.decay_epsilon()
 
-        # 進捗表示
+        episode_rewards.append(total_reward)
+        episode_lengths.append(steps)
+
+        # 進捗ログ
         if (episode + 1) % 100 == 0:
             avg_reward = np.mean(episode_rewards[-100:])
-            print(f"Episode {episode + 1}, Avg Reward: {avg_reward:.2f}")
+            print(f"エピソード {episode + 1}: 平均報酬 = {avg_reward:.2f}, "
+                  f"イプシロン = {agent.epsilon:.3f}")
 
-    return episode_rewards
+    return episode_rewards, episode_lengths
 
 
-# 使用例：FrozenLake
-print("\n=== Q学習の訓練 ===")
+# FrozenLakeでの訓練デモンストレーション
+print("=== FrozenLakeでのQ学習訓練 ===\n")
 
 env = gym.make('FrozenLake-v1', is_slippery=False)
 
@@ -789,106 +466,44 @@ agent = QLearningAgent(
     n_actions=env.action_space.n,
     alpha=0.1,
     gamma=0.99,
-    epsilon=0.1
+    epsilon=1.0,
+    epsilon_decay=0.995,
+    epsilon_min=0.01
 )
 
-rewards = train_q_learning(env, agent, num_episodes=1000)
+rewards, lengths = train_q_learning(env, agent, n_episodes=500)
 
-print(f"\n学習済みQ表（一部）:")
-print(agent.Q[:16].reshape(4, 4, -1)[:, :, 0])  # 行動0のQ値
+# 学習したQテーブルを表示
+print("\n=== 学習したQテーブル（4x4グリッドに整形） ===")
+print("各状態での最良行動:")
+action_names = ['左', '下', '右', '上']
+policy = [action_names[np.argmax(agent.Q[s])] for s in range(16)]
+for i in range(4):
+    print(policy[i*4:(i+1)*4])
+
 env.close()
 </code></pre>
 
-<h3>Q表（Q-Table）の可視化</h3>
+<hr/>
 
-<pre><code class="language-python">import matplotlib.pyplot as plt
-import seaborn as sns
+<h2>2.3 SARSAアルゴリズム</h2>
 
-def visualize_q_table(Q, env_shape=(4, 4)):
-    """Q表を可視化"""
-    n_states = Q.shape[0]
-    n_actions = Q.shape[1]
+<h3>オンポリシーTD制御</h3>
 
-    fig, axes = plt.subplots(1, n_actions, figsize=(16, 4))
+<p><strong>SARSA</strong>（State-Action-Reward-State-Action）は<strong>オンポリシー</strong>の時間差分制御アルゴリズムです。Q学習とは異なり、SARSAは実際に追従しているポリシーの価値を学習します。</p>
 
-    action_names = ['LEFT', 'DOWN', 'RIGHT', 'UP']
+<h4>SARSAの更新則</h4>
 
-    for action in range(n_actions):
-        Q_action = Q[:, action].reshape(env_shape)
-
-        sns.heatmap(Q_action, annot=True, fmt='.2f', cmap='YlOrRd',
-                   ax=axes[action], cbar=True, square=True)
-        axes[action].set_title(f'Q値: {action_names[action]}')
-        axes[action].set_xlabel('列')
-        axes[action].set_ylabel('行')
-
-    plt.tight_layout()
-    plt.savefig('q_table_visualization.png', dpi=150, bbox_inches='tight')
-    print("Q表を保存: q_table_visualization.png")
-    plt.close()
-
-
-# Q表の可視化
-visualize_q_table(agent.Q)
-</code></pre>
-
-<h3>学習曲線の可視化</h3>
-
-<pre><code class="language-python">import matplotlib.pyplot as plt
-import numpy as np
-
-def plot_learning_curve(rewards, window=100):
-    """学習曲線をプロット"""
-    # 移動平均を計算
-    smoothed_rewards = np.convolve(rewards, np.ones(window)/window, mode='valid')
-
-    plt.figure(figsize=(12, 5))
-
-    # エピソード報酬
-    plt.subplot(1, 2, 1)
-    plt.plot(rewards, alpha=0.3, label='エピソード報酬')
-    plt.plot(range(window-1, len(rewards)), smoothed_rewards,
-             linewidth=2, label=f'{window}エピソード移動平均')
-    plt.xlabel('エピソード')
-    plt.ylabel('報酬')
-    plt.title('Q学習の学習曲線')
-    plt.legend()
-    plt.grid(True, alpha=0.3)
-
-    # 累積報酬
-    plt.subplot(1, 2, 2)
-    cumulative_rewards = np.cumsum(rewards)
-    plt.plot(cumulative_rewards, linewidth=2, color='green')
-    plt.xlabel('エピソード')
-    plt.ylabel('累積報酬')
-    plt.title('累積報酬')
-    plt.grid(True, alpha=0.3)
-
-    plt.tight_layout()
-    plt.savefig('q_learning_curve.png', dpi=150, bbox_inches='tight')
-    print("学習曲線を保存: q_learning_curve.png")
-    plt.close()
-
-
-plot_learning_curve(rewards)
-</code></pre>
-
-<hr>
-
-<h2>2.3 SARSA（State-Action-Reward-State-Action）</h2>
-
-<h3>SARSAの基本原理</h3>
-
-<p><strong>SARSA</strong>は、Q学習の<strong>オンポリシー版</strong>です。実際に取る行動を使って更新します：</p>
+<p>SARSAの核となる更新式は以下の通りです：</p>
 
 $$
 Q(s_t, a_t) \leftarrow Q(s_t, a_t) + \alpha \left[ r_{t+1} + \gamma Q(s_{t+1}, a_{t+1}) - Q(s_t, a_t) \right]
 $$
 
-<p>重要な違い：</p>
+<p>Q学習との違いに注目してください：</p>
 <ul>
-<li>Q学習：$\max_{a'} Q(s_{t+1}, a')$ を使う（最良の行動）</li>
-<li>SARSA：$Q(s_{t+1}, a_{t+1})$ を使う（実際に取る行動）</li>
+<li><strong>Q学習</strong>：$\max_{a'} Q(s_{t+1}, a')$（最良の行動）を使用</li>
+<li><strong>SARSA</strong>：$Q(s_{t+1}, a_{t+1})$（<em>実際の</em>次の行動）を使用</li>
 </ul>
 
 <div class="mermaid">
@@ -896,8 +511,8 @@ graph LR
     S1["S_t"] --> A1["A_t"]
     A1 --> R["R_t+1"]
     R --> S2["S_t+1"]
-    S2 --> A2["A_t+1"]
-    A2 --> Update["Q(S_t, A_t) 更新"]
+    S2 --> A2["A_t+1<br/>（同じポリシー）"]
+    A2 --> Update["Q(S_t+1, A_t+1) を使って<br/>Q(S_t, A_t) を更新"]
 
     style S1 fill:#b3e5fc
     style A1 fill:#c5e1a5
@@ -907,134 +522,180 @@ graph LR
     style Update fill:#ffab91
 </div>
 
-<h3>Q学習とSARSAの比較</h3>
+<h3>SARSAがオンポリシーである理由</h3>
 
-<table>
-<thead>
-<tr>
-<th>項目</th>
-<th>Q学習</th>
-<th>SARSA</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><strong>学習タイプ</strong></td>
-<td>オフポリシー</td>
-<td>オンポリシー</td>
-</tr>
-<tr>
-<td><strong>更新式</strong></td>
-<td>$r + \gamma \max_a Q(s', a)$</td>
-<td>$r + \gamma Q(s', a')$</td>
-</tr>
-<tr>
-<td><strong>探索の影響</strong></td>
-<td>学習に影響しない</td>
-<td>学習に影響する</td>
-</tr>
-<tr>
-<td><strong>収束先</strong></td>
-<td>最適方策</td>
-<td>現在の方策の価値</td>
-</tr>
-<tr>
-<td><strong>安全性</strong></td>
-<td>リスクを考慮しない</td>
-<td>リスクを考慮</td>
-</tr>
-<tr>
-<td><strong>適用場面</strong></td>
-<td>シミュレーション環境</td>
-<td>実環境での学習</td>
-</tr>
-</tbody>
-</table>
+<p>SARSAという名前は、各更新で使用される5つ組 $(S_t, A_t, R_{t+1}, S_{t+1}, A_{t+1})$ に由来しています。</p>
 
-<h3>SARSAの実装</h3>
+<p>SARSAは（同じポリシーで選択された）<em>実際の次の行動</em> $a_{t+1}$ を使用するため、追従しているポリシーの価値を学習します。エージェントが最適でない探索をすると、SARSAはその価値推定にそれを反映させます。</p>
 
-<pre><code class="language-python">import numpy as np
-import gym
+<blockquote>
+<p><strong>重要な洞察</strong>：SARSAは将来の探索的な（潜在的に悪い）行動の可能性を考慮するため、「より安全な」ポリシーを学習します。</p>
+</blockquote>
+
+<h3>SARSAの完全な実装</h3>
+
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy>=1.24.0
+# - gymnasium>=0.29.0
+
+import numpy as np
+import gymnasium as gym
+from typing import Tuple, List, Optional
 
 class SARSAAgent:
-    """SARSAエージェント"""
+    """
+    イプシロン貪欲探索を用いたSARSAエージェント
 
-    def __init__(self, n_states, n_actions, alpha=0.1, gamma=0.99, epsilon=0.1):
+    追従しているポリシーの価値を学習する
+    オンポリシーTD制御アルゴリズムを実装しています。
+    """
+
+    def __init__(
+        self,
+        n_states: int,
+        n_actions: int,
+        alpha: float = 0.1,
+        gamma: float = 0.99,
+        epsilon: float = 0.1,
+        epsilon_decay: float = 1.0,
+        epsilon_min: float = 0.01
+    ):
         """
+        SARSAエージェントを初期化
+
         Args:
-            n_states: 状態数
-            n_actions: 行動数
+            n_states: 離散状態の数
+            n_actions: 離散行動の数
             alpha: 学習率
             gamma: 割引率
-            epsilon: ε-greedy のε
+            epsilon: 初期探索率
+            epsilon_decay: イプシロンの減衰係数
+            epsilon_min: イプシロンの最小値
         """
-        self.Q = np.zeros((n_states, n_actions))
+        self.n_states = n_states
+        self.n_actions = n_actions
         self.alpha = alpha
         self.gamma = gamma
         self.epsilon = epsilon
-        self.n_actions = n_actions
+        self.epsilon_decay = epsilon_decay
+        self.epsilon_min = epsilon_min
 
-    def select_action(self, state):
-        """ε-greedy方策で行動選択"""
-        if np.random.rand() < self.epsilon:
+        self.Q = np.zeros((n_states, n_actions))
+
+    def select_action(self, state: int) -> int:
+        """イプシロン貪欲ポリシーを使用して行動を選択"""
+        if np.random.random() < self.epsilon:
             return np.random.randint(self.n_actions)
         else:
-            return np.argmax(self.Q[state])
+            return int(np.argmax(self.Q[state]))
 
-    def update(self, state, action, reward, next_state, next_action, done):
-        """Q値の更新（SARSA）"""
+    def update(
+        self,
+        state: int,
+        action: int,
+        reward: float,
+        next_state: int,
+        next_action: Optional[int],
+        done: bool
+    ):
+        """
+        SARSAの更新則を使用してQ値を更新
+
+        Q(s,a) <- Q(s,a) + alpha * [r + gamma * Q(s',a') - Q(s,a)]
+
+        Args:
+            state: 現在の状態
+            action: 実行した行動
+            reward: 受け取った報酬
+            next_state: 次の状態
+            next_action: 次の行動（同じポリシーから）、終端ならNone
+            done: エピソードが終了したかどうか
+        """
         if done:
             td_target = reward
         else:
-            # SARSAの更新式（次に実際に取る行動を使用）
+            # SARSA：実際の次の行動のQ値を使用
             td_target = reward + self.gamma * self.Q[next_state, next_action]
 
         td_error = td_target - self.Q[state, action]
         self.Q[state, action] += self.alpha * td_error
 
+    def decay_epsilon(self):
+        """探索率を減衰"""
+        self.epsilon = max(self.epsilon_min, self.epsilon * self.epsilon_decay)
 
-def train_sarsa(env, agent, num_episodes=1000):
-    """SARSAの訓練"""
+
+def train_sarsa(
+    env: gym.Env,
+    agent: SARSAAgent,
+    n_episodes: int = 1000,
+    max_steps: int = 200
+) -> Tuple[List[float], List[int]]:
+    """
+    環境でSARSAエージェントを訓練
+
+    Q学習との違いに注意：SARSAは更新に a_{t+1} が必要なため、
+    更新前に次の行動を選択します。
+
+    Args:
+        env: Gymnasium環境
+        agent: SARSAエージェント
+        n_episodes: 訓練エピソード数
+        max_steps: エピソードあたりの最大ステップ数
+
+    Returns:
+        (エピソード報酬, エピソード長) のタプル
+    """
     episode_rewards = []
+    episode_lengths = []
 
-    for episode in range(num_episodes):
+    for episode in range(n_episodes):
         state, _ = env.reset()
-        action = agent.select_action(state)  # 初期行動選択
-        total_reward = 0
+        action = agent.select_action(state)  # 最初の行動を選択
 
-        while True:
-            # 環境実行
+        total_reward = 0
+        steps = 0
+
+        for step in range(max_steps):
+            # 行動を実行
             next_state, reward, terminated, truncated, _ = env.step(action)
             done = terminated or truncated
 
+            # 次の行動を選択（SARSA更新用）
             if not done:
-                # 次の行動を選択（SARSAの特徴）
                 next_action = agent.select_action(next_state)
             else:
                 next_action = None
 
-            # Q値更新
+            # (s, a, r, s', a') を使用してQ値を更新
             agent.update(state, action, reward, next_state, next_action, done)
 
             total_reward += reward
+            steps += 1
 
             if done:
                 break
 
+            # 次の状態と行動に移動
             state = next_state
-            action = next_action  # 次の行動に移行
+            action = next_action
+
+        agent.decay_epsilon()
 
         episode_rewards.append(total_reward)
+        episode_lengths.append(steps)
 
         if (episode + 1) % 100 == 0:
             avg_reward = np.mean(episode_rewards[-100:])
-            print(f"Episode {episode + 1}, Avg Reward: {avg_reward:.2f}")
+            print(f"エピソード {episode + 1}: 平均報酬 = {avg_reward:.2f}, "
+                  f"イプシロン = {agent.epsilon:.3f}")
 
-    return episode_rewards
+    return episode_rewards, episode_lengths
 
 
-# 使用例
-print("\n=== SARSAの訓練 ===")
+# 訓練デモンストレーション
+print("=== FrozenLakeでのSARSA訓練 ===\n")
 
 env = gym.make('FrozenLake-v1', is_slippery=False)
 
@@ -1043,563 +704,736 @@ sarsa_agent = SARSAAgent(
     n_actions=env.action_space.n,
     alpha=0.1,
     gamma=0.99,
-    epsilon=0.1
+    epsilon=1.0,
+    epsilon_decay=0.995,
+    epsilon_min=0.01
 )
 
-sarsa_rewards = train_sarsa(env, sarsa_agent, num_episodes=1000)
+sarsa_rewards, sarsa_lengths = train_sarsa(env, sarsa_agent, n_episodes=500)
 
-print(f"\n学習済みQ表（SARSA）:")
-print(sarsa_agent.Q[:16].reshape(4, 4, -1)[:, :, 0])
+print("\n=== SARSAが学習したポリシー ===")
+action_names = ['左', '下', '右', '上']
+policy = [action_names[np.argmax(sarsa_agent.Q[s])] for s in range(16)]
+for i in range(4):
+    print(policy[i*4:(i+1)*4])
+
 env.close()
 </code></pre>
 
-<hr>
+<hr/>
 
-<h2>2.4 ε-greedy探索戦略</h2>
+<h2>2.4 Q学習とSARSAの比較</h2>
 
-<h3>探索と活用のトレードオフ</h3>
+<h3>主な違い</h3>
 
-<p>強化学習では、<strong>探索（Exploration）</strong>と<strong>活用（Exploitation）</strong>のバランスが重要です：</p>
+<table>
+<thead>
+<tr>
+<th>観点</th>
+<th>Q学習</th>
+<th>SARSA</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>ポリシータイプ</strong></td>
+<td>オフポリシー</td>
+<td>オンポリシー</td>
+</tr>
+<tr>
+<td><strong>更新ターゲット</strong></td>
+<td>$r + \gamma \max_{a'} Q(s', a')$</td>
+<td>$r + \gamma Q(s', a')$</td>
+</tr>
+<tr>
+<td><strong>学習するもの</strong></td>
+<td>最適ポリシー $\pi^*$</td>
+<td>追従しているポリシー</td>
+</tr>
+<tr>
+<td><strong>探索の影響</strong></td>
+<td>探索はターゲットに影響しない</td>
+<td>探索が価値推定に影響</td>
+</tr>
+<tr>
+<td><strong>リスク感度</strong></td>
+<td>リスク中立（探索ミスを無視）</td>
+<td>リスク認識（ミスを考慮）</td>
+</tr>
+<tr>
+<td><strong>最適な使用場面</strong></td>
+<td>シミュレーション環境</td>
+<td>実世界、安全性重視システム</td>
+</tr>
+<tr>
+<td><strong>収束先</strong></td>
+<td>$Q^*$（最適）</td>
+<td>$Q^\pi$（ポリシー依存）</td>
+</tr>
+</tbody>
+</table>
 
+<h3>オンポリシー vs オフポリシー：実践的な意味</h3>
+
+<p><strong>Q学習（オフポリシー）</strong>：</p>
 <ul>
-<li><strong>探索</strong>：新しい状態・行動を試して環境を理解する</li>
-<li><strong>活用</strong>：現在の知識で最良の行動を選択する</li>
+<li>任意のポリシー（ランダムや古いポリシーを含む）で収集したデータから学習可能</li>
+<li>経験を再利用する際のサンプル効率が高い</li>
+<li>完璧な実行を前提とした危険なポリシーを学習する可能性がある</li>
 </ul>
 
-<h3>ε-greedy方策</h3>
+<p><strong>SARSA（オンポリシー）</strong>：</p>
+<ul>
+<li>実行しているポリシーから学習する必要がある</li>
+<li>エージェント自身の探索ミスを考慮する</li>
+<li>危険な環境でより安全なポリシーを学習する</li>
+</ul>
 
-<p>最もシンプルな探索戦略：</p>
+<h3>どちらを選ぶべきか</h3>
+
+<ul>
+<li><strong>Q学習を使う場合</strong>：
+    <ul>
+        <li>失敗のコストが低いシミュレーションで訓練する場合</li>
+        <li>理論的に最適なポリシーが欲しい場合</li>
+        <li>経験再生を使用する予定の場合（オフポリシーが必要）</li>
+    </ul>
+</li>
+<li><strong>SARSAを使う場合</strong>：
+    <ul>
+        <li>実ハードウェア（ロボティクス）で訓練する場合</li>
+        <li>探索中の失敗コストが高い場合</li>
+        <li>探索を考慮した安全なポリシーが欲しい場合</li>
+    </ul>
+</li>
+</ul>
+
+<hr/>
+
+<h2>2.5 探索戦略の詳細</h2>
+
+<p>効果的な探索は強化学習において非常に重要です。ここでは3つの人気のある戦略を検討します。</p>
+
+<h3>1. 減衰付きイプシロン貪欲法</h3>
+
+<p>最もシンプルな探索戦略です：</p>
 
 $$
-a = \begin{cases}
-\text{random action} & \text{確率 } \epsilon \\
-\arg\max_a Q(s, a) & \text{確率 } 1 - \epsilon
+a_t = \begin{cases}
+\text{ランダム行動} & \text{確率 } \epsilon \text{ で} \\
+\arg\max_a Q(s_t, a) & \text{確率 } 1 - \epsilon \text{ で}
 \end{cases}
 $$
 
-<h3>εの減衰（Epsilon Decay）</h3>
+<p>イプシロンは通常、時間とともに減衰します：$\epsilon_t = \epsilon_0 \cdot \text{decay}^t$</p>
 
-<pre><code class="language-python">import numpy as np
+<h3>2. ボルツマン（ソフトマックス）探索</h3>
+
+<p>Q値に基づいて確率的に行動を選択します：</p>
+
+$$
+P(a | s) = \frac{\exp(Q(s, a) / \tau)}{\sum_{a'} \exp(Q(s, a') / \tau)}
+$$
+
+<p>ここで $\tau$ は<strong>温度</strong>パラメータです：</p>
+<ul>
+<li>$\tau \to 0$：貪欲（決定論的）</li>
+<li>$\tau \to \infty$：一様ランダム</li>
+<li>$\tau = 1$：標準的なソフトマックス</li>
+</ul>
+
+<h3>3. 信頼上限（UCB）</h3>
+
+<p>不確実性を使用して探索と活用のバランスを取ります：</p>
+
+$$
+a_t = \arg\max_a \left[ Q(s_t, a) + c \sqrt{\frac{\ln t}{N(s_t, a)}} \right]
+$$
+
+<p>ここで：</p>
+<ul>
+<li>$N(s, a)$ は状態 $s$ で行動 $a$ が選択された回数</li>
+<li>$c$ は探索係数</li>
+<li>ボーナス項 $\sqrt{\frac{\ln t}{N(s, a)}}$ は訪問回数の少ない行動を試すことを促進</li>
+</ul>
+
+<h3>探索戦略の比較</h3>
+
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy>=1.24.0
+# - matplotlib>=3.7.0
+
+import numpy as np
 import matplotlib.pyplot as plt
 
-class EpsilonGreedy:
-    """ε-greedy方策（減衰機能付き）"""
+class ExplorationStrategy:
+    """探索戦略の基底クラス"""
 
-    def __init__(self, epsilon_start=1.0, epsilon_end=0.01, epsilon_decay=0.995):
-        """
-        Args:
-            epsilon_start: 初期ε
-            epsilon_end: 最小ε
-            epsilon_decay: 減衰率
-        """
-        self.epsilon = epsilon_start
-        self.epsilon_end = epsilon_end
-        self.epsilon_decay = epsilon_decay
+    def select_action(self, q_values: np.ndarray, **kwargs) -> int:
+        raise NotImplementedError
 
-    def select_action(self, Q, state, n_actions):
-        """行動選択"""
-        if np.random.rand() < self.epsilon:
-            return np.random.randint(n_actions)
+
+class EpsilonGreedy(ExplorationStrategy):
+    """イプシロン貪欲探索"""
+
+    def __init__(self, epsilon: float = 0.1):
+        self.epsilon = epsilon
+
+    def select_action(self, q_values: np.ndarray, **kwargs) -> int:
+        if np.random.random() < self.epsilon:
+            return np.random.randint(len(q_values))
+        return int(np.argmax(q_values))
+
+
+class BoltzmannExploration(ExplorationStrategy):
+    """ボルツマン（ソフトマックス）探索"""
+
+    def __init__(self, temperature: float = 1.0):
+        self.temperature = temperature
+
+    def select_action(self, q_values: np.ndarray, **kwargs) -> int:
+        # 数値安定性：最大値を引く
+        exp_values = np.exp((q_values - np.max(q_values)) / self.temperature)
+        probabilities = exp_values / np.sum(exp_values)
+        return np.random.choice(len(q_values), p=probabilities)
+
+
+class UCBExploration(ExplorationStrategy):
+    """信頼上限探索"""
+
+    def __init__(self, c: float = 2.0):
+        self.c = c
+
+    def select_action(
+        self,
+        q_values: np.ndarray,
+        visit_counts: np.ndarray = None,
+        total_steps: int = 1,
+        **kwargs
+    ) -> int:
+        if visit_counts is None:
+            return np.random.randint(len(q_values))
+
+        # 未訪問の行動を処理
+        if np.min(visit_counts) == 0:
+            return int(np.argmin(visit_counts))
+
+        # UCB公式
+        ucb_values = q_values + self.c * np.sqrt(
+            np.log(total_steps) / visit_counts
+        )
+        return int(np.argmax(ucb_values))
+
+
+# 探索戦略を比較
+print("=== 探索戦略の比較 ===\n")
+
+# 4行動問題のシミュレートされたQ値
+q_values = np.array([1.0, 2.0, 1.5, 0.5])  # 行動1が最良
+visit_counts = np.array([100, 50, 75, 25])
+
+strategies = {
+    'イプシロン貪欲 (eps=0.1)': EpsilonGreedy(epsilon=0.1),
+    'イプシロン貪欲 (eps=0.3)': EpsilonGreedy(epsilon=0.3),
+    'ボルツマン (tau=0.5)': BoltzmannExploration(temperature=0.5),
+    'ボルツマン (tau=1.0)': BoltzmannExploration(temperature=1.0),
+    'UCB (c=2)': UCBExploration(c=2.0),
+}
+
+n_samples = 10000
+
+print(f"Q値: {q_values}")
+print(f"訪問回数: {visit_counts}\n")
+
+fig, axes = plt.subplots(1, len(strategies), figsize=(15, 4))
+
+for idx, (name, strategy) in enumerate(strategies.items()):
+    action_counts = np.zeros(4)
+
+    for step in range(n_samples):
+        if isinstance(strategy, UCBExploration):
+            action = strategy.select_action(
+                q_values,
+                visit_counts=visit_counts,
+                total_steps=step + 1
+            )
         else:
-            return np.argmax(Q[state])
+            action = strategy.select_action(q_values)
+        action_counts[action] += 1
 
-    def decay(self):
-        """εを減衰"""
-        self.epsilon = max(self.epsilon_end, self.epsilon * self.epsilon_decay)
+    action_probs = action_counts / n_samples
 
+    axes[idx].bar(range(4), action_probs, color=['#e74c3c', '#27ae60', '#3498db', '#9b59b6'])
+    axes[idx].set_xlabel('行動')
+    axes[idx].set_ylabel('選択確率')
+    axes[idx].set_title(name)
+    axes[idx].set_xticks(range(4))
+    axes[idx].set_ylim(0, 1)
 
-# εの減衰パターンを可視化
-print("\n=== ε減衰パターンの可視化 ===")
-
-fig, axes = plt.subplots(1, 3, figsize=(15, 4))
-
-# 異なる減衰率
-decay_rates = [0.99, 0.995, 0.999]
-
-for i, decay_rate in enumerate(decay_rates):
-    epsilon_greedy = EpsilonGreedy(epsilon_start=1.0, epsilon_end=0.01,
-                                   epsilon_decay=decay_rate)
-    epsilons = [epsilon_greedy.epsilon]
-
-    for _ in range(1000):
-        epsilon_greedy.decay()
-        epsilons.append(epsilon_greedy.epsilon)
-
-    axes[i].plot(epsilons, linewidth=2)
-    axes[i].set_xlabel('エピソード')
-    axes[i].set_ylabel('ε')
-    axes[i].set_title(f'減衰率 = {decay_rate}')
-    axes[i].grid(True, alpha=0.3)
-    axes[i].set_ylim([0, 1.1])
+    print(f"{name}:")
+    print(f"  行動確率: {action_probs}")
 
 plt.tight_layout()
-plt.savefig('epsilon_decay.png', dpi=150, bbox_inches='tight')
-print("ε減衰パターンを保存: epsilon_decay.png")
+plt.savefig('exploration_strategies.png', dpi=150, bbox_inches='tight')
+print("\n保存しました: exploration_strategies.png")
 plt.close()
 </code></pre>
 
-<h3>他の探索戦略</h3>
+<hr/>
 
-<h4>ソフトマックス（Boltzmann）探索</h4>
+<h2>2.6 崖歩き問題</h2>
 
-<p>行動の価値に基づいて確率的に選択：</p>
+<h3>環境の説明</h3>
 
-$$
-P(a | s) = \frac{\exp(Q(s,a) / \tau)}{\sum_{a'} \exp(Q(s,a') / \tau)}
-$$
+<p><strong>崖歩き（Cliff Walking）</strong>環境は、Q学習とSARSAの違いを完璧に示す古典的な問題です。これは4x12のグリッドワールドです：</p>
 
-<p>$\tau$ は温度パラメータ（高いほどランダム）</p>
+<div class="mermaid">
+graph TD
+    subgraph CliffWalking["崖歩き環境（4x12グリッド）"]
+        R0["行0: 安全な経路（上部）"]
+        R1["行1: 安全な経路"]
+        R2["行2: 安全な経路"]
+        R3["行3: S | 崖 崖 崖 崖 崖 崖 崖 崖 崖 崖 | G"]
+    end
 
-<h4>Upper Confidence Bound (UCB)</h4>
-
-<p>不確実性を考慮した探索：</p>
-
-$$
-a = \arg\max_a \left[ Q(s,a) + c \sqrt{\frac{\ln t}{N(s,a)}} \right]
-$$
-
-<p>$N(s,a)$ は行動 $a$ の選択回数、$c$ は探索係数</p>
-
-<hr>
-
-<h2>2.5 ハイパーパラメータの影響</h2>
-
-<h3>学習率（Learning Rate）α</h3>
-
-<p>学習率 $\alpha$ は更新の強さを制御します：</p>
+    subgraph Legend
+        Start["S = スタート（左下隅）"]
+        Goal["G = ゴール（右下隅）"]
+        Cliff["崖 = -100の報酬、スタートに戻る"]
+        Safe["その他のセル = ステップごとに-1"]
+    end
+</div>
 
 <ul>
-<li><strong>大きいα（例：0.5）</strong>：速く学習するが不安定</li>
-<li><strong>小さいα（例：0.01）</strong>：安定だが収束が遅い</li>
-<li><strong>推奨値</strong>：0.1 〜 0.3</li>
+<li><strong>スタート</strong>：左下隅（状態36）</li>
+<li><strong>ゴール</strong>：右下隅（状態47）</li>
+<li><strong>崖</strong>：スタートとゴールの間の最下行（状態37-46）</li>
+<li><strong>報酬</strong>：ステップごとに-1、崖から落ちると-100（そしてスタートにリセット）</li>
 </ul>
 
-<h3>割引率（Discount Factor）γ</h3>
+<h3>なぜ崖歩きは比較に最適なのか</h3>
 
-<p>割引率 $\gamma$ は将来の報酬の重要度を決定：</p>
-
+<p>この環境では：</p>
 <ul>
-<li><strong>γ = 0</strong>：即座の報酬のみ考慮（近視眼的）</li>
-<li><strong>γ → 1</strong>：遠い将来まで考慮（先見的）</li>
-<li><strong>推奨値</strong>：0.95 〜 0.99</li>
+<li><strong>Q学習</strong>は<strong>最適経路</strong>を学習：崖の縁に沿って右に歩く（最短だが危険）</li>
+<li><strong>SARSA</strong>は<strong>より安全な経路</strong>を学習：上に行き、横断し、下に降りる（長いが安全）</li>
 </ul>
 
-<h3>ハイパーパラメータ調査の実装</h3>
+<p>この違いは、SARSAがイプシロン貪欲探索によってエージェントが誤って崖から落ちる可能性を考慮するために生じます。</p>
 
-<pre><code class="language-python">import numpy as np
+<h3>崖歩きの完全な実装</h3>
+
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy>=1.24.0
+# - gymnasium>=0.29.0
+# - matplotlib>=3.7.0
+
+import numpy as np
+import gymnasium as gym
 import matplotlib.pyplot as plt
-import gym
+from typing import Tuple, List
 
-def hyperparameter_search(env_name, param_name, param_values, num_episodes=500):
-    """ハイパーパラメータの影響を調査"""
-    results = {}
+def train_and_compare_cliff_walking(
+    n_episodes: int = 500,
+    alpha: float = 0.5,
+    gamma: float = 1.0,
+    epsilon: float = 0.1
+) -> Tuple[np.ndarray, np.ndarray, List[float], List[float]]:
+    """
+    崖歩きでQ学習とSARSAの両方を訓練して比較
 
-    for value in param_values:
-        print(f"\n{param_name} = {value} で訓練中...")
+    Args:
+        n_episodes: 訓練エピソード数
+        alpha: 学習率
+        gamma: 割引率（エピソディック・非割引の場合は1.0）
+        epsilon: 探索率（固定、減衰なし）
 
-        env = gym.make(env_name)
+    Returns:
+        (Q_qlearning, Q_sarsa, qlearning_rewards, sarsa_rewards) のタプル
+    """
+    # 環境を作成
+    env_q = gym.make('CliffWalking-v0')
+    env_s = gym.make('CliffWalking-v0')
 
-        if param_name == 'alpha':
-            agent = QLearningAgent(env.observation_space.n, env.action_space.n,
-                                  alpha=value, gamma=0.99, epsilon=0.1)
-        elif param_name == 'gamma':
-            agent = QLearningAgent(env.observation_space.n, env.action_space.n,
-                                  alpha=0.1, gamma=value, epsilon=0.1)
-        elif param_name == 'epsilon':
-            agent = QLearningAgent(env.observation_space.n, env.action_space.n,
-                                  alpha=0.1, gamma=0.99, epsilon=value)
+    n_states = env_q.observation_space.n   # 48状態（4x12）
+    n_actions = env_q.action_space.n       # 4行動（上、右、下、左）
 
-        rewards = train_q_learning(env, agent, num_episodes=num_episodes)
-        results[value] = rewards
-        env.close()
+    # Qテーブルを初期化
+    Q_qlearning = np.zeros((n_states, n_actions))
+    Q_sarsa = np.zeros((n_states, n_actions))
 
-    return results
+    qlearning_rewards = []
+    sarsa_rewards = []
 
+    for episode in range(n_episodes):
+        # === Q学習エピソード ===
+        state_q, _ = env_q.reset()
+        total_reward_q = 0
 
-# 学習率の影響調査
-print("=== 学習率αの影響調査 ===")
+        while True:
+            # イプシロン貪欲行動選択
+            if np.random.random() < epsilon:
+                action = np.random.randint(n_actions)
+            else:
+                action = int(np.argmax(Q_qlearning[state_q]))
 
-alpha_values = [0.01, 0.05, 0.1, 0.3, 0.5]
-alpha_results = hyperparameter_search('FrozenLake-v1', 'alpha', alpha_values)
+            next_state, reward, terminated, truncated, _ = env_q.step(action)
+            done = terminated or truncated
 
-# 可視化
-plt.figure(figsize=(14, 5))
+            # Q学習更新：次の状態の最大値を使用
+            if done:
+                td_target = reward
+            else:
+                td_target = reward + gamma * np.max(Q_qlearning[next_state])
 
-plt.subplot(1, 2, 1)
-for alpha, rewards in alpha_results.items():
-    smoothed = np.convolve(rewards, np.ones(50)/50, mode='valid')
-    plt.plot(smoothed, label=f'α = {alpha}', linewidth=2)
+            Q_qlearning[state_q, action] += alpha * (
+                td_target - Q_qlearning[state_q, action]
+            )
 
-plt.xlabel('エピソード')
-plt.ylabel('平均報酬')
-plt.title('学習率αの影響')
-plt.legend()
-plt.grid(True, alpha=0.3)
+            total_reward_q += reward
+            state_q = next_state
 
-# 割引率の影響調査
-gamma_values = [0.5, 0.9, 0.95, 0.99, 0.999]
-gamma_results = hyperparameter_search('FrozenLake-v1', 'gamma', gamma_values)
-
-plt.subplot(1, 2, 2)
-for gamma, rewards in gamma_results.items():
-    smoothed = np.convolve(rewards, np.ones(50)/50, mode='valid')
-    plt.plot(smoothed, label=f'γ = {gamma}', linewidth=2)
-
-plt.xlabel('エピソード')
-plt.ylabel('平均報酬')
-plt.title('割引率γの影響')
-plt.legend()
-plt.grid(True, alpha=0.3)
-
-plt.tight_layout()
-plt.savefig('hyperparameter_impact.png', dpi=150, bbox_inches='tight')
-print("\nハイパーパラメータの影響を保存: hyperparameter_impact.png")
-plt.close()
-</code></pre>
-
-<hr>
-
-<h2>2.6 実践：Taxi-v3環境</h2>
-
-<h3>Taxi-v3環境の概要</h3>
-
-<p><strong>Taxi-v3</strong>は、タクシーが乗客をピックアップして目的地まで送る環境です：</p>
-
-<ul>
-<li><strong>状態空間</strong>：500状態（5×5グリッド × 5乗客位置 × 4目的地）</li>
-<li><strong>行動空間</strong>：6行動（上下左右、乗客の乗降）</li>
-<li><strong>報酬</strong>：正しい目的地に到着 +20、1ステップごと -1、不正な乗降 -10</li>
-</ul>
-
-<h3>Taxi-v3でのQ学習</h3>
-
-<pre><code class="language-python">import numpy as np
-import gym
-import matplotlib.pyplot as plt
-
-# Taxi-v3環境
-print("=== Taxi-v3環境でのQ学習 ===")
-
-env = gym.make('Taxi-v3', render_mode=None)
-
-print(f"状態空間: {env.observation_space.n}")
-print(f"行動空間: {env.action_space.n}")
-print(f"行動: {['南', '北', '東', '西', '乗車', '降車']}")
-
-# Q学習エージェント
-taxi_agent = QLearningAgent(
-    n_states=env.observation_space.n,
-    n_actions=env.action_space.n,
-    alpha=0.1,
-    gamma=0.99,
-    epsilon=0.1
-)
-
-# 訓練
-taxi_rewards = train_q_learning(env, taxi_agent, num_episodes=5000)
-
-# 学習曲線
-plt.figure(figsize=(12, 5))
-
-plt.subplot(1, 2, 1)
-smoothed = np.convolve(taxi_rewards, np.ones(100)/100, mode='valid')
-plt.plot(smoothed, linewidth=2, color='blue')
-plt.xlabel('エピソード')
-plt.ylabel('平均報酬')
-plt.title('Taxi-v3 Q学習の学習曲線')
-plt.grid(True, alpha=0.3)
-
-# 成功率の計算
-success_rate = []
-window = 100
-for i in range(len(taxi_rewards) - window):
-    success = np.sum(np.array(taxi_rewards[i:i+window]) > 0) / window
-    success_rate.append(success)
-
-plt.subplot(1, 2, 2)
-plt.plot(success_rate, linewidth=2, color='green')
-plt.xlabel('エピソード')
-plt.ylabel('成功率')
-plt.title('タスク成功率（100エピソード移動平均）')
-plt.grid(True, alpha=0.3)
-
-plt.tight_layout()
-plt.savefig('taxi_training.png', dpi=150, bbox_inches='tight')
-print("Taxi訓練結果を保存: taxi_training.png")
-plt.close()
-
-env.close()
-</code></pre>
-
-<h3>学習済みエージェントの評価</h3>
-
-<pre><code class="language-python">def evaluate_agent(env, agent, num_episodes=100, render=False):
-    """学習済みエージェントを評価"""
-    total_rewards = []
-    total_steps = []
-
-    for episode in range(num_episodes):
-        state, _ = env.reset()
-        episode_reward = 0
-        steps = 0
-
-        while steps < 200:  # 最大ステップ数
-            # 最良の行動を選択（探索なし）
-            action = np.argmax(agent.Q[state])
-
-            state, reward, terminated, truncated, _ = env.step(action)
-            episode_reward += reward
-            steps += 1
-
-            if terminated or truncated:
+            if done:
                 break
 
-        total_rewards.append(episode_reward)
-        total_steps.append(steps)
+        qlearning_rewards.append(total_reward_q)
 
-    return total_rewards, total_steps
+        # === SARSAエピソード ===
+        state_s, _ = env_s.reset()
+
+        # 最初の行動を選択
+        if np.random.random() < epsilon:
+            action_s = np.random.randint(n_actions)
+        else:
+            action_s = int(np.argmax(Q_sarsa[state_s]))
+
+        total_reward_s = 0
+
+        while True:
+            next_state, reward, terminated, truncated, _ = env_s.step(action_s)
+            done = terminated or truncated
+
+            # 次の行動を選択（SARSA用）
+            if not done:
+                if np.random.random() < epsilon:
+                    next_action = np.random.randint(n_actions)
+                else:
+                    next_action = int(np.argmax(Q_sarsa[next_state]))
+
+            # SARSA更新：実際の次の行動を使用
+            if done:
+                td_target = reward
+            else:
+                td_target = reward + gamma * Q_sarsa[next_state, next_action]
+
+            Q_sarsa[state_s, action_s] += alpha * (
+                td_target - Q_sarsa[state_s, action_s]
+            )
+
+            total_reward_s += reward
+            state_s = next_state
+
+            if done:
+                break
+
+            action_s = next_action
+
+        sarsa_rewards.append(total_reward_s)
+
+    env_q.close()
+    env_s.close()
+
+    return Q_qlearning, Q_sarsa, qlearning_rewards, sarsa_rewards
 
 
-# 評価
-print("\n=== 学習済みエージェントの評価 ===")
+def visualize_cliff_walking_results(
+    Q_qlearning: np.ndarray,
+    Q_sarsa: np.ndarray,
+    qlearning_rewards: List[float],
+    sarsa_rewards: List[float]
+):
+    """Q学習とSARSAの比較を可視化"""
 
-env = gym.make('Taxi-v3', render_mode=None)
-eval_rewards, eval_steps = evaluate_agent(env, taxi_agent, num_episodes=100)
+    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
 
-print(f"平均報酬: {np.mean(eval_rewards):.2f} ± {np.std(eval_rewards):.2f}")
-print(f"平均ステップ数: {np.mean(eval_steps):.2f} ± {np.std(eval_steps):.2f}")
-print(f"成功率: {np.sum(np.array(eval_rewards) > 0) / len(eval_rewards) * 100:.1f}%")
+    # --- プロット1：学習曲線 ---
+    ax1 = axes[0, 0]
 
-env.close()
-</code></pre>
+    # 移動平均で報酬を平滑化
+    window = 10
+    q_smooth = np.convolve(qlearning_rewards, np.ones(window)/window, mode='valid')
+    s_smooth = np.convolve(sarsa_rewards, np.ones(window)/window, mode='valid')
 
-<hr>
+    ax1.plot(q_smooth, label='Q学習', color='#e74c3c', linewidth=2)
+    ax1.plot(s_smooth, label='SARSA', color='#3498db', linewidth=2)
+    ax1.set_xlabel('エピソード')
+    ax1.set_ylabel('報酬の合計（平滑化）')
+    ax1.set_title('学習曲線：Q学習 vs SARSA')
+    ax1.legend()
+    ax1.grid(True, alpha=0.3)
 
-<h2>2.7 実践：Cliff Walking環境</h2>
+    # --- プロット2：Q学習ポリシーの可視化 ---
+    ax2 = axes[0, 1]
+    visualize_policy(Q_qlearning, ax2, "Q学習ポリシー（最適だが危険）")
 
-<h3>Cliff Walking環境の定義</h3>
+    # --- プロット3：SARSAポリシーの可視化 ---
+    ax3 = axes[1, 0]
+    visualize_policy(Q_sarsa, ax3, "SARSAポリシー（安全な経路）")
 
-<p><strong>Cliff Walking</strong>は、崖を避けてゴールに到達する環境です。Q学習とSARSAの違いを明確に示す例です：</p>
+    # --- プロット4：最終性能比較 ---
+    ax4 = axes[1, 1]
 
-<ul>
-<li><strong>4×12グリッド</strong>：左下がスタート、右下がゴール</li>
-<li><strong>崖エリア</strong>：下端の中央部分（踏むと -100 の罰則）</li>
-<li><strong>報酬</strong>：各ステップ -1、崖 -100、ゴール 0</li>
-</ul>
+    # 最後の100エピソードの平均
+    q_final = np.mean(qlearning_rewards[-100:])
+    s_final = np.mean(sarsa_rewards[-100:])
 
-<h3>Cliff Walking環境の実装</h3>
+    bars = ax4.bar(['Q学習', 'SARSA'], [q_final, s_final],
+                   color=['#e74c3c', '#3498db'])
+    ax4.set_ylabel('平均報酬（最後の100エピソード）')
+    ax4.set_title('最終性能比較')
+    ax4.axhline(y=-13, color='green', linestyle='--',
+                label='最適値（探索なし）', linewidth=2)
+    ax4.legend()
 
-<pre><code class="language-python">import numpy as np
-import gym
+    # バーに値ラベルを追加
+    for bar, val in zip(bars, [q_final, s_final]):
+        ax4.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 1,
+                f'{val:.1f}', ha='center', fontsize=12, fontweight='bold')
 
-# Cliff Walking環境
-print("=== Cliff Walking環境 ===")
+    plt.tight_layout()
+    plt.savefig('cliff_walking_comparison.png', dpi=150, bbox_inches='tight')
+    print("保存しました: cliff_walking_comparison.png")
+    plt.close()
 
-env = gym.make('CliffWalking-v0')
 
-print(f"状態空間: {env.observation_space.n}")
-print(f"行動空間: {env.action_space.n}")
-print(f"グリッドサイズ: 4×12")
+def visualize_policy(Q: np.ndarray, ax, title: str):
+    """崖歩きグリッド上にポリシーを矢印で可視化"""
 
-# Q学習エージェント
-cliff_q_agent = QLearningAgent(
-    n_states=env.observation_space.n,
-    n_actions=env.action_space.n,
+    # 行動矢印：上=0、右=1、下=2、左=3
+    arrows = {0: (0, 0.3), 1: (0.3, 0), 2: (0, -0.3), 3: (-0.3, 0)}
+
+    # グリッドを作成
+    grid = np.zeros((4, 12))
+
+    # 崖をマーク
+    for j in range(1, 11):
+        grid[3, j] = -1  # 崖
+
+    ax.imshow(grid, cmap='RdYlBu', alpha=0.3)
+
+    # ポリシー矢印を描画
+    for state in range(48):
+        row = state // 12
+        col = state % 12
+
+        # 崖セルとゴールをスキップ
+        if row == 3 and 1 <= col <= 10:
+            ax.text(col, row, 'X', ha='center', va='center',
+                   fontsize=12, color='red', fontweight='bold')
+            continue
+
+        if row == 3 and col == 11:
+            ax.text(col, row, 'G', ha='center', va='center',
+                   fontsize=14, color='green', fontweight='bold')
+            continue
+
+        if row == 3 and col == 0:
+            ax.text(col, row, 'S', ha='center', va='center',
+                   fontsize=14, color='blue', fontweight='bold')
+
+        best_action = np.argmax(Q[state])
+        dx, dy = arrows[best_action]
+        ax.arrow(col, row, dx, dy, head_width=0.15, head_length=0.1,
+                fc='black', ec='black')
+
+    ax.set_xlim(-0.5, 11.5)
+    ax.set_ylim(3.5, -0.5)
+    ax.set_xticks(range(12))
+    ax.set_yticks(range(4))
+    ax.set_title(title)
+    ax.grid(True, alpha=0.3)
+
+
+# 比較を実行
+print("=== 崖歩き：Q学習 vs SARSA ===\n")
+
+Q_q, Q_s, rewards_q, rewards_s = train_and_compare_cliff_walking(
+    n_episodes=500,
     alpha=0.5,
-    gamma=0.99,
+    gamma=1.0,
     epsilon=0.1
 )
 
-# SARSAエージェント
-cliff_sarsa_agent = SARSAAgent(
-    n_states=env.observation_space.n,
-    n_actions=env.action_space.n,
-    alpha=0.5,
-    gamma=0.99,
-    epsilon=0.1
-)
+print(f"Q学習 最終平均報酬（最後の100）: {np.mean(rewards_q[-100:]):.2f}")
+print(f"SARSA 最終平均報酬（最後の100）: {np.mean(rewards_s[-100:]):.2f}")
 
-# 訓練
-print("\nQ学習で訓練中...")
-q_rewards = train_q_learning(env, cliff_q_agent, num_episodes=500)
+visualize_cliff_walking_results(Q_q, Q_s, rewards_q, rewards_s)
 
-env = gym.make('CliffWalking-v0')
-print("\nSARSAで訓練中...")
-sarsa_rewards = train_sarsa(env, cliff_sarsa_agent, num_episodes=500)
-
-# 比較可視化
-plt.figure(figsize=(12, 5))
-
-plt.subplot(1, 2, 1)
-smoothed_q = np.convolve(q_rewards, np.ones(10)/10, mode='valid')
-smoothed_sarsa = np.convolve(sarsa_rewards, np.ones(10)/10, mode='valid')
-
-plt.plot(smoothed_q, label='Q学習', linewidth=2)
-plt.plot(smoothed_sarsa, label='SARSA', linewidth=2)
-plt.xlabel('エピソード')
-plt.ylabel('報酬')
-plt.title('Cliff Walking: Q学習 vs SARSA')
-plt.legend()
-plt.grid(True, alpha=0.3)
-
-# 方策の可視化（矢印で表示）
-plt.subplot(1, 2, 2)
-
-def visualize_policy(Q, shape=(4, 12)):
-    """学習した方策を可視化"""
-    policy = np.argmax(Q, axis=1)
-    policy_grid = policy.reshape(shape)
-
-    # 矢印の方向
-    arrows = {0: '↑', 1: '→', 2: '↓', 3: '←'}
-
-    fig, ax = plt.subplots(figsize=(12, 4))
-    ax.imshow(np.zeros(shape), cmap='Blues', alpha=0.3)
-
-    for i in range(shape[0]):
-        for j in range(shape[1]):
-            state = i * shape[1] + j
-            action = policy[state]
-
-            # 崖エリアを赤く表示
-            if i == 3 and 1 <= j <= 10:
-                ax.add_patch(plt.Rectangle((j-0.5, i-0.5), 1, 1,
-                                          fill=True, color='red', alpha=0.3))
-
-            # ゴール
-            if i == 3 and j == 11:
-                ax.add_patch(plt.Rectangle((j-0.5, i-0.5), 1, 1,
-                                          fill=True, color='green', alpha=0.3))
-
-            # 矢印
-            ax.text(j, i, arrows[action], ha='center', va='center',
-                   fontsize=16, fontweight='bold')
-
-    ax.set_xlim(-0.5, shape[1]-0.5)
-    ax.set_ylim(shape[0]-0.5, -0.5)
-    ax.set_xticks(range(shape[1]))
-    ax.set_yticks(range(shape[0]))
-    ax.grid(True)
-    ax.set_title('学習した方策（Q学習）')
-
-
-visualize_policy(cliff_q_agent.Q)
-
-plt.tight_layout()
-plt.savefig('cliff_walking_comparison.png', dpi=150, bbox_inches='tight')
-print("\nCliff Walking比較を保存: cliff_walking_comparison.png")
-plt.close()
-
-env.close()
+print("\n=== 経路分析 ===")
+print("Q学習は崖の縁に沿って右に歩くことを学習（最適だが危険）")
+print("SARSAはまず上に行き、次に横断して崖を避けることを学習")
+print("epsilon=0.1では、Q学習は訓練中に時々崖から落ちるが、")
+print("SARSAは探索ミスを考慮したより安全な経路を学習する。")
 </code></pre>
 
-<h3>Q学習とSARSAの経路の違い</h3>
+<h3>経路の違いを理解する</h3>
 
 <blockquote>
-<p><strong>重要な観察</strong>：Cliff Walkingでは、Q学習は<strong>最短経路（崖の近く）</strong>を学習しますが、SARSAは<strong>安全な経路（崖から離れる）</strong>を学習します。これはε-greedy探索による偶発的な崖への転落をSARSAが学習に反映するためです。</p>
+<p><strong>なぜQ学習は危険な経路を取るのか？</strong><br/>
+Q学習は更新に $\max_{a'} Q(s', a')$ を使用します。これはエージェントが将来最適に行動すると仮定し、探索的な行動の可能性を無視します。イプシロンが0であるかのように最適なポリシーを学習するのです。</p>
 </blockquote>
 
-<hr>
+<blockquote>
+<p><strong>なぜSARSAは安全な経路を取るのか？</strong><br/>
+SARSAは $Q(s', a')$ を使用し、ここで $a'$ は実際の次の行動（探索的かもしれない）です。崖の近くでは、SARSAはイプシロン貪欲探索によって時々崖に向かって一歩踏み出すことを「知っている」ため、崖から離れることを学習します。</p>
+</blockquote>
 
-<h2>演習問題</h2>
+<hr/>
 
-<details>
-<summary><strong>演習1：Q学習とSARSAの収束速度比較</strong></summary>
+<h2>2.7 Expected SARSA</h2>
 
-<p>FrozenLake環境でQ学習とSARSAを同じハイパーパラメータで訓練し、収束速度を比較してください。</p>
+<h3>次の行動の期待値を取る</h3>
 
-<pre><code class="language-python">import gym
+<p><strong>Expected SARSA</strong>は、単一のサンプル行動ではなく、ポリシーの下での<em>期待</em>値を使用するバリアントです：</p>
+
+$$
+Q(s_t, a_t) \leftarrow Q(s_t, a_t) + \alpha \left[ r_{t+1} + \gamma \sum_{a'} \pi(a'|s_{t+1}) Q(s_{t+1}, a') - Q(s_t, a_t) \right]
+$$
+
+<p>イプシロン貪欲ポリシーの場合：</p>
+
+$$
+\sum_{a'} \pi(a'|s_{t+1}) Q(s_{t+1}, a') = \frac{\epsilon}{|A|} \sum_{a'} Q(s', a') + (1-\epsilon) \max_{a'} Q(s', a')
+$$
+
+<h3>Expected SARSAの特性</h3>
+
+<ul>
+<li><strong>SARSAより低い分散</strong>（サンプルではなく期待値を使用）</li>
+<li><strong>オンポリシーにもオフポリシーにもなれる</strong>（期待値で使用するポリシーに依存）</li>
+<li><strong>$\epsilon = 0$（貪欲ポリシー）のときQ学習に帰着</strong></li>
+<li><strong>一般的に</strong>多くの環境でQ学習とSARSAの両方より優れた性能を発揮</li>
+</ul>
+
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy>=1.24.0
+
 import numpy as np
 
-# 演習: Q学習とSARSAを同じ設定で訓練
-# 演習: エピソードごとの報酬をプロット
-# 演習: 収束に必要なエピソード数を比較
-# 期待: 環境によって収束速度が異なる
+def expected_sarsa_update(
+    Q: np.ndarray,
+    state: int,
+    action: int,
+    reward: float,
+    next_state: int,
+    done: bool,
+    alpha: float,
+    gamma: float,
+    epsilon: float
+) -> None:
+    """
+    Expected SARSAの更新則
+
+    単一の次の行動をサンプリングするのではなく、
+    イプシロン貪欲ポリシーの下で次の行動の期待値を使用します。
+    """
+    n_actions = Q.shape[1]
+
+    if done:
+        td_target = reward
+    else:
+        # イプシロン貪欲ポリシーの下での期待値
+        # E[Q(s', a')] = eps/n * sum(Q(s', :)) + (1-eps) * max(Q(s', :))
+        greedy_action = np.argmax(Q[next_state])
+        expected_q = (
+            (epsilon / n_actions) * np.sum(Q[next_state]) +
+            (1 - epsilon) * Q[next_state, greedy_action]
+        )
+        td_target = reward + gamma * expected_q
+
+    td_error = td_target - Q[state, action]
+    Q[state, action] += alpha * td_error
+
+
+# 使用例
+print("=== Expected SARSAの例 ===\n")
+
+# シンプルなQテーブルの例
+Q = np.array([
+    [1.0, 2.0, 1.5, 0.5],  # 状態 0
+    [0.8, 1.2, 0.9, 1.5],  # 状態 1
+])
+
+epsilon = 0.1
+n_actions = 4
+
+# 状態1について：
+# max Q = 1.5（行動3）
+# sum Q = 0.8 + 1.2 + 0.9 + 1.5 = 4.4
+# Expected Q = (0.1/4) * 4.4 + 0.9 * 1.5 = 0.11 + 1.35 = 1.46
+
+expected_q = (epsilon / n_actions) * np.sum(Q[1]) + (1 - epsilon) * np.max(Q[1])
+print(f"状態1のQ値: {Q[1]}")
+print(f"イプシロン貪欲（epsilon={epsilon}）の下での期待Q: {expected_q:.3f}")
+print(f"最大Q（Q学習で使用）: {np.max(Q[1]):.3f}")
+print(f"サンプルQ（SARSAで使用）: サンプリングされた行動に依存")
 </code></pre>
 
-</details>
-
-<details>
-<summary><strong>演習2：ε減衰スケジュールの最適化</strong></summary>
-
-<p>異なるε減衰パターン（線形減衰、指数減衰、ステップ減衰）を実装し、Taxi-v3での性能を比較してください。</p>
-
-<pre><code class="language-python">import numpy as np
-
-# 演習: 3種類のε減衰スケジュールを実装
-# 演習: Taxi-v3で各スケジュールを評価
-# 演習: 学習曲線と最終性能を比較
-# ヒント: 初期は探索重視、後半は活用重視
-</code></pre>
-
-</details>
-
-<details>
-<summary><strong>演習3：Double Q-Learning の実装</strong></summary>
-
-<p>過大評価を防ぐDouble Q-Learningを実装し、通常のQ学習と性能を比較してください。</p>
-
-<pre><code class="language-python">import numpy as np
-
-# 演習: 2つのQ表を使うDouble Q-Learningを実装
-# 演習: FrozenLake環境で訓練
-# 演習: Q値の推定誤差を通常のQ学習と比較
-# 理論: Doubleアルゴリズムは過大評価バイアスを軽減
-</code></pre>
-
-</details>
-
-<details>
-<summary><strong>演習4：学習率の適応的調整</strong></summary>
-
-<p>訪問回数に応じて学習率を調整する適応的学習率を実装し、固定学習率と比較してください。</p>
-
-<pre><code class="language-python">import numpy as np
-
-# 演習: α(s,a) = 1 / (1 + N(s,a)) の適応的学習率を実装
-# 演習: 固定学習率と性能を比較
-# 演習: 各状態での訪問回数を可視化
-# 期待: 適応的学習率で収束が安定する
-</code></pre>
-
-</details>
-
-<details>
-<summary><strong>演習5：独自環境での実験</strong></summary>
-
-<p>OpenAI Gymの別の環境（CartPole-v1、MountainCar-v0など）で状態の離散化を行い、Q学習を適用してください。</p>
-
-<pre><code class="language-python">import gym
-import numpy as np
-
-# 演習: 連続状態空間を離散化する関数を実装
-# 演習: 離散化したCartPole環境でQ学習
-# 演習: 離散化の粒度と性能の関係を調査
-# 課題: 連続空間の適切な離散化が重要
-</code></pre>
-
-</details>
-
-<hr>
+<hr/>
 
 <h2>まとめ</h2>
 
-<p>この章では、時間差分学習に基づくQ学習とSARSAを学びました。</p>
+<p>本章では、テーブル形式強化学習の2つの基本的なTD制御アルゴリズムを学びました：</p>
 
-<h3>重要ポイント</h3>
+<h3>重要なポイント</h3>
 
-<ul>
-<li><strong>TD学習</strong>：エピソード終了を待たずにステップごとに更新</li>
-<li><strong>Q学習</strong>：オフポリシー型、最適方策を直接学習</li>
-<li><strong>SARSA</strong>：オンポリシー型、探索の影響を考慮した学習</li>
-<li><strong>ε-greedy</strong>：探索と活用のバランスを制御するシンプルな方策</li>
-<li><strong>学習率α</strong>：更新の強さを制御（0.1〜0.3が推奨）</li>
-<li><strong>割引率γ</strong>：将来の報酬の重要度（0.95〜0.99が推奨）</li>
-<li><strong>Q表</strong>：状態-行動ペアごとの価値を保存</li>
-<li><strong>適用場面</strong>：離散状態・行動空間のタスク</li>
-</ul>
+<table>
+<thead>
+<tr>
+<th>概念</th>
+<th>要点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Qテーブル</strong></td>
+<td>離散空間のすべての状態-行動ペアに対するQ(s,a)を格納</td>
+</tr>
+<tr>
+<td><strong>Q学習</strong></td>
+<td>オフポリシー：$\max_{a'} Q(s', a')$ を使用、最適ポリシーを学習</td>
+</tr>
+<tr>
+<td><strong>SARSA</strong></td>
+<td>オンポリシー：$Q(s', a')$ を使用、追従しているポリシーを学習</td>
+</tr>
+<tr>
+<td><strong>イプシロン貪欲法</strong></td>
+<td>シンプルな探索：確率イプシロンでランダム、それ以外は貪欲</td>
+</tr>
+<tr>
+<td><strong>ボルツマン法</strong></td>
+<td>確率的：Q値の大きさに基づいて行動を選択</td>
+</tr>
+<tr>
+<td><strong>UCB</strong></td>
+<td>楽観的：訪問回数の少ない行動にボーナス</td>
+</tr>
+<tr>
+<td><strong>崖歩き</strong></td>
+<td>Q学習：危険な最適経路、SARSA：安全で保守的な経路</td>
+</tr>
+<tr>
+<td><strong>Expected SARSA</strong></td>
+<td>次の行動の期待値を取ることで低分散を実現</td>
+</tr>
+</tbody>
+</table>
 
-<h3>Q学習とSARSAの使い分け</h3>
+<h3>アルゴリズム選択ガイド</h3>
 
 <table>
 <thead>
@@ -1611,55 +1445,117 @@ import numpy as np
 </thead>
 <tbody>
 <tr>
-<td><strong>シミュレーション環境</strong></td>
+<td>シミュレーション、失敗コストが低い</td>
 <td>Q学習</td>
-<td>最適方策を効率的に学習</td>
+<td>効率的に最適ポリシーを学習</td>
 </tr>
 <tr>
-<td><strong>実環境・ロボット</strong></td>
+<td>実ハードウェア、ロボティクス</td>
 <td>SARSA</td>
-<td>安全な方策を学習</td>
+<td>探索中により安全</td>
 </tr>
 <tr>
-<td><strong>危険な状態がある</strong></td>
-<td>SARSA</td>
-<td>リスク回避の傾向</td>
-</tr>
-<tr>
-<td><strong>高速な収束が必要</strong></td>
+<td>経験再生が必要</td>
 <td>Q学習</td>
-<td>オフポリシーで柔軟</td>
+<td>オフポリシーが必要</td>
+</tr>
+<tr>
+<td>低分散が重要</td>
+<td>Expected SARSA</td>
+<td>平均化により分散を削減</td>
 </tr>
 </tbody>
 </table>
 
 <h3>次のステップ</h3>
 
-<p>次章では、<strong>Deep Q-Network (DQN)</strong>について学びます。Q表では扱えない大規模・連続状態空間に対して、ニューラルネットワークで行動価値関数を近似する手法、Experience Replay、Target Network、Atariゲームでの応用などを習得します。</p>
+<p><strong>第3章：Deep Q-Network（DQN）</strong>では、ニューラルネットワーク関数近似を使用して大規模かつ連続状態空間を扱う方法を学びます。主要なトピック：</p>
+<ul>
+<li>なぜテーブル形式手法は大規模状態空間で失敗するか</li>
+<li>ニューラルネットワーク関数近似</li>
+<li>安定した学習のための経験再生</li>
+<li>振動を防ぐためのターゲットネットワーク</li>
+<li>DQNのバリアント：Double DQN、Dueling DQN、Rainbow</li>
+</ul>
+
+<hr/>
+
+<h2>演習問題</h2>
+
+<details>
+<summary><strong>演習1：イプシロン減衰戦略の実装</strong></summary>
+<p>CliffWalking環境で3つのイプシロン減衰戦略を実装して比較してください：</p>
+<ol>
+<li>線形減衰：$\epsilon_t = \epsilon_0 - t \cdot \text{rate}$</li>
+<li>指数減衰：$\epsilon_t = \epsilon_0 \cdot \text{decay}^t$</li>
+<li>ステップ減衰：$\epsilon_t = \epsilon_0 / (1 + t / k)$</li>
+</ol>
+<p>各戦略の学習曲線と最終性能をプロットしてください。</p>
+</details>
+
+<details>
+<summary><strong>演習2：Double Q学習</strong></summary>
+<p>過大評価バイアスを削減するために2つのQテーブルを使用するDouble Q学習を実装してください：</p>
+$$
+Q_1(s, a) \leftarrow Q_1(s, a) + \alpha [r + \gamma Q_2(s', \arg\max_{a'} Q_1(s', a')) - Q_1(s, a)]
+$$
+<p>シンプルな環境で標準Q学習とDouble Q学習のQ値推定を比較してください。</p>
+</details>
+
+<details>
+<summary><strong>演習3：n-step SARSA</strong></summary>
+<p>1-stepではなくn-stepリターンを使用するn-step SARSAを実装してください：</p>
+$$
+G_t^{(n)} = R_{t+1} + \gamma R_{t+2} + \cdots + \gamma^{n-1} R_{t+n} + \gamma^n Q(S_{t+n}, A_{t+n})
+$$
+<p>FrozenLake-v1でn=1、n=3、n=5を比較してください。</p>
+</details>
+
+<details>
+<summary><strong>演習4：適応的学習率</strong></summary>
+<p>訪問回数に基づいて減衰する状態-行動固有の学習率を実装してください：</p>
+$$
+\alpha(s, a) = \frac{1}{1 + N(s, a)}
+$$
+<p>Taxi-v3環境で固定学習率との性能を比較してください。</p>
+</details>
+
+<details>
+<summary><strong>演習5：風グリッドワールド</strong></summary>
+<p>風グリッドワールド問題を実装して解いてください：</p>
+<ul>
+<li>特定の列でエージェントを上に押す風がある7x10グリッド</li>
+<li>Q学習、SARSA、Expected SARSAを比較</li>
+<li>学習したポリシーを可視化</li>
+</ul>
+</details>
+
+<hr/>
 
 <div class="navigation">
-    <a href="chapter1-rl-fundamentals.html" class="nav-button">← 第1章：強化学習の基礎</a>
-    <a href="chapter3-dqn.html" class="nav-button">第3章：Deep Q-Network →</a>
+<a class="nav-button" href="chapter1-rl-fundamentals.html">前へ：第1章 - 基礎</a>
+<a class="nav-button" href="chapter3-dqn.html">次へ：第3章 - Deep Q-Network</a>
 </div>
 
 </main>
 
-
-    <section class="disclaimer">
-        <h3>免責事項</h3>
-        <ul>
-            <li>本コンテンツは教育・研究・情報提供のみを目的としており、専門的な助言(法律・会計・技術的保証など)を提供するものではありません。</li>
-            <li>本コンテンツおよび付随するコード例は「現状有姿(AS IS)」で提供され、明示または黙示を問わず、商品性、特定目的適合性、権利非侵害、正確性・完全性、動作・安全性等いかなる保証もしません。</li>
-            <li>外部リンク、第三者が提供するデータ・ツール・ライブラリ等の内容・可用性・安全性について、作成者および東北大学は一切の責任を負いません。</li>
-            <li>本コンテンツの利用・実行・解釈により直接的・間接的・付随的・特別・結果的・懲罰的損害が生じた場合でも、適用法で許容される最大限の範囲で、作成者および東北大学は責任を負いません。</li>
-            <li>本コンテンツの内容は、予告なく変更・更新・提供停止されることがあります。</li>
-            <li>本コンテンツの著作権・ライセンスは明記された条件(例: CC BY 4.0)に従います。当該ライセンスは通常、無保証条項を含みます。</li>
-        </ul>
-    </section>
+<section class="disclaimer">
+<h3>免責事項</h3>
+<ul>
+<li>本コンテンツは教育、研究、情報提供のみを目的としており、専門的なアドバイスを構成するものではありません。</li>
+<li>本コンテンツおよび付随するコード例は、商品性、特定目的への適合性、非侵害を含むがこれらに限定されない、明示的または黙示的な保証なしに「現状のまま」提供されます。</li>
+<li>著者および東北大学は、外部リンク、サードパーティのデータ、ツール、またはライブラリのコンテンツ、可用性、または安全性について責任を負いません。</li>
+<li>適用法で許可される最大限の範囲において、著者および東北大学は、本コンテンツの使用から生じる直接的、間接的、偶発的、特別、結果的、または懲罰的損害について責任を負いません。</li>
+<li>コンテンツは予告なく更新または変更される場合があります。</li>
+<li>本コンテンツの著作権およびライセンスはCC BY 4.0に従います。</li>
+</ul>
+</section>
 
 <footer>
-    <p>&copy; 2024 AI Terakoya. All rights reserved.</p>
+<div class="container">
+<p>&copy; 2026 AI寺子屋 - 東北大学</p>
+<p>CC BY 4.0 ライセンスの下で提供</p>
+</div>
 </footer>
-
 </body>
 </html>

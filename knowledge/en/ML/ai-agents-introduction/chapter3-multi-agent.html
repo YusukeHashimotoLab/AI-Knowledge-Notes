@@ -29,7 +29,7 @@
 <span class="locale-separator">|</span>
 <a href="../../../jp/ML/ai-agents-introduction/chapter3-multi-agent.html" class="locale-link">🇯🇵 JP</a>
 <span class="locale-separator">|</span>
-<span class="locale-meta">Last sync: 2025-11-16</span>
+<span class="locale-meta">Last sync: 2026-01-12</span>
 </div>
 <header>
 <div class="container">
@@ -707,6 +707,258 @@ print("\nUpdate history:")
 for record in state_manager.history:
     print(f"  v{record['version']}: {record['value']} (by {record['agent']})")
 </code></pre>
+
+<h2 id="frameworks">Modern Multi-Agent Frameworks (2025)</h2>
+
+<h3>Framework Comparison</h3>
+
+<p>The multi-agent ecosystem has matured with several production-ready frameworks:</p>
+
+<table>
+<thead>
+<tr>
+<th>Framework</th>
+<th>Architecture</th>
+<th>Best For</th>
+<th>Key Feature</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>LangGraph</strong></td>
+<td>State machine / Graph</td>
+<td>Complex workflows with branching</td>
+<td>Explicit state transitions, cycles</td>
+</tr>
+<tr>
+<td><strong>AutoGen</strong></td>
+<td>Conversational</td>
+<td>Research, collaborative problem-solving</td>
+<td>Agent-to-agent dialogue</td>
+</tr>
+<tr>
+<td><strong>CrewAI</strong></td>
+<td>Role-based crews</td>
+<td>Enterprise automation</td>
+<td>Pre-defined roles, task delegation</td>
+</tr>
+<tr>
+<td><strong>OpenAI Swarm</strong></td>
+<td>Handoff-based</td>
+<td>Simple multi-agent routing</td>
+<td>Lightweight, educational</td>
+</tr>
+</tbody>
+</table>
+
+<h3>CrewAI Example</h3>
+
+<pre><code class="language-python">from crewai import Agent, Task, Crew
+
+# Define agents with specific roles
+researcher = Agent(
+    role="Senior Research Analyst",
+    goal="Discover cutting-edge developments in AI",
+    backstory="Expert at finding and synthesizing information",
+    tools=[search_tool, web_scraper],
+    llm="gpt-4"
+)
+
+writer = Agent(
+    role="Technical Writer",
+    goal="Create engaging technical content",
+    backstory="Skilled at explaining complex topics simply",
+    tools=[],
+    llm="gpt-4"
+)
+
+# Define tasks
+research_task = Task(
+    description="Research the latest trends in multi-agent AI systems",
+    agent=researcher,
+    expected_output="Detailed research report with key findings"
+)
+
+writing_task = Task(
+    description="Write a blog post based on the research",
+    agent=writer,
+    expected_output="Engaging 1000-word blog post",
+    context=[research_task]  # Depends on research output
+)
+
+# Create and run crew
+crew = Crew(
+    agents=[researcher, writer],
+    tasks=[research_task, writing_task],
+    verbose=True
+)
+
+result = crew.kickoff()
+</code></pre>
+
+<h2 id="reflection">Reflection and Self-Critique Patterns</h2>
+
+<h3>Why Reflection Matters</h3>
+
+<p><strong>Reflection</strong> enables agents to evaluate and improve their own outputs, leading to higher quality results without human intervention.</p>
+
+<div class="mermaid">
+graph LR
+    A[Generate] --> B[Evaluate]
+    B --> C{Good enough?}
+    C -->|No| D[Critique]
+    D --> A
+    C -->|Yes| E[Output]
+
+    style A fill:#e3f2fd
+    style B fill:#fff3e0
+    style D fill:#f3e5f5
+    style E fill:#e8f5e9
+</div>
+
+<h3>Self-Critique Implementation</h3>
+
+<pre><code class="language-python">class ReflectiveAgent:
+    """Agent with self-reflection capabilities"""
+
+    def __init__(self, llm, max_iterations=3):
+        self.llm = llm
+        self.max_iterations = max_iterations
+
+    def generate_with_reflection(self, task: str) -> str:
+        """Generate output with iterative self-improvement"""
+        output = self.generate(task)
+
+        for i in range(self.max_iterations):
+            # Self-critique
+            critique = self.critique(task, output)
+
+            if critique["is_satisfactory"]:
+                break
+
+            # Improve based on critique
+            output = self.improve(task, output, critique["feedback"])
+
+        return output
+
+    def critique(self, task: str, output: str) -> dict:
+        """Evaluate output quality"""
+        prompt = f"""
+        Task: {task}
+        Output: {output}
+
+        Evaluate this output:
+        1. Does it fully address the task?
+        2. Is it accurate and well-reasoned?
+        3. What could be improved?
+
+        Return JSON: {{"is_satisfactory": bool, "feedback": str}}
+        """
+        return self.llm.generate(prompt, json_mode=True)
+
+    def improve(self, task: str, output: str, feedback: str) -> str:
+        """Improve output based on feedback"""
+        prompt = f"""
+        Task: {task}
+        Previous output: {output}
+        Feedback: {feedback}
+
+        Generate an improved version addressing the feedback.
+        """
+        return self.llm.generate(prompt)
+</code></pre>
+
+<h2 id="memory">Agent Memory Systems</h2>
+
+<h3>Types of Memory</h3>
+
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Scope</th>
+<th>Use Case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Working Memory</strong></td>
+<td>Current conversation</td>
+<td>Context window, recent messages</td>
+</tr>
+<tr>
+<td><strong>Episodic Memory</strong></td>
+<td>Past experiences</td>
+<td>Similar task recall, learning from history</td>
+</tr>
+<tr>
+<td><strong>Semantic Memory</strong></td>
+<td>Factual knowledge</td>
+<td>Domain knowledge, entity relationships</td>
+</tr>
+<tr>
+<td><strong>Procedural Memory</strong></td>
+<td>Skills and procedures</td>
+<td>Learned workflows, tool usage patterns</td>
+</tr>
+</tbody>
+</table>
+
+<h3>Memory Implementation Pattern</h3>
+
+<pre><code class="language-python">from typing import List, Dict
+import numpy as np
+from sentence_transformers import SentenceTransformer
+
+class AgentMemory:
+    """Multi-tier memory system for agents"""
+
+    def __init__(self, embedding_model: str = "all-MiniLM-L6-v2"):
+        self.encoder = SentenceTransformer(embedding_model)
+        self.episodic: List[Dict] = []  # Past experiences
+        self.semantic: Dict = {}         # Knowledge base
+        self.working: List[Dict] = []    # Current context
+
+    def add_experience(self, experience: Dict):
+        """Store an experience with embedding for retrieval"""
+        text = experience.get("description", str(experience))
+        embedding = self.encoder.encode(text)
+        self.episodic.append({
+            **experience,
+            "embedding": embedding
+        })
+
+    def recall_similar(self, query: str, k: int = 5) -> List[Dict]:
+        """Retrieve k most similar past experiences"""
+        if not self.episodic:
+            return []
+
+        query_embedding = self.encoder.encode(query)
+        similarities = [
+            np.dot(query_embedding, exp["embedding"])
+            for exp in self.episodic
+        ]
+
+        top_indices = np.argsort(similarities)[-k:][::-1]
+        return [self.episodic[i] for i in top_indices]
+
+    def update_knowledge(self, key: str, value: any):
+        """Update semantic memory"""
+        self.semantic[key] = value
+
+    def get_context(self, query: str) -> str:
+        """Build context from all memory types"""
+        similar = self.recall_similar(query, k=3)
+        relevant_knowledge = {k: v for k, v in self.semantic.items()
+                             if k.lower() in query.lower()}
+
+        return f"""
+        Similar past experiences: {similar}
+        Relevant knowledge: {relevant_knowledge}
+        Recent context: {self.working[-5:]}
+        """
+</code></pre>
+
 <h2 id="summary">Summary</h2>
 <h3>What We Learned in This Chapter</h3>
 <ul>
@@ -715,6 +967,9 @@ for record in state_manager.history:
 <li>✅ <strong>Collaboration Patterns</strong>: Implementation of parallel, sequential, and hierarchical approaches</li>
 <li>✅ <strong>Orchestration</strong>: Task assignment and coordination</li>
 <li>✅ <strong>State Management</strong>: Distributed state synchronization and conflict resolution</li>
+<li>✅ <strong>Modern Frameworks</strong>: LangGraph, AutoGen, CrewAI for production systems</li>
+<li>✅ <strong>Reflection Patterns</strong>: Self-critique for improved output quality</li>
+<li>✅ <strong>Memory Systems</strong>: Episodic, semantic, and working memory</li>
 </ul>
 <h3>Design Principles</h3>
 <blockquote>
@@ -751,7 +1006,7 @@ for record in state_manager.history:
 </div>
 <footer>
 <div class="container">
-<p>© 2025 AI Terakoya - Dr. Yusuke Hashimoto, Tohoku University</p>
+<p>© 2025-2026 AI Terakoya - Dr. Yusuke Hashimoto, Tohoku University | v2.0 (2026-01-12)</p>
 <p>Licensed under CC BY 4.0</p>
 </div>
 </footer>

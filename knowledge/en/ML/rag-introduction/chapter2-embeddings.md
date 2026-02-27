@@ -3,6 +3,18 @@ title: "Chapter 2: Embeddings and Search"
 chapter_title: "Chapter 2: Embeddings and Search"
 ---
 
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/DkDPo6pqQOQ"
+    title="RAG Introduction Ch.2: Embeddings and Vector Databases"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
 This chapter covers Embeddings and Search. You will learn essential concepts and techniques.
 
 ## 1\. Vector Embeddings

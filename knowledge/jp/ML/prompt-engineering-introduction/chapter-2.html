@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第2章：基本的なプロンプト技術 - プロンプトエンジニアリング入門 - AI Terakoya</title>
+    <meta name="description" content="ロールプロンプティング、コンテキスト設定、出力形式指定、構造化出力、JSONモードなど、LLMとの効果的なコミュニケーションのための基本技術を学びます。">
+
+    <style>
+        :root {
+            --color-primary: #2c3e50;
+            --color-primary-dark: #1a252f;
+            --color-accent: #7b2cbf;
+            --color-accent-light: #9d4edd;
+            --color-text: #2d3748;
+            --color-text-light: #4a5568;
+            --color-bg: #ffffff;
+            --color-bg-alt: #f7fafc;
+            --color-border: #e2e8f0;
+            --color-code-bg: #f8f9fa;
+            --color-link: #3182ce;
+            --color-link-hover: #2c5aa0;
+
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+
+            --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+            --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+            --border-radius: 8px;
+            --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: var(--font-body);
+            line-height: 1.7;
+            color: var(--color-text);
+            background-color: var(--color-bg);
+            font-size: 16px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            padding: var(--spacing-xl) var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+            box-shadow: var(--box-shadow);
+        }
+
+        .header-content { max-width: 900px; margin: 0 auto; }
+
+        h1 { font-size: 2rem; font-weight: 700; margin-bottom: var(--spacing-sm); line-height: 1.2; }
+        .subtitle { font-size: 1.1rem; opacity: 0.95; font-weight: 400; margin-bottom: var(--spacing-md); }
+        .meta { display: flex; flex-wrap: wrap; gap: var(--spacing-md); font-size: 0.9rem; opacity: 0.9; }
+        .container { max-width: 900px; margin: 0 auto; padding: 0 var(--spacing-md) var(--spacing-xl); }
+
+        h2 { font-size: 1.75rem; color: var(--color-primary); margin-top: var(--spacing-xl); margin-bottom: var(--spacing-md); padding-bottom: var(--spacing-xs); border-bottom: 3px solid var(--color-accent); }
+        h3 { font-size: 1.4rem; color: var(--color-primary); margin-top: var(--spacing-lg); margin-bottom: var(--spacing-sm); }
+        h4 { font-size: 1.1rem; color: var(--color-primary-dark); margin-top: var(--spacing-md); margin-bottom: var(--spacing-sm); }
+        p { margin-bottom: var(--spacing-md); color: var(--color-text); }
+        a { color: var(--color-link); text-decoration: none; transition: color 0.2s; }
+        a:hover { color: var(--color-link-hover); text-decoration: underline; }
+        ul, ol { margin-left: var(--spacing-lg); margin-bottom: var(--spacing-md); }
+        li { margin-bottom: var(--spacing-xs); color: var(--color-text); }
+
+        pre { background-color: var(--color-code-bg); border: 1px solid var(--color-border); border-radius: var(--border-radius); padding: var(--spacing-md); overflow-x: auto; margin-bottom: var(--spacing-md); font-family: var(--font-mono); font-size: 0.9rem; line-height: 1.5; }
+        code { font-family: var(--font-mono); font-size: 0.9em; background-color: var(--color-code-bg); padding: 0.2em 0.4em; border-radius: 3px; }
+        pre code { background-color: transparent; padding: 0; }
+
+        table { width: 100%; border-collapse: collapse; margin-bottom: var(--spacing-md); font-size: 0.95rem; }
+        th, td { border: 1px solid var(--color-border); padding: var(--spacing-sm); text-align: left; }
+        th { background-color: var(--color-bg-alt); font-weight: 600; color: var(--color-primary); }
+
+        .example-box { background: #e3f2fd; border-left: 4px solid #2196f3; padding: var(--spacing-md); margin: var(--spacing-md) 0; border-radius: var(--border-radius); }
+        .example-box h4 { color: #1976d2; margin-top: 0; }
+        .bad-example { background: #ffebee; border-left: 4px solid #f44336; padding: var(--spacing-md); margin: var(--spacing-md) 0; border-radius: var(--border-radius); }
+        .bad-example h4 { color: #c62828; margin-top: 0; }
+        .good-example { background: #e8f5e9; border-left: 4px solid #4caf50; padding: var(--spacing-md); margin: var(--spacing-md) 0; border-radius: var(--border-radius); }
+        .good-example h4 { color: #2e7d32; margin-top: 0; }
+        .note { background: #fff3e0; border-left: 4px solid #ff9800; padding: var(--spacing-md); margin: var(--spacing-md) 0; border-radius: var(--border-radius); }
+        .note h4 { color: #f57c00; margin-top: 0; }
+
+        .key-takeaways { background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); padding: var(--spacing-lg); margin: var(--spacing-lg) 0; border-radius: var(--border-radius); border: 2px solid #4caf50; }
+        .key-takeaways h3 { color: #2e7d32; margin-top: 0; }
+
+        .nav-buttons { display: flex; justify-content: space-between; margin: var(--spacing-xl) 0; gap: var(--spacing-sm); flex-wrap: wrap; }
+        .nav-button { display: inline-block; padding: 0.8rem 1.5rem; background: var(--color-accent); color: white; border-radius: 6px; text-decoration: none; transition: all 0.3s; font-weight: 600; }
+        .nav-button:hover { background: var(--color-accent-light); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(123, 44, 191, 0.3); }
+
+        .breadcrumb { background: #f7fafc; padding: 0.75rem 1rem; border-bottom: 1px solid #e2e8f0; font-size: 0.9rem; }
+        .breadcrumb-content { max-width: 900px; margin: 0 auto; display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
+        .breadcrumb a { color: #667eea; }
+        .breadcrumb-separator { color: #a0aec0; margin: 0 0.25rem; }
+        .breadcrumb-current { color: #4a5568; font-weight: 500; }
+
+        .locale-switcher { display: inline-block; margin-top: 1rem; padding: 0.5rem 1rem; background: rgba(255, 255, 255, 0.2); border-radius: 6px; font-size: 0.9rem; }
+        .locale-switcher a { color: white; margin: 0 0.5rem; opacity: 0.8; }
+        .locale-switcher .active { font-weight: bold; opacity: 1; }
+
+        .disclaimer { max-width: 900px; margin: 2rem auto; padding: 1.5rem; background: #f8f9fa; border-left: 4px solid #6c757d; border-radius: 4px; }
+        .disclaimer h3 { color: #495057; margin-bottom: 1rem; font-size: 1.1rem; }
+        .disclaimer ul { list-style: none; padding-left: 0; }
+        .disclaimer li { padding: 0.5rem 0; padding-left: 1.5rem; position: relative; font-size: 0.9rem; color: #6c757d; }
+        .disclaimer li::before { content: "!"; position: absolute; left: 0; }
+
+        footer { margin-top: 4rem; padding: 2rem 0; border-top: 2px solid var(--color-border); text-align: center; color: #666; font-size: 0.9rem; }
+
+        @media (max-width: 768px) {
+            .container { padding: 0 var(--spacing-sm) var(--spacing-lg); }
+            h1 { font-size: 1.6rem; }
+            h2 { font-size: 1.4rem; }
+            .nav-buttons { flex-direction: column; }
+        }
+    </style>
+
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+</head>
+<body>
+    <nav class="breadcrumb">
+        <div class="breadcrumb-content">
+            <a href="../../index.html">AI Terakoya ホーム</a><span class="breadcrumb-separator">></span><a href="../index.html">機械学習</a><span class="breadcrumb-separator">></span><a href="./index.html">プロンプトエンジニアリング入門</a><span class="breadcrumb-separator">></span><span class="breadcrumb-current">第2章</span>
+        </div>
+    </nav>
+
+    <header>
+        <div class="header-content">
+            <h1>第2章：基本的なプロンプト技術</h1>
+            <p class="subtitle">ロールプロンプティング、コンテキスト設定、構造化出力</p>
+            <div class="meta">
+                <span>読了時間：20-25分</span>
+                <span>プロンプト例：12</span>
+                <span>演習問題：5</span>
+                <span>難易度：初級-中級</span>
+            </div>
+            <div class="locale-switcher">
+                言語：<span class="active">日本語</span> | <a href="../../../en/ML/prompt-engineering-introduction/chapter-2.html">English</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <h2 id="introduction">はじめに</h2>
+
+        <p>第1章ではプロンプトエンジニアリングの基礎を学びました。この章では、すべての高度なプロンプティング戦略の基盤となる<strong>基本技術</strong>を扱います。これらの技術は、LLMとの実質的にすべてのやり取りで使用する必須の構成要素です。</p>
+
+        <p>この章を終えると、以下のことができるようになります：</p>
+        <ul>
+            <li>ロールプロンプティングでLLMの振る舞いと専門性を設定する</li>
+            <li>複雑なタスクに対して効果的なコンテキストを提供する</li>
+            <li>Markdown、JSON、構造化データを含む出力形式を指定する</li>
+            <li>信頼性の高いパースのためにJSONモードと構造化出力を使用する</li>
+            <li>品質管理のための適切な制約を設定する</li>
+            <li>複雑なタスクを管理可能なサブタスクに分解する</li>
+        </ul>
+
+        <h2 id="role-prompting">ロールプロンプティング</h2>
+
+        <p><strong>ロールプロンプティング</strong>（ペルソナプロンプティングとも呼ばれる）は、LLMに特定の役割やペルソナを割り当てる技術です。これにより、モデルが問題にアプローチし、応答を生成する方法が根本的に変わります。</p>
+
+        <h3>なぜロールプロンプティングが効果的なのか</h3>
+
+        <p>役割を割り当てると、実質的に以下のことを行っています：</p>
+        <ul>
+            <li><strong>関連する知識の活性化</strong>：モデルはその専門分野に関連するパターンを引き出す</li>
+            <li><strong>行動期待の設定</strong>：コミュニケーションスタイル、詳細レベル、アプローチ</li>
+            <li><strong>権威の確立</strong>：モデルは適切な自信と深さで応答する</li>
+        </ul>
+
+        <h3>基本的なロールプロンプティング</h3>
+
+        <div class="example-box">
+            <h4>シンプルな役割割り当て</h4>
+            <pre><code>あなたは10年の経験を持つシニアPython開発者です。
+
+以下のコードをレビューし、可読性とパフォーマンスの改善点を提案してください：
+
+```python
+def process_data(data):
+    result = []
+    for item in data:
+        if item > 0:
+            result.append(item * 2)
+    return result
+```</code></pre>
+        </div>
+
+        <h3>高度なロールプロンプティング</h3>
+
+        <p>より細かい出力を得るには、詳細な役割仕様を提供します：</p>
+
+        <div class="example-box">
+            <h4>詳細な役割仕様</h4>
+            <pre><code>あなたは佐藤博士、以下の経歴を持つデータサイエンティストです：
+- 東京大学で機械学習の博士号取得
+- 大手テック企業での8年の実務経験
+- NLPとTransformerアーキテクチャの専門家
+- 理論と実践を橋渡しする明確な説明で知られる
+
+コミュニケーションスタイル：
+- 複雑な概念を説明するときは比喩を使用
+- 実践的なコード例を提供
+- 制限とエッジケースを認識
+- 技術的正確性とアクセシビリティのバランスを取る
+
+Transformerにおけるアテンションメカニズムの仕組みを説明してください。</code></pre>
+        </div>
+
+        <h3>複数専門家ロール</h3>
+
+        <p>複雑な問題には、複数の視点を呼び出すことができます：</p>
+
+        <div class="example-box">
+            <h4>複数専門家パネル</h4>
+            <pre><code>スタートアップのアイデアをレビューする3人の専門家パネルとして振る舞ってください：
+
+1. **ベンチャーキャピタリスト**：市場規模、スケーラビリティ、投資可能性に焦点
+2. **技術CTO**：実現可能性、技術的課題、アーキテクチャを評価
+3. **マーケティングディレクター**：ブランドポジショニング、顧客獲得、メッセージングを評価
+
+スタートアップアイデア：継続的血糖モニタリングデータに基づいて食事プランを作成するAI搭載パーソナル栄養コーチ
+
+各専門家が分析を提供し、その後集団的な推奨をまとめてください。</code></pre>
+        </div>
+
+        <h2 id="context-setting">コンテキスト設定</h2>
+
+        <p><strong>コンテキスト設定</strong>は、タスクを正確に理解し完了するために必要な背景情報をLLMに提供します。適切なコンテキストがないと、よく構造化されたプロンプトでも無関係な結果を生成する可能性があります。</p>
+
+        <h3>コンテキストの種類</h3>
+
+        <h4>1. ドメインコンテキスト</h4>
+
+        <div class="example-box">
+            <h4>ドメインコンテキストの例</h4>
+            <pre><code>**ドメイン**：エンタープライズSaaS B2Bセールス
+**業界**：ヘルスケアテクノロジー
+**規制環境**：HIPAA準拠が必要
+**一般的な販売サイクル**：6-12ヶ月
+**主要なステークホルダー**：CTO、CISO、調達部門
+
+製品デモ後のフォローアップメールを書いてください。</code></pre>
+        </div>
+
+        <h4>2. 状況コンテキスト</h4>
+
+        <div class="example-box">
+            <h4>状況コンテキストの例</h4>
+            <pre><code>**現在の状況**：
+- 50人のスタートアップが200人に拡大中
+- モノリシックなPythonアプリケーションが保守困難に
+- シニアエンジニア2名、ジュニア開発者4名
+- 予算に制限あり、クラウドコストが懸念
+- 既存顧客のために99.9%のアップタイムを維持する必要がある
+
+マイクロサービスへの移行戦略を推奨してください。</code></pre>
+        </div>
+
+        <h3>CRISPコンテキストフレームワーク</h3>
+
+        <p>包括的なコンテキストを確保するためにこのフレームワークを使用します：</p>
+
+        <div class="note">
+            <h4>CRISPフレームワーク</h4>
+            <ul>
+                <li><strong>C</strong>onstraints（制約）：制限、要件、交渉不可能な項目</li>
+                <li><strong>R</strong>esources（リソース）：利用可能なツール、予算、チーム、時間</li>
+                <li><strong>I</strong>ntent（意図）：最終目標、なぜこれが重要か</li>
+                <li><strong>S</strong>ituation（状況）：現在の状態、最近の出来事</li>
+                <li><strong>P</strong>references（好み）：望ましいアプローチ、スタイル、価値観</li>
+            </ul>
+        </div>
+
+        <h2 id="output-format">出力形式の指定</h2>
+
+        <p><strong>出力形式</strong>を指定することで、応答が必要な通りに構造化されることを保証します。これは下流処理、一貫性、使いやすさにとって重要です。</p>
+
+        <h3>構造化出力 / JSONモード（2025年）</h3>
+
+        <p>最新のLLM（GPT-4、Claude、Gemini）は、有効なJSON応答を保証する<strong>JSONモード</strong>または<strong>構造化出力</strong>をサポートしています。これは本番アプリケーションに不可欠です。</p>
+
+        <div class="example-box">
+            <h4>OpenAI JSONモードの例</h4>
+            <pre><code class="language-python">from openai import OpenAI
+client = OpenAI()
+
+response = client.chat.completions.create(
+    model="gpt-4o",
+    response_format={"type": "json_object"},
+    messages=[
+        {
+            "role": "system",
+            "content": "エンティティを抽出し、JSONとして返してください。キー：persons, organizations, locations"
+        },
+        {
+            "role": "user",
+            "content": "AppleのCEOティム・クックはクパチーノ本社で新製品を発表しました。"
+        }
+    ]
+)
+
+# 有効なJSONが保証される
+import json
+data = json.loads(response.choices[0].message.content)
+print(data)
+# {"persons": ["ティム・クック"], "organizations": ["Apple"], "locations": ["クパチーノ"]}</code></pre>
+        </div>
+
+        <h3>スキーマ付き構造化出力（2025年）</h3>
+
+        <div class="example-box">
+            <h4>スキーマ付き構造化出力</h4>
+            <pre><code class="language-python">from openai import OpenAI
+from pydantic import BaseModel
+from typing import Literal
+
+class ProductAnalysis(BaseModel):
+    product_name: str
+    sentiment: Literal["positive", "negative", "neutral"]
+    confidence: float
+    key_features: list[str]
+    recommendation: str
+
+client = OpenAI()
+
+response = client.beta.chat.completions.parse(
+    model="gpt-4o-2024-08-06",
+    messages=[
+        {"role": "system", "content": "製品レビューを分析"},
+        {"role": "user", "content": "このノートパソコンは素晴らしい！高速プロセッサ、素晴らしい画面、でもバッテリーはもう少し改善が必要。"}
+    ],
+    response_format=ProductAnalysis
+)
+
+# 完全に型付けされた検証済み応答
+analysis = response.choices[0].message.parsed
+print(f"感情: {analysis.sentiment}")
+print(f"信頼度: {analysis.confidence}")</code></pre>
+        </div>
+
+        <h2 id="constraints">制約設定</h2>
+
+        <p><strong>制約</strong>はLLM出力の境界と要件を定義します。適切に定義された制約により、冗長さ、無関係なコンテンツ、不適切な応答などの一般的な問題を防ぐことができます。</p>
+
+        <h3>制約の種類</h3>
+
+        <h4>長さの制約</h4>
+
+        <div class="example-box">
+            <h4>長さ制御</h4>
+            <pre><code>この記事を正確に3文で要約してください。
+各文は15-20語にしてください。
+合計要約：45-60語。
+
+[記事テキスト...]</code></pre>
+        </div>
+
+        <h4>内容の制約</h4>
+
+        <div class="example-box">
+            <h4>内容要件</h4>
+            <pre><code>以下の要件で製品説明を書いてください：
+
+**必須要素：**
+- 製品名を少なくとも2回言及
+- 3つの具体的な機能とその利点
+- 最後に行動喚起
+
+**避けるべき要素：**
+- 最上級表現（最高、最大、素晴らしい）
+- 競合他社との比較
+- 検証不可能な主張
+- 技術用語
+
+**トーン：** プロフェッショナル、自信があり、アクセスしやすい</code></pre>
+        </div>
+
+        <h3>否定的制約（やってはいけないこと）</h3>
+
+        <div class="example-box">
+            <h4>否定的制約</h4>
+            <pre><code>高校生に機械学習を説明してください。
+
+やってはいけないこと：
+- 数式を使用する
+- 学術論文を参照する
+- 「勾配降下」「損失関数」「バックプロパゲーション」などの用語を使用する
+- プログラミングの事前知識を仮定する
+- 200語を超える
+
+代わりに、日常的な比喩と簡単な例を使用してください。</code></pre>
+        </div>
+
+        <h2 id="task-decomposition">タスク分解</h2>
+
+        <p><strong>タスク分解</strong>は、複雑なタスクをより小さく管理可能なステップに分割します。これにより精度が向上し、各段階での検証が可能になります。</p>
+
+        <h3>順次分解</h3>
+
+        <div class="example-box">
+            <h4>ステップバイステップタスク</h4>
+            <pre><code>以下のタスクを3つの別々のステップで完了してください。
+次に移る前に各ステップを完全に完了させてください。
+
+**タスク**：新製品ローンチのマーケティングメールを作成
+
+**ステップ1：調査と計画**
+- ターゲットオーディエンスの特性を特定
+- 製品が解決する3つの主要なペインポイントをリスト
+- 主要な行動喚起を定義
+
+**ステップ2：ドラフト作成**
+- 件名を書く（A/Bテストオプション）
+- AIDAフレームワークに従ってメール本文を書く
+- ソーシャルプルーフ要素を含める
+
+**ステップ3：レビューと最適化**
+- スパムトリガーワードをチェック
+- モバイル可読性を確認
+- パーソナライゼーショントークンを提案
+
+今すぐステップ1を完了してください。</code></pre>
+        </div>
+
+        <h2 id="exercises">演習問題</h2>
+
+        <h3>演習1：ロールプロンプティング（難易度：易）</h3>
+        <div class="note">
+            <p><strong>課題</strong>：以下の対象者に暗号通貨を説明するロールプロンプトを作成してください：</p>
+            <ol>
+                <li>10歳の子供</li>
+                <li>投資を検討している退職者</li>
+                <li>ブロックチェーンに興味のあるソフトウェア開発者</li>
+            </ol>
+        </div>
+
+        <h3>演習2：コンテキスト設定（難易度：中）</h3>
+        <div class="note">
+            <p><strong>課題</strong>：CRISPフレームワークを使用して、スタートアップ向けのクラウドプロバイダー選択に関する推奨を求めるプロンプトを書いてください。</p>
+        </div>
+
+        <h3>演習3：JSON出力（難易度：中）</h3>
+        <div class="note">
+            <p><strong>課題</strong>：レストランレビューから構造化データを抽出するプロンプトを設計してください。</p>
+            <p>JSONスキーマを定義：レストラン名、料理タイプ、評価（料理、サービス、雰囲気）、価格帯、おすすめ料理。</p>
+        </div>
+
+        <h3>演習4：制約設定（難易度：中）</h3>
+        <div class="note">
+            <p><strong>課題</strong>：ECサイト向けの製品説明を生成するプロンプトを書いてください。</p>
+            <p>長さ、トーン、必須要素、禁止内容をカバーする少なくとも5つの制約を含めてください。</p>
+        </div>
+
+        <h3>演習5：タスク分解（難易度：上級）</h3>
+        <div class="note">
+            <p><strong>課題</strong>：会社のハッカソンを計画するための階層的タスク分解プロンプトを作成してください。</p>
+            <p>少なくとも3レベルの詳細を含め、タスク間の依存関係を特定してください。</p>
+        </div>
+
+        <h2 id="key-takeaways-section">章のまとめ</h2>
+
+        <div class="key-takeaways">
+            <h3>重要ポイント</h3>
+            <ul>
+                <li><strong>ロールプロンプティング</strong>：特定の役割を割り当て、関連知識を活性化し行動期待を設定</li>
+                <li><strong>コンテキスト設定</strong>：CRISPフレームワーク（制約、リソース、意図、状況、好み）で包括的なコンテキストを提供</li>
+                <li><strong>出力形式</strong>：期待される形式を明示的に指定；プログラム的消費にはJSONモードを使用</li>
+                <li><strong>構造化出力</strong>：最新のLLMは保証された有効な応答のためのスキーマベースの検証をサポート</li>
+                <li><strong>制約</strong>：正の制約（含める必要あり）と負の制約（避ける必要あり）の両方を定義</li>
+                <li><strong>タスク分解</strong>：複雑なタスクを順次、並列、または階層的なサブタスクに分割</li>
+            </ul>
+        </div>
+
+        <h2 id="next-steps">次のステップ</h2>
+
+        <p>第3章では、以下を含む高度な技術を探求します：</p>
+        <ul>
+            <li>複雑な推論のためのTree of Thoughtプロンプティング</li>
+            <li>精度向上のためのSelf-Consistency</li>
+            <li>アクションを伴う推論のためのReActパターン</li>
+            <li>o1/o3推論モデル向けプロンプティング</li>
+            <li>マルチターン会話設計</li>
+        </ul>
+
+        <div class="nav-buttons">
+            <a href="./chapter-1.html" class="nav-button">第1章</a>
+            <a href="./chapter-3.html" class="nav-button">第3章</a>
+        </div>
+
+        <hr>
+
+        <h2 id="references">参考文献</h2>
+        <ul>
+            <li>OpenAI. (2024). <em>Structured Outputs Documentation</em></li>
+            <li>Anthropic. (2025). <em>Claude Prompt Engineering Guide</em></li>
+            <li>Wei, J., et al. (2022). <em>Chain-of-Thought Prompting Elicits Reasoning in Large Language Models</em></li>
+        </ul>
+
+        <hr>
+
+        <p><strong>更新履歴</strong></p>
+        <ul>
+            <li><strong>2026-01-12</strong>：v2.0 構造化出力とJSONモードを含む初版リリース</li>
+        </ul>
+
+    </main>
+
+    <section class="disclaimer">
+        <h3>免責事項</h3>
+        <ul>
+            <li>本コンテンツは教育、研究、情報提供のみを目的として提供されており、専門的なアドバイスを構成するものではありません。</li>
+            <li>本コンテンツおよび付随するプロンプト例は、いかなる保証もなく「現状のまま」提供されます。</li>
+            <li>外部LLMサービス（ChatGPT、Claude、Gemini等）の利用規約と制限は、それぞれのサービスプロバイダーの責任です。</li>
+        </ul>
+    </section>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 AI Terakoya - 橋本優介博士、東北大学</p>
+            <p>CC BY 4.0ライセンス</p>
+        </div>
+    </footer>
+</body>
+</html>

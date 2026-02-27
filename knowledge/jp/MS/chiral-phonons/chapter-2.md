@@ -4,6 +4,24 @@ chapter_title: "第2章：材料中のカイラルフォノン"
 subtitle: "2次元材料から3次元カイラル結晶まで"
 ---
 
+## ビデオ講義
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/vbbjqY8Q4ko"
+    title="カイラルフォノン 第2章: 材料"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> このビデオは以下のテキストと同じ内容をカバーしています。お好みの学習形式をお選びください。
+
+---
+
 [🌐 EN](../../../en/MS/chiral-phonons/chapter-2.md) | 🇯🇵 JP | Last sync: 2025-12-19
 
 [材料科学道場](../index.html) > [カイラルフォノン](index.md) > 第2章

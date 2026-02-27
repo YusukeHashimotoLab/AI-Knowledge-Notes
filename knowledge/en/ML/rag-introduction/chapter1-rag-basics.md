@@ -3,6 +3,18 @@ title: "Chapter 1: RAG Fundamentals"
 chapter_title: "Chapter 1: RAG Fundamentals"
 ---
 
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/eYlOsCp3Tzs"
+    title="RAG Introduction Ch.1: RAG Fundamentals"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
 This chapter covers the fundamentals of RAG Fundamentals, which 1. what is rag. You will learn essential concepts and techniques.
 
 ## 1\. What is RAG

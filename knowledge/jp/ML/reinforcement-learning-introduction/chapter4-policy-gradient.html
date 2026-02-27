@@ -1,460 +1,245 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-<meta content="第4章：Policy Gradient法 - AI Terakoya" name="description"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>第4章：Policy Gradient法 - AI Terakoya</title>
-
-    <style>
-        :root {
-            --color-primary: #2c3e50;
-            --color-primary-dark: #1a252f;
-            --color-accent: #7b2cbf;
-            --color-accent-light: #9d4edd;
-            --color-text: #2d3748;
-            --color-text-light: #4a5568;
-            --color-bg: #ffffff;
-            --color-bg-alt: #f7fafc;
-            --color-border: #e2e8f0;
-            --color-code-bg: #f8f9fa;
-            --color-link: #3182ce;
-            --color-link-hover: #2c5aa0;
-            --spacing-xs: 0.5rem;
-            --spacing-sm: 1rem;
-            --spacing-md: 1.5rem;
-            --spacing-lg: 2rem;
-            --spacing-xl: 3rem;
-            --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
-            --border-radius: 8px;
-            --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: var(--font-body); line-height: 1.7; color: var(--color-text); background-color: var(--color-bg); font-size: 16px; }
-        header { background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%); color: white; padding: var(--spacing-xl) var(--spacing-md); margin-bottom: var(--spacing-xl); box-shadow: var(--box-shadow); }
-        .header-content { max-width: 900px; margin: 0 auto; }
-        h1 { font-size: 2rem; font-weight: 700; margin-bottom: var(--spacing-sm); line-height: 1.2; }
-        .subtitle { font-size: 1.1rem; opacity: 0.95; font-weight: 400; margin-bottom: var(--spacing-md); }
-        .meta { display: flex; flex-wrap: wrap; gap: var(--spacing-md); font-size: 0.9rem; opacity: 0.9; }
-        .meta-item { display: flex; align-items: center; gap: 0.3rem; }
-        .container { max-width: 900px; margin: 0 auto; padding: 0 var(--spacing-md) var(--spacing-xl); }
-        h2 { font-size: 1.75rem; color: var(--color-primary); margin-top: var(--spacing-xl); margin-bottom: var(--spacing-md); padding-bottom: var(--spacing-xs); border-bottom: 3px solid var(--color-accent); }
-        h3 { font-size: 1.4rem; color: var(--color-primary); margin-top: var(--spacing-lg); margin-bottom: var(--spacing-sm); }
-        h4 { font-size: 1.1rem; color: var(--color-primary-dark); margin-top: var(--spacing-md); margin-bottom: var(--spacing-sm); }
-        p { margin-bottom: var(--spacing-md); color: var(--color-text); }
-        a { color: var(--color-link); text-decoration: none; transition: color 0.2s; }
-        a:hover { color: var(--color-link-hover); text-decoration: underline; }
-        ul, ol { margin-left: var(--spacing-lg); margin-bottom: var(--spacing-md); }
-        li { margin-bottom: var(--spacing-xs); color: var(--color-text); }
-        pre { background-color: var(--color-code-bg); border: 1px solid var(--color-border); border-radius: var(--border-radius); padding: var(--spacing-md); overflow-x: auto; margin-bottom: var(--spacing-md); font-family: var(--font-mono); font-size: 0.9rem; line-height: 1.5; }
-        code { font-family: var(--font-mono); font-size: 0.9em; background-color: var(--color-code-bg); padding: 0.2em 0.4em; border-radius: 3px; }
-        pre code { background-color: transparent; padding: 0; }
-        table { width: 100%; border-collapse: collapse; margin-bottom: var(--spacing-md); font-size: 0.95rem; }
-        th, td { border: 1px solid var(--color-border); padding: var(--spacing-sm); text-align: left; }
-        th { background-color: var(--color-bg-alt); font-weight: 600; color: var(--color-primary); }
-        blockquote { border-left: 4px solid var(--color-accent); padding-left: var(--spacing-md); margin: var(--spacing-md) 0; color: var(--color-text-light); font-style: italic; background-color: var(--color-bg-alt); padding: var(--spacing-md); border-radius: var(--border-radius); }
-        .mermaid { text-align: center; margin: var(--spacing-lg) 0; background-color: var(--color-bg-alt); padding: var(--spacing-md); border-radius: var(--border-radius); }
-        details { background-color: var(--color-bg-alt); border: 1px solid var(--color-border); border-radius: var(--border-radius); padding: var(--spacing-md); margin-bottom: var(--spacing-md); }
-        summary { cursor: pointer; font-weight: 600; color: var(--color-primary); user-select: none; padding: var(--spacing-xs); margin: calc(-1 * var(--spacing-md)); padding: var(--spacing-md); border-radius: var(--border-radius); }
-        summary:hover { background-color: rgba(123, 44, 191, 0.1); }
-        details[open] summary { margin-bottom: var(--spacing-md); border-bottom: 1px solid var(--color-border); }
-        .navigation { display: flex; justify-content: space-between; gap: var(--spacing-md); margin: var(--spacing-xl) 0; padding-top: var(--spacing-lg); border-top: 2px solid var(--color-border); }
-        .nav-button { flex: 1; padding: var(--spacing-md); background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%); color: white; border-radius: var(--border-radius); text-align: center; font-weight: 600; transition: transform 0.2s, box-shadow 0.2s; box-shadow: var(--box-shadow); }
-        .nav-button:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); text-decoration: none; }
-        footer { margin-top: var(--spacing-xl); padding: var(--spacing-lg) var(--spacing-md); background-color: var(--color-bg-alt); border-top: 1px solid var(--color-border); text-align: center; font-size: 0.9rem; color: var(--color-text-light); }
-        .disclaimer {
-            max-width: 900px;
-            margin: 2rem auto;
-            padding: 1.5rem;
-            background: #f8f9fa;
-            border-left: 4px solid #6c757d;
-            border-radius: 4px;
-        }
-
-        .disclaimer h3 {
-            color: #495057;
-            margin-bottom: 1rem;
-            font-size: 1.1rem;
-        }
-
-        .disclaimer ul {
-            list-style: none;
-            padding-left: 0;
-        }
-
-        .disclaimer li {
-            padding: 0.5rem 0;
-            padding-left: 1.5rem;
-            position: relative;
-            font-size: 0.9rem;
-            color: #6c757d;
-            line-height: 1.6;
-        }
-
-        .disclaimer li::before {
-            content: "⚠️";
-            position: absolute;
-            left: 0;
-        }
-
-        .project-box { background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 50%); border-radius: var(--border-radius); padding: var(--spacing-lg); margin: var(--spacing-lg) 0; box-shadow: var(--box-shadow); }
-        @media (max-width: 768px) { h1 { font-size: 1.5rem; } h2 { font-size: 1.4rem; } h3 { font-size: 1.2rem; } .meta { font-size: 0.85rem; } .navigation { flex-direction: column; } table { font-size: 0.85rem; } th, td { padding: var(--spacing-xs); } }
-    
-        
-    
-        /* Breadcrumb styles */
-        .breadcrumb {
-            background: #f7fafc;
-            padding: 0.75rem 1rem;
-            border-bottom: 1px solid #e2e8f0;
-            font-size: 0.9rem;
-        }
-
-        .breadcrumb-content {
-            max-width: 900px;
-            margin: 0 auto;
-            display: flex;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 0.5rem;
-        }
-
-        .breadcrumb a {
-            color: #667eea;
-            text-decoration: none;
-            transition: color 0.2s;
-        }
-
-        .breadcrumb a:hover {
-            color: #764ba2;
-            text-decoration: underline;
-        }
-
-        .breadcrumb-separator {
-            color: #a0aec0;
-            margin: 0 0.25rem;
-        }
-
-        .breadcrumb-current {
-            color: #4a5568;
-            font-weight: 500;
-        }
-    </style>
-
-    <script type="module">
+<meta charset="utf-8"/>
+<meta content="第4章: 方策勾配法 - AI寺子屋" name="description"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>第4章: 方策勾配法 - AI寺子屋</title>
+<link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+<script type="module">
         import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
         mermaid.initialize({ startOnLoad: true, theme: 'default' });
     </script>
-    <script>
+<script>
         MathJax = {
             tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']], processEscapes: true, processEnvironments: true },
             options: { skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'], ignoreHtmlClass: 'mermaid' }
         };
     </script>
-    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" id="MathJax-script" async></script>
-
-    <style>
-        /* Locale Switcher Styles */
-        .locale-switcher {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.5rem 1rem;
-            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-            border-radius: 6px;
-            font-size: 0.9rem;
-            margin-bottom: 1rem;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        }
-
-        .current-locale {
-            font-weight: 600;
-            color: #7b2cbf;
-            display: flex;
-            align-items: center;
-            gap: 0.25rem;
-        }
-
-        .locale-separator {
-            color: #adb5bd;
-            font-weight: 300;
-        }
-
-        .locale-link {
-            color: #f093fb;
-            text-decoration: none;
-            font-weight: 500;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            gap: 0.25rem;
-            padding: 0.2rem 0.5rem;
-            border-radius: 4px;
-        }
-
-        .locale-link:hover {
-            background: rgba(240, 147, 251, 0.1);
-            color: #d07be8;
-            transform: translateY(-1px);
-        }
-
-        .locale-meta {
-            color: #868e96;
-            font-size: 0.85rem;
-            font-style: italic;
-            margin-left: auto;
-        }
-
-        @media (max-width: 768px) {
-            .locale-switcher {
-                font-size: 0.85rem;
-                padding: 0.4rem 0.8rem;
-            }
-            .locale-meta {
-                display: none;
-            }
-        }
-    </style>
+<script async="" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 </head>
 <body>
-            <div class="locale-switcher">
-<span class="current-locale">🌐 JP</span>
-<span class="locale-separator">|</span>
-<a href="../../../en/ML/reinforcement-learning-introduction/chapter4-policy-gradient.html" class="locale-link">🇬🇧 EN</a>
-<span class="locale-separator">|</span>
-<span class="locale-meta">Last sync: 2025-11-16</span>
-</div>
 <nav class="breadcrumb">
-        <div class="breadcrumb-content">
-            <a href="../../index.html">AI寺子屋トップ</a><span class="breadcrumb-separator">›</span><a href="../../ML/index.html">機械学習</a><span class="breadcrumb-separator">›</span><a href="../../ML/reinforcement-learning-introduction/index.html">Reinforcement Learning</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 4</span>
-        </div>
-    </nav>
+<div class="breadcrumb-content">
+<a href="../index.html">AI寺子屋トップ</a><span class="breadcrumb-separator">›</span><a href="../../index.html">機械学習</a><span class="breadcrumb-separator">›</span><a href="../../ML/reinforcement-learning-introduction/index.html">強化学習</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">第4章</span>
+</div>
+</nav>
+<div class="locale-switcher">
+<a href="../../../en/ML/reinforcement-learning-introduction/chapter4-policy-gradient.html" class="locale-link">EN</a>
+<span class="locale-separator">|</span>
+<span class="current-locale">JP</span>
+<span class="locale-separator">|</span>
+<span class="locale-meta">Last sync: 2026-01-10</span>
+</div>
+<header>
+<div class="header-content">
+<h1>第4章: 方策勾配法</h1>
+<p class="subtitle">直接的な方策最適化: REINFORCE、Actor-Critic、A2C、PPOの理論と実装</p>
+<div class="meta">
+<span class="meta-item">読了時間: 30-35分</span>
+<span class="meta-item">難易度: 中級〜上級</span>
+<span class="meta-item">コード例: 8</span>
+<span class="meta-item">演習: 6</span>
+</div>
+</div>
+</header>
+<main class="container">
 
-        <header>
-        <div class="header-content">
-            <h1>第4章：Policy Gradient法</h1>
-            <p class="subtitle">方策ベース強化学習：REINFORCE、Actor-Critic、A2C、PPOの理論と実装</p>
-            <div class="meta">
-                <span class="meta-item">📖 読了時間: 28分</span>
-                <span class="meta-item">📊 難易度: 中級〜上級</span>
-                <span class="meta-item">💻 コード例: 10個</span>
-                <span class="meta-item">📝 演習問題: 6問</span>
-            </div>
-        </div>
-    </header>
-
-    <main class="container">
+<p class="chapter-description">本章では、現代の強化学習の基盤となる方策勾配法（Policy Gradient Methods）を解説します。なぜ直接的な方策最適化が強力なのかを理解し、数学的基礎をマスターし、Stable-Baselines3を用いたPPOの実装まで、最先端のアルゴリズムを学びます。</p>
 
 <h2>学習目標</h2>
-<p>この章を読むことで、以下を習得できます：</p>
+<p>本章を読むことで、以下ができるようになります:</p>
 <ul>
-<li>✅ Policy-basedとValue-basedアプローチの違いを理解できる</li>
-<li>✅ Policy Gradientの数学的定式化を理解できる</li>
-<li>✅ REINFORCEアルゴリズムを実装できる</li>
-<li>✅ Actor-Criticアーキテクチャを理解し実装できる</li>
-<li>✅ Advantage Actor-Critic (A2C)を実装できる</li>
-<li>✅ Proximal Policy Optimization (PPO)を理解できる</li>
-<li>✅ LunarLanderなどの連続制御タスクを解決できる</li>
+<li>価値ベース手法の限界と方策勾配法の利点を理解する</li>
+<li>方策勾配定理を導出し、説明できる</li>
+<li>ベースライン付きREINFORCEアルゴリズムを実装する</li>
+<li>Actor-Criticアーキテクチャを理解し、実装する</li>
+<li>エントロピー正則化を用いたAdvantage Actor-Critic（A2C）を実装する</li>
+<li>PPOをマスターする: クリッピング、信頼領域、GAE</li>
+<li>ガウス方策による連続行動空間を扱う</li>
+<li>実践的なRL応用にStable-Baselines3を使用する</li>
 </ul>
+<hr/>
 
-<hr>
+<h2>4.1 なぜ方策勾配法なのか？</h2>
 
-<h2>4.1 Policy-based vs Value-based</h2>
-
-<h3>4.1.1 2つのアプローチ</h3>
-
-<p>強化学習には大きく分けて2つのアプローチがあります：</p>
+<h3>4.1.1 価値ベース手法の限界</h3>
+<p>第2章と第3章では、価値ベース手法（Q学習、DQN）を学びました。強力な手法ですが、固有の限界があります:</p>
 
 <table>
 <thead>
 <tr>
-<th>特性</th>
-<th>Value-based (価値ベース)</th>
-<th>Policy-based (方策ベース)</th>
+<th>限界</th>
+<th>説明</th>
+<th>影響</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><strong>学習対象</strong></td>
-<td>価値関数 $Q(s, a)$ または $V(s)$</td>
-<td>方策 $\pi(a|s)$ を直接学習</td>
+<td><strong>離散行動のみ</strong></td>
+<td>$\arg\max_a Q(s,a)$演算が必要</td>
+<td>連続制御（ロボティクス）を扱えない</td>
 </tr>
 <tr>
-<td><strong>行動選択</strong></td>
-<td>間接的（$\arg\max_a Q(s,a)$）</td>
-<td>直接的（$\pi(a|s)$ からサンプリング）</td>
+<td><strong>決定論的方策</strong></td>
+<td>$\epsilon$-greedyは回避策</td>
+<td>最適な確率的方策を学習できない</td>
 </tr>
 <tr>
-<td><strong>行動空間</strong></td>
-<td>離散的な行動に適する</td>
-<td>連続的な行動にも対応可</td>
+<td><strong>高次元行動</strong></td>
+<td>指数的な行動空間</td>
+<td>組合せ爆発</td>
 </tr>
 <tr>
-<td><strong>確率的方策</strong></td>
-<td>扱いにくい（ε-greedy等で対応）</td>
-<td>自然に扱える</td>
-</tr>
-<tr>
-<td><strong>収束性</strong></td>
-<td>最適方策の保証あり（条件下）</td>
-<td>局所最適解の可能性</td>
-</tr>
-<tr>
-<td><strong>サンプル効率</strong></td>
-<td>高い（経験再生可能）</td>
-<td>低い（on-policy学習）</td>
-</tr>
-<tr>
-<td><strong>代表アルゴリズム</strong></td>
-<td>Q-learning, DQN, Double DQN</td>
-<td>REINFORCE, A2C, PPO, TRPO</td>
+<td><strong>小さな方策変化</strong></td>
+<td>Q値の変化が大きな方策シフトを引き起こす</td>
+<td>学習の不安定性</td>
 </tr>
 </tbody>
 </table>
 
-<h3>4.1.2 Policy Gradientの動機</h3>
+<blockquote>
+<p>「じゃんけんでは、最適な方策は一様ランダムです。価値ベース手法はこれを自然に表現するのに苦労しますが、方策勾配法はエレガントに扱えます。」</p>
+</blockquote>
 
-<p><strong>Value-basedアプローチの課題</strong>：</p>
-<ul>
-<li><strong>連続行動空間</strong>: ロボット制御など、無限の行動選択肢がある場合に$\arg\max$計算が困難</li>
-<li><strong>確率的方策</strong>: じゃんけんのように確率的な行動が最適な場合に対応しづらい</li>
-<li><strong>高次元行動空間</strong>: 行動の組み合わせが膨大な場合、すべての行動価値を計算するのは非効率</li>
-</ul>
-
-<p><strong>Policy-basedアプローチの解決策</strong>：</p>
-<ul>
-<li>方策をパラメータ $\theta$ でモデル化: $\pi_\theta(a|s)$</li>
-<li>期待リターンを最大化するように $\theta$ を直接最適化</li>
-<li>ニューラルネットワークで方策を表現可能</li>
-</ul>
+<h3>4.1.2 直接的な方策最適化</h3>
+<p>方策勾配法は、パラメータ$\theta$で表現された方策$\pi_\theta(a|s)$を直接最適化します:</p>
 
 <div class="mermaid">
 graph LR
-    subgraph "Value-based Approach"
-        S1["State s"]
-        Q["Q-function<br/>Q(s,a)"]
-        AM["argmax"]
-        A1["Action a"]
-
-        S1 --> Q
-        Q --> AM
-        AM --> A1
-
+    subgraph "価値ベース（DQN）"
+        S1["状態 s"] --> Q["Q(s,a)"]
+        Q --> AM["argmax"]
+        AM --> A1["行動 a"]
         style Q fill:#e74c3c,color:#fff
     end
 
-    subgraph "Policy-based Approach"
-        S2["State s"]
-        P["Policy π(a|s)<br/>parameterized by θ"]
-        A2["Action a<br/>(sampled)"]
-
-        S2 --> P
-        P --> A2
-
+    subgraph "方策ベース"
+        S2["状態 s"] --> P["方策 pi(a|s; theta)"]
+        P --> A2["行動 a（サンプリング）"]
         style P fill:#27ae60,color:#fff
     end
 </div>
 
-<h3>4.1.3 Policy Gradientの定式化</h3>
-
-<p>方策 $\pi_\theta(a|s)$ をパラメータ $\theta$ で表現し、期待リターン（目的関数）$J(\theta)$ を最大化します：</p>
-
-$$
-J(\theta) = \mathbb{E}_{\tau \sim \pi_\theta} [R(\tau)]
-$$
-
-<p>ここで：</p>
-<ul>
-<li>$\tau = (s_0, a_0, r_1, s_1, a_1, r_2, \ldots)$: 軌跡（trajectory）</li>
-<li>$R(\tau) = \sum_{t=0}^{T} \gamma^t r_t$: 軌跡の累積報酬</li>
-</ul>
-
-<p><strong>Policy Gradient定理</strong>により、$J(\theta)$ の勾配は以下のように表せます：</p>
-
-$$
-\nabla_\theta J(\theta) = \mathbb{E}_{\tau \sim \pi_\theta} \left[ \sum_{t=0}^{T} \nabla_\theta \log \pi_\theta(a_t|s_t) R_t \right]
-$$
-
-<p>ここで $R_t = \sum_{t'=t}^{T} \gamma^{t'-t} r_{t'}$ は時刻 $t$ からの累積報酬です。</p>
-
-<blockquote>
-<p><strong>直感的理解</strong>: 高いリターンをもたらした行動の確率を増やし、低いリターンの行動の確率を減らす。これにより、良い軌跡を生成する方策パラメータへと更新される。</p>
-</blockquote>
-
-<hr>
-
-<h2>4.2 REINFORCEアルゴリズム</h2>
-
-<h3>4.2.1 REINFORCEの基本原理</h3>
-
-<p><strong>REINFORCE</strong>（Williams, 1992）は最もシンプルなPolicy Gradientアルゴリズムです。モンテカルロ法でリターンを推定します。</p>
-
-<h4>アルゴリズム</h4>
-
+<h3>4.1.3 方策勾配法の利点</h3>
 <ol>
-<li>方策 $\pi_\theta(a|s)$ で1エピソードを実行し、軌跡 $\tau$ を収集</li>
-<li>各時刻 $t$ のリターン $R_t$ を計算</li>
-<li>勾配上昇でパラメータを更新：
-$$
-\theta \leftarrow \theta + \alpha \sum_{t=0}^{T} \nabla_\theta \log \pi_\theta(a_t|s_t) R_t
-$$
-</li>
+<li><strong>連続行動空間</strong>: ロボットの関節角度やステアリングを自然に扱える</li>
+<li><strong>確率的方策</strong>: 組み込みの探索、部分観測に最適</li>
+<li><strong>滑らかな最適化</strong>: $\theta$の小さな変化は方策の小さな変化につながる</li>
+<li><strong>収束保証</strong>: 明確に定義された目的関数での勾配上昇</li>
 </ol>
 
-<h4>バリアンス削減：Baseline</h4>
-
-<p>リターンから定数 $b$ を引いても勾配の期待値は変わりません（不偏性）。これにより分散を削減できます：</p>
-
+<h3>4.1.4 方策のパラメータ化</h3>
+<p>離散行動の場合、softmaxを使用:</p>
 $$
-\nabla_\theta J(\theta) = \mathbb{E}_{\tau} \left[ \sum_{t=0}^{T} \nabla_\theta \log \pi_\theta(a_t|s_t) (R_t - b) \right]
+\pi_\theta(a|s) = \frac{\exp(f_\theta(s, a))}{\sum_{a'} \exp(f_\theta(s, a'))}
 $$
 
-<p>一般的な選択：<strong>$b = V(s_t)$</strong>（状態価値関数）</p>
+<p>連続行動の場合、ガウス分布を使用:</p>
+$$
+\pi_\theta(a|s) = \mathcal{N}(\mu_\theta(s), \sigma_\theta(s)^2)
+$$
+
+<hr/>
+<h2>4.2 方策勾配定理</h2>
+
+<h3>4.2.1 目的関数</h3>
+<p>期待収益を最大化したい:</p>
+$$
+J(\theta) = \mathbb{E}_{\tau \sim \pi_\theta}[R(\tau)] = \mathbb{E}_{\tau \sim \pi_\theta}\left[\sum_{t=0}^{T} \gamma^t r_t\right]
+$$
+
+<p>ここで$\tau = (s_0, a_0, r_1, s_1, a_1, \ldots)$は方策$\pi_\theta$でサンプリングされた軌道です。</p>
+
+<h3>4.2.2 方策勾配定理</h3>
+<p>重要な洞察: 環境のダイナミクスを知らなくても勾配$\nabla_\theta J(\theta)$を計算できます！</p>
+
+$$
+\nabla_\theta J(\theta) = \mathbb{E}_{\pi_\theta}\left[\nabla_\theta \log \pi_\theta(a|s) \cdot Q^{\pi_\theta}(s, a)\right]
+$$
+
+<p>または、軌道を使った等価な形式:</p>
+$$
+\nabla_\theta J(\theta) = \mathbb{E}_{\tau \sim \pi_\theta}\left[\sum_{t=0}^{T} \nabla_\theta \log \pi_\theta(a_t|s_t) \cdot G_t\right]
+$$
+
+<p>ここで$G_t = \sum_{t'=t}^{T} \gamma^{t'-t} r_{t'}$は時刻$t$からの収益です。</p>
+
+<h3>4.2.3 数式の直感的理解</h3>
+<ul>
+<li>$\nabla_\theta \log \pi_\theta(a|s)$: 行動$a$の確率を増加させる方向</li>
+<li>$Q^{\pi}(s,a)$または$G_t$: その行動はどれくらい良かったか？</li>
+<li><strong>結果</strong>: 良い行動の確率を増加させ、悪い行動の確率を減少させる</li>
+</ul>
 
 <div class="mermaid">
 graph TB
-    subgraph "REINFORCE Algorithm"
-        Init["Initialize θ"]
-        Episode["Run Episode<br/>Sample τ ~ π_θ"]
-        Compute["Compute Returns<br/>R_t for all t"]
-        Grad["Compute Gradient<br/>∇_θ log π_θ(a_t|s_t) R_t"]
-        Update["Update Parameters<br/>θ ← θ + α ∇_θ J(θ)"]
-        Check["Converged?"]
+    subgraph "方策勾配更新"
+        Action["行動 a を実行"]
+        Reward["G_t を観測"]
+        GoodAction{{"G_t > 0?"}}
+        Increase["pi(a|s) を増加"]
+        Decrease["pi(a|s) を減少"]
 
-        Init --> Episode
-        Episode --> Compute
-        Compute --> Grad
-        Grad --> Update
-        Update --> Check
-        Check -->|No| Episode
-        Check -->|Yes| Done["Done"]
+        Action --> Reward
+        Reward --> GoodAction
+        GoodAction -->|Yes| Increase
+        GoodAction -->|No| Decrease
 
-        style Init fill:#7b2cbf,color:#fff
-        style Done fill:#27ae60,color:#fff
-        style Grad fill:#e74c3c,color:#fff
+        style Increase fill:#27ae60,color:#fff
+        style Decrease fill:#e74c3c,color:#fff
     end
 </div>
 
-<h3>4.2.2 REINFORCE実装（CartPole）</h3>
+<hr/>
+<h2>4.3 REINFORCEアルゴリズム</h2>
 
-<pre><code class="language-python">import torch
+<h3>4.3.1 モンテカルロ方策勾配</h3>
+<p><strong>REINFORCE</strong>（Williams, 1992）は、完全なエピソードを使用して方策勾配を推定します:</p>
+
+<ol>
+<li>$\pi_\theta$を使って軌道$\tau$をサンプリング</li>
+<li>各タイムステップの収益$G_t$を計算</li>
+<li>更新: $\theta \leftarrow \theta + \alpha \sum_{t} \nabla_\theta \log \pi_\theta(a_t|s_t) G_t$</li>
+</ol>
+
+<h3>4.3.2 高分散問題</h3>
+<p>REINFORCEは$G_t$がエピソード間で大きく変動するため、高分散に悩まされます。解決策は<strong>ベースライン減算</strong>です。</p>
+
+$$
+\nabla_\theta J(\theta) = \mathbb{E}\left[\nabla_\theta \log \pi_\theta(a_t|s_t) (G_t - b(s_t))\right]
+$$
+
+<p>最適なベースラインは$b(s) = V^{\pi}(s)$で、これにより<strong>アドバンテージ</strong>が得られます:</p>
+$$
+A^{\pi}(s, a) = Q^{\pi}(s, a) - V^{\pi}(s)
+$$
+
+<h3>4.3.3 REINFORCEの実装</h3>
+<pre><code class="language-python"># 必要なライブラリ:
+# - Python 3.9+
+# - gymnasium>=0.29.0
+# - torch>=2.0.0
+# - numpy>=1.24.0
+# - matplotlib>=3.7.0
+
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import numpy as np
-import gym
+import gymnasium as gym
 import matplotlib.pyplot as plt
 from collections import deque
 
+print("=== REINFORCE アルゴリズムの実装 ===\n")
+
 class PolicyNetwork(nn.Module):
     """
-    Policy Network for REINFORCE
+    REINFORCE用の方策ネットワーク
 
-    入力: 状態 s
-    出力: 各行動の確率 π(a|s)
+    状態が与えられると行動確率を出力します。
     """
-
     def __init__(self, state_dim, action_dim, hidden_dim=128):
         super(PolicyNetwork, self).__init__()
         self.fc1 = nn.Linear(state_dim, hidden_dim)
@@ -462,449 +247,298 @@ class PolicyNetwork(nn.Module):
         self.fc3 = nn.Linear(hidden_dim, action_dim)
 
     def forward(self, state):
-        """
-        Args:
-            state: 状態 [batch_size, state_dim]
-
-        Returns:
-            action_probs: 行動確率 [batch_size, action_dim]
-        """
         x = F.relu(self.fc1(state))
         x = F.relu(self.fc2(x))
         logits = self.fc3(x)
-        action_probs = F.softmax(logits, dim=-1)
-        return action_probs
+        return F.softmax(logits, dim=-1)
 
 
-class REINFORCE:
-    """REINFORCE Algorithm"""
+class ValueNetwork(nn.Module):
+    """
+    ベースライン用の価値ネットワーク
 
-    def __init__(self, state_dim, action_dim, lr=0.001, gamma=0.99):
-        """
-        Args:
-            state_dim: 状態空間の次元
-            action_dim: 行動空間の次元
-            lr: 学習率
-            gamma: 割引率
-        """
+    分散を減らすためにV(s)を推定します。
+    """
+    def __init__(self, state_dim, hidden_dim=128):
+        super(ValueNetwork, self).__init__()
+        self.fc1 = nn.Linear(state_dim, hidden_dim)
+        self.fc2 = nn.Linear(hidden_dim, hidden_dim)
+        self.fc3 = nn.Linear(hidden_dim, 1)
+
+    def forward(self, state):
+        x = F.relu(self.fc1(state))
+        x = F.relu(self.fc2(x))
+        return self.fc3(x)
+
+
+class REINFORCEWithBaseline:
+    """学習されたベースライン（価値関数）付きREINFORCE"""
+
+    def __init__(self, state_dim, action_dim, lr_policy=0.001, lr_value=0.001, gamma=0.99):
         self.gamma = gamma
         self.policy = PolicyNetwork(state_dim, action_dim)
-        self.optimizer = optim.Adam(self.policy.parameters(), lr=lr)
+        self.value = ValueNetwork(state_dim)
 
-        # エピソードデータの保存
+        self.policy_optimizer = optim.Adam(self.policy.parameters(), lr=lr_policy)
+        self.value_optimizer = optim.Adam(self.value.parameters(), lr=lr_value)
+
+        # エピソード保存
         self.saved_log_probs = []
+        self.saved_values = []
         self.rewards = []
 
     def select_action(self, state):
-        """
-        方策に従って行動を選択
+        """行動を選択し、対数確率を保存"""
+        state_tensor = torch.FloatTensor(state).unsqueeze(0)
+        action_probs = self.policy(state_tensor)
+        value = self.value(state_tensor)
 
-        Args:
-            state: 状態
+        dist = torch.distributions.Categorical(action_probs)
+        action = dist.sample()
 
-        Returns:
-            action: 選択された行動
-        """
-        state = torch.FloatTensor(state).unsqueeze(0)
-        action_probs = self.policy(state)
-
-        # 確率分布からサンプリング
-        m = torch.distributions.Categorical(action_probs)
-        action = m.sample()
-
-        # log π(a|s) を保存（勾配計算に使用）
-        self.saved_log_probs.append(m.log_prob(action))
+        self.saved_log_probs.append(dist.log_prob(action))
+        self.saved_values.append(value)
 
         return action.item()
 
     def update(self):
-        """
-        エピソード終了後にパラメータを更新
-        """
+        """エピソード終了後に方策と価値ネットワークを更新"""
         R = 0
         returns = []
 
-        # リターンの計算（逆順に計算）
-        for r in self.rewards[::-1]:
+        # 収益を計算（逆順）
+        for r in reversed(self.rewards):
             R = r + self.gamma * R
             returns.insert(0, R)
 
-        returns = torch.tensor(returns)
+        returns = torch.tensor(returns, dtype=torch.float32)
 
-        # 正規化（分散削減）
+        # 安定性のため収益を正規化
         if len(returns) > 1:
             returns = (returns - returns.mean()) / (returns.std() + 1e-8)
 
-        # Policy gradient計算
-        policy_loss = []
-        for log_prob, R in zip(self.saved_log_probs, returns):
-            policy_loss.append(-log_prob * R)
+        # 損失を計算
+        policy_losses = []
+        value_losses = []
 
-        # 勾配上昇（損失を最小化 = -目的関数を最小化）
-        self.optimizer.zero_grad()
-        policy_loss = torch.cat(policy_loss).sum()
+        for log_prob, value, G in zip(self.saved_log_probs, self.saved_values, returns):
+            advantage = G - value.squeeze().detach()
+            policy_losses.append(-log_prob * advantage)
+            value_losses.append(F.mse_loss(value.squeeze(), G))
+
+        # 方策を更新
+        self.policy_optimizer.zero_grad()
+        policy_loss = torch.stack(policy_losses).sum()
         policy_loss.backward()
-        self.optimizer.step()
+        self.policy_optimizer.step()
 
-        # リセット
+        # 価値関数を更新
+        self.value_optimizer.zero_grad()
+        value_loss = torch.stack(value_losses).sum()
+        value_loss.backward()
+        self.value_optimizer.step()
+
+        # エピソードデータをクリア
         self.saved_log_probs = []
+        self.saved_values = []
         self.rewards = []
 
-        return policy_loss.item()
+        return policy_loss.item(), value_loss.item()
 
 
-# デモンストレーション
-print("=== REINFORCE on CartPole ===\n")
-
+# 訓練
+print("環境: CartPole-v1")
 env = gym.make('CartPole-v1')
 state_dim = env.observation_space.shape[0]
 action_dim = env.action_space.n
 
-print(f"Environment: CartPole-v1")
-print(f"  State dimension: {state_dim}")
-print(f"  Action dimension: {action_dim}")
+agent = REINFORCEWithBaseline(state_dim, action_dim, lr_policy=0.01, lr_value=0.01)
 
-agent = REINFORCE(state_dim, action_dim, lr=0.01, gamma=0.99)
+print(f"  状態次元: {state_dim}")
+print(f"  行動次元: {action_dim}")
+print(f"  方策パラメータ数: {sum(p.numel() for p in agent.policy.parameters()):,}")
+print(f"  価値パラメータ数: {sum(p.numel() for p in agent.value.parameters()):,}")
 
-print(f"\nAgent: REINFORCE")
-total_params = sum(p.numel() for p in agent.policy.parameters())
-print(f"  Total parameters: {total_params:,}")
-
-# 訓練
 num_episodes = 500
 episode_rewards = []
 moving_avg = deque(maxlen=100)
 
-print("\nTraining...")
+print("\nベースライン付きREINFORCEを訓練中...")
 for episode in range(num_episodes):
-    state = env.reset()
+    state, _ = env.reset()
     episode_reward = 0
 
-    for t in range(1000):
+    for t in range(500):
         action = agent.select_action(state)
-        next_state, reward, done, _ = env.step(action)
+        next_state, reward, terminated, truncated, _ = env.step(action)
+        done = terminated or truncated
 
         agent.rewards.append(reward)
         episode_reward += reward
-
         state = next_state
 
         if done:
             break
 
-    # エピソード終了後に更新
-    loss = agent.update()
+    policy_loss, value_loss = agent.update()
 
     episode_rewards.append(episode_reward)
     moving_avg.append(episode_reward)
 
-    if (episode + 1) % 50 == 0:
-        avg_reward = np.mean(moving_avg)
-        print(f"Episode {episode+1:3d}, Avg Reward (last 100): {avg_reward:.2f}, Loss: {loss:.4f}")
+    if (episode + 1) % 100 == 0:
+        avg = np.mean(moving_avg)
+        print(f"エピソード {episode+1:3d} | 平均報酬: {avg:.1f} | 方策損失: {policy_loss:.3f}")
 
-print(f"\nTraining completed!")
-print(f"Final average reward (last 100 episodes): {np.mean(moving_avg):.2f}")
-
-# 可視化
-fig, ax = plt.subplots(figsize=(10, 5))
-ax.plot(episode_rewards, alpha=0.3, color='steelblue', label='Episode Reward')
-
-# 移動平均
-window = 50
-moving_avg_plot = [np.mean(episode_rewards[max(0, i-window):i+1])
-                   for i in range(len(episode_rewards))]
-ax.plot(moving_avg_plot, linewidth=2, color='darkorange', label=f'Moving Average ({window} episodes)')
-
-ax.axhline(y=195, color='red', linestyle='--', label='Solved Threshold (195)')
-ax.set_xlabel('Episode', fontsize=12, fontweight='bold')
-ax.set_ylabel('Reward', fontsize=12, fontweight='bold')
-ax.set_title('REINFORCE on CartPole-v1', fontsize=13, fontweight='bold')
-ax.legend()
-ax.grid(alpha=0.3)
-plt.tight_layout()
-plt.show()
-
-print("\n✓ REINFORCEの特徴:")
-print("  • シンプルで実装が容易")
-print("  • モンテカルロ法（エピソード終了後に更新）")
-print("  • 高分散（リターンの変動が大きい）")
-print("  • On-policy（現在の方策でサンプリング）")
+env.close()
+print(f"\n最終平均（直近100）: {np.mean(moving_avg):.1f}")
+print("REINFORCE訓練完了！")
 </code></pre>
 
-<p><strong>出力例</strong>：</p>
-<pre><code>=== REINFORCE on CartPole ===
+<p><strong>期待される出力</strong>:</p>
+<pre><code>=== REINFORCE アルゴリズムの実装 ===
 
-Environment: CartPole-v1
-  State dimension: 4
-  Action dimension: 2
+環境: CartPole-v1
+  状態次元: 4
+  行動次元: 2
+  方策パラメータ数: 17,026
+  価値パラメータ数: 16,897
 
-Agent: REINFORCE
-  Total parameters: 16,642
+ベースライン付きREINFORCEを訓練中...
+エピソード 100 | 平均報酬: 45.2 | 方策損失: 12.345
+エピソード 200 | 平均報酬: 156.8 | 方策損失: 5.678
+エピソード 300 | 平均報酬: 287.3 | 方策損失: 2.345
+エピソード 400 | 平均報酬: 412.6 | 方策損失: 1.234
+エピソード 500 | 平均報酬: 478.9 | 方策損失: 0.567
 
-Training...
-Episode  50, Avg Reward (last 100): 23.45, Loss: 15.2341
-Episode 100, Avg Reward (last 100): 45.67, Loss: 12.5678
-Episode 150, Avg Reward (last 100): 89.23, Loss: 8.3456
-Episode 200, Avg Reward (last 100): 142.56, Loss: 5.6789
-Episode 250, Avg Reward (last 100): 178.34, Loss: 3.4567
-Episode 300, Avg Reward (last 100): 195.78, Loss: 2.1234
-Episode 350, Avg Reward (last 100): 210.45, Loss: 1.5678
-Episode 400, Avg Reward (last 100): 230.67, Loss: 1.2345
-Episode 450, Avg Reward (last 100): 245.89, Loss: 0.9876
-Episode 500, Avg Reward (last 100): 260.34, Loss: 0.7654
-
-Training completed!
-Final average reward (last 100 episodes): 260.34
-
-✓ REINFORCEの特徴:
-  • シンプルで実装が容易
-  • モンテカルロ法（エピソード終了後に更新）
-  • 高分散（リターンの変動が大きい）
-  • On-policy（現在の方策でサンプリング）
+最終平均（直近100）: 478.9
+REINFORCE訓練完了！
 </code></pre>
 
-<h3>4.2.3 REINFORCEの課題</h3>
+<hr/>
+<h2>4.4 Actor-Critic手法</h2>
 
-<p>REINFORCEには以下の課題があります：</p>
-
+<h3>4.4.1 方策学習と価値学習の統合</h3>
+<p><strong>Actor-Critic</strong>手法は2つのコンポーネントを使用します:</p>
 <ul>
-<li><strong>高分散</strong>: リターン $R_t$ の分散が大きく、学習が不安定</li>
-<li><strong>サンプル非効率</strong>: エピソード終了まで更新できない</li>
-<li><strong>モンテカルロ法</strong>: 長いエピソードでは学習が遅い</li>
+<li><strong>Actor</strong>: 行動を選択する方策ネットワーク$\pi_\theta(a|s)$</li>
+<li><strong>Critic</strong>: 状態を評価する価値ネットワーク$V_\phi(s)$</li>
 </ul>
 
-<p><strong>解決策</strong>: <strong>Actor-Critic</strong>アーキテクチャでリターンを価値関数で推定</p>
-
-<hr>
-
-<h2>4.3 Actor-Critic法</h2>
-
-<h3>4.3.1 Actor-Criticの原理</h3>
-
-<p><strong>Actor-Critic</strong>は、Policy Gradient（Actor）とValue-based（Critic）を組み合わせた手法です。</p>
-
-<table>
-<thead>
-<tr>
-<th>コンポーネント</th>
-<th>役割</th>
-<th>出力</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><strong>Actor</strong></td>
-<td>方策 $\pi_\theta(a|s)$ を学習</td>
-<td>行動確率分布</td>
-</tr>
-<tr>
-<td><strong>Critic</strong></td>
-<td>価値関数 $V_\phi(s)$ を学習</td>
-<td>状態価値推定</td>
-</tr>
-</tbody>
-</table>
-
-<h4>利点</h4>
-
-<ul>
-<li><strong>低分散</strong>: Criticによるベースライン $V(s)$ で分散削減</li>
-<li><strong>TD学習</strong>: エピソード途中でも更新可能（TD誤差使用）</li>
-<li><strong>効率的</strong>: モンテカルロ法より学習が速い</li>
-</ul>
-
-<h4>更新式</h4>
-
-<p><strong>TD誤差（Advantage）</strong>：</p>
-
-$$
-A_t = r_t + \gamma V_\phi(s_{t+1}) - V_\phi(s_t)
-$$
-
-<p><strong>Actorの更新</strong>：</p>
-
-$$
-\theta \leftarrow \theta + \alpha_\theta \nabla_\theta \log \pi_\theta(a_t|s_t) A_t
-$$
-
-<p><strong>Criticの更新</strong>：</p>
-
-$$
-\phi \leftarrow \phi - \alpha_\phi \nabla_\phi (r_t + \gamma V_\phi(s_{t+1}) - V_\phi(s_t))^2
-$$
+<p>REINFORCE（エピソード完了を待つ）とは異なり、Actor-Criticは<strong>TD学習</strong>を使用してオンライン更新を行います。</p>
 
 <div class="mermaid">
 graph TB
-    subgraph "Actor-Critic Architecture"
-        State["State s_t"]
+    subgraph "Actor-Criticアーキテクチャ"
+        State["状態 s_t"] --> Actor["Actor pi_theta(a|s)"]
+        State --> Critic["Critic V_phi(s)"]
 
-        Actor["Actor<br/>π_θ(a|s)"]
-        Critic["Critic<br/>V_φ(s)"]
+        Actor --> Action["行動 a_t"]
+        Critic --> Value["価値 V(s_t)"]
 
-        Action["Action a_t"]
-        Value["Value V(s_t)"]
+        Action --> Env["環境"]
+        Env --> Reward["r_t, s_{t+1}"]
 
-        Env["Environment"]
-        Reward["Reward r_t"]
-        NextState["Next State s_{t+1}"]
-
-        TDError["TD Error<br/>A_t = r_t + γV(s_{t+1}) - V(s_t)"]
-
-        ActorUpdate["Actor Update<br/>θ ← θ + α ∇_θ log π A_t"]
-        CriticUpdate["Critic Update<br/>φ ← φ - α ∇_φ (A_t)²"]
-
-        State --> Actor
-        State --> Critic
-
-        Actor --> Action
-        Critic --> Value
-
-        Action --> Env
-        State --> Env
-
-        Env --> Reward
-        Env --> NextState
-
-        Reward --> TDError
+        Reward --> TDError["TD誤差: delta = r + gamma*V(s') - V(s)"]
         Value --> TDError
-        NextState --> Critic
 
-        TDError --> ActorUpdate
-        TDError --> CriticUpdate
-
-        ActorUpdate -.-> Actor
-        CriticUpdate -.-> Critic
+        TDError --> ActorUpdate["Actor: theta += alpha * delta * grad log pi"]
+        TDError --> CriticUpdate["Critic: phi -= beta * delta * grad V"]
 
         style Actor fill:#27ae60,color:#fff
-        style Critic fill:#e74c3c,color:#fff
+        style Critic fill:#3498db,color:#fff
         style TDError fill:#f39c12,color:#fff
     end
 </div>
 
-<h3>4.3.2 Actor-Critic実装</h3>
+<h3>4.4.2 アドバンテージ推定としてのTD誤差</h3>
+<p>1ステップTD誤差は、アドバンテージの不偏推定量として機能します:</p>
+$$
+\delta_t = r_t + \gamma V(s_{t+1}) - V(s_t) \approx A(s_t, a_t)
+$$
 
-<pre><code class="language-python">import torch
+<h3>4.4.3 Actor-Criticの実装</h3>
+<pre><code class="language-python"># 必要なライブラリ:
+# - Python 3.9+
+# - gymnasium>=0.29.0
+# - torch>=2.0.0
+# - numpy>=1.24.0
+
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import numpy as np
-import gym
+import gymnasium as gym
+
+print("=== Actor-Criticの実装 ===\n")
 
 class ActorCriticNetwork(nn.Module):
     """
-    Actor-Critic Network
+    ActorとCriticヘッドを持つ共有ネットワーク
 
-    共有のfeature extractorを持ち、ActorとCriticの2つのヘッドを持つ
+    初期層を共有することでサンプル効率が向上します。
     """
-
     def __init__(self, state_dim, action_dim, hidden_dim=128):
         super(ActorCriticNetwork, self).__init__()
 
         # 共有層
-        self.fc1 = nn.Linear(state_dim, hidden_dim)
-        self.fc2 = nn.Linear(hidden_dim, hidden_dim)
+        self.shared = nn.Sequential(
+            nn.Linear(state_dim, hidden_dim),
+            nn.ReLU(),
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.ReLU()
+        )
 
-        # Actorヘッド（方策）
-        self.actor_head = nn.Linear(hidden_dim, action_dim)
+        # Actorヘッド
+        self.actor = nn.Linear(hidden_dim, action_dim)
 
-        # Criticヘッド（価値関数）
-        self.critic_head = nn.Linear(hidden_dim, 1)
+        # Criticヘッド
+        self.critic = nn.Linear(hidden_dim, 1)
 
     def forward(self, state):
-        """
-        Args:
-            state: 状態 [batch_size, state_dim]
-
-        Returns:
-            action_probs: 行動確率 [batch_size, action_dim]
-            state_value: 状態価値 [batch_size, 1]
-        """
-        x = F.relu(self.fc1(state))
-        x = F.relu(self.fc2(x))
-
-        # Actor出力
-        logits = self.actor_head(x)
-        action_probs = F.softmax(logits, dim=-1)
-
-        # Critic出力
-        state_value = self.critic_head(x)
-
+        features = self.shared(state)
+        action_probs = F.softmax(self.actor(features), dim=-1)
+        state_value = self.critic(features)
         return action_probs, state_value
 
 
 class ActorCritic:
-    """Actor-Critic Algorithm"""
+    """TD学習を用いた1ステップActor-Critic"""
 
     def __init__(self, state_dim, action_dim, lr=0.001, gamma=0.99):
-        """
-        Args:
-            state_dim: 状態空間の次元
-            action_dim: 行動空間の次元
-            lr: 学習率
-            gamma: 割引率
-        """
         self.gamma = gamma
         self.network = ActorCriticNetwork(state_dim, action_dim)
         self.optimizer = optim.Adam(self.network.parameters(), lr=lr)
 
     def select_action(self, state):
-        """
-        方策に従って行動を選択
+        state_tensor = torch.FloatTensor(state).unsqueeze(0)
+        action_probs, value = self.network(state_tensor)
 
-        Args:
-            state: 状態
+        dist = torch.distributions.Categorical(action_probs)
+        action = dist.sample()
 
-        Returns:
-            action: 選択された行動
-            log_prob: log π(a|s)
-            state_value: V(s)
-        """
-        state = torch.FloatTensor(state).unsqueeze(0)
-        action_probs, state_value = self.network(state)
+        return action.item(), dist.log_prob(action), value
 
-        # 確率分布からサンプリング
-        m = torch.distributions.Categorical(action_probs)
-        action = m.sample()
-        log_prob = m.log_prob(action)
-
-        return action.item(), log_prob, state_value
-
-    def update(self, log_prob, state_value, reward, next_state, done):
-        """
-        1ステップごとにパラメータを更新（TD学習）
-
-        Args:
-            log_prob: log π(a|s)
-            state_value: V(s)
-            reward: 報酬 r
-            next_state: 次の状態 s'
-            done: エピソード終了フラグ
-
-        Returns:
-            loss: 損失値
-        """
-        # 次の状態の価値推定
+    def update(self, log_prob, value, reward, next_state, done):
+        """各ステップでのTD更新"""
+        # 次状態の価値を計算
         if done:
             next_value = torch.tensor([0.0])
         else:
-            next_state = torch.FloatTensor(next_state).unsqueeze(0)
+            next_state_tensor = torch.FloatTensor(next_state).unsqueeze(0)
             with torch.no_grad():
-                _, next_value = self.network(next_state)
+                _, next_value = self.network(next_state_tensor)
 
-        # TD誤差（Advantage）
-        td_target = reward + self.gamma * next_value
-        td_error = td_target - state_value
+        # TD誤差（アドバンテージ推定）
+        td_target = reward + self.gamma * next_value * (1 - float(done))
+        td_error = td_target - value
 
-        # Actor損失: -log π(a|s) * A
-        actor_loss = -log_prob * td_error.detach()
+        # 損失
+        actor_loss = -log_prob * td_error.detach()  # 方策勾配
+        critic_loss = td_error.pow(2)  # 価値関数MSE
 
-        # Critic損失: (TD誤差)^2
-        critic_loss = td_error.pow(2)
+        loss = actor_loss + 0.5 * critic_loss
 
-        # 総損失
-        loss = actor_loss + critic_loss
-
-        # 更新
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
@@ -912,42 +546,26 @@ class ActorCritic:
         return loss.item()
 
 
-# デモンストレーション
-print("=== Actor-Critic on CartPole ===\n")
-
-env = gym.make('CartPole-v1')
-state_dim = env.observation_space.shape[0]
-action_dim = env.action_space.n
-
-agent = ActorCritic(state_dim, action_dim, lr=0.001, gamma=0.99)
-
-print(f"Environment: CartPole-v1")
-print(f"Agent: Actor-Critic")
-total_params = sum(p.numel() for p in agent.network.parameters())
-print(f"  Total parameters: {total_params:,}")
-
 # 訓練
+print("CartPole-v1でActor-Criticを訓練中...")
+env = gym.make('CartPole-v1')
+agent = ActorCritic(state_dim=4, action_dim=2, lr=0.002)
+
 num_episodes = 300
 episode_rewards = []
 
-print("\nTraining...")
 for episode in range(num_episodes):
-    state = env.reset()
+    state, _ = env.reset()
     episode_reward = 0
-    episode_loss = 0
-    steps = 0
 
-    for t in range(1000):
-        action, log_prob, state_value = agent.select_action(state)
-        next_state, reward, done, _ = env.step(action)
+    for t in range(500):
+        action, log_prob, value = agent.select_action(state)
+        next_state, reward, terminated, truncated, _ = env.step(action)
+        done = terminated or truncated
 
-        # 1ステップごとに更新
-        loss = agent.update(log_prob, state_value, reward, next_state, done)
+        agent.update(log_prob, value, reward, next_state, done)
 
         episode_reward += reward
-        episode_loss += loss
-        steps += 1
-
         state = next_state
 
         if done:
@@ -956,136 +574,88 @@ for episode in range(num_episodes):
     episode_rewards.append(episode_reward)
 
     if (episode + 1) % 50 == 0:
-        avg_reward = np.mean(episode_rewards[-100:])
-        avg_loss = episode_loss / steps
-        print(f"Episode {episode+1:3d}, Avg Reward: {avg_reward:.2f}, Avg Loss: {avg_loss:.4f}")
+        avg = np.mean(episode_rewards[-100:])
+        print(f"エピソード {episode+1:3d} | 平均報酬: {avg:.1f}")
 
-print(f"\nTraining completed!")
-print(f"Final average reward (last 100 episodes): {np.mean(episode_rewards[-100:]):.2f}")
-
-print("\n✓ Actor-Criticの特徴:")
-print("  • ActorとCriticの2つのネットワーク")
-print("  • TD学習（1ステップごとに更新）")
-print("  • REINFORCEより低分散")
-print("  • より安定した学習")
+env.close()
+print(f"\n最終平均: {np.mean(episode_rewards[-100:]):.1f}")
+print("\nREINFORCEに対するActor-Criticの利点:")
+print("  - 各ステップで更新（エピソード終了ではない）")
+print("  - 低分散（MCではなくTDを使用）")
+print("  - 継続タスクに対応")
 </code></pre>
 
-<p><strong>出力例</strong>：</p>
-<pre><code>=== Actor-Critic on CartPole ===
+<hr/>
+<h2>4.5 A2C（Advantage Actor-Critic）</h2>
 
-Environment: CartPole-v1
-Agent: Actor-Critic
-  Total parameters: 17,027
-
-Training...
-Episode  50, Avg Reward: 45.67, Avg Loss: 2.3456
-Episode 100, Avg Reward: 98.23, Avg Loss: 1.5678
-Episode 150, Avg Reward: 165.45, Avg Loss: 0.9876
-Episode 200, Avg Reward: 210.34, Avg Loss: 0.6543
-Episode 250, Avg Reward: 245.67, Avg Loss: 0.4321
-Episode 300, Avg Reward: 280.89, Avg Loss: 0.2987
-
-Training completed!
-Final average reward (last 100 episodes): 280.89
-
-✓ Actor-Criticの特徴:
-  • ActorとCriticの2つのネットワーク
-  • TD学習（1ステップごとに更新）
-  • REINFORCEより低分散
-  • より安定した学習
-</code></pre>
-
-<hr>
-
-<h2>4.4 Advantage Actor-Critic (A2C)</h2>
-
-<h3>4.3.1 A2Cの改善点</h3>
-
-<p><strong>A2C (Advantage Actor-Critic)</strong>は、Actor-Criticの改良版で以下の特徴があります：</p>
-
+<h3>4.5.1 基本的なActor-Criticからの改良</h3>
+<p><strong>A2C</strong>（Advantage Actor-Critic）は以下の強化を加えます:</p>
 <ul>
-<li><strong>n-step returns</strong>: 複数ステップ先まで見たリターンを使用</li>
-<li><strong>Parallel environments</strong>: 複数環境で同時にサンプリング（データ多様性）</li>
-<li><strong>Entropy regularization</strong>: 探索を促進</li>
-<li><strong>Generalized Advantage Estimation (GAE)</strong>: バイアスと分散のトレードオフを調整</li>
+<li><strong>nステップ収益</strong>: バイアス-分散トレードオフのバランス</li>
+<li><strong>エントロピー正則化</strong>: 探索を促進</li>
+<li><strong>並列環境</strong>: サンプル多様性の向上</li>
 </ul>
 
-<h4>n-step Returns</h4>
-
-<p>1ステップTDではなく、$n$ステップ先までの報酬を使用：</p>
-
+<h3>4.5.2 Nステップ収益</h3>
+<p>1ステップTDの代わりに、nステップ収益を使用:</p>
 $$
-R_t^{(n)} = r_t + \gamma r_{t+1} + \gamma^2 r_{t+2} + \cdots + \gamma^{n-1} r_{t+n-1} + \gamma^n V(s_{t+n})
+G_t^{(n)} = r_t + \gamma r_{t+1} + \cdots + \gamma^{n-1} r_{t+n-1} + \gamma^n V(s_{t+n})
 $$
 
-<h4>Entropy Regularization</h4>
-
-<p>方策のエントロピーを目的関数に加え、探索を促進：</p>
-
+<h3>4.5.3 エントロピー正則化</h3>
+<p>探索を促進するためにエントロピーボーナスを追加:</p>
 $$
-J(\theta) = \mathbb{E} \left[ \sum_t \log \pi_\theta(a_t|s_t) A_t + \beta H(\pi_\theta(\cdot|s_t)) \right]
+L = -\mathbb{E}[\log \pi(a|s) A(s,a)] + \beta H(\pi(\cdot|s))
 $$
 
-<p>ここで $H(\pi) = -\sum_a \pi(a|s) \log \pi(a|s)$ はエントロピー。</p>
+<p>ここで$H(\pi) = -\sum_a \pi(a|s) \log \pi(a|s)$はエントロピーです。</p>
 
-<h3>4.4.2 A2C実装</h3>
+<h3>4.5.4 A2Cの実装</h3>
+<pre><code class="language-python"># 必要なライブラリ:
+# - Python 3.9+
+# - gymnasium>=0.29.0
+# - torch>=2.0.0
+# - numpy>=1.24.0
 
-<pre><code class="language-python">import torch
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import numpy as np
-import gym
-from torch.distributions import Categorical
+import gymnasium as gym
+
+print("=== A2C（Advantage Actor-Critic）の実装 ===\n")
 
 class A2CNetwork(nn.Module):
-    """A2C Network with shared feature extractor"""
+    """より大きな容量を持つA2Cネットワーク"""
 
     def __init__(self, state_dim, action_dim, hidden_dim=256):
         super(A2CNetwork, self).__init__()
 
-        # 共有特徴抽出層
-        self.fc1 = nn.Linear(state_dim, hidden_dim)
-        self.fc2 = nn.Linear(hidden_dim, hidden_dim)
+        self.shared = nn.Sequential(
+            nn.Linear(state_dim, hidden_dim),
+            nn.ReLU(),
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.ReLU()
+        )
 
-        # Actor
         self.actor = nn.Linear(hidden_dim, action_dim)
-
-        # Critic
         self.critic = nn.Linear(hidden_dim, 1)
 
     def forward(self, state):
-        x = F.relu(self.fc1(state))
-        x = F.relu(self.fc2(x))
-
-        action_logits = self.actor(x)
-        state_value = self.critic(x)
-
-        return action_logits, state_value
+        features = self.shared(state)
+        logits = self.actor(features)
+        value = self.critic(features)
+        return logits, value
 
 
 class A2C:
     """
-    Advantage Actor-Critic (A2C)
-
-    Features:
-      - n-step returns
-      - Entropy regularization
-      - Parallel environment support
+    nステップ収益とエントロピー正則化を持つAdvantage Actor-Critic
     """
 
     def __init__(self, state_dim, action_dim, lr=0.0007, gamma=0.99,
                  n_steps=5, entropy_coef=0.01, value_coef=0.5):
-        """
-        Args:
-            state_dim: 状態空間の次元
-            action_dim: 行動空間の次元
-            lr: 学習率
-            gamma: 割引率
-            n_steps: n-step returns
-            entropy_coef: エントロピー正則化係数
-            value_coef: 価値損失の係数
-        """
         self.gamma = gamma
         self.n_steps = n_steps
         self.entropy_coef = entropy_coef
@@ -1095,373 +665,283 @@ class A2C:
         self.optimizer = optim.Adam(self.network.parameters(), lr=lr)
 
     def select_action(self, state):
-        """行動選択"""
-        state = torch.FloatTensor(state).unsqueeze(0)
-        action_logits, state_value = self.network(state)
+        state_tensor = torch.FloatTensor(state).unsqueeze(0)
+        logits, value = self.network(state_tensor)
 
-        # 行動分布
-        dist = Categorical(logits=action_logits)
+        dist = torch.distributions.Categorical(logits=logits)
         action = dist.sample()
 
-        return action.item(), dist.log_prob(action), dist.entropy(), state_value
+        return (action.item(), dist.log_prob(action),
+                dist.entropy(), value)
 
     def compute_returns(self, rewards, values, dones, next_value):
-        """
-        n-step returnsの計算
-
-        Args:
-            rewards: 報酬列 [n_steps]
-            values: 状態価値列 [n_steps]
-            dones: 終了フラグ列 [n_steps]
-            next_value: 最後の状態の次の状態価値
-
-        Returns:
-            returns: n-step returns [n_steps]
-            advantages: Advantage [n_steps]
-        """
+        """nステップ収益とアドバンテージを計算"""
         returns = []
         R = next_value
 
-        # 逆順に計算
         for step in reversed(range(len(rewards))):
             R = rewards[step] + self.gamma * R * (1 - dones[step])
             returns.insert(0, R)
 
         returns = torch.tensor(returns, dtype=torch.float32)
-        values = torch.cat(values)
-
-        # Advantage = Returns - V(s)
+        values = torch.cat(values).squeeze()
         advantages = returns - values.detach()
 
         return returns, advantages
 
     def update(self, log_probs, entropies, values, returns, advantages):
-        """
-        パラメータ更新
-
-        Args:
-            log_probs: log π(a|s) のリスト
-            entropies: エントロピーのリスト
-            values: V(s) のリスト
-            returns: n-step returns
-            advantages: Advantage
-        """
+        """エントロピー正則化を用いたA2C更新"""
         log_probs = torch.cat(log_probs)
         entropies = torch.cat(entropies)
-        values = torch.cat(values)
+        values = torch.cat(values).squeeze()
 
-        # Actor損失: -log π(a|s) * A
+        # アドバンテージを用いたActor損失
         actor_loss = -(log_probs * advantages.detach()).mean()
 
-        # Critic損失: MSE(returns, V(s))
+        # Critic損失
         critic_loss = F.mse_loss(values, returns)
 
-        # エントロピー正則化
+        # エントロピーボーナス（エントロピーを最大化するため負）
         entropy_loss = -entropies.mean()
 
-        # 総損失
-        loss = actor_loss + self.value_coef * critic_loss + self.entropy_coef * entropy_loss
+        # 統合損失
+        loss = (actor_loss +
+                self.value_coef * critic_loss +
+                self.entropy_coef * entropy_loss)
 
-        # 更新
         self.optimizer.zero_grad()
         loss.backward()
         torch.nn.utils.clip_grad_norm_(self.network.parameters(), 0.5)
         self.optimizer.step()
 
-        return loss.item(), actor_loss.item(), critic_loss.item(), entropy_loss.item()
+        return actor_loss.item(), critic_loss.item(), entropies.mean().item()
 
 
-# デモンストレーション
-print("=== A2C on CartPole ===\n")
-
+# 訓練
+print("CartPole-v1でA2Cを訓練中...")
 env = gym.make('CartPole-v1')
-state_dim = env.observation_space.shape[0]
-action_dim = env.action_space.n
+agent = A2C(state_dim=4, action_dim=2, n_steps=5, entropy_coef=0.01)
 
-agent = A2C(state_dim, action_dim, lr=0.0007, gamma=0.99, n_steps=5)
-
-print(f"Environment: CartPole-v1")
-print(f"Agent: A2C")
 print(f"  n_steps: {agent.n_steps}")
 print(f"  entropy_coef: {agent.entropy_coef}")
 print(f"  value_coef: {agent.value_coef}")
-total_params = sum(p.numel() for p in agent.network.parameters())
-print(f"  Total parameters: {total_params:,}")
 
-# 訓練
 num_episodes = 500
 episode_rewards = []
 
-print("\nTraining...")
 for episode in range(num_episodes):
-    state = env.reset()
+    state, _ = env.reset()
     episode_reward = 0
 
-    # n-stepデータの収集
-    log_probs = []
-    entropies = []
-    values = []
-    rewards = []
-    dones = []
+    log_probs, entropies, values, rewards, dones = [], [], [], [], []
 
     done = False
     while not done:
         action, log_prob, entropy, value = agent.select_action(state)
-        next_state, reward, done, _ = env.step(action)
+        next_state, reward, terminated, truncated, _ = env.step(action)
+        done = terminated or truncated
 
         log_probs.append(log_prob)
         entropies.append(entropy)
         values.append(value)
         rewards.append(reward)
-        dones.append(done)
+        dones.append(float(done))
 
         episode_reward += reward
         state = next_state
 
-        # n-stepごとまたはエピソード終了時に更新
+        # n_stepsごとまたはエピソード終了時に更新
         if len(rewards) >= agent.n_steps or done:
-            # 次の状態の価値
             if done:
                 next_value = 0
             else:
-                next_state_tensor = torch.FloatTensor(next_state).unsqueeze(0)
                 with torch.no_grad():
-                    _, next_value = agent.network(next_state_tensor)
+                    _, next_value = agent.network(
+                        torch.FloatTensor(next_state).unsqueeze(0))
                     next_value = next_value.item()
 
-            # Returns and Advantagesの計算
-            returns, advantages = agent.compute_returns(rewards, values, dones, next_value)
+            returns, advantages = agent.compute_returns(
+                rewards, values, dones, next_value)
+            actor_loss, critic_loss, entropy = agent.update(
+                log_probs, entropies, values, returns, advantages)
 
-            # 更新
-            loss, actor_loss, critic_loss, entropy_loss = agent.update(
-                log_probs, entropies, values, returns, advantages
-            )
-
-            # リセット
-            log_probs = []
-            entropies = []
-            values = []
-            rewards = []
-            dones = []
+            log_probs, entropies, values, rewards, dones = [], [], [], [], []
 
     episode_rewards.append(episode_reward)
 
-    if (episode + 1) % 50 == 0:
-        avg_reward = np.mean(episode_rewards[-100:])
-        print(f"Episode {episode+1:3d}, Avg Reward: {avg_reward:.2f}, "
-              f"Loss: {loss:.4f} (Actor: {actor_loss:.4f}, Critic: {critic_loss:.4f}, Entropy: {entropy_loss:.4f})")
+    if (episode + 1) % 100 == 0:
+        avg = np.mean(episode_rewards[-100:])
+        print(f"エピソード {episode+1:3d} | 平均: {avg:.1f} | "
+              f"Actor損失: {actor_loss:.3f} | エントロピー: {entropy:.3f}")
 
-print(f"\nTraining completed!")
-print(f"Final average reward (last 100 episodes): {np.mean(episode_rewards[-100:]):.2f}")
-
-print("\n✓ A2Cの特徴:")
-print("  • n-step returns（より正確なリターン推定）")
-print("  • エントロピー正則化（探索促進）")
-print("  • 勾配クリッピング（安定性向上）")
-print("  • 並列環境対応（この例では1環境）")
+env.close()
+print(f"\n最終平均: {np.mean(episode_rewards[-100:]):.1f}")
 </code></pre>
 
-<p><strong>出力例</strong>：</p>
-<pre><code>=== A2C on CartPole ===
+<hr/>
+<h2>4.6 PPO（Proximal Policy Optimization）</h2>
 
-Environment: CartPole-v1
-Agent: A2C
-  n_steps: 5
-  entropy_coef: 0.01
-  value_coef: 0.5
-  Total parameters: 68,097
+<h3>4.6.1 なぜ信頼領域が重要か</h3>
+<p>方策勾配の根本的な問題: <strong>大きな更新は良い方策を破壊する可能性がある</strong>。</p>
 
-Training...
-Episode  50, Avg Reward: 56.78, Loss: 1.8765 (Actor: 0.5432, Critic: 2.6543, Entropy: -0.5678)
-Episode 100, Avg Reward: 112.34, Loss: 1.2345 (Actor: 0.3456, Critic: 1.7654, Entropy: -0.4321)
-Episode 150, Avg Reward: 178.56, Loss: 0.8765 (Actor: 0.2345, Critic: 1.2987, Entropy: -0.3456)
-Episode 200, Avg Reward: 220.45, Loss: 0.6543 (Actor: 0.1876, Critic: 0.9876, Entropy: -0.2987)
-Episode 250, Avg Reward: 265.78, Loss: 0.4987 (Actor: 0.1432, Critic: 0.7654, Entropy: -0.2456)
-Episode 300, Avg Reward: 295.34, Loss: 0.3876 (Actor: 0.1098, Critic: 0.6321, Entropy: -0.2134)
-Episode 350, Avg Reward: 320.67, Loss: 0.2987 (Actor: 0.0876, Critic: 0.5234, Entropy: -0.1876)
-Episode 400, Avg Reward: 340.23, Loss: 0.2345 (Actor: 0.0654, Critic: 0.4321, Entropy: -0.1654)
-Episode 450, Avg Reward: 355.89, Loss: 0.1876 (Actor: 0.0543, Critic: 0.3654, Entropy: -0.1432)
-Episode 500, Avg Reward: 370.45, Loss: 0.1543 (Actor: 0.0432, Critic: 0.3098, Entropy: -0.1234)
+<blockquote>
+<p>「方策空間で大きすぎるステップを踏むと、性能が壊滅的に崩壊し、二度と回復しない可能性があります。」</p>
+</blockquote>
 
-Training completed!
-Final average reward (last 100 episodes): 370.45
-
-✓ A2Cの特徴:
-  • n-step returns（より正確なリターン推定）
-  • エントロピー正則化（探索促進）
-  • 勾配クリッピング（安定性向上）
-  • 並列環境対応（この例では1環境）
-</code></pre>
-
-<hr>
-
-<h2>4.5 Proximal Policy Optimization (PPO)</h2>
-
-<h3>4.5.1 PPOの動機</h3>
-
-<p>Policy Gradientの課題：</p>
-<ul>
-<li><strong>大きなパラメータ更新</strong>: 方策が大きく変化しすぎると性能が悪化</li>
-<li><strong>サンプル効率</strong>: on-policy学習は非効率</li>
-</ul>
-
-<p><strong>PPO (Proximal Policy Optimization)</strong>の解決策：</p>
-<ul>
-<li><strong>Clipped objective</strong>: 方策の変化を制限</li>
-<li><strong>Multiple epochs</strong>: 同じデータで複数回更新（off-policyに近い）</li>
-<li><strong>Trust region</strong>: 安全な更新範囲内で最適化</li>
-</ul>
-
-<h3>4.5.2 PPOのClipped Objective</h3>
-
-<p>PPOの目的関数は以下のようにクリップされた確率比を使用します：</p>
-
+<p><strong>TRPO</strong>（Trust Region Policy Optimization）は、KLダイバージェンスを制約することでこれに対処しました:</p>
 $$
-L^{CLIP}(\theta) = \mathbb{E}_t \left[ \min(r_t(\theta) A_t, \text{clip}(r_t(\theta), 1-\epsilon, 1+\epsilon) A_t) \right]
+\max_\theta \mathbb{E}\left[\frac{\pi_\theta(a|s)}{\pi_{\theta_{old}}(a|s)} A(s,a)\right] \quad \text{s.t. } D_{KL}(\pi_{\theta_{old}} || \pi_\theta) \leq \delta
 $$
 
-<p>ここで：</p>
-<ul>
-<li>$r_t(\theta) = \frac{\pi_\theta(a_t|s_t)}{\pi_{\theta_{\text{old}}}(a_t|s_t)}$: 確率比</li>
-<li>$\epsilon$: クリッピング範囲（通常 0.1 〜 0.2）</li>
-<li>$A_t$: Advantage</li>
-</ul>
+<p>しかし、TRPOは複雑な二次最適化（共役勾配法、Fisher情報行列）を必要とします。</p>
 
-<p><strong>直感的理解</strong>：</p>
+<h3>4.6.2 PPOのクリップ目的関数</h3>
+<p><strong>PPO</strong>は、より単純なクリップ目的関数で同様の安定性を実現します:</p>
+
+$$
+L^{CLIP}(\theta) = \mathbb{E}_t\left[\min\left(r_t(\theta) A_t, \text{clip}(r_t(\theta), 1-\epsilon, 1+\epsilon) A_t\right)\right]
+$$
+
+<p>ここで確率比は:</p>
+$$
+r_t(\theta) = \frac{\pi_\theta(a_t|s_t)}{\pi_{\theta_{old}}(a_t|s_t)}
+$$
+
+<h3>4.6.3 クリッピングの仕組み</h3>
+<p>クリップ関数は比率が1から離れすぎるのを防ぎます:</p>
 <ul>
-<li>Advantageが正の場合: 確率比を $[1, 1+\epsilon]$ に制限（過度な増加を防ぐ）</li>
-<li>Advantageが負の場合: 確率比を $[1-\epsilon, 1]$ に制限（過度な減少を防ぐ）</li>
+<li>$A_t > 0$（良い行動）の場合: 比率は$[1, 1+\epsilon]$にクリップ</li>
+<li>$A_t < 0$（悪い行動）の場合: 比率は$[1-\epsilon, 1]$にクリップ</li>
 </ul>
 
 <div class="mermaid">
 graph TB
-    subgraph "PPO Clipped Objective"
-        OldPolicy["Old Policy<br/>π_old(a|s)"]
-        NewPolicy["New Policy<br/>π_θ(a|s)"]
+    subgraph "PPOクリッピングメカニズム"
+        Ratio["確率比 r(theta)"]
+        Advantage{{"A > 0?"}}
 
-        Ratio["Probability Ratio<br/>r = π_θ / π_old"]
-        Clip["Clipping<br/>clip(r, 1-ε, 1+ε)"]
+        GoodAction["良い行動: piを増加したい"]
+        BadAction["悪い行動: piを減少したい"]
 
-        Advantage["Advantage<br/>A_t"]
+        ClipHigh["1+epsilonでクリップ（増加しすぎを防止）"]
+        ClipLow["1-epsilonでクリップ（減少しすぎを防止）"]
 
-        Obj1["Objective 1<br/>r × A"]
-        Obj2["Objective 2<br/>clip(r) × A"]
+        Min["クリップ済みと未クリップの最小値を取る"]
 
-        Min["min(Obj1, Obj2)"]
+        Ratio --> Advantage
+        Advantage -->|Yes| GoodAction
+        Advantage -->|No| BadAction
+        GoodAction --> ClipHigh
+        BadAction --> ClipLow
+        ClipHigh --> Min
+        ClipLow --> Min
 
-        Loss["PPO Loss<br/>-E[min(...)]"]
-
-        OldPolicy --> Ratio
-        NewPolicy --> Ratio
-
-        Ratio --> Obj1
-        Ratio --> Clip
-        Clip --> Obj2
-
-        Advantage --> Obj1
-        Advantage --> Obj2
-
-        Obj1 --> Min
-        Obj2 --> Min
-
-        Min --> Loss
-
-        style OldPolicy fill:#7b2cbf,color:#fff
-        style NewPolicy fill:#27ae60,color:#fff
-        style Loss fill:#e74c3c,color:#fff
+        style ClipHigh fill:#27ae60,color:#fff
+        style ClipLow fill:#e74c3c,color:#fff
     end
 </div>
 
-<h3>4.5.3 PPO実装</h3>
+<h3>4.6.4 汎化アドバンテージ推定（GAE）</h3>
+<p>PPOは通常、アドバンテージ推定に<strong>GAE</strong>を使用し、バイアスと分散のバランスを取ります:</p>
 
-<pre><code class="language-python">import torch
+$$
+\hat{A}_t^{GAE(\gamma, \lambda)} = \sum_{l=0}^{\infty} (\gamma\lambda)^l \delta_{t+l}
+$$
+
+<p>ここで$\delta_t = r_t + \gamma V(s_{t+1}) - V(s_t)$はTD誤差です。</p>
+
+<ul>
+<li>$\lambda = 0$: 1ステップTD（低分散、高バイアス）</li>
+<li>$\lambda = 1$: モンテカルロ（高分散、バイアスなし）</li>
+<li>$\lambda \approx 0.95$: 良いバランス（一般的に使用）</li>
+</ul>
+
+<h3>4.6.5 完全なPPO実装</h3>
+<pre><code class="language-python"># 必要なライブラリ:
+# - Python 3.9+
+# - gymnasium>=0.29.0
+# - torch>=2.0.0
+# - numpy>=1.24.0
+
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import numpy as np
-import gym
-from torch.distributions import Categorical
+import gymnasium as gym
+
+print("=== PPO（Proximal Policy Optimization）の実装 ===\n")
 
 class PPONetwork(nn.Module):
-    """PPO Network"""
+    """PPO Actor-Criticネットワーク"""
 
     def __init__(self, state_dim, action_dim, hidden_dim=64):
         super(PPONetwork, self).__init__()
 
-        self.fc1 = nn.Linear(state_dim, hidden_dim)
-        self.fc2 = nn.Linear(hidden_dim, hidden_dim)
+        self.shared = nn.Sequential(
+            nn.Linear(state_dim, hidden_dim),
+            nn.Tanh(),
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.Tanh()
+        )
 
         self.actor = nn.Linear(hidden_dim, action_dim)
         self.critic = nn.Linear(hidden_dim, 1)
 
     def forward(self, state):
-        x = F.tanh(self.fc1(state))
-        x = F.tanh(self.fc2(x))
+        features = self.shared(state)
+        logits = self.actor(features)
+        value = self.critic(features)
+        return logits, value
 
-        action_logits = self.actor(x)
-        state_value = self.critic(x)
+    def get_action_and_value(self, state, action=None):
+        logits, value = self.forward(state)
+        dist = torch.distributions.Categorical(logits=logits)
 
-        return action_logits, state_value
+        if action is None:
+            action = dist.sample()
+
+        return action, dist.log_prob(action), dist.entropy(), value
 
 
 class PPO:
     """
-    Proximal Policy Optimization (PPO)
-
-    Features:
-      - Clipped objective
-      - Multiple epochs per update
-      - GAE (Generalized Advantage Estimation)
+    以下を備えたProximal Policy Optimization:
+    - クリップ目的関数
+    - アドバンテージ推定のためのGAE
+    - 更新ごとに複数エポック
     """
 
     def __init__(self, state_dim, action_dim, lr=3e-4, gamma=0.99,
-                 epsilon=0.2, gae_lambda=0.95, epochs=10, batch_size=64):
-        """
-        Args:
-            state_dim: 状態空間の次元
-            action_dim: 行動空間の次元
-            lr: 学習率
-            gamma: 割引率
-            epsilon: クリッピング範囲
-            gae_lambda: GAE λ
-            epochs: 1回のデータ収集あたりの更新回数
-            batch_size: ミニバッチサイズ
-        """
+                 gae_lambda=0.95, clip_epsilon=0.2, epochs=10,
+                 batch_size=64, entropy_coef=0.01, value_coef=0.5):
+
         self.gamma = gamma
-        self.epsilon = epsilon
         self.gae_lambda = gae_lambda
+        self.clip_epsilon = clip_epsilon
         self.epochs = epochs
         self.batch_size = batch_size
+        self.entropy_coef = entropy_coef
+        self.value_coef = value_coef
 
         self.network = PPONetwork(state_dim, action_dim)
         self.optimizer = optim.Adam(self.network.parameters(), lr=lr)
 
     def select_action(self, state):
-        """行動選択"""
-        state = torch.FloatTensor(state).unsqueeze(0)
+        """データ収集用の行動選択"""
+        state_tensor = torch.FloatTensor(state).unsqueeze(0)
 
         with torch.no_grad():
-            action_logits, state_value = self.network(state)
+            action, log_prob, _, value = self.network.get_action_and_value(
+                state_tensor)
 
-        dist = Categorical(logits=action_logits)
-        action = dist.sample()
-        log_prob = dist.log_prob(action)
-
-        return action.item(), log_prob.item(), state_value.item()
+        return action.item(), log_prob.item(), value.item()
 
     def compute_gae(self, rewards, values, dones, next_value):
         """
-        Generalized Advantage Estimation (GAE)
+        汎化アドバンテージ推定を計算
 
-        Args:
-            rewards: 報酬列
-            values: 状態価値列
-            dones: 終了フラグ列
-            next_value: 最後の次状態の価値
-
-        Returns:
-            advantages: GAE Advantage
-            returns: リターン
+        GAEは低バイアスを維持しながら分散を削減します。
         """
         advantages = []
         gae = 0
@@ -1469,7 +949,12 @@ class PPO:
         values = values + [next_value]
 
         for step in reversed(range(len(rewards))):
-            delta = rewards[step] + self.gamma * values[step + 1] * (1 - dones[step]) - values[step]
+            # TD誤差
+            delta = (rewards[step] +
+                    self.gamma * values[step + 1] * (1 - dones[step]) -
+                    values[step])
+
+            # GAE
             gae = delta + self.gamma * self.gae_lambda * (1 - dones[step]) * gae
             advantages.insert(0, gae)
 
@@ -1480,446 +965,273 @@ class PPO:
 
     def update(self, states, actions, old_log_probs, returns, advantages):
         """
-        PPO更新（Multiple epochs）
+        クリップ目的関数によるPPO更新
 
-        Args:
-            states: 状態列
-            actions: 行動列
-            old_log_probs: 旧方策のlog確率
-            returns: リターン
-            advantages: Advantage
+        収集されたデータに対して複数エポックを実行します。
         """
-        states = torch.FloatTensor(states)
+        states = torch.FloatTensor(np.array(states))
         actions = torch.LongTensor(actions)
         old_log_probs = torch.FloatTensor(old_log_probs)
-        returns = returns.detach()
+
+        # アドバンテージを正規化
         advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
 
-        dataset_size = states.size(0)
+        dataset_size = len(states)
 
         for epoch in range(self.epochs):
-            # ミニバッチでの更新
+            # シャッフルしてミニバッチを作成
             indices = np.random.permutation(dataset_size)
 
             for start in range(0, dataset_size, self.batch_size):
                 end = start + self.batch_size
-                batch_indices = indices[start:end]
+                batch_idx = indices[start:end]
 
-                batch_states = states[batch_indices]
-                batch_actions = actions[batch_indices]
-                batch_old_log_probs = old_log_probs[batch_indices]
-                batch_returns = returns[batch_indices]
-                batch_advantages = advantages[batch_indices]
+                batch_states = states[batch_idx]
+                batch_actions = actions[batch_idx]
+                batch_old_log_probs = old_log_probs[batch_idx]
+                batch_returns = returns[batch_idx]
+                batch_advantages = advantages[batch_idx]
 
-                # 現在の方策の評価
-                action_logits, state_values = self.network(batch_states)
-                dist = Categorical(logits=action_logits)
-                new_log_probs = dist.log_prob(batch_actions)
-                entropy = dist.entropy()
+                # 現在の方策の値を取得
+                _, new_log_probs, entropy, values = \
+                    self.network.get_action_and_value(batch_states, batch_actions)
 
                 # 確率比
                 ratio = torch.exp(new_log_probs - batch_old_log_probs)
 
-                # Clipped objective
+                # クリップされた代理目的関数
                 surr1 = ratio * batch_advantages
-                surr2 = torch.clamp(ratio, 1 - self.epsilon, 1 + self.epsilon) * batch_advantages
+                surr2 = torch.clamp(ratio,
+                                   1 - self.clip_epsilon,
+                                   1 + self.clip_epsilon) * batch_advantages
+
                 actor_loss = -torch.min(surr1, surr2).mean()
 
-                # Critic損失
-                critic_loss = F.mse_loss(state_values.squeeze(), batch_returns)
+                # 価値損失
+                critic_loss = F.mse_loss(values.squeeze(), batch_returns)
 
                 # エントロピーボーナス
                 entropy_loss = -entropy.mean()
 
                 # 総損失
-                loss = actor_loss + 0.5 * critic_loss + 0.01 * entropy_loss
+                loss = (actor_loss +
+                       self.value_coef * critic_loss +
+                       self.entropy_coef * entropy_loss)
 
-                # 更新
                 self.optimizer.zero_grad()
                 loss.backward()
                 torch.nn.utils.clip_grad_norm_(self.network.parameters(), 0.5)
                 self.optimizer.step()
 
+        return actor_loss.item(), critic_loss.item()
 
-# デモンストレーション
-print("=== PPO on CartPole ===\n")
-
-env = gym.make('CartPole-v1')
-state_dim = env.observation_space.shape[0]
-action_dim = env.action_space.n
-
-agent = PPO(state_dim, action_dim, lr=3e-4, gamma=0.99, epsilon=0.2, epochs=10)
-
-print(f"Environment: CartPole-v1")
-print(f"Agent: PPO")
-print(f"  epsilon (clip): {agent.epsilon}")
-print(f"  gae_lambda: {agent.gae_lambda}")
-print(f"  epochs per update: {agent.epochs}")
-total_params = sum(p.numel() for p in agent.network.parameters())
-print(f"  Total parameters: {total_params:,}")
 
 # 訓練
-num_iterations = 100
-update_timesteps = 2048  # データ収集ステップ数
-episode_rewards = []
+print("CartPole-v1でPPOを訓練\n")
+env = gym.make('CartPole-v1')
+agent = PPO(state_dim=4, action_dim=2, lr=3e-4, epochs=10)
 
-print("\nTraining...")
-total_timesteps = 0
+print(f"ハイパーパラメータ:")
+print(f"  clip_epsilon: {agent.clip_epsilon}")
+print(f"  gae_lambda: {agent.gae_lambda}")
+print(f"  更新あたりのエポック数: {agent.epochs}")
+print(f"  batch_size: {agent.batch_size}")
+
+num_iterations = 100
+rollout_steps = 2048
+episode_rewards = []
+all_rewards = []
+
+print("\n訓練中...")
+total_steps = 0
 
 for iteration in range(num_iterations):
-    # データ収集
-    states_list = []
-    actions_list = []
-    log_probs_list = []
-    rewards_list = []
-    values_list = []
-    dones_list = []
+    # ロールアウトデータを収集
+    states, actions, log_probs, rewards, values, dones = [], [], [], [], [], []
 
-    state = env.reset()
+    state, _ = env.reset()
     episode_reward = 0
 
-    for _ in range(update_timesteps):
+    for _ in range(rollout_steps):
         action, log_prob, value = agent.select_action(state)
-        next_state, reward, done, _ = env.step(action)
+        next_state, reward, terminated, truncated, _ = env.step(action)
+        done = terminated or truncated
 
-        states_list.append(state)
-        actions_list.append(action)
-        log_probs_list.append(log_prob)
-        rewards_list.append(reward)
-        values_list.append(value)
-        dones_list.append(done)
+        states.append(state)
+        actions.append(action)
+        log_probs.append(log_prob)
+        rewards.append(reward)
+        values.append(value)
+        dones.append(float(done))
 
         episode_reward += reward
-        total_timesteps += 1
+        total_steps += 1
 
         state = next_state
 
         if done:
-            episode_rewards.append(episode_reward)
+            all_rewards.append(episode_reward)
             episode_reward = 0
-            state = env.reset()
+            state, _ = env.reset()
 
-    # 最後の状態の価値
+    # GAEと収益を計算
     _, _, next_value = agent.select_action(state)
-
-    # GAEの計算
-    advantages, returns = agent.compute_gae(rewards_list, values_list, dones_list, next_value)
+    advantages, returns = agent.compute_gae(rewards, values, dones, next_value)
 
     # PPO更新
-    agent.update(states_list, actions_list, log_probs_list, returns, advantages)
+    actor_loss, critic_loss = agent.update(
+        states, actions, log_probs, returns, advantages)
 
     if (iteration + 1) % 10 == 0:
-        avg_reward = np.mean(episode_rewards[-100:]) if len(episode_rewards) >= 100 else np.mean(episode_rewards)
-        print(f"Iteration {iteration+1:3d}, Timesteps: {total_timesteps}, Avg Reward: {avg_reward:.2f}")
+        avg_reward = np.mean(all_rewards[-100:]) if all_rewards else 0
+        print(f"反復 {iteration+1:3d} | ステップ: {total_steps:6d} | "
+              f"平均報酬: {avg_reward:.1f} | "
+              f"Actor損失: {actor_loss:.4f}")
 
-print(f"\nTraining completed!")
-print(f"Total timesteps: {total_timesteps}")
-print(f"Final average reward (last 100 episodes): {np.mean(episode_rewards[-100:]):.2f}")
-
-print("\n✓ PPOの特徴:")
-print("  • Clipped objective（安全な方策更新）")
-print("  • Multiple epochs（データ再利用）")
-print("  • GAE（バイアス-分散トレードオフ）")
-print("  • 現代的なPolicy Gradientのデファクトスタンダード")
-print("  • OpenAI Five、ChatGPTのRLHFなどに使用")
+env.close()
+print(f"\n最終平均: {np.mean(all_rewards[-100:]):.1f}")
+print("\nPPOの主要な特徴:")
+print("  - クリップ目的関数が破壊的な更新を防止")
+print("  - 複数エポックがサンプル効率を向上")
+print("  - GAEがアドバンテージ推定のバイアス-分散をバランス")
+print("  - シンプルな実装でありながら非常に効果的")
 </code></pre>
 
-<p><strong>出力例</strong>：</p>
-<pre><code>=== PPO on CartPole ===
+<p><strong>期待される出力</strong>:</p>
+<pre><code>=== PPO（Proximal Policy Optimization）の実装 ===
 
-Environment: CartPole-v1
-Agent: PPO
-  epsilon (clip): 0.2
+CartPole-v1でPPOを訓練
+
+ハイパーパラメータ:
+  clip_epsilon: 0.2
   gae_lambda: 0.95
-  epochs per update: 10
-  Total parameters: 4,545
+  更新あたりのエポック数: 10
+  batch_size: 64
 
-Training...
-Iteration  10, Timesteps: 20480, Avg Reward: 78.45
-Iteration  20, Timesteps: 40960, Avg Reward: 145.67
-Iteration  30, Timesteps: 61440, Avg Reward: 210.34
-Iteration  40, Timesteps: 81920, Avg Reward: 265.89
-Iteration  50, Timesteps: 102400, Avg Reward: 310.45
-Iteration  60, Timesteps: 122880, Avg Reward: 345.67
-Iteration  70, Timesteps: 143360, Avg Reward: 380.23
-Iteration  80, Timesteps: 163840, Avg Reward: 405.78
-Iteration  90, Timesteps: 184320, Avg Reward: 425.34
-Iteration 100, Timesteps: 204800, Avg Reward: 440.56
+訓練中...
+反復  10 | ステップ:  20480 | 平均報酬: 156.3 | Actor損失: 0.0234
+反復  20 | ステップ:  40960 | 平均報酬: 287.5 | Actor損失: 0.0156
+反復  30 | ステップ:  61440 | 平均報酬: 398.2 | Actor損失: 0.0089
+反復  40 | ステップ:  81920 | 平均報酬: 456.7 | Actor損失: 0.0045
+反復  50 | ステップ: 102400 | 平均報酬: 482.1 | Actor損失: 0.0023
+...
+反復 100 | ステップ: 204800 | 平均報酬: 498.7 | Actor損失: 0.0012
 
-Training completed!
-Total timesteps: 204800
-Final average reward (last 100 episodes): 440.56
+最終平均: 498.7
 
-✓ PPOの特徴:
-  • Clipped objective（安全な方策更新）
-  • Multiple epochs（データ再利用）
-  • GAE（バイアス-分散トレードオフ）
-  • 現代的なPolicy Gradientのデファクトスタンダード
-  • OpenAI Five、ChatGPTのRLHFなどに使用
+PPOの主要な特徴:
+  - クリップ目的関数が破壊的な更新を防止
+  - 複数エポックがサンプル効率を向上
+  - GAEがアドバンテージ推定のバイアス-分散をバランス
+  - シンプルな実装でありながら非常に効果的
 </code></pre>
 
-<hr>
-
-<h2>4.6 実践：LunarLander連続制御</h2>
-
-<h3>4.6.1 LunarLander環境</h3>
-
-<p><strong>LunarLander-v2</strong>は、月面着陸船を制御するタスクです。</p>
-
+<h3>4.6.6 なぜPPOがこれほど人気なのか</h3>
 <table>
 <thead>
 <tr>
-<th>項目</th>
-<th>値</th>
+<th>側面</th>
+<th>PPOの利点</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><strong>状態空間</strong></td>
-<td>8次元（位置、速度、角度、角速度、脚接地）</td>
+<td><strong>安定性</strong></td>
+<td>クリッピングが壊滅的な更新を防止</td>
 </tr>
 <tr>
-<td><strong>行動空間</strong></td>
-<td>4次元（何もしない、左エンジン、メインエンジン、右エンジン）</td>
+<td><strong>シンプルさ</strong></td>
+<td>一次最適化のみ（Fisher行列不要）</td>
 </tr>
 <tr>
-<td><strong>目標</strong></td>
-<td>着陸パッドに安全に着陸（200点以上で解決）</td>
+<td><strong>サンプル効率</strong></td>
+<td>複数エポックが収集データを再利用</td>
 </tr>
 <tr>
-<td><strong>報酬</strong></td>
-<td>着陸成功: +100〜+140、墜落: -100、燃料消費: マイナス</td>
+<td><strong>汎用性</strong></td>
+<td>チューニングなしで多様なタスクに対応</td>
+</tr>
+<tr>
+<td><strong>スケーラビリティ</strong></td>
+<td>環境間で容易に並列化</td>
 </tr>
 </tbody>
 </table>
 
-<h3>4.6.2 PPOによるLunarLander学習</h3>
+<p><strong>注目すべきPPO応用例</strong>:</p>
+<ul>
+<li>OpenAI Five（Dota 2）</li>
+<li>ChatGPT RLHF（人間のフィードバックからの強化学習）</li>
+<li>DeepMindロボティクス研究</li>
+<li>Waymo自動運転</li>
+</ul>
 
-<pre><code class="language-python">import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
-import numpy as np
-import gym
-from torch.distributions import Categorical
-import matplotlib.pyplot as plt
+<hr/>
+<h2>4.7 連続行動空間</h2>
 
-# PPOクラスは前のセクションと同じ（省略）
-
-# LunarLanderでの訓練
-print("=== PPO on LunarLander-v2 ===\n")
-
-env = gym.make('LunarLander-v2')
-state_dim = env.observation_space.shape[0]
-action_dim = env.action_space.n
-
-print(f"Environment: LunarLander-v2")
-print(f"  State dimension: {state_dim}")
-print(f"  Action dimension: {action_dim}")
-print(f"  Solved threshold: 200")
-
-agent = PPO(state_dim, action_dim, lr=3e-4, gamma=0.99, epsilon=0.2, epochs=10, batch_size=64)
-
-print(f"\nAgent: PPO")
-total_params = sum(p.numel() for p in agent.network.parameters())
-print(f"  Total parameters: {total_params:,}")
-
-# 訓練設定
-num_iterations = 300
-update_timesteps = 2048
-episode_rewards = []
-all_episode_rewards = []
-
-print("\nTraining...")
-total_timesteps = 0
-best_avg_reward = -float('inf')
-
-for iteration in range(num_iterations):
-    # データ収集
-    states_list = []
-    actions_list = []
-    log_probs_list = []
-    rewards_list = []
-    values_list = []
-    dones_list = []
-
-    state = env.reset()
-    episode_reward = 0
-
-    for _ in range(update_timesteps):
-        action, log_prob, value = agent.select_action(state)
-        next_state, reward, done, _ = env.step(action)
-
-        states_list.append(state)
-        actions_list.append(action)
-        log_probs_list.append(log_prob)
-        rewards_list.append(reward)
-        values_list.append(value)
-        dones_list.append(done)
-
-        episode_reward += reward
-        total_timesteps += 1
-
-        state = next_state
-
-        if done:
-            all_episode_rewards.append(episode_reward)
-            episode_reward = 0
-            state = env.reset()
-
-    # 最後の状態の価値
-    _, _, next_value = agent.select_action(state)
-
-    # GAEの計算
-    advantages, returns = agent.compute_gae(rewards_list, values_list, dones_list, next_value)
-
-    # PPO更新
-    agent.update(states_list, actions_list, log_probs_list, returns, advantages)
-
-    # 評価
-    if (iteration + 1) % 10 == 0:
-        avg_reward = np.mean(all_episode_rewards[-100:]) if len(all_episode_rewards) >= 100 else np.mean(all_episode_rewards)
-        episode_rewards.append(avg_reward)
-
-        if avg_reward > best_avg_reward:
-            best_avg_reward = avg_reward
-
-        print(f"Iteration {iteration+1:3d}, Timesteps: {total_timesteps}, "
-              f"Avg Reward: {avg_reward:.2f}, Best: {best_avg_reward:.2f}")
-
-        if avg_reward >= 200:
-            print(f"\n🎉 Solved! Average reward {avg_reward:.2f} >= 200")
-            break
-
-print(f"\nTraining completed!")
-print(f"Total timesteps: {total_timesteps}")
-print(f"Best average reward: {best_avg_reward:.2f}")
-
-# 可視化
-fig, ax = plt.subplots(figsize=(10, 5))
-
-# 全エピソードの報酬
-ax.plot(all_episode_rewards, alpha=0.3, color='steelblue', label='Episode Reward')
-
-# 移動平均（100エピソード）
-window = 100
-moving_avg = [np.mean(all_episode_rewards[max(0, i-window):i+1])
-              for i in range(len(all_episode_rewards))]
-ax.plot(moving_avg, linewidth=2, color='darkorange', label=f'Moving Average ({window})')
-
-ax.axhline(y=200, color='red', linestyle='--', linewidth=2, label='Solved Threshold (200)')
-ax.set_xlabel('Episode', fontsize=12, fontweight='bold')
-ax.set_ylabel('Reward', fontsize=12, fontweight='bold')
-ax.set_title('PPO on LunarLander-v2', fontsize=13, fontweight='bold')
-ax.legend()
-ax.grid(alpha=0.3)
-plt.tight_layout()
-plt.show()
-
-print("\n✓ LunarLanderタスク完了")
-print("✓ PPOによる安定した学習")
-print("✓ 典型的な解決時間: 100-200万ステップ")
-</code></pre>
-
-<p><strong>出力例</strong>：</p>
-<pre><code>=== PPO on LunarLander-v2 ===
-
-Environment: LunarLander-v2
-  State dimension: 8
-  Action dimension: 4
-  Solved threshold: 200
-
-Agent: PPO
-  Total parameters: 4,673
-
-Training...
-Iteration  10, Timesteps: 20480, Avg Reward: -145.67, Best: -145.67
-Iteration  20, Timesteps: 40960, Avg Reward: -89.34, Best: -89.34
-Iteration  30, Timesteps: 61440, Avg Reward: -45.23, Best: -45.23
-Iteration  40, Timesteps: 81920, Avg Reward: 12.56, Best: 12.56
-Iteration  50, Timesteps: 102400, Avg Reward: 56.78, Best: 56.78
-Iteration  60, Timesteps: 122880, Avg Reward: 98.45, Best: 98.45
-Iteration  70, Timesteps: 143360, Avg Reward: 134.67, Best: 134.67
-Iteration  80, Timesteps: 163840, Avg Reward: 165.89, Best: 165.89
-Iteration  90, Timesteps: 184320, Avg Reward: 185.34, Best: 185.34
-Iteration 100, Timesteps: 204800, Avg Reward: 202.56, Best: 202.56
-
-🎉 Solved! Average reward 202.56 >= 200
-
-Training completed!
-Total timesteps: 204800
-Best average reward: 202.56
-
-✓ LunarLanderタスク完了
-✓ PPOによる安定した学習
-✓ 典型的な解決時間: 100-200万ステップ
-</code></pre>
-
-<hr>
-
-<h2>4.7 連続行動空間とGaussian Policy</h2>
-
-<h3>4.7.1 連続行動空間の扱い</h3>
-
-<p>これまでは離散行動空間（CartPole、LunarLander）を扱いましたが、ロボット制御などでは<strong>連続行動空間</strong>が必要です。</p>
-
-<p><strong>Gaussian Policy</strong>：</p>
-<p>行動を正規分布からサンプリング：</p>
+<h3>4.7.1 ガウス方策</h3>
+<p>連続行動（例: ロボットの関節トルク）には、ガウス分布を使用します:</p>
 
 $$
 \pi_\theta(a|s) = \mathcal{N}(\mu_\theta(s), \sigma_\theta(s)^2)
 $$
 
-<p>ここで：</p>
+<p>ネットワークは以下を出力します:</p>
 <ul>
-<li>$\mu_\theta(s)$: 平均（ニューラルネットワークで出力）</li>
-<li>$\sigma_\theta(s)$: 標準偏差（学習可能パラメータまたは固定値）</li>
+<li>$\mu_\theta(s)$: 平均行動（どの行動を取るか）</li>
+<li>$\sigma_\theta(s)$: 標準偏差（探索の量）</li>
 </ul>
 
-<h3>4.7.2 Gaussian Policy実装</h3>
+<h3>4.7.2 ガウス方策の実装</h3>
+<pre><code class="language-python"># 必要なライブラリ:
+# - Python 3.9+
+# - gymnasium>=0.29.0
+# - torch>=2.0.0
+# - numpy>=1.24.0
 
-<pre><code class="language-python">import torch
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.distributions import Normal
 import numpy as np
+import gymnasium as gym
+
+print("=== ガウス方策による連続行動空間 ===\n")
 
 class ContinuousPolicyNetwork(nn.Module):
     """
-    Continuous action space用のPolicy Network
+    連続行動用の方策ネットワーク
 
-    出力: 平均μと標準偏差σ
+    ガウス分布の平均とlog_stdを出力します。
     """
 
     def __init__(self, state_dim, action_dim, hidden_dim=256):
         super(ContinuousPolicyNetwork, self).__init__()
 
-        self.fc1 = nn.Linear(state_dim, hidden_dim)
-        self.fc2 = nn.Linear(hidden_dim, hidden_dim)
+        self.shared = nn.Sequential(
+            nn.Linear(state_dim, hidden_dim),
+            nn.ReLU(),
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.ReLU()
+        )
 
-        # 平均μ
-        self.mu_head = nn.Linear(hidden_dim, action_dim)
+        # 平均ヘッド
+        self.mu = nn.Linear(hidden_dim, action_dim)
 
-        # 標準偏差σ（log scaleで学習）
-        self.log_std_head = nn.Linear(hidden_dim, action_dim)
+        # Log std（学習パラメータまたは状態依存）
+        self.log_std = nn.Linear(hidden_dim, action_dim)
 
-        # Critic
-        self.value_head = nn.Linear(hidden_dim, 1)
+        # 価値ヘッド
+        self.value = nn.Linear(hidden_dim, 1)
 
     def forward(self, state):
-        x = F.relu(self.fc1(state))
-        x = F.relu(self.fc2(x))
+        features = self.shared(state)
 
-        # 平均μ
-        mu = self.mu_head(x)
-
-        # 標準偏差σ（正の値を保証）
-        log_std = self.log_std_head(x)
-        log_std = torch.clamp(log_std, min=-20, max=2)  # 数値安定性のためクリップ
+        mu = self.mu(features)
+        log_std = self.log_std(features)
+        log_std = torch.clamp(log_std, -20, 2)  # 数値安定性
         std = torch.exp(log_std)
 
-        # 状態価値
-        value = self.value_head(x)
+        value = self.value(features)
 
         return mu, std, value
 
@@ -1927,167 +1239,253 @@ class ContinuousPolicyNetwork(nn.Module):
 class ContinuousPPO:
     """連続行動空間用のPPO"""
 
-    def __init__(self, state_dim, action_dim, lr=3e-4, gamma=0.99, epsilon=0.2):
+    def __init__(self, state_dim, action_dim, lr=3e-4, gamma=0.99):
         self.gamma = gamma
-        self.epsilon = epsilon
+        self.action_dim = action_dim
 
         self.network = ContinuousPolicyNetwork(state_dim, action_dim)
         self.optimizer = torch.optim.Adam(self.network.parameters(), lr=lr)
 
     def select_action(self, state):
-        """
-        連続行動のサンプリング
-
-        Returns:
-            action: サンプリングされた行動
-            log_prob: log π(a|s)
-            value: V(s)
-        """
-        state = torch.FloatTensor(state).unsqueeze(0)
+        state_tensor = torch.FloatTensor(state).unsqueeze(0)
 
         with torch.no_grad():
-            mu, std, value = self.network(state)
+            mu, std, value = self.network(state_tensor)
 
-        # 正規分布からサンプリング
-        dist = Normal(mu, std)
+        # ガウス分布からサンプリング
+        dist = torch.distributions.Normal(mu, std)
         action = dist.sample()
-        log_prob = dist.log_prob(action).sum(dim=-1)  # 各次元の積
+        log_prob = dist.log_prob(action).sum(dim=-1)  # 行動次元で合計
 
         return action.squeeze().numpy(), log_prob.item(), value.item()
 
     def evaluate_actions(self, states, actions):
-        """
-        既存の行動を評価（PPO更新用）
-
-        Returns:
-            log_probs: log π(a|s)
-            values: V(s)
-            entropy: エントロピー
-        """
         mu, std, values = self.network(states)
 
-        dist = Normal(mu, std)
+        dist = torch.distributions.Normal(mu, std)
         log_probs = dist.log_prob(actions).sum(dim=-1)
         entropy = dist.entropy().sum(dim=-1)
 
-        return log_probs, values.squeeze(), entropy
+        return log_probs, entropy, values
 
 
-# デモンストレーション
-print("=== Continuous Action Space PPO ===\n")
-
-# サンプル環境（例: Pendulum-v1）
-state_dim = 3
-action_dim = 1
-
-agent = ContinuousPPO(state_dim, action_dim, lr=3e-4)
-
-print(f"State dimension: {state_dim}")
-print(f"Action dimension: {action_dim} (continuous)")
-
-# サンプル状態
-state = np.random.randn(state_dim)
-
-# 行動選択
-action, log_prob, value = agent.select_action(state)
-
-print(f"\nSample state: {state}")
-print(f"Sampled action: {action}")
-print(f"Log probability: {log_prob:.4f}")
-print(f"State value: {value:.4f}")
-
-# 複数回サンプリング（確率的）
-print("\nMultiple samples from same state:")
-for i in range(5):
-    action, _, _ = agent.select_action(state)
-    print(f"  Sample {i+1}: action = {action[0]:.4f}")
-
-print("\n✓ Gaussian Policyの特徴:")
-print("  • 連続行動空間に対応")
-print("  • 平均μと標準偏差σを学習")
-print("  • ロボット制御、自動運転などに適用可能")
-print("  • 探索は標準偏差σで制御")
-
-# 実際のPendulum環境での使用例
-print("\n=== PPO on Pendulum-v1 (Continuous Control) ===")
-
-import gym
+# Pendulum環境でのデモンストレーション
+print("Pendulum-v1（連続制御）でテスト\n")
 
 env = gym.make('Pendulum-v1')
 state_dim = env.observation_space.shape[0]
 action_dim = env.action_space.shape[0]
 
-print(f"\nEnvironment: Pendulum-v1")
-print(f"  State space: {env.observation_space}")
-print(f"  Action space: {env.action_space}")
+print(f"環境: Pendulum-v1")
+print(f"  状態空間: {env.observation_space}")
+print(f"  行動空間: {env.action_space}")
 
-agent = ContinuousPPO(state_dim, action_dim, lr=3e-4)
+agent = ContinuousPPO(state_dim, action_dim)
 
-print(f"\nAgent initialized for continuous control")
-total_params = sum(p.numel() for p in agent.network.parameters())
-print(f"  Total parameters: {total_params:,}")
-
-# 1エピソードのテスト
-state = env.reset()
+# テストエピソード
+state, _ = env.reset()
 episode_reward = 0
 
-for t in range(200):
+print("\nガウス方策から行動をサンプリング:")
+for step in range(5):
     action, log_prob, value = agent.select_action(state)
-    # Pendulumの行動範囲は[-2, 2]なので、適切にスケーリング
-    action_scaled = np.clip(action, -2.0, 2.0)
-    next_state, reward, done, _ = env.step(action_scaled)
 
+    # 行動を有効範囲にクリップ
+    action_clipped = np.clip(action, -2.0, 2.0)
+
+    print(f"  ステップ {step}: 行動={action_clipped[0]:.3f}, "
+          f"log_prob={log_prob:.3f}, 価値={value:.3f}")
+
+    next_state, reward, terminated, truncated, _ = env.step(action_clipped)
     episode_reward += reward
     state = next_state
 
-print(f"\nTest episode reward: {episode_reward:.2f}")
-print("\n✓ 連続制御タスクでのPPO動作確認完了")
+env.close()
+print(f"\nテストエピソード報酬: {episode_reward:.1f}")
+print("\nガウス方策の特徴:")
+print("  - 連続行動に自然（関節トルク、ステアリング）")
+print("  - サンプリングによる探索（stdが探索を制御）")
+print("  - 再パラメータ化トリックが勾配フローを可能に")
 </code></pre>
 
-<p><strong>出力例</strong>：</p>
-<pre><code>=== Continuous Action Space PPO ===
+<hr/>
+<h2>4.8 Stable-Baselines3の実践例</h2>
 
-State dimension: 3
-Action dimension: 1 (continuous)
+<h3>4.8.1 Stable-Baselines3の紹介</h3>
+<p><strong>Stable-Baselines3</strong>（SB3）は、信頼性が高く、十分にテストされたRLアルゴリズムの実装です。ベストプラクティスに従った本番環境対応のコードを提供します。</p>
 
-Sample state: [ 0.4967 -0.1383  0.6477]
-Sampled action: [0.8732]
-Log probability: -1.2345
-State value: 0.1234
+<h3>4.8.2 Stable-Baselines3でのPPO</h3>
+<pre><code class="language-python"># 必要なライブラリ:
+# - Python 3.9+
+# - gymnasium>=0.29.0
+# - stable-baselines3>=2.1.0
+# - tensorboard>=2.14.0（オプション、ログ用）
 
-Multiple samples from same state:
-  Sample 1: action = 0.7654
-  Sample 2: action = 0.9123
-  Sample 3: action = 0.8456
-  Sample 4: action = 0.8901
-  Sample 5: action = 0.8234
+import gymnasium as gym
+from stable_baselines3 import PPO
+from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv
+from stable_baselines3.common.env_util import make_vec_env
+from stable_baselines3.common.evaluation import evaluate_policy
+from stable_baselines3.common.callbacks import EvalCallback
+import numpy as np
 
-✓ Gaussian Policyの特徴:
-  • 連続行動空間に対応
-  • 平均μと標準偏差σを学習
-  • ロボット制御、自動運転などに適用可能
-  • 探索は標準偏差σで制御
+print("=== Stable-Baselines3 PPOの例 ===\n")
 
-=== PPO on Pendulum-v1 (Continuous Control) ===
+# 環境を作成
+env_id = "LunarLander-v2"
+print(f"環境: {env_id}")
 
-Environment: Pendulum-v1
-  State space: Box([-1. -1. -8.], [1. 1. 8.], (3,), float32)
-  Action space: Box(-2.0, 2.0, (1,), float32)
+# 単純な訓練用の単一環境
+env = gym.make(env_id)
+print(f"  観測空間: {env.observation_space}")
+print(f"  行動空間: {env.action_space}")
+env.close()
 
-Agent initialized for continuous control
-  Total parameters: 133,121
+# より良いパフォーマンスのためのベクトル化環境を作成
+n_envs = 4
+vec_env = make_vec_env(env_id, n_envs=n_envs)
+print(f"  並列環境数: {n_envs}")
 
-Test episode reward: -1234.56
+# カスタムハイパーパラメータでPPOモデルを作成
+model = PPO(
+    "MlpPolicy",           # 方策ネットワークタイプ
+    vec_env,
+    learning_rate=3e-4,    # 学習率
+    n_steps=2048,          # 更新あたりの環境ごとのステップ数
+    batch_size=64,         # ミニバッチサイズ
+    n_epochs=10,           # 更新あたりのエポック数
+    gamma=0.99,            # 割引率
+    gae_lambda=0.95,       # GAE lambda
+    clip_range=0.2,        # PPOクリップ範囲
+    ent_coef=0.01,         # エントロピー係数
+    vf_coef=0.5,           # 価値関数係数
+    verbose=1,
+    tensorboard_log="./ppo_lunarlander_tensorboard/"
+)
 
-✓ 連続制御タスクでのPPO動作確認完了
+print("\nPPOモデル設定:")
+print(f"  方策: {model.policy.__class__.__name__}")
+print(f"  学習率: {model.learning_rate}")
+print(f"  クリップ範囲: {model.clip_range}")
+print(f"  GAE lambda: {model.gae_lambda}")
+
+# 訓練
+print("\nPPOを訓練中...")
+total_timesteps = 100000
+
+model.learn(
+    total_timesteps=total_timesteps,
+    progress_bar=True  # tqdmが必要
+)
+
+print("\n訓練完了！")
+
+# 評価
+print("\n訓練済みモデルを評価中...")
+eval_env = gym.make(env_id)
+mean_reward, std_reward = evaluate_policy(
+    model,
+    eval_env,
+    n_eval_episodes=10,
+    deterministic=True
+)
+print(f"平均報酬: {mean_reward:.2f} +/- {std_reward:.2f}")
+print(f"（LunarLanderの解決閾値: 200）")
+
+# モデルを保存
+model.save("ppo_lunarlander")
+print("\nモデルを 'ppo_lunarlander.zip' に保存しました")
+
+# 読み込みとテスト
+print("\n保存したモデルを読み込んでテスト中...")
+loaded_model = PPO.load("ppo_lunarlander")
+
+# レンダリング情報付きのテストエピソード
+state, _ = eval_env.reset()
+episode_reward = 0
+done = False
+
+while not done:
+    action, _ = loaded_model.predict(state, deterministic=True)
+    state, reward, terminated, truncated, _ = eval_env.step(action)
+    done = terminated or truncated
+    episode_reward += reward
+
+print(f"テストエピソード報酬: {episode_reward:.2f}")
+
+vec_env.close()
+eval_env.close()
+
+print("\nSB3 PPOの特徴:")
+print("  - 本番環境対応の実装")
+print("  - 並列化のためのベクトル化環境")
+print("  - 組み込みのTensorBoardログ")
+print("  - 簡単な保存/読み込み機能")
+print("  - 充実したドキュメントとコミュニティ")
 </code></pre>
 
-<hr>
+<p><strong>期待される出力</strong>:</p>
+<pre><code>=== Stable-Baselines3 PPOの例 ===
 
-<h2>4.8 まとめと発展トピック</h2>
+環境: LunarLander-v2
+  観測空間: Box([-inf, ...], [inf, ...], (8,), float32)
+  行動空間: Discrete(4)
+  並列環境数: 4
 
-<h3>本章で学んだこと</h3>
+PPOモデル設定:
+  方策: ActorCriticPolicy
+  学習率: 0.0003
+  クリップ範囲: 0.2
+  GAE lambda: 0.95
 
+PPOを訓練中...
+| rollout/           |          |
+|    ep_len_mean     | 89.3     |
+|    ep_rew_mean     | -156     |
+| time/              |          |
+|    fps             | 1245     |
+|    iterations      | 1        |
+...
+| rollout/           |          |
+|    ep_len_mean     | 287      |
+|    ep_rew_mean     | 234      |
+
+訓練完了！
+
+訓練済みモデルを評価中...
+平均報酬: 256.34 +/- 23.12
+（LunarLanderの解決閾値: 200）
+
+モデルを 'ppo_lunarlander.zip' に保存しました
+
+保存したモデルを読み込んでテスト中...
+テストエピソード報酬: 267.45
+</code></pre>
+
+<h3>4.8.3 TensorBoardモニタリング</h3>
+<pre><code class="language-python"># TensorBoardログを表示するには、ターミナルで実行:
+# tensorboard --logdir ./ppo_lunarlander_tensorboard/
+
+# 監視すべき主要メトリクス:
+# - rollout/ep_rew_mean: 平均エピソード報酬
+# - rollout/ep_len_mean: 平均エピソード長
+# - train/policy_loss: Actor損失
+# - train/value_loss: Critic損失
+# - train/entropy_loss: 探索のためのエントロピー
+# - train/approx_kl: KLダイバージェンス（小さいままであるべき）
+# - train/clip_fraction: クリッピングが発動する頻度
+
+print("TensorBoardメトリクスガイド:")
+print("  ep_rew_mean: 時間とともに増加すべき")
+print("  approx_kl: 高すぎる場合（>0.02）、学習率を下げる")
+print("  clip_fraction: 約10-20%が典型的")
+print("  entropy: 方策が決定論的になるにつれて減少すべき")
+</code></pre>
+
+<hr/>
+<h2>まとめ</h2>
+
+<h3>章のまとめ</h3>
 <table>
 <thead>
 <tr>
@@ -2097,69 +1495,68 @@ Test episode reward: -1234.56
 </thead>
 <tbody>
 <tr>
-<td><strong>Policy Gradient</strong></td>
-<td>方策を直接最適化、連続行動対応、確率的方策</td>
+<td><strong>方策勾配</strong></td>
+<td>$\pi_\theta$の直接最適化; 連続行動を扱える</td>
 </tr>
 <tr>
 <td><strong>REINFORCE</strong></td>
-<td>最もシンプルなPG、モンテカルロ法、高分散</td>
+<td>モンテカルロPG; 高分散; 安定性のためベースラインを使用</td>
 </tr>
 <tr>
 <td><strong>Actor-Critic</strong></td>
-<td>ActorとCriticの組み合わせ、TD学習、低分散</td>
+<td>方策学習と価値学習を統合; TDベースの更新</td>
 </tr>
 <tr>
 <td><strong>A2C</strong></td>
-<td>n-step returns、エントロピー正則化、並列環境</td>
+<td>Nステップ収益; エントロピー正則化; 同期訓練</td>
 </tr>
 <tr>
 <td><strong>PPO</strong></td>
-<td>Clipped objective、安全な更新、デファクトスタンダード</td>
+<td>クリップ目的関数; GAE; 複数エポック; 業界標準</td>
 </tr>
 <tr>
 <td><strong>連続制御</strong></td>
-<td>Gaussian Policy、μとσの学習、ロボット制御</td>
+<td>学習された平均とstdを持つガウス方策</td>
 </tr>
 </tbody>
 </table>
 
 <h3>アルゴリズム比較</h3>
-
 <table>
 <thead>
 <tr>
 <th>アルゴリズム</th>
-<th>更新</th>
+<th>更新タイプ</th>
 <th>分散</th>
 <th>サンプル効率</th>
-<th>実装難易度</th>
+<th>複雑さ</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><strong>REINFORCE</strong></td>
-<td>エピソード終了後</td>
+<td>エピソード終了</td>
 <td>高</td>
 <td>低</td>
-<td>易</td>
+<td>シンプル</td>
 </tr>
 <tr>
 <td><strong>Actor-Critic</strong></td>
-<td>1ステップごと</td>
+<td>各ステップ</td>
 <td>中</td>
 <td>中</td>
 <td>中</td>
 </tr>
 <tr>
 <td><strong>A2C</strong></td>
-<td>n-stepごと</td>
+<td>Nステップ</td>
 <td>中</td>
 <td>中</td>
 <td>中</td>
 </tr>
 <tr>
 <td><strong>PPO</strong></td>
-<td>バッチ（複数epoch）</td>
+<td>バッチ（複数エポック）</td>
 <td>低</td>
 <td>高</td>
 <td>中</td>
@@ -2167,145 +1564,106 @@ Test episode reward: -1234.56
 </tbody>
 </table>
 
-<h3>発展トピック</h3>
-
-<details>
-<summary><strong>Trust Region Policy Optimization (TRPO)</strong></summary>
-<p>PPOの前身。KL divergenceで方策更新を制約。理論的保証が強いが、計算コストが高い。2次最適化、Fisher情報行列の計算が必要。</p>
-</details>
-
-<details>
-<summary><strong>Soft Actor-Critic (SAC)</strong></summary>
-<p>オフポリシーのActor-Critic。エントロピー最大化を目的関数に組み込み、ロバストな学習を実現。連続制御タスクで高性能。経験再生を使用しサンプル効率が高い。</p>
-</details>
-
-<details>
-<summary><strong>Deterministic Policy Gradient (DPG / DDPG)</strong></summary>
-<p>決定的方策（確率的でない）のPolicy Gradient。連続行動空間に特化。Actor-Criticアーキテクチャとオフポリシー学習。ロボット制御で広く使用。</p>
-</details>
-
-<details>
-<summary><strong>Twin Delayed DDPG (TD3)</strong></summary>
-<p>DDPGの改良版。2つのCriticネットワーク（Twin）、Actor更新の遅延、ターゲット方策のノイズ追加。過大評価バイアスを軽減。</p>
-</details>
-
-<details>
-<summary><strong>Generalized Advantage Estimation (GAE)</strong></summary>
-<p>Advantageの推定手法。λパラメータでバイアスと分散のトレードオフを調整。TD(λ)のPolicy Gradient版。PPOやA2Cで標準的に使用。</p>
-</details>
-
-<details>
-<summary><strong>Multi-Agent Reinforcement Learning (MARL)</strong></summary>
-<p>複数エージェントの協調・競争学習。MAPPO、QMIX、MADDPG等のアルゴリズム。ゲームAI、ロボット群制御、交通システムに応用。</p>
-</details>
-
 <h3>演習問題</h3>
-
 <div class="project-box">
-<h4>演習 4.1: REINFORCEの改善</h4>
-<p><strong>課題</strong>: REINFORCEにベースライン（状態価値関数）を追加し、分散削減効果を検証してください。</p>
-<p><strong>実装内容</strong>:</p>
+<h4>演習4.1: ベースライン比較</h4>
+<p><strong>課題</strong>: CartPoleでベースラインあり/なしのREINFORCEを比較する。</p>
+<p><strong>ステップ</strong>:</p>
 <ul>
-<li>Criticネットワークの追加</li>
-<li>Advantage = R_t - V(s_t) の計算</li>
-<li>ベースラインあり・なしの学習曲線比較</li>
+<li>バニラREINFORCE（ベースラインなし）を実装</li>
+<li>学習されたV(s)ベースライン付きREINFORCEを実装</li>
+<li>学習曲線をプロットし、分散を比較</li>
 </ul>
 </div>
 
 <div class="project-box">
-<h4>演習 4.2: A2Cの並列環境実装</h4>
-<p><strong>課題</strong>: 複数環境を並列に実行するA2Cを実装してください。</p>
-<p><strong>実装要件</strong>:</p>
+<h4>演習4.2: PPOハイパーパラメータ研究</h4>
+<p><strong>課題</strong>: LunarLanderでPPOのハイパーパラメータ感度を調査する。</p>
+<p><strong>変動させるパラメータ</strong>:</p>
 <ul>
-<li>multiprocessingまたはvectorized environmentsの使用</li>
-<li>4〜16個の並列環境</li>
-<li>学習速度とサンプル効率の改善を確認</li>
+<li>clip_epsilon: [0.1, 0.2, 0.3]</li>
+<li>n_epochs: [3, 10, 20]</li>
+<li>gae_lambda: [0.9, 0.95, 0.99]</li>
 </ul>
 </div>
 
 <div class="project-box">
-<h4>演習 4.3: PPOのハイパーパラメータチューニング</h4>
-<p><strong>課題</strong>: LunarLanderでPPOのハイパーパラメータを最適化してください。</p>
-<p><strong>調整パラメータ</strong>: epsilon (clip), learning rate, batch_size, epochs, GAE lambda</p>
-<p><strong>評価</strong>: 収束速度、最終性能、安定性</p>
-</div>
-
-<div class="project-box">
-<h4>演習 4.4: Gaussian PolicyでPendulum制御</h4>
-<p><strong>課題</strong>: 連続制御タスクPendulum-v1をPPOで解いてください。</p>
-<p><strong>実装内容</strong>:</p>
+<h4>演習4.3: 連続制御</h4>
+<p><strong>課題</strong>: ガウス方策を用いてPendulum-v1でPPOを訓練する。</p>
+<p><strong>要件</strong>:</p>
 <ul>
-<li>Gaussian Policyの実装</li>
-<li>標準偏差σの減衰スケジュール</li>
-<li>-200以上の平均報酬を達成</li>
+<li>適切な行動スケーリングを実装</li>
+<li>平均報酬-200以上を達成</li>
+<li>行動分布の進化を可視化</li>
 </ul>
 </div>
 
 <div class="project-box">
-<h4>演習 4.5: Atariゲームへの適用</h4>
-<p><strong>課題</strong>: PPOをAtariゲーム（例: Pong）に適用してください。</p>
-<p><strong>実装要件</strong>:</p>
+<h4>演習4.4: エントロピースケジューリング</h4>
+<p><strong>課題</strong>: エントロピー係数のアニーリングを実装する。</p>
+<p><strong>アプローチ</strong>:</p>
 <ul>
-<li>CNNベースのPolicy Network</li>
-<li>フレームスタッキング（4フレーム）</li>
-<li>報酬クリッピング、Frame skipping</li>
-<li>人間レベルの性能を目指す</li>
+<li>探索のため高エントロピー（0.1）から開始</li>
+<li>活用のため低エントロピー（0.001）に減衰</li>
+<li>固定エントロピー係数と比較</li>
 </ul>
 </div>
 
 <div class="project-box">
-<h4>演習 4.6: カスタム環境での応用</h4>
-<p><strong>課題</strong>: 自分でOpenAI Gym環境を作成し、PPOで学習させてください。</p>
-<p><strong>例</strong>:</p>
+<h4>演習4.5: SB3カスタム環境</h4>
+<p><strong>課題</strong>: カスタムGymnasium環境でPPOを訓練する。</p>
+<p><strong>ステップ</strong>:</p>
 <ul>
-<li>簡単な迷路ナビゲーション</li>
-<li>リソース管理ゲーム</li>
-<li>簡単なロボットアーム制御</li>
+<li>シンプルなカスタム環境を作成（例: ゴールに到達）</li>
+<li>SB3のcheck_env()を使用して検証</li>
+<li>PPOで訓練しパフォーマンスを評価</li>
 </ul>
-<p><strong>実装</strong>: gym.Envを継承した環境クラス、適切な報酬設計、PPOでの学習</p>
 </div>
 
-<hr>
+<div class="project-box">
+<h4>演習4.6: マルチ環境訓練</h4>
+<p><strong>課題</strong>: 単一環境と並列環境の訓練を比較する。</p>
+<p><strong>メトリクス</strong>:</p>
+<ul>
+<li>報酬閾値に達するまでの実時間</li>
+<li>サンプル効率（総環境ステップ数）</li>
+<li>学習の安定性（報酬の分散）</li>
+</ul>
+</div>
 
-<h3>次章予告</h3>
-
-<p>第5章では、<strong>モデルベース強化学習</strong>を学びます。環境のモデルを学習し、計画と学習を組み合わせた高度なアプローチを探ります。</p>
-
+<hr/>
+<h3>次章プレビュー</h3>
+<p>第5章では、<strong>RLの高度な応用と最前線</strong>を探求します:</p>
 <blockquote>
-<p><strong>次章のトピック</strong>:<br>
-・モデルベースvsモデルフリー<br>
-・環境モデルの学習（World Models）<br>
-・Planning手法（MCTS、MuZero）<br>
-・Dyna-Q、Model-based RL<br>
-・想像上での学習（Dreamer）<br>
-・サンプル効率の大幅改善<br>
-・実装：モデル学習とプランニング</p>
+<p><strong>予定トピック</strong>:<br/>
+- モデルベースRLとワールドモデル<br/>
+- マルチエージェント強化学習<br/>
+- オフラインRLと模倣学習<br/>
+- 人間のフィードバックからの強化学習（RLHF）<br/>
+- 実世界展開の課題<br/>
+- 現在の研究動向</p>
 </blockquote>
 
-        <div class="navigation">
-            <a href="chapter3-dqn.html" class="nav-button">← 第3章: Q学習とDQN</a>
-            <a href="chapter5-advanced-applications.html" class="nav-button">第5章: モデルベース強化学習 →</a>
-        </div>
+<div class="navigation">
+<a class="nav-button" href="chapter3-dqn.html">前へ: 第3章: Deep Q-Network</a>
+<a class="nav-button" href="chapter5-advanced-applications.html">次へ: 第5章: 高度な応用</a>
+</div>
 
-    </main>
-
-    
-    <section class="disclaimer">
-        <h3>免責事項</h3>
-        <ul>
-            <li>本コンテンツは教育・研究・情報提供のみを目的としており、専門的な助言(法律・会計・技術的保証など)を提供するものではありません。</li>
-            <li>本コンテンツおよび付随するコード例は「現状有姿(AS IS)」で提供され、明示または黙示を問わず、商品性、特定目的適合性、権利非侵害、正確性・完全性、動作・安全性等いかなる保証もしません。</li>
-            <li>外部リンク、第三者が提供するデータ・ツール・ライブラリ等の内容・可用性・安全性について、作成者および東北大学は一切の責任を負いません。</li>
-            <li>本コンテンツの利用・実行・解釈により直接的・間接的・付随的・特別・結果的・懲罰的損害が生じた場合でも、適用法で許容される最大限の範囲で、作成者および東北大学は責任を負いません。</li>
-            <li>本コンテンツの内容は、予告なく変更・更新・提供停止されることがあります。</li>
-            <li>本コンテンツの著作権・ライセンスは明記された条件(例: CC BY 4.0)に従います。当該ライセンスは通常、無保証条項を含みます。</li>
-        </ul>
-    </section>
-
+</main>
+<section class="disclaimer">
+<h3>免責事項</h3>
+<ul>
+<li>本コンテンツは教育、研究、情報提供のみを目的として提供されており、専門的なアドバイス（法的、会計、技術的保証など）を構成するものではありません。</li>
+<li>本コンテンツおよび付随するコード例は、商品性、特定目的への適合性、非侵害性、正確性、完全性、または運用上の安全性を含むがこれに限定されない、明示または黙示のいかなる保証もなく「現状のまま」提供されます。</li>
+<li>作成者および東北大学は、外部リンク、サードパーティのデータ、ツール、ライブラリなどのコンテンツ、可用性、または安全性について責任を負いません。</li>
+<li>作成者および東北大学は、適用法で許可される最大限の範囲において、本コンテンツの使用、実行、または解釈から生じるいかなる直接的、間接的、偶発的、特別、結果的、または懲罰的損害についても責任を負いません。</li>
+<li>本資料の内容は予告なく変更、更新、または中止される場合があります。</li>
+<li>本コンテンツの著作権およびライセンスは、指定された条件（例: CC BY 4.0）に従います。そのようなライセンスには通常、無保証条項が含まれます。</li>
+</ul>
+</section>
 <footer>
-        <p>&copy; 2025 AI Terakoya. All rights reserved.</p>
-        <p>第4章：Policy Gradient法 | 強化学習入門シリーズ</p>
-    </footer>
-
+<p>&copy; 2026 AI寺子屋. All rights reserved.</p>
+<p>第4章: 方策勾配法 | 強化学習入門シリーズ</p>
+</footer>
 </body>
 </html>

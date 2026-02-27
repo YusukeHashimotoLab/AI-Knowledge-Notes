@@ -4,6 +4,24 @@ chapter_title: "Chapter 1: Theoretical Foundations of Chiral Phonons"
 subtitle: "Phonon Angular Momentum, Symmetry Requirements, and Berry Phase Formalism"
 ---
 
+## Video Lecture
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/WFXDUTY74Ws"
+    title="Chiral Phonons Ch.1: Theoretical Foundations"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> This video covers the same content as the text below. Choose your preferred learning format.
+
+---
+
 🌐 EN | [🇯🇵 JP](../../../jp/MS/chiral-phonons/chapter-1.md) | Last sync: 2025-12-19
 
 [Materials Science Dojo](../index.md) > [Chiral Phonons](index.md) > Chapter 1

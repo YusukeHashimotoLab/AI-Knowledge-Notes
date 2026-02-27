@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="第4章: LLMの推論と最適化 - 量子化、vLLM、TensorRT-LLM、効率的なデプロイメント戦略を解説">
+    <title>第4章: LLMの推論と最適化 - LLM基礎入門 - AI寺子屋</title>
+
+    <!-- CSS Styling -->
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --bg-color: #ffffff;
+            --text-color: #333333;
+            --border-color: #e0e0e0;
+            --code-bg: #f5f5f5;
+            --link-color: #3498db;
+            --link-hover: #2980b9;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+            line-height: 1.8;
+            color: var(--text-color);
+            background: var(--bg-color);
+            padding: 0;
+            margin: 0;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        header .container {
+            padding: 0 1.5rem;
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            margin-bottom: 1rem;
+        }
+
+        .meta {
+            display: flex;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+            font-size: 0.9rem;
+            opacity: 0.95;
+            margin-top: 1rem;
+        }
+
+        .meta span {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            margin-top: 2.5rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 3px solid var(--secondary-color);
+            color: var(--primary-color);
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            margin-top: 2rem;
+            margin-bottom: 0.8rem;
+            color: var(--primary-color);
+        }
+
+        h4 {
+            font-size: 1.2rem;
+            margin-top: 1.5rem;
+            margin-bottom: 0.6rem;
+            color: var(--primary-color);
+        }
+
+        p {
+            margin-bottom: 1rem;
+            text-align: justify;
+        }
+
+        ul, ol {
+            margin-bottom: 1rem;
+            padding-left: 1.5rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        code {
+            font-family: "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            font-size: 0.9em;
+            background: var(--code-bg);
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+        }
+
+        pre {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 1.5rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1.5rem 0;
+            line-height: 1.5;
+        }
+
+        pre code {
+            background: none;
+            padding: 0;
+            color: inherit;
+            font-size: 0.85rem;
+        }
+
+        a {
+            color: var(--link-color);
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+
+        a:hover {
+            color: var(--link-hover);
+            text-decoration: underline;
+        }
+
+        .note {
+            background: #e7f3ff;
+            border-left: 4px solid var(--secondary-color);
+            padding: 1rem 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .warning {
+            background: #fff3e0;
+            border-left: 4px solid #ff9800;
+            padding: 1rem 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .key-concept {
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+        }
+
+        .key-concept h4 {
+            color: var(--secondary-color);
+            margin-top: 0;
+            margin-bottom: 1rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            border: 1px solid var(--border-color);
+            padding: 0.75rem;
+            text-align: left;
+        }
+
+        th {
+            background: var(--code-bg);
+            font-weight: 600;
+        }
+
+        .chapter-nav {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 3rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--border-color);
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .chapter-nav a {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            background: var(--code-bg);
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .chapter-nav a:hover {
+            background: var(--secondary-color);
+            color: white;
+            text-decoration: none;
+        }
+
+        footer {
+            background: var(--primary-color);
+            color: white;
+            text-align: center;
+            padding: 2rem;
+            margin-top: 3rem;
+        }
+
+        footer a {
+            color: #a8d4ff;
+        }
+
+        .locale-switcher {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--primary-color);
+            padding: 10px 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            z-index: 1000;
+        }
+
+        .locale-switcher a {
+            color: white;
+            font-weight: 500;
+        }
+
+        .disclaimer {
+            background: #fff8e1;
+            border: 1px solid #ffcc02;
+            border-radius: 8px;
+            padding: 1rem 1.5rem;
+            margin: 2rem 0;
+            font-size: 0.9rem;
+        }
+
+        .performance-comparison {
+            background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+            border: 1px solid #4caf50;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+        }
+
+        .benchmark-table th {
+            background: #4caf50;
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            h1 { font-size: 1.75rem; }
+            h2 { font-size: 1.5rem; }
+            .meta { flex-direction: column; gap: 0.5rem; }
+            .chapter-nav { flex-direction: column; }
+            pre { padding: 1rem; font-size: 0.8rem; }
+        }
+    </style>
+
+    <!-- Mermaid for diagrams -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <script>mermaid.initialize({startOnLoad:true, theme: 'neutral'});</script>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>第4章: LLMの推論と最適化</h1>
+            <p class="subtitle">研究から本番環境へ：効率的なデプロイメント戦略</p>
+            <div class="meta">
+                <span>読了時間: 35-40分</span>
+                <span>難易度: 上級</span>
+                <span>最終更新: 2026年1月</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <nav style="margin-bottom: 2rem; padding: 1rem; background: var(--code-bg); border-radius: 8px;">
+            <strong>この章の内容:</strong>
+            <a href="#inference-basics">推論の基礎</a> |
+            <a href="#quantization">量子化</a> |
+            <a href="#inference-engines">推論エンジン</a> |
+            <a href="#context-windows">長コンテキスト</a> |
+            <a href="#optimization">スループット最適化</a>
+        </nav>
+
+        <div class="disclaimer">
+            <strong>免責事項:</strong> 本章は2026年初頭時点の最先端の推論最適化技術を解説しています。この分野は急速に進化しており、具体的なフレームワークやアプローチは変更される可能性があります。実装の詳細については常に公式ドキュメントを参照してください。
+        </div>
+
+        <h2 id="inference-basics">1. LLM推論の基礎</h2>
+
+        <p>
+            推論はLLMが価値を提供する場面です：テキスト生成、質問応答、アプリケーションの駆動など。しかし、推論には訓練とは異なる独自の課題があります。訓練は数時間から数日かけてスループットを最適化しますが、推論はミリ秒から秒単位で応答を返す必要があり、しばしば厳しいコスト制約の下で動作します。
+        </p>
+
+        <h3>1.1 推論パイプライン</h3>
+
+        <div class="mermaid">
+        flowchart LR
+            A[入力テキスト] --> B[トークン化]
+            B --> C[Prefillフェーズ]
+            C --> D[Decodeフェーズ]
+            D --> E[トークン生成]
+            E -->|ループ| D
+            E --> F[出力テキスト]
+
+            style C fill:#e3f2fd
+            style D fill:#fff3e0
+        </div>
+
+        <div class="key-concept">
+            <h4>2フェーズ推論</h4>
+            <p><strong>Prefillフェーズ（プロンプト処理）:</strong></p>
+            <ul>
+                <li>すべての入力トークンを並列処理</li>
+                <li>計算バウンド：GPUの並列性を活用</li>
+                <li>後続生成用のKVキャッシュを生成</li>
+                <li>時間はプロンプト長に比例</li>
+            </ul>
+            <p><strong>Decodeフェーズ（トークン生成）:</strong></p>
+            <ul>
+                <li>トークンを1つずつ生成（自己回帰的）</li>
+                <li>メモリバウンド：KVキャッシュアクセスが制限要因</li>
+                <li>各ステップでKVキャッシュ全体を読み込む必要</li>
+                <li>時間は出力長に比例</li>
+            </ul>
+        </div>
+
+        <h3>1.2 メモリ要件</h3>
+
+        <pre><code class="language-python">def calculate_inference_memory(
+    params_billions: float,
+    context_length: int,
+    batch_size: int,
+    num_layers: int,
+    hidden_dim: int,
+    num_kv_heads: int,
+    precision: str = "fp16"
+) -> dict:
+    """
+    LLM推論のメモリ要件を計算
+
+    Args:
+        params_billions: モデルサイズ（10億パラメータ単位）
+        context_length: 最大シーケンス長
+        batch_size: 同時リクエスト数
+        num_layers: Transformerレイヤー数
+        hidden_dim: モデル隠れ次元
+        num_kv_heads: KVアテンションヘッド数
+        precision: 重みの精度
+
+    Returns:
+        メモリ内訳（GB単位）
+    """
+    bytes_per_param = {
+        "fp32": 4, "fp16": 2, "bf16": 2,
+        "int8": 1, "int4": 0.5, "fp8": 1
+    }
+
+    # モデル重み
+    weight_bytes = params_billions * 1e9 * bytes_per_param[precision]
+    weight_gb = weight_bytes / (1024**3)
+
+    # KVキャッシュ: 2（KとV）× レイヤー × バッチ × シーケンス × ヘッド × ヘッド次元
+    head_dim = hidden_dim // num_kv_heads
+    kv_cache_bytes = (
+        2 * num_layers * batch_size * context_length *
+        num_kv_heads * head_dim * 2  # KVキャッシュはfp16
+    )
+    kv_cache_gb = kv_cache_bytes / (1024**3)
+
+    # 活性化メモリ（概算）
+    activation_gb = batch_size * context_length * hidden_dim * 4 / (1024**3)
+
+    return {
+        "重み(GB)": round(weight_gb, 2),
+        "KVキャッシュ(GB)": round(kv_cache_gb, 2),
+        "活性化(GB)": round(activation_gb, 2),
+        "合計(GB)": round(weight_gb + kv_cache_gb + activation_gb, 2)
+    }
+
+# 例: 128Kコンテキストを持つLlama-3-70B
+memory = calculate_inference_memory(
+    params_billions=70,
+    context_length=128000,
+    batch_size=1,
+    num_layers=80,
+    hidden_dim=8192,
+    num_kv_heads=8,  # GQA
+    precision="int4"
+)
+print(f"メモリ内訳: {memory}")</code></pre>
+
+        <h3>1.3 レイテンシ構成要素</h3>
+
+        <table>
+            <tr>
+                <th>構成要素</th>
+                <th>説明</th>
+                <th>最適化対象</th>
+            </tr>
+            <tr>
+                <td>TTFT（最初のトークンまでの時間）</td>
+                <td>最初のトークンが出現するまでの遅延</td>
+                <td>Prefill最適化、プロンプトキャッシュ</td>
+            </tr>
+            <tr>
+                <td>TPOT（出力トークンあたりの時間）</td>
+                <td>生成トークンあたりの遅延</td>
+                <td>Decode最適化、バッチング</td>
+            </tr>
+            <tr>
+                <td>エンドツーエンドレイテンシ</td>
+                <td>TTFT + (トークン数 × TPOT)</td>
+                <td>投機的デコーディング</td>
+            </tr>
+            <tr>
+                <td>スループット</td>
+                <td>全リクエストでのトークン/秒</td>
+                <td>継続的バッチング</td>
+            </tr>
+        </table>
+
+        <h2 id="quantization">2. モデル量子化</h2>
+
+        <p>
+            量子化は、モデルの精度を16ビットまたは32ビット浮動小数点から低ビット幅に削減し、メモリ使用量を大幅に削減し推論を高速化します。最新の量子化技術は、メモリを4-8倍削減しながらほぼ無損失の品質を達成します。
+        </p>
+
+        <h3>2.1 量子化の基礎</h3>
+
+        <div class="mermaid">
+        flowchart TB
+            subgraph "精度レベル"
+                FP32[FP32: 32ビット] --> FP16[FP16/BF16: 16ビット]
+                FP16 --> FP8[FP8: 8ビット]
+                FP8 --> INT8[INT8: 8ビット]
+                INT8 --> INT4[INT4: 4ビット]
+            end
+
+            subgraph "メモリ削減"
+                M1[100%] --> M2[50%]
+                M2 --> M3[25%]
+                M3 --> M4[25%]
+                M4 --> M5[12.5%]
+            end
+        </div>
+
+        <pre><code class="language-python">import torch
+import torch.nn.functional as F
+from typing import Tuple
+
+class Quantizer:
+    """量子化の基本理解のためのユーティリティクラス"""
+
+    @staticmethod
+    def absmax_quantize(
+        tensor: torch.Tensor,
+        bits: int = 8
+    ) -> Tuple[torch.Tensor, float]:
+        """
+        Absmax（対称）量子化
+        値を[-2^(bits-1), 2^(bits-1)-1]にマップ
+        """
+        qmax = 2 ** (bits - 1) - 1
+        scale = tensor.abs().max() / qmax
+        quantized = torch.round(tensor / scale).to(torch.int8)
+        return quantized, scale
+
+    @staticmethod
+    def block_quantize(
+        tensor: torch.Tensor,
+        block_size: int = 128,
+        bits: int = 4
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        ブロック単位量子化（GPTQ、AWQで使用）
+        各ブロックは独自のスケールファクターを持つ
+        """
+        original_shape = tensor.shape
+        tensor_flat = tensor.view(-1)
+
+        # block_sizeの倍数にパディング
+        pad_len = (block_size - len(tensor_flat) % block_size) % block_size
+        if pad_len:
+            tensor_flat = F.pad(tensor_flat, (0, pad_len))
+
+        blocks = tensor_flat.view(-1, block_size)
+
+        # 各ブロックを独立して量子化
+        qmax = 2 ** (bits - 1) - 1
+        scales = blocks.abs().max(dim=1, keepdim=True).values / qmax
+        scales = scales.clamp(min=1e-8)
+
+        quantized = torch.round(blocks / scales).to(torch.int8)
+
+        return quantized, scales.squeeze()
+
+# デモンストレーション
+tensor = torch.randn(1024, 1024)
+
+int8_quant, int8_scale = Quantizer.absmax_quantize(tensor, bits=8)
+int4_quant, int4_scales = Quantizer.block_quantize(tensor, bits=4)
+
+print(f"元のサイズ: {tensor.numel() * 4 / 1024:.1f} KB")
+print(f"INT8サイズ: {int8_quant.numel() * 1 / 1024:.1f} KB（4倍削減）")
+print(f"INT4サイズ: {int4_quant.numel() * 0.5 / 1024:.1f} KB（8倍削減）")</code></pre>
+
+        <h3>2.2 量子化手法の比較</h3>
+
+        <div class="performance-comparison">
+            <h4>量子化手法比較（Llama-3-70B）</h4>
+            <table class="benchmark-table">
+                <tr>
+                    <th>手法</th>
+                    <th>ビット</th>
+                    <th>メモリ(GB)</th>
+                    <th>パープレキシティ</th>
+                    <th>FP16比速度</th>
+                </tr>
+                <tr>
+                    <td>FP16（ベースライン）</td>
+                    <td>16</td>
+                    <td>140</td>
+                    <td>5.42</td>
+                    <td>1.0x</td>
+                </tr>
+                <tr>
+                    <td>FP8</td>
+                    <td>8</td>
+                    <td>70</td>
+                    <td>5.44</td>
+                    <td>1.8x</td>
+                </tr>
+                <tr>
+                    <td>GPTQ</td>
+                    <td>4</td>
+                    <td>35</td>
+                    <td>5.58</td>
+                    <td>2.2x</td>
+                </tr>
+                <tr>
+                    <td>AWQ</td>
+                    <td>4</td>
+                    <td>35</td>
+                    <td>5.52</td>
+                    <td>2.4x</td>
+                </tr>
+            </table>
+        </div>
+
+        <h2 id="inference-engines">3. 高性能推論エンジン</h2>
+
+        <p>
+            最新の推論エンジンは、バッチング、メモリ管理、カーネル最適化、分散実行を含むサービングスタック全体を最適化します。2025-2026年の主要なソリューションはvLLMとTensorRT-LLMです。
+        </p>
+
+        <h3>3.1 vLLM: PagedAttention</h3>
+
+        <p>
+            vLLMはPagedAttentionを導入し、KVキャッシュを仮想メモリのページのように管理します。これによりメモリ断片化が解消され、効率的な継続的バッチングが可能になり、2-24倍のスループット向上を達成します。
+        </p>
+
+        <div class="mermaid">
+        flowchart TB
+            subgraph "従来のKVキャッシュ"
+                T1[リクエスト1: 2048トークン割り当て]
+                T2[リクエスト2: 2048トークン割り当て]
+                T3[無駄: 70%未使用]
+            end
+
+            subgraph "PagedAttention"
+                P1[ページプール]
+                P1 --> PA[リクエスト1: 5ページ使用]
+                P1 --> PB[リクエスト2: 3ページ使用]
+                P1 --> PC[空きページ: 動的割り当て]
+            end
+
+            style T3 fill:#ffcdd2
+            style PC fill:#c8e6c9
+        </div>
+
+        <pre><code class="language-python">from vllm import LLM, SamplingParams
+from typing import List
+
+def setup_vllm_server(
+    model: str,
+    tensor_parallel_size: int = 1,
+    gpu_memory_utilization: float = 0.9,
+    max_model_len: int = 32768,
+    quantization: str = None
+) -> LLM:
+    """
+    高スループット推論用にvLLMを設定
+
+    Args:
+        model: モデル名またはパス
+        tensor_parallel_size: テンソル並列のGPU数
+        gpu_memory_utilization: 使用するGPUメモリの割合
+        max_model_len: 最大シーケンス長
+        quantization: "awq", "gptq", "fp8", またはNone
+    """
+    llm = LLM(
+        model=model,
+        tensor_parallel_size=tensor_parallel_size,
+        gpu_memory_utilization=gpu_memory_utilization,
+        max_model_len=max_model_len,
+        quantization=quantization,
+        # PagedAttention設定
+        block_size=16,
+        swap_space=4,  # CPUスワップ領域（GB）
+        # 最適化フラグ
+        enforce_eager=False,  # CUDAグラフを使用
+        enable_prefix_caching=True,  # 共通プレフィックスをキャッシュ
+    )
+    return llm
+
+def batch_inference(
+    llm: LLM,
+    prompts: List[str],
+    max_tokens: int = 512,
+    temperature: float = 0.7
+) -> List[str]:
+    """
+    vLLMでバッチ推論を実行
+
+    vLLMは自動的に以下を処理:
+    - 継続的バッチング（動的なバッチ構成）
+    - PagedAttention（効率的なKVキャッシュ管理）
+    - プレフィックスキャッシュ（共通プレフィックスの再利用）
+    """
+    sampling_params = SamplingParams(
+        max_tokens=max_tokens,
+        temperature=temperature,
+        top_p=0.95,
+        stop=["</s>", "[/INST]"],
+    )
+
+    outputs = llm.generate(prompts, sampling_params)
+    return [output.outputs[0].text for output in outputs]
+
+# 使用例
+llm = setup_vllm_server(
+    model="meta-llama/Llama-3.1-70B-Instruct",
+    tensor_parallel_size=4,
+    quantization="awq"
+)
+
+prompts = [
+    "量子コンピューティングを簡単に説明してください。",
+    "2つのソート済みリストをマージするPython関数を書いてください。",
+]
+
+results = batch_inference(llm, prompts)</code></pre>
+
+        <h3>3.2 推論エンジン比較</h3>
+
+        <table>
+            <tr>
+                <th>機能</th>
+                <th>vLLM</th>
+                <th>TensorRT-LLM</th>
+                <th>llama.cpp</th>
+            </tr>
+            <tr>
+                <td>最適用途</td>
+                <td>汎用サービング</td>
+                <td>最大スループット</td>
+                <td>ローカル/エッジ展開</td>
+            </tr>
+            <tr>
+                <td>ハードウェア</td>
+                <td>NVIDIA, AMD, Intel</td>
+                <td>NVIDIAのみ</td>
+                <td>CPU, GPU, Apple Silicon</td>
+            </tr>
+            <tr>
+                <td>セットアップ難易度</td>
+                <td>低</td>
+                <td>高</td>
+                <td>非常に低</td>
+            </tr>
+            <tr>
+                <td>相対スループット</td>
+                <td>1.0x</td>
+                <td>1.2-1.5x</td>
+                <td>0.3-0.5x</td>
+            </tr>
+        </table>
+
+        <h2 id="context-windows">4. 長コンテキスト処理</h2>
+
+        <p>
+            コンテキストウィンドウは2023年の4Kトークンから2026年には100万トークン以上に劇的に拡大しました。これらの長いコンテキストを効率的に管理することは、最新の推論システムにおける重要な課題です。
+        </p>
+
+        <h3>4.1 コンテキスト長の進化</h3>
+
+        <table>
+            <tr>
+                <th>モデル</th>
+                <th>コンテキスト長</th>
+                <th>リリース時期</th>
+            </tr>
+            <tr>
+                <td>GPT-4（初期）</td>
+                <td>8K / 32K</td>
+                <td>2023年3月</td>
+            </tr>
+            <tr>
+                <td>Claude 2</td>
+                <td>100K</td>
+                <td>2023年7月</td>
+            </tr>
+            <tr>
+                <td>Gemini 1.5 Pro</td>
+                <td>1M → 2M</td>
+                <td>2024年2月</td>
+            </tr>
+            <tr>
+                <td>Llama 4 Scout</td>
+                <td>10M</td>
+                <td>2025年4月</td>
+            </tr>
+        </table>
+
+        <h3>4.2 KVキャッシュ最適化技術</h3>
+
+        <pre><code class="language-python">import torch
+from typing import Tuple
+
+class StreamingLLM:
+    """
+    StreamingLLM: アテンションシンクによる効率的な無限コンテキスト
+
+    重要な洞察: 最初の数トークン（「アテンションシンク」）が
+    グローバル情報を捕捉する。これらとスライディングウィンドウを
+    保持することで無限ストリーミングが可能。
+    """
+
+    def __init__(
+        self,
+        num_sink_tokens: int = 4,
+        window_size: int = 4096
+    ):
+        self.num_sink_tokens = num_sink_tokens
+        self.window_size = window_size
+
+    def evict_kv_cache(
+        self,
+        k_cache: torch.Tensor,
+        v_cache: torch.Tensor,
+        current_len: int
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        シンクと最近のウィンドウを保持しながら中間トークンを削除
+
+        キャッシュレイアウト: [シンクトークン | 削除対象 | ウィンドウトークン]
+        """
+        max_len = self.num_sink_tokens + self.window_size
+
+        if current_len <= max_len:
+            return k_cache, v_cache
+
+        # シンクトークンと最近のウィンドウを保持
+        sink_k = k_cache[:, :, :self.num_sink_tokens, :]
+        sink_v = v_cache[:, :, :self.num_sink_tokens, :]
+
+        window_k = k_cache[:, :, -self.window_size:, :]
+        window_v = v_cache[:, :, -self.window_size:, :]
+
+        new_k = torch.cat([sink_k, window_k], dim=2)
+        new_v = torch.cat([sink_v, window_v], dim=2)
+
+        return new_k, new_v
+
+
+class GroupedQueryAttention:
+    """
+    GQA: 複数のQueryヘッドで1つのKVヘッドを共有
+    KVキャッシュサイズを大幅に削減
+    """
+
+    @staticmethod
+    def calculate_kv_cache_size(
+        batch_size: int,
+        seq_len: int,
+        num_layers: int,
+        hidden_dim: int,
+        num_q_heads: int,
+        num_kv_heads: int,
+        dtype_bytes: int = 2
+    ) -> dict:
+        """異なるAttention変種のKVキャッシュサイズを比較"""
+        head_dim = hidden_dim // num_q_heads
+
+        # MHA: num_kv_heads == num_q_heads
+        mha_size = 2 * batch_size * seq_len * num_layers * num_q_heads * head_dim * dtype_bytes
+
+        # GQA: num_kv_heads < num_q_heads
+        gqa_size = 2 * batch_size * seq_len * num_layers * num_kv_heads * head_dim * dtype_bytes
+
+        return {
+            "MHA": f"{mha_size / 1e9:.2f} GB",
+            "GQA": f"{gqa_size / 1e9:.2f} GB",
+            "GQA削減率": f"{mha_size / gqa_size:.1f}x"
+        }
+
+# 例: Llama-3-70BのKVキャッシュ比較
+kv_comparison = GroupedQueryAttention.calculate_kv_cache_size(
+    batch_size=1,
+    seq_len=128000,
+    num_layers=80,
+    hidden_dim=8192,
+    num_q_heads=64,
+    num_kv_heads=8  # 8 KVヘッドのGQA
+)
+print("KVキャッシュ比較:")
+for k, v in kv_comparison.items():
+    print(f"  {k}: {v}")</code></pre>
+
+        <h2 id="optimization">5. スループット最適化</h2>
+
+        <h3>5.1 継続的バッチング</h3>
+
+        <p>
+            従来の静的バッチングは、バッチ内のすべてのリクエストが完了するまで新しいリクエストを受け付けません。継続的（またはイン・フライト）バッチングは、リクエストの到着と完了に応じて動的に追加・削除し、GPU使用率を最大化します。
+        </p>
+
+        <h3>5.2 投機的デコーディング</h3>
+
+        <p>
+            投機的デコーディングは、小さな「ドラフト」モデルを使用して複数のトークンを提案し、大きな「ターゲット」モデルが並列で検証します。これにより自己回帰生成の2-3倍の高速化が可能です。
+        </p>
+
+        <h3>5.3 本番デプロイメントチェックリスト</h3>
+
+        <div class="key-concept">
+            <h4>推論最適化チェックリスト</h4>
+
+            <p><strong>メモリ最適化:</strong></p>
+            <ul>
+                <li>量子化を使用（4ビットはAWQ/GPTQ、最小品質損失はFP8）</li>
+                <li>KVキャッシュ削減のためGQA/MQAを有効化</li>
+                <li>用途に応じた適切なmax_model_lenを設定</li>
+                <li>メモリオーバーフロー用にスワップ領域を設定</li>
+            </ul>
+
+            <p><strong>スループット最適化:</strong></p>
+            <ul>
+                <li>継続的バッチングを有効化（vLLMまたはTensorRT-LLM）</li>
+                <li>大規模モデルにはテンソル並列を使用</li>
+                <li>カーネル起動オーバーヘッド削減のためCUDAグラフを有効化</li>
+                <li>レイテンシ重視アプリには投機的デコーディングを検討</li>
+            </ul>
+
+            <p><strong>レイテンシ最適化:</strong></p>
+            <ul>
+                <li>繰り返しプロンプト用にプレフィックスキャッシュを有効化</li>
+                <li>リアルタイムアプリにはストリーミングを使用</li>
+                <li>投機的デコーディングと小規模モデルを検討</li>
+                <li>ワークロードに応じてTTFT vs TPOTをプロファイル</li>
+            </ul>
+        </div>
+
+        <h2>まとめ</h2>
+
+        <div class="key-concept">
+            <h4>第4章の重要ポイント</h4>
+            <ul>
+                <li><strong>推論フェーズ:</strong> Prefill（計算バウンド）とDecode（メモリバウンド）は異なる最適化が必要</li>
+                <li><strong>量子化:</strong> 4ビットはAWQとGPTQ、ほぼ無損失8ビットはFP8；2-8倍のメモリ削減</li>
+                <li><strong>推論エンジン:</strong> 汎用サービングはvLLM、NVIDIA最大性能はTensorRT-LLM</li>
+                <li><strong>長コンテキスト:</strong> スライディングウィンドウ、StreamingLLM、GQAで100万トークン以上を効率的に処理</li>
+                <li><strong>スループット:</strong> 継続的バッチングと投機的デコーディングでGPU使用率を最大化</li>
+            </ul>
+        </div>
+
+        <div class="chapter-nav">
+            <a href="chapter-3.html">前へ: LLMの訓練と整合性</a>
+            <a href="chapter-5.html">次へ: 実践的LLMアプリケーション</a>
+        </div>
+    </main>
+
+    <footer>
+        <p>AI寺子屋 - LLM基礎入門</p>
+        <p><a href="index.html">シリーズ目次へ</a> | <a href="../../index.html">ML道場へ</a></p>
+    </footer>
+
+    <div class="locale-switcher">
+        <a href="../../../en/ML/llm-basics-introduction/chapter-4.html">English</a>
+    </div>
+</body>
+</html>

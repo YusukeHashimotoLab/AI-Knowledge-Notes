@@ -29,7 +29,7 @@
 <span class="locale-separator">|</span>
 <a href="../../../jp/ML/ai-agents-introduction/chapter2-tool-use.html" class="locale-link">🇯🇵 JP</a>
 <span class="locale-separator">|</span>
-<span class="locale-meta">Last sync: 2025-11-16</span>
+<span class="locale-meta">Last sync: 2026-01-12</span>
 </div>
 <header>
 <div class="container">
@@ -889,6 +889,124 @@ if limiter.allow_call("expensive_api"):
 else:
     print("Rate limit reached. Please wait.")
 </code></pre>
+
+<h2 id="mcp">Model Context Protocol (MCP)</h2>
+
+<h3>The New Standard for Tool Integration (2024-2025)</h3>
+
+<p><strong>Model Context Protocol (MCP)</strong>, introduced by Anthropic in November 2024, is an open standard that provides a unified way for AI applications to connect with external data sources and tools. It addresses the fragmentation problem where each LLM provider has different tool calling conventions.</p>
+
+<div class="mermaid">
+graph LR
+    A[AI Application] --> B[MCP Client]
+    B --> C[MCP Server 1<br/>Database]
+    B --> D[MCP Server 2<br/>File System]
+    B --> E[MCP Server 3<br/>API Gateway]
+
+    style A fill:#e3f2fd
+    style B fill:#fff3e0
+    style C fill:#e8f5e9
+    style D fill:#e8f5e9
+    style E fill:#e8f5e9
+</div>
+
+<h3>Key Benefits of MCP</h3>
+
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Traditional Approach</th>
+<th>MCP Approach</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Integration</strong></td>
+<td>Custom code per LLM provider</td>
+<td>Single protocol for all providers</td>
+</tr>
+<tr>
+<td><strong>Discovery</strong></td>
+<td>Hardcoded tool definitions</td>
+<td>Dynamic capability discovery</td>
+</tr>
+<tr>
+<td><strong>Security</strong></td>
+<td>Varies by implementation</td>
+<td>Standardized authentication</td>
+</tr>
+<tr>
+<td><strong>Ecosystem</strong></td>
+<td>Fragmented tools</td>
+<td>Reusable MCP servers</td>
+</tr>
+</tbody>
+</table>
+
+<h3>MCP Server Example</h3>
+
+<pre><code class="language-python">"""Simple MCP server exposing a weather tool"""
+from mcp.server import Server, Tool
+from mcp.types import TextContent
+
+# Initialize MCP server
+app = Server("weather-server")
+
+@app.tool()
+async def get_weather(location: str) -> list[TextContent]:
+    """Get current weather for a location.
+
+    Args:
+        location: City name (e.g., 'Tokyo', 'New York')
+
+    Returns:
+        Weather information as text
+    """
+    # Simulated weather data (real implementation would call API)
+    weather_data = {
+        "Tokyo": {"temp": 22, "condition": "Sunny"},
+        "New York": {"temp": 18, "condition": "Cloudy"},
+    }
+
+    data = weather_data.get(location, {"temp": 20, "condition": "Unknown"})
+    return [TextContent(
+        type="text",
+        text=f"Weather in {location}: {data['condition']}, {data['temp']}°C"
+    )]
+
+# List available tools
+@app.list_tools()
+async def list_tools() -> list[Tool]:
+    return [
+        Tool(
+            name="get_weather",
+            description="Get current weather for a specified location",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "location": {
+                        "type": "string",
+                        "description": "City name"
+                    }
+                },
+                "required": ["location"]
+            }
+        )
+    ]
+</code></pre>
+
+<h3>MCP Adoption (2025)</h3>
+
+<p>MCP is rapidly becoming the standard for agent tool integration:</p>
+
+<ul>
+<li><strong>Claude Desktop & Claude Code</strong>: Native MCP support</li>
+<li><strong>VS Code Copilot</strong>: MCP integration announced</li>
+<li><strong>Cursor IDE</strong>: Built-in MCP client</li>
+<li><strong>Community Servers</strong>: 100+ open-source MCP servers for databases, APIs, file systems</li>
+</ul>
+
 <h2 id="summary">Summary</h2>
 <h3>What We Learned in This Chapter</h3>
 <ul>
@@ -898,6 +1016,7 @@ else:
 <li>✅ <strong>External API Integration</strong>: Implementation of weather API, stock price API, etc.</li>
 <li>✅ <strong>Tool Chains</strong>: Coordinated execution of multiple tools</li>
 <li>✅ <strong>Security</strong>: Approval flow, rate limiting</li>
+<li>✅ <strong>MCP (Model Context Protocol)</strong>: The new standard for unified tool integration</li>
 </ul>
 <blockquote>
 <p><strong>Important Design Principles</strong>: Tools should have clear responsibilities, handle errors appropriately, and be designed with security in mind</p>
@@ -933,7 +1052,7 @@ else:
 </div>
 <footer>
 <div class="container">
-<p>© 2025 AI Terakoya - Dr. Yusuke Hashimoto, Tohoku University</p>
+<p>© 2025-2026 AI Terakoya - Dr. Yusuke Hashimoto, Tohoku University | v2.0 (2026-01-12)</p>
 <p>Licensed under CC BY 4.0</p>
 </div>
 </footer>

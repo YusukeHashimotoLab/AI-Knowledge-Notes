@@ -1,0 +1,1151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 2: Basic Prompt Techniques - Introduction to Prompt Engineering - AI Terakoya</title>
+    <meta name="description" content="Learn fundamental prompt techniques including Role Prompting, Context Setting, Output Format specification, Structured Output, and JSON Mode for effective LLM communication.">
+
+    <style>
+        :root {
+            --color-primary: #2c3e50;
+            --color-primary-dark: #1a252f;
+            --color-accent: #7b2cbf;
+            --color-accent-light: #9d4edd;
+            --color-text: #2d3748;
+            --color-text-light: #4a5568;
+            --color-bg: #ffffff;
+            --color-bg-alt: #f7fafc;
+            --color-border: #e2e8f0;
+            --color-code-bg: #f8f9fa;
+            --color-link: #3182ce;
+            --color-link-hover: #2c5aa0;
+
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+
+            --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+            --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+            --border-radius: 8px;
+            --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-body);
+            line-height: 1.7;
+            color: var(--color-text);
+            background-color: var(--color-bg);
+            font-size: 16px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            padding: var(--spacing-xl) var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+            box-shadow: var(--box-shadow);
+        }
+
+        .header-content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: var(--spacing-sm);
+            line-height: 1.2;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            font-weight: 400;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-md);
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-md) var(--spacing-xl);
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-xl);
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-xs);
+            border-bottom: 3px solid var(--color-accent);
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-lg);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        h4 {
+            font-size: 1.1rem;
+            color: var(--color-primary-dark);
+            margin-top: var(--spacing-md);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        p {
+            margin-bottom: var(--spacing-md);
+            color: var(--color-text);
+        }
+
+        a {
+            color: var(--color-link);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        a:hover {
+            color: var(--color-link-hover);
+            text-decoration: underline;
+        }
+
+        ul, ol {
+            margin-left: var(--spacing-lg);
+            margin-bottom: var(--spacing-md);
+        }
+
+        li {
+            margin-bottom: var(--spacing-xs);
+            color: var(--color-text);
+        }
+
+        pre {
+            background-color: var(--color-code-bg);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            overflow-x: auto;
+            margin-bottom: var(--spacing-md);
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        code {
+            font-family: var(--font-mono);
+            font-size: 0.9em;
+            background-color: var(--color-code-bg);
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+        }
+
+        pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: var(--spacing-md);
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            border: 1px solid var(--color-border);
+            padding: var(--spacing-sm);
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--color-bg-alt);
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        blockquote {
+            border-left: 4px solid var(--color-accent);
+            padding-left: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            color: var(--color-text-light);
+            font-style: italic;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        .example-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            border-radius: var(--border-radius);
+        }
+
+        .example-box h4 {
+            color: #1976d2;
+            margin-top: 0;
+        }
+
+        .bad-example {
+            background: #ffebee;
+            border-left: 4px solid #f44336;
+            padding: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            border-radius: var(--border-radius);
+        }
+
+        .bad-example h4 {
+            color: #c62828;
+            margin-top: 0;
+        }
+
+        .good-example {
+            background: #e8f5e9;
+            border-left: 4px solid #4caf50;
+            padding: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            border-radius: var(--border-radius);
+        }
+
+        .good-example h4 {
+            color: #2e7d32;
+            margin-top: 0;
+        }
+
+        .note {
+            background: #fff3e0;
+            border-left: 4px solid #ff9800;
+            padding: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            border-radius: var(--border-radius);
+        }
+
+        .note h4 {
+            color: #f57c00;
+            margin-top: 0;
+        }
+
+        .key-takeaways {
+            background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+            padding: var(--spacing-lg);
+            margin: var(--spacing-lg) 0;
+            border-radius: var(--border-radius);
+            border: 2px solid #4caf50;
+        }
+
+        .key-takeaways h3 {
+            color: #2e7d32;
+            margin-top: 0;
+        }
+
+        .nav-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin: var(--spacing-xl) 0;
+            gap: var(--spacing-sm);
+            flex-wrap: wrap;
+        }
+
+        .nav-button {
+            display: inline-block;
+            padding: 0.8rem 1.5rem;
+            background: var(--color-accent);
+            color: white;
+            border-radius: 6px;
+            text-decoration: none;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        .nav-button:hover {
+            background: var(--color-accent-light);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(123, 44, 191, 0.3);
+        }
+
+        .breadcrumb {
+            background: #f7fafc;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+        }
+
+        .breadcrumb-content {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .breadcrumb a {
+            color: #667eea;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .breadcrumb a:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+
+        .breadcrumb-separator {
+            color: #a0aec0;
+            margin: 0 0.25rem;
+        }
+
+        .breadcrumb-current {
+            color: #4a5568;
+            font-weight: 500;
+        }
+
+        .locale-switcher {
+            display: inline-block;
+            margin-top: 1rem;
+            padding: 0.5rem 1rem;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+
+        .locale-switcher a {
+            color: white;
+            text-decoration: none;
+            margin: 0 0.5rem;
+            opacity: 0.8;
+            transition: opacity 0.2s;
+        }
+
+        .locale-switcher a:hover {
+            opacity: 1;
+            text-decoration: underline;
+        }
+
+        .locale-switcher .active {
+            font-weight: bold;
+            opacity: 1;
+        }
+
+        .disclaimer {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 1.5rem;
+            background: #f8f9fa;
+            border-left: 4px solid #6c757d;
+            border-radius: 4px;
+        }
+
+        .disclaimer h3 {
+            color: #495057;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .disclaimer ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .disclaimer li {
+            padding: 0.5rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+            font-size: 0.9rem;
+            color: #6c757d;
+            line-height: 1.6;
+        }
+
+        .disclaimer li::before {
+            content: "!";
+            position: absolute;
+            left: 0;
+        }
+
+        footer {
+            margin-top: 4rem;
+            padding: 2rem 0;
+            border-top: 2px solid var(--color-border);
+            text-align: center;
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 var(--spacing-sm) var(--spacing-lg);
+            }
+
+            h1 {
+                font-size: 1.6rem;
+            }
+
+            h2 {
+                font-size: 1.4rem;
+            }
+
+            .meta {
+                font-size: 0.85rem;
+            }
+
+            .nav-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+
+    <!-- Prism.js for syntax highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+</head>
+<body>
+    <nav class="breadcrumb">
+        <div class="breadcrumb-content">
+            <a href="../../index.html">AI Terakoya Home</a><span class="breadcrumb-separator">></span><a href="../index.html">Machine Learning</a><span class="breadcrumb-separator">></span><a href="./index.html">Introduction to Prompt Engineering</a><span class="breadcrumb-separator">></span><span class="breadcrumb-current">Chapter 2</span>
+        </div>
+    </nav>
+
+    <header>
+        <div class="header-content">
+            <h1>Chapter 2: Basic Prompt Techniques</h1>
+            <p class="subtitle">Role Prompting, Context Setting, and Structured Output</p>
+            <div class="meta">
+                <span class="meta-item">Reading Time: 20-25 minutes</span>
+                <span class="meta-item">Prompt Examples: 12</span>
+                <span class="meta-item">Exercises: 5</span>
+                <span class="meta-item">Difficulty: Beginner-Intermediate</span>
+            </div>
+            <div class="locale-switcher">
+                Language: <span class="active">English</span> | <a href="../../../jp/ML/prompt-engineering-introduction/chapter-2.html">Japanese</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <h2 id="introduction">Introduction</h2>
+
+        <p>In Chapter 1, we learned the fundamentals of prompt engineering. This chapter covers <strong>basic techniques</strong> that form the foundation for all advanced prompting strategies. These techniques are essential building blocks that you'll use in virtually every interaction with LLMs.</p>
+
+        <p>By the end of this chapter, you will be able to:</p>
+        <ul>
+            <li>Use Role Prompting to set LLM behavior and expertise</li>
+            <li>Provide effective context for complex tasks</li>
+            <li>Specify output formats including Markdown, JSON, and structured data</li>
+            <li>Use JSON Mode and Structured Output for reliable parsing</li>
+            <li>Set appropriate constraints for quality control</li>
+            <li>Decompose complex tasks into manageable sub-tasks</li>
+        </ul>
+
+        <h2 id="role-prompting">Role Prompting</h2>
+
+        <p><strong>Role Prompting</strong> (also called persona prompting) is the technique of assigning a specific role or persona to the LLM. This fundamentally changes how the model approaches problems and generates responses.</p>
+
+        <h3>Why Role Prompting Works</h3>
+
+        <p>When you assign a role, you're effectively:</p>
+        <ul>
+            <li><strong>Activating relevant knowledge</strong>: The model draws on patterns associated with that expertise</li>
+            <li><strong>Setting behavioral expectations</strong>: Communication style, level of detail, and approach</li>
+            <li><strong>Establishing authority</strong>: The model responds with appropriate confidence and depth</li>
+        </ul>
+
+        <h3>Basic Role Prompting</h3>
+
+        <div class="example-box">
+            <h4>Simple Role Assignment</h4>
+            <pre><code>You are a senior Python developer with 10 years of experience.
+
+Review the following code and suggest improvements for readability and performance:
+
+```python
+def process_data(data):
+    result = []
+    for item in data:
+        if item > 0:
+            result.append(item * 2)
+    return result
+```</code></pre>
+        </div>
+
+        <h3>Advanced Role Prompting</h3>
+
+        <p>For more nuanced outputs, provide detailed role specifications:</p>
+
+        <div class="example-box">
+            <h4>Detailed Role Specification</h4>
+            <pre><code>You are Dr. Sarah Chen, a data scientist with the following background:
+- PhD in Machine Learning from MIT
+- 8 years of industry experience at leading tech companies
+- Specialist in NLP and transformer architectures
+- Known for clear explanations that bridge theory and practice
+
+Communication style:
+- Use analogies to explain complex concepts
+- Provide practical code examples
+- Acknowledge limitations and edge cases
+- Balance technical accuracy with accessibility
+
+Explain how attention mechanisms work in transformers.</code></pre>
+        </div>
+
+        <h3>Multi-Expert Role</h3>
+
+        <p>For complex problems, you can invoke multiple perspectives:</p>
+
+        <div class="example-box">
+            <h4>Multi-Expert Panel</h4>
+            <pre><code>I want you to act as a panel of three experts reviewing a startup idea:
+
+1. **Venture Capitalist**: Focus on market size, scalability, and investment potential
+2. **Technical CTO**: Evaluate feasibility, technical challenges, and architecture
+3. **Marketing Director**: Assess brand positioning, customer acquisition, and messaging
+
+Startup idea: An AI-powered personal nutrition coach that creates meal plans based on continuous glucose monitoring data.
+
+Each expert should provide their analysis, then synthesize a collective recommendation.</code></pre>
+        </div>
+
+        <h3>Role Prompting Best Practices</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Do</th>
+                    <th>Don't</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Be specific about expertise level</td>
+                    <td>Use vague descriptions ("be smart")</td>
+                </tr>
+                <tr>
+                    <td>Include relevant experience/background</td>
+                    <td>Assign contradictory roles</td>
+                </tr>
+                <tr>
+                    <td>Define communication style</td>
+                    <td>Expect perfect role-playing for niche domains</td>
+                </tr>
+                <tr>
+                    <td>Match role to task requirements</td>
+                    <td>Over-specify irrelevant details</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h2 id="context-setting">Context Setting</h2>
+
+        <p><strong>Context Setting</strong> provides the LLM with background information necessary to understand and complete the task accurately. Without proper context, even well-structured prompts can produce irrelevant results.</p>
+
+        <h3>Types of Context</h3>
+
+        <h4>1. Domain Context</h4>
+        <p>Information about the field or subject area:</p>
+
+        <div class="example-box">
+            <h4>Domain Context Example</h4>
+            <pre><code>**Domain**: Enterprise SaaS B2B Sales
+**Industry**: Healthcare technology
+**Regulatory environment**: HIPAA compliance required
+**Typical sales cycle**: 6-12 months
+**Key stakeholders**: CTO, CISO, Procurement
+
+Write a follow-up email after a product demo.</code></pre>
+        </div>
+
+        <h4>2. Situational Context</h4>
+        <p>Information about the specific situation or scenario:</p>
+
+        <div class="example-box">
+            <h4>Situational Context Example</h4>
+            <pre><code>**Current situation**:
+- We're a 50-person startup scaling to 200 employees
+- Our monolithic Python application is becoming difficult to maintain
+- We have 2 senior engineers and 4 junior developers
+- Budget is limited; cloud costs are a concern
+- We need to maintain 99.9% uptime for existing customers
+
+Recommend a strategy for migrating to microservices.</code></pre>
+        </div>
+
+        <h4>3. Historical Context</h4>
+        <p>Previous interactions, decisions, or outcomes:</p>
+
+        <div class="example-box">
+            <h4>Historical Context Example</h4>
+            <pre><code>**Previous decisions**:
+- We chose PostgreSQL over MongoDB 2 years ago
+- Our API uses REST; we considered GraphQL but decided against it
+- Previous attempt to implement caching with Redis failed due to complexity
+
+**Current challenge**: Database queries are becoming slow as data grows
+
+Based on our history, what would you recommend?</code></pre>
+        </div>
+
+        <h3>The CRISP Context Framework</h3>
+
+        <p>Use this framework to ensure comprehensive context:</p>
+
+        <div class="note">
+            <h4>CRISP Framework</h4>
+            <ul>
+                <li><strong>C</strong>onstraints: Limitations, requirements, non-negotiables</li>
+                <li><strong>R</strong>esources: Available tools, budget, team, time</li>
+                <li><strong>I</strong>ntent: Ultimate goal, why this matters</li>
+                <li><strong>S</strong>ituation: Current state, recent events</li>
+                <li><strong>P</strong>references: Desired approach, style, values</li>
+            </ul>
+        </div>
+
+        <div class="example-box">
+            <h4>CRISP in Practice</h4>
+            <pre><code>**Constraints**:
+- Must complete within 2-week sprint
+- Cannot break existing API contracts
+- Must pass security review
+
+**Resources**:
+- 2 full-stack developers available
+- AWS infrastructure with $500/month budget
+- Existing CI/CD pipeline
+
+**Intent**:
+- Improve user onboarding completion rate from 40% to 70%
+
+**Situation**:
+- Current onboarding has 8 steps
+- Users drop off primarily at email verification (Step 3)
+- Mobile users have 50% lower completion than desktop
+
+**Preferences**:
+- Prefer progressive enhancement over complete redesign
+- Want to A/B test changes
+
+Design an improved onboarding flow.</code></pre>
+        </div>
+
+        <h2 id="output-format">Output Format Specification</h2>
+
+        <p>Specifying <strong>output format</strong> ensures responses are structured exactly as needed. This is crucial for downstream processing, consistency, and usability.</p>
+
+        <h3>Markdown Formatting</h3>
+
+        <div class="example-box">
+            <h4>Markdown Output Specification</h4>
+            <pre><code>Analyze the following text and provide your response in Markdown format:
+
+## Required Sections
+- **Summary** (2-3 sentences)
+- **Key Points** (bulleted list, 3-5 items)
+- **Sentiment** (Positive/Negative/Neutral with explanation)
+- **Recommendations** (numbered list)
+
+Use `code formatting` for technical terms.
+Use **bold** for emphasis on important points.
+
+Text to analyze:
+"Our Q3 customer satisfaction scores dropped 15% compared to Q2..."</code></pre>
+        </div>
+
+        <h3>JSON Output</h3>
+
+        <div class="example-box">
+            <h4>JSON Format Specification</h4>
+            <pre><code>Extract product information from the following text and return as JSON:
+
+Expected JSON structure:
+```json
+{
+  "product_name": "string",
+  "price": {
+    "amount": number,
+    "currency": "string"
+  },
+  "features": ["string"],
+  "availability": "in_stock" | "out_of_stock" | "pre_order",
+  "rating": {
+    "score": number,
+    "review_count": number
+  }
+}
+```
+
+Text: "The new iPhone 15 Pro is available for $999. Key features include
+A17 Pro chip, titanium design, and 48MP camera. Currently in stock.
+Rated 4.7 stars based on 1,247 reviews."</code></pre>
+        </div>
+
+        <h3>Structured Output / JSON Mode (2025)</h3>
+
+        <p>Modern LLMs (GPT-4, Claude, Gemini) support <strong>JSON Mode</strong> or <strong>Structured Output</strong> that guarantees valid JSON responses. This is essential for production applications.</p>
+
+        <div class="note">
+            <h4>API-Level JSON Mode</h4>
+            <p>Most LLM APIs now support response format parameters:</p>
+            <ul>
+                <li><strong>OpenAI</strong>: <code>response_format: { type: "json_object" }</code></li>
+                <li><strong>Anthropic</strong>: Tool use with JSON schemas</li>
+                <li><strong>Google</strong>: <code>response_mime_type: "application/json"</code></li>
+            </ul>
+        </div>
+
+        <div class="example-box">
+            <h4>OpenAI JSON Mode Example</h4>
+            <pre><code class="language-python">from openai import OpenAI
+client = OpenAI()
+
+response = client.chat.completions.create(
+    model="gpt-4o",
+    response_format={"type": "json_object"},
+    messages=[
+        {
+            "role": "system",
+            "content": "Extract entities and return as JSON with keys: persons, organizations, locations"
+        },
+        {
+            "role": "user",
+            "content": "Apple CEO Tim Cook announced new products at their Cupertino headquarters."
+        }
+    ]
+)
+
+# Guaranteed valid JSON
+import json
+data = json.loads(response.choices[0].message.content)
+print(data)
+# {"persons": ["Tim Cook"], "organizations": ["Apple"], "locations": ["Cupertino"]}</code></pre>
+        </div>
+
+        <h3>Structured Output with Schemas (2025)</h3>
+
+        <p>For even stricter validation, use <strong>JSON Schema</strong> definitions:</p>
+
+        <div class="example-box">
+            <h4>Structured Output with Schema</h4>
+            <pre><code class="language-python">from openai import OpenAI
+from pydantic import BaseModel
+from typing import Literal
+
+class ProductAnalysis(BaseModel):
+    product_name: str
+    sentiment: Literal["positive", "negative", "neutral"]
+    confidence: float
+    key_features: list[str]
+    recommendation: str
+
+client = OpenAI()
+
+response = client.beta.chat.completions.parse(
+    model="gpt-4o-2024-08-06",
+    messages=[
+        {"role": "system", "content": "Analyze product reviews"},
+        {"role": "user", "content": "This laptop is amazing! Fast processor, great screen, but battery could be better."}
+    ],
+    response_format=ProductAnalysis
+)
+
+# Fully typed, validated response
+analysis = response.choices[0].message.parsed
+print(f"Sentiment: {analysis.sentiment}")
+print(f"Confidence: {analysis.confidence}")</code></pre>
+        </div>
+
+        <h3>Tabular Output</h3>
+
+        <div class="example-box">
+            <h4>Table Format Specification</h4>
+            <pre><code>Compare the following programming languages. Return as a Markdown table.
+
+Languages: Python, JavaScript, Rust, Go
+
+| Language | Typing | Performance | Learning Curve | Best Use Case |
+|----------|--------|-------------|----------------|---------------|
+| ...      | ...    | ...         | ...            | ...           |
+
+Include a brief summary paragraph after the table.</code></pre>
+        </div>
+
+        <h2 id="constraints">Constraint Setting</h2>
+
+        <p><strong>Constraints</strong> define boundaries and requirements for LLM outputs. Well-defined constraints prevent common issues like verbosity, irrelevant content, and inappropriate responses.</p>
+
+        <h3>Types of Constraints</h3>
+
+        <h4>Length Constraints</h4>
+
+        <div class="example-box">
+            <h4>Length Control</h4>
+            <pre><code>Summarize this article in exactly 3 sentences.
+Each sentence should be 15-20 words.
+Total summary: 45-60 words.
+
+[Article text...]</code></pre>
+        </div>
+
+        <h4>Content Constraints</h4>
+
+        <div class="example-box">
+            <h4>Content Requirements</h4>
+            <pre><code>Write a product description with these requirements:
+
+**Must Include:**
+- Product name mentioned at least twice
+- Three specific features with benefits
+- Call-to-action at the end
+
+**Must Avoid:**
+- Superlatives (best, greatest, amazing)
+- Comparisons to competitors
+- Unverifiable claims
+- Technical jargon
+
+**Tone:** Professional, confident, accessible</code></pre>
+        </div>
+
+        <h4>Behavioral Constraints</h4>
+
+        <div class="example-box">
+            <h4>Behavioral Guidelines</h4>
+            <pre><code>You are a customer support assistant.
+
+**Behavioral rules:**
+1. Never admit fault on behalf of the company
+2. Always offer to escalate unresolved issues
+3. Use the customer's name at least once
+4. End every response with a follow-up question
+5. If asked about competitors, redirect to our strengths
+
+**Response style:**
+- Maximum 150 words
+- Use empathetic language
+- Provide specific next steps</code></pre>
+        </div>
+
+        <h3>Negative Constraints (What NOT to Do)</h3>
+
+        <p>Sometimes it's more effective to specify what to avoid:</p>
+
+        <div class="example-box">
+            <h4>Negative Constraints</h4>
+            <pre><code>Explain machine learning to a high school student.
+
+DO NOT:
+- Use mathematical equations
+- Reference academic papers
+- Use terms like "gradient descent," "loss function," "backpropagation"
+- Assume prior programming knowledge
+- Use more than 200 words
+
+Instead, use everyday analogies and simple examples.</code></pre>
+        </div>
+
+        <h2 id="task-decomposition">Task Decomposition</h2>
+
+        <p><strong>Task Decomposition</strong> breaks complex tasks into smaller, manageable steps. This improves accuracy and allows for verification at each stage.</p>
+
+        <h3>Sequential Decomposition</h3>
+
+        <div class="example-box">
+            <h4>Step-by-Step Task</h4>
+            <pre><code>Complete the following task in three separate steps.
+Complete each step fully before moving to the next.
+
+**Task**: Create a marketing email for our new product launch
+
+**Step 1: Research & Planning**
+- Identify the target audience characteristics
+- List 3 key pain points our product solves
+- Define the primary call-to-action
+
+**Step 2: Draft Creation**
+- Write subject line (A/B test options)
+- Write email body following AIDA framework
+- Include social proof element
+
+**Step 3: Review & Optimize**
+- Check for spam trigger words
+- Verify mobile readability
+- Suggest personalization tokens
+
+Please complete Step 1 now.</code></pre>
+        </div>
+
+        <h3>Parallel Decomposition</h3>
+
+        <p>For tasks with independent components:</p>
+
+        <div class="example-box">
+            <h4>Parallel Sub-tasks</h4>
+            <pre><code>Analyze this business proposal from three independent perspectives.
+Each analysis should be self-contained.
+
+**Financial Analysis**
+- ROI projection
+- Risk assessment
+- Cash flow implications
+
+**Technical Analysis**
+- Feasibility assessment
+- Resource requirements
+- Integration challenges
+
+**Market Analysis**
+- Competitive landscape
+- Market timing
+- Customer validation
+
+Present each analysis separately with a confidence score (1-10).</code></pre>
+        </div>
+
+        <h3>Hierarchical Decomposition</h3>
+
+        <div class="example-box">
+            <h4>Nested Task Structure</h4>
+            <pre><code>Create a project plan for building a mobile app.
+
+**Level 1: Major Phases**
+1. Discovery
+2. Design
+3. Development
+4. Testing
+5. Launch
+
+**Level 2: Sub-tasks** (for each phase)
+- List 3-5 specific tasks
+- Identify dependencies
+- Estimate effort (S/M/L)
+
+**Level 3: Details** (for key sub-tasks)
+- Define acceptance criteria
+- List required resources
+- Note potential blockers
+
+Start with Level 1, then expand Phase 1 to Level 2 and Level 3.</code></pre>
+        </div>
+
+        <h2 id="prompt-templates">Prompt Template Library</h2>
+
+        <h3>Universal Template</h3>
+
+        <div class="example-box">
+            <h4>All-Purpose Prompt Template</h4>
+            <pre><code># Role
+You are [role/expertise].
+
+# Context
+[Background information relevant to the task]
+
+# Task
+[Clear description of what needs to be done]
+
+# Input
+[Data, text, or information to process]
+
+# Output Requirements
+- Format: [Markdown/JSON/Table/etc.]
+- Length: [word count or structure]
+- Style: [tone and voice]
+
+# Constraints
+- [Constraint 1]
+- [Constraint 2]
+
+# Examples (optional)
+[Input example] -> [Output example]</code></pre>
+        </div>
+
+        <h3>Code Review Template</h3>
+
+        <div class="example-box">
+            <h4>Code Review Prompt</h4>
+            <pre><code># Role
+You are a senior software engineer conducting a code review.
+
+# Context
+- Language: [Python/JavaScript/etc.]
+- Project type: [Web app/API/Library]
+- Team guidelines: [Link or summary]
+
+# Task
+Review the following code for:
+1. **Correctness**: Logic errors, edge cases
+2. **Performance**: Time/space complexity issues
+3. **Security**: Potential vulnerabilities
+4. **Maintainability**: Readability, documentation
+5. **Best Practices**: Language/framework idioms
+
+# Code
+```[language]
+[code to review]
+```
+
+# Output Format
+For each issue found:
+- **Location**: Line number(s)
+- **Severity**: Critical/Major/Minor/Suggestion
+- **Issue**: Description
+- **Fix**: Recommended solution with code example</code></pre>
+        </div>
+
+        <h3>Content Creation Template</h3>
+
+        <div class="example-box">
+            <h4>Content Generation Prompt</h4>
+            <pre><code># Role
+You are a content creator specializing in [domain].
+
+# Context
+- Platform: [Blog/LinkedIn/Twitter/etc.]
+- Audience: [Demographics, expertise level]
+- Brand voice: [Tone description]
+
+# Task
+Create [content type] about [topic].
+
+# Requirements
+- Length: [word/character count]
+- Keywords: [SEO keywords to include]
+- Structure: [Outline or sections]
+- CTA: [Desired action]
+
+# Examples of Successful Content
+[Reference examples]
+
+# Constraints
+- Avoid: [Topics, words, or approaches to skip]
+- Must include: [Required elements]</code></pre>
+        </div>
+
+        <h2 id="exercises">Exercises</h2>
+
+        <h3>Exercise 1: Role Prompting (Difficulty: Easy)</h3>
+        <div class="note">
+            <p><strong>Task</strong>: Create a role prompt for explaining cryptocurrency to:</p>
+            <ol>
+                <li>A 10-year-old child</li>
+                <li>A retiree considering investment</li>
+                <li>A software developer interested in blockchain</li>
+            </ol>
+            <p>Each explanation should use appropriate language and examples for the audience.</p>
+        </div>
+
+        <h3>Exercise 2: Context Setting (Difficulty: Medium)</h3>
+        <div class="note">
+            <p><strong>Task</strong>: Using the CRISP framework, write a prompt asking for recommendations on choosing a cloud provider for your startup.</p>
+            <p>Include realistic constraints, resources, and preferences.</p>
+        </div>
+
+        <h3>Exercise 3: JSON Output (Difficulty: Medium)</h3>
+        <div class="note">
+            <p><strong>Task</strong>: Design a prompt that extracts structured data from restaurant reviews.</p>
+            <p>Define the JSON schema including: restaurant name, cuisine type, ratings (food, service, ambiance), price range, and recommended dishes.</p>
+        </div>
+
+        <h3>Exercise 4: Constraint Setting (Difficulty: Medium)</h3>
+        <div class="note">
+            <p><strong>Task</strong>: Write a prompt for generating product descriptions for an e-commerce site.</p>
+            <p>Include at least 5 constraints covering length, tone, required elements, and forbidden content.</p>
+        </div>
+
+        <h3>Exercise 5: Task Decomposition (Difficulty: Advanced)</h3>
+        <div class="note">
+            <p><strong>Task</strong>: Create a hierarchical task decomposition prompt for planning a company hackathon.</p>
+            <p>Include at least 3 levels of detail and identify dependencies between tasks.</p>
+        </div>
+
+        <h2 id="key-takeaways-section">Chapter Summary</h2>
+
+        <div class="key-takeaways">
+            <h3>Key Points</h3>
+            <ul>
+                <li><strong>Role Prompting</strong>: Assign specific roles to activate relevant knowledge and set behavioral expectations</li>
+                <li><strong>Context Setting</strong>: Use the CRISP framework (Constraints, Resources, Intent, Situation, Preferences) for comprehensive context</li>
+                <li><strong>Output Format</strong>: Be explicit about expected format; use JSON Mode for programmatic consumption</li>
+                <li><strong>Structured Output</strong>: Modern LLMs support schema-based validation for guaranteed valid responses</li>
+                <li><strong>Constraints</strong>: Define both positive (must include) and negative (must avoid) constraints</li>
+                <li><strong>Task Decomposition</strong>: Break complex tasks into sequential, parallel, or hierarchical sub-tasks</li>
+            </ul>
+        </div>
+
+        <h2 id="next-steps">Next Steps</h2>
+
+        <p>In Chapter 3, we'll explore advanced techniques including:</p>
+        <ul>
+            <li>Tree of Thought prompting for complex reasoning</li>
+            <li>Self-Consistency for improved accuracy</li>
+            <li>ReAct pattern for reasoning with actions</li>
+            <li>Prompting for o1/o3 reasoning models</li>
+            <li>Multi-turn conversation design</li>
+        </ul>
+
+        <div class="nav-buttons">
+            <a href="./chapter-1.html" class="nav-button">Chapter 1</a>
+            <a href="./chapter-3.html" class="nav-button">Chapter 3</a>
+        </div>
+
+        <hr>
+
+        <h2 id="references">References</h2>
+        <ul>
+            <li>OpenAI. (2024). <em>Structured Outputs Documentation</em></li>
+            <li>Anthropic. (2025). <em>Claude Prompt Engineering Guide</em></li>
+            <li>Wei, J., et al. (2022). <em>Chain-of-Thought Prompting Elicits Reasoning in Large Language Models</em></li>
+            <li>White, J., et al. (2023). <em>A Prompt Pattern Catalog to Enhance Prompt Engineering with ChatGPT</em></li>
+        </ul>
+
+        <hr>
+
+        <p><strong>Update History</strong></p>
+        <ul>
+            <li><strong>2026-01-12</strong>: v2.0 Initial release with Structured Output and JSON Mode</li>
+        </ul>
+
+    </main>
+
+    <section class="disclaimer">
+        <h3>Disclaimer</h3>
+        <ul>
+            <li>This content is provided solely for educational, research, and informational purposes and does not constitute professional advice.</li>
+            <li>This content and accompanying prompt examples are provided "AS IS" without any warranties.</li>
+            <li>The terms of use and limitations of external LLM services (ChatGPT, Claude, Gemini, etc.) are the responsibility of the respective service providers.</li>
+        </ul>
+    </section>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 AI Terakoya - Dr. Yusuke Hashimoto, Tohoku University</p>
+            <p>Licensed under CC BY 4.0</p>
+        </div>
+    </footer>
+</body>
+</html>

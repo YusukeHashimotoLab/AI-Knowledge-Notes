@@ -4,6 +4,24 @@ chapter_title: "Chapter 2"
 subtitle: "From 2D TMD Monolayers to 3D Chiral Crystals"
 ---
 
+## Video Lecture
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/vbbjqY8Q4ko"
+    title="Chiral Phonons Ch.2: Materials"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> This video covers the same content as the text below. Choose your preferred learning format.
+
+---
+
 🌐 EN | [🇯🇵 JP](../../../jp/MS/chiral-phonons/chapter-2.md) | Last sync: 2025-12-19
 
 [Materials Science Dojo](../index.html) > [Chiral Phonons](index.md) > Chapter 2

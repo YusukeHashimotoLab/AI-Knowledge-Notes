@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="第2章: Transformerアーキテクチャ - Self-Attention、位置エンコーディング、MoE、効率的なAttention機構を詳解">
+    <title>第2章: Transformerアーキテクチャ - LLM基礎入門 - AI寺子屋</title>
+
+    <!-- CSS Styling -->
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --bg-color: #ffffff;
+            --text-color: #333333;
+            --border-color: #e0e0e0;
+            --code-bg: #f5f5f5;
+            --link-color: #3498db;
+            --link-hover: #2980b9;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+            line-height: 1.8;
+            color: var(--text-color);
+            background: var(--bg-color);
+            padding: 0;
+            margin: 0;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        header .container {
+            padding: 0 1.5rem;
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            margin-bottom: 1rem;
+        }
+
+        .meta {
+            display: flex;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+            font-size: 0.9rem;
+            opacity: 0.95;
+            margin-top: 1rem;
+        }
+
+        .meta span {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            margin-top: 2.5rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 3px solid var(--secondary-color);
+            color: var(--primary-color);
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            margin-top: 2rem;
+            margin-bottom: 0.8rem;
+            color: var(--primary-color);
+        }
+
+        h4 {
+            font-size: 1.2rem;
+            margin-top: 1.5rem;
+            margin-bottom: 0.6rem;
+            color: var(--primary-color);
+        }
+
+        p {
+            margin-bottom: 1rem;
+            text-align: justify;
+        }
+
+        ul, ol {
+            margin-bottom: 1rem;
+            padding-left: 1.5rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        code {
+            font-family: "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            font-size: 0.9em;
+            background: var(--code-bg);
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+        }
+
+        pre {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 1.5rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1.5rem 0;
+            line-height: 1.5;
+        }
+
+        pre code {
+            background: none;
+            padding: 0;
+            color: inherit;
+            font-size: 0.85rem;
+        }
+
+        a {
+            color: var(--link-color);
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+
+        a:hover {
+            color: var(--link-hover);
+            text-decoration: underline;
+        }
+
+        .note {
+            background: #e7f3ff;
+            border-left: 4px solid var(--secondary-color);
+            padding: 1rem 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .warning {
+            background: #fff3e0;
+            border-left: 4px solid #ff9800;
+            padding: 1rem 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .key-concept {
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+        }
+
+        .key-concept h4 {
+            color: var(--secondary-color);
+            margin-top: 0;
+            margin-bottom: 1rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            border: 1px solid var(--border-color);
+            padding: 0.75rem;
+            text-align: left;
+        }
+
+        th {
+            background: var(--code-bg);
+            font-weight: 600;
+        }
+
+        .chapter-nav {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 3rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--border-color);
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .chapter-nav a {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            background: var(--code-bg);
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .chapter-nav a:hover {
+            background: var(--secondary-color);
+            color: white;
+            text-decoration: none;
+        }
+
+        footer {
+            background: var(--primary-color);
+            color: white;
+            text-align: center;
+            padding: 2rem;
+            margin-top: 3rem;
+        }
+
+        footer a {
+            color: #a8d4ff;
+        }
+
+        .locale-switcher {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--primary-color);
+            padding: 10px 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            z-index: 1000;
+        }
+
+        .locale-switcher a {
+            color: white;
+            font-weight: 500;
+        }
+
+        .disclaimer {
+            background: #fff8e1;
+            border: 1px solid #ffcc02;
+            border-radius: 8px;
+            padding: 1rem 1.5rem;
+            margin: 2rem 0;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 768px) {
+            h1 { font-size: 1.75rem; }
+            h2 { font-size: 1.5rem; }
+            .meta { flex-direction: column; gap: 0.5rem; }
+            .chapter-nav { flex-direction: column; }
+            pre { padding: 1rem; font-size: 0.8rem; }
+        }
+    </style>
+
+    <!-- Mermaid for diagrams -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <script>mermaid.initialize({startOnLoad:true, theme: 'neutral'});</script>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>第2章: Transformerアーキテクチャ</h1>
+            <p class="subtitle">Self-AttentionからMixture of Expertsまで</p>
+            <div class="meta">
+                <span>読了時間: 30-35分</span>
+                <span>難易度: 中級</span>
+                <span>最終更新: 2026年1月</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <nav style="margin-bottom: 2rem; padding: 1rem; background: var(--code-bg); border-radius: 8px;">
+            <strong>この章の内容:</strong>
+            <a href="#self-attention">Self-Attention</a> |
+            <a href="#multi-head">Multi-Head Attention</a> |
+            <a href="#position">位置エンコーディング</a> |
+            <a href="#architectures">アーキテクチャ変種</a> |
+            <a href="#moe">MoE</a> |
+            <a href="#efficient">効率的なAttention</a>
+        </nav>
+
+        <div class="disclaimer">
+            <strong>免責事項:</strong> 本章は2026年初頭時点の最新のTransformerアーキテクチャを解説しています。この分野は急速に進化しており、実装の詳細については公式ドキュメントを参照してください。
+        </div>
+
+        <h2 id="self-attention">1. Self-Attention機構</h2>
+
+        <p>
+            Self-Attention（自己注意機構）は、Transformerアーキテクチャの中核をなすメカニズムです。入力シーケンス内の各トークンが、他のすべてのトークンとの関連性を動的に計算することで、長距離の依存関係を効果的に捉えることができます。
+        </p>
+
+        <h3>1.1 Attentionの直感的理解</h3>
+
+        <div class="key-concept">
+            <h4>Attentionの本質</h4>
+            <p>
+                「The cat sat on the mat because it was tired」という文において、「it」が何を指すかを理解するには、文全体の文脈を考慮する必要があります。Self-Attentionは、「it」と「cat」の間の強い関連性を学習し、適切な参照解決を可能にします。
+            </p>
+        </div>
+
+        <div class="mermaid">
+        flowchart LR
+            subgraph "入力"
+                T1[The]
+                T2[cat]
+                T3[sat]
+                T4[...]
+                T5[it]
+            end
+
+            T5 -->|強い注意| T2
+            T5 -->|弱い注意| T1
+            T5 -->|弱い注意| T3
+
+            style T2 fill:#e3f2fd
+            style T5 fill:#fff3e0
+        </div>
+
+        <h3>1.2 数学的定式化</h3>
+
+        <p>
+            Self-Attentionは、Query（Q）、Key（K）、Value（V）の3つの線形変換を通じて計算されます：
+        </p>
+
+        <p style="text-align: center; font-size: 1.1rem; margin: 1.5rem 0;">
+            $\text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)V$
+        </p>
+
+        <p>
+            ここで、$d_k$はKey次元であり、$\sqrt{d_k}$によるスケーリングは勾配の安定化のために重要です。
+        </p>
+
+        <pre><code class="language-python">import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import math
+
+class SelfAttention(nn.Module):
+    """
+    Self-Attentionの基本実装
+
+    パラメータ:
+        embed_dim: 埋め込み次元
+        num_heads: アテンションヘッド数（オプション、Multi-Head用）
+    """
+
+    def __init__(self, embed_dim: int, num_heads: int = 1):
+        super().__init__()
+        self.embed_dim = embed_dim
+        self.num_heads = num_heads
+        self.head_dim = embed_dim // num_heads
+
+        assert embed_dim % num_heads == 0, "embed_dimはnum_headsで割り切れる必要があります"
+
+        # Query, Key, Value の線形変換
+        self.q_proj = nn.Linear(embed_dim, embed_dim)
+        self.k_proj = nn.Linear(embed_dim, embed_dim)
+        self.v_proj = nn.Linear(embed_dim, embed_dim)
+
+        # 出力投影
+        self.out_proj = nn.Linear(embed_dim, embed_dim)
+
+        self.scale = math.sqrt(self.head_dim)
+
+    def forward(
+        self,
+        x: torch.Tensor,
+        mask: torch.Tensor = None
+    ) -> torch.Tensor:
+        """
+        Args:
+            x: 入力テンソル [batch_size, seq_len, embed_dim]
+            mask: オプションの注意マスク [batch_size, seq_len, seq_len]
+
+        Returns:
+            出力テンソル [batch_size, seq_len, embed_dim]
+        """
+        batch_size, seq_len, _ = x.shape
+
+        # Q, K, V を計算
+        Q = self.q_proj(x)  # [batch, seq, embed]
+        K = self.k_proj(x)
+        V = self.v_proj(x)
+
+        # 注意スコアを計算
+        # [batch, seq, embed] @ [batch, embed, seq] -> [batch, seq, seq]
+        attention_scores = torch.matmul(Q, K.transpose(-2, -1)) / self.scale
+
+        # マスクを適用（因果マスクなど）
+        if mask is not None:
+            attention_scores = attention_scores.masked_fill(mask == 0, float('-inf'))
+
+        # Softmaxで確率に変換
+        attention_weights = F.softmax(attention_scores, dim=-1)
+
+        # Valueの重み付け和
+        output = torch.matmul(attention_weights, V)
+
+        return self.out_proj(output)
+
+# 使用例
+embed_dim = 512
+seq_len = 100
+batch_size = 32
+
+attention = SelfAttention(embed_dim)
+x = torch.randn(batch_size, seq_len, embed_dim)
+output = attention(x)
+print(f"出力形状: {output.shape}")  # [32, 100, 512]</code></pre>
+
+        <h2 id="multi-head">2. Multi-Head Attention</h2>
+
+        <p>
+            Multi-Head Attention（MHA）は、複数の「ヘッド」を並列に使用することで、異なる表現部分空間で異なるタイプの依存関係を学習します。
+        </p>
+
+        <div class="mermaid">
+        flowchart TB
+            Input[入力] --> Split[分割]
+            Split --> H1[Head 1]
+            Split --> H2[Head 2]
+            Split --> H3[Head 3]
+            Split --> H4[Head ...]
+
+            H1 --> Concat[連結]
+            H2 --> Concat
+            H3 --> Concat
+            H4 --> Concat
+
+            Concat --> Output[出力投影]
+        </div>
+
+        <pre><code class="language-python">class MultiHeadAttention(nn.Module):
+    """
+    Multi-Head Attention の実装
+
+    各ヘッドは異なる表現部分空間で注意を学習し、
+    最終的に連結されて出力される。
+    """
+
+    def __init__(
+        self,
+        embed_dim: int,
+        num_heads: int,
+        dropout: float = 0.0,
+        bias: bool = True
+    ):
+        super().__init__()
+        self.embed_dim = embed_dim
+        self.num_heads = num_heads
+        self.head_dim = embed_dim // num_heads
+        self.scale = math.sqrt(self.head_dim)
+
+        # 統合されたQKV投影（効率化のため）
+        self.qkv_proj = nn.Linear(embed_dim, 3 * embed_dim, bias=bias)
+        self.out_proj = nn.Linear(embed_dim, embed_dim, bias=bias)
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(
+        self,
+        x: torch.Tensor,
+        attention_mask: torch.Tensor = None,
+        is_causal: bool = False
+    ) -> tuple:
+        batch_size, seq_len, _ = x.shape
+
+        # QKVを一度に計算
+        qkv = self.qkv_proj(x)
+        qkv = qkv.reshape(batch_size, seq_len, 3, self.num_heads, self.head_dim)
+        qkv = qkv.permute(2, 0, 3, 1, 4)  # [3, batch, heads, seq, head_dim]
+        Q, K, V = qkv[0], qkv[1], qkv[2]
+
+        # 注意スコア計算
+        attention_scores = torch.matmul(Q, K.transpose(-2, -1)) / self.scale
+
+        # 因果マスク（デコーダ用）
+        if is_causal:
+            causal_mask = torch.triu(
+                torch.ones(seq_len, seq_len, device=x.device),
+                diagonal=1
+            ).bool()
+            attention_scores = attention_scores.masked_fill(causal_mask, float('-inf'))
+
+        # 追加のマスク
+        if attention_mask is not None:
+            attention_scores = attention_scores + attention_mask
+
+        # Softmax と Dropout
+        attention_weights = F.softmax(attention_scores, dim=-1)
+        attention_weights = self.dropout(attention_weights)
+
+        # 出力計算
+        output = torch.matmul(attention_weights, V)
+        output = output.transpose(1, 2).reshape(batch_size, seq_len, self.embed_dim)
+        output = self.out_proj(output)
+
+        return output, attention_weights</code></pre>
+
+        <h2 id="position">3. 位置エンコーディング</h2>
+
+        <p>
+            Transformerは本質的に順序を認識しないため、位置情報を明示的に注入する必要があります。位置エンコーディング手法は大きく進化しており、現代のLLMでは回転位置エンコーディング（RoPE）が標準となっています。
+        </p>
+
+        <h3>3.1 位置エンコーディングの比較</h3>
+
+        <table>
+            <tr>
+                <th>手法</th>
+                <th>タイプ</th>
+                <th>長所</th>
+                <th>使用例</th>
+            </tr>
+            <tr>
+                <td>正弦波エンコーディング</td>
+                <td>絶対位置</td>
+                <td>シンプル、学習不要</td>
+                <td>オリジナルTransformer</td>
+            </tr>
+            <tr>
+                <td>学習位置エンコーディング</td>
+                <td>絶対位置</td>
+                <td>タスク適応的</td>
+                <td>BERT, GPT-2</td>
+            </tr>
+            <tr>
+                <td>RoPE</td>
+                <td>相対位置</td>
+                <td>外挿性、効率的</td>
+                <td>Llama, Qwen, Mistral</td>
+            </tr>
+            <tr>
+                <td>ALiBi</td>
+                <td>相対位置</td>
+                <td>学習不要、高速</td>
+                <td>BLOOM, MPT</td>
+            </tr>
+        </table>
+
+        <h3>3.2 RoPE（回転位置エンコーディング）</h3>
+
+        <p>
+            RoPEは、位置情報をQueryとKeyベクトルに回転行列として適用します。これにより、注意計算が自然に相対位置をエンコードするようになります。
+        </p>
+
+        <pre><code class="language-python">class RotaryPositionEmbedding(nn.Module):
+    """
+    回転位置エンコーディング（RoPE）の実装
+
+    RoPEは位置情報をベクトルの回転として適用し、
+    相対位置情報を注意計算に自然に組み込む。
+
+    利点:
+    - 学習パラメータなし
+    - 相対位置のエンコード
+    - 長いシーケンスへの優れた外挿性
+    """
+
+    def __init__(self, dim: int, max_seq_len: int = 8192, base: int = 10000):
+        super().__init__()
+        self.dim = dim
+        self.max_seq_len = max_seq_len
+        self.base = base
+
+        # 周波数を事前計算
+        inv_freq = 1.0 / (base ** (torch.arange(0, dim, 2).float() / dim))
+        self.register_buffer("inv_freq", inv_freq)
+
+        # 位置インデックスを事前計算
+        self._set_cos_sin_cache(max_seq_len)
+
+    def _set_cos_sin_cache(self, seq_len: int):
+        """cos/sinキャッシュを事前計算"""
+        positions = torch.arange(seq_len).float()
+        freqs = torch.outer(positions, self.inv_freq)
+        emb = torch.cat((freqs, freqs), dim=-1)
+
+        self.register_buffer("cos_cached", emb.cos())
+        self.register_buffer("sin_cached", emb.sin())
+
+    def rotate_half(self, x: torch.Tensor) -> torch.Tensor:
+        """ベクトルの半分を回転"""
+        x1 = x[..., : x.shape[-1] // 2]
+        x2 = x[..., x.shape[-1] // 2 :]
+        return torch.cat((-x2, x1), dim=-1)
+
+    def forward(
+        self,
+        q: torch.Tensor,
+        k: torch.Tensor,
+        positions: torch.Tensor = None
+    ) -> tuple:
+        """
+        QueryとKeyにRoPEを適用
+
+        Args:
+            q: Query テンソル [batch, heads, seq, head_dim]
+            k: Key テンソル [batch, heads, seq, head_dim]
+            positions: オプションの位置インデックス
+
+        Returns:
+            回転後のq, kのタプル
+        """
+        seq_len = q.shape[2]
+
+        if positions is None:
+            cos = self.cos_cached[:seq_len]
+            sin = self.sin_cached[:seq_len]
+        else:
+            cos = self.cos_cached[positions]
+            sin = self.sin_cached[positions]
+
+        # ブロードキャスト用に次元を調整
+        cos = cos.unsqueeze(0).unsqueeze(0)  # [1, 1, seq, dim]
+        sin = sin.unsqueeze(0).unsqueeze(0)
+
+        # 回転を適用
+        q_rotated = (q * cos) + (self.rotate_half(q) * sin)
+        k_rotated = (k * cos) + (self.rotate_half(k) * sin)
+
+        return q_rotated, k_rotated
+
+# 使用例
+rope = RotaryPositionEmbedding(dim=64, max_seq_len=4096)
+q = torch.randn(2, 8, 100, 64)  # [batch, heads, seq, head_dim]
+k = torch.randn(2, 8, 100, 64)
+q_rot, k_rot = rope(q, k)
+print(f"回転後の形状: {q_rot.shape}")</code></pre>
+
+        <h2 id="architectures">4. アーキテクチャの変種</h2>
+
+        <h3>4.1 Encoder-Decoder vs Decoder-Only</h3>
+
+        <div class="mermaid">
+        flowchart TB
+            subgraph "Encoder-Decoder (T5, BART)"
+                E1[入力] --> E2[エンコーダ]
+                E2 --> E3[隠れ状態]
+                E3 --> D1[デコーダ]
+                D1 --> O1[出力]
+            end
+
+            subgraph "Decoder-Only (GPT, Llama)"
+                I2[入力] --> D2[デコーダ層]
+                D2 --> D3[デコーダ層]
+                D3 --> O2[出力]
+            end
+        </div>
+
+        <table>
+            <tr>
+                <th>アーキテクチャ</th>
+                <th>代表モデル</th>
+                <th>最適な用途</th>
+            </tr>
+            <tr>
+                <td>Encoder-Only</td>
+                <td>BERT, RoBERTa</td>
+                <td>分類、NER、埋め込み</td>
+            </tr>
+            <tr>
+                <td>Decoder-Only</td>
+                <td>GPT-4, Llama, Claude</td>
+                <td>テキスト生成、会話</td>
+            </tr>
+            <tr>
+                <td>Encoder-Decoder</td>
+                <td>T5, BART</td>
+                <td>翻訳、要約</td>
+            </tr>
+        </table>
+
+        <div class="note">
+            <strong>業界トレンド:</strong> 2024-2026年において、Decoder-Onlyアーキテクチャが大規模LLMの標準となっています。これは、より単純なアーキテクチャでスケーリングが容易であり、生成タスクへの統一的なアプローチが可能なためです。
+        </div>
+
+        <h2 id="moe">5. Mixture of Experts（MoE）</h2>
+
+        <p>
+            MoE（Mixture of Experts）は、Transformerのフィードフォワード層を複数の「エキスパート」ネットワークに置き換え、各入力に対して少数のエキスパートのみを活性化することで、パラメータ効率とスケーラビリティを向上させます。
+        </p>
+
+        <h3>5.1 MoEの仕組み</h3>
+
+        <div class="mermaid">
+        flowchart TB
+            Input[入力トークン] --> Router[ルーター]
+            Router -->|選択| E1[Expert 1]
+            Router -->|選択| E2[Expert 2]
+            Router -.->|非活性| E3[Expert 3]
+            Router -.->|非活性| E4[Expert 4]
+
+            E1 --> Combine[重み付け結合]
+            E2 --> Combine
+            Combine --> Output[出力]
+
+            style E3 fill:#f0f0f0
+            style E4 fill:#f0f0f0
+        </div>
+
+        <div class="key-concept">
+            <h4>MoEの主な利点</h4>
+            <ul>
+                <li><strong>計算効率:</strong> 総パラメータの15-40%のみを各トークンで活性化</li>
+                <li><strong>スケーラビリティ:</strong> 計算コストを比例的に増やさずにモデルサイズを拡大可能</li>
+                <li><strong>専門化:</strong> 各エキスパートは特定のタスクやドメインに特化できる</li>
+            </ul>
+        </div>
+
+        <h3>5.2 代表的なMoEモデル</h3>
+
+        <table>
+            <tr>
+                <th>モデル</th>
+                <th>総パラメータ</th>
+                <th>活性パラメータ</th>
+                <th>エキスパート数</th>
+            </tr>
+            <tr>
+                <td>Mixtral 8x22B</td>
+                <td>176B</td>
+                <td>39B</td>
+                <td>8</td>
+            </tr>
+            <tr>
+                <td>DeepSeek-V3</td>
+                <td>671B</td>
+                <td>37B</td>
+                <td>256</td>
+            </tr>
+            <tr>
+                <td>Llama 4 Scout</td>
+                <td>109B</td>
+                <td>17B</td>
+                <td>16</td>
+            </tr>
+            <tr>
+                <td>Qwen3-235B-A22B</td>
+                <td>235B</td>
+                <td>22B</td>
+                <td>128</td>
+            </tr>
+        </table>
+
+        <pre><code class="language-python">class MoELayer(nn.Module):
+    """
+    Mixture of Expertsレイヤーの実装
+
+    Transformerのフィードフォワード層を複数のエキスパートに置き換え、
+    ルーターが各トークンに対して最適なエキスパートを選択する。
+    """
+
+    def __init__(
+        self,
+        embed_dim: int,
+        num_experts: int = 8,
+        top_k: int = 2,
+        expert_dim: int = None
+    ):
+        super().__init__()
+        self.num_experts = num_experts
+        self.top_k = top_k
+        expert_dim = expert_dim or embed_dim * 4
+
+        # ルーターネットワーク
+        self.router = nn.Linear(embed_dim, num_experts, bias=False)
+
+        # エキスパートネットワーク（各々がFFN）
+        self.experts = nn.ModuleList([
+            nn.Sequential(
+                nn.Linear(embed_dim, expert_dim),
+                nn.GELU(),
+                nn.Linear(expert_dim, embed_dim)
+            )
+            for _ in range(num_experts)
+        ])
+
+    def forward(self, x: torch.Tensor) -> tuple:
+        """
+        Args:
+            x: 入力テンソル [batch_size, seq_len, embed_dim]
+
+        Returns:
+            出力テンソルとルーター損失（負荷分散用）のタプル
+        """
+        batch_size, seq_len, embed_dim = x.shape
+        x_flat = x.view(-1, embed_dim)  # [batch*seq, embed]
+
+        # ルーティングスコアを計算
+        router_logits = self.router(x_flat)  # [batch*seq, num_experts]
+        router_probs = F.softmax(router_logits, dim=-1)
+
+        # Top-kエキスパートを選択
+        top_k_probs, top_k_indices = torch.topk(router_probs, self.top_k, dim=-1)
+
+        # 選択されたエキスパートの確率を正規化
+        top_k_probs = top_k_probs / top_k_probs.sum(dim=-1, keepdim=True)
+
+        # 出力を初期化
+        output = torch.zeros_like(x_flat)
+
+        # 各エキスパートを処理
+        for expert_idx in range(self.num_experts):
+            # このエキスパートに割り当てられたトークンを見つける
+            expert_mask = (top_k_indices == expert_idx).any(dim=-1)
+
+            if expert_mask.any():
+                expert_input = x_flat[expert_mask]
+                expert_output = self.experts[expert_idx](expert_input)
+
+                # このエキスパートの重みを取得
+                expert_weights = torch.where(
+                    top_k_indices[expert_mask] == expert_idx,
+                    top_k_probs[expert_mask],
+                    torch.zeros_like(top_k_probs[expert_mask])
+                ).sum(dim=-1, keepdim=True)
+
+                output[expert_mask] += expert_weights * expert_output
+
+        # 負荷分散損失（エキスパート利用の均等化）
+        load_balance_loss = self._compute_load_balance_loss(router_probs)
+
+        return output.view(batch_size, seq_len, embed_dim), load_balance_loss
+
+    def _compute_load_balance_loss(self, router_probs: torch.Tensor) -> torch.Tensor:
+        """エキスパート間の負荷分散を促す補助損失"""
+        # 各エキスパートの平均利用率
+        expert_usage = router_probs.mean(dim=0)
+        # 均等分布からの乖離
+        target = 1.0 / self.num_experts
+        return ((expert_usage - target) ** 2).sum()
+
+# 使用例
+moe = MoELayer(embed_dim=512, num_experts=8, top_k=2)
+x = torch.randn(4, 100, 512)
+output, aux_loss = moe(x)
+print(f"出力形状: {output.shape}, 補助損失: {aux_loss.item():.4f}")</code></pre>
+
+        <h2 id="efficient">6. 効率的なAttention機構</h2>
+
+        <h3>6.1 FlashAttention</h3>
+
+        <p>
+            FlashAttentionは、GPUのメモリ階層を最適化することで、標準的なAttentionと比較して2-4倍の高速化と大幅なメモリ削減を実現します。
+        </p>
+
+        <div class="key-concept">
+            <h4>FlashAttentionの原理</h4>
+            <ul>
+                <li><strong>タイリング:</strong> 入力をブロックに分割し、オンチップSRAMで処理</li>
+                <li><strong>再計算:</strong> 中間結果を保存せず、必要時に再計算</li>
+                <li><strong>カーネル融合:</strong> 複数の操作を1つのGPUカーネルに統合</li>
+            </ul>
+        </div>
+
+        <pre><code class="language-python"># FlashAttentionの使用（PyTorch 2.0+）
+import torch
+import torch.nn.functional as F
+
+def flash_attention_example(q, k, v, is_causal=True):
+    """
+    PyTorch 2.0+のscaled_dot_product_attentionを使用した
+    FlashAttention互換の実装
+
+    FlashAttention v2は以下を自動的に最適化:
+    - メモリ効率（O(N)のメモリ使用）
+    - 計算効率（タイリングによる高速化）
+    - 因果マスクの最適化
+    """
+    # PyTorch 2.0+では自動的に最適な実装を選択
+    output = F.scaled_dot_product_attention(
+        q, k, v,
+        attn_mask=None,
+        dropout_p=0.0,
+        is_causal=is_causal,
+        scale=None  # 自動計算
+    )
+    return output
+
+# 実装比較
+def benchmark_attention():
+    """標準Attention vs FlashAttentionのベンチマーク"""
+    import time
+
+    batch_size = 4
+    num_heads = 32
+    seq_len = 4096
+    head_dim = 128
+
+    q = torch.randn(batch_size, num_heads, seq_len, head_dim, device='cuda')
+    k = torch.randn(batch_size, num_heads, seq_len, head_dim, device='cuda')
+    v = torch.randn(batch_size, num_heads, seq_len, head_dim, device='cuda')
+
+    # ウォームアップ
+    _ = flash_attention_example(q, k, v)
+    torch.cuda.synchronize()
+
+    # FlashAttention
+    start = time.time()
+    for _ in range(10):
+        _ = flash_attention_example(q, k, v)
+    torch.cuda.synchronize()
+    flash_time = (time.time() - start) / 10
+
+    print(f"FlashAttention: {flash_time*1000:.2f}ms")
+    print(f"シーケンス長: {seq_len}, メモリ使用量: O(N)")
+
+# GPUが利用可能な場合実行
+if torch.cuda.is_available():
+    benchmark_attention()</code></pre>
+
+        <h3>6.2 Grouped-Query Attention（GQA）</h3>
+
+        <p>
+            GQAは、複数のQueryヘッドで1つのKey-Valueヘッドを共有することで、KVキャッシュのメモリ使用量を削減します。
+        </p>
+
+        <table>
+            <tr>
+                <th>タイプ</th>
+                <th>Q:KV比率</th>
+                <th>KVキャッシュ削減</th>
+                <th>使用モデル</th>
+            </tr>
+            <tr>
+                <td>MHA</td>
+                <td>1:1</td>
+                <td>0%</td>
+                <td>GPT-3</td>
+            </tr>
+            <tr>
+                <td>GQA</td>
+                <td>8:1</td>
+                <td>87.5%</td>
+                <td>Llama 2/3</td>
+            </tr>
+            <tr>
+                <td>MQA</td>
+                <td>N:1</td>
+                <td>最大</td>
+                <td>PaLM</td>
+            </tr>
+        </table>
+
+        <h2>まとめ</h2>
+
+        <div class="key-concept">
+            <h4>第2章の重要ポイント</h4>
+            <ul>
+                <li><strong>Self-Attention:</strong> Transformerの中核、Query-Key-Valueによる動的な関連性計算</li>
+                <li><strong>Multi-Head Attention:</strong> 複数の表現部分空間で異なる依存関係を学習</li>
+                <li><strong>位置エンコーディング:</strong> RoPEが現代LLMの標準、優れた外挿性能</li>
+                <li><strong>MoE:</strong> パラメータ効率を大幅に向上、同等計算で高性能を実現</li>
+                <li><strong>FlashAttention:</strong> メモリ効率と速度を両立、長コンテキストを実現</li>
+            </ul>
+        </div>
+
+        <div class="chapter-nav">
+            <a href="chapter-1.html">前へ: LLMの基礎</a>
+            <a href="chapter-3.html">次へ: LLMの訓練と整合性</a>
+        </div>
+    </main>
+
+    <footer>
+        <p>AI寺子屋 - LLM基礎入門</p>
+        <p><a href="index.html">シリーズ目次へ</a> | <a href="../../index.html">ML道場へ</a></p>
+    </footer>
+
+    <div class="locale-switcher">
+        <a href="../../../en/ML/llm-basics-introduction/chapter-2.html">English</a>
+    </div>
+
+    <!-- MathJax for equations -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</body>
+</html>

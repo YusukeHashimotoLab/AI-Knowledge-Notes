@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Chapter 2: Transformer Architecture - Deep dive into Self-Attention, Position Encoding, MoE, and efficient attention mechanisms">
+    <title>Chapter 2: Transformer Architecture - LLM Basics Introduction - AI Terakoya</title>
+
+    <!-- CSS Styling -->
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --bg-color: #ffffff;
+            --text-color: #333333;
+            --border-color: #e0e0e0;
+            --code-bg: #f5f5f5;
+            --link-color: #3498db;
+            --link-hover: #2980b9;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+            line-height: 1.8;
+            color: var(--text-color);
+            background: var(--bg-color);
+            padding: 0;
+            margin: 0;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        header .container {
+            padding: 0 1.5rem;
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            margin-bottom: 1rem;
+        }
+
+        .meta {
+            display: flex;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+            font-size: 0.9rem;
+            opacity: 0.95;
+            margin-top: 1rem;
+        }
+
+        .meta span {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            margin-top: 2.5rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 3px solid var(--secondary-color);
+            color: var(--primary-color);
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            margin-top: 2rem;
+            margin-bottom: 0.8rem;
+            color: var(--primary-color);
+        }
+
+        h4 {
+            font-size: 1.2rem;
+            margin-top: 1.5rem;
+            margin-bottom: 0.6rem;
+            color: var(--primary-color);
+        }
+
+        p {
+            margin-bottom: 1.2rem;
+        }
+
+        a {
+            color: var(--link-color);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        a:hover {
+            color: var(--link-hover);
+            text-decoration: underline;
+        }
+
+        ul, ol {
+            margin-left: 2rem;
+            margin-bottom: 1.2rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        pre {
+            background: var(--code-bg);
+            padding: 1.5rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1.5rem 0;
+            border: 1px solid var(--border-color);
+        }
+
+        code {
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 0.9rem;
+        }
+
+        p code, li code {
+            background: var(--code-bg);
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            font-size: 0.85rem;
+        }
+
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196F3;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 4px;
+        }
+
+        .info-box h4 {
+            margin-top: 0;
+            color: #1976D2;
+        }
+
+        .warning-box {
+            background: #fff3e0;
+            border-left: 4px solid #ff9800;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 4px;
+        }
+
+        .warning-box h4 {
+            margin-top: 0;
+            color: #f57c00;
+        }
+
+        .example-box {
+            background: #f3e5f5;
+            border-left: 4px solid #9c27b0;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 4px;
+        }
+
+        .example-box h4 {
+            margin-top: 0;
+            color: #7b1fa2;
+        }
+
+        .success-box {
+            background: #e8f5e9;
+            border-left: 4px solid #4caf50;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 4px;
+        }
+
+        .success-box h4 {
+            margin-top: 0;
+            color: #388e3c;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            font-size: 0.9rem;
+        }
+
+        th, td {
+            padding: 0.8rem;
+            text-align: left;
+            border: 1px solid var(--border-color);
+        }
+
+        th {
+            background: var(--code-bg);
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+
+        tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+
+        .mermaid {
+            text-align: center;
+            margin: 2rem 0;
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .nav-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin: 3rem 0;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .nav-button {
+            display: inline-block;
+            padding: 0.8rem 1.5rem;
+            background: var(--secondary-color);
+            color: white;
+            border-radius: 6px;
+            text-decoration: none;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        .nav-button:hover {
+            background: var(--link-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+            text-decoration: none;
+        }
+
+        footer {
+            margin-top: 4rem;
+            padding: 2rem 0;
+            border-top: 2px solid var(--border-color);
+            text-align: center;
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .disclaimer {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 1.5rem;
+            background: #f8f9fa;
+            border-left: 4px solid #6c757d;
+            border-radius: 4px;
+        }
+
+        .disclaimer h3 {
+            color: #495057;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .disclaimer ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .disclaimer li {
+            padding: 0.5rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+            font-size: 0.9rem;
+            color: #6c757d;
+            line-height: 1.6;
+        }
+
+        .disclaimer li::before {
+            content: "\u26a0\ufe0f";
+            position: absolute;
+            left: 0;
+        }
+
+        .breadcrumb {
+            background: #f7fafc;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+        }
+
+        .breadcrumb-content {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .breadcrumb a {
+            color: #667eea;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .breadcrumb a:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+
+        .breadcrumb-separator {
+            color: #a0aec0;
+            margin: 0 0.25rem;
+        }
+
+        .breadcrumb-current {
+            color: #4a5568;
+            font-weight: 500;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            h1 {
+                font-size: 1.6rem;
+            }
+
+            h2 {
+                font-size: 1.4rem;
+            }
+
+            .meta {
+                font-size: 0.85rem;
+            }
+
+            pre {
+                padding: 1rem;
+            }
+        }
+    </style>
+
+    <!-- MathJax for equations -->
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <!-- Mermaid for diagrams -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+
+    <!-- Prism.js for syntax highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof mermaid !== 'undefined') {
+                mermaid.initialize({ startOnLoad: true, theme: 'default' });
+            }
+        });
+    </script>
+</head>
+<body>
+    <nav class="breadcrumb">
+        <div class="breadcrumb-content">
+            <a href="../../index.html">Home</a><span class="breadcrumb-separator">></span><a href="../index.html">Machine Learning</a><span class="breadcrumb-separator">></span><a href="./index.html">LLM Basics Introduction</a><span class="breadcrumb-separator">></span><span class="breadcrumb-current">Chapter 2</span>
+        </div>
+    </nav>
+
+    <header>
+        <div class="container">
+            <h1>Chapter 2: Transformer Architecture</h1>
+            <p class="subtitle">Self-Attention, Position Encoding, MoE, and Efficient Attention</p>
+            <div class="meta">
+                <span>Reading Time: 30-35 min</span>
+                <span>Difficulty: Intermediate</span>
+                <span>Code Examples: 8</span>
+                <span>Exercises: 4</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <h2 id="intro">Introduction</h2>
+        <p>The <strong>Transformer</strong> architecture is the foundation of all modern Large Language Models (LLMs). In this chapter, we'll dive deep into the core mechanisms that make LLMs work, including the revolutionary <strong>Self-Attention</strong> mechanism, various <strong>position encoding</strong> schemes, and the cutting-edge <strong>Mixture of Experts (MoE)</strong> architecture that powers models like DeepSeek and Mixtral.</p>
+
+        <div class="info-box">
+            <h4>What You'll Learn</h4>
+            <ul>
+                <li>How Self-Attention computes relationships between all tokens</li>
+                <li>Multi-Head Attention and why it matters</li>
+                <li>Position encoding: from sinusoidal to RoPE and ALiBi</li>
+                <li>Decoder-Only vs Encoder-Decoder architectures</li>
+                <li><strong>NEW</strong>: Mixture of Experts (MoE) - the secret behind efficient giant models</li>
+                <li><strong>NEW</strong>: FlashAttention and efficient attention mechanisms</li>
+            </ul>
+        </div>
+
+        <h2 id="self-attention">2.1 Self-Attention Mechanism</h2>
+
+        <h3>The Core Idea</h3>
+        <p><strong>Self-Attention</strong> (also called Scaled Dot-Product Attention) allows each token in a sequence to attend to all other tokens, capturing dependencies regardless of their distance in the sequence.</p>
+
+        <p>The key insight is: instead of processing tokens sequentially like RNNs, Self-Attention computes relationships between <em>all pairs</em> of tokens in parallel.</p>
+
+        <h3>Mathematical Formulation</h3>
+        <p>Given an input sequence, Self-Attention computes three matrices:</p>
+        <ul>
+            <li><strong>Query (Q)</strong>: "What am I looking for?"</li>
+            <li><strong>Key (K)</strong>: "What information do I contain?"</li>
+            <li><strong>Value (V)</strong>: "What information do I provide?"</li>
+        </ul>
+
+        <p>The attention output is computed as:</p>
+        <p>$$\text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)V$$</p>
+
+        <p>Where \(d_k\) is the dimension of the key vectors. The \(\sqrt{d_k}\) scaling prevents the dot products from becoming too large.</p>
+
+        <div class="mermaid">
+graph LR
+    A[Input X] --> B[Linear: Q]
+    A --> C[Linear: K]
+    A --> D[Linear: V]
+    B --> E[MatMul Q*K^T]
+    C --> E
+    E --> F[Scale by sqrt dk]
+    F --> G[Softmax]
+    G --> H[MatMul with V]
+    D --> H
+    H --> I[Output]
+
+    style A fill:#e3f2fd
+    style I fill:#e8f5e9
+        </div>
+
+        <h3>Implementation in Python</h3>
+        <pre><code class="language-python">import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import math
+
+class SelfAttention(nn.Module):
+    """Scaled Dot-Product Self-Attention"""
+
+    def __init__(self, embed_dim: int):
+        super().__init__()
+        self.embed_dim = embed_dim
+
+        # Linear projections for Q, K, V
+        self.q_proj = nn.Linear(embed_dim, embed_dim)
+        self.k_proj = nn.Linear(embed_dim, embed_dim)
+        self.v_proj = nn.Linear(embed_dim, embed_dim)
+
+        # Output projection
+        self.out_proj = nn.Linear(embed_dim, embed_dim)
+
+        # Scaling factor
+        self.scale = math.sqrt(embed_dim)
+
+    def forward(self, x: torch.Tensor, mask: torch.Tensor = None):
+        """
+        Args:
+            x: Input tensor of shape (batch, seq_len, embed_dim)
+            mask: Optional attention mask
+        Returns:
+            Output tensor of shape (batch, seq_len, embed_dim)
+        """
+        # Compute Q, K, V
+        Q = self.q_proj(x)  # (batch, seq_len, embed_dim)
+        K = self.k_proj(x)
+        V = self.v_proj(x)
+
+        # Compute attention scores
+        # (batch, seq_len, embed_dim) @ (batch, embed_dim, seq_len)
+        # = (batch, seq_len, seq_len)
+        scores = torch.matmul(Q, K.transpose(-2, -1)) / self.scale
+
+        # Apply mask if provided (for causal/autoregressive models)
+        if mask is not None:
+            scores = scores.masked_fill(mask == 0, float('-inf'))
+
+        # Softmax to get attention weights
+        attn_weights = F.softmax(scores, dim=-1)
+
+        # Apply attention to values
+        output = torch.matmul(attn_weights, V)
+
+        # Final projection
+        return self.out_proj(output)
+
+# Example usage
+batch_size, seq_len, embed_dim = 2, 10, 64
+x = torch.randn(batch_size, seq_len, embed_dim)
+
+attention = SelfAttention(embed_dim)
+output = attention(x)
+print(f"Input shape: {x.shape}")
+print(f"Output shape: {output.shape}")
+# Input shape: torch.Size([2, 10, 64])
+# Output shape: torch.Size([2, 10, 64])</code></pre>
+
+        <h2 id="multi-head">2.2 Multi-Head Attention</h2>
+
+        <h3>Why Multiple Heads?</h3>
+        <p>A single attention head can only focus on one type of relationship at a time. <strong>Multi-Head Attention</strong> allows the model to jointly attend to information from different representation subspaces.</p>
+
+        <div class="info-box">
+            <h4>Intuition</h4>
+            <p>Think of it like having multiple "experts" looking at the same text:</p>
+            <ul>
+                <li>Head 1 might focus on syntactic relationships (subject-verb)</li>
+                <li>Head 2 might capture semantic similarity</li>
+                <li>Head 3 might track coreference (pronouns to nouns)</li>
+            </ul>
+        </div>
+
+        <p>$$\text{MultiHead}(Q, K, V) = \text{Concat}(\text{head}_1, ..., \text{head}_h)W^O$$</p>
+        <p>where \(\text{head}_i = \text{Attention}(QW_i^Q, KW_i^K, VW_i^V)\)</p>
+
+        <pre><code class="language-python">class MultiHeadAttention(nn.Module):
+    """Multi-Head Self-Attention as used in Transformer"""
+
+    def __init__(self, embed_dim: int, num_heads: int, dropout: float = 0.1):
+        super().__init__()
+        assert embed_dim % num_heads == 0, "embed_dim must be divisible by num_heads"
+
+        self.embed_dim = embed_dim
+        self.num_heads = num_heads
+        self.head_dim = embed_dim // num_heads
+
+        # Combined projection for Q, K, V (more efficient)
+        self.qkv_proj = nn.Linear(embed_dim, 3 * embed_dim)
+        self.out_proj = nn.Linear(embed_dim, embed_dim)
+
+        self.dropout = nn.Dropout(dropout)
+        self.scale = math.sqrt(self.head_dim)
+
+    def forward(self, x: torch.Tensor, mask: torch.Tensor = None):
+        batch_size, seq_len, _ = x.shape
+
+        # Project and reshape for multi-head
+        qkv = self.qkv_proj(x)  # (batch, seq_len, 3 * embed_dim)
+        qkv = qkv.reshape(batch_size, seq_len, 3, self.num_heads, self.head_dim)
+        qkv = qkv.permute(2, 0, 3, 1, 4)  # (3, batch, heads, seq_len, head_dim)
+        Q, K, V = qkv[0], qkv[1], qkv[2]
+
+        # Compute attention scores
+        scores = torch.matmul(Q, K.transpose(-2, -1)) / self.scale
+
+        if mask is not None:
+            scores = scores.masked_fill(mask == 0, float('-inf'))
+
+        attn_weights = F.softmax(scores, dim=-1)
+        attn_weights = self.dropout(attn_weights)
+
+        # Apply attention to values
+        output = torch.matmul(attn_weights, V)
+
+        # Reshape and project
+        output = output.transpose(1, 2).reshape(batch_size, seq_len, self.embed_dim)
+        return self.out_proj(output)
+
+# Example: 8-head attention
+mha = MultiHeadAttention(embed_dim=512, num_heads=8)
+x = torch.randn(2, 100, 512)  # batch=2, seq_len=100
+output = mha(x)
+print(f"Multi-head output shape: {output.shape}")
+# Multi-head output shape: torch.Size([2, 100, 512])</code></pre>
+
+        <h2 id="position-encoding">2.3 Position Encoding</h2>
+
+        <p>Self-Attention is <strong>permutation-invariant</strong> - it doesn't inherently know the order of tokens. Position encodings inject positional information into the model.</p>
+
+        <h3>Sinusoidal Position Encoding (Original Transformer)</h3>
+        <p>The original Transformer used sinusoidal functions:</p>
+        <p>$$PE_{(pos, 2i)} = \sin\left(\frac{pos}{10000^{2i/d}}\right)$$</p>
+        <p>$$PE_{(pos, 2i+1)} = \cos\left(\frac{pos}{10000^{2i/d}}\right)$$</p>
+
+        <h3>RoPE (Rotary Position Embedding)</h3>
+        <p><strong>RoPE</strong> is the position encoding used by most modern LLMs including LLaMA, Mistral, and Qwen. It encodes position by rotating the query and key vectors.</p>
+
+        <div class="success-box">
+            <h4>Why RoPE is Superior</h4>
+            <ul>
+                <li><strong>Relative position</strong>: Naturally captures relative distances</li>
+                <li><strong>Length extrapolation</strong>: Can generalize to longer sequences than training</li>
+                <li><strong>Efficient</strong>: Applied only to Q and K, not V</li>
+            </ul>
+        </div>
+
+        <pre><code class="language-python">def apply_rope(x: torch.Tensor, freqs_cos: torch.Tensor, freqs_sin: torch.Tensor):
+    """Apply Rotary Position Embedding (RoPE)
+
+    Args:
+        x: Query or Key tensor of shape (batch, heads, seq_len, head_dim)
+        freqs_cos, freqs_sin: Precomputed cosine and sine frequencies
+    """
+    # Split x into pairs for rotation
+    x1 = x[..., ::2]   # Even indices
+    x2 = x[..., 1::2]  # Odd indices
+
+    # Apply rotation
+    # [x1, x2] * [cos, -sin; sin, cos] = [x1*cos - x2*sin, x1*sin + x2*cos]
+    rotated = torch.stack([
+        x1 * freqs_cos - x2 * freqs_sin,
+        x1 * freqs_sin + x2 * freqs_cos
+    ], dim=-1).flatten(-2)
+
+    return rotated
+
+def precompute_rope_freqs(dim: int, max_seq_len: int, base: float = 10000.0):
+    """Precompute RoPE frequencies"""
+    # Compute inverse frequencies
+    inv_freq = 1.0 / (base ** (torch.arange(0, dim, 2).float() / dim))
+
+    # Compute position indices
+    positions = torch.arange(max_seq_len).float()
+
+    # Outer product to get (seq_len, dim/2) frequency matrix
+    freqs = torch.outer(positions, inv_freq)
+
+    return torch.cos(freqs), torch.sin(freqs)
+
+# Example
+head_dim = 64
+max_len = 2048
+freqs_cos, freqs_sin = precompute_rope_freqs(head_dim, max_len)
+print(f"RoPE frequency shapes: cos={freqs_cos.shape}, sin={freqs_sin.shape}")
+# RoPE frequency shapes: cos=torch.Size([2048, 32]), sin=torch.Size([2048, 32])</code></pre>
+
+        <h3>ALiBi (Attention with Linear Biases)</h3>
+        <p><strong>ALiBi</strong> adds a linear bias to attention scores based on distance, without modifying embeddings:</p>
+        <p>$$\text{softmax}(q_i \cdot k_j - m \cdot |i - j|)$$</p>
+        <p>where \(m\) is a head-specific slope. ALiBi is used by models like BLOOM and MPT.</p>
+
+        <h2 id="architectures">2.4 Decoder-Only vs Encoder-Decoder</h2>
+
+        <h3>Architecture Comparison</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Architecture</th>
+                    <th>Models</th>
+                    <th>Use Case</th>
+                    <th>Attention Type</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Encoder-Only</strong></td>
+                    <td>BERT, RoBERTa</td>
+                    <td>Understanding, Classification</td>
+                    <td>Bidirectional</td>
+                </tr>
+                <tr>
+                    <td><strong>Decoder-Only</strong></td>
+                    <td>GPT, LLaMA, Claude</td>
+                    <td>Generation</td>
+                    <td>Causal (unidirectional)</td>
+                </tr>
+                <tr>
+                    <td><strong>Encoder-Decoder</strong></td>
+                    <td>T5, BART</td>
+                    <td>Translation, Summarization</td>
+                    <td>Mixed</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="mermaid">
+graph TB
+    subgraph "Encoder-Only (BERT)"
+        E1[Token 1] <--> E2[Token 2]
+        E2 <--> E3[Token 3]
+        E1 <--> E3
+    end
+
+    subgraph "Decoder-Only (GPT)"
+        D1[Token 1] --> D2[Token 2]
+        D1 --> D3[Token 3]
+        D2 --> D3
+    end
+
+    subgraph "Encoder-Decoder (T5)"
+        ED1[Encoder] --> ED2[Cross-Attention]
+        ED3[Decoder] --> ED2
+    end
+
+    style E1 fill:#e3f2fd
+    style D1 fill:#fff3e0
+    style ED1 fill:#e8f5e9
+        </div>
+
+        <h3>Why Decoder-Only Dominates (2024-2025)</h3>
+        <p>Most modern LLMs use <strong>Decoder-Only</strong> architecture because:</p>
+        <ul>
+            <li><strong>Unified training</strong>: Same objective (next token prediction) for all tasks</li>
+            <li><strong>Simplicity</strong>: Fewer components, easier to scale</li>
+            <li><strong>Emergence</strong>: Scaling decoder-only models shows remarkable emergent abilities</li>
+            <li><strong>In-context learning</strong>: Natural fit for few-shot prompting</li>
+        </ul>
+
+        <h2 id="moe">2.5 Mixture of Experts (MoE)</h2>
+
+        <div class="warning-box">
+            <h4>2025-2026 Key Development</h4>
+            <p>Mixture of Experts has become the dominant architecture for frontier models. DeepSeek-V3, Mixtral, and Llama 4 all use MoE to achieve better performance with less compute.</p>
+        </div>
+
+        <h3>What is MoE?</h3>
+        <p><strong>Mixture of Experts (MoE)</strong> replaces the dense Feed-Forward Network (FFN) layer with multiple "expert" networks. A <strong>router</strong> network selects which experts to activate for each token.</p>
+
+        <div class="mermaid">
+graph TD
+    A[Input Token] --> B[Router Network]
+    B --> |Top-K Selection| C[Expert 1]
+    B --> |Top-K Selection| D[Expert 2]
+    B -.-> E[Expert 3]
+    B -.-> F[Expert N]
+    C --> G[Weighted Sum]
+    D --> G
+    G --> H[Output]
+
+    style B fill:#fff3e0
+    style C fill:#e8f5e9
+    style D fill:#e8f5e9
+    style E fill:#f5f5f5
+    style F fill:#f5f5f5
+        </div>
+
+        <h3>Key Benefits</h3>
+        <ul>
+            <li><strong>Compute Efficiency</strong>: Only 10-40% of parameters are active per token</li>
+            <li><strong>Parameter Scaling</strong>: Can have trillions of total parameters</li>
+            <li><strong>Specialization</strong>: Different experts learn different skills</li>
+        </ul>
+
+        <h3>MoE Implementation</h3>
+        <pre><code class="language-python">class MoELayer(nn.Module):
+    """Mixture of Experts Layer (Simplified)"""
+
+    def __init__(
+        self,
+        embed_dim: int,
+        num_experts: int = 8,
+        top_k: int = 2,
+        expert_dim: int = None
+    ):
+        super().__init__()
+        self.num_experts = num_experts
+        self.top_k = top_k
+        expert_dim = expert_dim or embed_dim * 4
+
+        # Router: determines which experts to use
+        self.router = nn.Linear(embed_dim, num_experts, bias=False)
+
+        # Expert networks (simplified as MLPs)
+        self.experts = nn.ModuleList([
+            nn.Sequential(
+                nn.Linear(embed_dim, expert_dim),
+                nn.GELU(),
+                nn.Linear(expert_dim, embed_dim)
+            )
+            for _ in range(num_experts)
+        ])
+
+    def forward(self, x: torch.Tensor):
+        """
+        Args:
+            x: Input tensor of shape (batch, seq_len, embed_dim)
+        """
+        batch_size, seq_len, embed_dim = x.shape
+
+        # Compute router logits
+        router_logits = self.router(x)  # (batch, seq_len, num_experts)
+
+        # Get top-k experts for each token
+        router_probs = F.softmax(router_logits, dim=-1)
+        top_k_probs, top_k_indices = torch.topk(router_probs, self.top_k, dim=-1)
+
+        # Normalize top-k probabilities
+        top_k_probs = top_k_probs / top_k_probs.sum(dim=-1, keepdim=True)
+
+        # Initialize output
+        output = torch.zeros_like(x)
+
+        # Process each expert (simplified - real implementations are more efficient)
+        for expert_idx in range(self.num_experts):
+            # Find tokens routed to this expert
+            expert_mask = (top_k_indices == expert_idx).any(dim=-1)
+
+            if expert_mask.any():
+                # Get weight for this expert
+                weight_mask = (top_k_indices == expert_idx)
+                expert_weights = (top_k_probs * weight_mask.float()).sum(dim=-1)
+
+                # Apply expert
+                expert_input = x[expert_mask]
+                expert_output = self.experts[expert_idx](expert_input)
+
+                # Add weighted expert output
+                output[expert_mask] += expert_weights[expert_mask].unsqueeze(-1) * expert_output
+
+        return output
+
+# Example: MoE with 8 experts, top-2 routing
+moe = MoELayer(embed_dim=512, num_experts=8, top_k=2)
+x = torch.randn(2, 100, 512)
+output = moe(x)
+print(f"MoE output shape: {output.shape}")
+# MoE output shape: torch.Size([2, 100, 512])</code></pre>
+
+        <h3>DeepSeek's Innovation: Shared + Routed Experts</h3>
+        <p>DeepSeek introduced a novel MoE variant with two types of experts:</p>
+        <ul>
+            <li><strong>Shared Experts</strong>: Always activated, learn common knowledge (grammar, etc.)</li>
+            <li><strong>Routed Experts</strong>: Dynamically selected, learn specialized knowledge</li>
+        </ul>
+
+        <div class="success-box">
+            <h4>DeepSeek MoE Results</h4>
+            <p>DeepSeekMoE 16B achieves comparable performance to DeepSeek 7B with only <strong>40.5% of computations</strong>, and outperforms LLaMA2 7B on most benchmarks with <strong>39.6% of computations</strong>.</p>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Model</th>
+                    <th>Total Params</th>
+                    <th>Active Params</th>
+                    <th>Architecture</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Mixtral 8x7B</td>
+                    <td>46.7B</td>
+                    <td>12.9B</td>
+                    <td>8 experts, top-2</td>
+                </tr>
+                <tr>
+                    <td>DeepSeek-V2</td>
+                    <td>236B</td>
+                    <td>21B</td>
+                    <td>Shared + Routed</td>
+                </tr>
+                <tr>
+                    <td>DeepSeek-V3</td>
+                    <td>685B</td>
+                    <td>~37B</td>
+                    <td>Fine-grained MoE</td>
+                </tr>
+                <tr>
+                    <td>Llama 4 Scout</td>
+                    <td>Unknown</td>
+                    <td>~17B</td>
+                    <td>16 experts, top-1</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h2 id="efficient-attention">2.6 Efficient Attention Mechanisms</h2>
+
+        <h3>The Quadratic Problem</h3>
+        <p>Standard self-attention has <strong>O(n^2)</strong> complexity in sequence length, making it expensive for long contexts. With 1M+ token context windows becoming standard in 2025, efficient attention is crucial.</p>
+
+        <h3>FlashAttention</h3>
+        <p><strong>FlashAttention</strong> (Dao et al., 2022) is an IO-aware algorithm that computes exact attention 2-4x faster with less memory by:</p>
+        <ul>
+            <li><strong>Tiling</strong>: Processing attention in blocks that fit in fast SRAM</li>
+            <li><strong>Recomputation</strong>: Trading compute for memory by not storing attention matrices</li>
+            <li><strong>Kernel fusion</strong>: Combining operations to reduce memory bandwidth</li>
+        </ul>
+
+        <div class="info-box">
+            <h4>FlashAttention in Practice</h4>
+            <p>FlashAttention is now the default in PyTorch 2.0+ via <code>torch.nn.functional.scaled_dot_product_attention</code> with <code>is_causal=True</code>.</p>
+        </div>
+
+        <pre><code class="language-python"># Using FlashAttention via PyTorch 2.0+
+import torch.nn.functional as F
+
+def efficient_attention(Q, K, V, is_causal=True):
+    """Use PyTorch's optimized attention (uses FlashAttention when available)"""
+    return F.scaled_dot_product_attention(
+        Q, K, V,
+        is_causal=is_causal,
+        dropout_p=0.0,  # No dropout for inference
+        scale=None  # Auto-compute scale
+    )
+
+# Example
+Q = torch.randn(2, 8, 1024, 64)  # batch, heads, seq_len, head_dim
+K = torch.randn(2, 8, 1024, 64)
+V = torch.randn(2, 8, 1024, 64)
+
+# This automatically uses FlashAttention on compatible hardware
+output = efficient_attention(Q, K, V)
+print(f"Efficient attention output: {output.shape}")
+# Efficient attention output: torch.Size([2, 8, 1024, 64])</code></pre>
+
+        <h3>Other Efficient Attention Variants</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Method</th>
+                    <th>Complexity</th>
+                    <th>Used By</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Standard Attention</td>
+                    <td>O(n^2)</td>
+                    <td>Original Transformer</td>
+                </tr>
+                <tr>
+                    <td>FlashAttention</td>
+                    <td>O(n^2) but IO-efficient</td>
+                    <td>LLaMA, Mistral, etc.</td>
+                </tr>
+                <tr>
+                    <td>Sparse Attention</td>
+                    <td>O(n * sqrt(n))</td>
+                    <td>GPT-3, Longformer</td>
+                </tr>
+                <tr>
+                    <td>Linear Attention</td>
+                    <td>O(n)</td>
+                    <td>Mamba, RWKV</td>
+                </tr>
+                <tr>
+                    <td>Ring Attention</td>
+                    <td>O(n^2 / devices)</td>
+                    <td>Distributed training</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h2 id="summary">2.7 Chapter Summary</h2>
+
+        <div class="success-box">
+            <h4>Key Takeaways</h4>
+            <ol>
+                <li><strong>Self-Attention</strong> computes relationships between all token pairs, enabling long-range dependencies</li>
+                <li><strong>Multi-Head Attention</strong> allows models to attend to multiple aspects simultaneously</li>
+                <li><strong>RoPE</strong> is the dominant position encoding for modern LLMs, enabling length extrapolation</li>
+                <li><strong>Decoder-Only</strong> architecture dominates due to simplicity and scaling properties</li>
+                <li><strong>MoE</strong> enables massive models with sparse activation, used by DeepSeek, Mixtral, Llama 4</li>
+                <li><strong>FlashAttention</strong> makes long-context models practical through IO-aware computation</li>
+            </ol>
+        </div>
+
+        <h2 id="exercises">Exercises</h2>
+
+        <h3>Exercise 1: Attention Visualization</h3>
+        <p>Implement a function that visualizes attention weights as a heatmap. Use it to see how a simple self-attention layer attends to tokens in the sentence "The cat sat on the mat".</p>
+
+        <details>
+            <summary>Solution</summary>
+            <pre><code class="language-python">import matplotlib.pyplot as plt
+import seaborn as sns
+
+def visualize_attention(attn_weights, tokens):
+    """Visualize attention weights as a heatmap"""
+    plt.figure(figsize=(8, 6))
+    sns.heatmap(
+        attn_weights.detach().numpy(),
+        xticklabels=tokens,
+        yticklabels=tokens,
+        cmap='Blues',
+        annot=True,
+        fmt='.2f'
+    )
+    plt.xlabel('Key Tokens')
+    plt.ylabel('Query Tokens')
+    plt.title('Self-Attention Weights')
+    plt.tight_layout()
+    plt.show()
+
+# Example (would need actual model to get real weights)
+tokens = ["The", "cat", "sat", "on", "the", "mat"]
+# attn_weights would be from your attention layer
+# visualize_attention(attn_weights[0, 0], tokens)  # First batch, first head</code></pre>
+        </details>
+
+        <h3>Exercise 2: RoPE vs Sinusoidal</h3>
+        <p>Compare the positional embeddings from sinusoidal encoding and RoPE. Plot the first 8 dimensions for positions 0-100.</p>
+
+        <h3>Exercise 3: MoE Load Balancing</h3>
+        <p>Implement a load balancing loss for MoE that encourages even distribution of tokens across experts:</p>
+        <p>$$\mathcal{L}_{balance} = N \cdot \sum_{i=1}^{N} f_i \cdot P_i$$</p>
+        <p>where \(f_i\) is the fraction of tokens routed to expert \(i\) and \(P_i\) is the average routing probability for expert \(i\).</p>
+
+        <h3>Exercise 4: Attention Complexity</h3>
+        <p>Measure the time and memory usage of standard attention vs FlashAttention for sequence lengths [512, 1024, 2048, 4096]. Plot the results.</p>
+
+        <h2 id="next">Next Chapter</h2>
+        <p>In the next chapter, we'll explore <strong>LLM Training and Alignment</strong> - how models are pre-trained on massive datasets, and how techniques like <strong>RLHF</strong>, <strong>DPO</strong>, and <strong>Constitutional AI</strong> align them with human values. We'll also cover the revolutionary <strong>inference-time scaling</strong> that powers reasoning models like o1 and o3.</p>
+
+        <div class="nav-buttons">
+            <a href="./chapter-1.html" class="nav-button">Previous: Chapter 1</a>
+            <a href="./chapter-3.html" class="nav-button">Next: Chapter 3</a>
+        </div>
+
+    </main>
+
+    <section class="disclaimer">
+        <h3>Disclaimer</h3>
+        <ul>
+            <li>This content is for educational, research, and informational purposes only and does not provide professional advice.</li>
+            <li>This content and accompanying code examples are provided "AS IS" without any warranties.</li>
+            <li>The author and Tohoku University are not responsible for any damages arising from the use of this content.</li>
+            <li>Content may be changed, updated, or discontinued without notice.</li>
+            <li>Copyright and license follow specified conditions (e.g., CC BY 4.0).</li>
+        </ul>
+    </section>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 AI Terakoya - Dr. Yusuke Hashimoto, Tohoku University</p>
+            <p>Licensed under CC BY 4.0</p>
+        </div>
+    </footer>
+</body>
+</html>

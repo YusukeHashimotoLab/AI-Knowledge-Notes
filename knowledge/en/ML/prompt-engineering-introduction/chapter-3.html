@@ -1,0 +1,1203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 3: Advanced Prompt Techniques - Introduction to Prompt Engineering - AI Terakoya</title>
+    <meta name="description" content="Master advanced prompting techniques including Tree of Thought, Self-Consistency, ReAct pattern, and prompting strategies for reasoning models like o1 and o3.">
+
+    <style>
+        :root {
+            --color-primary: #2c3e50;
+            --color-primary-dark: #1a252f;
+            --color-accent: #7b2cbf;
+            --color-accent-light: #9d4edd;
+            --color-text: #2d3748;
+            --color-text-light: #4a5568;
+            --color-bg: #ffffff;
+            --color-bg-alt: #f7fafc;
+            --color-border: #e2e8f0;
+            --color-code-bg: #f8f9fa;
+            --color-link: #3182ce;
+            --color-link-hover: #2c5aa0;
+
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+
+            --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+            --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+            --border-radius: 8px;
+            --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-body);
+            line-height: 1.7;
+            color: var(--color-text);
+            background-color: var(--color-bg);
+            font-size: 16px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            padding: var(--spacing-xl) var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+            box-shadow: var(--box-shadow);
+        }
+
+        .header-content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: var(--spacing-sm);
+            line-height: 1.2;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            font-weight: 400;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-md);
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-md) var(--spacing-xl);
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-xl);
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-xs);
+            border-bottom: 3px solid var(--color-accent);
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-lg);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        h4 {
+            font-size: 1.1rem;
+            color: var(--color-primary-dark);
+            margin-top: var(--spacing-md);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        p {
+            margin-bottom: var(--spacing-md);
+            color: var(--color-text);
+        }
+
+        a {
+            color: var(--color-link);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        a:hover {
+            color: var(--color-link-hover);
+            text-decoration: underline;
+        }
+
+        ul, ol {
+            margin-left: var(--spacing-lg);
+            margin-bottom: var(--spacing-md);
+        }
+
+        li {
+            margin-bottom: var(--spacing-xs);
+            color: var(--color-text);
+        }
+
+        pre {
+            background-color: var(--color-code-bg);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            overflow-x: auto;
+            margin-bottom: var(--spacing-md);
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        code {
+            font-family: var(--font-mono);
+            font-size: 0.9em;
+            background-color: var(--color-code-bg);
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+        }
+
+        pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: var(--spacing-md);
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            border: 1px solid var(--color-border);
+            padding: var(--spacing-sm);
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--color-bg-alt);
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        blockquote {
+            border-left: 4px solid var(--color-accent);
+            padding-left: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            color: var(--color-text-light);
+            font-style: italic;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        .example-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            border-radius: var(--border-radius);
+        }
+
+        .example-box h4 {
+            color: #1976d2;
+            margin-top: 0;
+        }
+
+        .bad-example {
+            background: #ffebee;
+            border-left: 4px solid #f44336;
+            padding: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            border-radius: var(--border-radius);
+        }
+
+        .bad-example h4 {
+            color: #c62828;
+            margin-top: 0;
+        }
+
+        .good-example {
+            background: #e8f5e9;
+            border-left: 4px solid #4caf50;
+            padding: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            border-radius: var(--border-radius);
+        }
+
+        .good-example h4 {
+            color: #2e7d32;
+            margin-top: 0;
+        }
+
+        .note {
+            background: #fff3e0;
+            border-left: 4px solid #ff9800;
+            padding: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            border-radius: var(--border-radius);
+        }
+
+        .note h4 {
+            color: #f57c00;
+            margin-top: 0;
+        }
+
+        .key-takeaways {
+            background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+            padding: var(--spacing-lg);
+            margin: var(--spacing-lg) 0;
+            border-radius: var(--border-radius);
+            border: 2px solid #4caf50;
+        }
+
+        .key-takeaways h3 {
+            color: #2e7d32;
+            margin-top: 0;
+        }
+
+        .nav-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin: var(--spacing-xl) 0;
+            gap: var(--spacing-sm);
+            flex-wrap: wrap;
+        }
+
+        .nav-button {
+            display: inline-block;
+            padding: 0.8rem 1.5rem;
+            background: var(--color-accent);
+            color: white;
+            border-radius: 6px;
+            text-decoration: none;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        .nav-button:hover {
+            background: var(--color-accent-light);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(123, 44, 191, 0.3);
+        }
+
+        .breadcrumb {
+            background: #f7fafc;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+        }
+
+        .breadcrumb-content {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .breadcrumb a {
+            color: #667eea;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .breadcrumb a:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+
+        .breadcrumb-separator {
+            color: #a0aec0;
+            margin: 0 0.25rem;
+        }
+
+        .breadcrumb-current {
+            color: #4a5568;
+            font-weight: 500;
+        }
+
+        .locale-switcher {
+            display: inline-block;
+            margin-top: 1rem;
+            padding: 0.5rem 1rem;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+
+        .locale-switcher a {
+            color: white;
+            text-decoration: none;
+            margin: 0 0.5rem;
+            opacity: 0.8;
+            transition: opacity 0.2s;
+        }
+
+        .locale-switcher a:hover {
+            opacity: 1;
+            text-decoration: underline;
+        }
+
+        .locale-switcher .active {
+            font-weight: bold;
+            opacity: 1;
+        }
+
+        .disclaimer {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 1.5rem;
+            background: #f8f9fa;
+            border-left: 4px solid #6c757d;
+            border-radius: 4px;
+        }
+
+        .disclaimer h3 {
+            color: #495057;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .disclaimer ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .disclaimer li {
+            padding: 0.5rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+            font-size: 0.9rem;
+            color: #6c757d;
+            line-height: 1.6;
+        }
+
+        .disclaimer li::before {
+            content: "!";
+            position: absolute;
+            left: 0;
+        }
+
+        footer {
+            margin-top: 4rem;
+            padding: 2rem 0;
+            border-top: 2px solid var(--color-border);
+            text-align: center;
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .mermaid {
+            text-align: center;
+            margin: 2rem 0;
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--color-border);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 var(--spacing-sm) var(--spacing-lg);
+            }
+
+            h1 {
+                font-size: 1.6rem;
+            }
+
+            h2 {
+                font-size: 1.4rem;
+            }
+
+            .meta {
+                font-size: 0.85rem;
+            }
+
+            .nav-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+
+    <!-- Mermaid for diagrams -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof mermaid !== 'undefined') {
+                mermaid.initialize({ startOnLoad: true, theme: 'default' });
+            }
+        });
+    </script>
+
+    <!-- Prism.js for syntax highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+</head>
+<body>
+    <nav class="breadcrumb">
+        <div class="breadcrumb-content">
+            <a href="../../index.html">AI Terakoya Home</a><span class="breadcrumb-separator">></span><a href="../index.html">Machine Learning</a><span class="breadcrumb-separator">></span><a href="./index.html">Introduction to Prompt Engineering</a><span class="breadcrumb-separator">></span><span class="breadcrumb-current">Chapter 3</span>
+        </div>
+    </nav>
+
+    <header>
+        <div class="header-content">
+            <h1>Chapter 3: Advanced Prompt Techniques</h1>
+            <p class="subtitle">Tree of Thought, Self-Consistency, ReAct, and Reasoning Model Prompts</p>
+            <div class="meta">
+                <span class="meta-item">Reading Time: 25-30 minutes</span>
+                <span class="meta-item">Prompt Examples: 12</span>
+                <span class="meta-item">Exercises: 5</span>
+                <span class="meta-item">Difficulty: Intermediate-Advanced</span>
+            </div>
+            <div class="locale-switcher">
+                Language: <span class="active">English</span> | <a href="../../../jp/ML/prompt-engineering-introduction/chapter-3.html">Japanese</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <h2 id="introduction">Introduction</h2>
+
+        <p>Building on the basics from Chapters 1 and 2, this chapter covers <strong>advanced prompting techniques</strong> that significantly improve LLM performance on complex reasoning tasks. These techniques represent the cutting edge of prompt engineering as of 2025-2026.</p>
+
+        <p>By the end of this chapter, you will be able to:</p>
+        <ul>
+            <li>Implement Tree of Thought (ToT) for complex problem-solving</li>
+            <li>Use Self-Consistency to improve answer reliability</li>
+            <li>Apply the ReAct pattern for reasoning with actions</li>
+            <li>Craft effective prompts for reasoning models (o1, o3, DeepSeek-R1)</li>
+            <li>Design multi-turn conversation flows</li>
+            <li>Build prompt chains for complex workflows</li>
+        </ul>
+
+        <h2 id="tree-of-thought">Tree of Thought (ToT)</h2>
+
+        <p><strong>Tree of Thought</strong> prompting encourages the LLM to explore multiple reasoning paths simultaneously, evaluate each path, and select the most promising direction. This is particularly effective for problems requiring planning, search, or creative exploration.</p>
+
+        <h3>How Tree of Thought Works</h3>
+
+        <div class="mermaid">
+graph TD
+    A[Problem] --> B1[Thought 1]
+    A --> B2[Thought 2]
+    A --> B3[Thought 3]
+    B1 --> C1[Evaluation: 70%]
+    B2 --> C2[Evaluation: 85%]
+    B3 --> C3[Evaluation: 40%]
+    C2 --> D1[Continue Path 2]
+    D1 --> E1[Thought 2.1]
+    D1 --> E2[Thought 2.2]
+    E1 --> F1[Final Answer]
+
+    style C2 fill:#4caf50
+    style F1 fill:#2196f3
+        </div>
+
+        <h3>Basic ToT Prompt</h3>
+
+        <div class="example-box">
+            <h4>Tree of Thought Example</h4>
+            <pre><code>Solve this problem using Tree of Thought reasoning.
+
+**Problem**: A farmer needs to cross a river with a wolf, a goat, and a cabbage.
+The boat can only carry the farmer and one item. If left alone:
+- The wolf will eat the goat
+- The goat will eat the cabbage
+
+**Instructions**:
+1. Generate 3 different initial moves
+2. Evaluate each move (safe/unsafe and why)
+3. Select the best move and continue
+4. Repeat until solved
+
+**Format for each step**:
+```
+Move Option [N]:
+- Action: [what to take across]
+- State after move: [who/what is where]
+- Evaluation: [Safe/Unsafe] - [reason]
+- Score: [1-10]
+```
+
+Begin your tree exploration:</code></pre>
+        </div>
+
+        <h3>ToT for Creative Tasks</h3>
+
+        <div class="example-box">
+            <h4>Creative Tree of Thought</h4>
+            <pre><code>Use Tree of Thought to generate a company name for an AI-powered legal assistant startup.
+
+**Step 1: Generate 3 thematic directions**
+- Direction A: [Professional/Traditional]
+- Direction B: [Tech-forward/Modern]
+- Direction C: [Approachable/Friendly]
+
+**Step 2: For each direction, generate 3 name candidates**
+Evaluate each on:
+- Memorability (1-10)
+- Domain availability likelihood (1-10)
+- Legal industry fit (1-10)
+- Global appeal (1-10)
+
+**Step 3: Select top 3 names across all directions**
+Provide final ranking with justification.
+
+**Step 4: For the top choice, generate:**
+- Tagline options (3)
+- Visual/logo concepts (brief descriptions)
+- Potential concerns or trademark issues</code></pre>
+        </div>
+
+        <h3>When to Use Tree of Thought</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Good for ToT</th>
+                    <th>Not ideal for ToT</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Strategic planning problems</td>
+                    <td>Simple factual questions</td>
+                </tr>
+                <tr>
+                    <td>Creative brainstorming</td>
+                    <td>Straightforward calculations</td>
+                </tr>
+                <tr>
+                    <td>Multi-step puzzles</td>
+                    <td>Yes/no decisions</td>
+                </tr>
+                <tr>
+                    <td>Decision-making with tradeoffs</td>
+                    <td>Time-sensitive responses</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h2 id="self-consistency">Self-Consistency</h2>
+
+        <p><strong>Self-Consistency</strong> improves reliability by generating multiple independent reasoning paths and selecting the most common answer. This reduces the impact of individual reasoning errors.</p>
+
+        <h3>Basic Self-Consistency</h3>
+
+        <div class="example-box">
+            <h4>Self-Consistency Prompt</h4>
+            <pre><code>Solve this problem 5 times using different reasoning approaches.
+Then report the most consistent answer.
+
+**Problem**: A store offers a 20% discount on all items. An additional 10%
+is taken off at checkout. What is the total percentage saved on a $100 item?
+
+**Approach 1**: Sequential percentage calculation
+[Your reasoning...]
+Answer 1: ___
+
+**Approach 2**: Work backwards from final price
+[Your reasoning...]
+Answer 2: ___
+
+**Approach 3**: Use algebraic formula
+[Your reasoning...]
+Answer 3: ___
+
+**Approach 4**: Concrete example with different starting price
+[Your reasoning...]
+Answer 4: ___
+
+**Approach 5**: Verify using a different method
+[Your reasoning...]
+Answer 5: ___
+
+**Final Answer**: [Most common answer]
+**Confidence**: [Based on consistency]
+**Note any discrepancies**: [If answers differ, explain why]</code></pre>
+        </div>
+
+        <h3>Self-Consistency via API</h3>
+
+        <p>For programmatic self-consistency, sample multiple responses with temperature > 0:</p>
+
+        <div class="example-box">
+            <h4>Python Implementation</h4>
+            <pre><code class="language-python">from openai import OpenAI
+from collections import Counter
+
+client = OpenAI()
+
+def self_consistent_answer(prompt, n_samples=5, temperature=0.7):
+    """Generate multiple answers and return the most common one."""
+
+    responses = []
+    for _ in range(n_samples):
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=temperature,
+            max_tokens=500
+        )
+        # Extract the final answer (assume it's on the last line)
+        answer = response.choices[0].message.content.strip().split('\n')[-1]
+        responses.append(answer)
+
+    # Count occurrences and return most common
+    answer_counts = Counter(responses)
+    most_common = answer_counts.most_common(1)[0]
+
+    return {
+        "answer": most_common[0],
+        "confidence": most_common[1] / n_samples,
+        "all_responses": responses
+    }
+
+# Usage
+result = self_consistent_answer(
+    "What is 15% of 80? Show your work, then state just the number on the last line."
+)
+print(f"Answer: {result['answer']}")
+print(f"Confidence: {result['confidence']:.0%}")</code></pre>
+        </div>
+
+        <h2 id="react">ReAct Pattern</h2>
+
+        <p><strong>ReAct</strong> (Reasoning + Acting) is a prompting pattern where the LLM alternates between reasoning about a problem and taking actions (like searching for information or using tools). This is foundational for AI agents.</p>
+
+        <h3>ReAct Structure</h3>
+
+        <div class="mermaid">
+graph LR
+    A[Question] --> B[Thought]
+    B --> C[Action]
+    C --> D[Observation]
+    D --> E{Done?}
+    E -->|No| B
+    E -->|Yes| F[Answer]
+
+    style B fill:#fff3e0
+    style C fill:#e3f2fd
+    style D fill:#e8f5e9
+        </div>
+
+        <h3>ReAct Prompt Template</h3>
+
+        <div class="example-box">
+            <h4>ReAct Pattern</h4>
+            <pre><code>Answer the following question using the ReAct format.
+You have access to these actions:
+- Search[query]: Search Wikipedia for information
+- Calculate[expression]: Perform mathematical calculations
+- Lookup[term]: Look up a specific term in the current context
+
+**Question**: What is the population density of the country that hosted the 2024 Olympics?
+
+**Format**:
+Thought 1: [Your reasoning about what to do first]
+Action 1: [Action name][input]
+Observation 1: [What you learned - I'll provide this]
+
+Thought 2: [Your next reasoning step]
+Action 2: [Next action]
+Observation 2: [Result]
+
+... continue until you have the answer ...
+
+Final Answer: [Your answer based on the observations]
+
+Begin:</code></pre>
+        </div>
+
+        <h3>ReAct Example Execution</h3>
+
+        <div class="example-box">
+            <h4>ReAct in Practice</h4>
+            <pre><code>Question: Who won more Grand Slam titles - Roger Federer or Rafael Nadal?
+And by how many?
+
+Thought 1: I need to find out how many Grand Slam titles each player has won.
+Let me start with Roger Federer.
+Action 1: Search[Roger Federer Grand Slam titles]
+Observation 1: Roger Federer won 20 Grand Slam singles titles.
+
+Thought 2: Now I need to find Nadal's Grand Slam count.
+Action 2: Search[Rafael Nadal Grand Slam titles]
+Observation 2: Rafael Nadal won 22 Grand Slam singles titles.
+
+Thought 3: Now I can compare and calculate the difference.
+Action 3: Calculate[22 - 20]
+Observation 3: 2
+
+Thought 4: I have all the information needed to answer the question.
+Final Answer: Rafael Nadal won more Grand Slam titles than Roger Federer.
+Nadal won 22 titles compared to Federer's 20, a difference of 2 titles.</code></pre>
+        </div>
+
+        <h3>ReAct for Code Debugging</h3>
+
+        <div class="example-box">
+            <h4>ReAct Debugging Pattern</h4>
+            <pre><code>Debug this code using the ReAct pattern.
+
+**Available actions**:
+- ReadCode[section]: Examine a specific part of the code
+- Trace[input]: Trace execution with a specific input
+- Hypothesis[bug]: State a hypothesis about the bug
+- Fix[change]: Propose a specific fix
+
+**Code**:
+```python
+def find_duplicates(lst):
+    seen = set()
+    duplicates = []
+    for item in lst:
+        if item in seen:
+            duplicates.add(item)
+        seen.add(item)
+    return duplicates
+```
+
+**Bug report**: Function crashes with "AttributeError: 'list' object has no attribute 'add'"
+
+Begin ReAct debugging:</code></pre>
+        </div>
+
+        <h2 id="reasoning-models">Prompting for Reasoning Models (o1/o3)</h2>
+
+        <p>OpenAI's <strong>o1</strong> and <strong>o3</strong> models (and similar reasoning models like DeepSeek-R1) use internal "thinking" tokens before responding. These models require different prompting strategies than standard LLMs.</p>
+
+        <h3>Key Differences from Standard LLMs</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Standard LLMs (GPT-4, Claude)</th>
+                    <th>Reasoning Models (o1, o3, DeepSeek-R1)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Benefit from detailed instructions</td>
+                    <td>Prefer concise, clear objectives</td>
+                </tr>
+                <tr>
+                    <td>Need explicit CoT prompting</td>
+                    <td>Perform CoT internally (automatic)</td>
+                </tr>
+                <tr>
+                    <td>Few-shot examples improve output</td>
+                    <td>Few-shot can actually hurt performance</td>
+                </tr>
+                <tr>
+                    <td>Temperature affects creativity</td>
+                    <td>Temperature is typically fixed at 1</td>
+                </tr>
+                <tr>
+                    <td>System prompts guide behavior</td>
+                    <td>System prompts have limited effect</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>Prompting Best Practices for o1/o3</h3>
+
+        <div class="note">
+            <h4>Guidelines for Reasoning Models</h4>
+            <ol>
+                <li><strong>Be concise</strong>: State the problem clearly without over-explaining</li>
+                <li><strong>Don't say "think step by step"</strong>: They do this automatically</li>
+                <li><strong>Avoid few-shot examples</strong>: These can constrain their reasoning</li>
+                <li><strong>Use delimiters</strong>: Clearly separate different parts of the input</li>
+                <li><strong>Specify output format at the end</strong>: "Provide your final answer as..."</li>
+            </ol>
+        </div>
+
+        <div class="bad-example">
+            <h4>Bad Prompt for o1/o3</h4>
+            <pre><code>You are an expert mathematician. Please think step by step and show all your work.
+
+Here's an example of how to solve a similar problem:
+[Long example...]
+
+Now solve this problem carefully, making sure to consider all cases:
+What is the probability that a random 5-card poker hand contains exactly one pair?
+
+Think about this systematically:
+1. First calculate total combinations
+2. Then calculate favorable outcomes
+3. Finally divide to get probability</code></pre>
+            <p><strong>Problems</strong>: System prompt, CoT instruction, few-shot example, over-specification</p>
+        </div>
+
+        <div class="good-example">
+            <h4>Good Prompt for o1/o3</h4>
+            <pre><code>Calculate the probability that a random 5-card poker hand contains exactly one pair
+(two cards of one rank, three cards of different ranks).
+
+Provide your final answer as a simplified fraction and decimal (4 decimal places).</code></pre>
+            <p><strong>Why it works</strong>: Concise problem statement, clear output format, lets model reason freely</p>
+        </div>
+
+        <h3>When to Use Reasoning Models</h3>
+
+        <div class="example-box">
+            <h4>Ideal Use Cases for o1/o3</h4>
+            <ul>
+                <li><strong>Complex Math</strong>: Multi-step proofs, olympiad problems</li>
+                <li><strong>Code Generation</strong>: Complex algorithms, system design</li>
+                <li><strong>Scientific Reasoning</strong>: Research analysis, hypothesis evaluation</li>
+                <li><strong>Strategic Planning</strong>: Multi-constraint optimization</li>
+                <li><strong>Debugging</strong>: Root cause analysis in complex systems</li>
+            </ul>
+        </div>
+
+        <div class="example-box">
+            <h4>Suboptimal Use Cases</h4>
+            <ul>
+                <li>Simple Q&A (overkill, slow, expensive)</li>
+                <li>Creative writing (not their strength)</li>
+                <li>Tasks requiring specific formatting/style</li>
+                <li>Real-time applications (high latency)</li>
+            </ul>
+        </div>
+
+        <h3>Effective o1/o3 Prompt Examples</h3>
+
+        <div class="example-box">
+            <h4>Coding Problem</h4>
+            <pre><code>Implement a function that finds the longest increasing subsequence in an array.
+Requirements:
+- Time complexity: O(n log n)
+- Return both the length and the actual subsequence
+- Handle edge cases: empty array, single element, all same values
+
+Language: Python
+Output: Complete function with docstring</code></pre>
+        </div>
+
+        <div class="example-box">
+            <h4>Analysis Problem</h4>
+            <pre><code>A company's revenue data:
+Q1: $1.2M, Q2: $1.5M, Q3: $1.1M, Q4: $1.8M
+Marketing spend: Q1: $200K, Q2: $300K, Q3: $150K, Q4: $400K
+Customer acquisition: Q1: 500, Q2: 700, Q3: 400, Q4: 900
+
+Analyze the relationship between marketing spend and revenue.
+Identify any anomalies and suggest optimal marketing allocation.
+
+Output: Key findings (3-5 bullet points) and recommendation.</code></pre>
+        </div>
+
+        <h2 id="multi-turn">Multi-Turn Conversation Design</h2>
+
+        <p>Designing effective <strong>multi-turn conversations</strong> involves planning how context builds across messages and managing conversation state.</p>
+
+        <h3>Conversation Flow Patterns</h3>
+
+        <h4>1. Funnel Pattern</h4>
+        <p>Start broad, progressively narrow focus:</p>
+
+        <div class="example-box">
+            <h4>Funnel Conversation</h4>
+            <pre><code>**Turn 1 (User)**: I need help with my Python project
+**Turn 1 (AI)**: I'd be happy to help! Could you tell me:
+- What type of project (web app, data analysis, automation)?
+- What specific challenge are you facing?
+
+**Turn 2 (User)**: It's a web scraping project. I'm having trouble with dynamic content.
+**Turn 2 (AI)**: Dynamic content usually requires JavaScript rendering.
+- What website are you scraping?
+- Have you tried Selenium or Playwright?
+- What's your current approach?
+
+**Turn 3 (User)**: Using BeautifulSoup. The content loads via AJAX.
+**Turn 3 (AI)**: BeautifulSoup can't handle JavaScript. Here are your options:
+[Specific solutions for AJAX content...]</code></pre>
+        </div>
+
+        <h4>2. Iterative Refinement Pattern</h4>
+        <p>Build and improve across turns:</p>
+
+        <div class="example-box">
+            <h4>Iterative Refinement</h4>
+            <pre><code>**Turn 1**: Write a function to validate email addresses
+**Turn 1 Response**: [Basic regex validation]
+
+**Turn 2**: Add support for plus addressing (user+tag@domain.com)
+**Turn 2 Response**: [Updated function]
+
+**Turn 3**: Also check if the domain has valid MX records
+**Turn 3 Response**: [Added DNS lookup]
+
+**Turn 4**: Make it async and add rate limiting
+**Turn 4 Response**: [Final production-ready version]</code></pre>
+        </div>
+
+        <h3>Context Management</h3>
+
+        <div class="example-box">
+            <h4>Explicit Context Summarization</h4>
+            <pre><code>**Before a complex multi-turn task**:
+
+I'll be helping you build a REST API. Let's establish our context:
+
+**Project Summary** (I'll update this as we go):
+- Framework: [To be determined]
+- Database: [To be determined]
+- Auth method: [To be determined]
+- Endpoints: [To be listed]
+
+After each major decision, I'll update this summary.
+Please confirm or correct if I misunderstand anything.
+
+What framework would you like to use?</code></pre>
+        </div>
+
+        <h2 id="prompt-chains">Prompt Chains</h2>
+
+        <p><strong>Prompt chains</strong> connect multiple prompts where the output of one becomes the input to another. This enables complex workflows that exceed single-prompt capabilities.</p>
+
+        <h3>Sequential Chain</h3>
+
+        <div class="mermaid">
+graph LR
+    A[Input] --> B[Prompt 1: Extract]
+    B --> C[Prompt 2: Analyze]
+    C --> D[Prompt 3: Format]
+    D --> E[Output]
+
+    style A fill:#e3f2fd
+    style E fill:#e8f5e9
+        </div>
+
+        <div class="example-box">
+            <h4>Document Analysis Chain</h4>
+            <pre><code class="language-python">def analyze_document(document):
+    # Step 1: Extract key information
+    extraction_prompt = f"""
+    Extract from this document:
+    - Main topics (list)
+    - Key entities (people, organizations, places)
+    - Dates and numbers mentioned
+    - Action items if any
+
+    Document:
+    {document}
+
+    Return as JSON.
+    """
+    extracted = call_llm(extraction_prompt)
+
+    # Step 2: Analyze sentiment and tone
+    analysis_prompt = f"""
+    Based on this extracted information:
+    {extracted}
+
+    Analyze:
+    - Overall sentiment (positive/negative/neutral)
+    - Tone (formal/informal/urgent/routine)
+    - Key concerns or priorities
+    - Implicit assumptions
+
+    Return as JSON.
+    """
+    analysis = call_llm(analysis_prompt)
+
+    # Step 3: Generate executive summary
+    summary_prompt = f"""
+    Create an executive summary combining:
+
+    Extracted Info: {extracted}
+    Analysis: {analysis}
+
+    Format:
+    ## Executive Summary
+    [2-3 sentence overview]
+
+    ## Key Points
+    - [Bullet points]
+
+    ## Recommended Actions
+    1. [Numbered list]
+    """
+    summary = call_llm(summary_prompt)
+
+    return summary</code></pre>
+        </div>
+
+        <h3>Branching Chain</h3>
+
+        <div class="example-box">
+            <h4>Conditional Branching</h4>
+            <pre><code class="language-python">def handle_customer_inquiry(inquiry):
+    # Step 1: Classify the inquiry
+    classification_prompt = f"""
+    Classify this customer inquiry into ONE category:
+    - BILLING: Payment, invoices, refunds
+    - TECHNICAL: Product issues, bugs, how-to
+    - SALES: Pricing, features, upgrades
+    - COMPLAINT: Negative feedback, escalations
+
+    Inquiry: {inquiry}
+
+    Return only the category name.
+    """
+    category = call_llm(classification_prompt).strip()
+
+    # Step 2: Branch based on classification
+    if category == "BILLING":
+        response = handle_billing(inquiry)
+    elif category == "TECHNICAL":
+        response = handle_technical(inquiry)
+    elif category == "SALES":
+        response = handle_sales(inquiry)
+    else:  # COMPLAINT
+        response = handle_complaint(inquiry)
+
+    # Step 3: Format final response
+    formatting_prompt = f"""
+    Polish this customer service response:
+    {response}
+
+    Ensure:
+    - Professional but warm tone
+    - Clear next steps
+    - Proper greeting and closing
+    """
+    return call_llm(formatting_prompt)</code></pre>
+        </div>
+
+        <h2 id="exercises">Exercises</h2>
+
+        <h3>Exercise 1: Tree of Thought (Difficulty: Medium)</h3>
+        <div class="note">
+            <p><strong>Task</strong>: Use Tree of Thought to plan a 3-day trip to Tokyo with these constraints:</p>
+            <ul>
+                <li>Budget: $500 total (excluding flights)</li>
+                <li>Must visit: Shibuya, Asakusa, and one museum</li>
+                <li>Dietary restriction: Vegetarian</li>
+            </ul>
+            <p>Generate 3 different itinerary approaches, evaluate each, and select the best.</p>
+        </div>
+
+        <h3>Exercise 2: Self-Consistency (Difficulty: Medium)</h3>
+        <div class="note">
+            <p><strong>Task</strong>: Design a self-consistency prompt to determine:</p>
+            <p>"Is it ethical for companies to use AI to screen job applicants?"</p>
+            <p>Include 5 different ethical framework perspectives (utilitarian, deontological, etc.)</p>
+        </div>
+
+        <h3>Exercise 3: ReAct Pattern (Difficulty: Medium)</h3>
+        <div class="note">
+            <p><strong>Task</strong>: Create a ReAct prompt for a "Research Assistant" that can:</p>
+            <ul>
+                <li>Search for academic papers</li>
+                <li>Summarize findings</li>
+                <li>Compare methodologies</li>
+                <li>Identify research gaps</li>
+            </ul>
+            <p>Test it with the topic: "Latest advances in protein folding prediction"</p>
+        </div>
+
+        <h3>Exercise 4: Reasoning Model Prompt (Difficulty: Advanced)</h3>
+        <div class="note">
+            <p><strong>Task</strong>: Rewrite this prompt for o1/o3:</p>
+            <pre><code>You are an expert software architect. Please think carefully
+step by step about this problem. Here's an example of good
+architecture... [long example]
+
+Design a scalable microservices architecture for an e-commerce
+platform handling 10M daily users.</code></pre>
+        </div>
+
+        <h3>Exercise 5: Prompt Chain (Difficulty: Advanced)</h3>
+        <div class="note">
+            <p><strong>Task</strong>: Design a 4-step prompt chain for "Code Review Automation":</p>
+            <ol>
+                <li>Parse and understand code structure</li>
+                <li>Identify potential issues (bugs, security, performance)</li>
+                <li>Prioritize issues by severity</li>
+                <li>Generate actionable review comments</li>
+            </ol>
+        </div>
+
+        <h2 id="key-takeaways-section">Chapter Summary</h2>
+
+        <div class="key-takeaways">
+            <h3>Key Points</h3>
+            <ul>
+                <li><strong>Tree of Thought</strong>: Explore multiple reasoning paths, evaluate, and select the best for complex problems</li>
+                <li><strong>Self-Consistency</strong>: Generate multiple answers and select the most common for improved reliability</li>
+                <li><strong>ReAct</strong>: Alternate between reasoning and actions; foundational for AI agents</li>
+                <li><strong>Reasoning Models (o1/o3)</strong>: Use concise prompts, avoid CoT instructions and few-shot examples</li>
+                <li><strong>Multi-turn Design</strong>: Plan conversation flows, manage context explicitly</li>
+                <li><strong>Prompt Chains</strong>: Connect multiple prompts for complex workflows that exceed single-prompt capabilities</li>
+            </ul>
+        </div>
+
+        <h2 id="next-steps">Next Steps</h2>
+
+        <p>In Chapter 4, we'll explore Function Calling and Tool Use:</p>
+        <ul>
+            <li>Function Calling fundamentals</li>
+            <li>Tool definition and schema design</li>
+            <li>MCP (Model Context Protocol) integration</li>
+            <li>Error handling for tool use</li>
+            <li>Multi-tool orchestration</li>
+        </ul>
+
+        <div class="nav-buttons">
+            <a href="./chapter-2.html" class="nav-button">Chapter 2</a>
+            <a href="./chapter-4.html" class="nav-button">Chapter 4</a>
+        </div>
+
+        <hr>
+
+        <h2 id="references">References</h2>
+        <ul>
+            <li>Yao, S., et al. (2023). <em>Tree of Thoughts: Deliberate Problem Solving with Large Language Models</em></li>
+            <li>Wang, X., et al. (2023). <em>Self-Consistency Improves Chain of Thought Reasoning in Language Models</em></li>
+            <li>Yao, S., et al. (2022). <em>ReAct: Synergizing Reasoning and Acting in Language Models</em></li>
+            <li>OpenAI. (2024). <em>o1 System Card and Prompting Guide</em></li>
+            <li>DeepSeek. (2025). <em>DeepSeek-R1 Technical Report</em></li>
+        </ul>
+
+        <hr>
+
+        <p><strong>Update History</strong></p>
+        <ul>
+            <li><strong>2026-01-12</strong>: v2.0 Initial release with o1/o3 prompting strategies</li>
+        </ul>
+
+    </main>
+
+    <section class="disclaimer">
+        <h3>Disclaimer</h3>
+        <ul>
+            <li>This content is provided solely for educational, research, and informational purposes.</li>
+            <li>This content and accompanying prompt examples are provided "AS IS" without any warranties.</li>
+            <li>The terms of use and limitations of external LLM services are the responsibility of the respective providers.</li>
+        </ul>
+    </section>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 AI Terakoya - Dr. Yusuke Hashimoto, Tohoku University</p>
+            <p>Licensed under CC BY 4.0</p>
+        </div>
+    </footer>
+</body>
+</html>
