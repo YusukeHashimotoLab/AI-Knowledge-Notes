@@ -84,9 +84,9 @@ function createSurveyForm() {
   form.addSectionHeaderItem()
     .setTitle('各プログラムの評価');
 
-  // Q5: 坂口准教授の講演（均等目盛り 1-5・必須）
+  // Q5: 坂口教授の講演（均等目盛り 1-5・必須）
   form.addScaleItem()
-    .setTitle('Q5. 坂口准教授の講演はいかがでしたか？')
+    .setTitle('Q5. 坂口教授の講演はいかがでしたか？')
     .setBounds(1, 5)
     .setLabels('物足りなかった', '大変良かった')
     .setRequired(true);
