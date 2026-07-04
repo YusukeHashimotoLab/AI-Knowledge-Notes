@@ -1,19 +1,19 @@
 # FM Series English Translation Status
 
 **Dojo**: Fundamental Mathematics & Physics
-**Generated**: 2025-11-16
-**Total Series**: 14
-**Total Files**: 74 (14 index + 61 chapters)
-**Complete Series** (index + chapters): 13/14
+**Generated**: 2026-07-04
+**Total Series**: 13
+**Total Files**: 74 (13 index + 61 chapters)
+**Complete Series** (index + chapters): 13/13
 
 ---
 
 ## Summary Statistics
 
-- **Series Translated**: 14/14 (100%)
-- **Index Pages**: 13/14 (92%)
+- **Series Translated**: 13/13 (100%)
+- **Index Pages**: 13/13 (100%)
 - **Total Chapter Files**: 61
-- **Average Chapters per Series**: 4.4
+- **Average Chapters per Series**: 4.7
 
 ---
 
@@ -24,7 +24,7 @@
 **Directory**: `calculus-vector-analysis`
 **Location**: `/FM/calculus-vector-analysis/`
 **Files**: 6 total (1 index + 5 chapters)
-**Last Update**: 2025-11-16
+**Last Update**: 2025-12-01
 
 - ✅ `index.html` - Series overview page
 
@@ -42,7 +42,7 @@
 **Directory**: `classical-statistical-mechanics`
 **Location**: `/FM/classical-statistical-mechanics/`
 **Files**: 6 total (1 index + 5 chapters)
-**Last Update**: 2025-11-16
+**Last Update**: 2025-12-01
 
 - ✅ `index.html` - Series overview page
 
@@ -60,7 +60,7 @@
 **Directory**: `complex-special-functions`
 **Location**: `/FM/complex-special-functions/`
 **Files**: 6 total (1 index + 5 chapters)
-**Last Update**: 2025-11-16
+**Last Update**: 2025-12-01
 
 - ✅ `index.html` - Series overview page
 
@@ -78,7 +78,7 @@
 **Directory**: `computational-statistical-mechanics`
 **Location**: `/FM/computational-statistical-mechanics/`
 **Files**: 6 total (1 index + 5 chapters)
-**Last Update**: 2025-11-16
+**Last Update**: 2025-12-01
 
 - ✅ `index.html` - Series overview page
 
@@ -96,7 +96,7 @@
 **Directory**: `equilibrium-thermodynamics`
 **Location**: `/FM/equilibrium-thermodynamics/`
 **Files**: 2 total (1 index + 1 chapters)
-**Last Update**: 2025-11-16
+**Last Update**: 2025-12-01
 
 - ✅ `index.html` - Series overview page
 
@@ -105,24 +105,12 @@
 
 ---
 
-### 6. Unknown ⚠️
-
-**Directory**: `inferential-bayesian-statistics`
-**Location**: `/FM/inferential-bayesian-statistics/`
-**Files**: 0 total (0 index + 0 chapters)
-**Last Update**: Unknown
-
-- ❌ `index.html` - Missing
-- ⚠️ No chapter files found
-
----
-
-### 7. Linear Algebra and Tensor Analysis | Fundamentals of Mathematics Dojo - AI Terakoya ✅
+### 6. Linear Algebra and Tensor Analysis | Fundamentals of Mathematics Dojo - AI Terakoya ✅
 
 **Directory**: `linear-algebra-tensor`
 **Location**: `/FM/linear-algebra-tensor/`
 **Files**: 6 total (1 index + 5 chapters)
-**Last Update**: 2025-11-16
+**Last Update**: 2025-12-01
 
 - ✅ `index.html` - Series overview page
 
@@ -135,12 +123,12 @@
 
 ---
 
-### 8. Non-Equilibrium Statistical Mechanics | Fundamental Mathematics Dojo - AI Terakoya ✅
+### 7. Non-Equilibrium Statistical Mechanics | Fundamental Mathematics Dojo - AI Terakoya ✅
 
 **Directory**: `non-equilibrium-statistical-mechanics`
 **Location**: `/FM/non-equilibrium-statistical-mechanics/`
 **Files**: 6 total (1 index + 5 chapters)
-**Last Update**: 2025-11-16
+**Last Update**: 2025-12-01
 
 - ✅ `index.html` - Series overview page
 
@@ -153,12 +141,12 @@
 
 ---
 
-### 9. 🔢 Numerical Analysis Fundamentals | Fundamentals of Mathematics &amp; Physics Dojo - AI Terakoya ✅
+### 8. 🔢 Numerical Analysis Fundamentals | Fundamentals of Mathematics &amp; Physics Dojo - AI Terakoya ✅
 
 **Directory**: `numerical-analysis-fundamentals`
 **Location**: `/FM/numerical-analysis-fundamentals/`
 **Files**: 6 total (1 index + 5 chapters)
-**Last Update**: 2025-11-16
+**Last Update**: 2025-12-01
 
 - ✅ `index.html` - Series overview page
 
@@ -171,12 +159,12 @@
 
 ---
 
-### 10. Partial Differential Equations and Boundary Value Problems | Fundamentals of Mathematics &amp; Physics Dojo - AI Terakoya ✅
+### 9. Partial Differential Equations and Boundary Value Problems | Fundamentals of Mathematics &amp; Physics Dojo - AI Terakoya ✅
 
 **Directory**: `pde-boundary-value`
 **Location**: `/FM/pde-boundary-value/`
 **Files**: 6 total (1 index + 5 chapters)
-**Last Update**: 2025-11-16
+**Last Update**: 2025-12-01
 
 - ✅ `index.html` - Series overview page
 
@@ -189,12 +177,12 @@
 
 ---
 
-### 11. 🧮 Numerical Methods for PDEs | Fundamentals of Mathematics &amp; Physics Dojo - AI Terakoya ✅
+### 10. 🧮 Numerical Methods for PDEs | Fundamentals of Mathematics &amp; Physics Dojo - AI Terakoya ✅
 
 **Directory**: `pde-numerical-methods`
 **Location**: `/FM/pde-numerical-methods/`
 **Files**: 6 total (1 index + 5 chapters)
-**Last Update**: 2025-11-16
+**Last Update**: 2025-12-01
 
 - ✅ `index.html` - Series overview page
 
@@ -207,12 +195,12 @@
 
 ---
 
-### 12. Probability Theory and Stochastic Processes | Fundamentals of Mathematics - AI Terakoya ✅
+### 11. Probability Theory and Stochastic Processes | Fundamentals of Mathematics - AI Terakoya ✅
 
 **Directory**: `probability-stochastic-processes`
 **Location**: `/FM/probability-stochastic-processes/`
 **Files**: 6 total (1 index + 5 chapters)
-**Last Update**: 2025-11-16
+**Last Update**: 2025-12-01
 
 - ✅ `index.html` - Series overview page
 
@@ -225,12 +213,12 @@
 
 ---
 
-### 13. Introduction to Quantum Field Theory | Fundamentals Mathematics - AI Terakoya ✅
+### 12. Introduction to Quantum Field Theory | Fundamentals Mathematics - AI Terakoya ✅
 
 **Directory**: `quantum-field-theory-introduction`
 **Location**: `/FM/quantum-field-theory-introduction/`
 **Files**: 6 total (1 index + 5 chapters)
-**Last Update**: 2025-11-16
+**Last Update**: 2025-12-01
 
 - ✅ `index.html` - Series overview page
 
@@ -243,12 +231,12 @@
 
 ---
 
-### 14. Introduction to Quantum Mechanics | Fundamentals of Mathematics Dojo - AI Terakoya ✅
+### 13. Introduction to Quantum Mechanics | Fundamentals of Mathematics Dojo - AI Terakoya ✅
 
 **Directory**: `quantum-mechanics`
 **Location**: `/FM/quantum-mechanics/`
 **Files**: 6 total (1 index + 5 chapters)
-**Last Update**: 2025-11-16
+**Last Update**: 2025-12-01
 
 - ✅ `index.html` - Series overview page
 
@@ -296,7 +284,7 @@
 
 ---
 
-**Latest Update**: 2025-11-16
+**Latest Update**: 2026-07-04
 **Generator**: Automated translation status script
 **Source Language**: Japanese
 **Target Language**: English
