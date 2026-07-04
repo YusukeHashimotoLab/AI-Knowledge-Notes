@@ -138,7 +138,7 @@ def find_file_pairs(directory: Path) -> List[FilePair]:
 
 def sync_md_to_html(md_path: Path, dry_run: bool = False) -> bool:
     """
-    Sync Markdown to HTML using convert_md_to_html_en.py.
+    Sync Markdown to HTML using convert_md_to_html.py.
 
     Args:
         md_path: Path to Markdown file
@@ -155,7 +155,7 @@ def sync_md_to_html(md_path: Path, dry_run: bool = False) -> bool:
 
     try:
         # Import converter module
-        converter_script = Path(__file__).parent / "convert_md_to_html_en.py"
+        converter_script = Path(__file__).parent / "convert_md_to_html.py"
         if not converter_script.exists():
             logger.error(f"Converter script not found: {converter_script}")
             return False

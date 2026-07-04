@@ -39,7 +39,7 @@ This chapter explores advanced Transformer variants...
 EOF
 
 # Convert to HTML
-python3 /Users/yusukehashimoto/Documents/pycharm/AI_Homepage/wp/tools/convert_md_to_html_en.py chapter-6.md
+python3 /Users/yusukehashimoto/Documents/pycharm/AI_Homepage/wp/tools/convert_md_to_html.py chapter-6.md
 
 # Result: chapter-6.html is created with full styling and navigation
 ```
@@ -84,7 +84,7 @@ python3 tools/sync_md_html.py knowledge/en/ML/transformer-introduction/ --watch
 cd /Users/yusukehashimoto/Documents/pycharm/AI_Homepage/wp
 
 # Convert all ML series
-python3 tools/convert_md_to_html_en.py ML
+python3 tools/convert_md_to_html.py ML
 
 # This will:
 # - Find all series in knowledge/en/ML/
@@ -165,7 +165,7 @@ $$
 EOF
 
 # Convert with math support (automatically handled by MathPreprocessor)
-python3 /Users/yusukehashimoto/Documents/pycharm/AI_Homepage/wp/tools/convert_md_to_html_en.py knowledge/en/FM/calculus-introduction/chapter-1.md
+python3 /Users/yusukehashimoto/Documents/pycharm/AI_Homepage/wp/tools/convert_md_to_html.py knowledge/en/FM/calculus-introduction/chapter-1.md
 
 # Result: HTML with properly rendered LaTeX equations via MathJax
 ```
@@ -210,7 +210,7 @@ The residual connection allows gradients to flow directly...
 EOF
 
 # Convert with diagram support (automatically handled by MermaidPreprocessor)
-python3 /Users/yusukehashimoto/Documents/pycharm/AI_Homepage/wp/tools/convert_md_to_html_en.py knowledge/en/ML/cnn-introduction/chapter-2.md
+python3 /Users/yusukehashimoto/Documents/pycharm/AI_Homepage/wp/tools/convert_md_to_html.py knowledge/en/ML/cnn-introduction/chapter-2.md
 
 # Result: HTML with interactive Mermaid diagram
 ```
@@ -226,7 +226,7 @@ cd /Users/yusukehashimoto/Documents/pycharm/AI_Homepage/wp
 vim knowledge/en/ML/transformer-introduction/chapter-1.md
 
 # Generate HTML
-python3 tools/convert_md_to_html_en.py knowledge/en/ML/transformer-introduction/chapter-1.md
+python3 tools/convert_md_to_html.py knowledge/en/ML/transformer-introduction/chapter-1.md
 
 # Add both to git
 git add knowledge/en/ML/transformer-introduction/chapter-1.md
@@ -283,7 +283,7 @@ cd /Users/yusukehashimoto/Documents/pycharm/AI_Homepage/wp
 
 # Convert only chapter 1 files across all series
 for chapter1 in knowledge/en/ML/*/chapter-1.md; do
-    python3 tools/convert_md_to_html_en.py "$chapter1"
+    python3 tools/convert_md_to_html.py "$chapter1"
 done
 
 # Extract only index files
@@ -326,7 +326,7 @@ python3 tools/html_to_md.py exported_html/ --output-dir knowledge/en/ML/new-seri
 # Clean up any conversion artifacts
 
 # Regenerate clean HTML
-python3 tools/convert_md_to_html_en.py knowledge/en/ML/new-series/
+python3 tools/convert_md_to_html.py knowledge/en/ML/new-series/
 ```
 
 ## Example 15: Verifying Conversion Quality
@@ -340,7 +340,7 @@ cd /Users/yusukehashimoto/Documents/pycharm/AI_Homepage/wp
 cp knowledge/en/ML/transformer-introduction/chapter-1.md /tmp/original.md
 
 # Convert MD → HTML → MD
-python3 tools/convert_md_to_html_en.py /tmp/original.md
+python3 tools/convert_md_to_html.py /tmp/original.md
 python3 tools/html_to_md.py /tmp/original.html --output-dir /tmp/
 
 # Compare
@@ -363,7 +363,7 @@ mv chapter2-architecture.md chapter-2.md
 mv chapter3-training.md chapter-3.md
 
 # Regenerate all HTML
-python3 /Users/yusukehashimoto/Documents/pycharm/AI_Homepage/wp/tools/convert_md_to_html_en.py .
+python3 /Users/yusukehashimoto/Documents/pycharm/AI_Homepage/wp/tools/convert_md_to_html.py .
 ```
 
 ### Example 17: Debugging Math Rendering
@@ -379,7 +379,7 @@ cat knowledge/en/FM/calculus-introduction/chapter-1.md
 # 4. Underscores are fine inside math (preprocessor handles them)
 
 # Regenerate
-python3 /Users/yusukehashimoto/Documents/pycharm/AI_Homepage/wp/tools/convert_md_to_html_en.py knowledge/en/FM/calculus-introduction/chapter-1.md
+python3 /Users/yusukehashimoto/Documents/pycharm/AI_Homepage/wp/tools/convert_md_to_html.py knowledge/en/FM/calculus-introduction/chapter-1.md
 
 # Test in browser
 open knowledge/en/FM/calculus-introduction/chapter-1.html
@@ -392,7 +392,7 @@ open knowledge/en/FM/calculus-introduction/chapter-1.html
 cd /Users/yusukehashimoto/Documents/pycharm/AI_Homepage/wp
 
 # Convert with full output
-python3 tools/convert_md_to_html_en.py knowledge/en/ML/transformer-introduction/ 2>&1 | tee conversion.log
+python3 tools/convert_md_to_html.py knowledge/en/ML/transformer-introduction/ 2>&1 | tee conversion.log
 
 # Check log for errors
 grep -i error conversion.log
@@ -405,17 +405,17 @@ grep -i warning conversion.log
 
 ```bash
 # Backup original converter
-cp tools/convert_md_to_html_en.py tools/convert_md_to_html_en.py.backup
+cp tools/convert_md_to_html.py tools/convert_md_to_html.py.backup
 
 # Edit template colors
-vim tools/convert_md_to_html_en.py
+vim tools/convert_md_to_html.py
 # Change color variables in HTML_HEADER_TEMPLATE
 
 # Test with sample file
-python3 tools/convert_md_to_html_en.py tools/test_sample_chapter.md
+python3 tools/convert_md_to_html.py tools/test_sample_chapter.md
 
 # If satisfied, convert entire Dojo
-python3 tools/convert_md_to_html_en.py ML
+python3 tools/convert_md_to_html.py ML
 ```
 
 ### Example 20: Programmatic Usage
@@ -428,7 +428,7 @@ from pathlib import Path
 import sys
 sys.path.insert(0, '/Users/yusukehashimoto/Documents/pycharm/AI_Homepage/wp/tools')
 
-from convert_md_to_html_en import convert_chapter
+from convert_md_to_html import convert_chapter
 
 # Convert specific chapters based on custom logic
 base_path = Path('knowledge/en/ML')
@@ -451,7 +451,7 @@ for series_dir in base_path.iterdir():
 cd /Users/yusukehashimoto/Documents/pycharm/AI_Homepage/wp
 
 find knowledge/en/ML -type d -name "*-introduction" | \
-    parallel -j 4 python3 tools/convert_md_to_html_en.py {}
+    parallel -j 4 python3 tools/convert_md_to_html.py {}
 
 # -j 4 means 4 parallel jobs
 ```

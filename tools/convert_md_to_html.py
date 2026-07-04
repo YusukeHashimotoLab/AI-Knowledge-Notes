@@ -1,47 +1,93 @@
 #!/usr/bin/env python3
 """
-Convert Markdown files to HTML using the GNN template structure.
-Converts chapters from the 4 new series (chemoinformatics, bioinformatics,
-active-learning, data-driven-materials).
+Convert Markdown files to HTML for the bilingual knowledge base.
+Supports all Dojos (FM, MI, ML, MS, PI) in knowledge/en/ and knowledge/jp/.
+
+This script converts Markdown files with YAML frontmatter to production-ready HTML
+with MathJax support for equations, Mermaid for diagrams, and responsive styling.
+The locale (en/jp) is inferred from the target path, or set with --lang.
+
+Usage:
+    python3 tools/convert_md_to_html.py knowledge/en/ML/some-series/
+    python3 tools/convert_md_to_html.py knowledge/jp/MI/some-series/chapter-1.md
+    python3 tools/convert_md_to_html.py ML --lang jp   # whole Dojo
+    python3 tools/convert_md_to_html.py --lang jp      # everything in one locale
 """
 
+import argparse
 import os
 import re
+import sys
 import yaml
+import logging
 from pathlib import Path
+from typing import Dict, Tuple, List, Optional
 import markdown
 from markdown.extensions import Extension
 from markdown.preprocessors import Preprocessor
 
-# Series to convert
-SERIES = [
-    "mi-introduction",
-    "pi-introduction",
-    "nm-introduction",
-    "chemoinformatics-introduction",
-    "bioinformatics-introduction",
-    "active-learning-introduction",
-    "data-driven-materials-introduction",
-    "transformer-introduction",
-    "gnn-introduction",
-    "bayesian-optimization-introduction",
-    "computational-materials-basics-introduction",
-    "reinforcement-learning-introduction",
-    "robotic-lab-automation-introduction",
-    "experimental-data-analysis-introduction",
-    "high-throughput-computing-introduction",
-    "materials-databases-introduction",
-    "materials-applications-introduction",
-    "battery-mi-application",
-    "catalyst-mi-application",
-    "materials-property-mapping-introduction"
-]
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
-BASE_PATH = Path("/wp/knowledge/jp/MI")
+# knowledge/ root anchored to this file so the script works from any cwd
+KNOWLEDGE_ROOT = Path(__file__).resolve().parent.parent / "knowledge"
+
+# Locale-specific strings and defaults
+LOCALES = {
+    "en": {
+        "html_lang": "en",
+        "label_reading_time": "Reading Time",
+        "label_difficulty": "Difficulty",
+        "label_code_examples": "Code Examples",
+        "label_exercises": "Exercises",
+        "unit_examples": "",
+        "unit_exercises": "",
+        "label_created_by": "Created by",
+        "label_supervised": "Supervised by",
+        "supervisor": "Dr. Yusuke Hashimoto (Tohoku University)",
+        "label_version": "Version",
+        "label_created": "Created",
+        "label_license": "License",
+        "nav_prev": "← Previous Chapter",
+        "nav_index": "Back to Series Index",
+        "nav_next": "Next Chapter →",
+        "default_reading_time": "20-25 minutes",
+        "default_difficulty": "Beginner",
+        "default_created_at": "2025-01-01",
+    },
+    "jp": {
+        "html_lang": "ja",
+        "label_reading_time": "読了時間",
+        "label_difficulty": "難易度",
+        "label_code_examples": "コード例",
+        "label_exercises": "演習問題",
+        "unit_examples": "個",
+        "unit_exercises": "問",
+        "label_created_by": "作成者",
+        "label_supervised": "監修",
+        "supervisor": "Dr. Yusuke Hashimoto（東北大学）",
+        "label_version": "バージョン",
+        "label_created": "作成日",
+        "label_license": "ライセンス",
+        "nav_prev": "← 前の章",
+        "nav_index": "シリーズ目次に戻る",
+        "nav_next": "次の章 →",
+        "default_reading_time": "20-25分",
+        "default_difficulty": "初級",
+        "default_created_at": "2025-10-17",
+    },
+}
+
+# Supported Dojos
+DOJOS = ["FM", "MI", "ML", "MS", "PI"]
 
 # HTML template header
 HTML_HEADER_TEMPLATE = '''<!DOCTYPE html>
-<html lang="ja">
+<html lang="{html_lang}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -385,10 +431,10 @@ HTML_HEADER_TEMPLATE = '''<!DOCTYPE html>
             <h1>{chapter_title}</h1>
             <p class="subtitle">{subtitle}</p>
             <div class="meta">
-                <span class="meta-item">📖 読了時間: {reading_time}</span>
-                <span class="meta-item">📊 難易度: {difficulty}</span>
-                <span class="meta-item">💻 コード例: {code_examples}個</span>
-                <span class="meta-item">📝 演習問題: {exercises}問</span>
+                <span class="meta-item">📖 {label_reading_time}: {reading_time}</span>
+                <span class="meta-item">📊 {label_difficulty}: {difficulty}</span>
+                <span class="meta-item">💻 {label_code_examples}: {code_examples}{unit_examples}</span>
+                <span class="meta-item">📝 {label_exercises}: {exercises}{unit_exercises}</span>
             </div>
         </div>
     </header>
@@ -400,10 +446,10 @@ HTML_FOOTER_TEMPLATE = '''
     </main>
 
     <footer>
-        <p><strong>作成者</strong>: AI Terakoya Content Team</p>
-        <p><strong>監修</strong>: Dr. Yusuke Hashimoto（東北大学）</p>
-        <p><strong>バージョン</strong>: {version} | <strong>作成日</strong>: {created_at}</p>
-        <p><strong>ライセンス</strong>: Creative Commons BY 4.0</p>
+        <p><strong>{label_created_by}</strong>: AI Terakoya Content Team</p>
+        <p><strong>{label_supervised}</strong>: {supervisor}</p>
+        <p><strong>{label_version}</strong>: {version} | <strong>{label_created}</strong>: {created_at}</p>
+        <p><strong>{label_license}</strong>: Creative Commons BY 4.0</p>
         <p>© 2025 AI Terakoya. All rights reserved.</p>
     </footer>
 </body>
@@ -414,7 +460,16 @@ HTML_FOOTER_TEMPLATE = '''
 class MathPreprocessor(Preprocessor):
     """Preprocessor to protect math blocks from Markdown emphasis processing."""
 
-    def run(self, lines):
+    def run(self, lines: List[str]) -> List[str]:
+        """
+        Process lines to protect LaTeX math notation from Markdown parsing.
+
+        Args:
+            lines: Input Markdown lines
+
+        Returns:
+            Processed lines with protected math notation
+        """
         new_lines = []
         in_display_math = False
 
@@ -431,7 +486,6 @@ class MathPreprocessor(Preprocessor):
             else:
                 # Also protect inline math $...$
                 # Use regex to find and protect inline math
-                import re
                 parts = re.split(r'(\$[^$]+\$)', line)
                 protected_parts = []
                 for part in parts:
@@ -448,7 +502,16 @@ class MathPreprocessor(Preprocessor):
 class MermaidPreprocessor(Preprocessor):
     """Preprocessor to convert Mermaid code blocks to div.mermaid."""
 
-    def run(self, lines):
+    def run(self, lines: List[str]) -> List[str]:
+        """
+        Convert Mermaid code blocks to HTML div elements.
+
+        Args:
+            lines: Input Markdown lines
+
+        Returns:
+            Processed lines with Mermaid blocks as div elements
+        """
         new_lines = []
         in_mermaid = False
         mermaid_content = []
@@ -475,6 +538,7 @@ class MathExtension(Extension):
     """Extension to protect math blocks from Markdown emphasis."""
 
     def extendMarkdown(self, md):
+        """Register the MathPreprocessor with high priority."""
         md.preprocessors.register(MathPreprocessor(md), 'math', 200)
 
 
@@ -482,22 +546,42 @@ class MermaidExtension(Extension):
     """Extension to add Mermaid preprocessing."""
 
     def extendMarkdown(self, md):
+        """Register the MermaidPreprocessor."""
         md.preprocessors.register(MermaidPreprocessor(md), 'mermaid', 175)
 
 
-def extract_frontmatter(content):
-    """Extract YAML frontmatter from Markdown content."""
+def extract_frontmatter(content: str) -> Tuple[Dict, str]:
+    """
+    Extract YAML frontmatter from Markdown content.
+
+    Args:
+        content: Raw Markdown content with optional frontmatter
+
+    Returns:
+        Tuple of (frontmatter_dict, body_content)
+    """
     match = re.match(r'^---\n(.*?)\n---\n', content, re.DOTALL)
     if match:
-        frontmatter = yaml.safe_load(match.group(1))
-        body = content[match.end():]
-        return frontmatter, body
+        try:
+            frontmatter = yaml.safe_load(match.group(1))
+            body = content[match.end():]
+            return frontmatter, body
+        except yaml.YAMLError as e:
+            logger.warning(f"Failed to parse YAML frontmatter: {e}")
+            return {}, content
     return {}, content
 
 
-def convert_markdown_to_html(md_content):
-    """Convert Markdown content to HTML using Python-Markdown library."""
+def convert_markdown_to_html(md_content: str) -> str:
+    """
+    Convert Markdown content to HTML using Python-Markdown library.
 
+    Args:
+        md_content: Markdown content (without frontmatter)
+
+    Returns:
+        Converted HTML content
+    """
     # Configure Markdown processor with extensions
     md = markdown.Markdown(
         extensions=[
@@ -521,8 +605,18 @@ def convert_markdown_to_html(md_content):
     return html
 
 
-def create_navigation(chapter_num, series_path, current_file):
-    """Create navigation links for chapter."""
+def create_navigation(chapter_num: int, series_path: Path, current_file: str, loc: Dict) -> str:
+    """
+    Create navigation links for chapter.
+
+    Args:
+        chapter_num: Current chapter number
+        series_path: Path to series directory
+        current_file: Name of current Markdown file
+
+    Returns:
+        Navigation HTML
+    """
     nav_html = '<div class="navigation">\n'
 
     # Get all chapter HTML files in the series (sorted)
@@ -539,103 +633,222 @@ def create_navigation(chapter_num, series_path, current_file):
     # Previous chapter
     if current_idx > 0 and len(chapter_html_files) > current_idx:
         prev_file = chapter_html_files[current_idx - 1]
-        nav_html += f'    <a href="{prev_file}" class="nav-button">← 前の章</a>\n'
+        nav_html += f'    <a href="{prev_file}" class="nav-button">{loc["nav_prev"]}</a>\n'
 
     # Index
-    nav_html += '    <a href="index.html" class="nav-button">シリーズ目次に戻る</a>\n'
+    nav_html += f'    <a href="index.html" class="nav-button">{loc["nav_index"]}</a>\n'
 
     # Next chapter (estimate next file name)
     # Try to find next chapter MD file
     next_chapter_files = sorted(series_path.glob(f"chapter*{chapter_num+1}*.md"))
     if next_chapter_files:
         next_html = next_chapter_files[0].name.replace('.md', '.html')
-        nav_html += f'    <a href="{next_html}" class="nav-button">次の章 →</a>\n'
+        nav_html += f'    <a href="{next_html}" class="nav-button">{loc["nav_next"]}</a>\n'
 
     nav_html += '</div>'
     return nav_html
 
 
-def convert_chapter(series_path, chapter_file):
-    """Convert a single chapter Markdown file to HTML."""
+def convert_chapter(series_path: Path, chapter_file: str, loc: Dict) -> bool:
+    """
+    Convert a single chapter Markdown file to HTML.
+
+    Args:
+        series_path: Path to series directory
+        chapter_file: Name of chapter Markdown file
+
+    Returns:
+        True if successful, False otherwise
+    """
     md_path = series_path / chapter_file
     html_path = series_path / chapter_file.replace('.md', '.html')
 
-    print(f"Converting {md_path} to {html_path}...")
+    logger.info(f"Converting {md_path} to {html_path}...")
 
-    # Read Markdown
-    with open(md_path, 'r', encoding='utf-8') as f:
-        md_content = f.read()
+    try:
+        # Read Markdown
+        with open(md_path, 'r', encoding='utf-8') as f:
+            md_content = f.read()
 
-    # Extract frontmatter
-    frontmatter, body = extract_frontmatter(md_content)
+        # Extract frontmatter
+        frontmatter, body = extract_frontmatter(md_content)
 
-    # Convert body to HTML
-    body_html = convert_markdown_to_html(body)
+        # Convert body to HTML
+        body_html = convert_markdown_to_html(body)
 
-    # Extract chapter number from filename (supports both patterns)
-    # Pattern 1: chapter-1.md, chapter-2.md
-    # Pattern 2: chapter1-introduction.md, chapter2-fundamentals.md
-    chapter_match = re.match(r'chapter-?(\d+)', chapter_file)
-    chapter_num = int(chapter_match.group(1)) if chapter_match else 1
+        # Extract chapter number from filename (supports both patterns)
+        # Pattern 1: chapter-1.md, chapter-2.md
+        # Pattern 2: chapter1-introduction.md, chapter2-fundamentals.md
+        chapter_match = re.match(r'chapter-?(\d+)', chapter_file)
+        chapter_num = int(chapter_match.group(1)) if chapter_match else 1
 
-    # Create navigation
-    nav_html = create_navigation(chapter_num, series_path, chapter_file)
+        # Create navigation
+        nav_html = create_navigation(chapter_num, series_path, chapter_file, loc)
 
-    # Build complete HTML
-    html = HTML_HEADER_TEMPLATE.format(
-        title=frontmatter.get('title', 'Chapter'),
-        chapter_title=frontmatter.get('chapter_title', frontmatter.get('title', 'Chapter')),
-        subtitle=frontmatter.get('subtitle', ''),
-        reading_time=frontmatter.get('reading_time', '20-25分'),
-        difficulty=frontmatter.get('difficulty', '初級'),
-        code_examples=frontmatter.get('code_examples', 0),
-        exercises=frontmatter.get('exercises', 0)
-    )
+        # Build complete HTML
+        html = HTML_HEADER_TEMPLATE.format(
+            title=frontmatter.get('title', 'Chapter'),
+            chapter_title=frontmatter.get('chapter_title', frontmatter.get('title', 'Chapter')),
+            subtitle=frontmatter.get('subtitle', ''),
+            reading_time=frontmatter.get('reading_time', loc['default_reading_time']),
+            difficulty=frontmatter.get('difficulty', loc['default_difficulty']),
+            code_examples=frontmatter.get('code_examples', 0),
+            exercises=frontmatter.get('exercises', 0),
+            **{k: v for k, v in loc.items() if k.startswith(('html_', 'label_', 'unit_'))}
+        )
 
-    html += body_html
-    html += nav_html
-    html += HTML_FOOTER_TEMPLATE.format(
-        version=frontmatter.get('version', '1.0'),
-        created_at=frontmatter.get('created_at', '2025-10-17')
-    )
+        html += body_html
+        html += nav_html
+        html += HTML_FOOTER_TEMPLATE.format(
+            version=frontmatter.get('version', '1.0'),
+            created_at=frontmatter.get('created_at', loc['default_created_at']),
+            supervisor=loc['supervisor'],
+            **{k: v for k, v in loc.items() if k.startswith('label_')}
+        )
 
-    # Write HTML
-    with open(html_path, 'w', encoding='utf-8') as f:
-        f.write(html)
+        # Write HTML atomically (write to temp, then rename)
+        temp_path = html_path.with_suffix('.html.tmp')
+        with open(temp_path, 'w', encoding='utf-8') as f:
+            f.write(html)
 
-    print(f"✓ Created {html_path}")
+        # Rename temp to final
+        temp_path.replace(html_path)
+
+        logger.info(f"✓ Created {html_path}")
+        return True
+
+    except Exception as e:
+        logger.error(f"✗ Failed to convert {chapter_file}: {e}")
+        return False
 
 
-def main():
-    """Main conversion function."""
-    print("Starting Markdown to HTML conversion...")
-    print("=" * 60)
+def find_series_directories(dojo: str, lang: str) -> List[Path]:
+    """
+    Find all series directories within a Dojo.
 
-    for series in SERIES:
-        series_path = BASE_PATH / series
-        print(f"\nProcessing series: {series}")
-        print("-" * 60)
+    Args:
+        dojo: Dojo name (FM, MI, ML, MS, PI)
+        lang: Locale key (en or jp)
 
-        if not series_path.exists():
-            print(f"⚠ Series directory not found: {series_path}")
-            continue
+    Returns:
+        List of series directory paths
+    """
+    dojo_path = KNOWLEDGE_ROOT / lang / dojo
+    if not dojo_path.exists():
+        logger.warning(f"Dojo directory not found: {dojo_path}")
+        return []
 
-        # Find all chapter*.md files in the series directory
-        chapter_files = sorted(series_path.glob("chapter*.md"))
+    # Find all directories that contain chapter*.md files
+    series_dirs = []
+    for item in dojo_path.iterdir():
+        if item.is_dir() and list(item.glob("chapter*.md")):
+            series_dirs.append(item)
 
-        if not chapter_files:
-            print(f"⚠ No chapter files found in {series}")
-            continue
+    return sorted(series_dirs)
 
-        # Convert each chapter file
-        for chapter_path in chapter_files:
-            chapter_file = chapter_path.name
-            convert_chapter(series_path, chapter_file)
 
-    print("\n" + "=" * 60)
-    print("✓ Conversion complete!")
-    print(f"Total series processed: {len(SERIES)}")
+def convert_series(series_path: Path, loc: Dict) -> Tuple[int, int]:
+    """
+    Convert all chapters in a series.
+
+    Args:
+        series_path: Path to series directory
+
+    Returns:
+        Tuple of (successful_count, total_count)
+    """
+    logger.info(f"\nProcessing series: {series_path.name}")
+    logger.info("-" * 60)
+
+    # Find all chapter*.md files
+    chapter_files = sorted(series_path.glob("chapter*.md"))
+
+    if not chapter_files:
+        logger.warning(f"No chapter files found in {series_path.name}")
+        return 0, 0
+
+    success_count = 0
+    for chapter_path in chapter_files:
+        if convert_chapter(series_path, chapter_path.name, loc):
+            success_count += 1
+
+    return success_count, len(chapter_files)
+
+
+def infer_lang(target: Optional[str]) -> Optional[str]:
+    """Infer the locale from a target path (looks for en/jp under knowledge/)."""
+    if not target:
+        return None
+    parts = Path(target).resolve().parts
+    for i, part in enumerate(parts):
+        if part == "knowledge" and i + 1 < len(parts) and parts[i + 1] in LOCALES:
+            return parts[i + 1]
+    # Fallback: a bare en/jp path component anywhere
+    for part in Path(target).parts:
+        if part in LOCALES:
+            return part
+    return None
+
+
+def main(target: Optional[str] = None, lang: Optional[str] = None):
+    """
+    Main conversion function.
+
+    Args:
+        target: Optional target (Dojo name, series path, or file path)
+        lang: Locale key (en or jp); inferred from target path when omitted
+    """
+    lang = lang or infer_lang(target) or "en"
+    loc = LOCALES[lang]
+    logger.info(f"Starting Markdown to HTML conversion ({lang} knowledge base)...")
+    logger.info("=" * 60)
+
+    total_success = 0
+    total_files = 0
+
+    if target:
+        target_path = Path(target)
+
+        # Check if target is a specific file
+        if target_path.suffix == '.md' and target_path.exists():
+            series_path = target_path.parent
+            if convert_chapter(series_path, target_path.name, loc):
+                total_success = 1
+            total_files = 1
+        # Check if target is a series directory
+        elif target_path.is_dir() and list(target_path.glob("chapter*.md")):
+            success, total = convert_series(target_path, loc)
+            total_success += success
+            total_files += total
+        # Check if target is a Dojo
+        elif target.upper() in DOJOS:
+            series_dirs = find_series_directories(target.upper(), lang)
+            for series_path in series_dirs:
+                success, total = convert_series(series_path, loc)
+                total_success += success
+                total_files += total
+        else:
+            logger.error(f"Invalid target: {target}")
+            logger.error("Usage: python convert_md_to_html.py [FM|MI|ML|MS|PI|series_path|file_path] [--lang en|jp]")
+            sys.exit(1)
+    else:
+        # Process all Dojos in the selected locale
+        for dojo in DOJOS:
+            series_dirs = find_series_directories(dojo, lang)
+            for series_path in series_dirs:
+                success, total = convert_series(series_path, loc)
+                total_success += success
+                total_files += total
+
+    logger.info("\n" + "=" * 60)
+    logger.info(f"✓ Conversion complete!")
+    logger.info(f"Successfully converted: {total_success}/{total_files} files")
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="Convert knowledge-base Markdown to HTML (en/jp)")
+    parser.add_argument("target", nargs="?", help="Dojo name, series directory, or .md file")
+    parser.add_argument("--lang", choices=sorted(LOCALES), default=None,
+                        help="Locale (inferred from target path when omitted; defaults to en)")
+    args = parser.parse_args()
+    main(args.target, args.lang)

@@ -18,7 +18,7 @@ pip install markdown pyyaml beautifulsoup4 html2text watchdog
 
 ```bash
 # Convert Markdown to HTML
-python tools/convert_md_to_html_en.py knowledge/en/ML/transformer-introduction/
+python tools/convert_md_to_html.py knowledge/en/ML/transformer-introduction/
 
 # Convert HTML back to Markdown
 python tools/html_to_md.py knowledge/en/ML/transformer-introduction/
@@ -32,7 +32,7 @@ python tools/sync_md_html.py knowledge/en/ML/transformer-introduction/ --watch
 
 ## Tools Overview
 
-### 1. `convert_md_to_html_en.py` - Markdown to HTML Converter
+### 1. `convert_md_to_html.py` - Markdown to HTML Converter
 
 Converts Markdown files with YAML frontmatter to production-ready HTML with full support for math equations, diagrams, and code highlighting.
 
@@ -50,16 +50,16 @@ Converts Markdown files with YAML frontmatter to production-ready HTML with full
 
 ```bash
 # Convert single file
-python tools/convert_md_to_html_en.py knowledge/en/ML/transformer-introduction/chapter-1.md
+python tools/convert_md_to_html.py knowledge/en/ML/transformer-introduction/chapter-1.md
 
 # Convert entire series
-python tools/convert_md_to_html_en.py knowledge/en/ML/transformer-introduction/
+python tools/convert_md_to_html.py knowledge/en/ML/transformer-introduction/
 
 # Convert entire Dojo
-python tools/convert_md_to_html_en.py ML
+python tools/convert_md_to_html.py ML
 
 # Convert all English content
-python tools/convert_md_to_html_en.py
+python tools/convert_md_to_html.py
 ```
 
 #### Frontmatter Schema
@@ -283,7 +283,7 @@ python tools/sync_md_html.py knowledge/en/ML/transformer-introduction/ --watch
 
 2. Generate HTML for production:
    ```bash
-   python tools/convert_md_to_html_en.py knowledge/en/ML/transformer-introduction/chapter-1.md
+   python tools/convert_md_to_html.py knowledge/en/ML/transformer-introduction/chapter-1.md
    ```
 
 3. Preview HTML in browser, iterate on Markdown
@@ -353,7 +353,7 @@ python tools/sync_md_html.py knowledge/en/ML/transformer-introduction/ --watch
 
 3. Regenerate all HTML:
    ```bash
-   python tools/convert_md_to_html_en.py ML
+   python tools/convert_md_to_html.py ML
    ```
 
 4. Verify with sync tool:
@@ -407,7 +407,7 @@ jobs:
 
       - name: Convert Markdown to HTML
         run: |
-          python tools/convert_md_to_html_en.py knowledge/en/
+          python tools/convert_md_to_html.py knowledge/en/
 
       - name: Check links
         run: |
@@ -432,7 +432,7 @@ repos:
     hooks:
       - id: markdown-to-html
         name: Convert Markdown to HTML
-        entry: python tools/convert_md_to_html_en.py
+        entry: python tools/convert_md_to_html.py
         language: system
         files: '^knowledge/en/.*\.md$'
         pass_filenames: true
@@ -511,7 +511,7 @@ code_examples: "5"             # ⚠ Works but should be integer
 
 ```bash
 # Re-generate from Markdown if available
-python tools/convert_md_to_html_en.py knowledge/en/ML/series/chapter-1.md
+python tools/convert_md_to_html.py knowledge/en/ML/series/chapter-1.md
 
 # Or manually clean HTML structure before extraction
 ```
@@ -537,7 +537,7 @@ pip install watchdog
 chmod 644 knowledge/en/ML/series/*.html
 
 # Or use sudo (not recommended)
-sudo python tools/convert_md_to_html_en.py knowledge/en/ML/series/
+sudo python tools/convert_md_to_html.py knowledge/en/ML/series/
 ```
 
 ### Debugging
@@ -554,7 +554,7 @@ Or use verbose mode:
 
 ```bash
 # Run with Python -v flag
-python -v tools/convert_md_to_html_en.py knowledge/en/ML/series/
+python -v tools/convert_md_to_html.py knowledge/en/ML/series/
 
 # Check for import issues
 python -c "import markdown; import yaml; import bs4; import html2text; print('All dependencies OK')"
@@ -564,7 +564,7 @@ python -c "import markdown; import yaml; import bs4; import html2text; print('Al
 
 ### Custom Templates
 
-Modify templates in `convert_md_to_html_en.py`:
+Modify templates in `convert_md_to_html.py`:
 
 ```python
 # Change color scheme
@@ -618,7 +618,7 @@ Process specific patterns:
 
 ```bash
 # Convert all transformer-related chapters
-find knowledge/en -path "*/transformer*/chapter*.md" -exec python tools/convert_md_to_html_en.py {} \;
+find knowledge/en -path "*/transformer*/chapter*.md" -exec python tools/convert_md_to_html.py {} \;
 
 # Extract all chapter-1 files
 find knowledge/en -name "chapter-1.html" -exec python tools/html_to_md.py {} \;
@@ -633,7 +633,7 @@ Use as Python modules:
 
 ```python
 from pathlib import Path
-from tools.convert_md_to_html_en import convert_chapter
+from tools.convert_md_to_html import convert_chapter
 from tools.html_to_md import convert_html_file
 from tools.sync_md_html import FilePair, sync_file_pair
 
@@ -725,7 +725,7 @@ python tools/sync_md_html.py knowledge/en/ML/ --dry-run
 python tools/check_links.py knowledge/en/ML/
 
 # 3. Convert with logging
-python tools/convert_md_to_html_en.py knowledge/en/ML/ > conversion.log 2>&1
+python tools/convert_md_to_html.py knowledge/en/ML/ > conversion.log 2>&1
 
 # 4. Validate HTML (optional)
 find knowledge/en -name "*.html" -exec tidy -q -e {} \;

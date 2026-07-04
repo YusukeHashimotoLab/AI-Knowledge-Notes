@@ -12,29 +12,29 @@ cd /Users/yusukehashimoto/Documents/pycharm/AI_Homepage/wp
 pip install markdown pyyaml beautifulsoup4 html2text
 
 # 2. Test the converter
-python3 tools/convert_md_to_html_en.py --help
+python3 tools/convert_md_to_html.py --help
 
 # 3. You're ready!
 ```
 
 ## The Three Tools
 
-### 1. Markdown → HTML: `convert_md_to_html_en.py`
+### 1. Markdown → HTML: `convert_md_to_html.py`
 
 **Use when**: Creating new content in Markdown
 
 ```bash
 # Single file
-python3 tools/convert_md_to_html_en.py knowledge/en/ML/series/chapter-1.md
+python3 tools/convert_md_to_html.py knowledge/en/ML/series/chapter-1.md
 
 # Entire series
-python3 tools/convert_md_to_html_en.py knowledge/en/ML/series/
+python3 tools/convert_md_to_html.py knowledge/en/ML/series/
 
 # Entire Dojo
-python3 tools/convert_md_to_html_en.py ML
+python3 tools/convert_md_to_html.py ML
 
 # Everything
-python3 tools/convert_md_to_html_en.py
+python3 tools/convert_md_to_html.py
 ```
 
 **Features**:
@@ -103,7 +103,7 @@ python3 tools/sync_md_html.py knowledge/en/ML/series/ --watch
 vim knowledge/en/ML/transformer-introduction/chapter-6.md
 
 # 2. Generate HTML
-python3 tools/convert_md_to_html_en.py knowledge/en/ML/transformer-introduction/chapter-6.md
+python3 tools/convert_md_to_html.py knowledge/en/ML/transformer-introduction/chapter-6.md
 
 # 3. Preview in browser
 open knowledge/en/ML/transformer-introduction/chapter-6.html
@@ -220,10 +220,10 @@ knowledge/en/
 
 | Task | Command |
 |------|---------|
-| Convert single MD file | `python3 tools/convert_md_to_html_en.py FILE.md` |
-| Convert series | `python3 tools/convert_md_to_html_en.py SERIES_DIR/` |
-| Convert Dojo | `python3 tools/convert_md_to_html_en.py ML` |
-| Convert all | `python3 tools/convert_md_to_html_en.py` |
+| Convert single MD file | `python3 tools/convert_md_to_html.py FILE.md` |
+| Convert series | `python3 tools/convert_md_to_html.py SERIES_DIR/` |
+| Convert Dojo | `python3 tools/convert_md_to_html.py ML` |
+| Convert all | `python3 tools/convert_md_to_html.py` |
 | Extract HTML to MD | `python3 tools/html_to_md.py FILE.html` |
 | Auto-sync | `python3 tools/sync_md_html.py SERIES_DIR/` |
 | Watch mode | `python3 tools/sync_md_html.py SERIES_DIR/ --watch` |
@@ -281,7 +281,7 @@ Not `~~~mermaid` or indented code blocks.
 
 3. Regenerate HTML:
    ```bash
-   python3 tools/convert_md_to_html_en.py knowledge/en/ML/transformer-introduction/chapter-1.md
+   python3 tools/convert_md_to_html.py knowledge/en/ML/transformer-introduction/chapter-1.md
    ```
 
 4. Start using watch mode for development:

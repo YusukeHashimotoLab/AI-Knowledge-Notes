@@ -8,7 +8,7 @@ A production-ready bidirectional conversion pipeline for managing Markdown and H
 
 ### Core Scripts (3 files)
 
-#### 1. `convert_md_to_html_en.py` (870 lines)
+#### 1. `convert_md_to_html.py` (870 lines)
 **Purpose**: Convert Markdown with YAML frontmatter to production-ready HTML
 
 **Key Features**:
@@ -238,7 +238,7 @@ Project overview and implementation summary
 - Machine-parseable output
 
 ### 8. English-Specific Implementation
-**Decision**: Separate `convert_md_to_html_en.py` vs. modifying Japanese version
+**Decision**: Separate `convert_md_to_html.py` vs. modifying Japanese version
 **Rationale**:
 - Avoids breaking existing Japanese pipeline
 - Clear separation of concerns
@@ -433,7 +433,7 @@ class FilePair:
 ## Maintenance Guide
 
 ### Updating Templates
-1. Edit HTML_HEADER_TEMPLATE or HTML_FOOTER_TEMPLATE in `convert_md_to_html_en.py`
+1. Edit HTML_HEADER_TEMPLATE or HTML_FOOTER_TEMPLATE in `convert_md_to_html.py`
 2. Test with sample file
 3. Regenerate all HTML if needed
 
@@ -472,7 +472,7 @@ class FilePair:
 
 | File | Lines | Purpose |
 |------|-------|---------|
-| `convert_md_to_html_en.py` | 870 | Markdown to HTML conversion |
+| `convert_md_to_html.py` | 870 | Markdown to HTML conversion |
 | `html_to_md.py` | 330 | HTML to Markdown extraction |
 | `sync_md_html.py` | 450 | Bidirectional synchronization |
 | `README_MARKDOWN_PIPELINE.md` | 1,200 | Full documentation |
