@@ -40,8 +40,9 @@ python -m http.server 4100 --directory knowledge/jp
 
 ### Content Pipeline
 ```bash
-# Convert Markdown to HTML
-python tools/convert_md_to_html_en.py knowledge/en/ML/transformer-introduction/
+# Convert Markdown to HTML (locale inferred from the path; --lang en|jp to override)
+python tools/convert_md_to_html.py knowledge/en/ML/transformer-introduction/
+python tools/convert_md_to_html.py knowledge/jp/MI/gnn-introduction/
 
 # Convert HTML back to Markdown
 python tools/html_to_md.py knowledge/en/ML/transformer-introduction/
