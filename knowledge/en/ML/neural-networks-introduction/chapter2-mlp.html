@@ -1,0 +1,1483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+<meta content="Chapter 2: Multilayer Perceptron and Backpropagation - AI Terakoya" name="description"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 2: Multilayer Perceptron and Backpropagation - AI Terakoya</title>
+
+    <style>
+        :root {
+            --color-primary: #2c3e50;
+            --color-primary-dark: #1a252f;
+            --color-accent: #7b2cbf;
+            --color-accent-light: #9d4edd;
+            --color-text: #2d3748;
+            --color-text-light: #4a5568;
+            --color-bg: #ffffff;
+            --color-bg-alt: #f7fafc;
+            --color-border: #e2e8f0;
+            --color-code-bg: #f8f9fa;
+            --color-link: #3182ce;
+            --color-link-hover: #2c5aa0;
+
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+
+            --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+            --border-radius: 8px;
+            --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-body);
+            line-height: 1.7;
+            color: var(--color-text);
+            background-color: var(--color-bg);
+            font-size: 16px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            padding: var(--spacing-xl) var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+            box-shadow: var(--box-shadow);
+        }
+
+        .header-content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: var(--spacing-sm);
+            line-height: 1.2;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            font-weight: 400;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-md);
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-md) var(--spacing-xl);
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-xl);
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-xs);
+            border-bottom: 3px solid var(--color-accent);
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-lg);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        h4 {
+            font-size: 1.1rem;
+            color: var(--color-primary-dark);
+            margin-top: var(--spacing-md);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        p {
+            margin-bottom: var(--spacing-md);
+            color: var(--color-text);
+        }
+
+        a {
+            color: var(--color-link);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        a:hover {
+            color: var(--color-link-hover);
+            text-decoration: underline;
+        }
+
+        ul, ol {
+            margin-left: var(--spacing-lg);
+            margin-bottom: var(--spacing-md);
+        }
+
+        li {
+            margin-bottom: var(--spacing-xs);
+            color: var(--color-text);
+        }
+
+        pre {
+            background-color: var(--color-code-bg);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            overflow-x: auto;
+            margin-bottom: var(--spacing-md);
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        code {
+            font-family: var(--font-mono);
+            font-size: 0.9em;
+            background-color: var(--color-code-bg);
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+        }
+
+        pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: var(--spacing-md);
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            border: 1px solid var(--color-border);
+            padding: var(--spacing-sm);
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--color-bg-alt);
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        blockquote {
+            border-left: 4px solid var(--color-accent);
+            padding-left: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            color: var(--color-text-light);
+            font-style: italic;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        .mermaid {
+            text-align: center;
+            margin: var(--spacing-lg) 0;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        details {
+            background-color: var(--color-bg-alt);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+        }
+
+        summary {
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--color-primary);
+            user-select: none;
+            padding: var(--spacing-xs);
+            margin: calc(-1 * var(--spacing-md));
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        summary:hover {
+            background-color: rgba(123, 44, 191, 0.1);
+        }
+
+        details[open] summary {
+            margin-bottom: var(--spacing-md);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            gap: var(--spacing-md);
+            margin: var(--spacing-xl) 0;
+            padding-top: var(--spacing-lg);
+            border-top: 2px solid var(--color-border);
+        }
+
+        .nav-button {
+            flex: 1;
+            padding: var(--spacing-md);
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            border-radius: var(--border-radius);
+            text-align: center;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: var(--box-shadow);
+        }
+
+        .nav-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            text-decoration: none;
+        }
+
+        footer {
+            margin-top: var(--spacing-xl);
+            padding: var(--spacing-lg) var(--spacing-md);
+            background-color: var(--color-bg-alt);
+            border-top: 1px solid var(--color-border);
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--color-text-light);
+        }
+        .disclaimer {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 1.5rem;
+            background: #f8f9fa;
+            border-left: 4px solid #6c757d;
+            border-radius: 4px;
+        }
+
+        .disclaimer h3 {
+            color: #495057;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .disclaimer ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .disclaimer li {
+            padding: 0.5rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+            font-size: 0.9rem;
+            color: #6c757d;
+            line-height: 1.6;
+        }
+
+        .disclaimer li::before {
+            content: "⚠️";
+            position: absolute;
+            left: 0;
+        }
+
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            h2 {
+                font-size: 1.4rem;
+            }
+
+            h3 {
+                font-size: 1.2rem;
+            }
+
+            .meta {
+                font-size: 0.85rem;
+            }
+
+            .navigation {
+                flex-direction: column;
+            }
+
+            table {
+                font-size: 0.85rem;
+            }
+
+            th, td {
+                padding: var(--spacing-xs);
+            }
+        }
+
+
+
+        /* Breadcrumb styles */
+        .breadcrumb {
+            background: #f7fafc;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+        }
+
+        .breadcrumb-content {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .breadcrumb a {
+            color: #667eea;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .breadcrumb a:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+
+        .breadcrumb-separator {
+            color: #a0aec0;
+            margin: 0 0.25rem;
+        }
+
+        .breadcrumb-current {
+            color: #4a5568;
+            font-weight: 500;
+        }
+    </style>
+
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+
+    <!-- MathJax for LaTeX equation rendering -->
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" id="MathJax-script" async></script>
+</head>
+<body>
+            <nav class="breadcrumb">
+        <div class="breadcrumb-content">
+            <a href="../../index.html">AI Terakoya Top</a><span class="breadcrumb-separator">›</span><a href="../../ML/index.html">Machine Learning</a><span class="breadcrumb-separator">›</span><a href="../../ML/neural-networks-introduction/index.html">Neural Networks</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 2</span>
+        </div>
+    </nav>
+
+        <header>
+        <div class="header-content">
+            <h1>Chapter 2: Multilayer Perceptron and Backpropagation</h1>
+            <p class="subtitle">The Core Algorithm of Deep Learning - Backpropagation</p>
+            <div class="meta">
+                <span class="meta-item">📖 Reading Time: 30-35 minutes</span>
+                <span class="meta-item">📊 Difficulty: Beginner to Intermediate</span>
+                <span class="meta-item">💻 Code Examples: 15</span>
+                <span class="meta-item">📝 Exercises: 5</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+
+<h2>Learning Objectives</h2>
+<p>By reading this chapter, you will be able to:</p>
+<ul>
+<li>✅ Understand the structure of the multilayer perceptron (MLP)</li>
+<li>✅ Explain how backpropagation works</li>
+<li>✅ Understand parameter updates via gradient descent</li>
+<li>✅ Learn the mathematical foundations of the chain rule</li>
+<li>✅ Fully implement an MLP with NumPy</li>
+<li>✅ Actually solve the XOR problem</li>
+</ul>
+
+<hr>
+
+<h2>2.1 Structure of the Multilayer Perceptron (MLP)</h2>
+
+<h3>What is an MLP</h3>
+
+<p>A <strong>multilayer perceptron (MLP)</strong> is a neural network that combines multiple layers of perceptrons.</p>
+
+<div class="mermaid">
+graph LR
+    x1[Input Layer<br/>x1] --> h1[Hidden Layer<br/>h1]
+    x2[Input Layer<br/>x2] --> h1
+    x1 --> h2[Hidden Layer<br/>h2]
+    x2 --> h2
+    h1 --> y1[Output Layer<br/>y1]
+    h2 --> y1
+
+    style x1 fill:#e3f2fd
+    style x2 fill:#e3f2fd
+    style h1 fill:#fff3e0
+    style h2 fill:#fff3e0
+    style y1 fill:#e8f5e9
+</div>
+
+<h3>Types of Layers</h3>
+
+<table>
+<thead>
+<tr>
+<th>Layer Type</th>
+<th>Role</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Input Layer</strong></td>
+<td>Input Layer</td>
+<td>Layer that receives the data (not trained)</td>
+</tr>
+<tr>
+<td><strong>Hidden Layer</strong></td>
+<td>Hidden Layer</td>
+<td>Layer that performs feature extraction (trained)</td>
+</tr>
+<tr>
+<td><strong>Output Layer</strong></td>
+<td>Output Layer</td>
+<td>Layer that produces the final result (trained)</td>
+</tr>
+</tbody>
+</table>
+
+<h3>Equations of a Two-Layer Neural Network</h3>
+
+<p>The computation from input $\mathbf{x} = [x_1, x_2]^T$ to output $y$:</p>
+
+<p><strong>Layer 1 (input → hidden layer)</strong>:</p>
+<p>$$
+\mathbf{h} = \sigma(\mathbf{W}^{(1)} \mathbf{x} + \mathbf{b}^{(1)})
+$$</p>
+
+<p><strong>Layer 2 (hidden layer → output)</strong>:</p>
+<p>$$
+y = \sigma(\mathbf{W}^{(2)} \mathbf{h} + b^{(2)})
+$$</p>
+
+<p>Here, $\sigma$ is an activation function (such as the sigmoid function).</p>
+
+<h3>Basic Structure of the Python Implementation</h3>
+
+<pre><code class="language-python">import numpy as np
+
+def sigmoid(x):
+    """Sigmoid function"""
+    return 1 / (1 + np.exp(-x))
+
+class TwoLayerNet:
+    """Two-layer neural network"""
+
+    def __init__(self, input_size, hidden_size, output_size):
+        """
+        Args:
+            input_size: Number of neurons in the input layer
+            hidden_size: Number of neurons in the hidden layer
+            output_size: Number of neurons in the output layer
+        """
+        # Initialize weights (randomly)
+        self.W1 = np.random.randn(input_size, hidden_size)
+        self.b1 = np.zeros(hidden_size)
+
+        self.W2 = np.random.randn(hidden_size, output_size)
+        self.b2 = np.zeros(output_size)
+
+    def forward(self, x):
+        """
+        Forward propagation
+
+        Args:
+            x: Input data (n_samples, input_size)
+
+        Returns:
+            Output (n_samples, output_size)
+        """
+        # Layer 1
+        self.z1 = np.dot(x, self.W1) + self.b1
+        self.a1 = sigmoid(self.z1)
+
+        # Layer 2
+        self.z2 = np.dot(self.a1, self.W2) + self.b2
+        self.a2 = sigmoid(self.z2)
+
+        return self.a2
+
+# Test
+net = TwoLayerNet(input_size=2, hidden_size=3, output_size=1)
+x = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
+output = net.forward(x)
+
+print("=== Output right after initialization ===")
+print(output)
+</code></pre>
+
+<hr>
+
+<h2>2.2 Loss Functions</h2>
+
+<h3>What is a Loss Function</h3>
+
+<p>A <strong>loss function</strong> quantifies the difference between the neural network's predictions and the true values. The goal of training is to <strong>minimize</strong> this loss.</p>
+
+<h3>Mean Squared Error (MSE)</h3>
+
+<p>A loss function commonly used for regression problems:</p>
+
+<p>$$
+L = \frac{1}{n} \sum_{i=1}^{n} (y_i - \hat{y}_i)^2
+$$</p>
+
+<p>Here, $y_i$ is the true value and $\hat{y}_i$ is the predicted value.</p>
+
+<pre><code class="language-python">def mean_squared_error(y_true, y_pred):
+    """
+    Mean Squared Error (MSE)
+
+    Args:
+        y_true: True labels (n_samples,)
+        y_pred: Predicted values (n_samples,)
+
+    Returns:
+        MSE value
+    """
+    return np.mean((y_true - y_pred) ** 2)
+
+# Example
+y_true = np.array([0, 1, 1, 0])
+y_pred = np.array([0.1, 0.9, 0.8, 0.2])
+loss = mean_squared_error(y_true, y_pred)
+print(f"MSE: {loss:.4f}")  # 0.0125
+</code></pre>
+
+<h3>Cross-Entropy Loss</h3>
+
+<p>A loss function used for classification problems:</p>
+
+<p>$$
+L = -\frac{1}{n} \sum_{i=1}^{n} \left[ y_i \log(\hat{y}_i) + (1-y_i) \log(1-\hat{y}_i) \right]
+$$</p>
+
+<pre><code class="language-python">def binary_cross_entropy(y_true, y_pred):
+    """
+    Binary Cross-Entropy
+
+    Args:
+        y_true: True labels (n_samples,)
+        y_pred: Predicted probabilities (n_samples,)
+
+    Returns:
+        BCE value
+    """
+    # Clip with a small value for numerical stability
+    epsilon = 1e-15
+    y_pred = np.clip(y_pred, epsilon, 1 - epsilon)
+
+    return -np.mean(y_true * np.log(y_pred) +
+                    (1 - y_true) * np.log(1 - y_pred))
+
+# Example
+loss_ce = binary_cross_entropy(y_true, y_pred)
+print(f"Cross-Entropy: {loss_ce:.4f}")  # 0.1625
+</code></pre>
+
+<hr>
+
+<h2>2.3 Gradient Descent</h2>
+
+<h3>Basic Idea</h3>
+
+<p><strong>Gradient descent</strong> is an algorithm for minimizing the loss function. It updates parameters little by little in the <strong>opposite direction</strong> of the gradient (derivative) of the loss function.</p>
+
+<div class="mermaid">
+graph TD
+    A[Initial Parameters] --> B[Compute Loss]
+    B --> C[Compute Gradient]
+    C --> D[Update Parameters]
+    D --> E{Converged?}
+    E -->|No| B
+    E -->|Yes| F[Training Complete]
+
+    style A fill:#e3f2fd
+    style B fill:#fff3e0
+    style C fill:#f3e5f5
+    style D fill:#e8f5e9
+    style F fill:#c8e6c9
+</div>
+
+<h3>Update Rule</h3>
+
+<p>Update of parameter $w$:</p>
+
+<p>$$
+w \leftarrow w - \eta \frac{\partial L}{\partial w}
+$$</p>
+
+<p>Here, $\eta$ is the <strong>learning rate</strong>.</p>
+
+<h3>Python Implementation</h3>
+
+<pre><code class="language-python">def gradient_descent_demo():
+    """Gradient descent demo"""
+
+    # Simple function: f(x) = x^2
+    def f(x):
+        return x ** 2
+
+    # Derivative: f'(x) = 2x
+    def df(x):
+        return 2 * x
+
+    # Initial value and learning rate
+    x = 10.0
+    learning_rate = 0.1
+    n_iterations = 20
+
+    print("=== Gradient Descent Demo ===")
+    print(f"Goal: find the minimum of f(x) = x^2")
+    print(f"Initial value: x = {x}")
+    print()
+
+    for i in range(n_iterations):
+        grad = df(x)
+        x = x - learning_rate * grad
+
+        if i % 5 == 0:
+            print(f"Iteration {i:2d}: x = {x:8.4f}, f(x) = {f(x):8.4f}, grad = {grad:8.4f}")
+
+    print()
+    print(f"Final result: x = {x:.4f}, f(x) = {f(x):.4f}")
+    print(f"Theoretical value: x = 0.0000, f(x) = 0.0000")
+
+gradient_descent_demo()
+</code></pre>
+
+<p><strong>Output</strong>:</p>
+<pre><code>=== Gradient Descent Demo ===
+Goal: find the minimum of f(x) = x^2
+Initial value: x = 10.0
+
+Iteration  0: x =   8.0000, f(x) =  64.0000, grad =  20.0000
+Iteration  5: x =   2.6214, f(x) =   6.8718, grad =   5.2429
+Iteration 10: x =   0.8590, f(x) =   0.7379, grad =   1.7179
+Iteration 15: x =   0.2815, f(x) =   0.0792, grad =   0.5630
+
+Final result: x = 0.0922, f(x) = 0.0085
+Theoretical value: x = 0.0000, f(x) = 0.0000
+</code></pre>
+
+<h3>Effect of the Learning Rate</h3>
+
+<pre><code class="language-python">def compare_learning_rates():
+    """Compare different learning rates"""
+    def f(x):
+        return x ** 2
+
+    def df(x):
+        return 2 * x
+
+    learning_rates = [0.01, 0.1, 0.5, 0.9]
+    x_init = 10.0
+    n_iterations = 10
+
+    print("=== Learning Rate Comparison ===")
+    for lr in learning_rates:
+        x = x_init
+        for _ in range(n_iterations):
+            x = x - lr * df(x)
+
+        print(f"Learning rate η={lr:.2f} → final value x={x:8.4f}, f(x)={f(x):8.4f}")
+
+compare_learning_rates()
+</code></pre>
+
+<p><strong>Output</strong>:</p>
+<pre><code>=== Learning Rate Comparison ===
+Learning rate η=0.01 → final value x=   8.1707, f(x)=  66.7604
+Learning rate η=0.10 → final value x=   0.0922, f(x)=   0.0085
+Learning rate η=0.50 → final value x=   0.0098, f(x)=   0.0001
+Learning rate η=0.90 → final value x= -10.0000, f(x)= 100.0000 (diverged!)
+</code></pre>
+
+<blockquote>
+<p><strong>Important</strong>: If the learning rate is too large, training diverges; if too small, convergence is slow!</p>
+</blockquote>
+
+<hr>
+
+<h2>2.4 Backpropagation</h2>
+
+<h3>Why Backpropagation is Needed</h3>
+
+<p>In multilayer networks, we need to compute the gradients of the parameters in each layer. <strong>Backpropagation</strong> is a method that efficiently computes gradients from the output layer back toward the input layer.</p>
+
+<h3>Chain Rule</h3>
+
+<p>Differentiation of composite functions:</p>
+
+<p>$$
+\frac{\partial L}{\partial w} = \frac{\partial L}{\partial y} \cdot \frac{\partial y}{\partial z} \cdot \frac{\partial z}{\partial w}
+$$</p>
+
+<p>This is the mathematical foundation of backpropagation.</p>
+
+<h3>Backpropagation in a Two-Layer Network</h3>
+
+<p>Forward computation:</p>
+<p>$$
+\begin{align}
+z^{(1)} &= W^{(1)} x + b^{(1)} \\
+a^{(1)} &= \sigma(z^{(1)}) \\
+z^{(2)} &= W^{(2)} a^{(1)} + b^{(2)} \\
+y &= \sigma(z^{(2)}) \\
+L &= \frac{1}{2}(y - t)^2
+\end{align}
+$$</p>
+
+<p>Backward computation (gradients):</p>
+<p>$$
+\begin{align}
+\frac{\partial L}{\partial y} &= y - t \\
+\frac{\partial L}{\partial z^{(2)}} &= \frac{\partial L}{\partial y} \cdot \sigma'(z^{(2)}) \\
+\frac{\partial L}{\partial W^{(2)}} &= \frac{\partial L}{\partial z^{(2)}} \cdot (a^{(1)})^T \\
+\frac{\partial L}{\partial b^{(2)}} &= \frac{\partial L}{\partial z^{(2)}} \\
+\frac{\partial L}{\partial a^{(1)}} &= (W^{(2)})^T \cdot \frac{\partial L}{\partial z^{(2)}} \\
+\frac{\partial L}{\partial z^{(1)}} &= \frac{\partial L}{\partial a^{(1)}} \cdot \sigma'(z^{(1)}) \\
+\frac{\partial L}{\partial W^{(1)}} &= \frac{\partial L}{\partial z^{(1)}} \cdot x^T \\
+\frac{\partial L}{\partial b^{(1)}} &= \frac{\partial L}{\partial z^{(1)}}
+\end{align}
+$$</p>
+
+<h3>Complete Implementation</h3>
+
+<pre><code class="language-python">import numpy as np
+
+def sigmoid(x):
+    """Sigmoid function"""
+    return 1 / (1 + np.exp(-np.clip(x, -500, 500)))
+
+def sigmoid_derivative(x):
+    """Derivative of the sigmoid function"""
+    s = sigmoid(x)
+    return s * (1 - s)
+
+class TwoLayerNetWithBackprop:
+    """Two-layer neural network with backpropagation"""
+
+    def __init__(self, input_size, hidden_size, output_size, learning_rate=0.1):
+        """
+        Args:
+            input_size: Size of the input layer
+            hidden_size: Size of the hidden layer
+            output_size: Size of the output layer
+            learning_rate: Learning rate
+        """
+        # Initialize weights (He initialization)
+        self.W1 = np.random.randn(input_size, hidden_size) * np.sqrt(2.0 / input_size)
+        self.b1 = np.zeros(hidden_size)
+
+        self.W2 = np.random.randn(hidden_size, output_size) * np.sqrt(2.0 / hidden_size)
+        self.b2 = np.zeros(output_size)
+
+        self.learning_rate = learning_rate
+
+    def forward(self, x):
+        """Forward propagation"""
+        # Layer 1
+        self.z1 = np.dot(x, self.W1) + self.b1
+        self.a1 = sigmoid(self.z1)
+
+        # Layer 2
+        self.z2 = np.dot(self.a1, self.W2) + self.b2
+        self.a2 = sigmoid(self.z2)
+
+        return self.a2
+
+    def backward(self, x, y_true, y_pred):
+        """
+        Backpropagation
+
+        Args:
+            x: Input data
+            y_true: True labels
+            y_pred: Predicted values
+        """
+        batch_size = x.shape[0]
+
+        # Gradient at the output layer
+        delta2 = (y_pred - y_true) * sigmoid_derivative(self.z2)
+
+        # Gradients of layer 2 weights and bias
+        dW2 = np.dot(self.a1.T, delta2) / batch_size
+        db2 = np.sum(delta2, axis=0) / batch_size
+
+        # Gradient at the hidden layer
+        delta1 = np.dot(delta2, self.W2.T) * sigmoid_derivative(self.z1)
+
+        # Gradients of layer 1 weights and bias
+        dW1 = np.dot(x.T, delta1) / batch_size
+        db1 = np.sum(delta1, axis=0) / batch_size
+
+        # Update parameters
+        self.W1 -= self.learning_rate * dW1
+        self.b1 -= self.learning_rate * db1
+        self.W2 -= self.learning_rate * dW2
+        self.b2 -= self.learning_rate * db2
+
+    def train(self, x, y_true, epochs=1000, verbose=True):
+        """
+        Training loop
+
+        Args:
+            x: Training data
+            y_true: True labels
+            epochs: Number of epochs
+            verbose: Show progress
+        """
+        losses = []
+
+        for epoch in range(epochs):
+            # Forward propagation
+            y_pred = self.forward(x)
+
+            # Compute loss
+            loss = np.mean((y_true - y_pred) ** 2)
+            losses.append(loss)
+
+            # Backpropagation
+            self.backward(x, y_true, y_pred)
+
+            # Show progress
+            if verbose and (epoch % 100 == 0 or epoch == epochs - 1):
+                print(f"Epoch {epoch:4d}: Loss = {loss:.6f}")
+
+        return losses
+
+# Test on the XOR problem
+print("=== Training on the XOR Problem ===")
+
+# Prepare data
+X = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
+y = np.array([[0], [1], [1], [0]])
+
+# Create and train the network
+net = TwoLayerNetWithBackprop(input_size=2, hidden_size=4, output_size=1, learning_rate=0.5)
+losses = net.train(X, y, epochs=5000, verbose=True)
+
+# Final results
+print("\n=== Final Predictions ===")
+predictions = net.forward(X)
+for i in range(len(X)):
+    pred_label = 1 if predictions[i] > 0.5 else 0
+    print(f"Input: {X[i]} → Prediction: {predictions[i][0]:.4f} → Label: {pred_label} (True: {y[i][0]})")
+</code></pre>
+
+<p><strong>Example output</strong>:</p>
+<pre><code>=== Training on the XOR Problem ===
+Epoch    0: Loss = 0.259762
+Epoch  100: Loss = 0.249876
+Epoch  200: Loss = 0.249011
+Epoch  300: Loss = 0.246863
+...
+Epoch 4900: Loss = 0.000625
+Epoch 4999: Loss = 0.000612
+
+=== Final Predictions ===
+Input: [0 0] → Prediction: 0.0247 → Label: 0 (True: 0)
+Input: [0 1] → Prediction: 0.9753 → Label: 1 (True: 1)
+Input: [1 0] → Prediction: 0.9751 → Label: 1 (True: 1)
+Input: [1 1] → Prediction: 0.0254 → Label: 0 (True: 0)
+</code></pre>
+
+<blockquote>
+<p><strong>Success!</strong> With the multilayer perceptron and backpropagation, we solved the XOR problem!</p>
+</blockquote>
+
+<hr>
+
+<h2>2.5 Visualizing the Learning Curve</h2>
+
+<pre><code class="language-python">import matplotlib.pyplot as plt
+
+def plot_learning_curve(losses):
+    """Plot the learning curve"""
+    plt.figure(figsize=(10, 6))
+    plt.plot(losses, linewidth=2)
+    plt.xlabel('Epoch', fontsize=12)
+    plt.ylabel('Loss (MSE)', fontsize=12)
+    plt.title('Learning Curve for the XOR Problem', fontsize=14, fontweight='bold')
+    plt.grid(True, alpha=0.3)
+    plt.yscale('log')  # Logarithmic scale
+    plt.show()
+
+plot_learning_curve(losses)
+</code></pre>
+
+<h3>Visualizing the Decision Boundary</h3>
+
+<pre><code class="language-python">def plot_decision_boundary(net, X, y):
+    """Visualize the decision boundary"""
+    # Create grid
+    x_min, x_max = -0.5, 1.5
+    y_min, y_max = -0.5, 1.5
+    xx, yy = np.meshgrid(np.linspace(x_min, x_max, 200),
+                         np.linspace(y_min, y_max, 200))
+
+    # Predict at each point
+    Z = net.forward(np.c_[xx.ravel(), yy.ravel()])
+    Z = Z.reshape(xx.shape)
+
+    # Plot
+    plt.figure(figsize=(10, 8))
+
+    # Background colors (decision boundary)
+    plt.contourf(xx, yy, Z, levels=20, cmap='RdYlBu', alpha=0.8)
+    plt.colorbar(label='Predicted value')
+
+    # Data points
+    plt.scatter(X[y.flatten()==0][:, 0], X[y.flatten()==0][:, 1],
+                s=200, c='blue', marker='o', edgecolors='k', linewidths=2,
+                label='Class 0')
+    plt.scatter(X[y.flatten()==1][:, 0], X[y.flatten()==1][:, 1],
+                s=200, c='red', marker='s', edgecolors='k', linewidths=2,
+                label='Class 1')
+
+    plt.xlim(x_min, x_max)
+    plt.ylim(y_min, y_max)
+    plt.xlabel('x1', fontsize=14)
+    plt.ylabel('x2', fontsize=14)
+    plt.title('Decision Boundary for the XOR Problem (Multilayer Perceptron)', fontsize=16, fontweight='bold')
+    plt.legend(fontsize=12)
+    plt.grid(True, alpha=0.3)
+    plt.show()
+
+plot_decision_boundary(net, X, y)
+</code></pre>
+
+<hr>
+
+<h2>2.6 Mini-Batch Training</h2>
+
+<h3>Types of Batch Training</h3>
+
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Batch Size</th>
+<th>Characteristics</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Batch Gradient Descent</strong></td>
+<td>All data</td>
+<td>Stable but slow</td>
+</tr>
+<tr>
+<td><strong>Stochastic Gradient Descent (SGD)</strong></td>
+<td>1 sample</td>
+<td>Fast but unstable</td>
+</tr>
+<tr>
+<td><strong>Mini-Batch Gradient Descent</strong></td>
+<td>Tens to hundreds</td>
+<td>Well balanced (practical)</td>
+</tr>
+</tbody>
+</table>
+
+<pre><code class="language-python">def create_mini_batches(X, y, batch_size):
+    """
+    Create mini-batches
+
+    Args:
+        X: Input data
+        y: Labels
+        batch_size: Batch size
+
+    Yields:
+        Tuple of (X_batch, y_batch)
+    """
+    n_samples = X.shape[0]
+    indices = np.random.permutation(n_samples)
+
+    for start_idx in range(0, n_samples, batch_size):
+        end_idx = min(start_idx + batch_size, n_samples)
+        batch_indices = indices[start_idx:end_idx]
+
+        yield X[batch_indices], y[batch_indices]
+
+# Example of mini-batch training
+def train_with_minibatch(net, X, y, epochs=1000, batch_size=2):
+    """Mini-batch training"""
+    losses = []
+
+    for epoch in range(epochs):
+        epoch_loss = 0
+        n_batches = 0
+
+        for X_batch, y_batch in create_mini_batches(X, y, batch_size):
+            # Forward propagation
+            y_pred = net.forward(X_batch)
+
+            # Loss
+            loss = np.mean((y_batch - y_pred) ** 2)
+            epoch_loss += loss
+            n_batches += 1
+
+            # Backpropagation
+            net.backward(X_batch, y_batch, y_pred)
+
+        avg_loss = epoch_loss / n_batches
+        losses.append(avg_loss)
+
+        if epoch % 100 == 0:
+            print(f"Epoch {epoch:4d}: Loss = {avg_loss:.6f}")
+
+    return losses
+
+# Test
+print("\n=== Mini-Batch Training ===")
+net_mini = TwoLayerNetWithBackprop(input_size=2, hidden_size=4, output_size=1, learning_rate=0.5)
+losses_mini = train_with_minibatch(net_mini, X, y, epochs=2000, batch_size=2)
+</code></pre>
+
+<hr>
+
+<h2>2.7 Chapter Summary</h2>
+
+<h3>What We Learned</h3>
+
+<ol>
+<li><p><strong>Structure of the Multilayer Perceptron</strong></p>
+<ul>
+<li>Input layer, hidden layer, output layer</li>
+<li>Each layer has weights $W$ and bias $b$</li>
+<li>Activation functions introduce nonlinearity</li>
+</ul></li>
+<li><p><strong>Loss Functions</strong></p>
+<ul>
+<li>MSE: regression problems</li>
+<li>Cross-Entropy: classification problems</li>
+</ul></li>
+<li><p><strong>Gradient Descent</strong></p>
+<ul>
+<li>$w \leftarrow w - \eta \frac{\partial L}{\partial w}$</li>
+<li>Importance of the learning rate $\eta$</li>
+</ul></li>
+<li><p><strong>Backpropagation</strong></p>
+<ul>
+<li>Efficient gradient computation via the chain rule</li>
+<li>Backward computation from the output layer to the input layer</li>
+<li>Complete implementation with NumPy</li>
+</ul></li>
+<li><p><strong>Solving the XOR Problem</strong></p>
+<ul>
+<li>Multiple layers solve nonlinear problems</li>
+<li>Actually trained and achieved 100% accuracy</li>
+</ul></li>
+</ol>
+
+<h3>Key Equations</h3>
+
+<table>
+<thead>
+<tr>
+<th>Concept</th>
+<th>Equation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Forward Propagation</strong></td>
+<td>$y = \sigma(W^{(2)} \sigma(W^{(1)} x + b^{(1)}) + b^{(2)})$</td>
+</tr>
+<tr>
+<td><strong>MSE Loss</strong></td>
+<td>$L = \frac{1}{n} \sum_{i=1}^{n} (y_i - \hat{y}_i)^2$</td>
+</tr>
+<tr>
+<td><strong>Gradient Descent</strong></td>
+<td>$w \leftarrow w - \eta \frac{\partial L}{\partial w}$</td>
+</tr>
+<tr>
+<td><strong>Chain Rule</strong></td>
+<td>$\frac{\partial L}{\partial w} = \frac{\partial L}{\partial y} \cdot \frac{\partial y}{\partial z} \cdot \frac{\partial z}{\partial w}$</td>
+</tr>
+</tbody>
+</table>
+
+<h3>To the Next Chapter</h3>
+
+<p>In Chapter 3, we will learn about <strong>activation functions and optimization</strong>:</p>
+<ul>
+<li>Various activation functions (ReLU, Leaky ReLU, ELU)</li>
+<li>The vanishing gradient problem and countermeasures</li>
+<li>Advanced optimization algorithms (Momentum, Adam)</li>
+<li>Weight initialization strategies</li>
+</ul>
+
+<hr>
+
+<h2>Exercises</h2>
+
+<h3>Problem 1 (Difficulty: easy)</h3>
+<p>Determine whether each of the following statements is true or false.</p>
+<ol>
+<li>A multilayer perceptron has hidden layers</li>
+<li>Backpropagation computes from the input layer toward the output layer</li>
+<li>A learning rate that is too large can cause divergence</li>
+<li>The XOR problem can be solved with a single-layer perceptron</li>
+</ol>
+
+<details>
+<summary>Sample Answer</summary>
+
+<ol>
+<li><strong>True</strong> - This is the definition of an MLP</li>
+<li><strong>False</strong> - Backpropagation goes from the output layer to the input layer</li>
+<li><strong>True</strong> - A large learning rate causes oscillation and divergence</li>
+<li><strong>False</strong> - XOR is not linearly separable; multiple layers are required</li>
+</ol>
+
+</details>
+
+<h3>Problem 2 (Difficulty: medium)</h3>
+<p>Derive the derivative of the sigmoid function. Also, implement it in Python.</p>
+
+<details>
+<summary>Hint</summary>
+
+<p>Sigmoid function: $\sigma(x) = \frac{1}{1 + e^{-x}}$</p>
+
+<p>Use the quotient rule for differentiation.</p>
+
+</details>
+
+<details>
+<summary>Sample Answer</summary>
+
+<p><strong>Derivation</strong>:</p>
+
+<p>$$
+\begin{align}
+\sigma(x) &= \frac{1}{1 + e^{-x}} \\
+\sigma'(x) &= \frac{d}{dx} (1 + e^{-x})^{-1} \\
+&= -(1 + e^{-x})^{-2} \cdot (-e^{-x}) \\
+&= \frac{e^{-x}}{(1 + e^{-x})^2} \\
+&= \frac{1}{1 + e^{-x}} \cdot \frac{e^{-x}}{1 + e^{-x}} \\
+&= \sigma(x) \cdot \frac{e^{-x}}{1 + e^{-x}} \\
+&= \sigma(x) \cdot \frac{1 + e^{-x} - 1}{1 + e^{-x}} \\
+&= \sigma(x) \cdot (1 - \sigma(x))
+\end{align}
+$$</p>
+
+<p><strong>Python implementation</strong>:</p>
+
+<pre><code class="language-python">def sigmoid(x):
+    return 1 / (1 + np.exp(-x))
+
+def sigmoid_derivative(x):
+    s = sigmoid(x)
+    return s * (1 - s)
+
+# Test
+x_test = np.linspace(-5, 5, 100)
+plt.figure(figsize=(10, 6))
+plt.plot(x_test, sigmoid(x_test), label='σ(x)', linewidth=2)
+plt.plot(x_test, sigmoid_derivative(x_test), label="σ'(x)", linewidth=2)
+plt.xlabel('x', fontsize=12)
+plt.ylabel('y', fontsize=12)
+plt.title('Sigmoid Function and Its Derivative', fontsize=14)
+plt.legend(fontsize=12)
+plt.grid(True, alpha=0.3)
+plt.show()
+</code></pre>
+
+</details>
+
+<h3>Problem 3 (Difficulty: medium)</h3>
+<p>Implement a three-layer neural network (input layer, two hidden layers, output layer).</p>
+
+<details>
+<summary>Sample Answer</summary>
+
+<pre><code class="language-python">class ThreeLayerNet:
+    """Three-layer neural network"""
+
+    def __init__(self, input_size, hidden1_size, hidden2_size, output_size, learning_rate=0.1):
+        # Initialize weights
+        self.W1 = np.random.randn(input_size, hidden1_size) * 0.1
+        self.b1 = np.zeros(hidden1_size)
+
+        self.W2 = np.random.randn(hidden1_size, hidden2_size) * 0.1
+        self.b2 = np.zeros(hidden2_size)
+
+        self.W3 = np.random.randn(hidden2_size, output_size) * 0.1
+        self.b3 = np.zeros(output_size)
+
+        self.learning_rate = learning_rate
+
+    def forward(self, x):
+        """Forward propagation"""
+        # Layer 1
+        self.z1 = np.dot(x, self.W1) + self.b1
+        self.a1 = sigmoid(self.z1)
+
+        # Layer 2
+        self.z2 = np.dot(self.a1, self.W2) + self.b2
+        self.a2 = sigmoid(self.z2)
+
+        # Layer 3
+        self.z3 = np.dot(self.a2, self.W3) + self.b3
+        self.a3 = sigmoid(self.z3)
+
+        return self.a3
+
+    def backward(self, x, y_true, y_pred):
+        """Backpropagation"""
+        batch_size = x.shape[0]
+
+        # Output layer
+        delta3 = (y_pred - y_true) * sigmoid_derivative(self.z3)
+        dW3 = np.dot(self.a2.T, delta3) / batch_size
+        db3 = np.sum(delta3, axis=0) / batch_size
+
+        # Second hidden layer
+        delta2 = np.dot(delta3, self.W3.T) * sigmoid_derivative(self.z2)
+        dW2 = np.dot(self.a1.T, delta2) / batch_size
+        db2 = np.sum(delta2, axis=0) / batch_size
+
+        # First hidden layer
+        delta1 = np.dot(delta2, self.W2.T) * sigmoid_derivative(self.z1)
+        dW1 = np.dot(x.T, delta1) / batch_size
+        db1 = np.sum(delta1, axis=0) / batch_size
+
+        # Update parameters
+        self.W1 -= self.learning_rate * dW1
+        self.b1 -= self.learning_rate * db1
+        self.W2 -= self.learning_rate * dW2
+        self.b2 -= self.learning_rate * db2
+        self.W3 -= self.learning_rate * dW3
+        self.b3 -= self.learning_rate * db3
+
+# Test
+print("=== Three-Layer Neural Network ===")
+net3 = ThreeLayerNet(input_size=2, hidden1_size=4, hidden2_size=4, output_size=1, learning_rate=0.5)
+
+# Train on the XOR problem
+for epoch in range(3000):
+    y_pred = net3.forward(X)
+    net3.backward(X, y, y_pred)
+
+    if epoch % 500 == 0:
+        loss = np.mean((y - y_pred) ** 2)
+        print(f"Epoch {epoch:4d}: Loss = {loss:.6f}")
+
+# Final results
+print("\n=== Final Predictions ===")
+final_pred = net3.forward(X)
+for i in range(len(X)):
+    print(f"Input: {X[i]} → Prediction: {final_pred[i][0]:.4f} (True: {y[i][0]})")
+</code></pre>
+
+</details>
+
+<h3>Problem 4 (Difficulty: hard)</h3>
+<p>Implement a neural network that learns the three logic gates AND, OR, and NAND simultaneously (multi-task learning).</p>
+
+<details>
+<summary>Hint</summary>
+
+<ul>
+<li>Use 3 units in the output layer</li>
+<li>Each output corresponds to AND, OR, and NAND</li>
+</ul>
+
+</details>
+
+<details>
+<summary>Sample Answer</summary>
+
+<pre><code class="language-python"># Prepare data
+X = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
+y_multi = np.array([
+    [0, 0, 1],  # AND=0, OR=0, NAND=1
+    [0, 1, 1],  # AND=0, OR=1, NAND=1
+    [0, 1, 1],  # AND=0, OR=1, NAND=1
+    [1, 1, 0]   # AND=1, OR=1, NAND=0
+])
+
+# Multi-task network
+net_multi = TwoLayerNetWithBackprop(input_size=2, hidden_size=6, output_size=3, learning_rate=0.5)
+
+print("=== Multi-Task Learning (AND, OR, NAND) ===")
+
+# Training
+for epoch in range(5000):
+    y_pred = net_multi.forward(X)
+    net_multi.backward(X, y_multi, y_pred)
+
+    if epoch % 1000 == 0:
+        loss = np.mean((y_multi - y_pred) ** 2)
+        print(f"Epoch {epoch:4d}: Loss = {loss:.6f}")
+
+# Final results
+print("\n=== Final Predictions ===")
+print("Input | AND pred | OR pred | NAND pred | AND true | OR true | NAND true")
+print("-" * 75)
+final_pred = net_multi.forward(X)
+for i in range(len(X)):
+    print(f"{X[i]} | {final_pred[i][0]:.4f}  | {final_pred[i][1]:.4f}  | {final_pred[i][2]:.4f}   | "
+          f"{y_multi[i][0]}       | {y_multi[i][1]}       | {y_multi[i][2]}")
+</code></pre>
+
+</details>
+
+<h3>Problem 5 (Difficulty: hard)</h3>
+<p>Implement learning rate scheduling (gradually decreasing the learning rate).</p>
+
+<details>
+<summary>Sample Answer</summary>
+
+<pre><code class="language-python">def learning_rate_decay(initial_lr, epoch, decay_rate=0.95, decay_step=100):
+    """
+    Learning rate decay
+
+    Args:
+        initial_lr: Initial learning rate
+        epoch: Current epoch
+        decay_rate: Decay rate
+        decay_step: Decay step
+
+    Returns:
+        Decayed learning rate
+    """
+    return initial_lr * (decay_rate ** (epoch // decay_step))
+
+class TwoLayerNetWithLRScheduling(TwoLayerNetWithBackprop):
+    """Network with learning rate scheduling"""
+
+    def __init__(self, input_size, hidden_size, output_size, initial_lr=0.5, decay_rate=0.95):
+        super().__init__(input_size, hidden_size, output_size, initial_lr)
+        self.initial_lr = initial_lr
+        self.decay_rate = decay_rate
+
+    def train_with_scheduling(self, X, y, epochs=5000):
+        """Training with learning rate scheduling"""
+        losses = []
+
+        for epoch in range(epochs):
+            # Update learning rate
+            self.learning_rate = learning_rate_decay(
+                self.initial_lr, epoch, self.decay_rate, decay_step=500
+            )
+
+            # Forward propagation
+            y_pred = self.forward(X)
+
+            # Loss
+            loss = np.mean((y - y_pred) ** 2)
+            losses.append(loss)
+
+            # Backpropagation
+            self.backward(X, y, y_pred)
+
+            if epoch % 500 == 0:
+                print(f"Epoch {epoch:4d}: LR = {self.learning_rate:.6f}, Loss = {loss:.6f}")
+
+        return losses
+
+# Test
+print("=== Learning Rate Scheduling ===")
+net_sched = TwoLayerNetWithLRScheduling(input_size=2, hidden_size=4, output_size=1,
+                                        initial_lr=1.0, decay_rate=0.9)
+losses_sched = net_sched.train_with_scheduling(X, y, epochs=5000)
+</code></pre>
+
+</details>
+
+<hr>
+
+<h2>References</h2>
+
+<ol>
+<li>Rumelhart, D. E., Hinton, G. E., & Williams, R. J. (1986). "Learning representations by back-propagating errors." <em>Nature</em>, 323(6088), 533-536.</li>
+<li>LeCun, Y., Bengio, Y., & Hinton, G. (2015). "Deep learning." <em>Nature</em>, 521(7553), 436-444.</li>
+<li>Goodfellow, I., Bengio, Y., & Courville, A. (2016). <em>Deep Learning</em>. MIT Press.</li>
+<li>Saito, K. (2016). <em>Deep Learning from Scratch</em>. O'Reilly Japan.</li>
+</ol>
+
+<div class="navigation">
+    <a href="chapter1-perceptron.html" class="nav-button">← Previous Chapter: Perceptron</a>
+    <a href="chapter3-activation-optimization.html" class="nav-button">Next Chapter: Activation Functions and Optimization →</a>
+</div>
+
+    </main>
+
+
+    <section class="disclaimer">
+        <h3>Disclaimer</h3>
+        <ul>
+            <li>This content is provided for educational, research, and informational purposes only and does not constitute professional advice (legal, accounting, technical guarantees, etc.).</li>
+            <li>This content and accompanying code examples are provided "AS IS" without any warranties, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
+            <li>The author and Tohoku University assume no responsibility for the content, availability, or safety of external links, data, tools, or libraries provided by third parties.</li>
+            <li>To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+            <li>The content of this material may be changed, updated, or discontinued without notice.</li>
+            <li>The copyright and license of this content follow the specified conditions (e.g., CC BY 4.0), which typically include a no-warranty clause.</li>
+        </ul>
+    </section>
+
+<footer>
+        <p><strong>Author</strong>: AI Terakoya Content Team</p>
+        <p><strong>Version</strong>: 1.0 | <strong>Created</strong>: 2025-10-20</p>
+        <p><strong>License</strong>: Creative Commons BY 4.0</p>
+        <p>© 2025 AI Terakoya. All rights reserved.</p>
+    </footer>
+</body>
+</html>

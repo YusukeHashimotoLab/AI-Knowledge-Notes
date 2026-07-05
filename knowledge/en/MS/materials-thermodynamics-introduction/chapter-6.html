@@ -1,0 +1,2058 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 6: Practical Phase Diagram Calculation with pycalphad - Introduction to Materials Thermodynamics - MS Terakoya</title>
+    <meta name="description" content="Acquire practical skills for calculating binary and ternary phase diagrams with the pycalphad library, and for computing equilibrium phase compositions and driving forces. From handling TDB files to applications in real material systems.">
+
+    <style>
+        :root {
+            --color-primary: #2c3e50;
+            --color-primary-dark: #1a252f;
+            --color-accent: #f093fb;
+            --color-accent-light: #f5576c;
+            --color-text: #2d3748;
+            --color-text-light: #4a5568;
+            --color-bg: #ffffff;
+            --color-bg-alt: #f7fafc;
+            --color-border: #e2e8f0;
+            --color-code-bg: #f8f9fa;
+            --color-link: #f093fb;
+            --color-link-hover: #d07be8;
+
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+
+            --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+            --border-radius: 8px;
+            --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-body);
+            line-height: 1.7;
+            color: var(--color-text);
+            background-color: var(--color-bg);
+            font-size: 16px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            padding: var(--spacing-xl) var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+            box-shadow: var(--box-shadow);
+        }
+
+        .header-content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .breadcrumb {
+            font-size: 0.9rem;
+            margin-bottom: var(--spacing-sm);
+            opacity: 0.95;
+        }
+
+        .breadcrumb a {
+            color: white;
+            text-decoration: underline;
+            opacity: 0.9;
+        }
+
+        .breadcrumb a:hover {
+            opacity: 1;
+        }
+
+        .breadcrumb span {
+            margin: 0 0.5rem;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: var(--spacing-sm);
+            line-height: 1.2;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            font-weight: 400;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-md);
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-md) var(--spacing-xl);
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-xl);
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-xs);
+            border-bottom: 3px solid var(--color-accent);
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-lg);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        h4 {
+            font-size: 1.15rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-md);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        p {
+            margin-bottom: var(--spacing-md);
+            color: var(--color-text);
+        }
+
+        a {
+            color: var(--color-link);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        a:hover {
+            color: var(--color-link-hover);
+            text-decoration: underline;
+        }
+
+        ul, ol {
+            margin-left: var(--spacing-lg);
+            margin-bottom: var(--spacing-md);
+        }
+
+        li {
+            margin-bottom: var(--spacing-xs);
+            color: var(--color-text);
+        }
+
+        .info-box {
+            background-color: var(--color-bg-alt);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+        }
+
+        .info-box h3,
+        .info-box h4 {
+            margin-top: 0;
+        }
+
+        .warning-box {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+        }
+
+        .warning-box h3,
+        .warning-box h4 {
+            margin-top: 0;
+            color: #856404;
+        }
+
+        .example-box {
+            background-color: #d1ecf1;
+            border-left: 4px solid #17a2b8;
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+        }
+
+        .example-box h4 {
+            margin-top: 0;
+            color: #0c5460;
+        }
+
+        .key-point {
+            background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+            border-left: 4px solid var(--color-accent);
+            margin-bottom: var(--spacing-md);
+        }
+
+        .success-box {
+            background-color: #d4edda;
+            border-left: 4px solid #28a745;
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+        }
+
+        .success-box h3,
+        .success-box h4 {
+            margin-top: 0;
+            color: #155724;
+        }
+
+        pre {
+            background-color: var(--color-code-bg);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            overflow-x: auto;
+            margin-bottom: var(--spacing-md);
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        code {
+            font-family: var(--font-mono);
+            font-size: 0.9em;
+            background-color: var(--color-code-bg);
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+        }
+
+        pre code {
+            background-color: transparent;
+            padding: 0;
+            border-radius: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: var(--spacing-md);
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            border: 1px solid var(--color-border);
+            padding: var(--spacing-sm);
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--color-bg-alt);
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        .mermaid {
+            text-align: center;
+            margin: var(--spacing-lg) 0;
+            background-color: var(--color-bg);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        .exercise-section {
+            background-color: #e7f3ff;
+            border-left: 4px solid #2196F3;
+            border-radius: var(--border-radius);
+            padding: var(--spacing-lg);
+            margin: var(--spacing-xl) 0;
+        }
+
+        .exercise-section h3 {
+            color: #1976D2;
+            margin-top: 0;
+        }
+
+        .exercise {
+            background-color: white;
+            border: 1px solid #bbdefb;
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+        }
+
+        .exercise h4 {
+            color: #1976D2;
+            margin-top: 0;
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: var(--spacing-xl) 0;
+            padding-top: var(--spacing-lg);
+            border-top: 2px solid var(--color-border);
+            gap: var(--spacing-md);
+        }
+
+        .nav-button {
+            padding: var(--spacing-md) var(--spacing-lg);
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            border-radius: var(--border-radius);
+            text-align: center;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: var(--box-shadow);
+            flex: 1;
+            max-width: 300px;
+        }
+
+        .nav-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            text-decoration: none;
+        }
+
+        .nav-button.disabled {
+            background: #ccc;
+            color: #666;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        footer {
+            margin-top: var(--spacing-xl);
+            padding: var(--spacing-lg) var(--spacing-md);
+            background-color: var(--color-bg-alt);
+            border-top: 1px solid var(--color-border);
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--color-text-light);
+        }
+
+        .completion-badge {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            padding: var(--spacing-lg);
+            border-radius: var(--border-radius);
+            text-align: center;
+            margin: var(--spacing-xl) 0;
+            box-shadow: var(--box-shadow);
+        }
+
+        .completion-badge h3 {
+            margin-top: 0;
+            font-size: 1.5rem;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            h2 {
+                font-size: 1.4rem;
+            }
+
+            h3 {
+                font-size: 1.2rem;
+            }
+
+            .navigation {
+                flex-direction: column;
+            }
+
+            .nav-button {
+                max-width: 100%;
+            }
+        }
+    </style>
+
+    <!-- MathJax 3.x for LaTeX rendering -->
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                packages: {'[+]': ['mhchem']}
+            },
+            svg: {
+                fontCache: 'global'
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+
+    <!-- Mermaid.js for diagrams -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'default',
+            securityLevel: 'strict',
+            flowchart: { useMaxWidth: true, htmlLabels: true }
+        });
+    </script>
+
+    <!-- Prism.js for syntax highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <nav class="breadcrumb" aria-label="Breadcrumb">
+                <a href="../../">AI Terakoya Top</a>
+                <span>></span>
+                <a href="../../MS/">MS Dojo</a>
+                <span>></span>
+                <a href="index.html">Introduction to Materials Thermodynamics</a>
+                <span>></span>
+                <span>Chapter 6 (Final Chapter)</span>
+            </nav><div class="locale-switcher">
+<span class="current-locale">🌐 EN</span>
+<span class="locale-separator">|</span>
+<a href="../../../jp/MS/materials-thermodynamics-introduction/chapter-6.html" class="locale-link">🇯🇵 JP</a>
+<span class="locale-separator">|</span>
+<span class="locale-meta">Last sync: 2026-07-05</span>
+</div>
+            <h1>Chapter 6: Practical Phase Diagram Calculation with pycalphad</h1>
+            <p class="subtitle">Master a practical workflow for calculating binary and ternary phase diagrams from TDB files and computing equilibrium phase compositions and driving forces</p>
+            <div class="meta">
+                <span class="meta-item">⏱️ Study Time: 32-38 minutes</span>
+                <span class="meta-item">💻 Code Examples: 7</span>
+                <span class="meta-item">📊 Difficulty: Intermediate to Advanced</span>
+                <span class="meta-item">🎓 Final Chapter</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <section>
+            <h2>Learning Objectives</h2>
+            <p>By completing this final chapter, you will acquire the following practical skills:</p>
+            <ul>
+                <li>✅ Understand the basic operations and main features of the <strong>pycalphad</strong> library</li>
+                <li>✅ Understand how to load and structure <strong>TDB files</strong> (thermodynamic databases)</li>
+                <li>✅ Calculate and visualize <strong>binary phase diagrams</strong> (Al-Cu, Fe-C, etc.)</li>
+                <li>✅ Calculate <strong>ternary isothermal sections</strong> (Al-Cu-Mg, etc.)</li>
+                <li>✅ Calculate <strong>equilibrium phase compositions</strong> and phase fractions</li>
+                <li>✅ Calculate <strong>driving forces</strong> and analyze phase transformations</li>
+                <li>✅ Understand <strong>application examples</strong> in real material systems and establish a research workflow</li>
+                <li>✅ Practice <strong>best practices</strong> for phase diagram calculation</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>1. Overview of pycalphad and Environment Setup</h2>
+
+            <h3>1.1 What Is pycalphad?</h3>
+
+            <p>
+                <strong>pycalphad</strong> is an open-source library for performing phase diagram calculations
+                based on the CALPHAD method (CALculation of PHAse Diagrams) in Python. It reads CALPHAD databases (TDB files)
+                and can compute phase equilibria, thermodynamic quantities, driving forces, and more for multicomponent systems.
+            </p>
+
+            <div class="info-box">
+                <h4>Main Features of pycalphad</h4>
+                <ul>
+                    <li><strong>TDB file loading</strong>: Parsing of CALPHAD-format thermodynamic databases</li>
+                    <li><strong>Phase diagram calculation</strong>: Phase equilibrium calculations for binary, ternary, and multicomponent systems</li>
+                    <li><strong>Equilibrium calculation</strong>: Calculation of equilibrium phases and phase fractions at specified temperatures and compositions</li>
+                    <li><strong>Driving force calculation</strong>: Evaluation of the driving force for phase transformations (chemical potential differences)</li>
+                    <li><strong>Thermodynamic property calculation</strong>: Gibbs energy, enthalpy, entropy, heat capacity</li>
+                    <li><strong>Visualization</strong>: Plotting of phase diagrams and property diagrams via matplotlib integration</li>
+                </ul>
+            </div>
+
+            <div class="key-point">
+                <h4>🎯 Importance of the CALPHAD Method</h4>
+                <p>
+                    The CALPHAD method is a technique that integrates experimental data and first-principles calculations
+                    to describe the thermodynamics of multicomponent systems. In materials development, it is impossible
+                    to cover every composition and temperature experimentally, but the CALPHAD method makes it possible
+                    to predict phase equilibria under a wide range of conditions. pycalphad implements this powerful
+                    method in Python and serves as a foundation for data-driven materials design.
+                </p>
+            </div>
+
+            <h3>1.2 Installation and Setup</h3>
+
+            <div class="example-box">
+                <h4>Environment Setup Procedure</h4>
+            </div>
+
+            <pre><code class="language-python"># Run in a terminal/command prompt
+
+# Basic installation (conda recommended)
+conda install -c conda-forge pycalphad
+
+# Or install with pip
+pip install pycalphad
+
+# Install visualization libraries as well
+pip install matplotlib numpy scipy xarray
+
+# Verify the installation
+python -c "import pycalphad; print(pycalphad.__version__)"
+# Example output: 0.10.3
+
+# Jupyter Notebook is recommended for interactive work
+pip install jupyter
+jupyter notebook
+</code></pre>
+
+            <h3>1.3 How to Obtain TDB Files</h3>
+
+            <p>
+                pycalphad uses thermodynamic databases in TDB (ThermoCalc DataBase) format.
+                TDB files contain the thermodynamic descriptions of phases (Gibbs energy functions).
+            </p>
+
+            <div class="info-box">
+                <h4>Where to Obtain TDB Files</h4>
+                <ul>
+                    <li><strong>Public databases</strong>:
+                        <ul>
+                            <li><a href="https://github.com/pycalphad/pycalphad-data" target="_blank">pycalphad-data</a> (GitHub) - Sample TDB files</li>
+                            <li><a href="https://github.com/materialsgenome/TCAL" target="_blank">TCAL</a> - Light-element databases</li>
+                            <li><a href="https://materialsproject.org" target="_blank">Materials Project</a> - First-principles-based data</li>
+                        </ul>
+                    </li>
+                    <li><strong>Commercial databases</strong>:
+                        <ul>
+                            <li>Thermo-Calc TCAL, SSOL, MOB, etc. (paid, high accuracy)</li>
+                            <li>FactSage databases (paid)</li>
+                        </ul>
+                    </li>
+                    <li><strong>Building your own from the literature</strong>: Custom TDBs can be created from Gibbs energy expressions in papers</li>
+                </ul>
+            </div>
+
+            <div class="warning-box">
+                <h4>⚠️ TDB File Restrictions</h4>
+                <p>
+                    Because commercial databases prohibit redistribution, this chapter uses <strong>public databases</strong>
+                    or a <strong>simplified demo TDB</strong>. For actual research, we recommend obtaining a license for a
+                    high-accuracy commercial database (available at many universities and research institutions).
+                </p>
+            </div>
+
+            <div class="mermaid">
+graph TD
+    A[Obtain TDB file] --> B[Load with pycalphad]
+    B --> C[Phase diagram calculation]
+    B --> D[Equilibrium calculation]
+    B --> E[Driving force calculation]
+    C --> F[Visualization]
+    D --> F
+    E --> F
+    F --> G[Application to materials design]
+
+    style A fill:#e3f2fd
+    style B fill:#fff3e0
+    style C fill:#e8f5e9
+    style D fill:#fce4ec
+    style E fill:#f3e5f5
+    style F fill:#e0f2f1
+    style G fill:#fff9c4
+            </div>
+        </section>
+
+        <section>
+            <h2>2. Basic Operations of pycalphad</h2>
+
+            <h3>2.1 Loading a Database and Retrieving Basic Information</h3>
+
+            <div class="example-box">
+                <h4>Code Example 1: Loading a TDB File and Basic Operations</h4>
+                <p>Basic operations using a simplified Al-Cu binary TDB file:</p>
+            </div>
+
+            <pre><code class="language-python">import pycalphad as pycalphad
+from pycalphad import Database, variables as v
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Simplified demo Al-Cu TDB file (defined as a string)
+# In actual research, load from an external file
+demo_tdb = """
+$ Al-Cu binary system (simplified demo)
+ELEMENT AL FCC_A1 26.98 4577.3 28.3 !
+ELEMENT CU FCC_A1 63.546 5004.1 33.15 !
+
+FUNCTION GHSERAL 298.15 -7976.15+137.093038*T-24.3671976*T*LN(T)
+    -.001884662*T**2-8.77664E-07*T**3+74092*T**(-1); 933.47 Y
+    -11276.24+223.048446*T-38.5844296*T*LN(T)+.018531982*T**2
+    -5.764227E-06*T**3+74092*T**(-1); 2900 N !
+
+FUNCTION GHSERCU 298.15 -7770.458+130.485235*T-24.112392*T*LN(T)
+    -.00265684*T**2+1.29223E-07*T**3+52478*T**(-1); 1358 Y
+    -13542.026+183.803828*T-31.38*T*LN(T)+3.64167E+29*T**(-9); 3200 N !
+
+PHASE FCC_A1 % 1 1 !
+CONSTITUENT FCC_A1 : AL,CU : !
+PARAMETER G(FCC_A1,AL;0) 298.15 +GHSERAL; 6000 N !
+PARAMETER G(FCC_A1,CU;0) 298.15 +GHSERCU; 6000 N !
+PARAMETER G(FCC_A1,AL,CU;0) 298.15 -53520+7.2*T; 6000 N !
+
+PHASE LIQUID % 1 1 !
+CONSTITUENT LIQUID : AL,CU : !
+PARAMETER G(LIQUID,AL;0) 298.15 +GHSERAL+11005-11.841*T; 6000 N !
+PARAMETER G(LIQUID,CU;0) 298.15 +GHSERCU+12964-9.511*T; 6000 N !
+PARAMETER G(LIQUID,AL,CU;0) 298.15 -66200+40*T; 6000 N !
+"""
+
+# Load the TDB file
+# For an actual file: db = Database('alcu.tdb')
+from io import StringIO
+db = Database(StringIO(demo_tdb))
+
+print("=== Basic Database Information ===\n")
+
+# Elements included
+print(f"Elements: {sorted(db.elements)}")
+
+# Defined phases
+print(f"Phases: {sorted(db.phases.keys())}")
+
+# Constituent information for each phase
+print("\n=== Detailed Phase Information ===")
+for phase_name in sorted(db.phases.keys()):
+    phase = db.phases[phase_name]
+    print(f"\n{phase_name} phase:")
+    print(f"  Number of sublattices: {len(phase.constituents)}")
+    print(f"  Constituents: {phase.constituents}")
+
+# Basic element information
+print("\n=== Element Information ===")
+for element in sorted(db.elements):
+    if element != 'VA':  # Exclude vacancies
+        print(f"{element}:")
+        # Enthalpy reference state of the element
+        # Actual TDBs contain more detailed information
+
+print("\n=== Checking pycalphad Variables ===")
+print(f"Temperature variable: {v.T}")
+print(f"Pressure variable: {v.P}")
+print(f"Composition variable (example): {v.X('AL')}")
+
+print("\nDatabase loaded successfully.")
+print("Next, we proceed to phase diagram calculation.")
+</code></pre>
+
+            <h3>2.2 Setting Variables and Conditions</h3>
+
+            <p>
+                In pycalphad, calculation conditions are set using the <code>variables</code> module.
+                The main variables are as follows:
+            </p>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Variable</th>
+                        <th>Symbol</th>
+                        <th>Description</th>
+                        <th>Unit</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>v.T</code></td>
+                        <td>T</td>
+                        <td>Temperature</td>
+                        <td>K (kelvin)</td>
+                    </tr>
+                    <tr>
+                        <td><code>v.P</code></td>
+                        <td>P</td>
+                        <td>Pressure</td>
+                        <td>Pa (pascal)</td>
+                    </tr>
+                    <tr>
+                        <td><code>v.X('ELEMENT')</code></td>
+                        <td>X_ELEMENT</td>
+                        <td>Mole fraction of the element</td>
+                        <td>Dimensionless (0-1)</td>
+                    </tr>
+                    <tr>
+                        <td><code>v.N</code></td>
+                        <td>N</td>
+                        <td>Total number of moles</td>
+                        <td>mol</td>
+                    </tr>
+                    <tr>
+                        <td><code>v.GE</code></td>
+                        <td>G<sup>E</sup></td>
+                        <td>Excess Gibbs energy</td>
+                        <td>J/mol</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section>
+            <h2>3. Calculating Binary Phase Diagrams</h2>
+
+            <h3>3.1 Al-Cu Binary Phase Diagram</h3>
+
+            <div class="example-box">
+                <h4>Code Example 2: Calculating and Visualizing the Al-Cu Binary Phase Diagram</h4>
+            </div>
+
+            <pre><code class="language-python">import pycalphad as pyc
+from pycalphad import Database, equilibrium, variables as v
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Use demo_tdb defined in the previous code example
+from io import StringIO
+db = Database(StringIO(demo_tdb))
+
+# Set the calculation conditions
+components = ['AL', 'CU', 'VA']  # VA (vacancy) is required
+phases = list(db.phases.keys())  # ['FCC_A1', 'LIQUID']
+
+# Temperature range: 600 K to 1400 K (covering the vicinity of the Al melting point)
+temperatures = np.linspace(600, 1400, 50)
+
+# Composition range: Cu 0 to 100 at.% (Al balance computed automatically)
+cu_compositions = np.linspace(0, 1, 50)
+
+print("=== Calculation of the Al-Cu Binary Phase Diagram ===\n")
+print(f"Temperature range: {temperatures[0]:.0f} - {temperatures[-1]:.0f} K")
+print(f"Composition range: Cu {cu_compositions[0]:.1%} - {cu_compositions[-1]:.1%}")
+print(f"Number of calculation points: {len(temperatures)} × {len(cu_compositions)} = {len(temperatures)*len(cu_compositions)}")
+
+# Run the equilibrium calculation
+try:
+    eq_result = equilibrium(
+        db,
+        components,
+        phases,
+        {
+            v.X('CU'): cu_compositions,
+            v.T: temperatures,
+            v.P: 101325,  # Standard pressure (Pa)
+            v.N: 1.0      # Total moles (any value is fine)
+        },
+        output='GM'  # Output molar Gibbs energy
+    )
+
+    print("\nCalculation complete!")
+
+    # Visualize the results
+    fig, ax = plt.subplots(figsize=(10, 7))
+
+    # Extract and draw phase boundaries
+    # eq_result.Phase stores the stable-phase information at each point
+    # Points where NP (number of stable phases) changes are phase boundaries
+
+    # Simplified visualization (a more refined approach is used in practice)
+    for phase_name in phases:
+        # Color-code the region where each phase is stable
+        phase_fraction = eq_result.NP.where(
+            eq_result.Phase == phase_name
+        ).values
+
+        # Draw the phase diagram (colormap)
+        im = ax.contourf(
+            cu_compositions * 100,  # Convert to at.%
+            temperatures,
+            phase_fraction.T,
+            levels=[0, 0.01, 1],
+            colors=['white', 'lightblue'] if phase_name == 'LIQUID' else ['white', 'lightcoral'],
+            alpha=0.5
+        )
+
+    ax.set_xlabel('Cu (at.%)', fontsize=12, fontweight='bold')
+    ax.set_ylabel('Temperature (K)', fontsize=12, fontweight='bold')
+    ax.set_title('Al-Cu Binary Phase Diagram (Simplified Demo)',
+                 fontsize=14, fontweight='bold')
+    ax.grid(True, alpha=0.3)
+
+    # Add a legend
+    from matplotlib.patches import Patch
+    legend_elements = [
+        Patch(facecolor='lightcoral', alpha=0.5, label='FCC_A1 (Solid)'),
+        Patch(facecolor='lightblue', alpha=0.5, label='LIQUID')
+    ]
+    ax.legend(handles=legend_elements, loc='upper right', fontsize=10)
+
+    plt.tight_layout()
+    plt.savefig('alcu_phase_diagram_demo.png', dpi=150, bbox_inches='tight')
+    plt.show()
+
+    print("\nPhase diagram saved: alcu_phase_diagram_demo.png")
+
+except Exception as e:
+    print(f"\nAn error occurred during the calculation: {e}")
+    print("The simplified demo TDB may not allow a complete phase diagram calculation.")
+    print("Use a high-accuracy TDB file for actual research.")
+
+# Best practices for actual research
+print("\n=== Recommendations for Actual Research ===")
+print("1. Use a high-accuracy commercial TDB (e.g., TCAL) or pycalphad-data")
+print("2. Increase the number of calculation points for smoother phase boundaries (100×100 or more)")
+print("3. Use the dedicated binplot() function for phase diagram plotting")
+print("4. Validate accuracy by comparison with experimental data")
+</code></pre>
+
+            <h3>3.2 Fe-C Binary Phase Diagram (Fundamentals of Steel Materials)</h3>
+
+            <div class="example-box">
+                <h4>Code Example 3: Calculating the Fe-C Binary Phase Diagram</h4>
+                <p>Calculate the phase diagram of the Fe-C system, the most important system for steel materials:</p>
+            </div>
+
+            <pre><code class="language-python">import pycalphad as pyc
+from pycalphad import Database, equilibrium, variables as v
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Simplified TDB for the Fe-C system (in practice, use a precise database such as TCAL5)
+# Here we show conceptual demo code
+
+print("=== Example Calculation of the Fe-C Binary Phase Diagram ===\n")
+
+# An appropriate TDB file is required for the actual calculation
+# Example: db = Database('tcfe9.tdb')  # Thermo-Calc steel database
+
+# Demo mode: explanation of the calculation procedure
+print("[Calculation Procedure]")
+print("1. Load the Fe-C TDB file")
+print("   db = Database('tcfe9.tdb')")
+print()
+print("2. Set the calculation conditions")
+print("   components = ['FE', 'C', 'VA']")
+print("   phases = ['LIQUID', 'BCC_A2', 'FCC_A1', 'CEMENTITE']")
+print("   # BCC_A2: ferrite (alpha iron)")
+print("   # FCC_A1: austenite (gamma iron)")
+print("   # CEMENTITE: cementite (Fe3C)")
+print()
+print("3. Set the temperature and composition ranges")
+print("   temperatures = np.linspace(800, 1800, 100)  # K")
+print("   carbon_content = np.linspace(0, 0.08, 100)  # C content 0-8 wt.%")
+print()
+print("4. Equilibrium calculation")
+print("   eq = equilibrium(db, components, phases, {")
+print("       v.X('C'): carbon_content,")
+print("       v.T: temperatures,")
+print("       v.P: 101325")
+print("   })")
+print()
+print("5. Visualize the phase diagram")
+print("   # The liquidus, solidus, eutectoid temperature (727°C), etc. are visualized")
+print()
+
+# Theoretical values of important phase transformation temperatures
+print("[Important Phase Transformation Temperatures of the Fe-C System]")
+phase_transformations = {
+    "Eutectoid temperature": "727°C (1000 K)",
+    "Eutectoid composition": "0.76 wt.% C",
+    "Peritectic temperature": "1493°C (1766 K)",
+    "Eutectic temperature": "1147°C (1420 K)",
+    "α-γ transformation temperature (pure Fe)": "910°C (1183 K)"
+}
+
+for name, value in phase_transformations.items():
+    print(f"  {name}: {value}")
+
+# Visualize the features of the actual phase diagram (schematic)
+fig, ax = plt.subplots(figsize=(11, 8))
+
+# Schematic phase diagram drawing (conceptual diagram, not real data)
+# The equilibrium() call above is required to display actual calculation results
+
+# Temperature axis (vertical)
+T_liquid = np.array([1768, 1493, 1147])  # K
+T_alpha = np.array([1183, 1000, 1000])
+T_gamma = np.array([1493, 1147, 1000])
+
+# Composition axis (horizontal, wt.% C)
+C_liquid = np.array([0, 0.17, 4.3])
+C_alpha = np.array([0, 0.02, 0.02])
+C_gamma = np.array([0.17, 2.14, 0.76])
+
+ax.plot(C_liquid, T_liquid, 'b-', linewidth=2, label='Liquidus')
+ax.plot(C_alpha, T_alpha, 'r-', linewidth=2, label='α (BCC) boundary')
+ax.plot(C_gamma, T_gamma, 'g-', linewidth=2, label='γ (FCC) boundary')
+
+# Mark the important points
+ax.plot(0.76, 1000, 'ko', markersize=10, label='Eutectoid point')
+ax.plot(0.17, 1766, 'ms', markersize=10, label='Peritectic point')
+ax.plot(4.3, 1420, 'c^', markersize=10, label='Eutectic point')
+
+# Labels for the phase regions
+ax.text(0.1, 1400, 'LIQUID', fontsize=12, fontweight='bold', color='blue')
+ax.text(0.4, 1300, 'L + γ', fontsize=11, color='green')
+ax.text(0.01, 1050, 'α', fontsize=12, fontweight='bold', color='red')
+ax.text(0.3, 1100, 'γ', fontsize=12, fontweight='bold', color='green')
+ax.text(0.4, 950, 'α + Fe₃C', fontsize=11, color='purple')
+ax.text(1.5, 950, 'γ + Fe₃C', fontsize=11, color='purple')
+
+ax.set_xlabel('Carbon content (wt.%)', fontsize=13, fontweight='bold')
+ax.set_ylabel('Temperature (K)', fontsize=13, fontweight='bold')
+ax.set_title('Fe-C Binary Phase Diagram (Schematic)',
+             fontsize=15, fontweight='bold')
+ax.set_xlim(0, 2.5)
+ax.set_ylim(900, 1900)
+ax.grid(True, alpha=0.3)
+ax.legend(loc='upper right', fontsize=10)
+
+plt.tight_layout()
+plt.savefig('fec_phase_diagram_schematic.png', dpi=150, bbox_inches='tight')
+plt.show()
+
+print("\nSchematic diagram saved: fec_phase_diagram_schematic.png")
+print("\n[Note] The above is a schematic. Actual research requires calculation from a TDB file.")
+</code></pre>
+
+            <div class="info-box">
+                <h4>Materials Science Significance of the Fe-C Phase Diagram</h4>
+                <p>
+                    The Fe-C binary phase diagram is the foundation of heat treatments for steel materials
+                    (quenching, tempering, annealing, etc.). For example, at the <strong>eutectoid temperature (727°C, 0.76 wt.% C)</strong>,
+                    austenite (γ phase) transforms into <strong>pearlite</strong>, a mixed microstructure of
+                    ferrite (α phase) and cementite (Fe₃C). This knowledge is indispensable for controlling
+                    the mechanical properties of steel.
+                </p>
+            </div>
+        </section>
+
+        <section>
+            <h2>4. Calculating Ternary Phase Diagrams</h2>
+
+            <h3>4.1 Isothermal Sections</h3>
+
+            <p>
+                For ternary systems, it is common to calculate an <strong>isothermal section</strong> at a fixed temperature.
+                Phase regions are displayed on a triangular diagram (Gibbs triangle).
+            </p>
+
+            <div class="example-box">
+                <h4>Code Example 4: Isothermal Section of the Al-Cu-Mg Ternary System</h4>
+                <p>Calculate the phase diagram of the Al-Cu-Mg system, which is important for aluminum alloys:</p>
+            </div>
+
+            <pre><code class="language-python">import pycalphad as pyc
+from pycalphad import Database, equilibrium, variables as v
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.tri import Triangulation
+
+print("=== Example Calculation of an Al-Cu-Mg Ternary Isothermal Section ===\n")
+
+# A ternary TDB file is required for the actual calculation
+# Example: db = Database('alzn_mey.tdb')  # TDB for systems such as Al-Zn-Mg
+
+# Explanation of the calculation procedure (demo mode)
+print("[Calculation Procedure]")
+print("1. Load the ternary TDB file")
+print("   db = Database('al-cu-mg.tdb')")
+print()
+print("2. Set the temperature of the isothermal section (e.g., 600 K)")
+print("   temperature = 600  # K (about 327°C)")
+print()
+print("3. Generate a composition grid on the triangular diagram")
+print("   # Evenly distribute points on the Al-Cu-Mg triangle")
+print("   # Constraint: X(Al) + X(Cu) + X(Mg) = 1")
+print()
+print("4. Run an equilibrium calculation at each composition point")
+print("   eq = equilibrium(db, components, phases, {")
+print("       v.X('CU'): cu_fractions,")
+print("       v.X('MG'): mg_fractions,")
+print("       v.T: temperature,")
+print("       v.P: 101325")
+print("   })")
+print()
+print("5. Visualize the phase regions on the triangular diagram")
+print()
+
+# Coordinate transformation function for the triangular diagram (for the Gibbs triangle)
+def ternary_to_cartesian(a, b, c):
+    """
+    Convert ternary compositions (a, b, c) to Cartesian coordinates (x, y) on the triangular diagram
+
+    Parameters:
+    -----------
+    a, b, c : float or array
+        Compositions of the three components (a + b + c = 1)
+
+    Returns:
+    --------
+    x, y : float or array
+        Coordinates on the triangular diagram
+    """
+    x = 0.5 * (2 * b + c) / (a + b + c)
+    y = (np.sqrt(3) / 2) * c / (a + b + c)
+    return x, y
+
+# Draw the frame of the triangular diagram
+fig, ax = plt.subplots(figsize=(10, 9))
+
+# Vertices of the triangle (Al, Cu, Mg)
+vertices = np.array([
+    [0, 0],           # Al (100%)
+    [1, 0],           # Cu (100%)
+    [0.5, np.sqrt(3)/2]  # Mg (100%)
+])
+
+triangle = plt.Polygon(vertices, fill=False, edgecolor='black', linewidth=2)
+ax.add_patch(triangle)
+
+# Vertex labels
+ax.text(0, -0.05, 'Al', fontsize=14, fontweight='bold', ha='center', va='top')
+ax.text(1, -0.05, 'Cu', fontsize=14, fontweight='bold', ha='center', va='top')
+ax.text(0.5, np.sqrt(3)/2 + 0.05, 'Mg', fontsize=14, fontweight='bold',
+        ha='center', va='bottom')
+
+# Grid lines (10% intervals)
+for i in range(1, 10):
+    frac = i / 10
+
+    # Lines parallel to the Al-Cu edge (constant Mg)
+    x1, y1 = ternary_to_cartesian(1-frac, 0, frac)
+    x2, y2 = ternary_to_cartesian(0, 1-frac, frac)
+    ax.plot([x1, x2], [y1, y2], 'k-', linewidth=0.5, alpha=0.3)
+
+    # Lines parallel to the Cu-Mg edge (constant Al)
+    x1, y1 = ternary_to_cartesian(frac, 1-frac, 0)
+    x2, y2 = ternary_to_cartesian(frac, 0, 1-frac)
+    ax.plot([x1, x2], [y1, y2], 'k-', linewidth=0.5, alpha=0.3)
+
+    # Lines parallel to the Mg-Al edge (constant Cu)
+    x1, y1 = ternary_to_cartesian(1-frac, frac, 0)
+    x2, y2 = ternary_to_cartesian(0, frac, 1-frac)
+    ax.plot([x1, x2], [y1, y2], 'k-', linewidth=0.5, alpha=0.3)
+
+# Show schematic phase regions (instead of actual calculation results)
+# In practice, create a contour plot from the equilibrium() results
+
+# FCC_A1 phase region (Al-rich solid solution)
+al_rich_x = [0, 0.3, 0.15, 0]
+al_rich_y = [0, 0, 0.13, 0]
+ax.fill(al_rich_x, al_rich_y, color='lightcoral', alpha=0.5,
+        label='FCC_A1 (Al-rich)')
+
+# Other phase regions (conceptual)
+ax.text(0.15, 0.05, 'α-Al', fontsize=11, fontweight='bold', ha='center')
+ax.text(0.6, 0.3, 'Intermetallic\nphases', fontsize=10, ha='center', style='italic')
+
+ax.set_xlim(-0.1, 1.1)
+ax.set_ylim(-0.1, 1.0)
+ax.set_aspect('equal')
+ax.axis('off')
+ax.set_title('Al-Cu-Mg Ternary Isothermal Section at 600 K (Schematic)',
+             fontsize=14, fontweight='bold', pad=20)
+
+# Legend
+ax.legend(loc='upper right', fontsize=10)
+
+plt.tight_layout()
+plt.savefig('al-cu-mg_ternary_schematic.png', dpi=150, bbox_inches='tight')
+plt.show()
+
+print("\nTriangular diagram saved: al-cu-mg_ternary_schematic.png")
+print("\n[Note] The above is a schematic. Actual research requires calculation from a TDB file.")
+
+print("\n=== Practical Points for Ternary Calculations ===")
+print("1. Computation time: ternary systems cost more than binary systems (minutes to hours)")
+print("2. Grid resolution: about 50×50 is standard, 100×100 for high accuracy")
+print("3. Phase selection: choose the phases to calculate appropriately (all phases makes it heavy)")
+print("4. Visualization: triangular plots, contour maps, phase fraction maps, etc.")
+</code></pre>
+
+            <h3>4.2 Vertical Sections</h3>
+
+            <p>
+                Vertical sections, in which a specific composition ratio of a ternary system is fixed and the temperature is varied, are also important.
+                For example, in the Al-Cu-Mg system, one can fix the Mg concentration and investigate the relationship between the Al-Cu ratio and temperature.
+            </p>
+        </section>
+
+        <section>
+            <h2>5. Calculating Equilibrium Phase Compositions and Phase Fractions</h2>
+
+            <h3>5.1 Equilibrium Calculation under Specified Conditions</h3>
+
+            <div class="example-box">
+                <h4>Code Example 5: Calculating Equilibrium Phase Compositions and Phase Fractions</h4>
+                <p>Analyze the equilibrium state at a specific temperature and composition in detail:</p>
+            </div>
+
+            <pre><code class="language-python">import pycalphad as pyc
+from pycalphad import Database, equilibrium, variables as v
+import numpy as np
+import pandas as pd
+
+print("=== Calculating Equilibrium Phase Compositions and Phase Fractions ===\n")
+
+# Use demo_tdb (Al-Cu system) from the previous code example
+from io import StringIO
+db = Database(StringIO(demo_tdb))
+
+components = ['AL', 'CU', 'VA']
+phases = list(db.phases.keys())
+
+# Calculation conditions: a specific temperature and composition
+temperature = 900  # K (about 627°C)
+cu_content = 0.3   # Cu 30 at.%
+
+print(f"Calculation conditions:")
+print(f"  Temperature: {temperature} K ({temperature - 273.15:.1f}°C)")
+print(f"  Composition: Al-{cu_content*100:.0f}at.%Cu")
+print(f"  Pressure: 101325 Pa (1 atm)")
+print()
+
+try:
+    # Equilibrium calculation
+    eq = equilibrium(
+        db, components, phases,
+        {
+            v.X('CU'): cu_content,
+            v.T: temperature,
+            v.P: 101325,
+            v.N: 1.0
+        },
+        output=['GM', 'NP', 'X']  # Molar Gibbs energy, phase fraction, composition
+    )
+
+    print("Equilibrium calculation complete!\n")
+    print("=== Calculation Results ===\n")
+
+    # Extract the stable phases
+    stable_phases = []
+    for phase_name in phases:
+        # Phases with a phase fraction (NP) greater than 0 are stable
+        phase_fraction = float(eq.NP.sel(Phase=phase_name).values)
+        if phase_fraction > 1e-6:  # Exclude tiny numerical errors
+            stable_phases.append({
+                'Phase': phase_name,
+                'Fraction': phase_fraction
+            })
+
+    if stable_phases:
+        print("Stable phases:")
+        for phase_data in stable_phases:
+            print(f"  {phase_data['Phase']}: {phase_data['Fraction']:.4f} ({phase_data['Fraction']*100:.2f}%)")
+    else:
+        print("No stable phases found (possible calculation error)")
+
+    print()
+
+    # Composition of each phase
+    print("Composition of each phase:")
+    for phase_data in stable_phases:
+        phase_name = phase_data['Phase']
+        print(f"\n  {phase_name} phase:")
+
+        # Compositions of Al and Cu
+        try:
+            al_content = float(eq.X.sel(Phase=phase_name, component='AL').values)
+            cu_content_phase = float(eq.X.sel(Phase=phase_name, component='CU').values)
+
+            print(f"    Al: {al_content:.4f} ({al_content*100:.2f} at.%)")
+            print(f"    Cu: {cu_content_phase:.4f} ({cu_content_phase*100:.2f} at.%)")
+        except:
+            print("    Failed to retrieve composition data")
+
+    # Gibbs energy
+    print(f"\nMolar Gibbs energy of the whole system:")
+    gm_total = float(eq.GM.values)
+    print(f"  {gm_total:.2f} J/mol")
+
+    print("\n=== Application to Practical Materials Design ===")
+    print("From this information, the following can be predicted:")
+    print("1. Which phases precipitate (judged from phase fractions)")
+    print("2. Composition of each phase (degree of segregation)")
+    print("3. Microstructure after heat treatment (phase stability)")
+    print("4. Effect on mechanical properties (types and fractions of phases)")
+
+except Exception as e:
+    print(f"Calculation error: {e}")
+    print("The demo TDB may not allow detailed calculations.")
+
+# Track changes in phase fractions with temperature
+print("\n\n=== Change in Phase Fractions with Temperature ===\n")
+
+temperatures_range = np.linspace(700, 1100, 20)
+results = []
+
+for T in temperatures_range:
+    try:
+        eq_temp = equilibrium(
+            db, components, phases,
+            {v.X('CU'): 0.3, v.T: T, v.P: 101325, v.N: 1.0},
+            output='NP'
+        )
+
+        fcc_fraction = float(eq_temp.NP.sel(Phase='FCC_A1').values)
+        liquid_fraction = float(eq_temp.NP.sel(Phase='LIQUID').values)
+
+        results.append({
+            'T (K)': T,
+            'T (°C)': T - 273.15,
+            'FCC_A1': fcc_fraction,
+            'LIQUID': liquid_fraction
+        })
+    except:
+        pass
+
+if results:
+    df = pd.DataFrame(results)
+    print(df.to_string(index=False))
+
+    # Visualization
+    import matplotlib.pyplot as plt
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.plot(df['T (K)'], df['FCC_A1'], 'ro-', linewidth=2,
+            markersize=6, label='FCC_A1 (Solid)')
+    ax.plot(df['T (K)'], df['LIQUID'], 'bo-', linewidth=2,
+            markersize=6, label='LIQUID')
+
+    ax.set_xlabel('Temperature (K)', fontsize=12, fontweight='bold')
+    ax.set_ylabel('Phase Fraction', fontsize=12, fontweight='bold')
+    ax.set_title('Phase Fraction vs Temperature (Al-30at.%Cu)',
+                 fontsize=14, fontweight='bold')
+    ax.legend(fontsize=11)
+    ax.grid(True, alpha=0.3)
+    ax.set_ylim(-0.05, 1.05)
+
+    plt.tight_layout()
+    plt.savefig('phase_fraction_vs_temperature.png', dpi=150, bbox_inches='tight')
+    plt.show()
+
+    print("\nPhase fraction plot saved: phase_fraction_vs_temperature.png")
+</code></pre>
+
+            <h3>5.2 Phase Fraction Calculation with the Lever Rule</h3>
+
+            <p>
+                In a two-phase coexistence region, the amount of each phase can be determined using the <strong>lever rule</strong>.
+                pycalphad calculates this automatically, but it is important to understand the principle.
+            </p>
+
+            <div class="key-point">
+                <h4>🎯 Principle of the Lever Rule</h4>
+                <p>
+                    When two phases α and β coexist, the fraction of each phase at overall composition $X_0$ is:
+                </p>
+                <p style="text-align: center; margin: 1rem 0;">
+                    $f_\alpha = \frac{X_\beta - X_0}{X_\beta - X_\alpha}, \quad
+                     f_\beta = \frac{X_0 - X_\alpha}{X_\beta - X_\alpha}$
+                </p>
+                <p>
+                    Here, $X_\alpha$ and $X_\beta$ are the compositions of the α and β phases, respectively, and $X_0$ is the overall composition.
+                    This is the same mathematical relationship as the principle of the lever.
+                </p>
+            </div>
+        </section>
+
+        <section>
+            <h2>6. Calculating the Driving Force</h2>
+
+            <h3>6.1 What Is a Driving Force?</h3>
+
+            <p>
+                The <strong>driving force</strong> is a thermodynamic measure of how readily a transformation
+                from one phase to another proceeds. It is defined as a difference in chemical potentials.
+            </p>
+
+            <div class="info-box">
+                <h4>Definition of the Driving Force</h4>
+                <p>
+                    The driving force for the transformation from phase α to phase β is:
+                </p>
+                <p style="text-align: center; margin: 1rem 0;">
+                    $\Delta G = G_\beta - G_\alpha$
+                </p>
+                <ul>
+                    <li>$\Delta G < 0$: the β phase is more stable (the transformation proceeds spontaneously)</li>
+                    <li>$\Delta G = 0$: the α and β phases are in equilibrium</li>
+                    <li>$\Delta G > 0$: the α phase is more stable (the transformation does not proceed)</li>
+                </ul>
+                <p>
+                    The larger the driving force, the faster the phase transformation (although kinetic barriers must also be considered).
+                </p>
+            </div>
+
+            <div class="example-box">
+                <h4>Code Example 6: Calculating the Driving Force for a Phase Transformation</h4>
+                <p>Calculate the driving force for melting from the FCC phase to the LIQUID phase in the Al-Cu system:</p>
+            </div>
+
+            <pre><code class="language-python">import pycalphad as pyc
+from pycalphad import Database, equilibrium, variables as v
+import numpy as np
+import matplotlib.pyplot as plt
+
+print("=== Calculating the Driving Force for a Phase Transformation ===\n")
+
+# Use demo_tdb
+from io import StringIO
+db = Database(StringIO(demo_tdb))
+
+components = ['AL', 'CU', 'VA']
+phases = list(db.phases.keys())
+
+# Calculation conditions
+cu_composition = 0.2  # Cu 20 at.%
+temperatures = np.linspace(700, 1200, 30)
+
+print(f"Composition: Al-{cu_composition*100:.0f}at.%Cu")
+print(f"Temperature range: {temperatures[0]:.0f} - {temperatures[-1]:.0f} K")
+print()
+
+# Calculate the Gibbs energy of each phase at each temperature
+fcc_energies = []
+liquid_energies = []
+driving_forces = []
+
+for T in temperatures:
+    try:
+        # Gibbs energy of the FCC phase
+        eq_fcc = equilibrium(
+            db, components, ['FCC_A1'],  # FCC phase only
+            {v.X('CU'): cu_composition, v.T: T, v.P: 101325},
+            output='GM'
+        )
+        G_fcc = float(eq_fcc.GM.values)
+        fcc_energies.append(G_fcc)
+
+        # Gibbs energy of the LIQUID phase
+        eq_liquid = equilibrium(
+            db, components, ['LIQUID'],  # LIQUID phase only
+            {v.X('CU'): cu_composition, v.T: T, v.P: 101325},
+            output='GM'
+        )
+        G_liquid = float(eq_liquid.GM.values)
+        liquid_energies.append(G_liquid)
+
+        # Driving force: LIQUID - FCC (positive means the liquid phase is stable)
+        driving_force = G_liquid - G_fcc
+        driving_forces.append(driving_force)
+
+    except Exception as e:
+        fcc_energies.append(np.nan)
+        liquid_energies.append(np.nan)
+        driving_forces.append(np.nan)
+
+print("Calculation complete!\n")
+
+# Visualize the results
+fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 10))
+
+# Subplot 1: Gibbs energy
+ax1.plot(temperatures, fcc_energies, 'r-', linewidth=2.5, label='FCC_A1 (Solid)')
+ax1.plot(temperatures, liquid_energies, 'b-', linewidth=2.5, label='LIQUID')
+ax1.axhline(y=0, color='gray', linestyle='--', linewidth=1, alpha=0.5)
+ax1.set_xlabel('Temperature (K)', fontsize=12, fontweight='bold')
+ax1.set_ylabel('Gibbs Energy (J/mol)', fontsize=12, fontweight='bold')
+ax1.set_title(f'Gibbs Energy vs Temperature (Al-{cu_composition*100:.0f}at.%Cu)',
+              fontsize=13, fontweight='bold')
+ax1.legend(fontsize=11)
+ax1.grid(True, alpha=0.3)
+
+# Subplot 2: Driving force
+ax2.plot(temperatures, driving_forces, 'g-', linewidth=2.5, label='ΔG (LIQUID - FCC)')
+ax2.axhline(y=0, color='red', linestyle='--', linewidth=2, alpha=0.7, label='Equilibrium')
+ax2.fill_between(temperatures, 0, driving_forces,
+                 where=np.array(driving_forces) < 0, alpha=0.3, color='blue',
+                 label='FCC stable region')
+ax2.fill_between(temperatures, 0, driving_forces,
+                 where=np.array(driving_forces) > 0, alpha=0.3, color='red',
+                 label='LIQUID stable region')
+ax2.set_xlabel('Temperature (K)', fontsize=12, fontweight='bold')
+ax2.set_ylabel('Driving Force (J/mol)', fontsize=12, fontweight='bold')
+ax2.set_title(f'Driving Force for Melting (Al-{cu_composition*100:.0f}at.%Cu)',
+              fontsize=13, fontweight='bold')
+ax2.legend(fontsize=10)
+ax2.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('driving_force_analysis.png', dpi=150, bbox_inches='tight')
+plt.show()
+
+print("Driving force analysis plot saved: driving_force_analysis.png\n")
+
+# Estimate the melting point (the temperature at which the driving force becomes zero)
+try:
+    # Find the zero-crossing point
+    for i in range(len(driving_forces) - 1):
+        if not np.isnan(driving_forces[i]) and not np.isnan(driving_forces[i+1]):
+            if driving_forces[i] * driving_forces[i+1] < 0:  # Sign change
+                T_melting = (temperatures[i] + temperatures[i+1]) / 2
+                print(f"Estimated melting point: {T_melting:.1f} K ({T_melting - 273.15:.1f}°C)\n")
+                break
+except:
+    pass
+
+print("=== Applications of Driving Force Calculations ===")
+print("1. Assessing the thermodynamic feasibility of phase transformations")
+print("2. Quantifying the degree of undercooling/overheating")
+print("3. Estimating nucleation and growth rates (combined with kinetics)")
+print("4. Optimizing heat treatment conditions")
+print("5. Evaluating the stability of metastable phases")
+</code></pre>
+
+            <h3>6.2 Relationship between Driving Force and Transformation Rate</h3>
+
+            <p>
+                The driving force represents the "thermodynamic impetus" for a phase transformation,
+                but the actual transformation rate also depends on <strong>kinetics</strong> (diffusion, interface migration, etc.).
+                An analysis combining both is indispensable for designing real materials processes.
+            </p>
+        </section>
+
+        <section>
+            <h2>7. Practical Workflows and Application Examples</h2>
+
+            <h3>7.1 Complete Research Workflow</h3>
+
+            <div class="mermaid">
+graph TD
+    A[Clarify the research objective] --> B[Select an appropriate TDB]
+    B --> C[Calculate with pycalphad]
+    C --> D{Calculation target}
+    D --> E[Phase diagram calculation]
+    D --> F[Equilibrium calculation]
+    D --> G[Driving force calculation]
+    E --> H[Visualize the results]
+    F --> H
+    G --> H
+    H --> I[Compare with experimental data]
+    I --> J{Accuracy OK?}
+    J -->|Yes| K[Apply to materials design]
+    J -->|No| L[Improve TDB / adjust parameters]
+    L --> C
+    K --> M[Experimental validation]
+    M --> N[Papers and patents]
+
+    style A fill:#e3f2fd
+    style C fill:#fff3e0
+    style H fill:#e8f5e9
+    style K fill:#fce4ec
+    style N fill:#fff9c4
+            </div>
+
+            <div class="example-box">
+                <h4>Code Example 7: Integrated Practical Workflow Script</h4>
+                <p>A complete workflow from TDB acquisition through visualization to materials design:</p>
+            </div>
+
+            <pre><code class="language-python">import pycalphad as pyc
+from pycalphad import Database, equilibrium, variables as v
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+from datetime import datetime
+
+print("=" * 60)
+print("pycalphad Integrated Practical Workflow Script")
+print("=" * 60)
+print()
+
+# ============================================
+# Step 1: Project setup
+# ============================================
+print("[Step 1] Project setup\n")
+
+project_name = "Al-Cu Alloy Design"
+target_composition = "Al-20at.%Cu"
+target_temperature_range = (600, 1200)  # K
+objective = "Determination of optimal heat treatment conditions"
+
+print(f"Project name: {project_name}")
+print(f"Target alloy: {target_composition}")
+print(f"Temperature range: {target_temperature_range[0]} - {target_temperature_range[1]} K")
+print(f"Objective: {objective}")
+print()
+
+# ============================================
+# Step 2: Database preparation
+# ============================================
+print("[Step 2] Loading the TDB file\n")
+
+# In actual research, use an external TDB file
+# db = Database('path/to/your/database.tdb')
+
+# For the demo
+from io import StringIO
+db = Database(StringIO(demo_tdb))
+
+components = ['AL', 'CU', 'VA']
+phases = list(db.phases.keys())
+
+print(f"TDB in use: demo_al_cu.tdb")
+print(f"Elements: {[c for c in components if c != 'VA']}")
+print(f"Phases: {phases}")
+print()
+
+# ============================================
+# Step 3: Phase diagram calculation
+# ============================================
+print("[Step 3] Phase diagram calculation\n")
+
+T_range = np.linspace(target_temperature_range[0],
+                      target_temperature_range[1], 40)
+X_Cu_range = np.linspace(0, 0.5, 40)  # 0-50 at.% Cu
+
+print(f"Calculating... ({len(T_range)} temperature points × {len(X_Cu_range)} composition points)")
+
+try:
+    eq_phase_diagram = equilibrium(
+        db, components, phases,
+        {v.X('CU'): X_Cu_range, v.T: T_range, v.P: 101325},
+        output='GM'
+    )
+    print("✓ Phase diagram calculation complete")
+except Exception as e:
+    print(f"✗ Phase diagram calculation error: {e}")
+    eq_phase_diagram = None
+
+print()
+
+# ============================================
+# Step 4: Equilibrium calculation under specific conditions
+# ============================================
+print("[Step 4] Equilibrium calculation under specific conditions\n")
+
+specific_T = 900  # K
+specific_X_Cu = 0.2  # 20 at.%
+
+print(f"Conditions: {specific_T} K, Cu {specific_X_Cu*100:.0f} at.%")
+
+try:
+    eq_specific = equilibrium(
+        db, components, phases,
+        {v.X('CU'): specific_X_Cu, v.T: specific_T, v.P: 101325},
+        output=['GM', 'NP', 'X']
+    )
+
+    print("\nStable phases:")
+    for phase_name in phases:
+        fraction = float(eq_specific.NP.sel(Phase=phase_name).values)
+        if fraction > 1e-6:
+            print(f"  {phase_name}: {fraction:.4f} ({fraction*100:.2f}%)")
+
+    print("✓ Equilibrium calculation complete")
+except Exception as e:
+    print(f"✗ Equilibrium calculation error: {e}")
+    eq_specific = None
+
+print()
+
+# ============================================
+# Step 5: Driving force analysis
+# ============================================
+print("[Step 5] Driving force analysis\n")
+
+T_df_range = np.linspace(700, 1100, 25)
+driving_forces_analysis = []
+
+for T in T_df_range:
+    try:
+        eq_fcc = equilibrium(db, components, ['FCC_A1'],
+                            {v.X('CU'): 0.2, v.T: T, v.P: 101325}, output='GM')
+        eq_liq = equilibrium(db, components, ['LIQUID'],
+                            {v.X('CU'): 0.2, v.T: T, v.P: 101325}, output='GM')
+
+        G_fcc = float(eq_fcc.GM.values)
+        G_liq = float(eq_liq.GM.values)
+        df_value = G_liq - G_fcc
+
+        driving_forces_analysis.append({
+            'T (K)': T,
+            'ΔG (J/mol)': df_value
+        })
+    except:
+        pass
+
+if driving_forces_analysis:
+    df_analysis = pd.DataFrame(driving_forces_analysis)
+    print(df_analysis.head(10).to_string(index=False))
+    print("...")
+    print("✓ Driving force analysis complete")
+else:
+    print("✗ Driving force analysis error")
+
+print()
+
+# ============================================
+# Step 6: Visualization of results
+# ============================================
+print("[Step 6] Visualization of results\n")
+
+fig, axes = plt.subplots(2, 2, figsize=(14, 12))
+
+# (1) Phase diagram (simplified version)
+ax1 = axes[0, 0]
+if eq_phase_diagram is not None:
+    # Draw the phase diagram (more detailed processing is required in practice)
+    ax1.text(0.5, 0.5, 'Phase Diagram\n(Requires detailed plotting)',
+             ha='center', va='center', fontsize=12, transform=ax1.transAxes)
+ax1.set_title('Phase Diagram', fontweight='bold')
+ax1.set_xlabel('Cu (at.%)')
+ax1.set_ylabel('Temperature (K)')
+ax1.grid(True, alpha=0.3)
+
+# (2) Phase fraction vs temperature
+ax2 = axes[0, 1]
+if not driving_forces_analysis:
+    ax2.text(0.5, 0.5, 'No data', ha='center', va='center',
+             transform=ax2.transAxes)
+else:
+    # Dummy data
+    ax2.plot([700, 900, 1100], [1, 0.7, 0], 'ro-', label='FCC', linewidth=2)
+    ax2.plot([700, 900, 1100], [0, 0.3, 1], 'bo-', label='LIQUID', linewidth=2)
+ax2.set_title('Phase Fraction vs Temperature', fontweight='bold')
+ax2.set_xlabel('Temperature (K)')
+ax2.set_ylabel('Phase Fraction')
+ax2.legend()
+ax2.grid(True, alpha=0.3)
+
+# (3) Driving force
+ax3 = axes[1, 0]
+if driving_forces_analysis:
+    ax3.plot(df_analysis['T (K)'], df_analysis['ΔG (J/mol)'],
+             'g-', linewidth=2.5)
+    ax3.axhline(y=0, color='red', linestyle='--', linewidth=2)
+    ax3.fill_between(df_analysis['T (K)'], 0, df_analysis['ΔG (J/mol)'],
+                     alpha=0.3)
+ax3.set_title('Driving Force (LIQUID - FCC)', fontweight='bold')
+ax3.set_xlabel('Temperature (K)')
+ax3.set_ylabel('ΔG (J/mol)')
+ax3.grid(True, alpha=0.3)
+
+# (4) Material design guidelines
+ax4 = axes[1, 1]
+ax4.axis('off')
+design_guidelines = f"""
+Material Design Guidelines
+
+[Optimal Heat Treatment Conditions]
+• Solution treatment: 950-1000 K
+• Aging treatment: 450-500 K
+• Cooling rate: rapid quenching recommended
+
+[Expected Precipitate Phases]
+• FCC_A1 (α-Al matrix)
+• θ phase (Al₂Cu, precipitation strengthening)
+
+[Predicted Mechanical Properties]
+• Strengthening: via θ phase precipitation
+• Ductility: depends on matrix properties
+
+[Next Steps]
+1. Experimental validation
+2. Microstructure observation (SEM/TEM)
+3. Mechanical testing (tensile, hardness)
+"""
+ax4.text(0.05, 0.95, design_guidelines,
+         fontsize=10, verticalalignment='top',
+         fontfamily='monospace',
+         bbox=dict(boxstyle='round', facecolor='lightyellow', alpha=0.8))
+ax4.set_title('Material Design Guidelines', fontweight='bold', loc='left')
+
+plt.tight_layout()
+plt.savefig('workflow_comprehensive_analysis.png', dpi=150, bbox_inches='tight')
+plt.show()
+
+print("✓ Comprehensive analysis figure saved: workflow_comprehensive_analysis.png")
+print()
+
+# ============================================
+# Step 7: Report generation
+# ============================================
+print("[Step 7] Report generation\n")
+
+report = f"""
+{'='*60}
+pycalphad Calculation Report
+{'='*60}
+
+Project name: {project_name}
+Executed at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+
+[Calculation Conditions]
+- Target system: {target_composition}
+- Temperature range: {target_temperature_range[0]} - {target_temperature_range[1]} K
+- Pressure: 101325 Pa (1 atm)
+
+[Database Used]
+- TDB: demo_al_cu.tdb
+- Phases: {', '.join(phases)}
+
+[Summary of Calculation Results]
+- Phase diagram calculation: {'Success' if eq_phase_diagram is not None else 'Failure'}
+- Equilibrium calculation: {'Success' if eq_specific is not None else 'Failure'}
+- Driving force analysis: {'Success' if driving_forces_analysis else 'Failure'}
+
+[Recommendations for Materials Design]
+Toward {objective}, the following conditions are recommended:
+1. Solution treatment: complete dissolution at 950-1000 K
+2. Rapid quenching: retain the metastable state near room temperature
+3. Aging treatment: form precipitation-strengthening phases at 450-500 K
+
+[References]
+[1] Pycalphad Documentation: https://pycalphad.org/
+[2] CALPHAD methodology review papers
+[3] Al-Cu binary phase diagram experimental data
+
+{'='*60}
+"""
+
+print(report)
+
+# Save the report to a file
+with open('pycalphad_calculation_report.txt', 'w', encoding='utf-8') as f:
+    f.write(report)
+
+print("✓ Report saved: pycalphad_calculation_report.txt")
+print()
+
+print("=" * 60)
+print("Workflow complete!")
+print("=" * 60)
+</code></pre>
+
+            <h3>7.2 Best Practices</h3>
+
+            <div class="success-box">
+                <h4>Best Practices When Using pycalphad</h4>
+                <ul>
+                    <li><strong>TDB selection</strong>:
+                        <ul>
+                            <li>Choose a reliable TDB that suits your purpose (commercial ones recommended)</li>
+                            <li>Check the TDB version and assessed range</li>
+                            <li>Validate by comparison with experimental data</li>
+                        </ul>
+                    </li>
+                    <li><strong>Calculation conditions</strong>:
+                        <ul>
+                            <li>Match the temperature and composition ranges to the service conditions of the target material</li>
+                            <li>Balance the number of calculation points against accuracy and time</li>
+                            <li>Set the pressure appropriately in systems where its effect is significant</li>
+                        </ul>
+                    </li>
+                    <li><strong>Result verification</strong>:
+                        <ul>
+                            <li>Compare with known phase diagrams (handbooks, etc.)</li>
+                            <li>Check thermodynamic consistency (continuity of Gibbs energy)</li>
+                            <li>Quantitative comparison with experimental data</li>
+                        </ul>
+                    </li>
+                    <li><strong>Visualization</strong>:
+                        <ul>
+                            <li>Always visually inspect the phase diagram</li>
+                            <li>Check the smoothness of phase boundaries</li>
+                            <li>Verify from multiple plotting angles</li>
+                        </ul>
+                    </li>
+                    <li><strong>Documentation</strong>:
+                        <ul>
+                            <li>Record the version of the TDB used</li>
+                            <li>Clearly state the calculation conditions</li>
+                            <li>Save scripts for reproducibility</li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </section>
+
+        <section>
+            <h2>8. Exercises</h2>
+
+            <div class="exercise-section">
+                <h3>Exercises</h3>
+
+                <div class="exercise">
+                    <h4>Exercise 1: Basic Phase Diagram Calculation</h4>
+                    <p>
+                        Using a publicly available TDB file (pycalphad-data or TCAL),
+                        calculate the phase diagram of a binary system of your interest (e.g., Ni-Al, Ti-Al, Cu-Zn)
+                        and extract the following information:
+                    </p>
+                    <ul>
+                        <li>Eutectic temperature and eutectic composition</li>
+                        <li>Peritectic temperature (if present)</li>
+                        <li>Solubility limit of the solid solution (solidus line)</li>
+                        <li>Comparison of the calculated results with literature values (handbooks, etc.)</li>
+                    </ul>
+                    <p>Also, visualize the calculated phase diagram appropriately and produce a publication-quality figure.</p>
+                </div>
+
+                <div class="exercise">
+                    <h4>Exercise 2: Temperature Dependence of Equilibrium Phase Compositions</h4>
+                    <p>
+                        Using an Al-4wt.%Cu alloy as an example, vary the temperature from 300 K to 900 K and:
+                    </p>
+                    <ol>
+                        <li>Plot the change in the fraction of each phase</li>
+                        <li>Plot the change in the Cu concentration of each phase</li>
+                        <li>Determine the solvus temperature</li>
+                        <li>Identify the temperature range in which the θ phase (Al₂Cu) precipitates</li>
+                    </ol>
+                    <p>
+                        Based on this information, propose an optimal aging treatment temperature.
+                    </p>
+                </div>
+
+                <div class="exercise">
+                    <h4>Exercise 3: Relationship between Driving Force and Undercooling</h4>
+                    <p>
+                        Using the melting of pure Al as an example, calculate the following:
+                    </p>
+                    <ol>
+                        <li>Find the equilibrium melting point (the temperature at which ΔG = 0)</li>
+                        <li>Calculate the driving force at temperatures 10 K, 20 K, and 50 K below the melting point</li>
+                        <li>Plot the relationship between driving force and degree of undercooling</li>
+                        <li>Combine with classical nucleation theory to estimate the critical nucleus radius</li>
+                    </ol>
+                    <p>
+                        (Hint: critical nucleus radius $r^* = -2\gamma/\Delta G_v$;
+                        use interfacial energy $\gamma \approx 0.1$ J/m²)
+                    </p>
+                </div>
+
+                <div class="exercise">
+                    <h4>Exercise 4: Practical Project</h4>
+                    <p>
+                        Choose a material system related to your own research topic and carry out the following complete workflow:
+                    </p>
+                    <ol>
+                        <li>Selection and acquisition of an appropriate TDB file</li>
+                        <li>Calculation of the phase diagram and comparison with literature values</li>
+                        <li>Equilibrium calculations at the target composition (multiple temperatures)</li>
+                        <li>Driving force analysis (as needed)</li>
+                        <li>Comprehensive visualization of the results (multiple plots)</li>
+                        <li>Preparation of a report summarizing recommendations for materials design</li>
+                    </ol>
+                    <p>
+                        The final goal is to produce figures and a report of a quality suitable for
+                        a conference presentation or journal submission.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <section class="completion-badge">
+            <h3>🎓 Congratulations on Completing the Series!</h3>
+            <p style="font-size: 1.1rem; margin-top: 1rem;">
+                You have completed all six chapters of the Introduction to Materials Thermodynamics series.<br>
+                You have now acquired practical skills in phase diagram calculation<br>
+                and thermodynamic analysis using pycalphad.
+            </p>
+        </section>
+
+        <section>
+            <h2>Summary and Next Steps</h2>
+
+            <div class="success-box">
+                <h3>Skills Acquired in This Series</h3>
+                <p>Through all six chapters, you have systematically acquired the following knowledge and skills:</p>
+
+                <h4>Theoretical Foundations (Chapters 1-3)</h4>
+                <ul>
+                    <li>Applications of the first and second laws of thermodynamics to materials science</li>
+                    <li>Physical meaning of enthalpy, entropy, and free energy</li>
+                    <li>Relationship between chemical potential and phase equilibrium</li>
+                    <li>How to read phase diagrams and their thermodynamic interpretation</li>
+                    <li>Thermodynamics of solutions and activity</li>
+                </ul>
+
+                <h4>Practical Techniques (Chapters 4-6)</h4>
+                <ul>
+                    <li>Calculating and visualizing thermodynamic quantities with Python</li>
+                    <li>Constructing Gibbs energy curves and the common tangent method</li>
+                    <li>Phase fraction calculation with the lever rule</li>
+                    <li>Working with the pycalphad library</li>
+                    <li>Loading and managing TDB files</li>
+                    <li>Calculating binary and ternary phase diagrams</li>
+                    <li>Calculating equilibrium phase compositions and driving forces</li>
+                </ul>
+
+                <h4>Research Application Skills</h4>
+                <ul>
+                    <li>Fundamentals of materials design with the CALPHAD method</li>
+                    <li>Integrated analysis with experimental data</li>
+                    <li>Optimization of heat treatment conditions</li>
+                    <li>Prediction and control of phase transformations</li>
+                    <li>Applications to data-driven materials development</li>
+                </ul>
+            </div>
+
+            <h3>What to Learn Next</h3>
+
+            <div class="info-box">
+                <h4>Recommended Advanced Learning</h4>
+
+                <p><strong>1. Advanced Topics in Materials Thermodynamics</strong></p>
+                <ul>
+                    <li><strong>Metastable phases and metastable phase diagrams</strong>: martensite, amorphous phases, etc.</li>
+                    <li><strong>Interfacial energy</strong>: Young-Laplace equation, Gibbs-Thomson effect</li>
+                    <li><strong>Thermodynamics of defects</strong>: dislocations, grain boundaries, point defects</li>
+                    <li><strong>Advanced analysis of multicomponent systems</strong>: quaternary and higher systems, complex phase equilibria</li>
+                </ul>
+
+                <p><strong>2. Integration with Kinetics</strong></p>
+                <ul>
+                    <li><strong>Diffusion theory</strong>: Fick's laws, concentration profiles</li>
+                    <li><strong>Phase transformation kinetics</strong>: nucleation, growth, JMAK equation</li>
+                    <li><strong>DICTRA</strong>: simulation of diffusion-controlled transformations</li>
+                    <li><strong>Phase-field method</strong>: microscale modeling of microstructure formation</li>
+                </ul>
+
+                <p><strong>3. Coupling with First-Principles Calculations</strong></p>
+                <ul>
+                    <li><strong>DFT calculations</strong>: energies, densities of states, elastic constants</li>
+                    <li><strong>Formation energy calculations</strong>: VASP, Quantum ESPRESSO</li>
+                    <li><strong>TDB parameter optimization</strong>: fitting of experimental plus computational data</li>
+                    <li><strong>High-throughput calculations</strong>: Materials Project, AFLOW</li>
+                </ul>
+
+                <p><strong>4. Materials Informatics (MI)</strong></p>
+                <ul>
+                    <li><strong>Thermodynamic descriptors</strong>: input features for machine learning models</li>
+                    <li><strong>Bayesian optimization</strong>: materials exploration combined with pycalphad</li>
+                    <li><strong>Surrogate models</strong>: fast phase diagram prediction</li>
+                    <li><strong>Inverse design</strong>: back-calculating composition and process from target properties</li>
+                </ul>
+
+                <p><strong>5. Integration with Experimental Techniques</strong></p>
+                <ul>
+                    <li><strong>Differential scanning calorimetry (DSC)</strong>: comparison with experimental data</li>
+                    <li><strong>Thermogravimetric analysis (TGA)</strong>: measurement of reaction enthalpies</li>
+                    <li><strong>X-ray diffraction (XRD)</strong>: phase identification and quantification</li>
+                    <li><strong>Electron microscopy (SEM/TEM)</strong>: microstructure observation</li>
+                </ul>
+            </div>
+
+            <h3>For Continued Learning</h3>
+
+            <div class="info-box">
+                <h4>Recommended Resources</h4>
+
+                <p><strong>Official Documentation</strong></p>
+                <ul>
+                    <li><a href="https://pycalphad.org/" target="_blank">pycalphad official website</a></li>
+                    <li><a href="https://github.com/pycalphad/pycalphad" target="_blank">pycalphad GitHub</a></li>
+                    <li><a href="https://github.com/pycalphad/pycalphad-data" target="_blank">pycalphad-data (sample TDBs)</a></li>
+                </ul>
+
+                <p><strong>Textbooks</strong></p>
+                <ul>
+                    <li>"Introduction to Thermodynamics of Materials" by Gaskell & Laughlin</li>
+                    <li>"Thermodynamics of Materials" by DeHoff</li>
+                    <li>"CALPHAD (Calculation of Phase Diagrams): A Comprehensive Guide" by Saunders & Miodownik</li>
+                    <li>"Computational Thermodynamics of Materials" by Liu & Wang</li>
+                </ul>
+
+                <p><strong>Online Communities</strong></p>
+                <ul>
+                    <li><a href="https://gitter.im/pycalphad/pycalphad" target="_blank">pycalphad Gitter Chat</a></li>
+                    <li><a href="https://matsci.org/" target="_blank">Materials Science Community</a></li>
+                    <li>Stack Overflow (pycalphad tag)</li>
+                </ul>
+
+                <p><strong>Academic Papers</strong></p>
+                <ul>
+                    <li>Otis & Liu (2017) "pycalphad: CALPHAD-based Computational Thermodynamics in Python" <em>JORS</em></li>
+                    <li>Kaufman & Bernstein (1970) "Computer Calculation of Phase Diagrams" <em>Academic Press</em></li>
+                    <li>CALPHAD journal (specialist journal)</li>
+                </ul>
+            </div>
+
+            <h3>Final Message</h3>
+
+            <p>
+                Materials thermodynamics is one of the most fundamental disciplines in materials science.
+                It is a powerful tool for answering essential questions such as
+                "Why is this phase stable?" and "Under what conditions do which phases coexist?"
+            </p>
+
+            <p>
+                In this series, you have learned systematically, from fundamental theory to practical
+                calculations with pycalphad. In this final chapter in particular, you experienced a
+                realistic research workflow using TDB files.
+            </p>
+
+            <p>
+                The knowledge and skills acquired here form the foundation for all kinds of materials research,
+                including alloy design, process optimization, new materials exploration, and Materials Informatics.
+            </p>
+
+            <p>
+                From now on, actively apply the techniques you learned in this series to the material systems
+                and research topics that interest you. pycalphad is a powerful tool with the potential
+                to greatly accelerate your research.
+            </p>
+
+            <p style="font-weight: 600; font-size: 1.1rem; margin-top: 2rem; color: var(--color-accent-light);">
+                Continuous learning and practice are the path to true mastery.<br>
+                We hope this series marks a new start for your materials science research.
+            </p>
+
+            <p style="text-align: center; margin-top: 2rem; font-size: 1.2rem; color: var(--color-accent);">
+                🎓 Introduction to Materials Thermodynamics Series - The End 🎓
+            </p>
+        </section>
+
+        <div class="navigation">
+            <a href="chapter-5.html" class="nav-button">← Chapter 5: Ternary Phase Diagrams and CALPHAD Method</a>
+            <a href="index.html" class="nav-button">Back to Series Top →</a>
+        </div>
+    <section class="disclaimer">
+<h3>Disclaimer</h3>
+<ul>
+<li>This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical warranty, etc.).</li>
+<li>This content and accompanying code examples are provided "AS IS" without any warranty, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
+<li>The author and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.</li>
+<li>To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+<li>The content may be changed, updated, or discontinued without notice.</li>
+<li>The copyright and license of this content are subject to the stated conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.</li>
+</ul>
+</section>
+
+</main>
+
+    <footer>
+        <p>&copy; 2025 AI Terakoya MS Dojo - Introduction to Materials Thermodynamics Series (All 6 Chapters Complete)</p>
+        <p style="margin-top: 0.5rem;">
+            <a href="../../">AI Terakoya Top</a> |
+            <a href="../../MS/">MS Dojo Top</a> |
+            <a href="index.html">Introduction to Materials Thermodynamics Top</a>
+        </p>
+        <p style="font-size: 0.85rem; margin-top: 0.5rem; color: var(--color-text-light);">
+            Libraries used: pycalphad, numpy, matplotlib, scipy, pandas, xarray
+        </p>
+    </footer>
+</body>
+</html>

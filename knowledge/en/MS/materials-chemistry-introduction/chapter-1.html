@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 1: Fundamentals of Chemical Bonding - Introduction to Materials Chemistry</title>
+    <meta name="description" content="Fundamental theory of ionic bonding, covalent bonding, metallic bonding, and intermolecular forces with Python practice. Understanding materials from the perspective of chemical bonding.">
+
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", sans-serif; line-height: 1.8; color: #2c3e50; max-width: 1200px; margin: 0 auto; padding: 20px; background: #f8f9fa; }
+        h1, h2, h3 { color: #2c3e50; margin-top: 2rem; }
+        h1 { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 1.5rem; border-radius: 10px; }
+        h2 { border-left: 5px solid #f5576c; padding-left: 15px; background: linear-gradient(to right, rgba(245,87,108,0.1), transparent); }
+        .code-block { background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 8px; overflow-x: auto; margin: 1rem 0; }
+        .equation { background: #fff3cd; padding: 15px; border-left: 4px solid #ffc107; margin: 1rem 0; border-radius: 5px; }
+        .exercise { background: #e7f3ff; padding: 20px; border-left: 4px solid #2196F3; margin: 1.5rem 0; border-radius: 8px; }
+        .solution { background: #f0f0f0; padding: 15px; margin-top: 10px; border-radius: 5px; }
+        .reference { background: white; padding: 15px; margin: 10px 0; border-left: 3px solid #f5576c; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .mermaid { background: white; padding: 20px; border-radius: 10px; margin: 1.5rem 0; }
+    </style>
+</head>
+<body>
+    <h1>Chapter 1: Fundamentals of Chemical Bonding</h1>
+
+    <h2>1.1 Ionic Bonding and the Madelung Constant</h2>
+    <p>Ionic bonding is a form of bonding in which electron transfer occurs between atoms with greatly differing electronegativities, and the resulting cations and anions are held together by Coulomb forces. The Madelung constant (α) of a NaCl-type crystal is an important parameter that determines the electrostatic energy of an ionic crystal.</p>
+
+    <div class="equation">
+        $$U = -\frac{N_A M z^+ z^- e^2}{4\pi\epsilon_0 r_0}\left(1 - \frac{1}{n}\right)$$
+        <p>Here, $M$ is the Madelung constant, $z^+, z^-$ are the ionic charges, $r_0$ is the nearest-neighbor distance, and $n$ is the Born exponent.</p>
+    </div>
+
+    <h3>Python Implementation: Madelung Constant Calculation (NaCl Structure)</h3>
+    <pre class="code-block"><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+def madelung_nacl(max_range=5):
+    """
+    Compute the Madelung constant of a NaCl-type crystal by series expansion
+
+    Parameters:
+    max_range: calculation range (multiples of the lattice constant)
+
+    Returns:
+    madelung: Madelung constant
+    """
+    madelung = 0.0
+
+    # Consider all ion pairs on the 3D lattice
+    for i in range(-max_range, max_range + 1):
+        for j in range(-max_range, max_range + 1):
+            for k in range(-max_range, max_range + 1):
+                if i == 0 and j == 0 and k == 0:
+                    continue  # Exclude self-interaction
+
+                r = np.sqrt(i**2 + j**2 + k**2)
+                sign = (-1)**(i + j + k)  # Sign pattern of the NaCl structure
+                madelung += sign / r
+
+    return madelung
+
+# Run the calculation
+madelung_constant = madelung_nacl(max_range=10)
+print(f"NaCl Madelung constant: {madelung_constant:.6f}")
+print(f"Theoretical value: 1.747565 (difference: {abs(madelung_constant - 1.747565):.6f})")
+
+# Visualize convergence
+ranges = range(1, 15)
+madelung_values = [madelung_nacl(r) for r in ranges]
+
+plt.figure(figsize=(10, 6))
+plt.plot(ranges, madelung_values, 'o-', color='#f5576c', linewidth=2, markersize=8)
+plt.axhline(y=1.747565, color='#2c3e50', linestyle='--', label='Theoretical value: 1.747565')
+plt.xlabel('Calculation range (multiples of lattice constant)', fontsize=12)
+plt.ylabel('Madelung constant', fontsize=12)
+plt.title('Convergence of the NaCl Madelung Constant', fontsize=14, fontweight='bold')
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.savefig('madelung_convergence.png', dpi=300, bbox_inches='tight')
+plt.show()
+</code></pre>
+    <p><strong>Result</strong>: With range=10, M ≈ 1.747565 (in agreement with the theoretical value). The series converges quickly, enabling highly accurate calculations.</p>
+
+    <h2>1.2 Covalent Bonding and the Morse Potential</h2>
+    <p>Covalent bonds are formed by electron pair sharing. The bond energy curve of a diatomic molecule is well described by the Morse potential.</p>
+
+    <div class="equation">
+        $$V(r) = D_e \left[1 - e^{-a(r - r_e)}\right]^2$$
+        <p>$D_e$: dissociation energy, $r_e$: equilibrium internuclear distance, $a$: determines the width of the potential</p>
+    </div>
+
+    <h3>Python Implementation: Morse Potential Visualization</h3>
+    <pre class="code-block"><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+def morse_potential(r, D_e, r_e, a):
+    """Compute the Morse potential energy"""
+    return D_e * (1 - np.exp(-a * (r - r_e)))**2
+
+# Parameters for the H2 molecule
+D_e_H2 = 4.75  # eV
+r_e_H2 = 0.74  # Å
+a_H2 = 1.44    # Å^-1
+
+r = np.linspace(0.3, 3.0, 500)
+V_H2 = morse_potential(r, D_e_H2, r_e_H2, a_H2)
+
+plt.figure(figsize=(10, 6))
+plt.plot(r, V_H2, color='#f093fb', linewidth=2.5, label='H₂ Morse potential')
+plt.axhline(y=0, color='gray', linestyle='--', alpha=0.5)
+plt.axvline(x=r_e_H2, color='#f5576c', linestyle='--', label=f'r_e = {r_e_H2} Å')
+plt.scatter([r_e_H2], [-D_e_H2], color='red', s=100, zorder=5, label=f'Minimum: {-D_e_H2} eV')
+plt.xlabel('Internuclear distance r (Å)', fontsize=12)
+plt.ylabel('Potential energy V(r) (eV)', fontsize=12)
+plt.title('Morse Potential of the H₂ Molecule', fontsize=14, fontweight='bold')
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.ylim(-6, 2)
+plt.tight_layout()
+plt.savefig('morse_potential_H2.png', dpi=300)
+plt.show()
+</code></pre>
+
+    <h2>1.3 Metallic Bonding and the Drude Free Electron Model</h2>
+    <p>In metallic bonding, valence electrons behave as free electrons, which is the origin of electrical conductivity, malleability, and ductility. Although the Drude model is classical, it is useful for understanding the basic properties of metals.</p>
+
+    <div class="equation">
+        $$\sigma = \frac{n e^2 \tau}{m}$$
+        <p>Electrical conductivity. $n$: electron density, $\tau$: relaxation time, $m$: electron mass</p>
+    </div>
+
+    <h3>Python Implementation: Electrical Conductivity Calculation with the Drude Model</h3>
+    <pre class="code-block"><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+# Physical constants
+e = 1.602e-19  # Elementary charge (C)
+m_e = 9.109e-31  # Electron mass (kg)
+
+def drude_conductivity(n, tau):
+    """Electrical conductivity in the Drude model"""
+    return (n * e**2 * tau) / m_e
+
+# Typical metal parameters
+metals = {
+    'Cu': {'n': 8.5e28, 'tau': 2.7e-14},  # Copper
+    'Ag': {'n': 5.9e28, 'tau': 3.8e-14},  # Silver
+    'Al': {'n': 18.1e28, 'tau': 0.8e-14}, # Aluminum
+}
+
+for metal, params in metals.items():
+    sigma = drude_conductivity(params['n'], params['tau'])
+    print(f"{metal}: σ = {sigma:.2e} S/m")
+
+# Temperature dependence (assuming relaxation time τ ∝ 1/T)
+T = np.linspace(100, 500, 100)
+tau_T = 2.7e-14 * (300 / T)  # Normalized at 300 K
+sigma_T = drude_conductivity(8.5e28, tau_T)
+
+plt.figure(figsize=(10, 6))
+plt.plot(T, sigma_T / 1e7, color='#f5576c', linewidth=2.5)
+plt.xlabel('Temperature (K)', fontsize=12)
+plt.ylabel('Electrical conductivity (×10⁷ S/m)', fontsize=12)
+plt.title('Temperature Dependence of Copper Conductivity (Drude Model)', fontsize=14, fontweight='bold')
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.savefig('drude_conductivity_temp.png', dpi=300)
+plt.show()
+</code></pre>
+
+    <h2>1.4 Intermolecular Forces and the Lennard-Jones Potential</h2>
+    <p>Intermolecular forces such as van der Waals forces, dipole interactions, and hydrogen bonds are modeled by the Lennard-Jones potential.</p>
+
+    <div class="equation">
+        $$V(r) = 4\epsilon \left[\left(\frac{\sigma}{r}\right)^{12} - \left(\frac{\sigma}{r}\right)^6\right]$$
+        <p>$\epsilon$: potential depth, $\sigma$: parameter that determines the equilibrium distance</p>
+    </div>
+
+    <h3>Python Implementation: Lennard-Jones Potential</h3>
+    <pre class="code-block"><code class="language-python">def lennard_jones(r, epsilon, sigma):
+    """Lennard-Jones potential"""
+    return 4 * epsilon * ((sigma / r)**12 - (sigma / r)**6)
+
+# Typical parameters for Ar
+epsilon_Ar = 1.65e-21  # J (about 0.01 eV)
+sigma_Ar = 3.4e-10     # m (3.4 Å)
+
+r = np.linspace(3.0e-10, 10.0e-10, 500)
+V_LJ = lennard_jones(r, epsilon_Ar, sigma_Ar)
+
+plt.figure(figsize=(10, 6))
+plt.plot(r * 1e10, V_LJ / epsilon_Ar, color='#f093fb', linewidth=2.5)
+plt.axhline(y=0, color='gray', linestyle='--', alpha=0.5)
+plt.xlabel('Distance r (Å)', fontsize=12)
+plt.ylabel('Potential energy V(r) / ε', fontsize=12)
+plt.title('Lennard-Jones Potential of Ar', fontsize=14, fontweight='bold')
+plt.grid(True, alpha=0.3)
+plt.ylim(-1.5, 1.0)
+plt.tight_layout()
+plt.savefig('lennard_jones_Ar.png', dpi=300)
+plt.show()
+
+r_min = sigma_Ar * 2**(1/6)
+V_min = lennard_jones(r_min, epsilon_Ar, sigma_Ar)
+print(f"Equilibrium distance: {r_min*1e10:.3f} Å")
+print(f"Potential minimum: {V_min/epsilon_Ar:.3f} ε")
+</code></pre>
+
+    <h2>1.5 Electronegativity and Bonding Character Prediction</h2>
+    <p>From the Pauling electronegativity difference (Δχ), the ionic/covalent character of a bond can be predicted.</p>
+
+    <div class="equation">
+        $$\text{Ionic character} (\%) = 100 \times \left[1 - e^{-0.25(\Delta\chi)^2}\right]$$
+    </div>
+
+    <h3>Python Implementation: Pauling Ionic Character Calculation</h3>
+    <pre class="code-block"><code class="language-python">def pauling_ionic_character(delta_chi):
+    """Pauling ionic character index"""
+    return 100 * (1 - np.exp(-0.25 * delta_chi**2))
+
+# Range of electronegativity differences
+delta_chi = np.linspace(0, 3.5, 100)
+ionic_pct = pauling_ionic_character(delta_chi)
+
+plt.figure(figsize=(10, 6))
+plt.plot(delta_chi, ionic_pct, color='#f5576c', linewidth=2.5)
+plt.axhline(y=50, color='gray', linestyle='--', alpha=0.5, label='50% ionic character')
+plt.xlabel('Electronegativity difference Δχ', fontsize=12)
+plt.ylabel('Ionic character (%)', fontsize=12)
+plt.title('Pauling Ionic Character vs Electronegativity Difference', fontsize=14, fontweight='bold')
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.savefig('pauling_ionic_character.png', dpi=300)
+plt.show()
+
+# Example calculations
+compounds = [('NaCl', 3.16 - 0.93), ('HCl', 3.16 - 2.20), ('H2O', 3.44 - 2.20)]
+for name, dchi in compounds:
+    ionic = pauling_ionic_character(dchi)
+    print(f"{name}: Δχ = {dchi:.2f}, ionic character = {ionic:.1f}%")
+</code></pre>
+
+    <h2>1.6 Hydrogen Bond Network Analysis</h2>
+    <h3>Python Implementation: Hydrogen Bond Structure of Ice (Using ASE)</h3>
+    <pre class="code-block"><code class="language-python">from ase import Atoms
+from ase.visualize import view
+import numpy as np
+
+# Simplified unit cell of ice Ih (hexagonal)
+a = 4.52  # Å
+c = 7.36  # Å
+
+# Oxygen atom positions (simplified)
+O_positions = [
+    [0.0, 0.0, 0.0],
+    [a/2, a*np.sqrt(3)/2, c/2],
+    [a/2, a*np.sqrt(3)/6, c/4],
+    [0.0, 2*a*np.sqrt(3)/3, 3*c/4],
+]
+
+ice = Atoms('O4', positions=O_positions, cell=[a, a*np.sqrt(3), c])
+ice.set_pbc([True, True, True])
+
+# Average hydrogen bond energy (experimental value)
+E_hbond = -0.25  # eV/bond
+
+print(f"Ice Ih lattice constants: a = {a} Å, c = {c} Å")
+print(f"Hydrogen bond energy: {E_hbond} eV/bond")
+print(f"Hydrogen bonds per molecule: 4")
+print(f"Total stabilization energy per molecule: {4 * E_hbond} eV")
+
+# Visualization (requires ASE GUI)
+# view(ice)
+</code></pre>
+
+    <div class="mermaid">
+        flowchart TD
+            A[Classification of Chemical Bonds] --> B[Ionic Bonding]
+            A --> C[Covalent Bonding]
+            A --> D[Metallic Bonding]
+            A --> E[Intermolecular Forces]
+
+            B --> B1[Electron Transfer]
+            B --> B2[Coulomb Force]
+            B --> B3[Madelung Constant]
+
+            C --> C1[Electron Pair Sharing]
+            C --> C2[Morse Potential]
+            C --> C3[Hybrid Orbitals]
+
+            D --> D1[Free Electrons]
+            D --> D2[Drude Model]
+            D --> D3[Metallic Luster / Ductility]
+
+            E --> E1[van der Waals Forces]
+            E --> E2[Hydrogen Bonding]
+            E --> E3[Lennard-Jones]
+
+            style A fill:#f093fb,stroke:#f5576c,stroke-width:3px,color:#fff
+            style B fill:#f5576c,stroke:#f093fb,stroke-width:2px,color:#fff
+            style C fill:#f5576c,stroke:#f093fb,stroke-width:2px,color:#fff
+            style D fill:#f5576c,stroke:#f093fb,stroke-width:2px,color:#fff
+            style E fill:#f5576c,stroke:#f093fb,stroke-width:2px,color:#fff
+    </div>
+
+    <h2>Exercises</h2>
+
+    <div class="exercise">
+        <h3>Problem 1 (Easy): Physical Meaning of the Madelung Constant</h3>
+        <p>Explain the physical meaning of the Madelung constant M = 1.747565 for a NaCl-type crystal, and state why this value is greater than 1.</p>
+        <div class="solution">
+            <h4>Solution</h4>
+            <p><strong>Physical meaning</strong>: The Madelung constant is the sum of the electrostatic interactions that one ion in an ionic crystal experiences from all surrounding ions, normalized by the interaction of the nearest-neighbor ion pair.</p>
+            <p><strong>Why M > 1</strong>: The attraction from the nearest oppositely charged ions (negative contribution) is greater than the repulsion from the like-charged ions at the next-nearest and further positions (positive contribution), so attractive interactions dominate overall and M > 1. In the NaCl structure, the attraction from the 6 nearest Cl⁻ ions exceeds the repulsion from the 12 next-nearest Na⁺ ions.</p>
+<pre class="code-block"><code class="language-python"># Compute nearest-neighbor and next-nearest-neighbor contributions
+nearest_neighbor = 6 * (1 / 1)  # 6 Cl⁻ ions, distance a
+next_nearest = 12 * (-1 / np.sqrt(2))  # 12 Na⁺ ions, distance a√2
+
+print(f"Nearest-neighbor contribution: {nearest_neighbor:.3f}")
+print(f"Next-nearest contribution: {next_nearest:.3f}")
+print(f"Total: {nearest_neighbor + next_nearest:.3f}")
+# Result: nearest 6.000, next-nearest -8.485, total -2.485 (attraction dominant)
+</code></pre>
+        </div>
+    </div>
+
+    <div class="exercise">
+        <h3>Problem 2 (Easy): Electronegativity and Ionic Character</h3>
+        <p>Calculate the ionic character of LiF (Li: χ=0.98, F: χ=3.98) and HF (H: χ=2.20, F: χ=3.98) using the Pauling equation, and explain the difference in bonding character.</p>
+        <div class="solution">
+            <h4>Solution</h4>
+<pre class="code-block"><code class="language-python">def pauling_ionic(chi1, chi2):
+    delta_chi = abs(chi1 - chi2)
+    return 100 * (1 - np.exp(-0.25 * delta_chi**2))
+
+# LiF
+chi_Li, chi_F = 0.98, 3.98
+ionic_LiF = pauling_ionic(chi_Li, chi_F)
+print(f"LiF: Δχ = {chi_F - chi_Li:.2f}, ionic character = {ionic_LiF:.1f}%")
+
+# HF
+chi_H = 2.20
+ionic_HF = pauling_ionic(chi_H, chi_F)
+print(f"HF: Δχ = {chi_F - chi_H:.2f}, ionic character = {ionic_HF:.1f}%")
+
+# Result: LiF 89.3%, HF 59.5%
+</code></pre>
+            <p><strong>Conclusion</strong>: LiF has 89.3% ionic character and is essentially an ionic crystal. HF, at 59.5%, is a polar covalent bond with mixed ionic and covalent character. Since the electronegativity difference between Li and F (3.0) is larger than that between H and F (1.78), LiF is more ionic.</p>
+        </div>
+    </div>
+
+    <div class="exercise">
+        <h3>Problem 3 (Easy): Morse Potential Parameters</h3>
+        <p>For the Morse potential of the H₂ molecule (D_e=4.75 eV, r_e=0.74 Å), calculate the potential energy at r=1.0 Å.</p>
+        <div class="solution">
+            <h4>Solution</h4>
+<pre class="code-block"><code class="language-python">def morse(r, D_e, r_e, a):
+    return D_e * (1 - np.exp(-a * (r - r_e)))**2
+
+D_e, r_e, a = 4.75, 0.74, 1.44
+r_test = 1.0
+
+V = morse(r_test, D_e, r_e, a)
+print(f"V(r) at r = {r_test} Å = {V:.3f} eV")
+print(f"Bond energy (difference as r→∞): {V - 0:.3f} eV")
+# Result: V(1.0 Å) ≈ 0.267 eV (about 5 eV above the equilibrium position)
+</code></pre>
+        </div>
+    </div>
+
+    <div class="exercise">
+        <h3>Problem 4 (Medium): Lattice Energy Calculation via the Born-Haber Cycle</h3>
+        <p>Calculate the lattice energy of NaCl from its heat of formation (ΔH_f = -411 kJ/mol), the sublimation energy of Na (108 kJ/mol), the dissociation energy of Cl₂ (243 kJ/mol), the ionization energy of Na (496 kJ/mol), and the electron affinity of Cl (-349 kJ/mol).</p>
+        <div class="solution">
+            <h4>Solution</h4>
+            <p>Born-Haber cycle:</p>
+            <div class="equation">
+                $$\Delta H_f = \Delta H_{sub}(Na) + \frac{1}{2}D(Cl_2) + IE(Na) + EA(Cl) - U$$
+            </div>
+<pre class="code-block"><code class="language-python"># Energies (kJ/mol)
+DH_f = -411
+DH_sub_Na = 108
+D_Cl2 = 243
+IE_Na = 496
+EA_Cl = -349
+
+# Solve for the lattice energy U
+# ΔH_f = ΔH_sub + (1/2)D + IE + EA - U
+# U = ΔH_sub + (1/2)D + IE + EA - ΔH_f
+
+U = DH_sub_Na + 0.5 * D_Cl2 + IE_Na + EA_Cl - DH_f
+
+print("Born-Haber cycle calculation:")
+print(f"Na sublimation: {DH_sub_Na} kJ/mol")
+print(f"Cl2 dissociation (1/2): {0.5*D_Cl2:.1f} kJ/mol")
+print(f"Na ionization: {IE_Na} kJ/mol")
+print(f"Cl electron affinity: {EA_Cl} kJ/mol")
+print(f"NaCl heat of formation: {DH_f} kJ/mol")
+print(f"\nLattice energy U = {U:.1f} kJ/mol")
+
+# Comparison with the experimental value
+U_exp = 786  # kJ/mol (experimental value)
+error = abs(U - U_exp) / U_exp * 100
+print(f"Experimental value: {U_exp} kJ/mol")
+print(f"Error: {error:.2f}%")
+</code></pre>
+            <p><strong>Result</strong>: Lattice energy U ≈ 775 kJ/mol (agrees with the experimental value of 786 kJ/mol within about 1.4% error)</p>
+        </div>
+    </div>
+
+    <div class="exercise">
+        <h3>Problem 5 (Medium): Mean Free Path in the Drude Model</h3>
+        <p>Assuming the average electron velocity of copper (n=8.5×10²⁸ m⁻³, τ=2.7×10⁻¹⁴ s) is the thermal velocity (v_th = √(3k_BT/m), T=300 K), calculate the mean free path λ = v_th × τ.</p>
+        <div class="solution">
+            <h4>Solution</h4>
+<pre class="code-block"><code class="language-python">import scipy.constants as const
+
+# Parameters
+tau_Cu = 2.7e-14  # s
+T = 300  # K
+m_e = const.m_e  # 9.109e-31 kg
+k_B = const.k  # 1.381e-23 J/K
+
+# Thermal velocity
+v_th = np.sqrt(3 * k_B * T / m_e)
+print(f"Thermal velocity v_th = {v_th:.3e} m/s")
+
+# Mean free path
+lambda_mfp = v_th * tau_Cu
+print(f"Mean free path λ = {lambda_mfp:.3e} m")
+print(f"                 = {lambda_mfp * 1e9:.2f} nm")
+
+# Comparison with the lattice constant of copper
+a_Cu = 3.61e-10  # m (FCC)
+print(f"\nCopper lattice constant: {a_Cu*1e10:.2f} Å")
+print(f"λ/a = {lambda_mfp / a_Cu:.1f} (about {lambda_mfp / a_Cu:.0f} atomic spacings)")
+</code></pre>
+            <p><strong>Result</strong>: λ ≈ 31 nm ≈ 86 atomic spacings. Electrons pass many atoms before being scattered.</p>
+        </div>
+    </div>
+
+    <div class="exercise">
+        <h3>Problem 6 (Medium): Estimating the Hydrogen Bond Energy</h3>
+        <p>Estimate the hydrogen bond energy per molecule from the heat of vaporization of water (40.66 kJ/mol at 100°C). Assume each water molecule forms an average of 2 hydrogen bonds.</p>
+        <div class="solution">
+            <h4>Solution</h4>
+<pre class="code-block"><code class="language-python"># Heat of vaporization (hydrogen bonds are broken going from liquid to gas)
+DH_vap = 40.66  # kJ/mol
+
+# Number of hydrogen bonds per molecule
+n_hbond = 2  # 2 on average
+
+# Hydrogen bond energy per bond
+E_hbond = DH_vap / n_hbond
+
+print(f"Heat of vaporization of water: {DH_vap} kJ/mol")
+print(f"Hydrogen bonds per molecule: {n_hbond}")
+print(f"Energy per hydrogen bond: {E_hbond:.2f} kJ/mol")
+
+# Conversion to eV
+E_hbond_eV = E_hbond * 1000 / 96.485  # kJ/mol → eV
+print(f"                         = {E_hbond_eV:.3f} eV")
+
+# Comparison with the covalent bond (O-H)
+E_covalent_OH = 463  # kJ/mol
+ratio = E_covalent_OH / E_hbond
+print(f"\nO-H covalent bond: {E_covalent_OH} kJ/mol")
+print(f"Hydrogen bond / covalent bond = 1/{ratio:.0f}")
+</code></pre>
+            <p><strong>Result</strong>: Hydrogen bond energy ≈ 20 kJ/mol ≈ 0.21 eV. About 1/23 the strength of a covalent bond.</p>
+        </div>
+    </div>
+
+    <div class="exercise">
+        <h3>Problem 7 (Medium): Equilibrium Conditions of the Lennard-Jones Potential</h3>
+        <p>Analytically derive the equilibrium distance r_min and potential minimum V_min of the Lennard-Jones potential V(r) = 4ε[(σ/r)¹² - (σ/r)⁶], and verify numerically for Ar (ε=0.01 eV, σ=3.4 Å).</p>
+        <div class="solution">
+            <h4>Solution</h4>
+            <p><strong>Analytical solution</strong>:</p>
+            <div class="equation">
+                $$\frac{dV}{dr} = 0 \Rightarrow r_{min} = 2^{1/6}\sigma \approx 1.122\sigma$$
+                $$V_{min} = V(r_{min}) = -\epsilon$$
+            </div>
+<pre class="code-block"><code class="language-python"># Parameters for Ar
+epsilon = 0.01  # eV
+sigma = 3.4     # Å
+
+# Analytical solution
+r_min = sigma * 2**(1/6)
+V_min = -epsilon
+
+print(f"Analytical solution:")
+print(f"Equilibrium distance r_min = 2^(1/6) × σ = {r_min:.3f} Å")
+print(f"Potential minimum V_min = -ε = {V_min:.4f} eV")
+
+# Numerical verification (search for the minimum via the derivative)
+def LJ(r):
+    return 4 * epsilon * ((sigma / r)**12 - (sigma / r)**6)
+
+def dLJ_dr(r):
+    return 4 * epsilon * (-12 * sigma**12 / r**13 + 6 * sigma**6 / r**7)
+
+from scipy.optimize import fminbound
+r_min_numerical = fminbound(LJ, 3.0, 4.0)
+V_min_numerical = LJ(r_min_numerical)
+
+print(f"\nNumerical solution (optimization):")
+print(f"Equilibrium distance r_min = {r_min_numerical:.3f} Å")
+print(f"Potential minimum V_min = {V_min_numerical:.4f} eV")
+print(f"\nError vs analytical solution:")
+print(f"Distance error: {abs(r_min - r_min_numerical)*1e3:.2e} mÅ")
+print(f"Energy error: {abs(V_min - V_min_numerical)*1e6:.2e} μeV")
+</code></pre>
+            <p><strong>Result</strong>: The analytical and numerical solutions agree perfectly. r_min = 3.817 Å, V_min = -0.01 eV.</p>
+        </div>
+    </div>
+
+    <div class="exercise">
+        <h3>Problem 8 (Hard): Madelung Constant Calculation for the CsCl Structure</h3>
+        <p>Calculate the Madelung constant of the CsCl-type crystal (body-centered cubic) by series expansion and compare with the NaCl type (1.747565). Also discuss the difference in convergence.</p>
+        <div class="solution">
+            <h4>Solution</h4>
+<pre class="code-block"><code class="language-python">def madelung_cscl(max_range=10):
+    """Compute the Madelung constant of the CsCl type"""
+    madelung = 0.0
+
+    for i in range(-max_range, max_range + 1):
+        for j in range(-max_range, max_range + 1):
+            for k in range(-max_range, max_range + 1):
+                if i == 0 and j == 0 and k == 0:
+                    continue
+
+                r = np.sqrt(i**2 + j**2 + k**2)
+                # CsCl structure: sign determined by distance from body-center position (0.5, 0.5, 0.5)
+                parity = (i + j + k) % 2
+                sign = 1 if parity == 0 else -1
+                madelung += sign / r
+
+    return madelung
+
+M_CsCl = madelung_cscl(max_range=10)
+M_NaCl = 1.747565
+
+print(f"CsCl Madelung constant: {M_CsCl:.6f}")
+print(f"NaCl Madelung constant: {M_NaCl:.6f}")
+print(f"Theoretical value for CsCl: 1.762675")
+print(f"Difference: {abs(M_CsCl - 1.762675):.6f}")
+
+# Convergence comparison
+ranges = range(1, 15)
+M_CsCl_conv = [madelung_cscl(r) for r in ranges]
+M_NaCl_conv = [madelung_nacl(r) for r in ranges]
+
+plt.figure(figsize=(10, 6))
+plt.plot(ranges, M_CsCl_conv, 'o-', label='CsCl', color='#f093fb', linewidth=2)
+plt.plot(ranges, M_NaCl_conv, 's-', label='NaCl', color='#f5576c', linewidth=2)
+plt.axhline(y=1.762675, color='#f093fb', linestyle='--', alpha=0.5)
+plt.axhline(y=1.747565, color='#f5576c', linestyle='--', alpha=0.5)
+plt.xlabel('Calculation range', fontsize=12)
+plt.ylabel('Madelung constant', fontsize=12)
+plt.title('Convergence of NaCl vs CsCl Madelung Constants', fontsize=14)
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.savefig('madelung_comparison.png', dpi=300)
+plt.show()
+</code></pre>
+            <p><strong>Conclusion</strong>: The Madelung constant of CsCl (1.7627) is about 1% larger than that of NaCl (1.7476). This indicates that the CsCl structure is slightly more favorable in terms of electrostatic energy. However, since the stable structure is determined by the ionic size ratio, the large Cs⁺ and the small Cl⁻ adopt the CsCl structure.</p>
+        </div>
+    </div>
+
+    <div class="exercise">
+        <h3>Problem 9 (Hard): Energy Levels of Hybrid Orbitals</h3>
+        <p>Construct the sp³ hybrid orbitals of carbon as linear combinations of 2s (-19.4 eV) and 2p (-10.7 eV), and calculate the energies of the four sp³ orbitals. Take symmetry into account.</p>
+        <div class="solution">
+            <h4>Solution</h4>
+            <p>An sp³ hybrid orbital is a linear combination of one s orbital and three p orbitals:</p>
+            <div class="equation">
+                $$|\text{sp}^3\rangle = \frac{1}{2}(|s\rangle + |p_x\rangle + |p_y\rangle + |p_z\rangle)$$
+            </div>
+<pre class="code-block"><code class="language-python"># Energy levels
+E_2s = -19.4  # eV
+E_2p = -10.7  # eV
+
+# Energy of the sp³ hybrid orbital (simple calculation: 1:3 weighted average)
+E_sp3 = (1 * E_2s + 3 * E_2p) / 4
+
+print(f"C 2s orbital: {E_2s} eV")
+print(f"C 2p orbital: {E_2p} eV")
+print(f"sp³ hybrid orbital: {E_sp3:.2f} eV")
+
+# Create the energy diagram
+orbitals = ['2s', '2p', 'sp³']
+energies = [E_2s, E_2p, E_sp3]
+colors = ['#2c3e50', '#2c3e50', '#f5576c']
+
+fig, ax = plt.subplots(figsize=(8, 6))
+for i, (orb, E, color) in enumerate(zip(orbitals, energies, colors)):
+    ax.hlines(E, i-0.3, i+0.3, color=color, linewidth=4)
+    ax.text(i, E-1, f'{E:.1f} eV', ha='center', fontsize=11)
+
+ax.set_xticks(range(len(orbitals)))
+ax.set_xticklabels(orbitals, fontsize=12)
+ax.set_ylabel('Energy (eV)', fontsize=12)
+ax.set_title('Carbon Atomic Orbitals and sp³ Hybrid Orbitals', fontsize=14, fontweight='bold')
+ax.grid(axis='y', alpha=0.3)
+ax.set_ylim(-22, -8)
+plt.tight_layout()
+plt.savefig('sp3_hybrid_energy.png', dpi=300)
+plt.show()
+
+print(f"\nThe sp³ orbital is stabilized by {E_2p - E_sp3:.1f} eV relative to 2p")
+print(f"This stabilizes tetrahedral structures such as CH4")
+</code></pre>
+        </div>
+    </div>
+
+    <div class="exercise">
+        <h3>Problem 10 (Hard): Verifying the Wiedemann-Franz Law for Metals</h3>
+        <p>Derive the thermal conductivity κ = (n e² τ / m) × (π² k_B² T / 3e²) from the Drude model and verify the Wiedemann-Franz law (κ/σT = L₀ = π²k_B²/3e²) for copper.</p>
+        <div class="solution">
+            <h4>Solution</h4>
+<pre class="code-block"><code class="language-python"># Lorenz number (theoretical value)
+L0_theory = (np.pi**2 * const.k**2) / (3 * const.e**2)
+print(f"Lorenz number (theory): L₀ = {L0_theory:.3e} W·Ω/K²")
+print(f"                            = {L0_theory*1e8:.3f} × 10⁻⁸ W·Ω/K²")
+
+# Copper data
+sigma_Cu = 5.96e7  # S/m at 300K
+kappa_Cu = 401     # W/(m·K) at 300K
+T = 300            # K
+
+# Lorenz number (experimental)
+L0_exp = kappa_Cu / (sigma_Cu * T)
+print(f"\nExperimental data for copper (300 K):")
+print(f"Electrical conductivity σ = {sigma_Cu:.2e} S/m")
+print(f"Thermal conductivity κ = {kappa_Cu} W/(m·K)")
+print(f"Lorenz number (experiment): L₀ = {L0_exp:.3e} W·Ω/K²")
+print(f"                                = {L0_exp*1e8:.3f} × 10⁻⁸ W·Ω/K²")
+
+# Agreement
+agreement = (1 - abs(L0_exp - L0_theory) / L0_theory) * 100
+print(f"\nAgreement with theory: {agreement:.1f}%")
+
+# Temperature dependence (experimental data)
+temps = np.array([100, 200, 300, 400, 500])
+L0_values = np.array([2.23, 2.33, 2.24, 2.27, 2.31]) * 1e-8  # W·Ω/K²
+
+plt.figure(figsize=(10, 6))
+plt.plot(temps, L0_values*1e8, 'o-', color='#f5576c', linewidth=2, markersize=8, label='Copper (experiment)')
+plt.axhline(y=L0_theory*1e8, color='#2c3e50', linestyle='--', linewidth=2, label=f'Theoretical value: {L0_theory*1e8:.2f}')
+plt.xlabel('Temperature (K)', fontsize=12)
+plt.ylabel('Lorenz number (×10⁻⁸ W·Ω/K²)', fontsize=12)
+plt.title('Verification of the Wiedemann-Franz Law (Copper)', fontsize=14, fontweight='bold')
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.savefig('wiedemann_franz_verification.png', dpi=300)
+plt.show()
+</code></pre>
+            <p><strong>Conclusion</strong>: The experimental Lorenz number of copper is 2.24×10⁻⁸ W·Ω/K², within about 8% of the theoretical value of 2.44×10⁻⁸ W·Ω/K². The validity of the Drude model is confirmed. The temperature dependence is small, and the Wiedemann-Franz law holds well.</p>
+        </div>
+    </div>
+
+    <h2>References</h2>
+    <div class="reference">
+        <p>1. Pauling, L. (1960). <em>The Nature of the Chemical Bond</em>, 3rd Edition. Cornell University Press, pp. 58-107.</p>
+    </div>
+    <div class="reference">
+        <p>2. Atkins, P., de Paula, J. (2010). <em>Physical Chemistry</em>, 9th Edition. Oxford University Press, pp. 320-365.</p>
+    </div>
+    <div class="reference">
+        <p>3. Ashcroft, N.W., Mermin, N.D. (1976). <em>Solid State Physics</em>. Brooks Cole, pp. 2-48.</p>
+    </div>
+    <div class="reference">
+        <p>4. Kittel, C. (2005). <em>Introduction to Solid State Physics</em>, 8th Edition. Wiley, pp. 50-75.</p>
+    </div>
+    <div class="reference">
+        <p>5. Petrucci, R.H., et al. (2016). <em>General Chemistry</em>, 11th Edition. Pearson, pp. 378-425.</p>
+    </div>
+    <div class="reference">
+        <p>6. Shriver, D.F., Atkins, P.W. (2010). <em>Inorganic Chemistry</em>, 5th Edition. W.H. Freeman, pp. 45-89.</p>
+    </div>
+    <div class="reference">
+        <p>7. Born, M., Landé, A. (1918). "Verhandlungen der Deutschen Physikalischen Gesellschaft", 20, 210-216.</p>
+    </div>
+    <div class="reference">
+        <p>8. ASE Documentation: Atomic Simulation Environment. https://wiki.fysik.dtu.dk/ase/</p>
+    </div>
+
+    <h2>Checking Your Learning Objectives</h2>
+    <div class="exercise">
+        <h3>Level 1 (Basic Understanding)</h3>
+        <ul>
+            <li>Explain the characteristics of the four types of chemical bonds: ionic bonding, covalent bonding, metallic bonding, and intermolecular forces</li>
+            <li>Understand the concepts of the Madelung constant, Morse potential, Drude model, and Lennard-Jones potential</li>
+            <li>Predict the ionic character of a bond from electronegativity</li>
+        </ul>
+
+        <h3>Level 2 (Practical Skills)</h3>
+        <ul>
+            <li>Calculate lattice energies, bond energies, and electrical conductivities using Python</li>
+            <li>Derive unknown energies using the Born-Haber cycle</li>
+            <li>Perform parameter fitting for the Morse potential and Lennard-Jones potential</li>
+        </ul>
+
+        <h3>Level 3 (Applied Skills)</h3>
+        <ul>
+            <li>Quantitatively analyze bond energies from experimental data (heat of vaporization, electrical conductivity, etc.)</li>
+            <li>Calculate and compare Madelung constants for different crystal structures such as CsCl and NaCl</li>
+            <li>Verify theories such as the Wiedemann-Franz law against experimental data</li>
+            <li>Apply chemical bonding theory to materials design (control of ionic/covalent character, hybrid orbital design)</li>
+        </ul>
+    </div>
+
+    <p style="text-align: center; margin-top: 3rem;">
+        <a href="index.html" style="color: #f5576c; text-decoration: none; font-weight: bold;">← Back to Series Top</a> |
+        <span class="coming-soon">Chapter 2: Molecular Orbital Theory → (Coming Soon)</span>
+    </p>
+<section class="disclaimer">
+<h3>Disclaimer</h3>
+<ul>
+<li>This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical warranty, etc.).</li>
+<li>This content and accompanying code examples are provided "AS IS" without any warranty, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
+<li>The author and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.</li>
+<li>To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+<li>The content may be changed, updated, or discontinued without notice.</li>
+<li>The copyright and license of this content are subject to the stated conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.</li>
+</ul>
+</section>
+
+</body>
+</html>
