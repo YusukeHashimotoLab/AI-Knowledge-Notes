@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="第2章: 硬さ試験と衝撃試験 | 機械試験入門" name="description"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>第2章: 硬さ試験と衝撃試験 | 機械試験入門</title>
+<meta content="硬さ試験法（ブリネル、ビッカース、ロックウェル）、衝撃試験、および延性-脆性遷移について学びます。" name="description"/>
+<script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\(', '\)']],
+                displayMath: [['$$', '$$'], ['\[', '\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+<script async="" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet"/>
+</head>
+<body><div class="locale-switcher">
+<span class="current-locale">🌐 JP</span>
+<span class="locale-separator">|</span>
+<a class="locale-link" href="../../../en/MS/mechanical-testing-introduction/chapter-2.html">🇬🇧 EN</a>
+<span class="locale-separator">|</span>
+<span class="locale-meta">Last sync: 2025-11-16</span>
+</div>
+
+<header>
+<h1>第2章: 硬さ試験と衝撃試験</h1>
+<p class="subtitle">押込みと動的負荷による試験法</p>
+</header>
+<div class="container">
+<div class="breadcrumb">
+<a href="../index.html">材料科学道場</a> &gt;
+            <a href="index.html">機械試験入門</a> &gt;
+            第2章
+        </div>
+<div class="content">
+<h2>2.1 硬さ試験の基礎</h2>
+<p>
+                硬さとは、塑性変形または押込みに対する抵抗のことです。代表的な試験法にはブリネル、ビッカース、ロックウェル、ナノインデンテーションがあります。
+            </p>
+<div class="definition">
+<strong>📐 硬さの定義</strong><br/>
+<strong>ブリネル硬さ（HB）:</strong> $$HB = \frac{2F}{\pi D(D - \sqrt{D^2 - d^2})}$$
+                ここで $F$ は荷重（kgf）、$D$ は圧子球の直径（mm）、$d$ は圧痕の直径（mm）です。<br/><br/>
+<strong>ビッカース硬さ（HV）:</strong> $$HV = \frac{1.854F}{d^2}$$
+                ここで $F$ は荷重（kgf）、$d$ は対角線長さ（mm）です。
+            </div>
+<h3>💻 コード例1: 硬さの計算</h3>
+<div class="code-example"><pre><code class="language-python"># 動作環境:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;2.0.0
+
+import numpy as np
+
+class HardnessTester:
+    &quot;&quot;&quot;硬さ試験計算クラス&quot;&quot;&quot;
+
+    def brinell_hardness(self, force, ball_diameter, indent_diameter):
+        &quot;&quot;&quot;ブリネル硬さ（HB）を計算&quot;&quot;&quot;
+        F = force  # kgf
+        D = ball_diameter  # mm
+        d = indent_diameter  # mm
+        HB = (2 * F) / (np.pi * D * (D - np.sqrt(D**2 - d**2)))
+        return HB
+
+    def vickers_hardness(self, force, diagonal):
+        &quot;&quot;&quot;ビッカース硬さ（HV）を計算&quot;&quot;&quot;
+        F = force  # kgf
+        d = diagonal  # mm
+        HV = 1.854 * F / (d**2)
+        return HV
+
+    def rockwell_c_hardness(self, depth):
+        &quot;&quot;&quot;ロックウェルC硬さ（HRC）を計算&quot;&quot;&quot;
+        HRC = 100 - 500 * depth  # depth の単位は mm
+        return HRC
+
+tester = HardnessTester()
+
+# 計算例
+hb = tester.brinell_hardness(force=3000, ball_diameter=10, indent_diameter=4.5)
+hv = tester.vickers_hardness(force=30, diagonal=0.5)
+hrc = tester.rockwell_c_hardness(depth=0.15)
+
+print(f&quot;ブリネル硬さ: {hb:.1f} HB&quot;)
+print(f&quot;ビッカース硬さ: {hv:.1f} HV&quot;)
+print(f&quot;ロックウェルC硬さ: {hrc:.1f} HRC&quot;)</code></pre></div>
+<h2>2.2 硬さと強度の相関</h2>
+<p>
+                硬さは引張強さと相関します。鋼の場合、UTS（MPa）≈ 3.45 × HB です。
+            </p>
+<h3>💻 コード例2: 硬さと強度の換算</h3>
+<div class="code-example"><pre><code class="language-python"># 動作環境:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+
+def hardness_to_tensile_strength(hardness, method='HB', material='steel'):
+    &quot;&quot;&quot;硬さを近似的な引張強さに換算&quot;&quot;&quot;
+
+    if material == 'steel':
+        if method == 'HB':
+            UTS = 3.45 * hardness
+        elif method == 'HV':
+            UTS = 3.2 * hardness
+        elif method == 'HRC':
+            UTS = (HRC + 18) * 10
+
+    return UTS
+
+hb_values = np.array([150, 200, 250, 300, 350])
+uts_values = [hardness_to_tensile_strength(hb, 'HB') for hb in hb_values]
+
+import matplotlib.pyplot as plt
+plt.figure(figsize=(10, 6))
+plt.plot(hb_values, uts_values, 'bo-', linewidth=2, markersize=8)
+plt.xlabel('Brinell Hardness (HB)')
+plt.ylabel('Tensile Strength (MPa)')
+plt.title('Hardness-Strength Correlation for Steel')
+plt.grid(True, alpha=0.3)
+plt.show()</code></pre></div>
+<h2>2.3 衝撃試験</h2>
+<p>
+                衝撃試験は、動的負荷の際に吸収されるエネルギーを測定します。シャルピー試験とアイゾット試験は、靱性と延性-脆性遷移を評価します。
+            </p>
+<div class="definition">
+<strong>📐 衝撃エネルギー</strong><br/>
+                シャルピー衝撃エネルギー: $$E = mgh_0 - mgh_f = mgh_0(1 - \cos\alpha)$$
+                ここで $m$ はハンマー質量、$h_0$ は初期高さ、$\alpha$ は振り上げ角です。
+            </div>
+<h3>💻 コード例3: 衝撃エネルギーの計算</h3>
+<div class="code-example"><pre><code class="language-python">class ImpactTest:
+    """シャルピー/アイゾット衝撃試験計算クラス"""
+
+    def __init__(self, hammer_mass=25, pendulum_length=0.75):
+        self.mass = hammer_mass  # kg
+        self.length = pendulum_length  # m
+        self.g = 9.81  # m/s^2
+
+    def calculate_energy(self, initial_angle, final_angle):
+        """吸収エネルギーを計算"""
+        theta_0 = np.radians(initial_angle)
+        theta_f = np.radians(final_angle)
+
+        h_0 = self.length * (1 - np.cos(theta_0))
+        h_f = self.length * (1 - np.cos(theta_f))
+
+        E = self.mass * self.g * (h_0 - h_f)
+        return E
+
+impact = ImpactTest()
+energy = impact.calculate_energy(initial_angle=140, final_angle=45)
+print(f"吸収衝撃エネルギー: {energy:.1f} J")</code></pre></div>
+<h2>2.4 延性-脆性遷移</h2>
+<p>
+                多くの材料は低温で延性から脆性へと挙動が遷移し、これは極低温用途において重要です。
+            </p>
+<h3>💻 コード例4: DBTT解析</h3>
+<div class="code-example"><pre><code class="language-python">def dbtt_curve(temperature, T_dbtt=-20, E_upper=200, E_lower=20):
+    """延性-脆性遷移温度（DBTT）をモデル化"""
+    # シグモイド遷移
+    k = 0.1
+    energy = E_lower + (E_upper - E_lower) / (1 + np.exp(-k * (temperature - T_dbtt)))
+    return energy
+
+temperatures = np.linspace(-100, 100, 200)
+energies = dbtt_curve(temperatures)
+
+plt.figure(figsize=(10, 6))
+plt.plot(temperatures, energies, 'b-', linewidth=2)
+plt.axvline(-20, color='r', linestyle='--', label='DBTT = -20°C')
+plt.axhline(110, color='g', linestyle='--', alpha=0.5, label='50% Energy')
+plt.xlabel('Temperature (°C)')
+plt.ylabel('Impact Energy (J)')
+plt.title('Ductile-Brittle Transition Curve')
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.show()</code></pre></div>
+<h2>2.5 ナノインデンテーション</h2>
+<p>
+                ナノインデンテーションは、連続的な荷重-押込み深さ測定を用いて、ナノスケールでの機械的特性を測定します。
+            </p>
+<h3>💻 コード例5: Oliver-Pharr解析</h3>
+<div class="code-example"><pre><code class="language-python">def oliver_pharr_analysis(load, depth, tip_angle=70.3):
+    """ナノインデンテーションのためのOliver-Pharr法"""
+    # バーコビッチ圧子の面積関数
+    C = 24.5  # バーコビッチ圧子の定数
+    A_c = C * depth**2
+
+    # 硬さ
+    H = load / A_c
+
+    # 換算弾性率（簡略化）
+    S = np.gradient(load, depth)[-1]  # 剛性
+    E_r = (np.sqrt(np.pi) / 2) * S / np.sqrt(A_c)
+
+    return H, E_r, A_c
+
+depths = np.linspace(0, 1000, 100)  # nm
+loads = 0.1 * depths**1.5  # 模擬データ
+
+H, E_r, A_c = oliver_pharr_analysis(loads, depths)
+print(f"硬さ: {H[-1]:.2f} GPa")
+print(f"換算弾性率: {E_r:.1f} GPa")</code></pre></div>
+<h2>2.6 マイクロ硬さマッピング</h2>
+<p>
+                硬さの空間的マッピングにより、微視組織の変化や相分布を明らかにできます。
+            </p>
+<h3>💻 コード例6: 硬さマッピング</h3>
+<div class="code-example"><pre><code class="language-python">def generate_hardness_map(grid_size=20):
+    """合成硬さマップを生成"""
+    x = np.linspace(0, 10, grid_size)
+    y = np.linspace(0, 10, grid_size)
+    X, Y = np.meshgrid(x, y)
+
+    # 硬さの変化をシミュレート
+    HV = 200 + 50 * np.sin(X) + 30 * np.cos(Y) + 10 * np.random.randn(grid_size, grid_size)
+
+    return X, Y, HV
+
+X, Y, HV = generate_hardness_map()
+
+plt.figure(figsize=(10, 8))
+contour = plt.contourf(X, Y, HV, levels=20, cmap='viridis')
+plt.colorbar(contour, label='Vickers Hardness (HV)')
+plt.xlabel('X Position (mm)')
+plt.ylabel('Y Position (mm)')
+plt.title('Microhardness Map')
+plt.show()</code></pre></div>
+<h2>2.7 統計解析</h2>
+<p>
+                複数回の測定と統計解析により、信頼性の高い硬さの特性評価が可能になります。
+            </p>
+<h3>💻 コード例7: 硬さデータの統計解析</h3>
+<div class="code-example"><pre><code class="language-python"># 動作環境:
+# - Python 3.9+
+# - scipy&gt;=1.11.0
+
+from scipy import stats
+
+def analyze_hardness_data(measurements):
+    &quot;&quot;&quot;硬さ測定値の統計解析&quot;&quot;&quot;
+
+    mean = np.mean(measurements)
+    std = np.std(measurements, ddof=1)
+    sem = stats.sem(measurements)
+
+    # 95%信頼区間
+    ci = stats.t.interval(0.95, len(measurements)-1, mean, sem)
+
+    # 外れ値検出（3シグマ）
+    outliers = np.abs(measurements - mean) &gt; 3 * std
+
+    return {
+        'mean': mean,
+        'std': std,
+        'cv': (std/mean)*100,
+        'confidence_interval': ci,
+        'outliers': np.where(outliers)[0]
+    }
+
+# データセット例
+hardness_data = np.array([220, 225, 218, 230, 222, 226, 219, 280, 224, 221])
+results = analyze_hardness_data(hardness_data)
+
+print(f&quot;平均硬さ: {results['mean']:.1f} ± {results['std']:.1f} HV&quot;)
+print(f&quot;変動係数（CV）: {results['cv']:.2f}%&quot;)
+print(f&quot;95%信頼区間: [{results['confidence_interval'][0]:.1f}, {results['confidence_interval'][1]:.1f}]&quot;)
+print(f&quot;外れ値のインデックス: {results['outliers']}&quot;)</code></pre></div>
+<h2>📝 章末演習</h2>
+<div class="exercise">
+<strong>✏️ 演習問題</strong>
+<ol>
+<li>荷重3000 kgf、圧子球径10 mm、圧痕径4.2 mmの条件でブリネル硬さを計算してください。</li>
+<li>280 HBの鋼について、経験的相関式を用いて引張強さを推定してください。</li>
+<li>初期角140°、終了角50°のシャルピー試験において吸収される衝撃エネルギーを求めてください。</li>
+<li>DBTT曲線を解析し、-40°Cにおける衝撃エネルギーを予測してください。</li>
+<li>10個の硬さ測定値について統計解析を行い、外れ値を特定してください。</li>
+</ol>
+</div>
+<h2>まとめ</h2>
+<ul>
+<li>硬さは、押込みによる塑性変形への抵抗を測定するものです</li>
+<li>代表的な試験法: ブリネル、ビッカース、ロックウェル、ナノインデンテーション</li>
+<li>硬さは引張強さと相関します（鋼では UTS ≈ 3.45 × HB）</li>
+<li>衝撃試験は靱性と延性-脆性遷移を評価します</li>
+<li>シャルピー/アイゾット試験は動的負荷時の吸収エネルギーを測定します</li>
+<li>DBTTは極低温および低温用途において重要です</li>
+<li>ナノインデンテーションはナノスケールでの機械的特性測定を可能にします</li>
+</ul>
+<div class="nav-buttons">
+<a class="nav-button" href="chapter-1.html">← 第1章: 引張試験</a>
+<a class="nav-button" href="chapter-3.html">第3章: クリープ試験 →</a>
+</div>
+</div>
+</div>
+<section class="disclaimer">
+<h3>免責事項</h3>
+<ul>
+<li>本コンテンツは、教育・研究・情報提供のみを目的として提供されるものであり、専門的な助言（法務、会計、技術的保証など）を構成するものではありません。</li>
+<li>本コンテンツおよび付随するコード例は、商品性、特定目的への適合性、非侵害性、正確性、完全性、動作、安全性を含むがこれらに限定されない、明示または黙示のいかなる保証もなく「現状のまま」提供されます。</li>
+<li>著者および東北大学は、外部リンク、第三者データ、ツール、ライブラリなどの内容、可用性、安全性について一切の責任を負いません。</li>
+<li>適用される法律で認められる最大限の範囲において、著者および東北大学は、本コンテンツの利用、実行、または解釈から生じるいかなる直接的、間接的、偶発的、特別、結果的、または懲罰的損害についても責任を負いません。</li>
+<li>本コンテンツは、予告なく変更、更新、または中止されることがあります。</li>
+<li>本コンテンツの著作権およびライセンスは、明記された条件（例: CC BY 4.0）に従います。これらのライセンスには通常、無保証条項が含まれます。</li>
+</ul>
+</section>
+
+<footer>
+<p>© 2025 AI寺子屋 - 材料科学道場</p>
+</footer>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="第1章: 自動運転の基礎 - AI Terakoya" name="description"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>第1章: 自動運転の基礎 - AI Terakoya</title>
+<link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+<script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+<script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+<script async="" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<nav class="breadcrumb">
+<div class="breadcrumb-content">
+<a href="../index.html">AI Terakoya Top</a><span class="breadcrumb-separator">></span><a href="../../index.html">機械学習</a><span class="breadcrumb-separator">></span><a href="./index.html">自動運転</a><span class="breadcrumb-separator">></span><span class="breadcrumb-current">第1章</span>
+</div>
+</nav>
+<div class="locale-switcher">
+<a href="../../../en/ML/autonomous-driving-introduction/chapter1-ad-fundamentals.html" class="locale-link">EN</a>
+<span class="locale-separator">|</span>
+<span class="current-locale">JP</span>
+<span class="locale-separator">|</span>
+<span class="locale-meta">Last sync: 2026-01</span>
+</div>
+<header>
+<div class="header-content">
+<h1>第1章: 自動運転の基礎</h1>
+<p class="subtitle">SAE自動運転レベル、センサー技術、認識システム</p>
+<div class="meta">
+<span class="meta-item">読了時間: 90〜100分</span>
+<span class="meta-item">難易度: 初級〜中級</span>
+</div>
+</div>
+</header>
+<main class="container">
+
+<p class="chapter-description">この章では、自動運転の基礎を包括的に紹介します。自動化なしから完全自動運転までのスペクトラムを定義するSAE J3016自動運転レベルを学び、自動運転車の「目」として機能するセンサー技術を探究し、生のセンサーデータを運転判断のための実用的な情報へと解釈する認識システムについて理解します。</p>
+
+<h2>学習目標</h2>
+<p>この章を読むことで、次のことができるようになります。</p>
+<ul>
+<li>SAE J3016の6つの自動運転レベル（L0〜L5）を理解し、説明できる</li>
+<li>各レベルにおける運転者とシステムの役割・責任の違いを区別できる</li>
+<li>カメラ、レーダー、LiDAR、超音波センサーの長所と限界を比較できる</li>
+<li>ビジョンのみのアプローチとマルチセンサーフュージョンのアプローチをめぐる継続的な議論を評価できる</li>
+<li>物体検出、セマンティックセグメンテーション、3D点群処理などの主要な認識技術を説明できる</li>
+<li>BEV表現やTransformerベースの認識システムなどの最新アーキテクチャを理解できる</li>
+</ul>
+<hr/>
+
+<!-- ============================================================ -->
+<!-- SECTION 1: AUTONOMOUS DRIVING LEVELS                          -->
+<!-- ============================================================ -->
+
+<h2>1.1 自動運転レベル（SAE J3016）</h2>
+
+<h3>SAE J3016の概要</h3>
+
+<p><strong>SAE Internationalが策定したJ3016規格</strong>は、レベル0（自動化なし）からレベル5（完全自動化）までの6段階の運転自動化を定義する、世界的に認知された枠組みです。この分類は、技術者、規制当局、消費者が自動運転システムの能力と限界を議論するための共通言語を提供します。</p>
+
+<p>この規格は、<strong>レベル2</strong>と<strong>レベル3</strong>の間に重要な境界線を引いています。レベル2以下では、人間の運転者が常に運転環境の監視に責任を負います。レベル3以上では、自動運転システム自体が環境を監視し、責任の所在を人間から機械へと根本的に移行させます。</p>
+
+<h3>運転自動化の6つのレベル</h3>
+
+<table>
+<thead>
+<tr>
+<th>レベル</th>
+<th>名称</th>
+<th>定義</th>
+<th>運転者の役割</th>
+<th>商用化の例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>L0</strong></td>
+<td>自動化なし</td>
+<td>人間の運転者がすべての運転タスクを実行する。システムは警告や一時的な補助を提供する場合がある。</td>
+<td>常に完全な制御</td>
+<td>横滑り防止装置（ESC）、トラクションコントロール、死角警告</td>
+</tr>
+<tr>
+<td><strong>L1</strong></td>
+<td>運転支援</td>
+<td>システムはステアリング<em>または</em>加減速の<em>いずれか</em>を支援するが、両方を同時には支援しない。</td>
+<td>環境を監視し、残りのタスクを実行する</td>
+<td>アダプティブクルーズコントロール（ACC）、車線維持支援（LKA）</td>
+</tr>
+<tr>
+<td><strong>L2</strong></td>
+<td>部分自動化</td>
+<td>システムはステアリング<em>と</em>加減速の<em>両方</em>を同時に処理する。運転者は運転環境を継続的に監視しなければならない。</td>
+<td>常に監視し、いつでも介入できる状態を保つ必要がある</td>
+<td>Tesla Autopilot、GM Super Cruise、日産 ProPILOT 2.0</td>
+</tr>
+<tr>
+<td><strong>L3</strong></td>
+<td>条件付き自動化</td>
+<td>システムは特定の運行設計領域（ODD）内ですべての運転タスクを処理する。運転者はシステムが要求したときに介入しなければならない。</td>
+<td>運転から離れてもよいが、テイクオーバー要求に応答しなければならない</td>
+<td>Mercedes DRIVE PILOT、Honda SENSING Elite</td>
+</tr>
+<tr>
+<td><strong>L4</strong></td>
+<td>高度自動化</td>
+<td>システムは定義された条件下ですべての運転タスクを実行する。人間の介入は不要であり、ODD内では無人運転が可能。</td>
+<td>ODD内では不要。限界に達した場合は車両が安全に停止できる</td>
+<td>Waymo One（ロボタクシー）、Baidu Apollo Go</td>
+</tr>
+<tr>
+<td><strong>L5</strong></td>
+<td>完全自動化</td>
+<td>システムはあらゆる条件下ですべての運転タスクを実行する。地理的・気象的・道路種別の制約は一切ない。</td>
+<td>運転者不要。ステアリングホイールは任意</td>
+<td>商用化の例はまだ存在しない</td>
+</tr>
+</tbody>
+</table>
+
+<h3>自動運転レベルの進展</h3>
+
+<div class="mermaid">
+graph LR
+    L0["L0<br/>自動化なし<br/>運転者がすべてを行う"]
+    L1["L1<br/>運転支援<br/>ステアリング または 速度"]
+    L2["L2<br/>部分自動化<br/>ステアリング かつ 速度"]
+    L3["L3<br/>条件付き自動化<br/>ODD内でシステムが運転"]
+    L4["L4<br/>高度自動化<br/>ODD内で無人運転"]
+    L5["L5<br/>完全自動化<br/>あらゆる場所で無人運転"]
+
+    L0 --> L1 --> L2 --> L3 --> L4 --> L5
+
+    style L0 fill:#ffcdd2
+    style L1 fill:#ffe0b2
+    style L2 fill:#fff9c4
+    style L3 fill:#c8e6c9
+    style L4 fill:#b3e5fc
+    style L5 fill:#d1c4e9
+</div>
+
+<p>上の図は、重要な概念上の分岐点を示しています。<strong>L0〜L2</strong>では、人間が環境の監視に責任を負います（暖色で表示）。<strong>L3〜L5</strong>では、システムが環境監視を引き受けます（寒色で表示）。この分岐点はしばしば<strong>「責任境界」</strong>と呼ばれ、規制、責任の所在、システム設計に対して重大な意味を持ちます。</p>
+
+<h3>現在の業界動向（2025〜2026年）</h3>
+
+<h4>L2+が市場を支配</h4>
+<p>レベル2およびレベル2+システム（高速道路でのハンズフリー運転などの機能を備えた強化版L2）が、現在の商用主流を占めています。2028年までには新車の半数以上が高速道路でのハンズフリー運転機能を搭載すると予想されています。Tesla、GM、Ford、BMW、Mercedesなどの主要自動車メーカーが競争力のあるL2+製品を提供しており、高度な運転支援が消費者に広く手の届くものとなっています。</p>
+
+<h4>L3は成熟しつつある</h4>
+<p>レベル3は、自動運転中に法的責任がメーカーへ移行する、商用化された自動化の最前線を表します。</p>
+<ul>
+<li><strong>Mercedes DRIVE PILOT</strong>: ドイツで最高95 km/hでの高速道路利用が承認され、Mercedesは国際認証されたSAEレベル3を達成した最初の自動車メーカーとなりました。このシステムでは、自動運転中に運転者が動画視聴などの二次的な活動を行うことが許可されます。</li>
+<li><strong>BMW 7シリーズ</strong>: BMWもフラッグシップセダンにレベル3機能を導入しました。</li>
+<li><strong>中国</strong>: NIO、Changan、GACを含む9社がレベル3の公道テストを承認されており、中国はL3開発が最も活発な市場の一つとなっています。</li>
+<li><strong>市場予測</strong>: Goldman Sachsは、2030年までに新車の最大10%がレベル3機能を搭載する可能性があると予測しています。</li>
+</ul>
+
+<h4>L4はロボタクシーで展開中</h4>
+<p>レベル4は、消費者向け車両ではなく専用のロボタクシーサービスを通じて商用化が進んでいます。</p>
+<ul>
+<li><strong>Waymo One</strong>: 米国の複数都市で運行しており、2025年末までに週約45万回の有料乗車に達し、世界最大の商用自動運転配車サービスとなりました。</li>
+<li><strong>Baidu Apollo Go</strong>: 中国を代表するロボタクシーサービスで、複数の中国都市で運行し、週約25万回の乗車に達しました。</li>
+</ul>
+
+<h4>L5は依然として手の届かない領域</h4>
+<p>完全なレベル5自動化は、世界のあらゆる場所であらゆる運転シナリオを人間の介入なしに処理できる車両を必要としますが、今後10年以内に達成されるとは見込まれていません。課題は技術的なもの（あらゆるエッジケースへの対応）だけでなく、規制、倫理、経済に関わるものでもあります。ほとんどの業界専門家は、L5を短期的なエンジニアリング目標ではなく長期的な研究目標とみなしています。</p>
+
+<div class="mermaid">
+graph TB
+    subgraph "2025〜2026年の業界状況"
+        direction TB
+        Market["現在の市場の実態"]
+        Market --> L2Plus["L2+ システム<br/>主流化<br/>高速道路でのハンズフリー運転"]
+        Market --> L3Now["L3 システム<br/>急速に成熟<br/>Mercedes、BMW、中国OEM"]
+        Market --> L4Now["L4 ロボタクシー<br/>商用展開<br/>Waymo: 週45万回<br/>Baidu: 週25万回"]
+        Market --> L5Now["L5 完全自動化<br/>未達成<br/>10年以上先"]
+    end
+
+    style L2Plus fill:#c8e6c9
+    style L3Now fill:#fff9c4
+    style L4Now fill:#b3e5fc
+    style L5Now fill:#ffcdd2
+    style Market fill:#e1bee7
+</div>
+
+<hr/>
+
+<!-- ============================================================ -->
+<!-- SECTION 2: SENSOR TECHNOLOGIES                                -->
+<!-- ============================================================ -->
+
+<h2>1.2 センサー技術</h2>
+
+<p>自動運転車は、周囲の世界を認識するために一連のセンサーに依存しています。各センサータイプにはそれぞれ明確な長所と短所があり、これらのトレードオフを理解することは、堅牢な認識システムを設計するうえで不可欠です。</p>
+
+<h3>センサーの比較</h3>
+
+<table>
+<thead>
+<tr>
+<th>特性</th>
+<th>カメラ</th>
+<th>レーダー</th>
+<th>LiDAR</th>
+<th>超音波</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>動作原理</strong></td>
+<td>可視光を捉えて2D画像を形成</td>
+<td>電波を発射し反射を測定</td>
+<td>レーザーパルスを発射し飛行時間を測定</td>
+<td>音波を発射しエコーの往復時間を測定</td>
+</tr>
+<tr>
+<td><strong>コスト</strong></td>
+<td>低（1台あたり10〜50ドル）</td>
+<td>低〜中（50〜200ドル）</td>
+<td>高（500〜10,000ドル以上、低下傾向）</td>
+<td>非常に低（5〜15ドル）</td>
+</tr>
+<tr>
+<td><strong>検出範囲</strong></td>
+<td>最大200m以上（解像度に依存）</td>
+<td>最大300m以上（長距離レーダー）</td>
+<td>最大200〜300m（高性能機）</td>
+<td>最大5〜10m（近距離のみ）</td>
+</tr>
+<tr>
+<td><strong>3D能力</strong></td>
+<td>限定的（ステレオまたは単眼深度推定が必要）</td>
+<td>中程度（4Dイメージングレーダーは仰角を追加）</td>
+<td>優秀（ネイティブな3D点群）</td>
+<td>なし（距離のみ）</td>
+</tr>
+<tr>
+<td><strong>耐候性</strong></td>
+<td>低（雨、霧、逆光、暗闇で劣化）</td>
+<td>優秀（雨、霧、雪の中でも動作）</td>
+<td>中程度（強い雨や霧で劣化）</td>
+<td>良好（ほとんどの天候で動作）</td>
+</tr>
+<tr>
+<td><strong>色・質感の検出</strong></td>
+<td>優秀（フルカラーおよび質感情報）</td>
+<td>なし（視覚情報なし）</td>
+<td>なし（強度のみ）</td>
+<td>なし</td>
+</tr>
+<tr>
+<td><strong>自動運転での主な用途</strong></td>
+<td>車線検出、交通標識認識、物体分類</td>
+<td>長距離車両追跡、速度計測、衝突回避</td>
+<td>高精度3Dマッピング、物体検出、自己位置推定</td>
+<td>駐車支援、近距離障害物検出</td>
+</tr>
+</tbody>
+</table>
+
+<h3>2025〜2026年のセンサー技術の進展</h3>
+
+<h4>テラヘルツレーダー（Teradar）</h4>
+<p><strong>CES 2026</strong>で発表されたテラヘルツレーダーは、0.3〜3.0 THzの周波数帯域で動作し、従来の車載レーダーの約<strong>13倍の周波数</strong>を持ちます。この大幅に高い周波数により、レーダー本来の霧・雨・悪天候への耐性を保ちながら、LiDARに近い角度分解能を実現します。開発コンソーシアムには5社が参加しており、商用展開は約<strong>2028年</strong>を目標としています。成功すれば、テラヘルツレーダーはLiDAR並みの空間分解能をレーダー並みの堅牢性、そして潜在的に低いコストで提供することにより、センサーのコストパフォーマンスの方程式を根本的に変える可能性があります。</p>
+
+<h4>4Dイメージングレーダー</h4>
+<p><strong>Mobileye</strong>は、従来のレーダーが持つ距離・方位・速度の各次元に仰角計測を加えた、ソフトウェア定義型の4Dイメージングレーダーを開発しました。アナログのビームフォーミング手法とは異なり、Mobileyeの実装は従来のレーダーシステムの分解能をはるかに上回る<strong>真の4Dイメージング</strong>を達成します。この技術により、レーダーは点群のような空間情報を提供できるようになり、レーダーとLiDARの能力差を縮めています。</p>
+
+<h4>FMCW LiDAR</h4>
+<p><strong>MicroVision</strong>は、<strong>1550nm波長</strong>で動作する周波数変調連続波（FMCW）LiDAR技術を進化させました。従来の飛行時間（ToF）LiDARとは異なり、FMCW LiDARはドップラー効果を通じて速度を直接計測し、他のLiDARシステムに対するより高い干渉耐性を提供し、より高い出力を可能にするアイセーフ波長で動作します。これらの利点により、FMCW LiDARは次世代認識システムの有力な候補となっています。</p>
+
+<h3>Teslaのビジョン vs. LiDARの議論</h3>
+
+<p>自動運転における最も重大な技術的議論の一つは、安全な自動運転にカメラだけで十分なのか、それともLiDARやその他のセンサーが必要なのか、というものです。</p>
+
+<h4>Teslaのビジョンのみのアプローチ</h4>
+<p>Teslaは、レーダーやLiDARを使わず<strong>8台のカメラ</strong>によるシステムを採用し、運転環境の解釈をコンピュータビジョンとニューラルネットワークに完全に依存しています。CEOのイーロン・マスクは次のように主張しています。<em>「人間は視覚で運転する。LiDARは自動運転を妨げる松葉杖だ。」</em> Teslaのアプローチは、人間の脳が2Dの網膜入力から3Dシーンを再構成するのと同じように、十分に高度なニューラルネットワークが2Dカメラ画像から必要な3D情報をすべて抽出できるという前提に基づいています。</p>
+
+<h4>反論と証拠</h4>
+<p>ビジョンのみのアプローチに対する批判者は、理論的・実証的の両方の証拠を挙げています。</p>
+<ul>
+<li><strong>実証テスト</strong>: 技術者マーク・ローバーによる広く引用されたテストでは、LiDAR搭載車が困難な運転シナリオ<strong>6回中6回</strong>を通過したのに対し、Teslaのビジョンのみのシステムは<strong>6回中3回</strong>しか通過しませんでした。包括的な研究ではありませんが、これは実世界での性能差を浮き彫りにしました。</li>
+<li><strong>センサーフュージョン理論</strong>: AI専門家は、<strong>カルマンフィルタベースのセンサーフュージョン</strong>が数学的に個々のセンサーモダリティを上回ることを指摘しています。相補的なセンサーデータを組み合わせることで、フュージョンシステムは単一のセンサータイプよりも高い精度と堅牢性の両方を達成します。</li>
+<li><strong>故障モードの多様性</strong>: 各センサータイプはそれぞれ異なる条件で故障します（カメラは暗闇で、レーダーは金属性クラッターで、LiDARは強い雨で故障する）。複数のセンサータイプは重複したカバレッジを提供し、同時故障の確率を低減します。</li>
+</ul>
+
+<h4>業界のコンセンサス</h4>
+<p><strong>Waymo</strong>、<strong>Baidu</strong>、<strong>Cruise</strong>、<strong>Mobileye</strong>、そしてほとんどの従来型自動車メーカーを含む自動運転業界の大多数は、カメラ、レーダー、LiDARを組み合わせた<strong>マルチセンサーフュージョン</strong>のアプローチに多額の投資をしています。業界のコンセンサスは、特に人間のバックアップなしに安全上重要な判断を下さなければならないレベル4およびレベル5のシステムにおいては、マルチセンサーフュージョンが自動運転への最も安全で信頼性の高い道であるというものです。</p>
+
+<div class="mermaid">
+graph TB
+    subgraph "センサーフュージョンのアプローチ"
+        direction TB
+        VisionOnly["ビジョンのみ（Tesla）<br/>8台のカメラ + ニューラルネットワーク<br/>低コスト、シンプルなハードウェア"]
+        Fusion["マルチセンサーフュージョン（Waymo、Baidu 等）<br/>カメラ + レーダー + LiDAR<br/>高コスト、高い冗長性"]
+    end
+
+    subgraph "主なトレードオフ"
+        direction TB
+        Cost["コスト<br/>ビジョン: 低<br/>フュージョン: 高"]
+        Safety["安全冗長性<br/>ビジョン: 単一モダリティ<br/>フュージョン: 複数モダリティ"]
+        Weather["耐候性<br/>ビジョン: 限定的<br/>フュージョン: 強い"]
+        Scale["スケーラビリティ<br/>ビジョン: 高<br/>フュージョン: 中"]
+    end
+
+    VisionOnly --> Cost
+    VisionOnly --> Scale
+    Fusion --> Safety
+    Fusion --> Weather
+
+    style VisionOnly fill:#fff9c4
+    style Fusion fill:#c8e6c9
+    style Cost fill:#e3f2fd
+    style Safety fill:#e3f2fd
+    style Weather fill:#e3f2fd
+    style Scale fill:#e3f2fd
+</div>
+
+<hr/>
+
+<!-- ============================================================ -->
+<!-- SECTION 3: PERCEPTION TECHNOLOGIES                            -->
+<!-- ============================================================ -->
+
+<h2>1.3 認識技術</h2>
+
+<p>認識（perception）とは、生のセンサーデータを解釈して運転環境を理解するプロセスです。それは根本的な問いに答えます。<em>車両の周囲にはどんな物体があるのか？それらは正確にどこにあるのか？何をしているのか？</em> 現代の自動運転の認識システムは、複数の深層学習技術を組み合わせて、シーンの包括的な理解を構築します。</p>
+
+<div class="mermaid">
+graph LR
+    subgraph "認識パイプラインの概要"
+        Sensors["センサーデータ<br/>カメラ、レーダー、LiDAR"] --> Detection["物体検出<br/>2D &amp; 3D"]
+        Sensors --> Segmentation["セマンティック<br/>セグメンテーション"]
+        Sensors --> PointCloud["3D点群<br/>処理"]
+        Detection --> Fusion["センサーフュージョン"]
+        Segmentation --> Fusion
+        PointCloud --> Fusion
+        Fusion --> BEV["BEV<br/>表現"]
+        BEV --> Planning["計画 &amp;<br/>制御"]
+    end
+
+    style Sensors fill:#ffcdd2
+    style Detection fill:#fff9c4
+    style Segmentation fill:#c8e6c9
+    style PointCloud fill:#b3e5fc
+    style Fusion fill:#d1c4e9
+    style BEV fill:#ffe0b2
+    style Planning fill:#f8bbd0
+</div>
+
+<h3>1.3.1 物体検出</h3>
+
+<p><strong>物体検出</strong>は、センサーデータ内の関心対象物（車両、歩行者、自転車、交通標識など）を識別し位置を特定するタスクです。2D画像、3D点群、または融合されたマルチモーダルデータに対して実行できます。</p>
+
+<h4>2D物体検出（カメラベース）</h4>
+<p>カメラベースの2D検出は、バウンディングボックスを用いて画像空間内の物体を識別します。</p>
+<ul>
+<li><strong>YOLOシリーズ（v8/v9/v10）</strong>: 「You Only Look Once」ファミリーは、依然としてリアルタイム物体検出の主流アーキテクチャです。YOLOは画像全体を単一の順伝播で処理し、競争力のある精度を維持しながら驚異的な速度を実現します。YOLOv10はNMS不要の検出を導入し、車載グレードハードウェアでのエッジ展開のための効率を向上させました。</li>
+<li><strong>DETR（Detection Transformer）</strong>: FacebookのDEtection TRansformerは、物体検出を集合予測問題として扱い、Transformerアーキテクチャを適用します。DETRはアンカーボックスや非最大抑制などの手作業で設計された構成要素の必要性を排除し、エレガントなエンドツーエンド検出を実現します。当初はYOLOよりも低速でしたが、後続バージョン（Deformable DETR、DINO）は速度差を大幅に縮めました。</li>
+</ul>
+
+<h4>3D物体検出（LiDARベース）</h4>
+<p>LiDARベースの3D検出は、点群データを直接処理して、位置・寸法・向きを持つ3Dバウンディングボックスを生成します。</p>
+<ul>
+<li><strong>PointPillars</strong>: 点群を垂直なピラー（柱）に変換し、2D畳み込みバックボーンで処理します。PointPillarsは高コストな3D畳み込みを回避することで優れたリアルタイム性能（最大62 Hz）を実現し、車載プラットフォームへの展開において最も実用的な選択肢の一つとなっています。</li>
+<li><strong>CenterPoint</strong>: 物体を中心点として表現し、その中心から他のすべての属性（サイズ、回転、速度）を回帰します。CenterPointはそのシンプルさゆえにエレガントであり、複数のベンチマークで最先端の結果を達成しています。</li>
+<li><strong>VoxelNet</strong>: 3D空間を規則的なボクセルグリッドに分割し、3D畳み込みを適用します。VoxelNetはLiDARベースの3D検出における最初のエンドツーエンド手法の一つであり、ボクセルベースの処理パラダイムを確立しました。</li>
+</ul>
+
+<h4>マルチモーダル3D検出（カメラ + LiDAR フュージョン）</h4>
+<p>カメラ画像とLiDAR点群を組み合わせることで、両モダリティの相補的な長所を活用できます。カメラは豊富な意味情報と色情報を提供し、LiDARは正確な3D幾何情報を提供します。</p>
+
+<h4>2025年の最先端</h4>
+<p>自動運転の物体検出における最新の研究の進展には、次のものが含まれます。</p>
+<ul>
+<li><strong>チャネルアテンションを用いた点レベルフュージョン</strong>: 特徴マップレベルでデータを融合するのではなく、このアプローチは個々の点の位置で融合を行い、チャネルアテンション機構を用いて各モダリティの寄与を動的に重み付けします。このきめ細かい融合戦略は、困難なシナリオで優れた精度を達成します。</li>
+<li><strong>連続畳み込みフュージョン</strong>: 離散的な畳み込み演算を、カメラ特徴と融合された不規則に配置された点群データを直接処理できる連続畳み込み関数に置き換え、離散化による情報損失を回避します。</li>
+<li><strong>nuScenesベンチマーク</strong>: 最先端の融合手法は、現在nuScenesベンチマークで<strong>NDS（nuScenes Detection Score）76.7%</strong>を達成しており、単一モダリティのアプローチに対する大幅な改善を示しています。</li>
+</ul>
+
+<h3>1.3.2 セマンティックセグメンテーション</h3>
+
+<p><strong>セマンティックセグメンテーション</strong>は、画像内のすべてのピクセル（または点群内のすべての点）にクラスラベルを割り当て、シーンの密な理解を作り出します。バウンディングボックスを生成する物体検出とは異なり、セグメンテーションはピクセルレベルの精度を提供し、道路境界、走行可能領域、複雑なシーン構成を理解するのに不可欠です。</p>
+
+<h4>主要なアーキテクチャ</h4>
+<ul>
+<li><strong>DeepLabV3+</strong>: アトラス（拡張）畳み込みと、Atrous Spatial Pyramid Pooling（ASPP）を備えたエンコーダ・デコーダ構造を用いて、マルチスケールの文脈を捉えます。DeepLabV3+は、精度と効率の優れたバランスにより、依然として広く使われています。</li>
+<li><strong>SegFormer</strong>: 階層的なTransformerエンコーダと軽量なMLPデコーダを組み合わせた、Transformerベースのセグメンテーションモデルです。SegFormerは、従来のアプローチよりも大幅に少ないパラメータで最先端の性能を達成します。</li>
+<li><strong>Mask2Former</strong>: マスク付きアテンションを用いて、パノプティック、インスタンス、セマンティックの各セグメンテーションを単一の枠組みで扱う統一アーキテクチャです。この汎用性により、複数のセグメンテーションタスクが同時に必要となる自動運転にとって魅力的です。</li>
+</ul>
+
+<h4>2025年の進展: 3D占有予測</h4>
+<p>自動運転のセグメンテーションにおける最も重要な近年の進展は、2Dピクセルレベルのセグメンテーションから<strong>3D占有予測（3D Occupancy Prediction）</strong>への拡張です。</p>
+<ul>
+<li><strong>概念</strong>: 3D占有予測は、車両の周囲の3D空間を細かいボクセルグリッドに分割し、各ボクセルが占有されているかどうか、占有されている場合はどのタイプの物体によるものかを予測します。これにより、バウンディングボックスでは捉えられない物体の形状や大きさを含む、シーンの完全な体積的理解が得られます。</li>
+<li><strong>マルチビュー4Dレーダー + カメラ</strong>: 最近の手法は、マルチビューのカメラ画像と4Dイメージングレーダーのデータを組み合わせて、3D物体検出と占有予測を同時に実行します。レーダーは、カメラベースの意味理解を補完する堅牢な深度情報を提供します。</li>
+<li><strong>Tesla FSD V13 Occupancy Networks 2.0</strong>: TeslaのFull Self-Drivingバージョン13は、カメラのみの入力から体積的な占有をリアルタイムに予測する、アップグレードされたOccupancy Networksモジュール（バージョン2.0）を備えています。これはTeslaのビジョンのみのアプローチの要であり、LiDARなしで環境の3D構造を理解することを可能にします。</li>
+</ul>
+
+<h3>1.3.3 3D点群処理</h3>
+
+<p>LiDARセンサーは、それぞれ(x, y, z)座標としばしば強度情報を持つ、毎秒数百万個の点からなる<strong>3D点群</strong>を生成します。これらの不規則で順序のない点集合を効率的かつ正確に処理することは、自動運転の認識における根本的な課題です。</p>
+
+<h4>処理パラダイム</h4>
+
+<table>
+<thead>
+<tr>
+<th>パラダイム</th>
+<th>代表的な手法</th>
+<th>アプローチ</th>
+<th>長所</th>
+<th>限界</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>点ベース</strong></td>
+<td>PointNet、PointNet++</td>
+<td>共有MLPと対称関数を用いて生の点を直接処理する</td>
+<td>きめ細かい幾何学的詳細を保持。離散化による損失がない</td>
+<td>大規模な点群では計算コストが高い。スケーラビリティが限定的</td>
+</tr>
+<tr>
+<td><strong>ボクセルベース</strong></td>
+<td>VoxelNet、SECOND</td>
+<td>3D空間を規則的なボクセルグリッドに離散化し、3D/スパース畳み込みを適用する</td>
+<td>効率的な畳み込み演算。良好なスケーラビリティ</td>
+<td>離散化による量子化損失。細かいグリッドではメモリ消費が大きい</td>
+</tr>
+<tr>
+<td><strong>ピラーベース</strong></td>
+<td>PointPillars</td>
+<td>垂直な柱（ピラー）を作成し、2D畳み込みで処理する</td>
+<td>優れたリアルタイム性能。シンプルなアーキテクチャ</td>
+<td>Z次元を潰すことで垂直方向の分解能を失う</td>
+</tr>
+<tr>
+<td><strong>ハイブリッド</strong></td>
+<td>PV-RCNN</td>
+<td>ボクセルベースの特徴抽出と点ベースの精緻化を組み合わせる</td>
+<td>両パラダイムを活用することで最高精度</td>
+<td>より高い計算コスト。より複雑なアーキテクチャ</td>
+</tr>
+</tbody>
+</table>
+
+<p><strong>PointNet</strong>は、置換不変な演算を用いて生の点群をニューラルネットワークで直接処理できることを実証した基礎的な研究です。<strong>PointNet++</strong>は、局所的な幾何構造を捉える階層的特徴学習でこれを拡張しました。<strong>VoxelNet</strong>と<strong>SECOND</strong>（Spatially Sparse Convolutional Detection）は、スパース畳み込みを用いた効率的なボクセルベース処理を導入しました。<strong>PointPillars</strong>は、表現を2Dピラーに単純化することで最高のリアルタイム性能を達成しました。<strong>PV-RCNN</strong>（Point-Voxel RCNN）は、両アプローチを組み合わせることで最高精度を達成しました。</p>
+
+<h3>1.3.4 センサーフュージョン</h3>
+
+<p><strong>センサーフュージョン</strong>は、複数のセンサーモダリティからのデータを組み合わせて、単一のセンサーだけでは達成できないより正確で堅牢な環境認識を生み出すプロセスです。その数学的基盤は推定理論にあります。独立したノイズを含む複数の計測を組み合わせることで、全体の不確実性が低減されます。</p>
+
+<h4>フュージョンのレベル</h4>
+
+<table>
+<thead>
+<tr>
+<th>フュージョンのレベル</th>
+<th>説明</th>
+<th>利点</th>
+<th>課題</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>早期フュージョン</strong></td>
+<td>あらゆる処理の前に生のセンサーデータを結合する。例えば、LiDARの点をカメラ画像に投影して、拡充された入力データを作成する。</td>
+<td>最大限の情報を保持。ネットワークが最適な融合を学習できる</td>
+<td>正確なセンサーキャリブレーションが必要。データ量が大きい。モダリティ固有の前処理が必要</td>
+</tr>
+<tr>
+<td><strong>特徴レベルフュージョン</strong></td>
+<td>各センサーモダリティを独立して処理して特徴を抽出し、それらを共有特徴空間で結合する。これが<strong>現在の主流アプローチ</strong>である。</td>
+<td>柔軟。モダリティ固有の特徴抽出を独立して最適化できる</td>
+<td>モダリティ間の特徴空間の整合。独立したエンコード中の情報損失</td>
+</tr>
+<tr>
+<td><strong>後期フュージョン</strong></td>
+<td>各センサーモダリティが独立した検出結果を生成し、それらを非最大抑制や投票などの手法で統合する。</td>
+<td>実装が最も簡単。モジュラー設計。各検出器を独立して開発・テストできる</td>
+<td>検出中に相補的な情報を活用できない。重複領域では最も弱いモダリティに制約される</td>
+</tr>
+<tr>
+<td><strong>ディープフュージョン</strong></td>
+<td>ニューラルネットワーク内の複数の層でフュージョンが行われ、処理パイプライン全体を通じてモダリティ間の情報交換を可能にする。</td>
+<td>最も表現力が高い。複雑なクロスモーダル相互作用を可能にする</td>
+<td>訓練と設計が最も複雑。計算コストが最も高い</td>
+</tr>
+</tbody>
+</table>
+
+<div class="mermaid">
+graph TB
+    subgraph "早期フュージョン"
+        E_Cam["カメラ 生データ"] --> E_Merge["生データを結合"]
+        E_Lidar["LiDAR 生データ"] --> E_Merge
+        E_Radar["レーダー 生データ"] --> E_Merge
+        E_Merge --> E_Net["ニューラルネットワーク"] --> E_Out["検出出力"]
+    end
+
+    subgraph "特徴レベルフュージョン（主流）"
+        F_Cam["カメラ"] --> F_CNet["カメラ バックボーン"]
+        F_Lidar["LiDAR"] --> F_LNet["LiDAR バックボーン"]
+        F_Radar["レーダー"] --> F_RNet["レーダー バックボーン"]
+        F_CNet --> F_Merge["特徴フュージョン"]
+        F_LNet --> F_Merge
+        F_RNet --> F_Merge
+        F_Merge --> F_Out["検出出力"]
+    end
+
+    subgraph "後期フュージョン"
+        L_Cam["カメラ"] --> L_CDet["カメラ 検出器"]
+        L_Lidar["LiDAR"] --> L_LDet["LiDAR 検出器"]
+        L_Radar["レーダー"] --> L_RDet["レーダー 検出器"]
+        L_CDet --> L_Merge["結果を統合"]
+        L_LDet --> L_Merge
+        L_RDet --> L_Merge
+        L_Merge --> L_Out["最終出力"]
+    end
+
+    style E_Merge fill:#ffcdd2
+    style F_Merge fill:#c8e6c9
+    style L_Merge fill:#b3e5fc
+</div>
+
+<h4>MobileyeのTrue Redundancyアーキテクチャ</h4>
+<p><strong>Mobileye</strong>は、<strong>「True Redundancy（真の冗長性）」</strong>と呼ばれる独自のアプローチを導入しました。すべてのセンサーデータを単一の処理パイプラインに融合するのではなく、Mobileyeは2つの<strong>完全に独立したサブシステム</strong>を運用します。</p>
+<ul>
+<li><strong>カメラサブシステム</strong>: カメラデータを独立して処理し、完全な環境モデルを生成する</li>
+<li><strong>レーダー + LiDARサブシステム</strong>: レーダーとLiDARのデータを独立して処理し、別個の環境モデルを生成する</li>
+</ul>
+<p>安全上重要な運転判断を下す前に、両サブシステムが一致しなければなりません。このアーキテクチャは、一方のサブシステムの故障（例: 太陽光の眩しさによるカメラの視覚喪失）が他方を損なわないため、真の冗長性を提供します。これは、独立したシステムが耐障害性を提供する航空システムの冗長性に類似しています。</p>
+
+<h3>1.3.5 最新アーキテクチャ: BEVとTransformerベースの認識</h3>
+
+<p>自動運転の認識における最も変革的な近年の進展は、<strong>Transformer</strong>アーキテクチャと組み合わせた<strong>Bird's Eye View（BEV、鳥瞰図）</strong>表現の採用です。</p>
+
+<h4>BEV表現</h4>
+<p><strong>Bird's Eye View（BEV、鳥瞰図）</strong>表現は、3Dの運転シーンを上から見た2D平面に投影します。これは自動運転にとっていくつかの重要な利点を提供します。</p>
+<ul>
+<li><strong>統一された座標系</strong>: すべてのセンサーデータは、元のモダリティや視点にかかわらず、共通の上から見た2D空間に投影され、素直な融合と計画を可能にします。</li>
+<li><strong>スケール不変性</strong>: 遠くの物体が小さく見える透視的なカメラ視点とは異なり、BEVは一貫したスケールを維持し、距離推定と経路計画をより信頼できるものにします。</li>
+<li><strong>自然な計画インターフェース</strong>: 下流の計画・制御モジュールは上から見た座標系で自然に動作するため、BEV認識の出力は追加の座標変換なしに計画へ直接供給されます。</li>
+</ul>
+
+<h4>BEVFormer</h4>
+<p><strong>BEVFormer</strong>は、時空間Transformerを通じてマルチフレームのカメラデータを統一されたBEV表現に変換する画期的なアーキテクチャです。</p>
+<ul>
+<li><strong>空間クロスアテンション</strong>: 変形可能アテンションを通じてマルチカメラ画像からBEV特徴を問い合わせ、2D画像特徴を正しい3D位置に投影することを学習します。</li>
+<li><strong>時間セルフアテンション</strong>: 時間ステップ間でBEV特徴を集約し、モデルが物体を追跡し運動パターンを理解できるようにします。</li>
+<li><strong>Teslaの採用</strong>: Teslaの認識システムは、FSDシステムにBEVFormerベースのアーキテクチャを使用しており、従来のアプローチと比較して<strong>軌道予測誤差を18.7%削減</strong>しています。</li>
+</ul>
+
+<div class="mermaid">
+graph TB
+    subgraph "BEVFormerアーキテクチャ"
+        C1["カメラ 1"] --> Backbone["画像バックボーン<br/>(ResNet/ViT)"]
+        C2["カメラ 2"] --> Backbone
+        C3["カメラ ..."] --> Backbone
+        CN["カメラ N"] --> Backbone
+        Backbone --> SCA["空間クロスアテンション<br/>2Dから3Dへの投影"]
+        PrevBEV["前フレームのBEV<br/>(時間方向)"] --> TSA["時間セルフアテンション<br/>運動理解"]
+        SCA --> TSA
+        TSA --> BEV["統一BEV<br/>表現"]
+        BEV --> Det["3D物体検出"]
+        BEV --> Seg["地図セグメンテーション"]
+        BEV --> Pred["軌道予測"]
+    end
+
+    style C1 fill:#ffcdd2
+    style C2 fill:#ffcdd2
+    style C3 fill:#ffcdd2
+    style CN fill:#ffcdd2
+    style SCA fill:#fff9c4
+    style TSA fill:#c8e6c9
+    style BEV fill:#b3e5fc
+    style Det fill:#d1c4e9
+    style Seg fill:#d1c4e9
+    style Pred fill:#d1c4e9
+</div>
+
+<h4>DriveTransformer（ICLR 2025）</h4>
+<p>ICLR 2025で発表された<strong>DriveTransformer</strong>は、エンドツーエンドの自動運転における大きなアーキテクチャ上の進展を表します。</p>
+<ul>
+<li><strong>タスク並列処理</strong>: 認識・予測・計画を順番に実行する逐次的アーキテクチャとは異なり、DriveTransformerはこれらのタスクを統一されたTransformer枠組みを通じて並列に処理します。</li>
+<li><strong>スパース表現</strong>: 密な特徴マップではなくスパースなクエリ機構を用い、精度を維持しながら計算コストを劇的に削減します。</li>
+<li><strong>性能</strong>: CARLAベンチマークで<strong>35%の運転成功率</strong>を達成し、UniAD-Baseモデルの<strong>16%</strong>と比較して2倍以上の改善を示しています。</li>
+</ul>
+
+<h4>DMFormer（2025）</h4>
+<p><strong>DMFormer</strong>は、Transformerアーキテクチャと<strong>拡散ベースのノイズ除去</strong>を組み合わせ、マルチモーダルBEV認識を実現します。</p>
+<ul>
+<li><strong>アプローチ</strong>: 拡散モデルを用いてBEV特徴マップを反復的に精緻化し、正確なBEV表現の生成をノイズ除去プロセスとして扱います。</li>
+<li><strong>マルチモーダル統合</strong>: 拡散の枠組み内でカメラとLiDARの特徴を効果的に融合し、幾何学的精度と意味的豊かさの両方を捉えた高品質なBEV表現を生成します。</li>
+<li><strong>意義</strong>: 生成モデリング技術（拡散）が識別的な認識タスクを改善できることを示し、自動運転の新たな研究方向を切り開いています。</li>
+</ul>
+
+<h4>展開上の課題</h4>
+<p>ベンチマークでの目覚ましい性能にもかかわらず、Transformerベースの認識アーキテクチャは重大な展開上の課題に直面しています。</p>
+<ul>
+<li><strong>計算需要</strong>: Transformerのセルフアテンションは系列長に対して二次の計算量を持ちます。現在の車載グレードの計算プラットフォームは、大規模なTransformerモデルを必要なリアルタイム速度（認識では通常10〜30 Hz）で実行するのに苦労しています。</li>
+<li><strong>NVIDIA Orin</strong>: 254 TOPSの計算能力を持つNVIDIA DRIVE Orinプラットフォームは、Transformerベースの認識を展開するための鍵となりつつあります。複数の自動車メーカー（NIO、Li Auto、BYDを含む）での採用が、CNNベースからTransformerベースの認識システムへの移行を推進しています。</li>
+<li><strong>モデル圧縮</strong>: 知識蒸留、量子化、構造化プルーニングなどの技術は、Transformerモデルを車載システムの電力とレイテンシの予算内に収めるために不可欠です。</li>
+</ul>
+
+<hr/>
+
+<h2>まとめ</h2>
+
+<p>この章では、自動運転技術の3つの基礎的な柱を扱いました。</p>
+
+<ol>
+<li><strong>SAE J3016自動運転レベル</strong>: 自動化なし（L0）から完全自動化（L5）までの6段階の枠組みと、L2とL3の間にある重要な責任境界。現在、L2+が市場を支配し、L3はMercedesと中国OEMを先頭に成熟しつつあり、L4ロボタクシー（Waymo、Baidu）が商用規模に達しています。</li>
+<li><strong>センサー技術</strong>: 4つの主要なセンサータイプ（カメラ、レーダー、LiDAR、超音波）はそれぞれ明確な能力をもたらします。テラヘルツレーダー、4Dイメージングレーダー、FMCW LiDARなどの新興技術が、モダリティ間の差を縮めています。業界は、安全上重要な用途において、ビジョンのみのアプローチよりもマルチセンサーフュージョンを大きく支持しています。</li>
+<li><strong>認識技術</strong>: 現代の認識システムは、2Dおよび3Dの物体検出、セマンティックセグメンテーション（3D占有予測への拡張を含む）、点群処理、マルチレベルのセンサーフュージョンを組み合わせています。Transformerアーキテクチャを備えたBEV表現（BEVFormer、DriveTransformer、DMFormer）が最先端を表しますが、車載ハードウェアへの展開は依然として課題です。</li>
+</ol>
+
+<p>次の章では、認識の出力が<strong>計画と制御</strong>システムによってどのように運転判断に用いられるかを探究し、自動運転の状況を形作る主要な業界プレーヤーを概観します。</p>
+
+<div class="navigation">
+<a class="nav-button" href="index.html">&larr; シリーズ目次に戻る</a>
+<a class="nav-button" href="chapter2-planning-control-players.html">次の章: 計画・制御と主要プレーヤー &rarr;</a>
+</div>
+</main>
+<section class="disclaimer">
+<h3>免責事項</h3>
+<ul>
+<li>本コンテンツは教育・研究・情報提供のみを目的として提供されており、専門的な助言を構成するものではありません。</li>
+<li>本コンテンツは、明示または黙示を問わずいかなる保証もなく「現状のまま」提供されます。</li>
+<li>作成者および東北大学は、外部リンク、第三者のデータ、ツール、ライブラリについて一切の責任を負いません。</li>
+<li>適用される法律が許容する最大限の範囲において、作成者および東北大学は、本コンテンツの利用から生じるいかなる損害についても責任を負いません。</li>
+<li>本コンテンツは予告なく変更される場合があります。</li>
+<li>CC BY 4.0のもとでライセンスされています。</li>
+</ul>
+</section>
+<footer>
+<p><strong>著者</strong>: AI Terakoya コンテンツチーム</p>
+<p><strong>バージョン</strong>: 1.0 | <strong>作成日</strong>: 2026-01-29</p>
+<p><strong>ライセンス</strong>: Creative Commons BY 4.0</p>
+<p>&copy; 2025 AI Terakoya. All rights reserved.</p>
+</footer>
+</body>
+</html>

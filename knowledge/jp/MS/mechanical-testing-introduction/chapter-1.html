@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="第1章: 引張試験の基礎 | 機械試験入門" name="description"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>第1章: 引張試験の基礎 | 機械試験入門</title>
+<meta content="引張試験の基礎、応力–ひずみ曲線、機械的性質、試験規格を学びます。" name="description"/>
+<script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\(', '\)']],
+                displayMath: [['$$', '$$'], ['\[', '\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+<script async="" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet"/>
+</head>
+<body><div class="locale-switcher">
+<span class="current-locale">🌐 JP</span>
+<span class="locale-separator">|</span>
+<a href="../../../en/MS/mechanical-testing-introduction/chapter-1.html" class="locale-link">🇬🇧 EN</a>
+<span class="locale-meta">Last sync: 2025-11-16</span>
+</div>
+
+<header>
+<h1>第1章: 引張試験の基礎</h1>
+<p class="subtitle">応力–ひずみ挙動と機械的性質</p>
+</header>
+<div class="container">
+<div class="breadcrumb">
+<a href="../index.html">材料科学道場</a> &gt;
+            <a href="index.html">機械試験入門</a> &gt;
+            第1章
+        </div>
+<div class="content">
+<h2>1.1 引張試験の概要</h2>
+<p>
+                引張試験は、強度・延性・弾性率などの材料特性を測定するために用いられる、最も基本的な機械試験です。試験片に制御された引張荷重を破断まで加えながら、荷重と伸びを測定します。
+            </p>
+<div class="definition">
+<strong>📖 定義: 公称応力と公称ひずみ</strong><br/>
+<strong>公称応力:</strong>
+                $$\sigma = \frac{F}{A_0}$$
+                ここで $F$ は加えられた荷重、$A_0$ は初期断面積です。<br/><br/>
+<strong>公称ひずみ:</strong>
+                $$\epsilon = \frac{\Delta L}{L_0} = \frac{L - L_0}{L_0}$$
+                ここで $L_0$ は初期長さ、$L$ は現在の長さです。
+            </div>
+<h3>💻 コード例1: 応力–ひずみ曲線の生成</h3>
+<div class="code-title">Python実装: 公称応力–ひずみ解析</div>
+<div class="code-example"><pre><code class="language-python"># 要件:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+def generate_stress_strain_curve(material='steel'):
+    &quot;&quot;&quot;公称応力–ひずみ曲線を生成&quot;&quot;&quot;
+    materials = {
+        'steel': {'E': 200e3, 'yield': 250, 'uts': 400, 'fracture_strain': 0.25},
+        'aluminum': {'E': 70e3, 'yield': 100, 'uts': 200, 'fracture_strain': 0.15},
+        'copper': {'E': 120e3, 'yield': 70, 'uts': 220, 'fracture_strain': 0.45}
+    }
+    props = materials[material]
+
+    # 弾性領域
+    strain_elastic = np.linspace(0, props['yield']/props['E'], 100)
+    stress_elastic = props['E'] * strain_elastic
+
+    # 塑性領域
+    strain_plastic = np.linspace(props['yield']/props['E'], props['fracture_strain'], 200)
+    K = props['uts'] * 1.1
+    n = 0.2
+    stress_plastic = K * strain_plastic**n
+
+    strain = np.concatenate([strain_elastic, strain_plastic])
+    stress = np.concatenate([stress_elastic, stress_plastic])
+    return strain, stress, props
+
+# 異なる材料を可視化
+fig, ax = plt.subplots(figsize=(10, 6))
+for material in ['steel', 'aluminum', 'copper']:
+    strain, stress, props = generate_stress_strain_curve(material)
+    ax.plot(strain * 100, stress, linewidth=2, label=material.capitalize())
+    yield_idx = np.argmin(np.abs(stress - props['yield']))
+    ax.plot(strain[yield_idx] * 100, stress[yield_idx], 'o', markersize=8)
+
+ax.set_xlabel('Engineering Strain (%)', fontsize=12)
+ax.set_ylabel('Engineering Stress (MPa)', fontsize=12)
+ax.set_title('Engineering Stress-Strain Curves', fontsize=14, fontweight='bold')
+ax.legend()
+ax.grid(True, alpha=0.3)
+plt.show()</code></pre></div>
+<h2>1.2 真応力と真ひずみ</h2>
+<p>
+                公称応力・公称ひずみは寸法が一定であると仮定しますが、実際には試験中に材料は変形します。真応力・真ひずみは、その瞬間の寸法を考慮したものです。
+            </p>
+<div class="definition">
+<strong>📖 定義: 真応力と真ひずみ</strong><br/>
+<strong>真応力:</strong> $\sigma_T = \frac{F}{A} = \sigma(1 + \epsilon)$<br/>
+<strong>真ひずみ:</strong> $\epsilon_T = \ln\left(\frac{L}{L_0}\right) = \ln(1 + \epsilon)$
+            </div>
+<h3>💻 コード例2: 真応力と公称応力の変換</h3>
+<div class="code-title">Python実装: 応力–ひずみの変換</div>
+<div class="code-example"><pre><code class="language-python">def engineering_to_true(eng_stress, eng_strain):
+    """公称応力–ひずみを真応力–ひずみに変換"""
+    true_stress = eng_stress * (1 + eng_strain)
+    true_strain = np.log(1 + eng_strain)
+    return true_stress, true_strain
+
+strain_eng, stress_eng, _ = generate_stress_strain_curve('steel')
+stress_true, strain_true = engineering_to_true(stress_eng, strain_eng)
+
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+ax1.plot(strain_eng * 100, stress_eng, 'b-', linewidth=2, label='Engineering')
+ax1.set_xlabel('Engineering Strain (%)')
+ax1.set_ylabel('Engineering Stress (MPa)')
+ax1.set_title('Engineering Stress-Strain')
+ax1.grid(True, alpha=0.3)
+ax1.legend()
+
+ax2.plot(strain_true * 100, stress_true, 'r-', linewidth=2, label='True')
+ax2.set_xlabel('True Strain (%)')
+ax2.set_ylabel('True Stress (MPa)')
+ax2.set_title('True Stress-Strain')
+ax2.grid(True, alpha=0.3)
+ax2.legend()
+plt.tight_layout()
+plt.show()</code></pre></div>
+<h2>1.3 機械的性質の抽出</h2>
+<p>
+                引張試験からは、弾性率・降伏強度・引張強さ・延性といった重要な機械的性質が得られます。
+            </p>
+<div class="theorem">
+<strong>📖 主要な機械的性質</strong><br/>
+<ul style="margin-top: 0.5rem;">
+<li><strong>弾性率:</strong> 弾性領域における $E = \frac{\sigma}{\epsilon}$</li>
+<li><strong>降伏強度:</strong> 0.2%オフセット法</li>
+<li><strong>引張強さ:</strong> 公称応力の最大値</li>
+<li><strong>延性:</strong> $\delta = \frac{L_f - L_0}{L_0} \times 100\%$</li>
+<li><strong>じん性:</strong> 応力–ひずみ曲線下の面積</li>
+</ul>
+</div>
+<h3>💻 コード例3: 機械的性質の計算</h3>
+<div class="code-example"><pre><code class="language-python"># 要件:
+# - Python 3.9+
+# - scipy&gt;=1.11.0
+
+from scipy import integrate
+from scipy.stats import linregress
+
+def calculate_mechanical_properties(strain, stress):
+    &quot;&quot;&quot;応力–ひずみ曲線から機械的性質を抽出&quot;&quot;&quot;
+    properties = {}
+
+    # 弾性率
+    elastic_idx = int(len(strain) * 0.05)
+    slope, intercept, r_value, _, _ = linregress(strain[:elastic_idx], stress[:elastic_idx])
+    properties['elastic_modulus'] = slope
+
+    # 降伏強度（0.2%オフセット）
+    offset_strain = 0.002
+    offset_line = slope * (strain - offset_strain) + intercept
+    diff = np.abs(stress - offset_line)
+    yield_idx = elastic_idx + np.argmin(diff[elastic_idx:])
+    properties['yield_strength'] = stress[yield_idx]
+
+    # 引張強さ
+    uts_idx = np.argmax(stress)
+    properties['ultimate_tensile_strength'] = stress[uts_idx]
+    properties['uniform_elongation'] = strain[uts_idx]
+
+    # 延性
+    properties['elongation_percent'] = strain[-1] * 100
+
+    # じん性
+    properties['toughness'] = integrate.trapz(stress, strain)
+
+    return properties
+
+strain, stress, _ = generate_stress_strain_curve('steel')
+props = calculate_mechanical_properties(strain, stress)
+
+print(f&quot;弾性率: {props['elastic_modulus']/1000:.1f} GPa&quot;)
+print(f&quot;降伏強度: {props['yield_strength']:.1f} MPa&quot;)
+print(f&quot;引張強さ: {props['ultimate_tensile_strength']:.1f} MPa&quot;)
+print(f&quot;伸び: {props['elongation_percent']:.1f}%&quot;)
+print(f&quot;じん性: {props['toughness']:.1f} MJ/m³&quot;)</code></pre></div>
+<h2>1.4 試験規格</h2>
+<p>
+                ASTM E8 と ISO 6892 は、再現性を確保するための標準化された手順を規定しています。主な要件には、試験片形状、ひずみ速度、環境条件などが含まれます。
+            </p>
+<h3>💻 コード例4: ASTM E8 試験片設計</h3>
+<div class="code-example"><pre><code class="language-python">class TensileSpecimen:
+    """ASTM E8 引張試験片計算機"""
+
+    def calculate_dimensions(self, diameter=12.5):
+        """ASTM E8に基づき試験片寸法を計算"""
+        area = np.pi * (diameter/2)**2
+        gauge_length = 4 * np.sqrt(area)
+
+        return {
+            'diameter': diameter,
+            'area': area,
+            'gauge_length': gauge_length,
+            'total_length': gauge_length * 1.5 + 60
+        }
+
+    def calculate_test_speed(self, gauge_length, strain_rate=0.005):
+        """クロスヘッド速度を計算"""
+        return strain_rate * gauge_length
+
+specimen = TensileSpecimen()
+dims = specimen.calculate_dimensions(diameter=12.5)
+speed = specimen.calculate_test_speed(dims['gauge_length'])
+
+print(f"標点距離: {dims['gauge_length']:.2f} mm")
+print(f"試験速度: {speed:.3f} mm/min")</code></pre></div>
+<h2>1.5 加工硬化</h2>
+<p>
+                塑性変形の間、流動応力はひずみとともに増加します（加工硬化）。これはHollomon則で記述されます。
+            </p>
+<div class="definition">
+<strong>📖 Hollomon則:</strong> $\sigma_T = K \epsilon_T^n$<br/>
+                ここで $K$ は強度係数、$n$ は加工硬化指数です。
+            </div>
+<h3>💻 コード例5: Hollomon則のフィッティング</h3>
+<div class="code-example"><pre><code class="language-python">def fit_hollomon_equation(true_strain, true_stress):
+    """データにHollomon則をフィッティング"""
+    plastic_idx = 100
+    strain_plastic = true_strain[plastic_idx:]
+    stress_plastic = true_stress[plastic_idx:]
+
+    log_strain = np.log(strain_plastic)
+    log_stress = np.log(stress_plastic)
+
+    n, log_K, r_value, _, _ = linregress(log_strain, log_stress)
+    K = np.exp(log_K)
+
+    return K, n, r_value**2
+
+strain_eng, stress_eng, _ = generate_stress_strain_curve('steel')
+stress_true, strain_true = engineering_to_true(stress_eng, strain_eng)
+K, n, R2 = fit_hollomon_equation(strain_true, stress_true)
+
+print(f"Hollomon則: σ = {K:.1f} * ε^{n:.3f}")
+print(f"R² = {R2:.4f}")
+print(f"加工硬化指数: n = {n:.3f}")</code></pre></div>
+<h2>1.6 温度の影響</h2>
+<p>
+                機械的性質は温度によって変化します。高温では強度が低下し、延性が増加します。
+            </p>
+<h3>💻 コード例6: 温度依存性</h3>
+<div class="code-example"><pre><code class="language-python">def temperature_dependent_properties(T, T_ref=293):
+    """温度依存の降伏強度を計算"""
+    R = 8.314
+    Q = 50000
+    sigma_ref = 250
+
+    sigma_y = sigma_ref * np.exp(Q/R * (1/T - 1/T_ref))
+    E = 200e3 * (1 - 0.0005 * (T - T_ref))
+    elongation = 25 * (T / T_ref)**0.5
+
+    return sigma_y, E, elongation
+
+temperatures = np.linspace(200, 800, 100)
+results = [temperature_dependent_properties(T) for T in temperatures]
+
+plt.figure(figsize=(10, 6))
+plt.plot(temperatures - 273, [r[0] for r in results], label='Yield Strength')
+plt.xlabel('Temperature (°C)')
+plt.ylabel('Yield Strength (MPa)')
+plt.grid(True, alpha=0.3)
+plt.legend()
+plt.show()</code></pre></div>
+<h2>1.7 くびれと不安定性</h2>
+<p>
+                くびれ（ネッキング）は、局所的な変形が始まる引張強さの点で発生します。Considère条件はくびれの発生を予測します。
+            </p>
+<div class="theorem">
+<strong>📖 Considère条件:</strong> $\frac{d\sigma_T}{d\epsilon_T} = \sigma_T$ のときにくびれが発生<br/>
+                Hollomon則の場合: $\epsilon_T^{neck} = n$
+            </div>
+<h3>💻 コード例7: くびれの予測</h3>
+<div class="code-example"><pre><code class="language-python">def predict_necking(K, n):
+    """Considère条件を用いてくびれを予測"""
+    necking_strain_true = n
+    necking_stress_true = K * necking_strain_true**n
+
+    necking_strain_eng = np.exp(necking_strain_true) - 1
+    necking_stress_eng = necking_stress_true / (1 + necking_strain_eng)
+
+    return {
+        'true_strain': necking_strain_true,
+        'true_stress': necking_stress_true,
+        'eng_strain': necking_strain_eng,
+        'eng_stress': necking_stress_eng
+    }
+
+K, n = 550, 0.22
+necking = predict_necking(K, n)
+print(f"くびれ発生時の真ひずみ: {necking['true_strain']:.3f}")
+print(f"公称ひずみ: {necking['eng_strain']*100:.1f}%")</code></pre></div>
+<h2>📝 章末問題</h2>
+<div class="exercise">
+<strong>演習問題</strong>
+<ol>
+<li>初期直径12.5 mmの試験片に62 kNの荷重を加え、直径が10.8 mmになったときの公称応力と真応力を計算しなさい。</li>
+<li>応力–ひずみデータから弾性率・降伏強度・引張強さを求め、じん性を計算しなさい。</li>
+<li>塑性領域にHollomon則をフィッティングし、くびれ発生時のひずみを予測しなさい。</li>
+<li>厚さ2 mmの板材に対するASTM E8の矩形試験片を設計しなさい。</li>
+<li>高温用途を想定し、25°Cから400°Cにおける特性変化を解析しなさい。</li>
+</ol>
+</div>
+<h2>まとめ</h2>
+<ul>
+<li>引張試験は基本的な機械的性質を決定する</li>
+<li>公称応力–ひずみと真応力–ひずみ: 初期寸法と瞬間寸法の違い</li>
+<li>主要特性: 弾性率、降伏強度、引張強さ、延性、じん性</li>
+<li>ASTM E8／ISO 6892 が試験手順を標準化する</li>
+<li>Hollomon則は加工硬化を記述する: σ = Kε^n</li>
+<li>温度とひずみ速度は特性に大きく影響する</li>
+<li>くびれはConsidère条件で予測される</li>
+</ul>
+<div class="nav-buttons">
+<a class="nav-button" href="index.html">シリーズ目次に戻る</a>
+<a class="nav-button" href="chapter-2.html">第2章: 硬さ試験 →</a>
+</div>
+</div>
+</div>
+<section class="disclaimer">
+<h3>免責事項</h3>
+<ul>
+<li>本コンテンツは教育・研究・情報提供のみを目的として提供されており、専門的な助言（法律・会計・技術的保証など）を構成するものではありません。</li>
+<li>本コンテンツおよび付随するコード例は、明示または黙示を問わずいかなる保証もなく「現状のまま」提供されます。これには、商品性、特定目的への適合性、非侵害、正確性、完全性、動作、安全性に関する保証を含みますが、これらに限定されません。</li>
+<li>著者および東北大学は、外部リンク、第三者のデータ、ツール、ライブラリなどの内容、可用性、安全性について一切の責任を負いません。</li>
+<li>適用される法律が許容する最大限の範囲において、著者および東北大学は、本コンテンツの利用、実行、または解釈から生じるいかなる直接的、間接的、偶発的、特別、結果的、または懲罰的損害についても責任を負いません。</li>
+<li>本コンテンツは予告なく変更、更新、または提供を中止する場合があります。</li>
+<li>本コンテンツの著作権およびライセンスは、明示された条件（例: CC BY 4.0）に従います。これらのライセンスには通常、無保証条項が含まれます。</li>
+</ul>
+</section>
+
+<footer>
+<p>© 2025 AI Terakoya - Materials Science Dojo</p>
+</footer>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+</body>
+</html>
