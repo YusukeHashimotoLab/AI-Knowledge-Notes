@@ -1,48 +1,48 @@
 ---
-title: Chapter 3：ハイブリッドモデリング
-chapter_title: Chapter 3：ハイブリッドモデリング
-subtitle: 物理法則とデータ駆動アプローチを融合し、高精度かつ解釈可能なDigital Twinモデルを構築
+title: "Chapter 3: Hybrid Modeling"
+chapter_title: "Chapter 3: Hybrid Modeling"
+subtitle: Fusing physical laws and data-driven approaches to build high-accuracy, interpretable Digital Twin models
 ---
 
-[AI Terakoya Top](<../index.html>)›[Process Informatics](<../../index.html>)›[Digital Twin](<../../PI/digital-twin/index.html>)›Chapter 3
+[AI Terakoya Top](<../index.html>)›[Process Informatics](<../../index.html>)›[Digital Twin](<../../PI/digital-twin-introduction/index.html>)›Chapter 3
 
-🌐 EN | [🇯🇵 JP](<../../../jp/PI/digital-twin/chapter-3.html>) | Last sync: 2025-11-16
+🌐 EN | 日本語 (準備中) Last sync: 2025-11-16
 
-## 3.1 ハイブリッドモデリングの必要性
+## 3.1 Need for Hybrid Modeling
 
-Digital Twinのモデル構築には大きく2つのアプローチがあります：
+There are two major approaches to Digital Twin model construction:
 
-アプローチ | 特徴 | 長所 | 短所  
+Approach | Characteristics | Advantages | Disadvantages  
 ---|---|---|---  
-**第一原理モデル**  
-(First-Principles) | 物理法則（質量・エネルギー保存則）に基づく微 minutes方程式 | ・物理的に解釈可能  
-・外挿性が高い  
-・少ないデータで構築 | ・複雑系は困難  
-・パラメータ決定が難しい  
-・計算コストが高い  
-**データ駆動モデル**  
-(Data-Driven) | Machine Learningで入出力関係を学習 | ・複雑な関係を捉える  
-・高速計算  
-・実装が容易 | ・ブラックボックス  
-・外挿性が低い  
-・大量データが必要  
-**ハイブリッド**  
-(Hybrid) | 両者を組み合わせる | ・両者の長所を活用  
-・高精度と解釈性  
-・適応性が高い | ・設計が複雑  
-・専門知識が必要  
+**First-Principles Model**  
+(First-Principles) | Differential equations based on physical laws (mass and energy conservation) | \- Physically interpretable  
+\- High extrapolation capability  
+\- Can be built with limited data | \- Difficult for complex systems  
+\- Hard to determine parameters  
+\- High computational cost  
+**Data-Driven Model**  
+(Data-Driven) | Machine learning learns input-output relationships | \- Captures complex relationships  
+\- Fast computation  
+\- Easy implementation | \- Black box  
+\- Low extrapolation capability  
+\- Requires large amounts of data  
+**Hybrid**  
+(Hybrid) | Combines both approaches | \- Leverages strengths of both  
+\- High accuracy and interpretability  
+\- High adaptability | \- Complex design  
+\- Requires domain expertise  
   
-**💡 産業界のExample**  
-Chemical Plantの反応器Digital Twinでは、物理モデルで基本的な熱・物質収支を計算し、触媒劣化や副反応などの複雑な現象をMachine Learningで補正することで、Prediction精度が物理モデル単独の場合と比べて40%向上しました（出典: Siemens Energy, 2023）。 
+**Industry Case Study**  
+In a chemical plant reactor Digital Twin, calculating basic heat and mass balances with a physical model and correcting complex phenomena such as catalyst degradation and side reactions with machine learning improved prediction accuracy by 40% compared to the physical model alone (Source: Siemens Energy, 2023). 
 
-## 3.2 Implementation Example1：第一原理モデル（質量・エネルギー収支）
+## 3.2 Implementation Example 1: First-Principles Model (Mass and Energy Balance)
 
-化学反応器の基本的な物理モデルを実装します。質量保存則とエネルギー保存則から温度と濃度の hours変化を計算します。
+We implement a basic physical model of a chemical reactor. Temperature and concentration changes over time are calculated from mass conservation and energy conservation laws.
     
     
     """
-    Example 1: 第一原理モデル - 化学反応器の質量・エネルギー収支
-    CSTR (連続撹拌槽型反応器) の動的モデル
+    Example 1: First-Principles Model - Chemical Reactor Mass and Energy Balance
+    CSTR (Continuous Stirred Tank Reactor) Dynamic Model
     """
     
     import numpy as np
@@ -54,56 +54,56 @@ Chemical Plantの反応器Digital Twinでは、物理モデルで基本的な熱
     
     @dataclass
     class ReactorParameters:
-        """反応器パラメータ"""
-        V: float = 1.0          # 反応器体積 [m³]
-        F: float = 0.1          # 流量 [m³/min]
-        rho: float = 1000       # 密度 [kg/m³]
-        Cp: float = 4200        # 比熱 [J/(kg·K)]
-        UA: float = 5000        # 総括伝熱係数×面積 [W/K]
-        k0: float = 1e10        # 頻度因子 [1/min]
-        Ea: float = 80000       # 活性化エネルギー [J/mol]
-        delta_H: float = -100000  # 反応熱 [J/mol]（発熱反応）
-        R: float = 8.314        # 気体定数 [J/(mol·K)]
+        """Reactor parameters"""
+        V: float = 1.0          # Reactor volume [m³]
+        F: float = 0.1          # Flow rate [m³/min]
+        rho: float = 1000       # Density [kg/m³]
+        Cp: float = 4200        # Specific heat [J/(kg·K)]
+        UA: float = 5000        # Overall heat transfer coefficient × area [W/K]
+        k0: float = 1e10        # Frequency factor [1/min]
+        Ea: float = 80000       # Activation energy [J/mol]
+        delta_H: float = -100000  # Heat of reaction [J/mol] (exothermic)
+        R: float = 8.314        # Gas constant [J/(mol·K)]
     
     
     class FirstPrinciplesReactor:
-        """第一原理に基づく反応器モデル
+        """First-principles based reactor model
     
-        A → B の1次発熱反応を行うCSTRをモデル化
-        状態変数: [CA, T] (濃度、温度)
+        Models CSTR performing A → B first-order exothermic reaction
+        State variables: [CA, T] (concentration, temperature)
         """
     
         def __init__(self, params: ReactorParameters):
             self.params = params
     
         def reaction_rate(self, CA: float, T: float) -> float:
-            """反応速度を計算（アレニウス式）
+            """Calculate reaction rate (Arrhenius equation)
     
             Args:
-                CA: 反応物Aの濃度 [mol/m³]
-                T: 温度 [K]
+                CA: Concentration of reactant A [mol/m³]
+                T: Temperature [K]
     
             Returns:
-                反応速度 [mol/(m³·min)]
+                Reaction rate [mol/(m³·min)]
             """
             p = self.params
-            k = p.k0 * np.exp(-p.Ea / (p.R * T))  # 反応速度定数
-            r = k * CA  # 1次反応
+            k = p.k0 * np.exp(-p.Ea / (p.R * T))  # Reaction rate constant
+            r = k * CA  # First-order reaction
             return r
     
         def derivatives(self, state: np.ndarray, t: float,
                        CA_in: float, T_in: float, T_jacket: float) -> np.ndarray:
-            """状態微 minutes方程式
+            """State differential equations
     
-            質量収支: dCA/dt = F/V * (CA_in - CA) - r
-            エネルギー収支: dT/dt = F/V * (T_in - T) + (-ΔH)*r/(ρ*Cp) - UA/(ρ*Cp*V)*(T - T_jacket)
+            Mass balance: dCA/dt = F/V * (CA_in - CA) - r
+            Energy balance: dT/dt = F/V * (T_in - T) + (-ΔH)*r/(ρ*Cp) - UA/(ρ*Cp*V)*(T - T_jacket)
     
             Args:
                 state: [CA, T]
-                t: 時刻
-                CA_in: 入口濃度 [mol/m³]
-                T_in: 入口温度 [K]
-                T_jacket: ジャケット温度 [K]
+                t: Time
+                CA_in: Inlet concentration [mol/m³]
+                T_in: Inlet temperature [K]
+                T_jacket: Jacket temperature [K]
     
             Returns:
                 [dCA/dt, dT/dt]
@@ -111,20 +111,20 @@ Chemical Plantの反応器Digital Twinでは、物理モデルで基本的な熱
             CA, T = state
             p = self.params
     
-            # 反応速度
+            # Reaction rate
             r = self.reaction_rate(CA, T)
     
-            # 質量収支
+            # Mass balance
             dCA_dt = (p.F / p.V) * (CA_in - CA) - r
     
-            # エネルギー収支
-            # 項1: 流れによる温度変化
+            # Energy balance
+            # Term 1: Temperature change due to flow
             term1 = (p.F / p.V) * (T_in - T)
     
-            # 項2: 反応熱
+            # Term 2: Heat of reaction
             term2 = (-p.delta_H) * r / (p.rho * p.Cp)
     
-            # 項3: ジャケット冷却
+            # Term 3: Jacket cooling
             term3 = -p.UA / (p.rho * p.Cp * p.V) * (T - T_jacket)
     
             dT_dt = term1 + term2 + term3
@@ -135,18 +135,18 @@ Chemical Plantの反応器Digital Twinでは、物理モデルで基本的な熱
                     time_span: Tuple[float, float],
                     CA_in: float, T_in: float, T_jacket: float,
                     n_points: int = 1000) -> Tuple[np.ndarray, np.ndarray]:
-            """Simulation実行
+            """Execute simulation
     
             Args:
-                initial_state: 初期状態 [CA0, T0]
-                time_span:  hours範囲 [t_start, t_end] [min]
-                CA_in: 入口濃度 [mol/m³]
-                T_in: 入口温度 [K]
-                T_jacket: ジャケット温度 [K]
-                n_points:  hours点数
+                initial_state: Initial state [CA0, T0]
+                time_span: Time range [t_start, t_end] [min]
+                CA_in: Inlet concentration [mol/m³]
+                T_in: Inlet temperature [K]
+                T_jacket: Jacket temperature [K]
+                n_points: Number of time points
     
             Returns:
-                (time, state) 時刻配列と状態配列 [CA, T]
+                (time, state) Time array and state array [CA, T]
             """
             t = np.linspace(time_span[0], time_span[1], n_points)
     
@@ -160,46 +160,46 @@ Chemical Plantの反応器Digital Twinでは、物理モデルで基本的な熱
             return t, state
     
         def calculate_conversion(self, CA: float, CA_in: float) -> float:
-            """反応転化率を計算
+            """Calculate reaction conversion
     
             Args:
-                CA: 反応器内濃度 [mol/m³]
-                CA_in: 入口濃度 [mol/m³]
+                CA: Reactor concentration [mol/m³]
+                CA_in: Inlet concentration [mol/m³]
     
             Returns:
-                転化率 [-] (0-1)
+                Conversion [-] (0-1)
             """
             if CA_in == 0:
                 return 0
             return (CA_in - CA) / CA_in
     
     
-    # 使用例
+    # Usage example
     if __name__ == "__main__":
-        # パラメータ設定
+        # Parameter setup
         params = ReactorParameters(
             V=1.0,          # 1 m³
-            F=0.1,          # 0.1 m³/min（滞留 hours10 minutes）
+            F=0.1,          # 0.1 m³/min (residence time 10 min)
             rho=1000,       # 1000 kg/m³
             Cp=4200,        # 4200 J/(kg·K)
             UA=5000,        # 5000 W/K
             k0=1e10,        # 1e10 1/min
             Ea=80000,       # 80 kJ/mol
-            delta_H=-100000 # -100 kJ/mol（発熱）
+            delta_H=-100000 # -100 kJ/mol (exothermic)
         )
     
-        # モデルの初期化
+        # Model initialization
         reactor = FirstPrinciplesReactor(params)
     
-        # Simulation条件
-        CA_in = 1000    # 入口濃度 1000 mol/m³
-        T_in = 298      # 入口温度 298 K (25℃)
-        T_jacket = 298  # ジャケット温度 298 K
+        # Simulation conditions
+        CA_in = 1000    # Inlet concentration 1000 mol/m³
+        T_in = 298      # Inlet temperature 298 K (25°C)
+        T_jacket = 298  # Jacket temperature 298 K
     
-        # 初期状態（プラント起動時）
+        # Initial state (plant startup)
         initial_state = (0, 298)  # CA=0, T=298K
     
-        # 60 minutes間Simulation
+        # 60 minute simulation
         t, state = reactor.simulate(
             initial_state=initial_state,
             time_span=(0, 60),
@@ -211,39 +211,39 @@ Chemical Plantの反応器Digital Twinでは、物理モデルで基本的な熱
         CA = state[:, 0]
         T = state[:, 1]
     
-        # 転化率計算
+        # Conversion calculation
         conversion = reactor.calculate_conversion(CA[-1], CA_in)
     
-        print("=== 第一原理モデルSimulation結果 ===")
-        print(f"最終状態:")
-        print(f"  濃度 CA: {CA[-1]:.1f} mol/m³")
-        print(f"  温度 T: {T[-1]:.1f} K ({T[-1]-273.15:.1f}°C)")
-        print(f"  転化率: {conversion*100:.1f}%")
+        print("=== First-Principles Model Simulation Results ===")
+        print(f"Final state:")
+        print(f"  Concentration CA: {CA[-1]:.1f} mol/m³")
+        print(f"  Temperature T: {T[-1]:.1f} K ({T[-1]-273.15:.1f}°C)")
+        print(f"  Conversion: {conversion*100:.1f}%")
     
-        # 定常状態到達 hours（温度変化が0.1K/min以下）
+        # Steady state arrival time (temperature change < 0.1K/min)
         dT_dt = np.diff(T) / np.diff(t)
         steady_idx = np.where(np.abs(dT_dt) < 0.1)[0]
         if len(steady_idx) > 0:
             steady_time = t[steady_idx[0]]
-            print(f"  定常状態到達 hours: {steady_time:.1f} min")
+            print(f"  Steady state arrival time: {steady_time:.1f} min")
     
-    # 期待される出力例:
-    # === 第一原理モデルSimulation結果 ===
-    # 最終状態:
-    #   濃度 CA: 245.3 mol/m³
-    #   温度 T: 348.2 K (75.2°C)
-    #   転化率: 75.5%
-    #   定常状態到達 hours: 23.4 min
+    # Expected output example:
+    # === First-Principles Model Simulation Results ===
+    # Final state:
+    #   Concentration CA: 245.3 mol/m³
+    #   Temperature T: 348.2 K (75.2°C)
+    #   Conversion: 75.5%
+    #   Steady state arrival time: 23.4 min
     
 
-## 3.3 Implementation Example2：データ駆動モデル（Machine Learning）
+## 3.3 Implementation Example 2: Data-Driven Model (Machine Learning)
 
-実測データからMachine Learningモデルを構築します。複雑な非線形関係を捉えることができます。
+We build a machine learning model from measured data. It can capture complex nonlinear relationships.
     
     
     """
-    Example 2: データ駆動モデル - Machine Learningによる反応器Prediction
-    ニューラルネットワークで温度・濃度から転化率をPrediction
+    Example 2: Data-Driven Model - Reactor Prediction Using Machine Learning
+    Predicting conversion from temperature and concentration using neural networks
     """
     
     import numpy as np
@@ -257,10 +257,10 @@ Chemical Plantの反応器Digital Twinでは、物理モデルで基本的な熱
     
     
     class DataDrivenReactorModel:
-        """データ駆動型反応器モデル
+        """Data-driven reactor model
     
-        運転データ（温度、圧力、流量、触媒年齢など）から
-        転化率をPredictionするMachine Learningモデル
+        Machine learning model that predicts conversion
+        from operational data (temperature, pressure, flow rate, catalyst age, etc.)
         """
     
         def __init__(self, model_type: str = 'neural_network'):
@@ -272,7 +272,7 @@ Chemical Plantの反応器Digital Twinでは、物理モデルで基本的な熱
             self.scaler = StandardScaler()
     
             if model_type == 'neural_network':
-                # ニューラルネットワーク（3層、ReLU活性化）
+                # Neural network (3 layers, ReLU activation)
                 self.model = MLPRegressor(
                     hidden_layer_sizes=(64, 32, 16),
                     activation='relu',
@@ -283,7 +283,7 @@ Chemical Plantの反応器Digital Twinでは、物理モデルで基本的な熱
                     random_state=42
                 )
             elif model_type == 'random_forest':
-                # ランダムフォレスト
+                # Random forest
                 self.model = RandomForestRegressor(
                     n_estimators=100,
                     max_depth=15,
@@ -294,35 +294,35 @@ Chemical Plantの反応器Digital Twinでは、物理モデルで基本的な熱
                 raise ValueError(f"Unknown model type: {model_type}")
     
         def generate_training_data(self, n_samples: int = 1000) -> pd.DataFrame:
-            """訓練データの生成（実際は実測データを使用）
+            """Generate training data (actual data would be used in practice)
     
             Args:
-                n_samples: サンプル数
+                n_samples: Number of samples
     
             Returns:
                 DataFrame with columns ['T', 'P', 'F', 'catalyst_age', 'conversion']
             """
             np.random.seed(42)
     
-            # 特徴量の生成（実際の運転範囲）
-            T = np.random.uniform(60, 95, n_samples)      # 温度 [°C]
-            P = np.random.uniform(2.0, 3.0, n_samples)    # 圧力 [MPa]
-            F = np.random.uniform(100, 150, n_samples)    # 流量 [L/min]
-            catalyst_age = np.random.uniform(0, 365, n_samples)  # 触媒年齢 [日]
+            # Feature generation (actual operating range)
+            T = np.random.uniform(60, 95, n_samples)      # Temperature [°C]
+            P = np.random.uniform(2.0, 3.0, n_samples)    # Pressure [MPa]
+            F = np.random.uniform(100, 150, n_samples)    # Flow rate [L/min]
+            catalyst_age = np.random.uniform(0, 365, n_samples)  # Catalyst age [days]
     
-            # 真の関係式（未知と仮定）
-            # 転化率 = f(T, P, F, catalyst_age) + ノイズ
+            # True relationship (assumed unknown)
+            # Conversion = f(T, P, F, catalyst_age) + noise
             conversion = (
                 0.3 +
-                0.008 * T +                              # 温度依存
-                0.15 * P +                               # 圧力依存
-                -0.001 * F +                             # 流量依存（負）
-                -0.0002 * catalyst_age +                 # 触媒劣化
-                0.0001 * T * P +                         # 交互作用
-                np.random.normal(0, 0.02, n_samples)     # ノイズ
+                0.008 * T +                              # Temperature dependency
+                0.15 * P +                               # Pressure dependency
+                -0.001 * F +                             # Flow dependency (negative)
+                -0.0002 * catalyst_age +                 # Catalyst degradation
+                0.0001 * T * P +                         # Interaction
+                np.random.normal(0, 0.02, n_samples)     # Noise
             )
     
-            # 転化率を0-1に制限
+            # Clip conversion to 0-1
             conversion = np.clip(conversion, 0, 1)
     
             df = pd.DataFrame({
@@ -336,32 +336,32 @@ Chemical Plantの反応器Digital Twinでは、物理モデルで基本的な熱
             return df
     
         def train(self, X: np.ndarray, y: np.ndarray) -> dict:
-            """モデルの訓練
+            """Train the model
     
             Args:
-                X: 特徴量 [n_samples, n_features]
-                y: 目的変数（転化率） [n_samples]
+                X: Features [n_samples, n_features]
+                y: Target variable (conversion) [n_samples]
     
             Returns:
-                訓練結果の辞書
+                Training results dictionary
             """
-            # データ minutes割（訓練80%、テスト20%）
+            # Data split (80% training, 20% test)
             X_train, X_test, y_train, y_test = train_test_split(
                 X, y, test_size=0.2, random_state=42
             )
     
-            # 標準化
+            # Standardization
             X_train_scaled = self.scaler.fit_transform(X_train)
             X_test_scaled = self.scaler.transform(X_test)
     
-            # モデル訓練
+            # Model training
             self.model.fit(X_train_scaled, y_train)
     
             # Prediction
             y_train_pred = self.model.predict(X_train_scaled)
             y_test_pred = self.model.predict(X_test_scaled)
     
-            # 性能評価
+            # Performance evaluation
             results = {
                 'train_r2': r2_score(y_train, y_train_pred),
                 'test_r2': r2_score(y_test, y_test_pred),
@@ -376,22 +376,22 @@ Chemical Plantの反応器Digital Twinでは、物理モデルで基本的な熱
             return results
     
         def predict(self, X: np.ndarray) -> np.ndarray:
-            """転化率のPrediction
+            """Predict conversion
     
             Args:
-                X: 特徴量 [n_samples, n_features]
+                X: Features [n_samples, n_features]
     
             Returns:
-                Prediction転化率 [n_samples]
+                Predicted conversion [n_samples]
             """
             X_scaled = self.scaler.transform(X)
             return self.model.predict(X_scaled)
     
         def get_feature_importance(self) -> np.ndarray:
-            """特徴量の重要度を取得（Random Forestのみ）
+            """Get feature importance (Random Forest only)
     
             Returns:
-                特徴量重要度 [n_features]
+                Feature importance [n_features]
             """
             if self.model_type == 'random_forest':
                 return self.model.feature_importances_
@@ -399,61 +399,61 @@ Chemical Plantの反応器Digital Twinでは、物理モデルで基本的な熱
                 return None
     
     
-    # 使用例
+    # Usage example
     if __name__ == "__main__":
-        # データ駆動モデルの初期化
+        # Data-driven model initialization
         nn_model = DataDrivenReactorModel(model_type='neural_network')
         rf_model = DataDrivenReactorModel(model_type='random_forest')
     
-        # 訓練データ生成
+        # Generate training data
         df = nn_model.generate_training_data(n_samples=1000)
-        print("=== 訓練データの統計 ===")
+        print("=== Training Data Statistics ===")
         print(df.describe())
     
-        # 特徴量と目的変数
+        # Features and target
         X = df[['T', 'P', 'F', 'catalyst_age']].values
         y = df['conversion'].values
     
-        # ニューラルネットワークの訓練
-        print("\n=== ニューラルネットワークの訓練 ===")
+        # Neural network training
+        print("\n=== Neural Network Training ===")
         nn_results = nn_model.train(X, y)
-        print(f"訓練 R²: {nn_results['train_r2']:.4f}")
-        print(f"テスト R²: {nn_results['test_r2']:.4f}")
-        print(f"テスト MAE: {nn_results['test_mae']:.4f}")
-        print(f"テスト RMSE: {nn_results['test_rmse']:.4f}")
+        print(f"Training R²: {nn_results['train_r2']:.4f}")
+        print(f"Test R²: {nn_results['test_r2']:.4f}")
+        print(f"Test MAE: {nn_results['test_mae']:.4f}")
+        print(f"Test RMSE: {nn_results['test_rmse']:.4f}")
     
-        # ランダムフォレストの訓練
-        print("\n=== ランダムフォレストの訓練 ===")
+        # Random forest training
+        print("\n=== Random Forest Training ===")
         rf_results = rf_model.train(X, y)
-        print(f"訓練 R²: {rf_results['train_r2']:.4f}")
-        print(f"テスト R²: {rf_results['test_r2']:.4f}")
-        print(f"テスト MAE: {rf_results['test_mae']:.4f}")
-        print(f"テスト RMSE: {rf_results['test_rmse']:.4f}")
+        print(f"Training R²: {rf_results['train_r2']:.4f}")
+        print(f"Test R²: {rf_results['test_r2']:.4f}")
+        print(f"Test MAE: {rf_results['test_mae']:.4f}")
+        print(f"Test RMSE: {rf_results['test_rmse']:.4f}")
     
-        # 特徴量重要度
-        print("\n=== 特徴量重要度（Random Forest）===")
+        # Feature importance
+        print("\n=== Feature Importance (Random Forest) ===")
         feature_names = ['T', 'P', 'F', 'catalyst_age']
         importance = rf_model.get_feature_importance()
         for name, imp in zip(feature_names, importance):
             print(f"{name}: {imp:.4f}")
     
-        # 新しい運転条件でのPrediction
-        print("\n=== 新規運転条件のPrediction ===")
+        # Prediction for new operating conditions
+        print("\n=== Prediction for New Operating Conditions ===")
         new_conditions = np.array([[
-            80.0,   # 温度 80°C
-            2.5,    # 圧力 2.5 MPa
-            120.0,  # 流量 120 L/min
-            100.0   # 触媒年齢 100日
+            80.0,   # Temperature 80°C
+            2.5,    # Pressure 2.5 MPa
+            120.0,  # Flow rate 120 L/min
+            100.0   # Catalyst age 100 days
         ]])
     
         nn_pred = nn_model.predict(new_conditions)
         rf_pred = rf_model.predict(new_conditions)
     
-        print(f"ニューラルネットワークPrediction: {nn_pred[0]*100:.1f}%")
-        print(f"ランダムフォレストPrediction: {rf_pred[0]*100:.1f}%")
+        print(f"Neural Network prediction: {nn_pred[0]*100:.1f}%")
+        print(f"Random Forest prediction: {rf_pred[0]*100:.1f}%")
     
-    # 期待される出力例:
-    # === 訓練データの統計 ===
+    # Expected output example:
+    # === Training Data Statistics ===
     #                T           P           F  catalyst_age  conversion
     # count  1000.000000  1000.000000  1000.000000   1000.000000  1000.000000
     # mean     77.512632     2.499482   125.027484    182.450623     0.744561
@@ -461,37 +461,37 @@ Chemical Plantの反応器Digital Twinでは、物理モデルで基本的な熱
     # min      60.012345     2.001234   100.123456      0.234567     0.523456
     # max      94.987654     2.998765   149.876543    364.765432     0.987654
     #
-    # === ニューラルネットワークの訓練 ===
-    # 訓練 R²: 0.9823
-    # テスト R²: 0.9756
-    # テスト MAE: 0.0124
-    # テスト RMSE: 0.0158
+    # === Neural Network Training ===
+    # Training R²: 0.9823
+    # Test R²: 0.9756
+    # Test MAE: 0.0124
+    # Test RMSE: 0.0158
     #
-    # === ランダムフォレストの訓練 ===
-    # 訓練 R²: 0.9934
-    # テスト R²: 0.9812
-    # テスト MAE: 0.0098
-    # テスト RMSE: 0.0132
+    # === Random Forest Training ===
+    # Training R²: 0.9934
+    # Test R²: 0.9812
+    # Test MAE: 0.0098
+    # Test RMSE: 0.0132
     #
-    # === 特徴量重要度（Random Forest）===
+    # === Feature Importance (Random Forest) ===
     # T: 0.4523
     # P: 0.3214
     # F: 0.1123
     # catalyst_age: 0.1140
     #
-    # === 新規運転条件のPrediction ===
-    # ニューラルネットワークPrediction: 76.3%
-    # ランダムフォレストPrediction: 75.8%
+    # === Prediction for New Operating Conditions ===
+    # Neural Network prediction: 76.3%
+    # Random Forest prediction: 75.8%
     
 
-## 3.4 Implementation Example3：ハイブリッドモデルアーキテクチャ
+## 3.4 Implementation Example 3: Hybrid Model Architecture
 
-物理モデルのPredictionとMachine Learningの補正を組み合わせた、最も実用的なハイブリッドモデルです。
+The most practical hybrid model that combines physical model predictions with machine learning corrections.
     
     
     """
-    Example 3: ハイブリッドモデルアーキテクチャ
-    物理モデル + ML補正で高精度Predictionを実現
+    Example 3: Hybrid Model Architecture
+    Achieving high-accuracy predictions with physical model + ML correction
     """
     
     import numpy as np
@@ -501,21 +501,21 @@ Chemical Plantの反応器Digital Twinでは、物理モデルで基本的な熱
     
     
     class HybridReactorModel:
-        """ハイブリッド反応器モデル
+        """Hybrid reactor model
     
-        物理モデル（第一原理）で基本的な挙動を計算し、
-        Machine Learningで物理モデルの誤差（モデル化されていない現象）を補正
+        Calculates basic behavior with physical model (first principles),
+        and corrects errors (unmodeled phenomena) in the physical model with machine learning
         """
     
         def __init__(self, physical_params: ReactorParameters):
             """
             Args:
-                physical_params: 物理モデルのパラメータ
+                physical_params: Physical model parameters
             """
-            # 物理モデル
+            # Physical model
             self.physics_model = FirstPrinciplesReactor(physical_params)
     
-            # ML補正モデル（残差学習）
+            # ML correction model (residual learning)
             self.correction_model = MLPRegressor(
                 hidden_layer_sizes=(32, 16),
                 activation='relu',
@@ -526,7 +526,7 @@ Chemical Plantの反応器Digital Twinでは、物理モデルで基本的な熱
             self.is_trained = False
     
         def predict_physics(self, inputs: Dict) -> Dict:
-            """物理モデルでPrediction
+            """Predict with physical model
     
             Args:
                 inputs: {'CA_in', 'T_in', 'T_jacket', 'time'}
@@ -534,12 +534,12 @@ Chemical Plantの反応器Digital Twinでは、物理モデルで基本的な熱
             Returns:
                 {'CA', 'T', 'conversion'}
             """
-            # 定常状態を仮定した簡易計算
+            # Simplified calculation assuming steady state
             CA_in = inputs['CA_in']
             T_in = inputs['T_in']
             T_jacket = inputs['T_jacket']
     
-            # 60 minutesSimulation（定常状態に到達）
+            # 60 minute simulation (reaches steady state)
             t, state = self.physics_model.simulate(
                 initial_state=(0, T_in),
                 time_span=(0, 60),
@@ -560,32 +560,32 @@ Chemical Plantの反応器Digital Twinでは、物理モデルで基本的な熱
     
         def train_correction(self, X: np.ndarray, y_true: np.ndarray,
                             y_physics: np.ndarray):
-            """ML補正モデルの訓練
+            """Train ML correction model
     
             Args:
-                X: 入力特徴量 [n_samples, n_features]
-                y_true: 実測値 [n_samples]
-                y_physics: 物理モデルPrediction値 [n_samples]
+                X: Input features [n_samples, n_features]
+                y_true: Measured values [n_samples]
+                y_physics: Physical model predictions [n_samples]
             """
-            # 残差（実測 - 物理モデル）を学習
+            # Learn residuals (measured - physical model)
             residuals = y_true - y_physics
     
-            # 特徴量標準化
+            # Feature standardization
             X_scaled = self.scaler.fit_transform(X)
     
-            # 訓練
+            # Training
             self.correction_model.fit(X_scaled, residuals)
             self.is_trained = True
     
-            # 性能評価
+            # Performance evaluation
             residuals_pred = self.correction_model.predict(X_scaled)
             r2 = r2_score(residuals, residuals_pred)
             mae = mean_absolute_error(residuals, residuals_pred)
     
-            print(f"補正モデル訓練完了 - R²: {r2:.4f}, MAE: {mae:.4f}")
+            print(f"Correction model training complete - R²: {r2:.4f}, MAE: {mae:.4f}")
     
         def predict_hybrid(self, inputs: Dict) -> Dict:
-            """ハイブリッドPrediction（物理 + ML補正）
+            """Hybrid prediction (physics + ML correction)
     
             Args:
                 inputs: {'CA_in', 'T_in', 'T_jacket', 'catalyst_age', ...}
@@ -593,12 +593,12 @@ Chemical Plantの反応器Digital Twinでは、物理モデルで基本的な熱
             Returns:
                 {'CA', 'T', 'conversion', 'conversion_corrected'}
             """
-            # 物理モデルで基本Prediction
+            # Basic prediction with physical model
             physics_result = self.predict_physics(inputs)
     
-            # ML補正（訓練済みの場合）
+            # ML correction (if trained)
             if self.is_trained:
-                # 特徴量ベクトル作成
+                # Create feature vector
                 features = np.array([[
                     inputs['CA_in'],
                     inputs['T_in'],
@@ -610,10 +610,10 @@ Chemical Plantの反応器Digital Twinでは、物理モデルで基本的な熱
                 features_scaled = self.scaler.transform(features)
                 correction = self.correction_model.predict(features_scaled)[0]
     
-                # 補正後の転化率
+                # Corrected conversion
                 conversion_corrected = physics_result['conversion'] + correction
     
-                # 0-1の範囲に制限
+                # Clip to 0-1 range
                 conversion_corrected = np.clip(conversion_corrected, 0, 1)
             else:
                 conversion_corrected = physics_result['conversion']
@@ -627,26 +627,26 @@ Chemical Plantの反応器Digital Twinでは、物理モデルで基本的な熱
     
     
     def generate_hybrid_training_data(n_samples: int = 500) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-        """ハイブリッドモデル用の訓練データ生成
+        """Generate training data for hybrid model
     
-        物理モデルだけでは捉えられない現象（触媒劣化、不純物影響など）
-        が含まれる実測データを模擬
+        Simulates measured data containing phenomena (catalyst degradation, impurity effects, etc.)
+        that cannot be captured by physical model alone
     
         Returns:
-            (X, y_true, y_physics) 特徴量、実測値、物理Prediction値
+            (X, y_true, y_physics) Features, measured values, physical predictions
         """
         np.random.seed(42)
     
-        # 運転条件（特徴量）
+        # Operating conditions (features)
         CA_in = np.random.uniform(800, 1200, n_samples)
-        T_in = np.full(n_samples, 298)  # 固定
+        T_in = np.full(n_samples, 298)  # Fixed
         T_jacket = np.random.uniform(290, 310, n_samples)
         catalyst_age = np.random.uniform(0, 365, n_samples)
         F = np.random.uniform(0.08, 0.12, n_samples)
     
         X = np.column_stack([CA_in, T_in, T_jacket, catalyst_age, F])
     
-        # 物理モデルでPrediction
+        # Predict with physical model
         params = ReactorParameters()
         physics_model = FirstPrinciplesReactor(params)
     
@@ -662,9 +662,9 @@ Chemical Plantの反応器Digital Twinでは、物理モデルで基本的な熱
             CA = state[-1, 0]
             y_physics[i] = physics_model.calculate_conversion(CA, CA_in[i])
     
-        # 実測値 = 物理モデル + 未モデル化現象（触媒劣化、不純物など）
-        catalyst_effect = -0.0003 * catalyst_age  # 触媒劣化
-        random_noise = np.random.normal(0, 0.02, n_samples)  # ランダムノイズ
+        # Measured values = physical model + unmodeled phenomena (catalyst degradation, impurities, etc.)
+        catalyst_effect = -0.0003 * catalyst_age  # Catalyst degradation
+        random_noise = np.random.normal(0, 0.02, n_samples)  # Random noise
     
         y_true = y_physics + catalyst_effect + random_noise
         y_true = np.clip(y_true, 0, 1)
@@ -672,28 +672,28 @@ Chemical Plantの反応器Digital Twinでは、物理モデルで基本的な熱
         return X, y_true, y_physics
     
     
-    # 使用例
+    # Usage example
     if __name__ == "__main__":
-        # パラメータ設定
+        # Parameter setup
         params = ReactorParameters()
     
-        # ハイブリッドモデルの初期化
+        # Hybrid model initialization
         hybrid_model = HybridReactorModel(physical_params=params)
     
-        # 訓練データ生成
-        print("=== 訓練データ生成 ===")
+        # Training data generation
+        print("=== Training Data Generation ===")
         X, y_true, y_physics = generate_hybrid_training_data(n_samples=500)
     
-        # 物理モデル単独の性能
+        # Physical model alone performance
         physics_r2 = r2_score(y_true, y_physics)
         physics_mae = mean_absolute_error(y_true, y_physics)
-        print(f"物理モデル単独 - R²: {physics_r2:.4f}, MAE: {physics_mae:.4f}")
+        print(f"Physical model alone - R²: {physics_r2:.4f}, MAE: {physics_mae:.4f}")
     
-        # ML補正モデルの訓練
-        print("\n=== ML補正モデルの訓練 ===")
+        # ML correction model training
+        print("\n=== ML Correction Model Training ===")
         hybrid_model.train_correction(X, y_true, y_physics)
     
-        # ハイブリッドモデルの性能
+        # Hybrid model performance
         y_hybrid = y_physics.copy()
         for i in range(len(X)):
             inputs = {
@@ -708,58 +708,58 @@ Chemical Plantの反応器Digital Twinでは、物理モデルで基本的な熱
     
         hybrid_r2 = r2_score(y_true, y_hybrid)
         hybrid_mae = mean_absolute_error(y_true, y_hybrid)
-        print(f"\nハイブリッドモデル - R²: {hybrid_r2:.4f}, MAE: {hybrid_mae:.4f}")
+        print(f"\nHybrid model - R²: {hybrid_r2:.4f}, MAE: {hybrid_mae:.4f}")
     
-        # 改善率
+        # Improvement rate
         improvement = (physics_mae - hybrid_mae) / physics_mae * 100
-        print(f"MAE改善率: {improvement:.1f}%")
+        print(f"MAE improvement rate: {improvement:.1f}%")
     
-        # 新規条件でのPrediction比較
-        print("\n=== 新規条件でのPrediction ===")
+        # Prediction comparison for new conditions
+        print("\n=== Prediction for New Conditions ===")
         test_inputs = {
             'CA_in': 1000,
             'T_in': 298,
             'T_jacket': 300,
-            'catalyst_age': 180,  # 半年経過の触媒
+            'catalyst_age': 180,  # 6 months old catalyst
             'F': 0.1
         }
     
         result = hybrid_model.predict_hybrid(test_inputs)
-        print(f"物理モデルPrediction: {result['conversion_physics']*100:.1f}%")
-        print(f"ハイブリッドPrediction: {result['conversion_corrected']*100:.1f}%")
-        print(f"補正量: {(result['conversion_corrected'] - result['conversion_physics'])*100:.1f}%")
+        print(f"Physical model prediction: {result['conversion_physics']*100:.1f}%")
+        print(f"Hybrid prediction: {result['conversion_corrected']*100:.1f}%")
+        print(f"Correction amount: {(result['conversion_corrected'] - result['conversion_physics'])*100:.1f}%")
     
-    # 期待される出力例:
-    # === 訓練データ生成 ===
-    # 物理モデル単独 - R²: 0.8234, MAE: 0.0412
+    # Expected output example:
+    # === Training Data Generation ===
+    # Physical model alone - R²: 0.8234, MAE: 0.0412
     #
-    # === ML補正モデルの訓練 ===
-    # 補正モデル訓練完了 - R²: 0.8923, MAE: 0.0098
+    # === ML Correction Model Training ===
+    # Correction model training complete - R²: 0.8923, MAE: 0.0098
     #
-    # ハイブリッドモデル - R²: 0.9756, MAE: 0.0123
-    # MAE改善率: 70.1%
+    # Hybrid model - R²: 0.9756, MAE: 0.0123
+    # MAE improvement rate: 70.1%
     #
-    # === 新規条件でのPrediction ===
-    # 物理モデルPrediction: 75.5%
-    # ハイブリッドPrediction: 70.1%
-    # 補正量: -5.4%
+    # === Prediction for New Conditions ===
+    # Physical model prediction: 75.5%
+    # Hybrid prediction: 70.1%
+    # Correction amount: -5.4%
     
 
-**💡 ハイブリッドモデルの利点**  
+**Advantages of Hybrid Models**  
 
-  * **解釈性** ：物理モデル部 minutesで基本メカニズムが理解できる
-  * **外挿性** ：物理法則により、訓練範囲外でも一定の信頼性
-  * **高精度** ：MLで複雑な現象（触媒劣化、不純物影響）を補正
-  * **少ないデータ** ：物理知識で補うため、データ駆動単独より少ないデータで高性能
+  * **Interpretability** : Basic mechanisms can be understood through physical model part
+  * **Extrapolation capability** : Physical laws provide certain reliability even outside training range
+  * **High accuracy** : ML corrects complex phenomena (catalyst degradation, impurity effects)
+  * **Less data** : Can achieve high performance with less data than data-driven alone by complementing with physical knowledge
 
-## 3.5 Implementation Example4：実データによるモデルキャリブレーション
+## 3.5 Implementation Example 4: Model Calibration with Real Data
 
-実測データを使って物理モデルのパラメータをOptimization（キャリブレーション）します。
+We optimize (calibrate) physical model parameters using measured data.
     
     
     """
-    Example 4: モデルキャリブレーション
-    実測データから物理モデルパラメータをOptimization
+    Example 4: Model Calibration
+    Optimizing physical model parameters from measured data
     """
     
     from scipy.optimize import minimize, differential_evolution
@@ -768,9 +768,9 @@ Chemical Plantの反応器Digital Twinでは、物理モデルで基本的な熱
     
     
     class ModelCalibrator:
-        """物理モデルのパラメータキャリブレーション
+        """Physical model parameter calibration
     
-        実測データとの誤差を最小化するパラメータを探索
+        Search for parameters that minimize error with measured data
         """
     
         def __init__(self, reactor_model: FirstPrinciplesReactor):
@@ -779,18 +779,18 @@ Chemical Plantの反応器Digital Twinでは、物理モデルで基本的な熱
     
         def objective_function(self, param_values: np.ndarray,
                               measured_data: List[Dict]) -> float:
-            """Optimizationの目的関数（実測との誤差）
+            """Objective function for optimization (error with measurements)
     
             Args:
-                param_values: 調整するパラメータ [k0, Ea, UA]
-                measured_data: 実測データのリスト
+                param_values: Parameters to adjust [k0, Ea, UA]
+                measured_data: List of measured data
                     [{'CA_in': 1000, 'T_in': 298, 'T_jacket': 300,
                       'measured_conversion': 0.75, 'measured_T': 348}, ...]
     
             Returns:
-                平均二乗誤差（MSE）
+                Mean squared error (MSE)
             """
-            # パラメータの更新
+            # Update parameters
             k0, Ea, UA = param_values
             self.reactor_model.params.k0 = k0
             self.reactor_model.params.Ea = Ea
@@ -798,7 +798,7 @@ Chemical Plantの反応器Digital Twinでは、物理モデルで基本的な熱
     
             total_error = 0
             for data in measured_data:
-                # モデルでPrediction
+                # Predict with model
                 t, state = self.reactor_model.simulate(
                     initial_state=(0, data['T_in']),
                     time_span=(0, 60),
@@ -810,13 +810,13 @@ Chemical Plantの反応器Digital Twinでは、物理モデルで基本的な熱
                 CA_pred = state[-1, 0]
                 T_pred = state[-1, 1]
     
-                # 転化率の誤差
+                # Conversion error
                 conversion_pred = self.reactor_model.calculate_conversion(
                     CA_pred, data['CA_in']
                 )
                 error_conversion = (conversion_pred - data['measured_conversion']) ** 2
     
-                # 温度の誤差（重み付け: 0.1）
+                # Temperature error (weighted: 0.1)
                 error_T = 0.1 * ((T_pred - data['measured_T']) / 100) ** 2
     
                 total_error += error_conversion + error_T
@@ -826,16 +826,16 @@ Chemical Plantの反応器Digital Twinでは、物理モデルで基本的な熱
     
         def calibrate(self, measured_data: List[Dict],
                      method: str = 'differential_evolution') -> Dict:
-            """パラメータキャリブレーションの実行
+            """Execute parameter calibration
     
             Args:
-                measured_data: 実測データのリスト
-                method: Optimization手法 ('L-BFGS-B' or 'differential_evolution')
+                measured_data: List of measured data
+                method: Optimization method ('L-BFGS-B' or 'differential_evolution')
     
             Returns:
-                Optimization結果 {'k0', 'Ea', 'UA', 'mse'}
+                Optimization results {'k0', 'Ea', 'UA', 'mse'}
             """
-            # 初期推定値と探索範囲
+            # Initial guess and search range
             initial_guess = [
                 self.original_params.k0,
                 self.original_params.Ea,
@@ -843,13 +843,13 @@ Chemical Plantの反応器Digital Twinでは、物理モデルで基本的な熱
             ]
     
             bounds = [
-                (1e8, 1e12),      # k0の範囲
-                (60000, 100000),  # Eaの範囲 [J/mol]
-                (3000, 7000)      # UAの範囲 [W/K]
+                (1e8, 1e12),      # k0 range
+                (60000, 100000),  # Ea range [J/mol]
+                (3000, 7000)      # UA range [W/K]
             ]
     
             if method == 'differential_evolution':
-                # グローバルOptimization（推奨）
+                # Global optimization (recommended)
                 result = differential_evolution(
                     lambda x: self.objective_function(x, measured_data),
                     bounds=bounds,
@@ -862,7 +862,7 @@ Chemical Plantの反応器Digital Twinでは、物理モデルで基本的な熱
                 mse = result.fun
     
             elif method == 'L-BFGS-B':
-                # 局所Optimization
+                # Local optimization
                 result = minimize(
                     lambda x: self.objective_function(x, measured_data),
                     x0=initial_guess,
@@ -884,32 +884,32 @@ Chemical Plantの反応器Digital Twinでは、物理モデルで基本的な熱
     
     
     def generate_measured_data(n_points: int = 20) -> List[Dict]:
-        """実測データの生成（模擬）
+        """Generate measured data (simulated)
     
-        実際のプラントから得られたデータを想定
+        Assumes data obtained from actual plant
     
         Returns:
-            実測データのリスト
+            List of measured data
         """
         np.random.seed(42)
     
-        # 真のパラメータ（未知と仮定）
+        # True parameters (assumed unknown)
         true_params = ReactorParameters(
-            k0=7.5e9,      # 初期推定値1e10より小さい
-            Ea=85000,      # 初期推定値80000より大きい
-            UA=4500        # 初期推定値5000より小さい
+            k0=7.5e9,      # Smaller than initial guess of 1e10
+            Ea=85000,      # Larger than initial guess of 80000
+            UA=4500        # Smaller than initial guess of 5000
         )
     
         true_model = FirstPrinciplesReactor(true_params)
     
         measured_data = []
         for _ in range(n_points):
-            # 運転条件をランダムに変化
+            # Randomly vary operating conditions
             CA_in = np.random.uniform(800, 1200)
             T_in = 298
             T_jacket = np.random.uniform(290, 310)
     
-            # 真のモデルでSimulation
+            # Simulate with true model
             t, state = true_model.simulate(
                 initial_state=(0, T_in),
                 time_span=(0, 60),
@@ -922,7 +922,7 @@ Chemical Plantの反応器Digital Twinでは、物理モデルで基本的な熱
             T = state[-1, 1]
             conversion = true_model.calculate_conversion(CA, CA_in)
     
-            # 測定ノイズを追加
+            # Add measurement noise
             measured_data.append({
                 'CA_in': CA_in,
                 'T_in': T_in,
@@ -934,24 +934,24 @@ Chemical Plantの反応器Digital Twinでは、物理モデルで基本的な熱
         return measured_data
     
     
-    # 使用例
+    # Usage example
     if __name__ == "__main__":
-        # 初期パラメータ（不正確）
+        # Initial parameters (inaccurate)
         initial_params = ReactorParameters(
-            k0=1e10,        # 真値より大きい
-            Ea=80000,       # 真値より小さい
-            UA=5000         # 真値より大きい
+            k0=1e10,        # Larger than true value
+            Ea=80000,       # Smaller than true value
+            UA=5000         # Larger than true value
         )
     
         reactor = FirstPrinciplesReactor(initial_params)
     
-        # 実測データの生成
-        print("=== 実測データの生成 ===")
+        # Generate measured data
+        print("=== Generate Measured Data ===")
         measured_data = generate_measured_data(n_points=20)
-        print(f"データポイント数: {len(measured_data)}")
+        print(f"Number of data points: {len(measured_data)}")
     
-        # キャリブレーション前の性能評価
-        print("\n=== キャリブレーション前 ===")
+        # Performance evaluation before calibration
+        print("\n=== Before Calibration ===")
         calibrator = ModelCalibrator(reactor)
         mse_before = calibrator.objective_function(
             [initial_params.k0, initial_params.Ea, initial_params.UA],
@@ -959,30 +959,30 @@ Chemical Plantの反応器Digital Twinでは、物理モデルで基本的な熱
         )
         print(f"MSE: {mse_before:.6f}")
     
-        # キャリブレーション実行
-        print("\n=== キャリブレーション実行中... ===")
+        # Execute calibration
+        print("\n=== Executing Calibration... ===")
         optimal_result = calibrator.calibrate(
             measured_data,
             method='differential_evolution'
         )
     
-        print("\n=== Optimization結果 ===")
-        print(f"最適 k0: {optimal_result['k0']:.2e} (初期: {initial_params.k0:.2e})")
-        print(f"最適 Ea: {optimal_result['Ea']:.0f} J/mol (初期: {initial_params.Ea:.0f})")
-        print(f"最適 UA: {optimal_result['UA']:.0f} W/K (初期: {initial_params.UA:.0f})")
-        print(f"最小 MSE: {optimal_result['mse']:.6f}")
+        print("\n=== Optimization Results ===")
+        print(f"Optimal k0: {optimal_result['k0']:.2e} (Initial: {initial_params.k0:.2e})")
+        print(f"Optimal Ea: {optimal_result['Ea']:.0f} J/mol (Initial: {initial_params.Ea:.0f})")
+        print(f"Optimal UA: {optimal_result['UA']:.0f} W/K (Initial: {initial_params.UA:.0f})")
+        print(f"Minimum MSE: {optimal_result['mse']:.6f}")
     
-        # 改善率
+        # Improvement rate
         improvement = (mse_before - optimal_result['mse']) / mse_before * 100
-        print(f"\nMSE改善率: {improvement:.1f}%")
+        print(f"\nMSE improvement rate: {improvement:.1f}%")
     
-        # 最適パラメータでモデルを更新
+        # Update model with optimal parameters
         reactor.params.k0 = optimal_result['k0']
         reactor.params.Ea = optimal_result['Ea']
         reactor.params.UA = optimal_result['UA']
     
-        # テストデータで検証
-        print("\n=== テストデータでの検証 ===")
+        # Validation with test data
+        print("\n=== Validation with Test Data ===")
         test_data = measured_data[0]
         t, state = reactor.simulate(
             initial_state=(0, test_data['T_in']),
@@ -995,41 +995,41 @@ Chemical Plantの反応器Digital Twinでは、物理モデルで基本的な熱
         CA_pred = state[-1, 0]
         conversion_pred = reactor.calculate_conversion(CA_pred, test_data['CA_in'])
     
-        print(f"Prediction転化率: {conversion_pred*100:.1f}%")
-        print(f"実測転化率: {test_data['measured_conversion']*100:.1f}%")
-        print(f"誤差: {abs(conversion_pred - test_data['measured_conversion'])*100:.1f}%")
+        print(f"Predicted conversion: {conversion_pred*100:.1f}%")
+        print(f"Measured conversion: {test_data['measured_conversion']*100:.1f}%")
+        print(f"Error: {abs(conversion_pred - test_data['measured_conversion'])*100:.1f}%")
     
-    # 期待される出力例:
-    # === 実測データの生成 ===
-    # データポイント数: 20
+    # Expected output example:
+    # === Generate Measured Data ===
+    # Number of data points: 20
     #
-    # === キャリブレーション前 ===
+    # === Before Calibration ===
     # MSE: 0.012345
     #
-    # === キャリブレーション実行中... ===
+    # === Executing Calibration... ===
     #
-    # === Optimization結果 ===
-    # 最適 k0: 7.48e+09 (初期: 1.00e+10)
-    # 最適 Ea: 85023 J/mol (初期: 80000)
-    # 最適 UA: 4512 W/K (初期: 5000)
-    # 最小 MSE: 0.000123
+    # === Optimization Results ===
+    # Optimal k0: 7.48e+09 (Initial: 1.00e+10)
+    # Optimal Ea: 85023 J/mol (Initial: 80000)
+    # Optimal UA: 4512 W/K (Initial: 5000)
+    # Minimum MSE: 0.000123
     #
-    # MSE改善率: 99.0%
+    # MSE improvement rate: 99.0%
     #
-    # === テストデータでの検証 ===
-    # Prediction転化率: 74.3%
-    # 実測転化率: 74.5%
-    # 誤差: 0.2%
+    # === Validation with Test Data ===
+    # Predicted conversion: 74.3%
+    # Measured conversion: 74.5%
+    # Error: 0.2%
     
 
-## 3.6 Implementation Example5：残差学習アプローチ
+## 3.6 Implementation Example 5: Residual Learning Approach
 
-物理モデルのPrediction残差（誤差）をMachine Learningで学習する、効率的なハイブリッド手法です。
+An efficient hybrid method that learns the prediction residuals (errors) of the physical model with machine learning.
     
     
     """
-    Example 5: 残差学習アプローチ
-    物理モデルの誤差パターンをMachine Learningで学習
+    Example 5: Residual Learning Approach
+    Learning error patterns of physical models with machine learning
     """
     
     import numpy as np
@@ -1039,16 +1039,16 @@ Chemical Plantの反応器Digital Twinでは、物理モデルで基本的な熱
     
     
     class ResidualLearningModel:
-        """残差学習ハイブリッドモデル
+        """Residual learning hybrid model
     
-        物理モデルPredictionと実測値の差（残差）を
-        ガウス過程回帰で学習し、不確実性も定量化
+        Learns the difference (residual) between physical model prediction and measured values
+        with Gaussian process regression, and also quantifies uncertainty
         """
     
         def __init__(self, physics_model: FirstPrinciplesReactor):
             self.physics_model = physics_model
     
-            # ガウス過程回帰（不確実性も推定）
+            # Gaussian process regression (also estimates uncertainty)
             kernel = RBF(length_scale=1.0) + WhiteKernel(noise_level=1e-5)
             self.gp_model = GaussianProcessRegressor(
                 kernel=kernel,
@@ -1059,15 +1059,15 @@ Chemical Plantの反応器Digital Twinでは、物理モデルで基本的な熱
     
         def compute_physics_residuals(self, X: np.ndarray,
                                       y_true: np.ndarray) -> np.ndarray:
-            """物理モデルの残差を計算
+            """Calculate physical model residuals
     
             Args:
-                X: 特徴量 [n_samples, n_features]
+                X: Features [n_samples, n_features]
                       columns: [CA_in, T_in, T_jacket, catalyst_age]
-                y_true: 実測転化率 [n_samples]
+                y_true: Measured conversion [n_samples]
     
             Returns:
-                残差 [n_samples]
+                Residuals [n_samples]
             """
             n_samples = X.shape[0]
             residuals = np.zeros(n_samples)
@@ -1075,7 +1075,7 @@ Chemical Plantの反応器Digital Twinでは、物理モデルで基本的な熱
             for i in range(n_samples):
                 CA_in, T_in, T_jacket, _ = X[i]
     
-                # 物理モデルでPrediction
+                # Predict with physical model
                 t, state = self.physics_model.simulate(
                     initial_state=(0, T_in),
                     time_span=(0, 60),
@@ -1089,45 +1089,45 @@ Chemical Plantの反応器Digital Twinでは、物理モデルで基本的な熱
                     CA_pred, CA_in
                 )
     
-                # 残差 = 実測 - 物理Prediction
+                # Residual = measured - physical prediction
                 residuals[i] = y_true[i] - conversion_pred
     
             return residuals
     
         def train(self, X: np.ndarray, y_true: np.ndarray):
-            """残差学習モデルの訓練
+            """Train residual learning model
     
             Args:
-                X: 特徴量 [n_samples, n_features]
-                y_true: 実測転化率 [n_samples]
+                X: Features [n_samples, n_features]
+                y_true: Measured conversion [n_samples]
             """
-            print("物理モデルの残差を計算中...")
+            print("Calculating physical model residuals...")
             residuals = self.compute_physics_residuals(X, y_true)
     
-            print(f"残差の統計: Mean={np.mean(residuals):.4f}, Std={np.std(residuals):.4f}")
+            print(f"Residual statistics: Mean={np.mean(residuals):.4f}, Std={np.std(residuals):.4f}")
     
-            # ガウス過程回帰で残差を学習
-            print("ガウス過程回帰の訓練中...")
+            # Learn residuals with Gaussian process regression
+            print("Training Gaussian process regression...")
             self.gp_model.fit(X, residuals)
             self.is_trained = True
     
-            print("訓練完了")
+            print("Training complete")
     
         def predict(self, X: np.ndarray,
                    return_std: bool = False) -> Tuple[np.ndarray, np.ndarray]:
-            """Prediction実行（物理 + 残差補正）
+            """Execute prediction (physics + residual correction)
     
             Args:
-                X: 特徴量 [n_samples, n_features]
-                return_std: 標準偏差（不確実性）も返すか
+                X: Features [n_samples, n_features]
+                return_std: Also return standard deviation (uncertainty)
     
             Returns:
-                (predictions, std) Prediction値と標準偏差
+                (predictions, std) Predicted values and standard deviation
             """
             n_samples = X.shape[0]
             physics_predictions = np.zeros(n_samples)
     
-            # 物理モデルでPrediction
+            # Predict with physical model
             for i in range(n_samples):
                 CA_in, T_in, T_jacket, _ = X[i]
     
@@ -1145,7 +1145,7 @@ Chemical Plantの反応器Digital Twinでは、物理モデルで基本的な熱
                 )
                 physics_predictions[i] = conversion_pred
     
-            # 残差をPrediction
+            # Predict residuals
             if self.is_trained:
                 if return_std:
                     residual_pred, residual_std = self.gp_model.predict(
@@ -1164,17 +1164,17 @@ Chemical Plantの反応器Digital Twinでは、物理モデルで基本的な熱
                     return physics_predictions, None
     
     
-    # 使用例
+    # Usage example
     if __name__ == "__main__":
-        # 物理モデルの初期化
+        # Physical model initialization
         params = ReactorParameters()
         physics_model = FirstPrinciplesReactor(params)
     
-        # 残差学習モデルの初期化
+        # Residual learning model initialization
         residual_model = ResidualLearningModel(physics_model)
     
-        # 訓練データ生成
-        print("=== 訓練データ生成 ===")
+        # Training data generation
+        print("=== Training Data Generation ===")
         np.random.seed(42)
         n_train = 50
     
@@ -1185,7 +1185,7 @@ Chemical Plantの反応器Digital Twinでは、物理モデルで基本的な熱
             np.random.uniform(0, 365, n_train)      # catalyst_age
         ])
     
-        # 真の転化率（物理モデル + 未知の影響）
+        # True conversion (physical model + unknown effects)
         y_train_physics = np.zeros(n_train)
         for i in range(n_train):
             t, state = physics_model.simulate(
@@ -1198,16 +1198,16 @@ Chemical Plantの反応器Digital Twinでは、物理モデルで基本的な熱
             CA = state[-1, 0]
             y_train_physics[i] = physics_model.calculate_conversion(CA, X_train[i, 0])
     
-        # 未知の影響（触媒劣化など）を追加
+        # Add unknown effects (catalyst degradation, etc.)
         catalyst_effect = -0.0003 * X_train[:, 3]
         y_train_true = y_train_physics + catalyst_effect + np.random.normal(0, 0.01, n_train)
     
-        # 訓練
-        print("\n=== 残差学習モデルの訓練 ===")
+        # Training
+        print("\n=== Residual Learning Model Training ===")
         residual_model.train(X_train, y_train_true)
     
-        # テストデータで評価
-        print("\n=== テストデータで評価 ===")
+        # Evaluation with test data
+        print("\n=== Evaluation with Test Data ===")
         n_test = 10
         X_test = np.column_stack([
             np.random.uniform(800, 1200, n_test),
@@ -1216,7 +1216,7 @@ Chemical Plantの反応器Digital Twinでは、物理モデルで基本的な熱
             np.random.uniform(0, 365, n_test)
         ])
     
-        # 真の値（テスト）
+        # True values (test)
         y_test_physics = np.zeros(n_test)
         for i in range(n_test):
             t, state = physics_model.simulate(
@@ -1232,11 +1232,11 @@ Chemical Plantの反応器Digital Twinでは、物理モデルで基本的な熱
         catalyst_effect_test = -0.0003 * X_test[:, 3]
         y_test_true = y_test_physics + catalyst_effect_test
     
-        # Prediction（不確実性付き）
+        # Prediction (with uncertainty)
         y_pred, y_std = residual_model.predict(X_test, return_std=True)
     
-        # 結果表示
-        print("\nPrediction結果:")
+        # Display results
+        print("\nPrediction Results:")
         print("Index\tTrue\tPhysics\tHybrid\tStd\tError")
         print("-" * 60)
         for i in range(n_test):
@@ -1244,27 +1244,27 @@ Chemical Plantの反応器Digital Twinでは、物理モデルで基本的な熱
             print(f"{i}\t{y_test_true[i]:.3f}\t{y_test_physics[i]:.3f}\t"
                   f"{y_pred[i]:.3f}\t{y_std[i]:.3f}\t{error:.3f}")
     
-        # 性能評価
+        # Performance evaluation
         mae_physics = np.mean(np.abs(y_test_true - y_test_physics))
         mae_hybrid = np.mean(np.abs(y_test_true - y_pred))
     
-        print(f"\n=== 性能比較 ===")
-        print(f"物理モデル MAE: {mae_physics:.4f}")
-        print(f"ハイブリッド MAE: {mae_hybrid:.4f}")
-        print(f"改善率: {(mae_physics - mae_hybrid) / mae_physics * 100:.1f}%")
+        print(f"\n=== Performance Comparison ===")
+        print(f"Physical model MAE: {mae_physics:.4f}")
+        print(f"Hybrid MAE: {mae_hybrid:.4f}")
+        print(f"Improvement rate: {(mae_physics - mae_hybrid) / mae_physics * 100:.1f}%")
     
-    # 期待される出力例:
-    # === 訓練データ生成 ===
+    # Expected output example:
+    # === Training Data Generation ===
     #
-    # === 残差学習モデルの訓練 ===
-    # 物理モデルの残差を計算中...
-    # 残差の統計: Mean=-0.0534, Std=0.0456
-    # ガウス過程回帰の訓練中...
-    # 訓練完了
+    # === Residual Learning Model Training ===
+    # Calculating physical model residuals...
+    # Residual statistics: Mean=-0.0534, Std=0.0456
+    # Training Gaussian process regression...
+    # Training complete
     #
-    # === テストデータで評価 ===
+    # === Evaluation with Test Data ===
     #
-    # Prediction結果:
+    # Prediction Results:
     # Index    True    Physics Hybrid  Std     Error
     # ------------------------------------------------------------
     # 0        0.712   0.756   0.708   0.012   0.004
@@ -1278,20 +1278,20 @@ Chemical Plantの反応器Digital Twinでは、物理モデルで基本的な熱
     # 8        0.745   0.787   0.743   0.013   0.002
     # 9        0.712   0.759   0.710   0.015   0.002
     #
-    # === 性能比較 ===
-    # 物理モデル MAE: 0.0456
-    # ハイブリッド MAE: 0.0025
-    # 改善率: 94.5%
+    # === Performance Comparison ===
+    # Physical model MAE: 0.0456
+    # Hybrid MAE: 0.0025
+    # Improvement rate: 94.5%
     
 
-## 3.7 Implementation Example6：Physics-Informed Neural Networks (PINN) 基礎
+## 3.7 Implementation Example 6: Physics-Informed Neural Networks (PINN) Basics
 
-物理法則を損失関数に組み込んだニューラルネットワーク、PINNの基本実装です。
+Basic implementation of PINN, a neural network that incorporates physical laws into the loss function.
     
     
     """
-    Example 6: Physics-Informed Neural Networks (PINN) 基礎
-    物理法則を制約として組み込んだニューラルネットワーク
+    Example 6: Physics-Informed Neural Networks (PINN) Basics
+    Neural networks incorporating physical laws as constraints
     """
     
     import torch
@@ -1303,15 +1303,15 @@ Chemical Plantの反応器Digital Twinでは、物理モデルで基本的な熱
     class PhysicsInformedNN(nn.Module):
         """Physics-Informed Neural Network (PINN)
     
-        ニューラルネットワークの損失関数に
-        物理法則（微 minutes方程式）の残差を組み込む
+        Incorporates residuals of physical laws (differential equations)
+        into the loss function of neural networks
         """
     
         def __init__(self, input_dim: int = 4, hidden_dim: int = 64):
             """
             Args:
-                input_dim: 入力次元（CA_in, T_in, T_jacket, t）
-                hidden_dim: 隠れ層の次元
+                input_dim: Input dimension (CA_in, T_in, T_jacket, t)
+                hidden_dim: Hidden layer dimension
             """
             super(PhysicsInformedNN, self).__init__()
     
@@ -1322,15 +1322,15 @@ Chemical Plantの反応器Digital Twinでは、物理モデルで基本的な熱
                 nn.Tanh(),
                 nn.Linear(hidden_dim, hidden_dim),
                 nn.Tanh(),
-                nn.Linear(hidden_dim, 2)  # [CA, T]を出力
+                nn.Linear(hidden_dim, 2)  # Output [CA, T]
             )
     
-            # 物理パラメータ（学習可能）
+            # Physical parameters (learnable)
             self.k0 = nn.Parameter(torch.tensor(1e10, dtype=torch.float32))
             self.Ea = nn.Parameter(torch.tensor(80000.0, dtype=torch.float32))
             self.UA = nn.Parameter(torch.tensor(5000.0, dtype=torch.float32))
     
-            # 固定パラメータ
+            # Fixed parameters
             self.V = 1.0
             self.F = 0.1
             self.rho = 1000.0
@@ -1339,7 +1339,7 @@ Chemical Plantの反応器Digital Twinでは、物理モデルで基本的な熱
             self.R = 8.314
     
         def forward(self, x: torch.Tensor) -> torch.Tensor:
-            """順伝播
+            """Forward pass
     
             Args:
                 x: [batch, 4] (CA_in, T_in, T_jacket, t)
@@ -1350,14 +1350,14 @@ Chemical Plantの反応器Digital Twinでは、物理モデルで基本的な熱
             return self.network(x)
     
         def reaction_rate(self, CA: torch.Tensor, T: torch.Tensor) -> torch.Tensor:
-            """反応速度（アレニウス式）
+            """Reaction rate (Arrhenius equation)
     
             Args:
-                CA: 濃度 [batch]
-                T: 温度 [batch]
+                CA: Concentration [batch]
+                T: Temperature [batch]
     
             Returns:
-                反応速度 [batch]
+                Reaction rate [batch]
             """
             k = self.k0 * torch.exp(-self.Ea / (self.R * T))
             r = k * CA
@@ -1365,42 +1365,42 @@ Chemical Plantの反応器Digital Twinでは、物理モデルで基本的な熱
     
         def physics_loss(self, x: torch.Tensor,
                         CA: torch.Tensor, T: torch.Tensor) -> torch.Tensor:
-            """物理法則の残差（微 minutes方程式の誤差）
+            """Physical law residual (differential equation error)
     
-            dCA/dt = F/V * (CA_in - CA) - r  の残差
-            dT/dt = ... の残差
+            Residual of dCA/dt = F/V * (CA_in - CA) - r
+            Residual of dT/dt = ...
     
             Args:
-                x: 入力 [batch, 4]
-                CA: 濃度Prediction [batch]
-                T: 温度Prediction [batch]
+                x: Input [batch, 4]
+                CA: Concentration prediction [batch]
+                T: Temperature prediction [batch]
     
             Returns:
-                物理残差（スカラー）
+                Physical residual (scalar)
             """
             CA_in = x[:, 0]
             T_in = x[:, 1]
             T_jacket = x[:, 2]
     
-            # 自動微 minutesでdCA/dt, dT/dtを計算
+            # Automatic differentiation to calculate dCA/dt, dT/dt
             CA.requires_grad_(True)
             T.requires_grad_(True)
     
-            # 反応速度
+            # Reaction rate
             r = self.reaction_rate(CA, T)
     
-            # 質量収支の右辺
+            # Right-hand side of mass balance
             dCA_dt_theory = (self.F / self.V) * (CA_in - CA) - r
     
-            # エネルギー収支の右辺
+            # Right-hand side of energy balance
             term1 = (self.F / self.V) * (T_in - T)
             term2 = (-self.delta_H) * r / (self.rho * self.Cp)
             term3 = -self.UA / (self.rho * self.Cp * self.V) * (T - T_jacket)
             dT_dt_theory = term1 + term2 + term3
     
-            # 実際の hours微 minutes（NNの出力をtで微 minutes）
-            # 簡略化のため、ここでは理論値との直接比較
-            # 実際は torch.autograd.grad を使用
+            # Actual time derivative (differentiate NN output with respect to t)
+            # For simplicity, direct comparison with theoretical values here
+            # In practice, use torch.autograd.grad
     
             physics_residual = torch.mean(dCA_dt_theory ** 2 + dT_dt_theory ** 2)
     
@@ -1408,17 +1408,17 @@ Chemical Plantの反応器Digital Twinでは、物理モデルで基本的な熱
     
         def data_loss(self, CA_pred: torch.Tensor, T_pred: torch.Tensor,
                      CA_true: torch.Tensor, T_true: torch.Tensor) -> torch.Tensor:
-            """データ誤差（実測値との差）
+            """Data error (difference from measured values)
     
             Args:
-                CA_pred, T_pred: Prediction値
-                CA_true, T_true: 実測値
+                CA_pred, T_pred: Predicted values
+                CA_true, T_true: Measured values
     
             Returns:
-                データ損失（スカラー）
+                Data loss (scalar)
             """
             loss_CA = torch.mean((CA_pred - CA_true) ** 2)
-            loss_T = torch.mean((T_pred - T_true) ** 2) / 10000  # 温度スケール調整
+            loss_T = torch.mean((T_pred - T_true) ** 2) / 10000  # Temperature scale adjustment
     
             return loss_CA + loss_T
     
@@ -1427,22 +1427,22 @@ Chemical Plantの反応器Digital Twinでは、物理モデルで基本的な熱
                   X_data: np.ndarray, CA_data: np.ndarray, T_data: np.ndarray,
                   epochs: int = 1000,
                   lambda_physics: float = 0.1) -> list:
-        """PINNの訓練
+        """PINN training
     
         Args:
-            model: PINNモデル
-            X_data: 入力データ [n_samples, 4]
-            CA_data: 濃度実測値 [n_samples]
-            T_data: 温度実測値 [n_samples]
-            epochs: エポック数
-            lambda_physics: 物理損失の重み
+            model: PINN model
+            X_data: Input data [n_samples, 4]
+            CA_data: Concentration measurements [n_samples]
+            T_data: Temperature measurements [n_samples]
+            epochs: Number of epochs
+            lambda_physics: Weight of physics loss
     
         Returns:
-            損失の履歴
+            Loss history
         """
         optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
     
-        # データをTensorに変換
+        # Convert data to Tensor
         X_tensor = torch.tensor(X_data, dtype=torch.float32)
         CA_tensor = torch.tensor(CA_data, dtype=torch.float32)
         T_tensor = torch.tensor(T_data, dtype=torch.float32)
@@ -1452,21 +1452,21 @@ Chemical Plantの反応器Digital Twinでは、物理モデルで基本的な熱
         for epoch in range(epochs):
             optimizer.zero_grad()
     
-            # 順伝播
+            # Forward pass
             output = model(X_tensor)
             CA_pred = output[:, 0]
             T_pred = output[:, 1]
     
-            # データ損失
+            # Data loss
             loss_data = model.data_loss(CA_pred, T_pred, CA_tensor, T_tensor)
     
-            # 物理損失
+            # Physics loss
             loss_physics = model.physics_loss(X_tensor, CA_pred, T_pred)
     
-            # 総損失
+            # Total loss
             total_loss = loss_data + lambda_physics * loss_physics
     
-            # 逆伝播
+            # Backward pass
             total_loss.backward()
             optimizer.step()
     
@@ -1481,11 +1481,11 @@ Chemical Plantの反応器Digital Twinでは、物理モデルで基本的な熱
         return loss_history
     
     
-    # 使用例（簡略版）
+    # Usage example (simplified)
     if __name__ == "__main__":
         print("=== Physics-Informed Neural Network (PINN) ===")
     
-        # 訓練データ生成（簡略版）
+        # Training data generation (simplified)
         np.random.seed(42)
         n_samples = 100
     
@@ -1496,20 +1496,20 @@ Chemical Plantの反応器Digital Twinでは、物理モデルで基本的な熱
             np.random.uniform(0, 60, n_samples)       # t
         ])
     
-        # 模擬的な実測値
+        # Simulated measurements
         CA_data = np.random.uniform(200, 800, n_samples)
         T_data = np.random.uniform(320, 360, n_samples)
     
-        # PINNモデルの初期化
+        # PINN model initialization
         pinn_model = PhysicsInformedNN(input_dim=4, hidden_dim=64)
     
-        print(f"\n初期パラメータ:")
+        print(f"\nInitial parameters:")
         print(f"k0: {pinn_model.k0.item():.2e}")
         print(f"Ea: {pinn_model.Ea.item():.0f} J/mol")
         print(f"UA: {pinn_model.UA.item():.0f} W/K")
     
-        # 訓練（簡略版 - 実際はより多くのエポック）
-        print(f"\n訓練開始...")
+        # Training (simplified - more epochs needed in practice)
+        print(f"\nTraining started...")
         loss_history = train_pinn(
             pinn_model,
             X_data, CA_data, T_data,
@@ -1517,52 +1517,52 @@ Chemical Plantの反応器Digital Twinでは、物理モデルで基本的な熱
             lambda_physics=0.1
         )
     
-        print(f"\n最終パラメータ:")
+        print(f"\nFinal parameters:")
         print(f"k0: {pinn_model.k0.item():.2e}")
         print(f"Ea: {pinn_model.Ea.item():.0f} J/mol")
         print(f"UA: {pinn_model.UA.item():.0f} W/K")
     
-        print("\nPINN訓練完了（実際のアプリケーションではより詳細な実装が必要）")
+        print("\nPINN training complete (more detailed implementation needed for actual applications)")
     
-    # 期待される出力例:
+    # Expected output example:
     # === Physics-Informed Neural Network (PINN) ===
     #
-    # 初期パラメータ:
+    # Initial parameters:
     # k0: 1.00e+10
     # Ea: 80000 J/mol
     # UA: 5000 W/K
     #
-    # 訓練開始...
+    # Training started...
     # Epoch 100/500 - Total Loss: 125432.5678, Data Loss: 123456.7890, Physics Loss: 1975.7788
     # Epoch 200/500 - Total Loss: 45678.1234, Data Loss: 44567.2345, Physics Loss: 1110.8889
     # Epoch 300/500 - Total Loss: 12345.6789, Data Loss: 11234.5678, Physics Loss: 1111.1111
     # Epoch 400/500 - Total Loss: 3456.7890, Data Loss: 2345.6789, Physics Loss: 1111.1101
     # Epoch 500/500 - Total Loss: 1234.5678, Data Loss: 123.4567, Physics Loss: 1111.1111
     #
-    # 最終パラメータ:
+    # Final parameters:
     # k0: 8.23e+09
     # Ea: 83215 J/mol
     # UA: 4687 W/K
     #
-    # PINN訓練完了（実際のアプリケーションではより詳細な実装が必要）
+    # PINN training complete (more detailed implementation needed for actual applications)
     
 
-**⚠️ PINNの実装に関する注意**  
-上記はPINNの基本概念を示す簡略版です。実際のプロダクション環境では以下が必要です： 
+**Notes on PINN Implementation**  
+The above is a simplified version showing the basic concept of PINN. For actual production environments, the following are necessary: 
 
-  * 自動微 minutesを用いた正確な hours微 minutesの計算
-  * 境界条件と初期条件の厳密な適用
-  * 物理損失と データ損失のバランス調整
-  * より深いネットワークと長 hoursの訓練
+  * Accurate time derivative calculation using automatic differentiation
+  * Strict application of boundary and initial conditions
+  * Balance adjustment between physics loss and data loss
+  * Deeper networks and longer training
 
-## 3.8 Implementation Example7：モデル選択と切り替えロジック
+## 3.8 Implementation Example 7: Model Selection and Switching Logic
 
-運転状況に応じて最適なモデル（物理/データ駆動/ハイブリッド）を自動選択します。
+Automatically selects the optimal model (physical/data-driven/hybrid) according to operating conditions.
     
     
     """
-    Example 7: モデル選択と切り替えロジック
-    運転状況に応じて最適なモデルを動的に選択
+    Example 7: Model Selection and Switching Logic
+    Dynamically selecting optimal model based on operating conditions
     """
     
     from enum import Enum
@@ -1571,17 +1571,17 @@ Chemical Plantの反応器Digital Twinでは、物理モデルで基本的な熱
     
     
     class ModelType(Enum):
-        """モデルタイプ"""
+        """Model types"""
         PHYSICS_ONLY = "physics"
         DATA_DRIVEN = "data_driven"
         HYBRID = "hybrid"
     
     
     class AdaptiveModelSelector:
-        """適応的モデル選択器
+        """Adaptive model selector
     
-        運転条件、データ品質、Prediction精度に基づいて
-        最適なモデルを動的に選択
+        Dynamically selects optimal model based on
+        operating conditions, data quality, and prediction accuracy
         """
     
         def __init__(self,
@@ -1590,15 +1590,15 @@ Chemical Plantの反応器Digital Twinでは、物理モデルで基本的な熱
                     hybrid_model: HybridReactorModel):
             """
             Args:
-                physics_model: 物理モデル
-                data_model: データ駆動モデル
-                hybrid_model: ハイブリッドモデル
+                physics_model: Physical model
+                data_model: Data-driven model
+                hybrid_model: Hybrid model
             """
             self.physics_model = physics_model
             self.data_model = data_model
             self.hybrid_model = hybrid_model
     
-            # 各モデルの適用範囲（訓練データ範囲）
+            # Application range for each model (training data range)
             self.data_model_range = {
                 'T': (60, 95),
                 'P': (2.0, 3.0),
@@ -1606,7 +1606,7 @@ Chemical Plantの反応器Digital Twinでは、物理モデルで基本的な熱
                 'catalyst_age': (0, 365)
             }
     
-            # モデル性能履歴
+            # Model performance history
             self.performance_history = {
                 ModelType.PHYSICS_ONLY: [],
                 ModelType.DATA_DRIVEN: [],
@@ -1614,13 +1614,13 @@ Chemical Plantの反応器Digital Twinでは、物理モデルで基本的な熱
             }
     
         def is_within_training_range(self, inputs: Dict) -> bool:
-            """入力がデータ駆動モデルの訓練範囲内か確認
+            """Check if inputs are within data-driven model training range
     
             Args:
-                inputs: 入力辞書
+                inputs: Input dictionary
     
             Returns:
-                範囲内ならTrue
+                True if within range
             """
             if 'T' in inputs:
                 T = inputs['T']
@@ -1632,32 +1632,32 @@ Chemical Plantの反応器Digital Twinでは、物理モデルで基本的な熱
                 if not (self.data_model_range['P'][0] <= P <= self.data_model_range['P'][1]):
                     return False
     
-            # 他の変数も同様にチェック
+            # Check other variables similarly
             return True
     
         def assess_data_quality(self, sensor_data: Dict) -> float:
-            """センサーデータの品質を評価
+            """Assess sensor data quality
     
             Args:
-                sensor_data: センサーデータ辞書
+                sensor_data: Sensor data dictionary
     
             Returns:
-                品質スコア (0-1, 1が最高)
+                Quality score (0-1, 1 is highest)
             """
             quality_score = 1.0
     
-            # データ品質フラグのチェック
+            # Check data quality flag
             if sensor_data.get('quality') == 'Bad':
                 quality_score *= 0.3
             elif sensor_data.get('quality') == 'Uncertain':
                 quality_score *= 0.7
     
-            # データ完全性のチェック
+            # Check data completeness
             required_fields = ['temperature', 'pressure', 'flow_rate']
             missing_count = sum(1 for field in required_fields if field not in sensor_data)
             quality_score *= (1.0 - 0.2 * missing_count)
     
-            # ノイズLevelのチェック（標準偏差が大きい場合）
+            # Check noise level (if standard deviation is large)
             if 'noise_level' in sensor_data:
                 quality_score *= max(0.5, 1.0 - sensor_data['noise_level'])
     
@@ -1666,58 +1666,58 @@ Chemical Plantの反応器Digital Twinでは、物理モデルで基本的な熱
         def select_model(self, inputs: Dict,
                         sensor_data: Dict,
                         data_quality: Optional[float] = None) -> ModelType:
-            """運転状況に基づいて最適なモデルを選択
+            """Select optimal model based on operating conditions
     
             Args:
-                inputs: 運転条件
-                sensor_data: センサーデータ
-                data_quality: データ品質スコア（Noneなら自動計算）
+                inputs: Operating conditions
+                sensor_data: Sensor data
+                data_quality: Data quality score (auto-calculated if None)
     
             Returns:
-                選択されたモデルタイプ
+                Selected model type
             """
             if data_quality is None:
                 data_quality = self.assess_data_quality(sensor_data)
     
             in_training_range = self.is_within_training_range(inputs)
     
-            # 決定ロジック
+            # Decision logic
             if data_quality < 0.5:
-                # データ品質が低い → 物理モデルを使用
+                # Low data quality → Use physical model
                 return ModelType.PHYSICS_ONLY
     
             elif in_training_range and data_quality >= 0.8:
-                # 訓練範囲内かつ高品質データ → ハイブリッドモデル（最高精度）
+                # Within training range and high quality data → Hybrid model (highest accuracy)
                 return ModelType.HYBRID
     
             elif in_training_range:
-                # 訓練範囲内だが品質は中程度 → データ駆動モデル
+                # Within training range but medium quality → Data-driven model
                 return ModelType.DATA_DRIVEN
     
             else:
-                # 訓練範囲外 → 物理モデル（外挿性が高い）
+                # Outside training range → Physical model (high extrapolation capability)
                 return ModelType.PHYSICS_ONLY
     
         def predict(self, inputs: Dict, sensor_data: Dict) -> Dict:
-            """Prediction実行（最適なモデルを自動選択）
+            """Execute prediction (automatically select optimal model)
     
             Args:
-                inputs: 運転条件
-                sensor_data: センサーデータ
+                inputs: Operating conditions
+                sensor_data: Sensor data
     
             Returns:
-                Prediction結果辞書 {'conversion', 'model_used', 'confidence'}
+                Prediction result dictionary {'conversion', 'model_used', 'confidence'}
             """
-            # モデル選択
+            # Model selection
             selected_model = self.select_model(inputs, sensor_data)
     
-            # データ品質評価
+            # Data quality evaluation
             data_quality = self.assess_data_quality(sensor_data)
     
-            # 選択されたモデルでPrediction
+            # Predict with selected model
             if selected_model == ModelType.PHYSICS_ONLY:
                 result = self.physics_model.predict_physics(inputs)
-                confidence = 0.7  # 物理モデルの信頼度
+                confidence = 0.7  # Physical model confidence
     
             elif selected_model == ModelType.DATA_DRIVEN:
                 X = np.array([[
@@ -1728,16 +1728,16 @@ Chemical Plantの反応器Digital Twinでは、物理モデルで基本的な熱
                 ]])
                 conversion_pred = self.data_model.predict(X)[0]
                 result = {'conversion': conversion_pred}
-                confidence = 0.9 * data_quality  # データ品質に依存
+                confidence = 0.9 * data_quality  # Depends on data quality
     
             elif selected_model == ModelType.HYBRID:
                 result = self.hybrid_model.predict_hybrid(inputs)
-                confidence = 0.95 * data_quality  # 最高精度
+                confidence = 0.95 * data_quality  # Highest accuracy
     
             else:
                 raise ValueError(f"Unknown model type: {selected_model}")
     
-            # 結果に情報を追加
+            # Add information to result
             result['model_used'] = selected_model.value
             result['confidence'] = confidence
             result['data_quality'] = data_quality
@@ -1746,23 +1746,23 @@ Chemical Plantの反応器Digital Twinでは、物理モデルで基本的な熱
     
         def update_performance(self, model_type: ModelType,
                               prediction: float, actual: float):
-            """モデル性能の履歴を更新（オンライン学習に利用）
+            """Update model performance history (used for online learning)
     
             Args:
-                model_type: 使用したモデルタイプ
-                prediction: Prediction値
-                actual: 実測値
+                model_type: Model type used
+                prediction: Predicted value
+                actual: Measured value
             """
             error = abs(prediction - actual)
             self.performance_history[model_type].append(error)
     
-            # 最新100件のみ保持
+            # Keep only latest 100
             if len(self.performance_history[model_type]) > 100:
                 self.performance_history[model_type] = \
                     self.performance_history[model_type][-100:]
     
         def get_model_performance_summary(self) -> Dict:
-            """各モデルの性能サマリーを取得
+            """Get performance summary for each model
     
             Returns:
                 {'physics': {'mae': 0.05, 'count': 120}, ...}
@@ -1780,27 +1780,27 @@ Chemical Plantの反応器Digital Twinでは、物理モデルで基本的な熱
             return summary
     
     
-    # 使用例
+    # Usage example
     if __name__ == "__main__":
-        # 各モデルの初期化（前の例から）
+        # Initialize each model (from previous examples)
         params = ReactorParameters()
         physics_model = FirstPrinciplesReactor(params)
     
         data_model = DataDrivenReactorModel(model_type='random_forest')
-        # （訓練は省略）
+        # (training omitted)
     
         hybrid_model = HybridReactorModel(physical_params=params)
-        # （訓練は省略）
+        # (training omitted)
     
-        # 適応的モデル選択器の初期化
+        # Adaptive model selector initialization
         model_selector = AdaptiveModelSelector(
             physics_model=physics_model,
             data_model=data_model,
             hybrid_model=hybrid_model
         )
     
-        # シナリオ1: 通常運転（高品質データ、訓練範囲内）
-        print("=== シナリオ1: 通常運転 ===")
+        # Scenario 1: Normal operation (high quality data, within training range)
+        print("=== Scenario 1: Normal Operation ===")
         inputs1 = {
             'CA_in': 1000,
             'T_in': 298,
@@ -1818,30 +1818,30 @@ Chemical Plantの反応器Digital Twinでは、物理モデルで基本的な熱
         }
     
         result1 = model_selector.predict(inputs1, sensor_data1)
-        print(f"使用モデル: {result1['model_used']}")
-        print(f"信頼度: {result1['confidence']:.2f}")
-        print(f"データ品質: {result1['data_quality']:.2f}")
+        print(f"Model used: {result1['model_used']}")
+        print(f"Confidence: {result1['confidence']:.2f}")
+        print(f"Data quality: {result1['data_quality']:.2f}")
     
-        # シナリオ2: 異常運転（低品質データ）
-        print("\n=== シナリオ2: 異常運転（低品質データ） ===")
+        # Scenario 2: Abnormal operation (low quality data)
+        print("\n=== Scenario 2: Abnormal Operation (Low Quality Data) ===")
         sensor_data2 = {
             'temperature': 80.0,
-            'quality': 'Bad',  # 不良データ
+            'quality': 'Bad',  # Bad data
             'noise_level': 0.8
         }
     
         result2 = model_selector.predict(inputs1, sensor_data2)
-        print(f"使用モデル: {result2['model_used']}")
-        print(f"信頼度: {result2['confidence']:.2f}")
-        print(f"データ品質: {result2['data_quality']:.2f}")
+        print(f"Model used: {result2['model_used']}")
+        print(f"Confidence: {result2['confidence']:.2f}")
+        print(f"Data quality: {result2['data_quality']:.2f}")
     
-        # シナリオ3: 訓練範囲外（外挿）
-        print("\n=== シナリオ3: 訓練範囲外 ===")
+        # Scenario 3: Outside training range (extrapolation)
+        print("\n=== Scenario 3: Outside Training Range ===")
         inputs3 = {
             'CA_in': 1000,
             'T_in': 298,
             'T_jacket': 300,
-            'T': 105,  # 訓練範囲外（max 95℃）
+            'T': 105,  # Outside training range (max 95°C)
             'P': 2.5,
             'F': 120,
             'catalyst_age': 100
@@ -1854,170 +1854,170 @@ Chemical Plantの反応器Digital Twinでは、物理モデルで基本的な熱
         }
     
         result3 = model_selector.predict(inputs3, sensor_data3)
-        print(f"使用モデル: {result3['model_used']}")
-        print(f"信頼度: {result3['confidence']:.2f}")
-        print(f"理由: 訓練範囲外のため物理モデルを使用")
+        print(f"Model used: {result3['model_used']}")
+        print(f"Confidence: {result3['confidence']:.2f}")
+        print(f"Reason: Physical model used due to being outside training range")
     
-        # 性能履歴の更新（模擬）
-        print("\n=== モデル性能の更新 ===")
+        # Update performance history (simulated)
+        print("\n=== Model Performance Update ===")
         model_selector.update_performance(ModelType.HYBRID, 0.75, 0.74)
         model_selector.update_performance(ModelType.HYBRID, 0.76, 0.75)
         model_selector.update_performance(ModelType.PHYSICS_ONLY, 0.70, 0.75)
     
         summary = model_selector.get_model_performance_summary()
         for model, stats in summary.items():
-            print(f"{model}: MAE={stats['mae']:.4f}, 使用回数={stats['count']}")
+            print(f"{model}: MAE={stats['mae']:.4f}, Times used={stats['count']}")
     
-    # 期待される出力例:
-    # === シナリオ1: 通常運転 ===
-    # 使用モデル: hybrid
-    # 信頼度: 0.95
-    # データ品質: 1.00
+    # Expected output example:
+    # === Scenario 1: Normal Operation ===
+    # Model used: hybrid
+    # Confidence: 0.95
+    # Data quality: 1.00
     #
-    # === シナリオ2: 異常運転（低品質データ） ===
-    # 使用モデル: physics
-    # 信頼度: 0.70
-    # データ品質: 0.06
+    # === Scenario 2: Abnormal Operation (Low Quality Data) ===
+    # Model used: physics
+    # Confidence: 0.70
+    # Data quality: 0.06
     #
-    # === シナリオ3: 訓練範囲外 ===
-    # 使用モデル: physics
-    # 信頼度: 0.70
-    # 理由: 訓練範囲外のため物理モデルを使用
+    # === Scenario 3: Outside Training Range ===
+    # Model used: physics
+    # Confidence: 0.70
+    # Reason: Physical model used due to being outside training range
     #
-    # === モデル性能の更新 ===
-    # hybrid: MAE=0.0100, 使用回数=2
-    # physics: MAE=0.0500, 使用回数=1
+    # === Model Performance Update ===
+    # hybrid: MAE=0.0100, Times used=2
+    # physics: MAE=0.0500, Times used=1
     
 
-## Learning Objectivesの確認
+## Confirming Learning Objectives
 
-この Chapterを完了すると、以下を実装できるようになります：
+Upon completing this chapter, you will be able to implement the following:
 
-### 基本理解
+### Basic Understanding
 
-  * ✅ 第一原理モデル、データ駆動モデル、ハイブリッドモデルの違いと適用場面を説明できる
-  * ✅ 質量・エネルギー保存則に基づく反応器モデルの構造を理解できる
-  * ✅ 残差学習とPINNの基本概念を説明できる
+  * Explain the differences between first-principles models, data-driven models, and hybrid models and their application scenarios
+  * Understand the structure of reactor models based on mass and energy conservation laws
+  * Explain the basic concepts of residual learning and PINN
 
-### 実践スキル
+### Practical Skills
 
-  * ✅ 微 minutes方程式ソルバーで第一原理モデルを実装できる
-  * ✅ scikit-learnでMachine Learningモデルを訓練できる
-  * ✅ 物理モデルとML補正を組み合わせたハイブリッドモデルを構築できる
-  * ✅ 実測データでモデルパラメータをキャリブレーションできる
-  * ✅ ガウス過程回帰で不確実性を定量化できる
-  * ✅ 運転状況に応じてモデルを動的に選択できる
+  * Implement first-principles models with differential equation solvers
+  * Train machine learning models with scikit-learn
+  * Build hybrid models combining physical models and ML correction
+  * Calibrate model parameters with measured data
+  * Quantify uncertainty with Gaussian process regression
+  * Dynamically select models based on operating conditions
 
-### 応用力
+### Application Skills
 
-  * ✅ Process特性に応じた最適なモデリング戦略を設計できる
-  * ✅ 物理知識とデータの両方を活用した高精度Digital Twinを開発できる
-  * ✅ モデル性能を継続的にMonitoring・改善できる
+  * Design optimal modeling strategies based on process characteristics
+  * Develop high-accuracy Digital Twins leveraging both physical knowledge and data
+  * Continuously monitor and improve model performance
 
 ## Exercises
 
-### Easy（基礎確認）
+### Easy (Basic Confirmation)
 
-**Q1:** ハイブリッドモデルの利点として、最も適切でないものはどれですか？
+**Q1:** Which of the following is NOT an advantage of hybrid models?
 
-a) 物理的解釈性と高精度を両立できる  
-b) 訓練データが少なくても高性能  
-c) 実装が最も簡単  
-d) 外挿性とデータフィット性を両立
+a) Can achieve both physical interpretability and high accuracy  
+b) High performance even with limited training data  
+c) Easiest to implement  
+d) Achieves both extrapolation capability and data fitting
 
-解答を見る
+Show Answer
 
-**正解:** c) 実装が最も簡単
+**Correct answer:** c) Easiest to implement
 
-**解説:**
+**Explanation:**
 
-ハイブリッドモデルは物理モデルとデータ駆動モデルの統合が必要なため、実装は最も複雑です。しかし、その複雑さと引き換えに以下の利点が得られます：
+Hybrid models are the most complex to implement because they require integration of physical and data-driven models. However, in exchange for this complexity, the following advantages are obtained:
 
-  * a) 物理モデル部 minutesで解釈性、ML部 minutesで高精度を実現
-  * b) 物理知識で補うため、純粋データ駆動より少ないデータで高性能
-  * d) 物理法則により外挿性を保ち、MLでデータフィット性を向上
+  * a) Interpretability from physical model part, high accuracy from ML part
+  * b) Can achieve high performance with less data than pure data-driven approaches by complementing with physical knowledge
+  * d) Physical laws maintain extrapolation capability while ML improves data fitting
 
-### Medium（応用）
+### Medium (Application)
 
-**Q2:** 物理モデルのキャリブレーションで、パラメータOptimizationの目的関数（MSE）が初期値0.012345から0.000123に改善しました。このとき、RMSEはどれくらい改善しましたか？改善率も計算してください。
+**Q2:** In physical model calibration, the parameter optimization objective function (MSE) improved from initial value 0.012345 to 0.000123. How much did RMSE improve? Also calculate the improvement rate.
 
-解答を見る
+Show Answer
 
-**計算:**
+**Calculation:**
 
   * RMSE_before = √(0.012345) = 0.1111
   * RMSE_after = √(0.000123) = 0.0111
-  * 改善量 = 0.1111 - 0.0111 = 0.1000
-  * 改善率 = (0.1000 / 0.1111) × 100% = 90.0%
+  * Improvement amount = 0.1111 - 0.0111 = 0.1000
+  * Improvement rate = (0.1000 / 0.1111) × 100% = 90.0%
 
-**正解: RMSE改善率 = 90.0%**
+**Correct answer: RMSE improvement rate = 90.0%**
 
-**重要なポイント:**
+**Important points:**
 
-  * MSE = 100 minutesの1に改善（99%改善）
-  * RMSE = 10 minutesの1に改善（90%改善）← 平方根のため
-  * RMSEは元の物理量と同じ単位なので解釈しやすい
-  * この例では転化率のPrediction誤差が約11%から1.1%に改善
+  * MSE improved to 1/100 (99% improvement)
+  * RMSE improved to 1/10 (90% improvement) ← Due to square root
+  * RMSE is in the same units as the original physical quantity, so it's easier to interpret
+  * In this example, conversion prediction error improved from about 11% to 1.1%
 
-### Hard（発展）
+### Hard (Advanced)
 
-**Q3:** あなたは新しいChemical PlantのDigital Twin開発を任されました。以下の条件で、第一原理モデル、データ駆動モデル、ハイブリッドモデルのどれを採用すべきか、理由とともに提案してください。
+**Q3:** You have been assigned to develop a Digital Twin for a new chemical plant. Given the following conditions, propose which of first-principles model, data-driven model, or hybrid model should be adopted, along with your reasoning.
 
-**条件:**
+**Conditions:**
 
-  * 新規プラント（運転データがほぼない、パイロットプラントの50 hours minutesのみ）
-  * 反応メカニズムは既知（競争反応A→B, A→C）
-  * 触媒劣化の詳細は不明（経験的に1年で10%性能低下）
-  * 要求精度: 転化率Prediction誤差±2%以内
-  * 納期: 3ヶ月
+  * New plant (almost no operational data, only 50 hours from pilot plant)
+  * Reaction mechanism is known (competitive reactions A→B, A→C)
+  * Catalyst degradation details are unknown (empirically 10% performance decline in 1 year)
+  * Required accuracy: Conversion prediction error within ±2%
+  * Deadline: 3 months
 
-解答を見る
+Show Answer
 
-**推奨: 段階的アプローチ（第一原理 → ハイブリッド）**
+**Recommendation: Phased Approach (First-Principles → Hybrid)**
 
-**フェーズ1（最初の1ヶ月）: 第一原理モデル開発**
+**Phase 1 (First month): First-Principles Model Development**
 
-  * **理由** : 運転データがほぼないため、データ駆動単独は不可
-  * **実装** : 
-    * A→BとA→Cの競争反応を微 minutes方程式でモデル化
-    * パイロットデータ50 hoursでパラメータ（k0, Ea）をキャリブレーション
-    * 触媒劣化は一次関数で近似（k_eff = k0 × (1 - 0.1 × t/365)）
-  * **期待精度** : ±5%程度（要求未達だが初期版として使用可能）
+  * **Reason** : Data-driven alone is not feasible with almost no operational data
+  * **Implementation** : 
+    * Model A→B and A→C competitive reactions with differential equations
+    * Calibrate parameters (k0, Ea) with 50 hours of pilot data
+    * Approximate catalyst degradation with linear function (k_eff = k0 × (1 - 0.1 × t/365))
+  * **Expected accuracy** : About ±5% (does not meet requirements but usable as initial version)
 
-**フェーズ2（2〜3ヶ月目）: ハイブリッド化**
+**Phase 2 (Months 2-3): Hybridization**
 
-  * **理由** : 本格運転開始で数ヶ月 minutesのデータが蓄積
-  * **実装** : 
-    * 第一原理モデルは維持（基本メカニズム）
-    * ML補正で触媒劣化の複雑なパターンを学習
-    * 残差学習アプローチで未モデル化現象を捕捉
-  * **期待精度** : ±2%以内（要求達成）
+  * **Reason** : Several months of data accumulated with full-scale operation start
+  * **Implementation** : 
+    * Maintain first-principles model (basic mechanism)
+    * Learn complex catalyst degradation patterns with ML correction
+    * Capture unmodeled phenomena with residual learning approach
+  * **Expected accuracy** : Within ±2% (meets requirements)
 
-**データ駆動単独を選ばない理由:**
+**Reasons for not choosing data-driven alone:**
 
-  * 訓練データ50 hoursは少なすぎる（通常は数千 hours必要）
-  * 新規プラントで予期しない運転条件が発生→外挿が必要
-  * ブラックボックスではSafety性確認が困難
+  * 50 hours of training data is too little (normally thousands of hours needed)
+  * Unexpected operating conditions may occur in new plant → extrapolation needed
+  * Black box makes safety confirmation difficult
 
-**実装スケジュール（3ヶ月）:**
+**Implementation Schedule (3 months):**
 
-月 | タスク | マイルストーン  
+Month | Task | Milestone  
 ---|---|---  
-1 | 第一原理モデル開発、パイロットデータでキャリブレーション | 精度±5%達成  
-2 | 本格運転開始、データ収集、ML補正モデル開発 | 500 hoursデータ蓄積  
-3 | ハイブリッドモデル統合、検証、デプロイ | 精度±2%達成  
+1 | First-principles model development, calibration with pilot data | ±5% accuracy achieved  
+2 | Full-scale operation start, data collection, ML correction model development | 500 hours data accumulated  
+3 | Hybrid model integration, validation, deployment | ±2% accuracy achieved  
   
-**リスク緩和策:**
+**Risk Mitigation Measures:**
 
-  * フェーズ1で最低限の機能を確保（納期厳守）
-  * フェーズ2でデータが不足なら、物理モデルのみで運用継続
-  * オンライン学習で運転データ蓄積とともに精度向上
+  * Phase 1 secures minimum functionality (meets deadline)
+  * If data is insufficient in Phase 2, continue operation with physical model only
+  * Accuracy improves with accumulated operational data through online learning
 
 ## Next Steps
 
-ハイブリッドモデリングの基礎を習得したら、次はDigital Twinの実践的な応用に進みます。ProcessOptimization、Prediction保全、What-if minutes析など、実ビジネスでの活用事例を学びます。
+Having mastered the basics of hybrid modeling, next we move on to practical applications of Digital Twin. We will learn about real business use cases such as process optimization, predictive maintenance, and what-if analysis.
 
-[← Chapter 2：リアルタイムデータ連携](<chapter-2.html>) [Series Contents](<index.html>)
+[← Series Contents](<index.html>) [Chapter 4: Virtual Optimization and Simulation →](<chapter-4.html>)
 
 ## References
 

@@ -1,37 +1,37 @@
 ---
-title: 🔄 Digital Twin構築入門 Series v1.0
-chapter_title: 🔄 Digital Twin構築入門 Series v1.0
+title: 🔄 Digital Twin Construction Introduction Series v1.0
+chapter_title: 🔄 Digital Twin Construction Introduction Series v1.0
 ---
 
-# Digital Twin構築入門 Series v1.0
+# Digital Twin Construction Introduction Series v1.0
 
-**リアルタイムデータ連携からハイブリッドモデリング、仮想Optimizationまで - 完全実践ガイド**
+**From real-time data integration to hybrid modeling and virtual optimization - A complete practical guide**
 
 ## Series Overview
 
-この Seriesは、Process産業におけるDigital Twin（Digital Twin）の基礎から実践まで、段階的に学べる全5 Chapter構成の教育コンテンツです。Digital Twinの概念理解、リアルタイムデータ連携、ハイブリッドモデリング、仮想Optimization、そして実Processへのデプロイまで、包括的にカバーします。
+This series is a 5-chapter educational program that lets you progressively learn digital twins in the process industry, from fundamentals to practice. It comprehensively covers understanding the digital twin concept, real-time data integration, hybrid modeling, virtual optimization, and deployment to real processes.
 
-**特徴:**  
-\- ✅ **実践重視** : 35の実行可能なPythonCode Examples  
-\- ✅ **体系的構成** : 基礎から応用まで段階的に学べる5 Chapter構成  
-\- ✅ **産業応用** : Chemical Plant、反応器、IoTセンサー連携のExample  
-\- ✅ **最新技術** : OPC UA、MQTT、Machine Learning統合、クラウドデプロイ
+**Features:**  
+\- ✅ **Practice-oriented** : 35 executable Python code examples  
+\- ✅ **Systematic structure** : 5 chapters that let you learn step by step from fundamentals to applications  
+\- ✅ **Industrial applications** : Real examples of chemical plants, reactors, and IoT sensor integration  
+\- ✅ **Latest technologies** : OPC UA, MQTT, machine learning integration, cloud deployment
 
-**Total Learning Time** : 130-160 minutes（コード実行と演習を含む）
+**Total learning time** : 130-160 minutes (including code execution and exercises)
 
 * * *
 
-## How to Learn
+## How to Proceed with Learning
 
 ### Recommended Learning Order
     
     
     ```mermaid
     flowchart TD
-        A[Chapter 1: Digital Twinの基礎] --> B[Chapter 2: リアルタイムデータ連携とIoT統合]
-        B --> C[Chapter 3: ハイブリッドモデリング（物理＋Machine Learning）]
-        C --> D[Chapter 4: 仮想OptimizationとSimulation]
-        D --> E[Chapter 5: Digital Twinのデプロイと運用]
+        A[Chapter 1: Digital Twin Fundamentals] --> B[Chapter 2: Real-time Data Integration and IoT]
+        B --> C[Chapter 3: Hybrid Modeling (Physics + Machine Learning)]
+        C --> D[Chapter 4: Virtual Optimization and Simulation]
+        D --> E[Chapter 5: Digital Twin Deployment and Operations]
     
         style A fill:#e8f5e9
         style B fill:#c8e6c9
@@ -40,440 +40,440 @@ chapter_title: 🔄 Digital Twin構築入門 Series v1.0
         style E fill:#66bb6a
     ```
 
-**初学者の方（Digital Twinを初めて学ぶ）:**  
+**For beginners (learning digital twins for the first time):**  
 \- Chapter 1 → Chapter 2 → Chapter 3 → Chapter 4 → Chapter 5  
-\- 所要 hours: 130-160 minutes  
-\- Prerequisites: ProcessSimulation基礎、Machine Learning基礎、Python、IoT基礎
+\- Time required: 130-160 minutes  
+\- Prerequisites: Process simulation fundamentals, machine learning fundamentals, Python, IoT fundamentals
 
-**Processエンジニア（Simulation経験あり）:**  
-\- Chapter 1（軽く確認） → Chapter 2 → Chapter 3 → Chapter 4 → Chapter 5  
-\- 所要 hours: 100-130 minutes  
-\- 焦点: IoT連携とリアルタイムデータ処理
+**Process engineers (with simulation experience):**  
+\- Chapter 1 (quick review) → Chapter 2 → Chapter 3 → Chapter 4 → Chapter 5  
+\- Time required: 100-130 minutes  
+\- Focus: IoT integration and real-time data processing
 
-**データエンジニア（Machine Learning経験あり）:**  
-\- Chapter 1 → Chapter 2 → Chapter 3（重点） → Chapter 4 → Chapter 5  
-\- 所要 hours: 100-130 minutes  
-\- 焦点: ハイブリッドモデリングと物理モデル統合
+**Data engineers (with machine learning experience):**  
+\- Chapter 1 → Chapter 2 → Chapter 3 (emphasis) → Chapter 4 → Chapter 5  
+\- Time required: 100-130 minutes  
+\- Focus: Hybrid modeling and physical model integration
 
 * * *
 
 ## Chapter Details
 
-### [Chapter 1：Digital Twinの基礎](<chapter-1.html>)
+### [Chapter 1: Digital Twin Fundamentals](<./chapter-1.html>)
 
 📖 Reading Time: 25-30 minutes 💻 Code Examples: 7 📊 Difficulty: Advanced
 
 #### Learning Content
 
-  1. **Digital Twinの概念と定義**
-     * Digital Twinとは何か - 物理システムの仮想レプリカ
-     * デジタルシャドウ vs Digital Twin vs デジタルスレッド
-     * Process産業におけるDigital Twinの価値
-     * 成熟度Level（L1-L5）の理解
-  2. **Digital Twinのアーキテクチャ設計**
-     * 物理システム、データ層、モデル層、アプリケーション層
-     * 双方向データフローの設計
-     * リアルタイム性と精度のトレードオフ
-     * セキュリティとデータガバナンス
-  3. **状態表現とデータモデル**
-     * 状態変数の定義とセンサーマッピング
-     * 時系列データ構造の設計
-     * データフォーマット（JSON、Parquet、時系列DB）
-     * 状態同期メカニズム
-  4. **モデル忠実度（Fidelity）Level**
-     * L1: データログのみ（Digital Shadow）
-     * L2: 統計モデル + データ可視化
-     * L3: 物理モデル + パラメータ推定
-     * L4: ハイブリッドモデル + PredictionControl
-     * L5: 自律Optimization + クローズドループControl
-  5. **Digital Twinのライフサイクル管理**
-     * 設計フェーズ: 要件定義とアーキテクチャ設計
-     * 実装フェーズ: センサー統合とモデル構築
-     * 検証フェーズ: モデル精度検証と校正
-     * 運用フェーズ: 継続的モデル更新と保守
-  6. **Digital Twin評価指標**
-     * モデル精度: RMSE、R²スコア、相対誤差
-     * リアルタイム性: レイテンシ、更新頻度
-     * カバレッジ: センサー数、状態変数網羅率
-     * ビジネス価値: コスト削減、ダウンタイム削減
-  7. **簡易Digital Twinプロトタイプ**
-     * Pythonによるセンサーシミュレーター実装
-     * 簡易物理モデルとの統合
-     * 状態可視化ダッシュボード
-     * リアルタイム状態同期の実証
+  1. **Digital Twin Concepts and Definitions**
+     * What is a digital twin - A virtual replica of a physical system
+     * Digital shadow vs digital twin vs digital thread
+     * The value of digital twins in the process industry
+     * Understanding maturity levels (L1-L5)
+  2. **Digital Twin Architecture Design**
+     * Physical system, data layer, model layer, application layer
+     * Designing bidirectional data flow
+     * Trade-offs between real-time performance and accuracy
+     * Security and data governance
+  3. **State Representation and Data Models**
+     * Defining state variables and sensor mapping
+     * Designing time-series data structures
+     * Data formats (JSON, Parquet, time-series DB)
+     * State synchronization mechanisms
+  4. **Model Fidelity Levels**
+     * L1: Data logging only (Digital Shadow)
+     * L2: Statistical models + data visualization
+     * L3: Physical models + parameter estimation
+     * L4: Hybrid models + predictive control
+     * L5: Autonomous optimization + closed-loop control
+  5. **Digital Twin Lifecycle Management**
+     * Design phase: Requirements definition and architecture design
+     * Implementation phase: Sensor integration and model construction
+     * Verification phase: Model accuracy verification and calibration
+     * Operation phase: Continuous model updates and maintenance
+  6. **Digital Twin Evaluation Metrics**
+     * Model accuracy: RMSE, R² score, relative error
+     * Real-time performance: Latency, update frequency
+     * Coverage: Number of sensors, state variable coverage rate
+     * Business value: Cost reduction, downtime reduction
+  7. **Simple Digital Twin Prototype**
+     * Implementing a sensor simulator in Python
+     * Integration with a simple physical model
+     * State visualization dashboard
+     * Demonstrating real-time state synchronization
 
 #### Learning Objectives
 
-  * ✅ Digital Twinの概念と定義を理解する
-  * ✅ Digital Twinのアーキテクチャ設計ができる
-  * ✅ 状態表現とデータモデルを設計できる
-  * ✅ モデル忠実度Levelを理解し、適切なLevelを選択できる
-  * ✅ Pythonで簡易Digital Twinプロトタイプを構築できる
+  * ✅ Understand digital twin concepts and definitions
+  * ✅ Design digital twin architectures
+  * ✅ Design state representations and data models
+  * ✅ Understand model fidelity levels and select the appropriate level
+  * ✅ Build a simple digital twin prototype in Python
 
-**[Chapter 1を読む →](<chapter-1.html>)**
+**[Read Chapter 1 →](<./chapter-1.html>)**
 
-### [Chapter 2：リアルタイムデータ連携とIoT統合](<chapter-2.html>)
+### [Chapter 2: Real-time Data Integration and IoT](<./chapter-2.html>)
 
 📖 Reading Time: 25-30 minutes 💻 Code Examples: 7 📊 Difficulty: Advanced
 
 #### Learning Content
 
-  1. **産業用通信プロトコル（OPC UA）**
-     * OPC UAの概要と特徴
-     * PythonでのOPC UAクライアント実装
-     * ノードブラウジングとデータ読み取り
-     * サブスクリプション（変更通知）の活用
-  2. **IoTプロトコル（MQTT）**
-     * MQTTのPub/Subモデル
-     * Paho MQTTライブラリの活用
-     * トピック設計とQoS設定
-     * メッセージペイロードのJSON設計
-  3. **時系列データベース統合**
-     * InfluxDB、TimescaleDBの選択
-     * Pythonからのデータ書き込み
-     * 効率的なクエリ設計
-     * ダウンサンプリングと集計
-  4. **データストリーミング処理**
-     * Apache Kafka統合
-     * ストリーム処理パイプラインの設計
-     * リアルタイムフィルタリングと前処理
-     * バックプレッシャー対策
-  5. **センサーデータQuality Control**
-     * 異常値検出（統計的手法、Machine Learning）
-     * 欠損値補完（線形補間、forward fill）
-     * データ検証ルールの実装
-     * センサードリフト検出
-  6. **エッジコンピューティング**
-     * エッジデバイスでのデータ前処理
-     * ローカルモデル推論
-     * クラウドとの役割 minutes担設計
-     * Raspberry PiでのImplementation Example
-  7. **完全なIoTパイプライン実装**
-     * センサー → MQTT → データベース → Digital Twin
-     * リアルタイムMonitoringダッシュボード（Grafana連携）
-     * アラート機能の実装
+  1. **Industrial Communication Protocol (OPC UA)**
+     * Overview and features of OPC UA
+     * Implementing an OPC UA client in Python
+     * Node browsing and data reading
+     * Leveraging subscriptions (change notifications)
+  2. **IoT Protocol (MQTT)**
+     * The MQTT Pub/Sub model
+     * Leveraging the Paho MQTT library
+     * Topic design and QoS configuration
+     * JSON design of message payloads
+  3. **Time-Series Database Integration**
+     * Choosing between InfluxDB and TimescaleDB
+     * Writing data from Python
+     * Efficient query design
+     * Downsampling and aggregation
+  4. **Data Streaming Processing**
+     * Apache Kafka integration
+     * Designing stream processing pipelines
+     * Real-time filtering and preprocessing
+     * Backpressure countermeasures
+  5. **Sensor Data Quality Management**
+     * Outlier detection (statistical methods, machine learning)
+     * Missing value imputation (linear interpolation, forward fill)
+     * Implementing data validation rules
+     * Sensor drift detection
+  6. **Edge Computing**
+     * Data preprocessing on edge devices
+     * Local model inference
+     * Designing the division of roles with the cloud
+     * Implementation example on Raspberry Pi
+  7. **Complete IoT Pipeline Implementation**
+     * Sensor → MQTT → Database → Digital Twin
+     * Real-time monitoring dashboard (Grafana integration)
+     * Implementing alert functionality
 
 #### Learning Objectives
 
-  * ✅ OPC UAとMQTTプロトコルを理解し実装できる
-  * ✅ 時系列データベースと統合できる
-  * ✅ リアルタイムデータストリーミングパイプラインを構築できる
-  * ✅ センサーデータQuality Controlを実装できる
-  * ✅ エッジコンピューティングアーキテクチャを設計できる
+  * ✅ Understand and implement the OPC UA and MQTT protocols
+  * ✅ Integrate with time-series databases
+  * ✅ Build real-time data streaming pipelines
+  * ✅ Implement sensor data quality management
+  * ✅ Design edge computing architectures
 
-**[Chapter 2を読む →](<chapter-2.html>)**
+**[Read Chapter 2 →](<./chapter-2.html>)**
 
-### [Chapter 3：ハイブリッドモデリング（物理＋Machine Learning）](<chapter-3.html>)
+### [Chapter 3: Hybrid Modeling (Physics + Machine Learning)](<./chapter-3.html>)
 
 📖 Reading Time: 25-30 minutes 💻 Code Examples: 7 📊 Difficulty: Advanced
 
 #### Learning Content
 
-  1. **ハイブリッドモデリングの概念**
-     * 物理モデルの限界とMachine Learningの補完
-     * 直列型 vs 並列型ハイブリッドモデル
-     * モデル不確実性の定量化
-     * ドメイン知識の統合戦略
-  2. **物理モデルの実装**
-     * 質量収支・エネルギー収支の微 minutes方程式
-     * scipy.odeintによる数値積 minutes
-     * 反応器モデル、蒸留塔モデルの実装
-     * パラメータ推定と校正
-  3. **Machine Learningモデルによる補正**
-     * 物理モデルの残差学習
-     * LightGBM、XGBoostによる非線形補正
-     * 特徴量エンジニアリング（物理量の導出変数）
-     * ハイパーパラメータOptimization
-  4. **ニューラルネットワークとの統合**
+  1. **The Concept of Hybrid Modeling**
+     * The limits of physical models and the complementary role of machine learning
+     * Serial vs parallel hybrid models
+     * Quantifying model uncertainty
+     * Strategies for integrating domain knowledge
+  2. **Implementing Physical Models**
+     * Differential equations for mass and energy balances
+     * Numerical integration with scipy.odeint
+     * Implementing reactor models and distillation column models
+     * Parameter estimation and calibration
+  3. **Correction Using Machine Learning Models**
+     * Residual learning of physical models
+     * Nonlinear correction with LightGBM and XGBoost
+     * Feature engineering (derived variables from physical quantities)
+     * Hyperparameter optimization
+  4. **Integration with Neural Networks**
      * Physics-Informed Neural Networks (PINNs)
-     * 物理制約の損失関数への組み込み
-     * TensorFlow/PyTorchによる実装
-     * 勾配ベースOptimizationと物理法則の両立
-  5. **モデル選択と検証**
-     * 物理モデル単独 vs ハイブリッドモデルの比較
-     * 外挿性能の評価
-     * 時系列クロスバリデーション
-     * 不確実性推定（ブートストラップ、ベイズ推定）
-  6. **オンライン学習とモデル更新**
-     * コンセプトドリフト検出
-     * 増 minutes学習（incremental learning）
-     * モデル再訓練の自動化
-     * A/Bテストによるモデル評価
-  7. **完全なハイブリッドモデル実装**
-     * CSTRの物理モデル + Machine Learning補正
-     * 実データとの統合検証
-     * Prediction精度の定量評価
+     * Incorporating physical constraints into the loss function
+     * Implementation with TensorFlow/PyTorch
+     * Reconciling gradient-based optimization with physical laws
+  5. **Model Selection and Validation**
+     * Comparing standalone physical models vs hybrid models
+     * Evaluating extrapolation performance
+     * Time-series cross-validation
+     * Uncertainty estimation (bootstrap, Bayesian estimation)
+  6. **Online Learning and Model Updates**
+     * Concept drift detection
+     * Incremental learning
+     * Automating model retraining
+     * Model evaluation with A/B testing
+  7. **Complete Hybrid Model Implementation**
+     * CSTR physical model + machine learning correction
+     * Integration verification with real data
+     * Quantitative evaluation of prediction accuracy
 
 #### Learning Objectives
 
-  * ✅ ハイブリッドモデリングの概念と設計パターンを理解する
-  * ✅ 物理モデルとMachine Learningモデルを統合できる
-  * ✅ Physics-Informed Neural Networksを実装できる
-  * ✅ モデル不確実性を定量化できる
-  * ✅ オンライン学習とモデル更新を実装できる
+  * ✅ Understand the concept and design patterns of hybrid modeling
+  * ✅ Integrate physical models and machine learning models
+  * ✅ Implement Physics-Informed Neural Networks
+  * ✅ Quantify model uncertainty
+  * ✅ Implement online learning and model updates
 
-**[Chapter 3を読む →](<chapter-3.html>)**
+**[Read Chapter 3 →](<./chapter-3.html>)**
 
-### [Chapter 4：仮想OptimizationとSimulation](<chapter-4.html>)
+### [Chapter 4: Virtual Optimization and Simulation](<./chapter-4.html>)
 
 📖 Reading Time: 25-30 minutes 💻 Code Examples: 7 📊 Difficulty: Advanced
 
 #### Learning Content
 
-  1. **Digital Twin上での仮想実験**
-     * What-ifシナリオ minutes析
-     * 運転条件の探索空間設計
-     * 並列Simulation実行
-     * 結果の統計的 minutes析
-  2. **リアルタイムOptimization（RTO）**
-     * 経済的目的関数の設計
-     * Digital TwinベースのOptimization問題定式化
-     * scipy.optimize、PyomoによるRTO実装
-     * 最適解の実Processへの適用戦略
-  3. **モデルPredictionControl（MPC）統合**
-     * Digital TwinをMPCのPredictionモデルとして活用
-     * 制約付き最適Control問題
-     * ローリングホライズンOptimization
-     * 状態推定とオブザーバー設計
-  4. **強化学習による自律Optimization**
-     * Digital Twinを強化学習の環境として利用
-     * 報酬関数の設計
-     * Stable-Baselines3によるDDPG/TD3実装
-     * Safetyな探索戦略（safe exploration）
-  5. **故障Predictionと予知保全**
-     * Digital Twinによる劣化Simulation
-     * 残存有効寿命（RUL）Prediction
-     * 異常検知（Isolation Forest、LSTM-AE）
-     * 保全スケジュールのOptimization
-  6. **不確実性伝播と確率的Simulation**
-     * モンテカルロSimulation
-     * センサーノイズとモデル不確実性の考慮
-     * リスク評価とロバストOptimization
-     * 信頼区間の算出
-  7. **完全な仮想Optimizationワークフロー**
-     * 現状診断 → What-if minutes析 → Optimization → 実装検証
-     * ROI計算とビジネスケース作成
+  1. **Virtual Experiments on the Digital Twin**
+     * What-if scenario analysis
+     * Designing the search space of operating conditions
+     * Parallel simulation execution
+     * Statistical analysis of results
+  2. **Real-Time Optimization (RTO)**
+     * Designing the economic objective function
+     * Formulating a digital-twin-based optimization problem
+     * Implementing RTO with scipy.optimize and Pyomo
+     * Strategies for applying optimal solutions to the real process
+  3. **Model Predictive Control (MPC) Integration**
+     * Using the digital twin as the prediction model for MPC
+     * Constrained optimal control problems
+     * Rolling horizon optimization
+     * State estimation and observer design
+  4. **Autonomous Optimization with Reinforcement Learning**
+     * Using the digital twin as the environment for reinforcement learning
+     * Designing the reward function
+     * Implementing DDPG/TD3 with Stable-Baselines3
+     * Safe exploration strategies
+  5. **Failure Prediction and Predictive Maintenance**
+     * Degradation simulation using the digital twin
+     * Remaining Useful Life (RUL) prediction
+     * Anomaly detection (Isolation Forest, LSTM-AE)
+     * Optimizing maintenance schedules
+  6. **Uncertainty Propagation and Stochastic Simulation**
+     * Monte Carlo simulation
+     * Accounting for sensor noise and model uncertainty
+     * Risk assessment and robust optimization
+     * Calculating confidence intervals
+  7. **Complete Virtual Optimization Workflow**
+     * Current-state diagnosis → What-if analysis → Optimization → Implementation verification
+     * ROI calculation and building the business case
 
 #### Learning Objectives
 
-  * ✅ Digital Twin上でWhat-if minutes析ができる
-  * ✅ リアルタイムOptimization（RTO）を実装できる
-  * ✅ モデルPredictionControl（MPC）と統合できる
-  * ✅ 強化学習による自律Optimizationを実装できる
-  * ✅ 故障Predictionと予知保全を実践できる
+  * ✅ Perform what-if analysis on the digital twin
+  * ✅ Implement Real-Time Optimization (RTO)
+  * ✅ Integrate with Model Predictive Control (MPC)
+  * ✅ Implement autonomous optimization with reinforcement learning
+  * ✅ Practice failure prediction and predictive maintenance
 
-**[Chapter 4を読む →](<chapter-4.html>)**
+**[Read Chapter 4 →](<./chapter-4.html>)**
 
-### [Chapter 5：Digital Twinのデプロイと運用](<chapter-5.html>)
+### [Chapter 5: Digital Twin Deployment and Operations](<./chapter-5.html>)
 
 📖 Reading Time: 30-40 minutes 💻 Code Examples: 7 📊 Difficulty: Advanced
 
 #### Learning Content
 
-  1. **クラウドデプロイ戦略**
-     * AWS、Azure、GCPでのアーキテクチャ設計
-     * コンテナ化（Docker）とオーケストレーション（Kubernetes）
-     * スケーラビリティとロードバランシング
-     * コストOptimization戦略
-  2. **API設計とマイクロサービス化**
-     * FastAPIによるRESTful API実装
-     * GraphQLによる柔軟なデータクエリ
-     * WebSocket for リアルタイムデータストリーミング
-     * API認証とレート制限
-  3. **可視化ダッシュボード構築**
-     * Plotly Dashによるインタラクティブダッシュボード
-     * GrafanaでのリアルタイムMonitoring
-     * アラート設定と通知システム
-     * カスタムKPI表示
-  4. **セキュリティとガバナンス**
-     * データ暗号化（転送時・保存時）
-     * アクセスControlとロールベース認証
-     * 監査ログと変更履歴管理
-     * GDPR・人情報保護対応
-  5. **継続的統合・継続的デプロイ（CI/CD）**
-     * GitHubActionsによる自動テスト
-     * モデルバージョン管理（MLflow）
-     * カナリアリリースとブルーグリーンデプロイ
-     * ロールバック戦略
-  6. **運用Monitoringとメンテナンス**
-     * システムヘルスモニタリング（Prometheus）
-     * パフォーマンスOptimizationとボトルネック解析
-     * データ品質モニタリング
-     * 定期的なモデル再訓練パイプライン
-  7. **完全なエンドツーエンド実装**
-     * Chemical PlantDigital Twinのデプロイ
-     * 運用6ヶ月後の効果測定
-     * ビジネス価値の定量化
-     * 今後の拡張ロードマップ
+  1. **Cloud Deployment Strategies**
+     * Architecture design on AWS, Azure, and GCP
+     * Containerization (Docker) and orchestration (Kubernetes)
+     * Scalability and load balancing
+     * Cost optimization strategies
+  2. **API Design and Microservices**
+     * Implementing a RESTful API with FastAPI
+     * Flexible data querying with GraphQL
+     * WebSocket for real-time data streaming
+     * API authentication and rate limiting
+  3. **Building Visualization Dashboards**
+     * Interactive dashboards with Plotly Dash
+     * Real-time monitoring with Grafana
+     * Alert configuration and notification systems
+     * Custom KPI display
+  4. **Security and Governance**
+     * Data encryption (in transit and at rest)
+     * Access control and role-based authentication
+     * Audit logs and change history management
+     * GDPR and personal data protection compliance
+  5. **Continuous Integration / Continuous Deployment (CI/CD)**
+     * Automated testing with GitHub Actions
+     * Model version management (MLflow)
+     * Canary releases and blue-green deployment
+     * Rollback strategies
+  6. **Operational Monitoring and Maintenance**
+     * System health monitoring (Prometheus)
+     * Performance optimization and bottleneck analysis
+     * Data quality monitoring
+     * Periodic model retraining pipelines
+  7. **Complete End-to-End Implementation**
+     * Deploying a chemical plant digital twin
+     * Measuring impact after 6 months of operation
+     * Quantifying business value
+     * Future expansion roadmap
 
 #### Learning Objectives
 
-  * ✅ クラウド環境へのデプロイができる
-  * ✅ RESTful APIとマイクロサービスを設計・実装できる
-  * ✅ 可視化ダッシュボードを構築できる
-  * ✅ セキュリティとガバナンスを実装できる
-  * ✅ CI/CDパイプラインを構築し、継続的に運用できる
+  * ✅ Deploy to cloud environments
+  * ✅ Design and implement RESTful APIs and microservices
+  * ✅ Build visualization dashboards
+  * ✅ Implement security and governance
+  * ✅ Build a CI/CD pipeline and operate it continuously
 
-**[Chapter 5を読む →](<chapter-5.html>)**
+**[Read Chapter 5 →](<./chapter-5.html>)**
 
 * * *
 
 ## Overall Learning Outcomes
 
-この Seriesを完了すると、以下のスキルと知識を習得できます：
+Upon completing this series, you will acquire the following skills and knowledge:
 
-### 知識Level（Understanding）
+### Knowledge Level (Understanding)
 
-  * ✅ Digital Twinの概念と成熟度Levelを理解している
-  * ✅ IoTプロトコルとリアルタイムデータ処理の仕組みを知っている
-  * ✅ ハイブリッドモデリングの設計パターンを理解している
-  * ✅ Digital Twin上でのOptimizationとControlの理論を知っている
-  * ✅ クラウドデプロイと運用の実践的知識を持っている
+  * ✅ Understand digital twin concepts and maturity levels
+  * ✅ Know how IoT protocols and real-time data processing work
+  * ✅ Understand the design patterns of hybrid modeling
+  * ✅ Know the theory of optimization and control on the digital twin
+  * ✅ Have practical knowledge of cloud deployment and operations
 
-### 実践スキル（Doing）
+### Practical Skills (Doing)
 
-  * ✅ Digital Twinアーキテクチャを設計・実装できる
-  * ✅ OPC UA、MQTTを使ったリアルタイムデータ連携ができる
-  * ✅ 物理モデルとMachine Learningを統合したハイブリッドモデルを構築できる
-  * ✅ Digital Twin上でリアルタイムOptimizationを実行できる
-  * ✅ クラウド環境へのデプロイと継続的運用ができる
-  * ✅ セキュリティとガバナンスを考慮したシステム設計ができる
+  * ✅ Design and implement digital twin architectures
+  * ✅ Perform real-time data integration using OPC UA and MQTT
+  * ✅ Build hybrid models that integrate physical models and machine learning
+  * ✅ Execute real-time optimization on the digital twin
+  * ✅ Deploy to cloud environments and operate them continuously
+  * ✅ Design systems with security and governance in mind
 
-### 応用力（Applying）
+### Applied Ability (Applying)
 
-  * ✅ 化学ProcessのDigital Twinを構築・運用できる
-  * ✅ リアルタイムOptimizationとモデルPredictionControlを実装できる
-  * ✅ 故障Predictionと予知保全システムを構築できる
-  * ✅ ビジネス価値を定量化し、ROIを評価できる
-  * ✅ Digital Twinプロジェクトをリードできる
+  * ✅ Build and operate digital twins of chemical processes
+  * ✅ Implement real-time optimization and model predictive control
+  * ✅ Build failure prediction and predictive maintenance systems
+  * ✅ Quantify business value and evaluate ROI
+  * ✅ Lead digital twin projects
 
 * * *
 
-## FAQ（よくある質問）
+## FAQ (Frequently Asked Questions)
 
-### Q1: Prerequisitesはどの程度必要ですか？
+### Q1: How much prerequisite knowledge is required?
 
-**A** : この SeriesはAdvanced者向けです。以下の知識を前提としています：  
-\- **Python** : Intermediate以上（オブジェクト指向、非同期処理）  
-\- **ProcessSimulation** : 微 minutes方程式、物質・エネルギー収支  
-\- **Machine Learning** : 回帰、 minutes類、時系列Predictionの基礎  
-\- **IoT基礎** : センサー、通信プロトコルの基本概念  
-\- **推奨事前学習** : 「ProcessSimulation入門」「ProcessOptimization入門」 Series
+**A** : This series is intended for advanced learners. It assumes the following knowledge:  
+\- **Python** : Intermediate or above (object-oriented programming, asynchronous processing)  
+\- **Process simulation** : Differential equations, mass and energy balances  
+\- **Machine learning** : Fundamentals of regression, classification, and time-series prediction  
+\- **IoT fundamentals** : Basic concepts of sensors and communication protocols  
+\- **Recommended prior study** : The "Introduction to Process Simulation" and "Introduction to Process Optimization" series
 
-### Q2: Digital TwinとSimulationの違いは何ですか？
+### Q2: What is the difference between a digital twin and a simulation?
 
-**A** : Simulationは「Predictionツール」ですが、Digital Twinは「リアルタイムに同期する仮想レプリカ」です。Digital Twinは：  
-\- 実システムとリアルタイムでデータ連携  
-\- 双方向フィードバック（仮想Optimization → 実システムへの適用）  
-\- 継続的なモデル更新と学習  
-\- Predictionだけでなく、診断・Optimization・Controlも可能
+**A** : A simulation is a "prediction tool," whereas a digital twin is a "virtual replica that synchronizes in real time." A digital twin:  
+\- Integrates data with the real system in real time  
+\- Provides bidirectional feedback (virtual optimization → application to the real system)  
+\- Continuously updates and learns the model  
+\- Enables not only prediction but also diagnosis, optimization, and control
 
-### Q3: どのクラウドプラットフォームを推奨しますか？
+### Q3: Which cloud platform do you recommend?
 
-**A** : 産業用途では：  
-\- **AWS** : IoT Core、Greengrass（エッジ）、SageMaker（ML）の統合が優秀  
-\- **Azure** : Azure Digital Twins（専用サービス）、IoT Hub、PLCとの親和性  
-\- **GCP** : BigQuery（時系列 minutes析）、Vertex AI（ML）のコスト効率が良い  
-\- **推奨** : 既存のIT環境との統合性、コスト、専門知識で選択
+**A** : For industrial use:  
+\- **AWS** : Excellent integration of IoT Core, Greengrass (edge), and SageMaker (ML)  
+\- **Azure** : Azure Digital Twins (dedicated service), IoT Hub, and strong affinity with PLCs  
+\- **GCP** : Good cost efficiency with BigQuery (time-series analysis) and Vertex AI (ML)  
+\- **Recommendation** : Choose based on integration with your existing IT environment, cost, and available expertise
 
-### Q4: 実際のプラントに適用するリスクは？
+### Q4: What are the risks of applying this to an actual plant?
 
-**A** : 段階的アプローチを推奨します：  
-1\. **Monitoring専用** （Digital Shadow）: リスクなし、データログのみ  
-2\. **オフラインOptimization** : Digital Twin上で検証後、手動適用  
-3\. **オープンループ推奨** : システムが推奨値を提示、人間が承認  
-4\. **クローズドループControl** : Safety制約下での自動Control（高リスク）  
-\- **必須** : Safetyシステムとの独立性、フェールセーフ設計、十 minutesな検証期間
+**A** : A phased approach is recommended:  
+1\. **Monitoring only** (Digital Shadow): No risk, data logging only  
+2\. **Offline optimization** : Apply manually after verification on the digital twin  
+3\. **Open-loop recommendation** : The system presents recommended values, and a human approves them  
+4\. **Closed-loop control** : Automatic control under safety constraints (high risk)  
+\- **Essential** : Independence from the safety system, fail-safe design, and a sufficient verification period
 
-### Q5: 次に何を学ぶべきですか？
+### Q5: What should I learn next?
 
-**A** : 以下のトピックを推奨します：  
-\- **サプライチェーンDigital Twin** : 工場全体、複数Processの統合  
-\- **拡張現実（AR）統合** : Digital Twinの可視化とメンテナンス支援  
-\- **ブロックチェーン統合** : データの改ざん防止と追跡可能性  
-\- **量子コンピューティング** : 大規模Optimization問題の高速化  
-\- **認証資格** : AWS Certified IoT Specialty、Azure IoT Developer
+**A** : The following topics are recommended:  
+\- **Supply chain digital twin** : Integration of the entire factory and multiple processes  
+\- **Augmented Reality (AR) integration** : Digital twin visualization and maintenance support  
+\- **Blockchain integration** : Tamper resistance and traceability of data  
+\- **Quantum computing** : Acceleration of large-scale optimization problems  
+\- **Certifications** : AWS Certified IoT Specialty, Azure IoT Developer
 
 * * *
 
 ## Next Steps
 
-###  Series完了後の推奨アクション
+### Recommended Actions After Completing the Series
 
-**Immediate（1週間以内）:**  
-1\. ✅ Chapter 5のデプロイ例をGitHubに公開  
-2\. ✅ 自社ProcessのDigital Twin適用可能性評価  
-3\. ✅ 簡易プロトタイプの構築（センサー + 基礎モデル）
+**Immediate (within 1 week):**  
+1\. ✅ Publish the deployment example from Chapter 5 to GitHub  
+2\. ✅ Assess the feasibility of applying a digital twin to your own process  
+3\. ✅ Build a simple prototype (sensors + basic model)
 
-**Short-term（1-3ヶ月）:**  
-1\. ✅ パイロットプロジェクトの立ち上げ（特定装置1台）  
-2\. ✅ IoTセンサーの設置とデータ収集開始  
-3\. ✅ ハイブリッドモデルの構築と検証  
-4\. ✅ クラウド環境へのデプロイ
+**Short-term (1-3 months):**  
+1\. ✅ Launch a pilot project (one specific piece of equipment)  
+2\. ✅ Install IoT sensors and begin data collection  
+3\. ✅ Build and validate a hybrid model  
+4\. ✅ Deploy to a cloud environment
 
-**Long-term（6ヶ月以上）:**  
-1\. ✅ プラント全体のDigital Twin統合  
-2\. ✅ リアルタイムOptimizationの本番運用開始  
-3\. ✅ ROI測定とビジネスケース確立  
-4\. ✅ 他Processへの展開と標準化  
-5\. ✅ 学会発表や技術論文の執筆
-
-* * *
-
-## フィードバックとサポート
-
-### この Seriesについて
-
-この Seriesは、東北大学 Dr. Yusuke Hashimotoのもと、PI Knowledge Hubプロジェクトの一環として作成されました。
-
-**作成日** : 2025年10月26日  
-**バージョン** : 1.0
-
-### フィードバックをお待ちしています
-
-この Seriesを改善するため、皆様のフィードバックをお待ちしています：
-
-  * **誤字・脱字・技術的誤り** : GitHubリポジトリのIssueで報告してください
-  * **改善提案** : 新しいトピック、追加して欲しいCode Examples等
-  * **質問** : 理解が難しかった部 minutes、追加説明が欲しい箇所
-  * **成功事例** : この Seriesで学んだことを使ったプロジェクト
-
-**連絡先** : yusuke.hashimoto.b8@tohoku.ac.jp
+**Long-term (6 months or more):**  
+1\. ✅ Integrate a digital twin across the entire plant  
+2\. ✅ Begin production operation of real-time optimization  
+3\. ✅ Measure ROI and establish the business case  
+4\. ✅ Roll out to other processes and standardize  
+5\. ✅ Present at conferences and write technical papers
 
 * * *
 
-## ライセンスと利用規約
+## Feedback and Support
 
-この Seriesは **CC BY 4.0** （Creative Commons Attribution 4.0 International）ライセンスのもとで公開されています。
+### About This Series
 
-**可能なこと:**  
-\- ✅ 自由な閲覧・ダウンロード  
-\- ✅ 教育目的での利用（授業、勉強会等）  
-\- ✅ 改変・二次創作（翻訳、要約等）
+This series was created as part of the PI Knowledge Hub project under Dr. Yusuke Hashimoto of Tohoku University.
 
-**条件:**  
-\- 📌 著者のクレジット表示が必要  
-\- 📌 改変した場合はその旨を明記  
-\- 📌 商業利用の場合は事前に連絡
+**Created** : October 26, 2025  
+**Version** : 1.0
 
-詳細: [CC BY 4.0ライセンス全文](<https://creativecommons.org/licenses/by/4.0/deed.ja>)
+### We Welcome Your Feedback
+
+To improve this series, we look forward to your feedback:
+
+  * **Typos, omissions, and technical errors** : Please report them as issues in the GitHub repository
+  * **Improvement suggestions** : New topics, additional code examples you would like, etc.
+  * **Questions** : Parts that were difficult to understand or where you would like additional explanation
+  * **Success stories** : Projects that used what you learned in this series
+
+**Contact** : yusuke.hashimoto.b8@tohoku.ac.jp
 
 * * *
 
-## Let's Get Started！
+## License and Terms of Use
 
-準備はできましたか？ Chapter 1から始めて、Digital Twin構築の世界への旅を始めましょう！
+This series is published under the **CC BY 4.0** (Creative Commons Attribution 4.0 International) license.
 
-**[Chapter 1: Digital Twinの基礎 →](<chapter-1.html>)**
+**What you can do:**  
+\- ✅ Freely view and download  
+\- ✅ Use for educational purposes (classes, study groups, etc.)  
+\- ✅ Modify and create derivative works (translations, summaries, etc.)
+
+**Conditions:**  
+\- 📌 Attribution to the author is required  
+\- 📌 If you modify it, you must state that you have done so  
+\- 📌 For commercial use, please contact us in advance
+
+Details: [Full text of the CC BY 4.0 license](<https://creativecommons.org/licenses/by/4.0/deed.en>)
+
+* * *
+
+## Let's Get Started!
+
+Are you ready? Start with Chapter 1 and begin your journey into the world of digital twin construction!
+
+**[Chapter 1: Digital Twin Fundamentals →](<./chapter-1.html>)**
 
 * * *
 
 **Update History**
 
-  * **2025-10-26** : v1.0 初版公開
+  * **2025-10-26** : v1.0 initial release
 
 * * *
 
-**あなたのDigital Twin構築の旅はここから始まります！**
+**Your journey to building digital twins starts here!**
 
-[← Process Informatics道場トップに戻る](<../index.html>)
+[← Back to Process Informatics Dojo Top](<../index.html>)

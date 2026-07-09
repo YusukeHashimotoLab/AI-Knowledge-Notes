@@ -1,49 +1,49 @@
 ---
-title: Chapter 5 ケーススタディ
-chapter_title: Chapter 5 ケーススタディ
+title: "Chapter 5: Case Studies"
+chapter_title: "Chapter 5: Case Studies"
 subtitle: Case Studies in Food Process AI
 ---
 
-[AI Terakoya Top](<../index.html>)›[Process Informatics](<../../index.html>)›[Food Process Ai](<../../PI/food-process-ai/index.html>)›Chapter 5
+[AI Terakoya Top](<../index.html>)›[Process Informatics](<../../index.html>)›Food Process AI›Chapter 5
 
-🌐 EN | [🇯🇵 JP](<../../../jp/PI/food-process-ai/chapter-5.html>) | Last sync: 2025-11-16
+🌐 EN | [🇯🇵 日本語](<../../../jp/PI/food-process-ai/chapter-5.html>) Last sync: 2025-11-16
 
-[← Series Contentsに戻る](<index.html>)
+[← Back to Series Index](<index.html>)
 
-## 📖 本 Chapterの概要
+## 📖 Chapter Overview
 
-本 Chapterでは、Chapter 1からChapter 4で学んだAI技術を実際のFoodManufacturingProcessに適用した 具体的なケーススタディを紹介します。乳製品、飲料、スナックFood、調味料など、 様々なFoodカテゴリにおけるAI導入事例を通じて、技術の実践的な応用方法と その効果を学びます。各事例では、課題の特定、AI技術の選定、実装、効果測定までの 一連のProcessを詳しく解説します。 
+In this chapter, we present concrete case studies in which the AI technologies learned in Chapters 1 through 4 are applied to actual food manufacturing processes. Through AI implementation examples across various food categories—dairy products, beverages, snack foods, seasonings, and more—you will learn practical methods for applying these technologies and their effects. For each case, we explain in detail the entire process from problem identification, AI technology selection, and implementation to effectiveness measurement. 
 
 ### 🎯 Learning Objectives
 
-  * 実際のFoodManufacturing現場におけるAI導入のProcess理解
-  * 業種・製品特性に応じた技術選定の考え方
-  * ROI（投資対効果）の評価手法
-  * 導入時の課題と解決策
-  * 組織変革とデータ文化の醸成
+  * Understanding the AI implementation process in actual food manufacturing sites
+  * Approaches to technology selection based on industry and product characteristics
+  * Methods for evaluating ROI (Return on Investment)
+  * Challenges during implementation and their solutions
+  * Organizational transformation and cultivating a data culture
 
-## 🥛 5.1 ケーススタディ1: ヨーグルトManufacturingのQuality ControlAI
+## 🥛 5.1 Case Study 1: Quality Control AI for Yogurt Manufacturing
 
-### 📋 企業プロファイル
+### 📋 Company Profile
 
-  * **業種** : 乳製品メーカー（従業員300名）
-  * **製品** : 発酵乳製品（ヨーグルト、飲むヨーグルト）
-  * **生産量** : 日産50トン
+  * **Industry** : Dairy manufacturer (300 employees)
+  * **Products** : Fermented dairy products (yogurt, drinkable yogurt)
+  * **Production volume** : 50 tons per day
 
-### 🚨 課題
+### 🚨 Challenges
 
-  * 発酵Processのばらつきによる品質不安定性（酸度、粘度、風味）
-  * 季節変動による乳原料の成 minutes変化への対応困難
-  * 経験豊富なオペレータの退職による技能伝承の問題
-  * ロット不良による廃棄率3.5%（年間約600万円の損失）
+  * Quality instability due to fermentation process variability (acidity, viscosity, flavor)
+  * Difficulty responding to compositional changes in raw milk caused by seasonal variation
+  * Skill transfer problems due to the retirement of experienced operators
+  * 3.5% waste rate due to lot defects (approximately 6 million yen in annual losses)
 
-### 💡 導入したAIソリューション
+### 💡 Implemented AI Solutions
 
-  1. **発酵条件OptimizationAI** : Bayesian Optimizationによる温度・ hoursの自動調整
-  2. **品質Predictionモデル** : 乳原料成 minutesから最終製品品質を事前Prediction
-  3. **異常検出システム** : 発酵中の温度・pH変化をリアルタイムMonitoring
+  1. **Fermentation Condition Optimization AI** : Automatic adjustment of temperature and time using Bayesian optimization
+  2. **Quality Prediction Model** : Predicting final product quality in advance from raw milk composition
+  3. **Anomaly Detection System** : Real-time monitoring of temperature and pH changes during fermentation
 
-### 💻 Code Examples5.1: ヨーグルト発酵ProcessのOptimization
+### 💻 Code Example 5.1: Optimization of the Yogurt Fermentation Process
     
     
     import numpy as np
@@ -58,72 +58,72 @@ subtitle: Case Studies in Food Process AI
     plt.rcParams['font.sans-serif'] = ['Arial Unicode MS', 'DejaVu Sans']
     plt.rcParams['axes.unicode_minus'] = False
     
-    # ヨーグルト発酵ProcessのSimulation
+    # Simulation of the yogurt fermentation process
     class YogurtFermentationSimulator:
-        """ヨーグルト発酵Processシミュレータ"""
+        """Yogurt fermentation process simulator"""
     
         def __init__(self):
-            # 最適条件（真の値、実験では不明）
-            self.optimal_temp = 42.5  # ℃
-            self.optimal_time = 5.0   #  hours
+            # Optimal conditions (true values, unknown in experiments)
+            self.optimal_temp = 42.5  # °C
+            self.optimal_time = 5.0   # hours
             self.optimal_pH = 6.2
     
         def simulate_quality(self, temperature, fermentation_time, initial_pH, lactose_content=4.5):
             """
-            発酵条件から品質スコアをシミュレート
+            Simulate the quality score from fermentation conditions
     
             Args:
-                temperature: 発酵温度（℃）
-                fermentation_time: 発酵 hours（ hours）
-                initial_pH: 初期pH
-                lactose_content: 乳糖含量（%）
+                temperature: Fermentation temperature (°C)
+                fermentation_time: Fermentation time (hours)
+                initial_pH: Initial pH
+                lactose_content: Lactose content (%)
     
             Returns:
-                quality_score: 品質スコア（0-100）
+                quality_score: Quality score (0-100)
             """
-            # 温度の影響（40-45℃が最適）
+            # Effect of temperature (40-45°C is optimal)
             temp_factor = 1.0 - 0.2 * ((temperature - self.optimal_temp) / 5) ** 2
     
-            #  hoursの影響（4-6 hoursが最適）
+            # Effect of time (4-6 hours is optimal)
             time_factor = 1.0 - 0.15 * ((fermentation_time - self.optimal_time) / 2) ** 2
     
-            # pHの影響（6.0-6.5が最適）
+            # Effect of pH (6.0-6.5 is optimal)
             pH_factor = 1.0 - 0.1 * ((initial_pH - self.optimal_pH) / 0.5) ** 2
     
-            # 乳糖含量の影響（4.0-5.0%が最適）
+            # Effect of lactose content (4.0-5.0% is optimal)
             lactose_factor = 1.0 - 0.05 * ((lactose_content - 4.5) / 0.5) ** 2
     
-            # 総合品質スコア
+            # Overall quality score
             base_quality = 85
             quality_score = base_quality * temp_factor * time_factor * pH_factor * lactose_factor
     
-            # ランダムノイズ（Process変動）
+            # Random noise (process variation)
             noise = np.random.normal(0, 2)
             quality_score += noise
     
-            # 0-100の範囲にクリップ
+            # Clip to the 0-100 range
             quality_score = np.clip(quality_score, 0, 100)
     
             return quality_score
     
         def simulate_acidity(self, temperature, fermentation_time):
-            """発酵後の酸度を計算（°T）"""
-            # 温度と hoursが高いほど酸度が増加
+            """Calculate post-fermentation acidity (°T)"""
+            # Higher temperature and time increase acidity
             acidity = 60 + (temperature - 40) * 2 + fermentation_time * 5
             acidity += np.random.normal(0, 3)
             return np.clip(acidity, 40, 100)
     
         def simulate_viscosity(self, temperature, protein_content=3.5):
-            """粘度の計算（mPa·s）"""
-            # 温度が高いと粘度が下がる
+            """Calculate viscosity (mPa·s)"""
+            # Higher temperature lowers viscosity
             viscosity = 5000 - (temperature - 42) * 200 + protein_content * 300
             viscosity += np.random.normal(0, 200)
             return np.clip(viscosity, 2000, 8000)
     
-    # シミュレータの初期化
+    # Initialize the simulator
     simulator = YogurtFermentationSimulator()
     
-    # 実験データの生成（過去の生産データを模擬）
+    # Generate experimental data (simulating past production data)
     np.random.seed(42)
     n_experiments = 50
     
@@ -150,9 +150,9 @@ subtitle: Case Studies in Food Process AI
     
     df_experiments = pd.DataFrame(experimental_data)
     
-    # Bayesian Optimizationの実装
+    # Implementation of Bayesian optimization
     class BayesianOptimizationYogurt:
-        """ヨーグルト発酵条件のBayesian Optimization"""
+        """Bayesian optimization of yogurt fermentation conditions"""
     
         def __init__(self, bounds, simulator, n_init=10):
             self.bounds = np.array(bounds)
@@ -161,13 +161,13 @@ subtitle: Case Studies in Food Process AI
             self.X_sample = []
             self.y_sample = []
     
-            # ガウス過程回帰モデル
+            # Gaussian process regression model
             kernel = C(1.0, (1e-3, 1e3)) * RBF([1.0, 1.0], (1e-2, 1e2))
             self.gp = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=10,
                                                alpha=1e-6, normalize_y=True)
     
         def acquisition_function(self, X, xi=0.01):
-            """Expected Improvement獲得関数"""
+            """Expected Improvement acquisition function"""
             X = np.atleast_2d(X)
             mu, sigma = self.gp.predict(X, return_std=True)
     
@@ -185,22 +185,22 @@ subtitle: Case Studies in Food Process AI
             return ei
     
         def _norm_pdf(self, x):
-            """標準正規 minutes布のPDF"""
+            """PDF of the standard normal distribution"""
             return np.exp(-0.5 * x**2) / np.sqrt(2 * np.pi)
     
         def _norm_cdf(self, x):
-            """標準正規 minutes布のCDF"""
+            """CDF of the standard normal distribution"""
             return 0.5 * (1 + np.vectorize(lambda t: np.sign(t) * np.sqrt(1 - np.exp(-2*t**2/np.pi)))(x))
     
         def propose_location(self):
-            """次の実験点を提案"""
+            """Propose the next experiment point"""
             def min_obj(X):
                 return -self.acquisition_function(X)
     
             min_val = float('inf')
             min_x = None
     
-            # ランダムスタートでOptimization
+            # Optimize with random starts
             for _ in range(25):
                 x0 = np.random.uniform(self.bounds[:, 0], self.bounds[:, 1])
                 res = minimize(min_obj, x0=x0, bounds=self.bounds, method='L-BFGS-B')
@@ -212,26 +212,26 @@ subtitle: Case Studies in Food Process AI
             return min_x
     
         def optimize(self, n_iter=20, initial_pH=6.2, lactose_content=4.5):
-            """Optimizationの実行"""
-            # 初期ランダムサンプリング
+            """Run the optimization"""
+            # Initial random sampling
             for _ in range(self.n_init):
                 x = np.random.uniform(self.bounds[:, 0], self.bounds[:, 1])
                 y = self.simulator.simulate_quality(x[0], x[1], initial_pH, lactose_content)
                 self.X_sample.append(x)
                 self.y_sample.append(y)
     
-            # Bayesian Optimizationのメインループ
+            # Main loop of Bayesian optimization
             for iteration in range(n_iter):
-                # GPモデルの更新
+                # Update the GP model
                 self.gp.fit(np.array(self.X_sample), np.array(self.y_sample))
     
-                # 次の実験点を提案
+                # Propose the next experiment point
                 x_next = self.propose_location()
     
-                # 実験実施（Simulation）
+                # Conduct the experiment (simulation)
                 y_next = self.simulator.simulate_quality(x_next[0], x_next[1], initial_pH, lactose_content)
     
-                # データ追加
+                # Add data
                 self.X_sample.append(x_next)
                 self.y_sample.append(y_next)
     
@@ -239,53 +239,53 @@ subtitle: Case Studies in Food Process AI
                     best_idx = np.argmax(self.y_sample)
                     best_x = self.X_sample[best_idx]
                     best_y = self.y_sample[best_idx]
-                    print(f"反復 {iteration + 1}: 現在の最良 = 品質スコア {best_y:.2f} "
-                          f"(温度: {best_x[0]:.1f}℃,  hours: {best_x[1]:.1f}h)")
+                    print(f"Iteration {iteration + 1}: current best = quality score {best_y:.2f} "
+                          f"(temperature: {best_x[0]:.1f}°C, time: {best_x[1]:.1f}h)")
     
-            # 最適条件の抽出
+            # Extract the optimal conditions
             best_idx = np.argmax(self.y_sample)
             best_params = self.X_sample[best_idx]
             best_quality = self.y_sample[best_idx]
     
             return best_params, best_quality
     
-    # Bayesian Optimizationの実行
+    # Run Bayesian optimization
     print("=" * 60)
-    print("ヨーグルト発酵ProcessOptimization（Bayesian Optimization）")
+    print("Yogurt Fermentation Process Optimization (Bayesian Optimization)")
     print("=" * 60)
     
-    bounds = [[38, 46], [3, 7]]  # [温度範囲,  hours範囲]
+    bounds = [[38, 46], [3, 7]]  # [temperature range, time range]
     optimizer = BayesianOptimizationYogurt(bounds, simulator, n_init=10)
     
-    print("\nOptimization開始...")
+    print("\nStarting optimization...")
     best_params, best_quality = optimizer.optimize(n_iter=20, initial_pH=6.2, lactose_content=4.5)
     
     print("\n" + "=" * 60)
-    print("Optimization結果")
+    print("Optimization Results")
     print("=" * 60)
-    print(f"最適温度: {best_params[0]:.2f} ℃")
-    print(f"最適発酵 hours: {best_params[1]:.2f}  hours")
-    print(f"Prediction品質スコア: {best_quality:.2f}")
-    print(f"\n参考: 真の最適条件")
-    print(f"最適温度: {simulator.optimal_temp} ℃")
-    print(f"最適発酵 hours: {simulator.optimal_time}  hours")
+    print(f"Optimal temperature: {best_params[0]:.2f} °C")
+    print(f"Optimal fermentation time: {best_params[1]:.2f} hours")
+    print(f"Predicted quality score: {best_quality:.2f}")
+    print(f"\nReference: true optimal conditions")
+    print(f"Optimal temperature: {simulator.optimal_temp} °C")
+    print(f"Optimal fermentation time: {simulator.optimal_time} hours")
     
-    # 可視化
+    # Visualization
     fig, axes = plt.subplots(2, 2, figsize=(14, 10))
     
-    # 1. Optimizationの履歴
+    # 1. Optimization history
     iterations = range(1, len(optimizer.y_sample) + 1)
     cumulative_best = [max(optimizer.y_sample[:i+1]) for i in range(len(optimizer.y_sample))]
     
-    axes[0, 0].plot(iterations, optimizer.y_sample, 'o-', color='#11998e', alpha=0.6, label='各実験の品質')
-    axes[0, 0].plot(iterations, cumulative_best, 'r-', linewidth=2, label='累積最良値')
-    axes[0, 0].set_xlabel('実験回数')
-    axes[0, 0].set_ylabel('品質スコア')
-    axes[0, 0].set_title('Bayesian Optimizationの収束過程', fontsize=12, fontweight='bold')
+    axes[0, 0].plot(iterations, optimizer.y_sample, 'o-', color='#11998e', alpha=0.6, label='Quality of each experiment')
+    axes[0, 0].plot(iterations, cumulative_best, 'r-', linewidth=2, label='Cumulative best')
+    axes[0, 0].set_xlabel('Experiment number')
+    axes[0, 0].set_ylabel('Quality score')
+    axes[0, 0].set_title('Convergence of Bayesian Optimization', fontsize=12, fontweight='bold')
     axes[0, 0].legend()
     axes[0, 0].grid(alpha=0.3)
     
-    # 2. 温度- hoursマップ
+    # 2. Temperature-time map
     temp_grid = np.linspace(38, 46, 50)
     time_grid = np.linspace(3, 7, 50)
     T, Ti = np.meshgrid(temp_grid, time_grid)
@@ -298,36 +298,36 @@ subtitle: Case Studies in Food Process AI
     contour = axes[0, 1].contourf(T, Ti, Z, levels=20, cmap='RdYlGn')
     axes[0, 1].scatter([x[0] for x in optimizer.X_sample],
                        [x[1] for x in optimizer.X_sample],
-                       c='blue', s=50, edgecolor='black', linewidth=1, label='実験点', zorder=5)
+                       c='blue', s=50, edgecolor='black', linewidth=1, label='Experiment points', zorder=5)
     axes[0, 1].scatter(best_params[0], best_params[1], c='red', s=200, marker='*',
-                       edgecolor='black', linewidth=2, label='最適点', zorder=6)
-    axes[0, 1].set_xlabel('発酵温度（℃）')
-    axes[0, 1].set_ylabel('発酵 hours（ hours）')
-    axes[0, 1].set_title('品質スコアの等高線図', fontsize=12, fontweight='bold')
+                       edgecolor='black', linewidth=2, label='Optimal point', zorder=6)
+    axes[0, 1].set_xlabel('Fermentation temperature (°C)')
+    axes[0, 1].set_ylabel('Fermentation time (hours)')
+    axes[0, 1].set_title('Contour Plot of Quality Score', fontsize=12, fontweight='bold')
     axes[0, 1].legend()
-    plt.colorbar(contour, ax=axes[0, 1], label='品質スコア')
+    plt.colorbar(contour, ax=axes[0, 1], label='Quality score')
     
-    # 3. 温度の影響
+    # 3. Effect of temperature
     temp_range = np.linspace(38, 46, 30)
     quality_temp = [simulator.simulate_quality(t, best_params[1], 6.2, 4.5) for t in temp_range]
     
     axes[1, 0].plot(temp_range, quality_temp, color='#38ef7d', linewidth=2)
-    axes[1, 0].axvline(x=best_params[0], color='red', linestyle='--', linewidth=2, label=f'最適温度: {best_params[0]:.1f}℃')
-    axes[1, 0].set_xlabel('発酵温度（℃）')
-    axes[1, 0].set_ylabel('品質スコア')
-    axes[1, 0].set_title('温度と品質の関係', fontsize=12, fontweight='bold')
+    axes[1, 0].axvline(x=best_params[0], color='red', linestyle='--', linewidth=2, label=f'Optimal temperature: {best_params[0]:.1f}°C')
+    axes[1, 0].set_xlabel('Fermentation temperature (°C)')
+    axes[1, 0].set_ylabel('Quality score')
+    axes[1, 0].set_title('Relationship Between Temperature and Quality', fontsize=12, fontweight='bold')
     axes[1, 0].legend()
     axes[1, 0].grid(alpha=0.3)
     
-    # 4.  hoursの影響
+    # 4. Effect of time
     time_range = np.linspace(3, 7, 30)
     quality_time = [simulator.simulate_quality(best_params[0], t, 6.2, 4.5) for t in time_range]
     
     axes[1, 1].plot(time_range, quality_time, color='#11998e', linewidth=2)
-    axes[1, 1].axvline(x=best_params[1], color='red', linestyle='--', linewidth=2, label=f'最適 hours: {best_params[1]:.1f}h')
-    axes[1, 1].set_xlabel('発酵 hours（ hours）')
-    axes[1, 1].set_ylabel('品質スコア')
-    axes[1, 1].set_title('発酵 hoursと品質の関係', fontsize=12, fontweight='bold')
+    axes[1, 1].axvline(x=best_params[1], color='red', linestyle='--', linewidth=2, label=f'Optimal time: {best_params[1]:.1f}h')
+    axes[1, 1].set_xlabel('Fermentation time (hours)')
+    axes[1, 1].set_ylabel('Quality score')
+    axes[1, 1].set_title('Relationship Between Fermentation Time and Quality', fontsize=12, fontweight='bold')
     axes[1, 1].legend()
     axes[1, 1].grid(alpha=0.3)
     
@@ -336,44 +336,44 @@ subtitle: Case Studies in Food Process AI
     plt.show()
     
 
-### 📊 導入効果（6ヶ月後）
+### 📊 Implementation Results (After 6 Months)
 
-指標 | 導入前 | 導入後 | 改善率  
+Metric | Before | After | Improvement  
 ---|---|---|---  
-廃棄率 | 3.5% | 1.2% | ▼ 65.7%  
-品質スコア平均 | 78.5 | 89.2 | ▲ 13.6%  
-ばらつき（標準偏差） | 8.3 | 3.1 | ▼ 62.7%  
-年間コスト削減 | - | 約400万円 | -  
+Waste rate | 3.5% | 1.2% | ▼ 65.7%  
+Average quality score | 78.5 | 89.2 | ▲ 13.6%  
+Variability (standard deviation) | 8.3 | 3.1 | ▼ 62.7%  
+Annual cost reduction | - | Approx. 4 million yen | -  
   
-### 🔑 成功のポイント
+### 🔑 Keys to Success
 
-  * 既存センサデータの活用により初期投資を抑制
-  * Bayesian Optimizationにより少ない実験回数で最適条件を発見
-  * 現場オペレータとのコミュニケーションを重視し、AIの意思決定を可視化
-  * 段階的導入（1ライン→全ライン展開）によるリスク管理
+  * Curbing initial investment by utilizing existing sensor data
+  * Discovering optimal conditions with few experiments via Bayesian optimization
+  * Emphasizing communication with on-site operators and visualizing AI decision-making
+  * Risk management through phased implementation (one line → deployment to all lines)
 
-## 🥤 5.2 ケーススタディ2: 清涼飲料水の予知保全システム
+## 🥤 5.2 Case Study 2: Predictive Maintenance System for Soft Drinks
 
-### 📋 企業プロファイル
+### 📋 Company Profile
 
-  * **業種** : 飲料メーカー（従業員500名）
-  * **製品** : 炭酸飲料、ジュース、スポーツドリンク
-  * **生産量** : 日産200万本
+  * **Industry** : Beverage manufacturer (500 employees)
+  * **Products** : Carbonated drinks, juice, sports drinks
+  * **Production volume** : 2 million bottles per day
 
-### 🚨 課題
+### 🚨 Challenges
 
-  * 充填機の突然の故障による生産停止（年間15回、平均停止 hours4 hours）
-  * 計画外停止による機会損失と納期遅延
-  * 過剰な予防保全による保全コスト増大
-  * 設備停止時の原因特定に hoursがかかる（平均1.5 hours）
+  * Production stoppages due to sudden filling machine failures (15 times per year, average downtime 4 hours)
+  * Opportunity losses and delivery delays due to unplanned stoppages
+  * Increased maintenance costs due to excessive preventive maintenance
+  * Time-consuming cause identification during equipment stoppages (average 1.5 hours)
 
-### 💡 導入したAIソリューション
+### 💡 Implemented AI Solutions
 
-  1. **設備故障PredictionAI** : Random Forestによる24 hours先までの故障リスクPrediction
-  2. **異常検出システム** : Isolation ForestによるリアルタイムMonitoring
-  3. **根本原因 minutes析ツール** : 決定木による故障要因の自動特定
+  1. **Equipment Failure Prediction AI** : Failure risk prediction up to 24 hours ahead using Random Forest
+  2. **Anomaly Detection System** : Real-time monitoring using Isolation Forest
+  3. **Root Cause Analysis Tool** : Automatic identification of failure factors using decision trees
 
-### 💻 Code Examples5.2: 充填機の故障Predictionダッシュボード
+### 💻 Code Example 5.2: Filling Machine Failure Prediction Dashboard
     
     
     import numpy as np
@@ -386,17 +386,17 @@ subtitle: Case Studies in Food Process AI
     plt.rcParams['font.sans-serif'] = ['Arial Unicode MS', 'DejaVu Sans']
     plt.rcParams['axes.unicode_minus'] = False
     
-    # 充填機センサデータのSimulation（24 hours minutes）
+    # Simulation of filling machine sensor data (24 hours)
     np.random.seed(42)
     hours = 24
-    data_points_per_hour = 60  # 1 minutes毎
+    data_points_per_hour = 60  # every minute
     total_points = hours * data_points_per_hour
     
-    # タイムスタンプの生成
+    # Generate timestamps
     start_time = datetime(2025, 10, 27, 0, 0, 0)
     timestamps = [start_time + timedelta(minutes=i) for i in range(total_points)]
     
-    # 正常運転データ生成（0-18 hours）
+    # Generate normal operation data (0-18 hours)
     normal_hours = 18 * data_points_per_hour
     
     temp_normal = np.random.normal(65, 2, normal_hours)
@@ -405,7 +405,7 @@ subtitle: Case Studies in Food Process AI
     flow_rate_normal = np.random.normal(1000, 20, normal_hours)
     motor_current_normal = np.random.normal(25, 1, normal_hours)
     
-    # 異常の兆候（18-24 hours：徐々に劣化）
+    # Signs of anomaly (18-24 hours: gradual degradation)
     degradation_hours = total_points - normal_hours
     t_degrade = np.linspace(0, 1, degradation_hours)
     
@@ -415,7 +415,7 @@ subtitle: Case Studies in Food Process AI
     flow_rate_degrade = 1000 - t_degrade * 150 + np.random.normal(0, 30, degradation_hours)
     motor_current_degrade = 25 + t_degrade * 10 + np.random.normal(0, 2, degradation_hours)
     
-    # データフレーム作成
+    # Create the dataframe
     sensor_data = pd.DataFrame({
         'timestamp': timestamps,
         'temperature': np.concatenate([temp_normal, temp_degrade]),
@@ -425,23 +425,23 @@ subtitle: Case Studies in Food Process AI
         'motor_current': np.concatenate([motor_current_normal, motor_current_degrade])
     })
     
-    # 故障リスクスコアの計算（簡易版）
+    # Calculate the failure risk score (simplified version)
     def calculate_failure_risk(row):
-        """センサ値から故障リスクスコアを計算（0-100）"""
-        # 各パラメータの正常範囲からの逸脱度
+        """Calculate the failure risk score from sensor values (0-100)"""
+        # Deviation of each parameter from its normal range
         temp_risk = max(0, (row['temperature'] - 65) / 20) * 100
         vib_risk = max(0, (row['vibration'] - 0.3) / 0.7) * 100
         pressure_risk = max(0, (4.0 - row['pressure']) / 2.0) * 100
         flow_risk = max(0, (1000 - row['flow_rate']) / 200) * 100
         current_risk = max(0, (row['motor_current'] - 25) / 15) * 100
     
-        # 総合リスクスコア（最大値を採用）
+        # Overall risk score (take the maximum)
         total_risk = max(temp_risk, vib_risk, pressure_risk, flow_risk, current_risk)
         return min(100, total_risk)
     
     sensor_data['failure_risk'] = sensor_data.apply(calculate_failure_risk, axis=1)
     
-    # リスクLevelの minutes類
+    # Classify the risk level
     def classify_risk_level(risk_score):
         if risk_score < 20:
             return 'Low'
@@ -454,103 +454,103 @@ subtitle: Case Studies in Food Process AI
     
     sensor_data['risk_level'] = sensor_data['failure_risk'].apply(classify_risk_level)
     
-    # 統計サマリー
+    # Statistical summary
     print("=" * 60)
-    print("充填機予知保全ダッシュボード")
+    print("Filling Machine Predictive Maintenance Dashboard")
     print("=" * 60)
-    print(f"\nMonitoring期間: {timestamps[0].strftime('%Y-%m-%d %H:%M')} ~ {timestamps[-1].strftime('%Y-%m-%d %H:%M')}")
-    print(f"総データポイント数: {total_points}")
+    print(f"\nMonitoring period: {timestamps[0].strftime('%Y-%m-%d %H:%M')} ~ {timestamps[-1].strftime('%Y-%m-%d %H:%M')}")
+    print(f"Total data points: {total_points}")
     
     current_risk = sensor_data.iloc[-1]['failure_risk']
     current_level = sensor_data.iloc[-1]['risk_level']
-    print(f"\n現在の故障リスク: {current_risk:.1f} ({current_level})")
+    print(f"\nCurrent failure risk: {current_risk:.1f} ({current_level})")
     
-    # リスクLevelごとの集計
+    # Aggregate by risk level
     risk_counts = sensor_data['risk_level'].value_counts()
-    print(f"\nリスクLevel minutes布:")
+    print(f"\nRisk level distribution:")
     for level in ['Low', 'Medium', 'High', 'Critical']:
         if level in risk_counts.index:
             count = risk_counts[level]
             percentage = count / total_points * 100
-            print(f"  {level}: {count}件 ({percentage:.1f}%)")
+            print(f"  {level}: {count} points ({percentage:.1f}%)")
     
-    # 警告メッセージ
+    # Warning messages
     if current_risk >= 80:
-        print(f"\n🚨 【緊急警告】故障リスクが危険域に到達しています！")
-        print(f"   推奨アクション: 直ちに生産を停止し、設備点検を実施してください")
+        print(f"\n🚨 [CRITICAL WARNING] Failure risk has reached the danger zone!")
+        print(f"   Recommended action: Stop production immediately and perform equipment inspection")
     elif current_risk >= 50:
-        print(f"\n⚠️ 【警告】故障リスクが上昇しています")
-        print(f"   推奨アクション: 次回の休憩 hoursに設備点検を計画してください")
+        print(f"\n⚠️ [WARNING] Failure risk is rising")
+        print(f"   Recommended action: Plan equipment inspection during the next break")
     elif current_risk >= 20:
-        print(f"\n📝 【注意】わずかな異常の兆候が検出されています")
-        print(f"   推奨アクション: 継続的なMonitoringを実施してください")
+        print(f"\n📝 [CAUTION] Slight signs of anomaly have been detected")
+        print(f"   Recommended action: Continue monitoring")
     else:
-        print(f"\n✅ 【正常】設備は正常に稼働しています")
+        print(f"\n✅ [NORMAL] The equipment is operating normally")
     
-    # 可視化ダッシュボード
+    # Visualization dashboard
     fig = plt.figure(figsize=(16, 12))
     gs = fig.add_gridspec(4, 2, hspace=0.3, wspace=0.3)
     
-    # 時刻データ（X軸用）
+    # Time data (for the X-axis)
     time_hours = [(t - timestamps[0]).total_seconds() / 3600 for t in timestamps]
     
-    # 1. 温度トレンド
+    # 1. Temperature trend
     ax1 = fig.add_subplot(gs[0, 0])
     ax1.plot(time_hours, sensor_data['temperature'], color='#ff6b6b', linewidth=1)
-    ax1.axhline(y=65, color='green', linestyle='--', alpha=0.5, label='正常値')
-    ax1.axhline(y=75, color='orange', linestyle='--', alpha=0.5, label='警告閾値')
-    ax1.axhline(y=85, color='red', linestyle='--', alpha=0.5, label='危険閾値')
-    ax1.set_xlabel('経過 hours（ hours）')
-    ax1.set_ylabel('温度（℃）')
-    ax1.set_title('充填ヘッド温度', fontsize=11, fontweight='bold')
+    ax1.axhline(y=65, color='green', linestyle='--', alpha=0.5, label='Normal value')
+    ax1.axhline(y=75, color='orange', linestyle='--', alpha=0.5, label='Warning threshold')
+    ax1.axhline(y=85, color='red', linestyle='--', alpha=0.5, label='Danger threshold')
+    ax1.set_xlabel('Elapsed time (hours)')
+    ax1.set_ylabel('Temperature (°C)')
+    ax1.set_title('Filling Head Temperature', fontsize=11, fontweight='bold')
     ax1.legend(fontsize=8)
     ax1.grid(alpha=0.3)
     
-    # 2. 振動トレンド
+    # 2. Vibration trend
     ax2 = fig.add_subplot(gs[0, 1])
     ax2.plot(time_hours, sensor_data['vibration'], color='#4ecdc4', linewidth=1)
     ax2.axhline(y=0.3, color='green', linestyle='--', alpha=0.5)
     ax2.axhline(y=0.5, color='orange', linestyle='--', alpha=0.5)
     ax2.axhline(y=0.7, color='red', linestyle='--', alpha=0.5)
-    ax2.set_xlabel('経過 hours（ hours）')
-    ax2.set_ylabel('振動（mm/s）')
-    ax2.set_title('振動Level', fontsize=11, fontweight='bold')
+    ax2.set_xlabel('Elapsed time (hours)')
+    ax2.set_ylabel('Vibration (mm/s)')
+    ax2.set_title('Vibration Level', fontsize=11, fontweight='bold')
     ax2.grid(alpha=0.3)
     
-    # 3. 圧力トレンド
+    # 3. Pressure trend
     ax3 = fig.add_subplot(gs[1, 0])
     ax3.plot(time_hours, sensor_data['pressure'], color='#95e1d3', linewidth=1)
     ax3.axhline(y=4.0, color='green', linestyle='--', alpha=0.5)
     ax3.axhline(y=3.5, color='orange', linestyle='--', alpha=0.5)
     ax3.axhline(y=3.0, color='red', linestyle='--', alpha=0.5)
-    ax3.set_xlabel('経過 hours（ hours）')
-    ax3.set_ylabel('圧力（MPa）')
-    ax3.set_title('充填圧力', fontsize=11, fontweight='bold')
+    ax3.set_xlabel('Elapsed time (hours)')
+    ax3.set_ylabel('Pressure (MPa)')
+    ax3.set_title('Filling Pressure', fontsize=11, fontweight='bold')
     ax3.grid(alpha=0.3)
     
-    # 4. 流量トレンド
+    # 4. Flow rate trend
     ax4 = fig.add_subplot(gs[1, 1])
     ax4.plot(time_hours, sensor_data['flow_rate'], color='#f38181', linewidth=1)
     ax4.axhline(y=1000, color='green', linestyle='--', alpha=0.5)
     ax4.axhline(y=900, color='orange', linestyle='--', alpha=0.5)
     ax4.axhline(y=800, color='red', linestyle='--', alpha=0.5)
-    ax4.set_xlabel('経過 hours（ hours）')
-    ax4.set_ylabel('流量（本/ minutes）')
-    ax4.set_title('充填流量', fontsize=11, fontweight='bold')
+    ax4.set_xlabel('Elapsed time (hours)')
+    ax4.set_ylabel('Flow rate (bottles/min)')
+    ax4.set_title('Filling Flow Rate', fontsize=11, fontweight='bold')
     ax4.grid(alpha=0.3)
     
-    # 5. モーター電流トレンド
+    # 5. Motor current trend
     ax5 = fig.add_subplot(gs[2, 0])
     ax5.plot(time_hours, sensor_data['motor_current'], color='#aa96da', linewidth=1)
     ax5.axhline(y=25, color='green', linestyle='--', alpha=0.5)
     ax5.axhline(y=30, color='orange', linestyle='--', alpha=0.5)
     ax5.axhline(y=35, color='red', linestyle='--', alpha=0.5)
-    ax5.set_xlabel('経過 hours（ hours）')
-    ax5.set_ylabel('電流（A）')
-    ax5.set_title('モーター電流', fontsize=11, fontweight='bold')
+    ax5.set_xlabel('Elapsed time (hours)')
+    ax5.set_ylabel('Current (A)')
+    ax5.set_title('Motor Current', fontsize=11, fontweight='bold')
     ax5.grid(alpha=0.3)
     
-    # 6. 故障リスクスコア
+    # 6. Failure risk score
     ax6 = fig.add_subplot(gs[2, 1])
     colors = []
     for risk in sensor_data['failure_risk']:
@@ -564,154 +564,147 @@ subtitle: Case Studies in Food Process AI
             colors.append('red')
     
     ax6.scatter(time_hours, sensor_data['failure_risk'], c=colors, s=5, alpha=0.6)
-    ax6.axhline(y=20, color='yellow', linestyle='--', alpha=0.5, label='注意')
-    ax6.axhline(y=50, color='orange', linestyle='--', alpha=0.5, label='警告')
-    ax6.axhline(y=80, color='red', linestyle='--', alpha=0.5, label='危険')
-    ax6.set_xlabel('経過 hours（ hours）')
-    ax6.set_ylabel('故障リスクスコア')
-    ax6.set_title('統合故障リスク評価', fontsize=11, fontweight='bold')
+    ax6.axhline(y=20, color='yellow', linestyle='--', alpha=0.5, label='Caution')
+    ax6.axhline(y=50, color='orange', linestyle='--', alpha=0.5, label='Warning')
+    ax6.axhline(y=80, color='red', linestyle='--', alpha=0.5, label='Danger')
+    ax6.set_xlabel('Elapsed time (hours)')
+    ax6.set_ylabel('Failure risk score')
+    ax6.set_title('Integrated Failure Risk Assessment', fontsize=11, fontweight='bold')
     ax6.legend(fontsize=8)
     ax6.grid(alpha=0.3)
     
-    # 7. リスクLevel推移（積み上げ面グラフ）
+    # 7. Risk level transition (stacked bar chart)
     ax7 = fig.add_subplot(gs[3, :])
     
-    # 1 hoursごとにリサンプリング
+    # Resample by hour
     sensor_data['hour'] = sensor_data['timestamp'].dt.hour
     risk_by_hour = sensor_data.groupby(['hour', 'risk_level']).size().unstack(fill_value=0)
     
-    # 積み上げ棒グラフ
+    # Stacked bar chart
     risk_by_hour.plot(kind='bar', stacked=True, ax=ax7,
                       color={'Low': 'green', 'Medium': 'yellow', 'High': 'orange', 'Critical': 'red'},
                       width=0.8)
-    ax7.set_xlabel('時刻')
-    ax7.set_ylabel('データポイント数')
-    ax7.set_title(' hours帯別リスクLevel minutes布', fontsize=11, fontweight='bold')
-    ax7.legend(title='リスクLevel', fontsize=8)
+    ax7.set_xlabel('Hour')
+    ax7.set_ylabel('Number of data points')
+    ax7.set_title('Risk Level Distribution by Time of Day', fontsize=11, fontweight='bold')
+    ax7.legend(title='Risk level', fontsize=8)
     ax7.grid(axis='y', alpha=0.3)
     
-    plt.suptitle('充填機予知保全ダッシュボード - リアルタイムMonitoring', fontsize=14, fontweight='bold', y=0.995)
+    plt.suptitle('Filling Machine Predictive Maintenance Dashboard - Real-time Monitoring', fontsize=14, fontweight='bold', y=0.995)
     plt.savefig('filling_machine_dashboard.png', dpi=300, bbox_inches='tight')
     plt.show()
     
-    # 保全推奨スケジュール
+    # Recommended maintenance schedule
     print("\n" + "=" * 60)
-    print("推奨保全スケジュール")
+    print("Recommended Maintenance Schedule")
     print("=" * 60)
     
     if current_risk >= 80:
-        print("⏰ 緊急保全: 2 hours以内")
-        print("📝 点検項目: 全システム総合点検、部品交換準備")
+        print("⏰ Emergency maintenance: within 2 hours")
+        print("📝 Inspection items: Comprehensive system inspection, prepare parts replacement")
     elif current_risk >= 50:
-        print("⏰ 計画保全: 24 hours以内")
-        print("📝 点検項目: 振動・温度センサ周辺、モーター軸受")
+        print("⏰ Planned maintenance: within 24 hours")
+        print("📝 Inspection items: Around vibration/temperature sensors, motor bearings")
     elif current_risk >= 20:
-        print("⏰ 予防保全: 1週間以内")
-        print("📝 点検項目: 定期清掃、潤滑油補充")
+        print("⏰ Preventive maintenance: within 1 week")
+        print("📝 Inspection items: Routine cleaning, lubricant replenishment")
     else:
-        print("⏰ 次回定期保全: 通常スケジュール通り")
-        print("📝 点検項目: 標準点検項目")
+        print("⏰ Next scheduled maintenance: as per the normal schedule")
+        print("📝 Inspection items: Standard inspection items")
     
 
-### 📊 導入効果（12ヶ月後）
+### 📊 Implementation Results (After 12 Months)
 
-指標 | 導入前 | 導入後 | 改善率  
+Metric | Before | After | Improvement  
 ---|---|---|---  
-計画外停止回数 | 15回/年 | 3回/年 | ▼ 80%  
-平均故障対応 hours | 4.0 hours | 1.5 hours | ▼ 62.5%  
-保全コスト | 年間1200万円 | 年間850万円 | ▼ 29.2%  
-設備稼働率 | 92.5% | 97.8% | ▲ 5.7%  
+Unplanned stoppages | 15/year | 3/year | ▼ 80%  
+Average failure response time | 4.0 hours | 1.5 hours | ▼ 62.5%  
+Maintenance cost | 12 million yen/year | 8.5 million yen/year | ▼ 29.2%  
+Equipment uptime | 92.5% | 97.8% | ▲ 5.7%  
   
-### 🔑 成功のポイント
+### 🔑 Keys to Success
 
-  * IoTセンサの追加投資により、リアルタイムデータ収集を実現
-  * 保全担当者向けダッシュボードで、専門知識がなくても状況を把握可能
-  * 段階的なアラート設定により、過検知を抑制
-  * 保全履歴データとAIPredictionを組み合わせた根本原因 minutes析
+  * Achieving real-time data collection through additional investment in IoT sensors
+  * A dashboard for maintenance personnel that lets the situation be grasped even without specialized knowledge
+  * Suppressing false positives through graduated alert settings
+  * Root cause analysis combining maintenance history data with AI predictions
 
-## 🍪 5.3 その他のFoodカテゴリ事例サマリー
+## 🍪 5.3 Summary of Other Food Category Cases
 
-### スナック菓子Manufacturing（フライ工程）
+### Snack Food Manufacturing (Frying Process)
 
-**課題** : フライ油の劣化による品質低下、油交換タイミングのOptimization困難
+**Challenge** : Quality degradation due to frying oil deterioration, difficulty optimizing oil change timing
 
-**AI技術** : 画像認識による製品色調 minutes析 + 時系列Predictionによる油劣化Prediction
+**AI Technology** : Product color tone analysis via image recognition + oil deterioration prediction via time series forecasting
 
-**効果** : 油交換頻度の20%削減、廃油コスト削減（年間250万円）
+**Effect** : 20% reduction in oil change frequency, reduced waste oil costs (2.5 million yen annually)
 
-### パンManufacturing（発酵・焼成）
+### Bread Manufacturing (Fermentation and Baking)
 
-**課題** : 気候変動による発酵速度の変化、焼きムラの発生
+**Challenge** : Changes in fermentation speed due to climate variation, occurrence of uneven baking
 
-**AI技術** : Machine Learningによる発酵 hours自動調整 + サーモグラフィ画像解析
+**AI Technology** : Automatic fermentation time adjustment via machine learning + thermography image analysis
 
-**効果** : 焼きムラ不良率を2.8%→0.6%に削減
+**Effect** : Reduced the uneven-baking defect rate from 2.8% to 0.6%
 
-### 調味料Manufacturing（発酵調味料）
+### Seasoning Manufacturing (Fermented Seasonings)
 
-**課題** : 長期発酵Process（6ヶ月～1年）の品質Predictionが困難
+**Challenge** : Difficulty predicting quality in long-term fermentation processes (6 months to 1 year)
 
-**AI技術** : Deep Learning（LSTM）による発酵終了時の品質Prediction
+**AI Technology** : Prediction of end-of-fermentation quality via deep learning (LSTM)
 
-**効果** : 発酵3ヶ月時点で最終品質を±5%精度でPrediction、不良ロットの早期検出
+**Effect** : Predicting final quality with ±5% accuracy at the 3-month fermentation point, early detection of defective lots
 
-## 🎯 5.4 AI導入の成功要因と教訓
+## 🎯 5.4 Success Factors and Lessons from AI Implementation
 
-### 成功の共通要因
+### Common Success Factors
 
-  1. **経営層のコミットメント** : トップダウンでのAI戦略推進
-  2. **現場との協働** : オペレータの知見とAIの融合
-  3. **スモールスタート** : 1ライン・1Processから開始し、成功事例を横展開
-  4. **データ品質の確保** : センサ校正、データクレンジング
-  5. **継続的改善** : モデルの定期的な再訓練と精度向上
+  1. **Management Commitment** : Top-down promotion of AI strategy
+  2. **Collaboration with the Field** : Integrating operator expertise with AI
+  3. **Small Start** : Starting from a single line or process and horizontally expanding success cases
+  4. **Ensuring Data Quality** : Sensor calibration, data cleansing
+  5. **Continuous Improvement** : Periodic model retraining and accuracy improvement
 
-### 失敗から学んだ教訓
+### Lessons Learned from Failures
 
-  * **過度な期待値設定** : AIは万能ではない。適用範囲の明確化が重要
-  * **データ不足** : 最低6ヶ月～1年 minutesのデータが必要（季節変動を含む）
-  * **ブラックボックス化** : 説明可能性の欠如は現場の不信感を招く
-  * **保守体制の不備** : 導入後のメンテナンス計画が不可欠
+  * **Excessive Expectations** : AI is not a panacea. Clarifying the scope of application is important
+  * **Insufficient Data** : At least 6 months to 1 year of data is required (including seasonal variation)
+  * **Black-Boxing** : A lack of explainability breeds distrust on the shop floor
+  * **Inadequate Maintenance Structure** : A post-implementation maintenance plan is essential
 
-### ROI評価のポイント
+### Key Points for ROI Evaluation
 
-#### 投資対効果の計算式
+#### Return on Investment Formula
 
-$$ \text{ROI} = \frac{\text{年間コスト削減額} + \text{生産性向上による増益}}{\text{初期投資額} + \text{年間運用コスト}} \times 100 (\%) $$ 
+$$ \text{ROI} = \frac{\text{Annual Cost Reduction} + \text{Added Profit from Productivity Gains}}{\text{Initial Investment} + \text{Annual Operating Cost}} \times 100 (\%) $$ 
 
-  * **初期投資** : センサ設置、システム開発、教育訓練
-  * **コスト削減** : 廃棄削減、保全コスト削減、エネルギー削減
-  * **増益** : 品質向上による付加価値増、生産量増加
+  * **Initial Investment** : Sensor installation, system development, education and training
+  * **Cost Reduction** : Waste reduction, maintenance cost reduction, energy reduction
+  * **Added Profit** : Added value from quality improvement, increased production volume
 
-**ベンチマーク** : 2-3年でのROI回収が一般的な目標
+**Benchmark** : ROI payback within 2-3 years is a common target
 
 ## 📚 Summary
 
-本 Chapterでは、FoodManufacturingProcessにおける実際のAI導入事例を学びました。
+In this chapter, we studied actual AI implementation cases in food manufacturing processes.
 
-### 主要なポイント
+### Key Points
 
-  * 業種・製品特性に応じたAI技術の選定と適用
-  * Bayesian Optimization、故障Prediction、異常検出など、複数技術の統合活用
-  * 定量的な効果測定とROI評価の重要性
-  * 現場との協働と継続的改善の文化醸成
-  * スモールスタートによるリスク管理
+  * Selection and application of AI technologies according to industry and product characteristics
+  * Integrated use of multiple technologies such as Bayesian optimization, failure prediction, and anomaly detection
+  * The importance of quantitative effectiveness measurement and ROI evaluation
+  * Collaboration with the field and cultivating a culture of continuous improvement
+  * Risk management through a small start
 
-**🎓 Series完了**  
-本 Series「FoodProcessAI入門」では、FoodManufacturing現場におけるAI活用の基礎から実践まで、 包括的に学びました。今後は、自社の課題に応じて、適切なAI技術を選定・導入し、 データ駆動型のManufacturingProcess改善を推進してください。  
+**🎓 Series Complete**  
+In this series, "Introduction to Food Process AI," we comprehensively learned about AI utilization in food manufacturing sites, from the fundamentals through to practice. Going forward, according to your own organization's challenges, please select and implement appropriate AI technologies and drive data-driven improvement of your manufacturing processes.  
   
-継続学習のリソース:  
-・Process Informatics道場の他 Series  
-・Machine Learning道場の基礎 Series  
-・業界カンファレンスやワークショップへの参加 
+Resources for continued learning:  
+・Other series in the Process Informatics Dojo  
+・The fundamentals series in the Machine Learning Dojo  
+・Participation in industry conferences and workshops 
 
-[← Chapter 4: 予知保全](<chapter-4.html>) [Series Contentsへ →](<index.html>)
-
-## References
-
-  1. Montgomery, D. C. (2019). _Design and Analysis of Experiments_ (9th ed.). Wiley.
-  2. Box, G. E. P., Hunter, J. S., & Hunter, W. G. (2005). _Statistics for Experimenters: Design, Innovation, and Discovery_ (2nd ed.). Wiley.
-  3. Seborg, D. E., Edgar, T. F., Mellichamp, D. A., & Doyle III, F. J. (2016). _Process Dynamics and Control_ (4th ed.). Wiley.
-  4. McKay, M. D., Beckman, R. J., & Conover, W. J. (2000). "A Comparison of Three Methods for Selecting Values of Input Variables in the Analysis of Output from a Computer Code." _Technometrics_ , 42(1), 55-61.
+[← Chapter 4: Predictive Maintenance](<chapter-4.html>) [Series Index →](<index.html>)
 
 ### Disclaimer
 

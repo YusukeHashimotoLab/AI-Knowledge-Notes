@@ -1,16 +1,16 @@
 ---
-title: Chapter 4：仮想ProcessOptimization
-chapter_title: Chapter 4：仮想ProcessOptimization
-subtitle: Digital Twinで実現するSafetyで効率的なOptimization
+title: "Chapter 4: Virtual Process Optimization"
+chapter_title: "Chapter 4: Virtual Process Optimization"
+subtitle: Safe and Efficient Optimization Enabled by Digital Twins
 ---
 
-This chapter covers Chapter 4：仮想ProcessOptimization. You will learn What-ifシナリオ minutes析の目的と価値を説明できる, ソフトセンサーの役割と適用場面を理解している, and 予知保全が従来保全より優れる理由を説明できる.
+This chapter covers Virtual Process Optimization. You will learn differences between RTO.
 
-## 4.1 What-ifシナリオ minutes析
+## 4.1 What-if Scenario Analysis
 
-Digital Twinの最大の価値は、実Processに影響を与えずに様々な「もしも」シナリオを試せることです。条件変更の影響を事前評価し、最適な運転戦略を見出します。
+The greatest value of digital twins is the ability to test various "what-if" scenarios without affecting the actual process. By evaluating the impact of condition changes in advance, we can identify optimal operational strategies.
 
-### 4.1.1 基本的なWhat-if minutes析
+### 4.1.1 Basic What-if Analysis
     
     
     import numpy as np
@@ -19,26 +19,26 @@ Digital Twinの最大の価値は、実Processに影響を与えずに様々な�
     from scipy.optimize import differential_evolution
     
     class WhatIfAnalyzer:
-        """Digital Twinを使ったWhat-ifシナリオ minutes析"""
+        """What-if scenario analysis using digital twin"""
     
         def __init__(self, digital_twin_model):
             self.model = digital_twin_model
             self.scenarios = []
     
         def create_scenario(self, name, parameter_changes):
-            """シナリオ作成
+            """Create scenario
     
             Args:
-                name: シナリオ名
-                parameter_changes: {param: value}の辞書
+                name: Scenario name
+                parameter_changes: Dictionary of {param: value}
             """
             baseline = self.model.get_current_state()
     
-            # シナリオ適用
+            # Apply scenario
             modified_state = baseline.copy()
             modified_state.update(parameter_changes)
     
-            # Simulation実行
+            # Run simulation
             result = self.model.simulate(modified_state)
     
             scenario = {
@@ -53,7 +53,7 @@ Digital Twinの最大の価値は、実Processに影響を与えずに様々な�
             return scenario
     
         def _calculate_impact(self, baseline, result):
-            """影響度計算"""
+            """Calculate impact"""
             return {
                 'yield_change': ((result['yield'] - baseline['yield']) /
                                baseline['yield'] * 100),
@@ -62,7 +62,7 @@ Digital Twinの最大の価値は、実Processに影響を与えずに様々な�
             }
     
         def compare_scenarios(self):
-            """シナリオ比較"""
+            """Compare scenarios"""
             df = pd.DataFrame([
                 {
                     'Scenario': s['name'],
@@ -74,7 +74,7 @@ Digital Twinの最大の価値は、実Processに影響を与えずに様々な�
             ])
             return df
     
-    # 使用例
+    # Usage example
     class SimpleReactorModel:
         def __init__(self):
             self.state = {'temp': 350, 'pressure': 5.0, 'flow': 100}
@@ -83,12 +83,12 @@ Digital Twinの最大の価値は、実Processに影響を与えずに様々な�
             return self.state.copy()
     
         def simulate(self, state):
-            # 簡易反応器モデル
+            # Simple reactor model
             temp = state['temp']
             pressure = state['pressure']
             flow = state['flow']
     
-            # 収率モデル（最適点: 360℃, 6 bar）
+            # Yield model (optimal point: 360°C, 6 bar)
             yield_val = 85 - 0.05*(temp-360)**2 - 2*(pressure-6)**2
             quality = 95 - 0.02*abs(temp-360)
             cost = 0.5*temp + 10*pressure + 0.1*flow
@@ -100,39 +100,39 @@ Digital Twinの最大の価値は、実Processに影響を与えずに様々な�
                 **state
             }
     
-    # 実行
+    # Execute
     model = SimpleReactorModel()
     analyzer = WhatIfAnalyzer(model)
     
-    # シナリオ1: 温度上昇
+    # Scenario 1: Temperature increase
     analyzer.create_scenario('High Temp', {'temp': 370})
     
-    # シナリオ2: 圧力増加
+    # Scenario 2: Pressure increase
     analyzer.create_scenario('High Pressure', {'pressure': 7.0})
     
-    # シナリオ3: 同時変更
+    # Scenario 3: Combined changes
     analyzer.create_scenario('Combined', {'temp': 365, 'pressure': 6.5})
     
-    # 比較
+    # Compare
     print(analyzer.compare_scenarios())
-    # 出力:
+    # Output:
     #        Scenario  Yield Change (%)  Quality Change  Cost Change
     # 0     High Temp            -5.88           -0.20        10.00
     # 1  High Pressure            -7.06            0.00        20.00
     # 2      Combined             3.53           -0.10        27.50
     
 
-**💡 実務Tips:**
+**💡 Practical Tips:**
 
-  * ベースラインとの差 minutesを常に可視化する
-  * 制約条件（Safety限界）を明示する
-  * 不確実性を考慮した感度 minutes析も実施
+  * Always visualize differences from baseline
+  * Explicitly state constraint conditions (safety limits)
+  * Also perform sensitivity analysis considering uncertainty
 
-## 4.2 仮想センサー（ソフトセンサー）
+## 4.2 Virtual Sensors (Soft Sensors)
 
-測定困難または高コストな変数を、測定可能な変数から推定するソフトセンサーをDigital Twinに統合します。
+Integrate soft sensors into digital twins that estimate difficult-to-measure or high-cost variables from measurable variables.
 
-### 4.2.1 Machine Learningベースソフトセンサー
+### 4.2.1 Machine Learning-based Soft Sensor
     
     
     from sklearn.ensemble import RandomForestRegressor
@@ -141,7 +141,7 @@ Digital Twinの最大の価値は、実Processに影響を与えずに様々な�
     import joblib
     
     class SoftSensor:
-        """Machine Learningベースのソフトセンサー"""
+        """Machine learning-based soft sensor"""
     
         def __init__(self, target_variable):
             self.target = target_variable
@@ -154,11 +154,11 @@ Digital Twinの最大の価値は、実Processに影響を与えずに様々な�
             self.is_trained = False
     
         def train(self, X, y, test_size=0.2):
-            """モデル訓練
+            """Train model
     
             Args:
-                X: 測定可能な変数（DataFrame）
-                y: 目標変数（測定困難な変数）
+                X: Measurable variables (DataFrame)
+                y: Target variable (difficult-to-measure variable)
             """
             self.feature_names = X.columns.tolist()
     
@@ -168,7 +168,7 @@ Digital Twinの最大の価値は、実Processに影響を与えずに様々な�
     
             self.model.fit(X_train, y_train)
     
-            # 性能評価
+            # Performance evaluation
             y_pred = self.model.predict(X_test)
             r2 = r2_score(y_test, y_pred)
             mae = mean_absolute_error(y_test, y_pred)
@@ -183,14 +183,14 @@ Digital Twinの最大の価値は、実Processに影響を与えずに様々な�
             }
     
         def predict(self, X):
-            """リアルタイム推定"""
+            """Real-time estimation"""
             if not self.is_trained:
                 raise ValueError("Model not trained")
     
             return self.model.predict(X)
     
         def get_feature_importance(self):
-            """特徴量重要度"""
+            """Feature importance"""
             if not self.is_trained:
                 return None
     
@@ -202,19 +202,19 @@ Digital Twinの最大の価値は、実Processに影響を与えずに様々な�
             return importance
     
         def save(self, filepath):
-            """モデル保存"""
+            """Save model"""
             joblib.dump({
                 'model': self.model,
                 'feature_names': self.feature_names,
                 'target': self.target
             }, filepath)
     
-    # 使用例
-    # 製品品質（測定困難）を運転条件（測定容易）から推定
+    # Usage example
+    # Estimate product quality (difficult to measure) from operating conditions (easy to measure)
     np.random.seed(42)
     n_samples = 500
     
-    # 訓練データ生成（実際はProcessデータ）
+    # Generate training data (in practice, use process data)
     data = pd.DataFrame({
         'temp': np.random.uniform(340, 370, n_samples),
         'pressure': np.random.uniform(4, 8, n_samples),
@@ -222,14 +222,14 @@ Digital Twinの最大の価値は、実Processに影響を与えずに様々な�
         'residence_time': np.random.uniform(10, 30, n_samples)
     })
     
-    # 目標変数（製品純度）
+    # Target variable (product purity)
     data['purity'] = (
         92 + 0.2*data['temp'] - 0.01*data['temp']**2 +
         2*data['pressure'] + 0.1*data['residence_time'] +
         np.random.normal(0, 1, n_samples)
     )
     
-    # ソフトセンサー訓練
+    # Train soft sensor
     X = data[['temp', 'pressure', 'flow', 'residence_time']]
     y = data['purity']
     
@@ -241,7 +241,7 @@ Digital Twinの最大の価値は、実Processに影響を与えずに様々な�
     print("\nFeature Importance:")
     print(soft_sensor.get_feature_importance())
     
-    # リアルタイム推定
+    # Real-time estimation
     new_data = pd.DataFrame({
         'temp': [360],
         'pressure': [6.0],
@@ -252,35 +252,35 @@ Digital Twinの最大の価値は、実Processに影響を与えずに様々な�
     print(f"\nPredicted Purity: {predicted_purity[0]:.2f}%")
     
 
-## 4.3 予知保全
+## 4.3 Predictive Maintenance
 
-Digital Twinで設備劣化をPredictionし、故障前にメンテナンスを実施します。
+Predict equipment degradation using digital twins and perform maintenance before failure.
     
     
     import warnings
     warnings.filterwarnings('ignore')
     
     class PredictiveMaintenanceSystem:
-        """予知保全システム"""
+        """Predictive maintenance system"""
     
         def __init__(self, equipment_name):
             self.equipment = equipment_name
-            self.health_index = 100  # 健全度指数
+            self.health_index = 100  # Health index
             self.degradation_rate = 0.1
             self.threshold_warning = 70
             self.threshold_critical = 50
     
         def update_health(self, operating_hours, stress_factors):
-            """健全度更新
+            """Update health
     
             Args:
-                operating_hours: 稼働 hours
-                stress_factors: ストレス要因辞書
+                operating_hours: Operating hours
+                stress_factors: Stress factor dictionary
             """
-            # 基本劣化
+            # Basic degradation
             degradation = self.degradation_rate * operating_hours
     
-            # ストレス要因による加速劣化
+            # Accelerated degradation due to stress factors
             temp_stress = max(0, stress_factors.get('temp_excess', 0)) * 0.5
             vibration_stress = stress_factors.get('vibration', 0) * 0.3
             load_stress = stress_factors.get('overload', 0) * 0.4
@@ -293,11 +293,11 @@ Digital Twinで設備劣化をPredictionし、故障前にメンテナンスを�
             return self.health_index
     
         def predict_remaining_life(self, current_stress_factors):
-            """残存寿命Prediction"""
+            """Predict remaining life"""
             if self.health_index <= 0:
                 return 0
     
-            # 現在の劣化速度計算
+            # Calculate current degradation rate
             temp_stress = max(0, current_stress_factors.get('temp_excess', 0)) * 0.5
             vibration_stress = current_stress_factors.get('vibration', 0) * 0.3
             load_stress = current_stress_factors.get('overload', 0) * 0.4
@@ -308,13 +308,13 @@ Digital Twinで設備劣化をPredictionし、故障前にメンテナンスを�
             if degradation_per_hour <= 0:
                 return float('inf')
     
-            # 臨界値到達までの hours
+            # Time to critical threshold
             remaining_hours = (self.health_index - self.threshold_critical) / degradation_per_hour
     
             return max(0, remaining_hours)
     
         def get_maintenance_recommendation(self):
-            """メンテナンス推奨"""
+            """Maintenance recommendation"""
             if self.health_index >= self.threshold_warning:
                 return {
                     'status': 'HEALTHY',
@@ -337,15 +337,15 @@ Digital Twinで設備劣化をPredictionし、故障前にメンテナンスを�
                     'health': self.health_index
                 }
     
-    # 使用例
+    # Usage example
     pm_system = PredictiveMaintenanceSystem('Heat Exchanger HX-101')
     
-    # Simulation: 100 hours稼働
+    # Simulation: 100 hours of operation
     for hour in range(1, 101):
         stress = {
-            'temp_excess': 5 if hour % 20 == 0 else 0,  # 時々過熱
-            'vibration': 2 if hour > 50 else 1,  # 振動増加
-            'overload': 3 if hour > 80 else 0  # 後半に過負荷
+            'temp_excess': 5 if hour % 20 == 0 else 0,  # Occasional overheating
+            'vibration': 2 if hour > 50 else 1,  # Vibration increase
+            'overload': 3 if hour > 80 else 0  # Overload in later stage
         }
     
         health = pm_system.update_health(1, stress)
@@ -357,64 +357,64 @@ Digital Twinで設備劣化をPredictionし、故障前にメンテナンスを�
                   f"Remaining Life={remaining:.1f}h, "
                   f"Status={rec['status']}")
     
-    # 最終推奨
+    # Final recommendation
     final_rec = pm_system.get_maintenance_recommendation()
     print(f"\nFinal Recommendation: {final_rec['action']}")
     
 
-## 4.4 リアルタイムOptimization（RTO）
+## 4.4 Real-Time Optimization (RTO)
 
-Digital Twinを使って現在の状態から最適な運転条件を動的に計算します。
+Dynamically calculate optimal operating conditions from the current state using digital twins.
     
     
     from scipy.optimize import minimize
     
     class RealTimeOptimizer:
-        """リアルタイムOptimizationシステム"""
+        """Real-time optimization system"""
     
         def __init__(self, digital_twin, objective='profit'):
             self.twin = digital_twin
             self.objective = objective
     
         def objective_function(self, x, weights):
-            """目的関数
+            """Objective function
     
             Args:
-                x: 決定変数 [temp, pressure, flow]
-                weights: 重み係数
+                x: Decision variables [temp, pressure, flow]
+                weights: Weight coefficients
             """
             temp, pressure, flow = x
     
-            # Digital TwinでSimulation
+            # Simulate with digital twin
             state = {'temp': temp, 'pressure': pressure, 'flow': flow}
             result = self.twin.simulate(state)
     
-            # 複合目的関数（利益最大化）
+            # Composite objective function (profit maximization)
             revenue = result['yield'] * weights['product_price']
             cost = result['cost']
             quality_penalty = max(0, 90 - result['quality']) * weights['quality_penalty']
     
             profit = revenue - cost - quality_penalty
     
-            return -profit  # 最小化問題として
+            return -profit  # As minimization problem
     
         def optimize(self, initial_guess, bounds, constraints=None):
-            """Optimization実行
+            """Execute optimization
     
             Args:
-                initial_guess: 初期値 [temp, pressure, flow]
-                bounds: 変数範囲 [(min, max), ...]
-                constraints: 制約条件
+                initial_guess: Initial value [temp, pressure, flow]
+                bounds: Variable ranges [(min, max), ...]
+                constraints: Constraint conditions
             """
             weights = {
                 'product_price': 10.0,
                 'quality_penalty': 50.0
             }
     
-            # 制約条件
+            # Constraints
             cons = []
             if constraints:
-                # Safety制約
+                # Safety constraints
                 cons.append({
                     'type': 'ineq',
                     'fun': lambda x: constraints['max_temp'] - x[0]
@@ -452,11 +452,11 @@ Digital Twinを使って現在の状態から最適な運転条件を動的に�
             else:
                 return {'success': False, 'message': result.message}
     
-    # 使用例
+    # Usage example
     twin = SimpleReactorModel()
     rto = RealTimeOptimizer(twin, objective='profit')
     
-    # Optimization実行
+    # Execute optimization
     initial = [350, 5.0, 100]
     bounds = [(340, 380), (4.0, 8.0), (80, 120)]
     constraints = {
@@ -477,45 +477,45 @@ Digital Twinを使って現在の状態から最適な運転条件を動的に�
         print(f"  Profit: {opt_result['profit']:.2f}")
     
 
-## 4.5 モデルPredictionControl（MPC）統合
+## 4.5 Model Predictive Control (MPC) Integration
 
-Digital TwinとMPCを統合し、Predictionホライズンを考慮した最適Controlを実現します。
+Integrate digital twins with MPC to achieve optimal control considering the prediction horizon.
     
     
     class ModelPredictiveController:
-        """モデルPredictionControl（簡易版）"""
+        """Model predictive control (simplified version)"""
     
         def __init__(self, digital_twin, horizon=10, dt=1.0):
             self.twin = digital_twin
-            self.horizon = horizon  # Predictionホライズン
-            self.dt = dt  # サンプリング hours
+            self.horizon = horizon  # Prediction horizon
+            self.dt = dt  # Sampling time
     
         def predict_trajectory(self, initial_state, control_sequence):
-            """軌道Prediction
+            """Trajectory prediction
     
             Args:
-                initial_state: 初期状態
-                control_sequence: Control入力系列
+                initial_state: Initial state
+                control_sequence: Control input sequence
             """
             trajectory = [initial_state]
             state = initial_state.copy()
     
             for control in control_sequence:
-                # 状態更新（簡易離散化モデル）
+                # State update (simple discretization model)
                 state = self.twin.simulate({**state, **control})
                 trajectory.append(state)
     
             return trajectory
     
         def optimize_control(self, current_state, setpoint):
-            """Control入力Optimization
+            """Control input optimization
     
             Args:
-                current_state: 現在状態
-                setpoint: 目標値 {'yield': 85, 'quality': 95}
+                current_state: Current state
+                setpoint: Target value {'yield': 85, 'quality': 95}
             """
             def mpc_objective(u_flat):
-                # Control入力を再構成 [temp1, pres1, temp2, pres2, ...]
+                # Reconstruct control inputs [temp1, pres1, temp2, pres2, ...]
                 controls = []
                 for i in range(0, len(u_flat), 2):
                     controls.append({
@@ -523,29 +523,29 @@ Digital TwinとMPCを統合し、Predictionホライズンを考慮した最適C
                         'pressure': u_flat[i+1]
                     })
     
-                # 軌道Prediction
+                # Trajectory prediction
                 trajectory = self.predict_trajectory(current_state, controls)
     
-                # コスト計算
+                # Cost calculation
                 tracking_cost = 0
                 control_cost = 0
     
                 for state in trajectory[1:]:
-                    # トラッキング誤差
+                    # Tracking error
                     tracking_cost += (state['yield'] - setpoint['yield'])**2
                     tracking_cost += (state['quality'] - setpoint['quality'])**2
     
-                    # Controlコスト
+                    # Control cost
                     control_cost += 0.01 * state['cost']
     
                 return tracking_cost + control_cost
     
-            # 初期推定（現在値を維持）
+            # Initial guess (maintain current value)
             u0 = []
             for _ in range(self.horizon):
                 u0.extend([current_state['temp'], current_state['pressure']])
     
-            # 制約
+            # Constraints
             bounds = [(340, 380), (4.0, 8.0)] * self.horizon
     
             # Optimization
@@ -556,17 +556,17 @@ Digital TwinとMPCを統合し、Predictionホライズンを考慮した最適C
                 bounds=bounds
             )
     
-            # 最初のControl入力のみ適用（リセディングホライズン）
+            # Apply only first control input (receding horizon)
             optimal_temp = result.x[0]
             optimal_pressure = result.x[1]
     
             return {
                 'temp': optimal_temp,
                 'pressure': optimal_pressure,
-                'flow': current_state['flow']  # 流量は固定
+                'flow': current_state['flow']  # Flow is fixed
             }
     
-    # 使用例
+    # Usage example
     twin = SimpleReactorModel()
     mpc = ModelPredictiveController(twin, horizon=5)
     
@@ -579,29 +579,29 @@ Digital TwinとMPCを統合し、Predictionホライズンを考慮した最適C
     print(f"  Temperature setpoint: {optimal_control['temp']:.1f}°C")
     print(f"  Pressure setpoint: {optimal_control['pressure']:.2f} bar")
     
-    # Control適用後のPrediction
+    # Prediction after control application
     future_state = twin.simulate(optimal_control)
     print(f"\nPredicted Performance:")
     print(f"  Yield: {future_state['yield']:.1f}%")
     print(f"  Quality: {future_state['quality']:.1f}")
     
 
-## 4.6 多目的Optimization
+## 4.6 Multi-Objective Optimization
 
-収率、品質、コスト、環境負荷など複数の目標を同時に考慮したパレート最適解を探索します。
+Search for Pareto optimal solutions that simultaneously consider multiple objectives such as yield, quality, cost, and environmental impact.
     
     
     from scipy.optimize import differential_evolution
     
     class MultiObjectiveOptimizer:
-        """多目的Optimization"""
+        """Multi-objective optimization"""
     
         def __init__(self, digital_twin):
             self.twin = digital_twin
             self.pareto_solutions = []
     
         def evaluate_objectives(self, x):
-            """複数目的関数評価
+            """Evaluate multiple objective functions
     
             Returns:
                 [yield, quality, cost, energy]
@@ -609,8 +609,8 @@ Digital TwinとMPCを統合し、Predictionホライズンを考慮した最適C
             state = {'temp': x[0], 'pressure': x[1], 'flow': x[2]}
             result = self.twin.simulate(state)
     
-            # エネルギー消費量推定
-            energy = 0.5*x[0] + 20*x[1]**1.5  # 簡易モデル
+            # Energy consumption estimation
+            energy = 0.5*x[0] + 20*x[1]**1.5  # Simplified model
     
             return {
                 'yield': result['yield'],
@@ -620,7 +620,7 @@ Digital TwinとMPCを統合し、Predictionホライズンを考慮した最適C
             }
     
         def weighted_sum_method(self, bounds, weights):
-            """重み付け和法
+            """Weighted sum method
     
             Args:
                 bounds: [(min, max), ...]
@@ -629,19 +629,19 @@ Digital TwinとMPCを統合し、Predictionホライズンを考慮した最適C
             def objective(x):
                 obj = self.evaluate_objectives(x)
     
-                # 正規化（仮の最大値）
+                # Normalization (assumed maximum values)
                 yield_norm = obj['yield'] / 100
                 quality_norm = obj['quality'] / 100
                 cost_norm = obj['cost'] / 500
                 energy_norm = obj['energy'] / 300
     
-                # 重み付け和（コストとエネルギーは最小化）
+                # Weighted sum (cost and energy to minimize)
                 score = (weights.get('yield', 0) * yield_norm +
                         weights.get('quality', 0) * quality_norm -
                         weights.get('cost', 0) * cost_norm -
                         weights.get('energy', 0) * energy_norm)
     
-                return -score  # 最大化→最小化
+                return -score  # Maximization → Minimization
     
             result = differential_evolution(objective, bounds, seed=42)
     
@@ -660,10 +660,10 @@ Digital TwinとMPCを統合し、Predictionホライズンを考慮した最適C
             return None
     
         def pareto_frontier(self, bounds, n_points=10):
-            """パレートフロンティア探索"""
+            """Pareto frontier search"""
             pareto_solutions = []
     
-            # 異なる重み設定でOptimization
+            # Optimize with different weight settings
             for i in range(n_points):
                 alpha = i / (n_points - 1)
     
@@ -681,13 +681,13 @@ Digital TwinとMPCを統合し、Predictionホライズンを考慮した最適C
             self.pareto_solutions = pareto_solutions
             return pareto_solutions
     
-    # 使用例
+    # Usage example
     twin = SimpleReactorModel()
     mo_optimizer = MultiObjectiveOptimizer(twin)
     
     bounds = [(340, 380), (4.0, 8.0), (80, 120)]
     
-    # シナリオ1: 収率重視
+    # Scenario 1: Yield priority
     solution1 = mo_optimizer.weighted_sum_method(
         bounds,
         {'yield': 1.0, 'quality': 0.3, 'cost': 0.5, 'energy': 0.2}
@@ -699,7 +699,7 @@ Digital TwinとMPCを統合し、Predictionホライズンを考慮した最適C
     print(f"  Quality: {solution1['objectives']['quality']:.1f}")
     print(f"  Cost: {solution1['objectives']['cost']:.1f}")
     
-    # シナリオ2: 品質重視
+    # Scenario 2: Quality priority
     solution2 = mo_optimizer.weighted_sum_method(
         bounds,
         {'yield': 0.3, 'quality': 1.0, 'cost': 0.5, 'energy': 0.2}
@@ -711,27 +711,27 @@ Digital TwinとMPCを統合し、Predictionホライズンを考慮した最適C
     print(f"  Quality: {solution2['objectives']['quality']:.1f}")
     
 
-## 4.7 リスク評価とシナリオプランニング
+## 4.7 Risk Assessment and Scenario Planning
 
-Digital Twinで外乱や故障のシナリオを評価し、リスクを定量化します。
+Evaluate disturbance and failure scenarios using digital twins to quantify risks.
     
     
     import random
     
     class RiskAssessmentSystem:
-        """リスク評価システム"""
+        """Risk assessment system"""
     
         def __init__(self, digital_twin):
             self.twin = digital_twin
             self.risk_scenarios = []
     
         def define_risk_scenario(self, name, disturbances, probability):
-            """リスクシナリオ定義
+            """Define risk scenario
     
             Args:
-                name: シナリオ名
-                disturbances: 外乱 {'temp': +10, ...}
-                probability: 発生確率
+                name: Scenario name
+                disturbances: Disturbances {'temp': +10, ...}
+                probability: Occurrence probability
             """
             self.risk_scenarios.append({
                 'name': name,
@@ -740,17 +740,17 @@ Digital Twinで外乱や故障のシナリオを評価し、リスクを定量�
             })
     
         def monte_carlo_simulation(self, baseline_state, n_simulations=1000):
-            """モンテカルロSimulation"""
+            """Monte Carlo simulation"""
             results = []
     
             for _ in range(n_simulations):
-                # ランダムにシナリオ選択
+                # Randomly select scenario
                 scenario = random.choices(
                     self.risk_scenarios,
                     weights=[s['probability'] for s in self.risk_scenarios]
                 )[0]
     
-                # 外乱適用
+                # Apply disturbance
                 disturbed_state = baseline_state.copy()
                 for key, disturbance in scenario['disturbances'].items():
                     disturbed_state[key] = disturbed_state.get(key, 0) + disturbance
@@ -763,16 +763,16 @@ Digital Twinで外乱や故障のシナリオを評価し、リスクを定量�
             return pd.DataFrame(results)
     
         def calculate_risk_metrics(self, simulation_results):
-            """リスク指標計算"""
-            # Value at Risk (VaR): 5%タイル値
+            """Calculate risk metrics"""
+            # Value at Risk (VaR): 5th percentile
             var_yield = simulation_results['yield'].quantile(0.05)
             var_quality = simulation_results['quality'].quantile(0.05)
     
-            # 期待値
+            # Expected value
             expected_yield = simulation_results['yield'].mean()
             expected_quality = simulation_results['quality'].mean()
     
-            # 標準偏差
+            # Standard deviation
             std_yield = simulation_results['yield'].std()
             std_quality = simulation_results['quality'].std()
     
@@ -785,11 +785,11 @@ Digital Twinで外乱や故障のシナリオを評価し、リスクを定量�
                 'std_quality': std_quality
             }
     
-    # 使用例
+    # Usage example
     twin = SimpleReactorModel()
     risk_system = RiskAssessmentSystem(twin)
     
-    # リスクシナリオ定義
+    # Define risk scenarios
     risk_system.define_risk_scenario(
         'Normal Operation',
         {'temp': 0, 'pressure': 0},
@@ -798,7 +798,7 @@ Digital Twinで外乱や故障のシナリオを評価し、リスクを定量�
     
     risk_system.define_risk_scenario(
         'Heat Exchanger Fouling',
-        {'temp': -10},  # 冷却能力低下
+        {'temp': -10},  # Cooling capacity decrease
         probability=0.15
     )
     
@@ -814,11 +814,11 @@ Digital Twinで外乱や故障のシナリオを評価し、リスクを定量�
         probability=0.05
     )
     
-    # モンテカルロSimulation
+    # Monte Carlo simulation
     baseline = {'temp': 360, 'pressure': 6.0, 'flow': 100}
     mc_results = risk_system.monte_carlo_simulation(baseline, n_simulations=1000)
     
-    # リスク指標
+    # Risk metrics
     risk_metrics = risk_system.calculate_risk_metrics(mc_results)
     
     print("Risk Assessment Results:")
@@ -828,106 +828,106 @@ Digital Twinで外乱や故障のシナリオを評価し、リスクを定量�
     print(f"\nExpected Quality: {risk_metrics['expected_quality']:.2f}")
     print(f"Quality VaR (5%): {risk_metrics['var_quality_5%']:.2f}")
     
-    # シナリオ別集計
+    # Aggregate by scenario
     scenario_stats = mc_results.groupby('scenario')['yield'].agg(['mean', 'std', 'min'])
     print("\nYield by Scenario:")
     print(scenario_stats)
     
 
-**📊 産業実績:**
+**📊 Industrial Track Record:**
 
-  * **Shell:** Digital TwinとRTOで精製Processの収益を年間$数百万改善
-  * **BASF:** 仮想Optimizationで新製品開発期間を30%短縮
-  * **Dow Chemical:** 予知保全で計画外停止を40%削減
+  * **Shell:** Improved refining process revenue by millions of dollars annually using digital twins and RTO
+  * **BASF:** Reduced new product development time by 30% through virtual optimization
+  * **Dow Chemical:** Reduced unplanned downtime by 40% through predictive maintenance
 
-## Learning Objectivesの確認
+## Learning Objectives Review
 
-この Chapterを完了すると、以下を説明・実装できるようになります：
+Upon completing this chapter, you should be able to explain and implement the following:
 
-### 基本理解
+### Basic Understanding
 
-  * ✅ What-ifシナリオ minutes析の目的と価値を説明できる
-  * ✅ ソフトセンサーの役割と適用場面を理解している
-  * ✅ 予知保全が従来保全より優れる理由を説明できる
-  * ✅ RTOとMPCの違いを理解している
+  * ✅ Explain the purpose and value of what-if scenario analysis
+  * ✅ Understand the role and application scenarios of soft sensors
+  * ✅ Explain why predictive maintenance is superior to traditional maintenance
+  * ✅ Understand the differences between RTO and MPC
 
-### 実践スキル
+### Practical Skills
 
-  * ✅ Pythonでシナリオ minutes析システムを実装できる
-  * ✅ Machine Learningベースのソフトセンサーを構築できる
-  * ✅ 予知保全システムの基本的な実装ができる
-  * ✅ scipy.optimizeを使ったOptimizationを実装できる
-  * ✅ モンテカルロ法でリスク評価ができる
+  * ✅ Implement scenario analysis systems in Python
+  * ✅ Build machine learning-based soft sensors
+  * ✅ Perform basic implementation of predictive maintenance systems
+  * ✅ Implement optimization using scipy.optimize
+  * ✅ Perform risk assessment using Monte Carlo methods
 
-### 応用力
+### Application Ability
 
-  * ✅ 自社Processに適したOptimization戦略を設計できる
-  * ✅ 多目的Optimization問題をモデル化できる
-  * ✅ リスクシナリオを定量的に評価できる
+  * ✅ Design optimization strategies suitable for your processes
+  * ✅ Model multi-objective optimization problems
+  * ✅ Quantitatively evaluate risk scenarios
 
-## Exercises
+## Practice Problems
 
-### Easy（基礎確認）
+### Easy (Basic Confirmation)
 
-**Q1:** ソフトセンサーが特に有用なのはどのような場合ですか？
+**Q1:** In what situations are soft sensors particularly useful?
 
-解答を見る
+View Answer
 
-**正解:** 以下の場合にソフトセンサーが有用です：
+**Answer:** Soft sensors are useful in the following cases:
 
-  1. 測定装置が高コスト（質量 minutes析計など）
-  2. 測定に hoursがかかる（ラボ minutes析が必要）
-  3. オンライン測定が困難（製品品質など）
-  4. センサーが過酷環境で使えない
+  1. Measurement devices are expensive (mass spectrometers, etc.)
+  2. Measurement takes time (requires lab analysis)
+  3. Online measurement is difficult (product quality, etc.)
+  4. Sensors cannot be used in harsh environments
 
-**解説:** ソフトセンサーは測定可能な変数（温度、圧力など）から測定困難な変数を推定します。例えば、反応器内の成 minutes組成をオンラインで測定するのは困難ですが、温度・圧力・流量からMachine Learningモデルで推定できます。
+**Explanation:** Soft sensors estimate difficult-to-measure variables from measurable variables (temperature, pressure, etc.). For example, while it is difficult to measure component composition in a reactor online, it can be estimated from temperature, pressure, and flow rate using machine learning models.
 
-### Medium（応用）
+### Medium (Application)
 
-**Q2:** RTOとMPCの主な違いを3つ挙げてください。
+**Q2:** List three main differences between RTO and MPC.
 
-解答を見る
+View Answer
 
-**正解:**
+**Answer:**
 
-項目 | RTO（Real-Time Optimization） | MPC（Model Predictive Control）  
+Item | RTO (Real-Time Optimization) | MPC (Model Predictive Control)  
 ---|---|---  
-実行頻度 | 低頻度（数 hours～日単位） | 高頻度（秒～ minutes単位）  
-目的 | 定常状態の経済Optimization | 動的Controlと制約管理  
-出力 | 目標設定値（setpoints） | 直接的なControl入力  
+Execution Frequency | Low frequency (hours to days) | High frequency (seconds to minutes)  
+Objective | Steady-state economic optimization | Dynamic control and constraint management  
+Output | Target setpoints | Direct control inputs  
   
-**解説:** RTOは経済的Optimizationに焦点を当て、MPCはその目標値を達成するための動的Controlを担当します。実務では両者を階層的に組み合わせることが多いです。
+**Explanation:** RTO focuses on economic optimization, while MPC handles dynamic control to achieve those target values. In practice, both are often combined hierarchically.
 
-### Hard（発展）
+### Hard (Advanced)
 
-**Q3:** 提供されたWhatIfAnalyzerクラスを拡張し、不確実性を考慮したシナリオ minutes析を実装してください。各パラメータに±5%の変動を与え、100回のモンテカルロSimulationで結果の minutes布を評価するコードを書いてください。
+**Q3:** Extend the provided WhatIfAnalyzer class to implement scenario analysis considering uncertainty. Write code that evaluates result distributions through 100 Monte Carlo simulations, giving each parameter ±5% variation.
 
-解答例を見る
+View Solution Example
     
     
     class UncertaintyWhatIfAnalyzer(WhatIfAnalyzer):
-        """不確実性を考慮したWhat-if minutes析"""
+        """What-if analysis considering uncertainty"""
     
         def create_uncertain_scenario(self, name, parameter_changes,
                                       uncertainty=0.05, n_sim=100):
-            """不確実性を考慮したシナリオ minutes析
+            """Scenario analysis considering uncertainty
     
             Args:
-                name: シナリオ名
-                parameter_changes: 名目値
-                uncertainty: 変動幅（±5% = 0.05）
-                n_sim: Simulation回数
+                name: Scenario name
+                parameter_changes: Nominal values
+                uncertainty: Variation range (±5% = 0.05)
+                n_sim: Number of simulations
             """
             results = []
     
             for _ in range(n_sim):
-                # パラメータに不確実性を追加
+                # Add uncertainty to parameters
                 uncertain_changes = {}
                 for param, value in parameter_changes.items():
                     noise = np.random.uniform(-uncertainty, uncertainty)
                     uncertain_changes[param] = value * (1 + noise)
     
-                # ベースライン取得
+                # Get baseline
                 baseline = self.model.get_current_state()
                 modified_state = baseline.copy()
                 modified_state.update(uncertain_changes)
@@ -936,7 +936,7 @@ Digital Twinで外乱や故障のシナリオを評価し、リスクを定量�
                 result = self.model.simulate(modified_state)
                 results.append(result)
     
-            # 統計 minutes析
+            # Statistical analysis
             df = pd.DataFrame(results)
     
             return {
@@ -950,7 +950,7 @@ Digital Twinで外乱や故障のシナリオを評価し、リスクを定量�
                 'std_quality': df['quality'].std()
             }
     
-    # 使用例
+    # Usage example
     model = SimpleReactorModel()
     uncertain_analyzer = UncertaintyWhatIfAnalyzer(model)
     
@@ -969,13 +969,13 @@ Digital Twinで外乱や故障のシナリオを評価し、リスクを定量�
           f"{uncertain_result['yield_95_percentile']:.2f}]%")
     
 
-**解説:** この実装では、各パラメータに正規 minutes布ノイズを加え、モンテカルロ法で結果の minutes布を評価しています。実務では、不確実性の定量化がリスク管理に不可欠です。
+**Explanation:** This implementation adds normally distributed noise to each parameter and evaluates the result distribution using Monte Carlo methods. In practice, uncertainty quantification is essential for risk management.
 
 ## Next Steps
 
-Chapter 4では、Digital Twinを使った仮想Optimizationの各種手法を学びました。次 Chapterでは、これらをどのように実環境にデプロイするか、本番運用のベストプラクティスを解説します。
+In Chapter 4, we learned various methods of virtual optimization using digital twins. In the next chapter, we will explain how to deploy these to actual environments and best practices for production operation.
 
-[← Chapter 3: データ同化](<chapter-3.html>) [Chapter 5: デプロイと運用 →](<chapter-5.html>)
+[← Chapter 3: Hybrid Modeling](<chapter-3.html>) [Series Contents →](<index.html>)
 
 ## References
 

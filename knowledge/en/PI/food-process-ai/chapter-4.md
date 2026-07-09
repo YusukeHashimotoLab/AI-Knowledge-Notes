@@ -1,51 +1,51 @@
 ---
-title: Chapter 4 予知保全とトラブルシューティング
-chapter_title: Chapter 4 予知保全とトラブルシューティング
+title: "Chapter 4: Predictive Maintenance and Troubleshooting"
+chapter_title: "Chapter 4: Predictive Maintenance and Troubleshooting"
 subtitle: Predictive Maintenance and Troubleshooting
 ---
 
-[AI Terakoya Top](<../index.html>)›[Process Informatics](<../../index.html>)›[Food Process Ai](<../../PI/food-process-ai/index.html>)›Chapter 4
+[AI Terakoya Top](<../index.html>)›[Process Informatics](<../../index.html>)›Food Process AI›Chapter 4
 
-🌐 EN | [🇯🇵 JP](<../../../jp/PI/food-process-ai/chapter-4.html>) | Last sync: 2025-11-16
+🌐 EN | 日本語 (準備中) Last sync: 2025-11-16
 
-[← Series Contentsに戻る](<index.html>)
+[← Back to Series Index](<chapter-3.html>)
 
-## 📖 本 Chapterの概要
+## 📖 Chapter Overview
 
-FoodManufacturingProcessにおいて、設備の突然の故障や品質トラブルは、生産停止や製品廃棄につながる重大な問題です。 本 Chapterでは、AIを活用した予知保全（Predictive Maintenance）技術により、設備故障を事前にPredictionし、 計画的な保全を実現する方法を学びます。また、異常が発生した際の根本原因 minutes析やトラブルシューティングの 意思決定支援システムについても解説します。 
+In food manufacturing processes, sudden equipment failures and quality issues are serious problems that can lead to production shutdowns and product waste. In this chapter, you will learn how to predict equipment failures in advance and achieve planned maintenance using AI-powered Predictive Maintenance technology. We will also explain root cause analysis and decision support systems for troubleshooting when anomalies occur. 
 
 ### 🎯 Learning Objectives
 
-  * 設備故障PredictionのためのMachine Learningモデリング手法
-  * 残存有用寿命（RUL）推定アルゴリズム
-  * 異常検出と早期警報システムの構築
-  * 根本原因 minutes析（RCA）のためのData Analysis技術
-  * トラブルシューティング意思決定支援システム
-  * 保全計画のOptimization手法
+  * Machine learning modeling techniques for equipment failure prediction
+  * Remaining Useful Life (RUL) estimation algorithms
+  * Anomaly detection and early warning system construction
+  * Data analysis techniques for Root Cause Analysis (RCA)
+  * Troubleshooting decision support systems
+  * Maintenance planning optimization methods
 
-## 🔧 4.1 設備故障Predictionの基礎
+## 🔧 4.1 Fundamentals of Equipment Failure Prediction
 
-### 予知保全の3つのアプローチ
+### Three Approaches to Predictive Maintenance
 
-予知保全には主に以下の3つのアプローチがあります：
+Predictive maintenance has three main approaches:
 
-  * **hours基準保全（TBM）** : 固定スケジュールでの保全（従来型）
-  * **状態基準保全（CBM）** : センサデータに基づく閾値管理
-  * **予知保全（PdM）** : Machine Learningによる故障Predictionと最適保全タイミング決定
+  * **Time-Based Maintenance (TBM)** : Maintenance on a fixed schedule (traditional approach)
+  * **Condition-Based Maintenance (CBM)** : Threshold management based on sensor data
+  * **Predictive Maintenance (PdM)** : Failure prediction using machine learning and optimal maintenance timing determination
 
-**💡 予知保全のメリット**  
-・計画外停止 hoursの削減（30-50%減）  
-・保全コストの削減（20-30%減）  
-・設備寿命の延長（20-40%増）  
-・部品在庫のOptimization 
+**💡 Benefits of Predictive Maintenance**  
+\- Reduction in unplanned downtime (30-50% reduction)  
+\- Reduction in maintenance costs (20-30% reduction)  
+\- Extension of equipment lifespan (20-40% increase)  
+\- Parts inventory optimization 
 
-### 残存有用寿命（RUL）の定義
+### Definition of Remaining Useful Life (RUL)
 
 $$ \text{RUL}(t) = T_{\text{failure}} - t $$ 
 
-ここで、\\( T_{\text{failure}} \\) は故障発生時刻、\\( t \\) は現在時刻
+where \\( T_{\text{failure}} \\) is the failure occurrence time, and \\( t \\) is the current time
 
-### 💻 Code Examples4.1: Random Forestによる設備故障Prediction
+### 💻 Code Example 4.1: Equipment Failure Prediction with Random Forest
     
     
     import numpy as np
@@ -61,27 +61,27 @@ $$ \text{RUL}(t) = T_{\text{failure}} - t $$
     plt.rcParams['font.sans-serif'] = ['Arial Unicode MS', 'DejaVu Sans']
     plt.rcParams['axes.unicode_minus'] = False
     
-    # 設備センサデータの生成（1000サンプル）
+    # Generate equipment sensor data (1000 samples)
     np.random.seed(42)
     n_samples = 1000
     
-    # 正常運転データ（70%）
+    # Normal operation data (70%)
     n_normal = int(n_samples * 0.7)
-    temp_normal = np.random.normal(75, 5, n_normal)  # 温度（℃）
-    vibration_normal = np.random.normal(0.3, 0.05, n_normal)  # 振動（mm/s）
-    pressure_normal = np.random.normal(2.0, 0.2, n_normal)  # 圧力（MPa）
-    current_normal = np.random.normal(15, 2, n_normal)  # 電流（A）
-    runtime_normal = np.random.uniform(0, 5000, n_normal)  # 稼働 hours（h）
+    temp_normal = np.random.normal(75, 5, n_normal)  # Temperature (°C)
+    vibration_normal = np.random.normal(0.3, 0.05, n_normal)  # Vibration (mm/s)
+    pressure_normal = np.random.normal(2.0, 0.2, n_normal)  # Pressure (MPa)
+    current_normal = np.random.normal(15, 2, n_normal)  # Current (A)
+    runtime_normal = np.random.uniform(0, 5000, n_normal)  # Runtime (h)
     
-    # 故障前兆データ（30%）
+    # Pre-failure data (30%)
     n_failure = n_samples - n_normal
-    temp_failure = np.random.normal(90, 8, n_failure)  # 高温傾向
-    vibration_failure = np.random.normal(0.6, 0.1, n_failure)  # 振動増加
-    pressure_failure = np.random.normal(2.5, 0.3, n_failure)  # 圧力上昇
-    current_failure = np.random.normal(20, 3, n_failure)  # 電流増加
-    runtime_failure = np.random.uniform(4000, 8000, n_failure)  # 長 hours稼働
+    temp_failure = np.random.normal(90, 8, n_failure)  # High temperature trend
+    vibration_failure = np.random.normal(0.6, 0.1, n_failure)  # Increased vibration
+    pressure_failure = np.random.normal(2.5, 0.3, n_failure)  # Pressure increase
+    current_failure = np.random.normal(20, 3, n_failure)  # Current increase
+    runtime_failure = np.random.uniform(4000, 8000, n_failure)  # Long operation time
     
-    # データフレーム作成
+    # Create dataframe
     data = pd.DataFrame({
         'temperature': np.concatenate([temp_normal, temp_failure]),
         'vibration': np.concatenate([vibration_normal, vibration_failure]),
@@ -91,18 +91,18 @@ $$ \text{RUL}(t) = T_{\text{failure}} - t $$
         'failure_risk': np.concatenate([np.zeros(n_normal), np.ones(n_failure)])
     })
     
-    # 派生特徴量の作成
+    # Create derived features
     data['temp_vibration_ratio'] = data['temperature'] / (data['vibration'] * 100)
-    data['power_consumption'] = data['current'] * data['pressure']  # 仮想的な電力消費量
+    data['power_consumption'] = data['current'] * data['pressure']  # Virtual power consumption
     data['runtime_category'] = pd.cut(data['runtime_hours'], bins=5, labels=['Very Low', 'Low', 'Medium', 'High', 'Very High'])
     data['runtime_category'] = data['runtime_category'].cat.codes
     
-    # 訓練データとテストデータの minutes割
+    # Split training and test data
     X = data.drop('failure_risk', axis=1)
     y = data['failure_risk']
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42, stratify=y)
     
-    # Random Forestモデルの訓練
+    # Train Random Forest model
     rf_model = RandomForestClassifier(
         n_estimators=100,
         max_depth=10,
@@ -113,58 +113,58 @@ $$ \text{RUL}(t) = T_{\text{failure}} - t $$
     )
     rf_model.fit(X_train, y_train)
     
-    # Predictionと評価
+    # Prediction and evaluation
     y_pred = rf_model.predict(X_test)
     y_pred_proba = rf_model.predict_proba(X_test)[:, 1]
     
     print("=" * 60)
-    print("設備故障Predictionモデル評価")
+    print("Equipment Failure Prediction Model Evaluation")
     print("=" * 60)
-    print("\n minutes類レポート:")
-    print(classification_report(y_test, y_pred, target_names=['正常', '故障リスク']))
+    print("\nClassification Report:")
+    print(classification_report(y_test, y_pred, target_names=['Normal', 'Failure Risk']))
     
-    # 可視化
+    # Visualization
     fig, axes = plt.subplots(2, 2, figsize=(14, 10))
     
-    # 混同行列
+    # Confusion matrix
     cm = confusion_matrix(y_test, y_pred)
     sns.heatmap(cm, annot=True, fmt='d', cmap='Greens', ax=axes[0, 0],
-                xticklabels=['正常', '故障リスク'], yticklabels=['正常', '故障リスク'])
-    axes[0, 0].set_title('混同行列', fontsize=12, fontweight='bold')
-    axes[0, 0].set_ylabel('真のラベル')
-    axes[0, 0].set_xlabel('Predictionラベル')
+                xticklabels=['Normal', 'Failure Risk'], yticklabels=['Normal', 'Failure Risk'])
+    axes[0, 0].set_title('Confusion Matrix', fontsize=12, fontweight='bold')
+    axes[0, 0].set_ylabel('True Label')
+    axes[0, 0].set_xlabel('Predicted Label')
     
-    # ROC曲線
+    # ROC curve
     fpr, tpr, thresholds = roc_curve(y_test, y_pred_proba)
     roc_auc = auc(fpr, tpr)
-    axes[0, 1].plot(fpr, tpr, color='#11998e', lw=2, label=f'ROC曲線 (AUC = {roc_auc:.3f})')
-    axes[0, 1].plot([0, 1], [0, 1], color='gray', lw=1, linestyle='--', label='ランダム')
+    axes[0, 1].plot(fpr, tpr, color='#11998e', lw=2, label=f'ROC Curve (AUC = {roc_auc:.3f})')
+    axes[0, 1].plot([0, 1], [0, 1], color='gray', lw=1, linestyle='--', label='Random')
     axes[0, 1].set_xlim([0.0, 1.0])
     axes[0, 1].set_ylim([0.0, 1.05])
-    axes[0, 1].set_xlabel('偽陽性率 (False Positive Rate)')
-    axes[0, 1].set_ylabel('真陽性率 (True Positive Rate)')
-    axes[0, 1].set_title('ROC曲線', fontsize=12, fontweight='bold')
+    axes[0, 1].set_xlabel('False Positive Rate')
+    axes[0, 1].set_ylabel('True Positive Rate')
+    axes[0, 1].set_title('ROC Curve', fontsize=12, fontweight='bold')
     axes[0, 1].legend(loc='lower right')
     axes[0, 1].grid(alpha=0.3)
     
-    # 特徴量重要度
+    # Feature importance
     feature_importance = pd.DataFrame({
         'feature': X.columns,
         'importance': rf_model.feature_importances_
     }).sort_values('importance', ascending=True)
     
     axes[1, 0].barh(feature_importance['feature'], feature_importance['importance'], color='#38ef7d')
-    axes[1, 0].set_xlabel('重要度')
-    axes[1, 0].set_title('特徴量重要度', fontsize=12, fontweight='bold')
+    axes[1, 0].set_xlabel('Importance')
+    axes[1, 0].set_title('Feature Importance', fontsize=12, fontweight='bold')
     axes[1, 0].grid(axis='x', alpha=0.3)
     
-    # 故障リスクスコア minutes布
-    axes[1, 1].hist(y_pred_proba[y_test == 0], bins=30, alpha=0.6, label='正常', color='green')
-    axes[1, 1].hist(y_pred_proba[y_test == 1], bins=30, alpha=0.6, label='故障リスク', color='red')
-    axes[1, 1].axvline(x=0.5, color='black', linestyle='--', linewidth=1, label='閾値 (0.5)')
-    axes[1, 1].set_xlabel('故障リスクスコア')
-    axes[1, 1].set_ylabel('頻度')
-    axes[1, 1].set_title('故障リスクスコア minutes布', fontsize=12, fontweight='bold')
+    # Failure risk score distribution
+    axes[1, 1].hist(y_pred_proba[y_test == 0], bins=30, alpha=0.6, label='Normal', color='green')
+    axes[1, 1].hist(y_pred_proba[y_test == 1], bins=30, alpha=0.6, label='Failure Risk', color='red')
+    axes[1, 1].axvline(x=0.5, color='black', linestyle='--', linewidth=1, label='Threshold (0.5)')
+    axes[1, 1].set_xlabel('Failure Risk Score')
+    axes[1, 1].set_ylabel('Frequency')
+    axes[1, 1].set_title('Failure Risk Score Distribution', fontsize=12, fontweight='bold')
     axes[1, 1].legend()
     axes[1, 1].grid(alpha=0.3)
     
@@ -172,32 +172,32 @@ $$ \text{RUL}(t) = T_{\text{failure}} - t $$
     plt.savefig('failure_prediction_analysis.png', dpi=300, bbox_inches='tight')
     plt.show()
     
-    print(f"\nROC-AUC スコア: {roc_auc:.4f}")
-    print("\n特徴量重要度トップ3:")
+    print(f"\nROC-AUC Score: {roc_auc:.4f}")
+    print("\nTop 3 Feature Importance:")
     print(feature_importance.tail(3).to_string(index=False))
     
 
-**実装のポイント:**
+**Implementation Points:**
 
-  * センサデータ（温度、振動、圧力、電流）を統合したPredictionモデル
-  * 稼働 hoursなどの履歴情報も特徴量として活用
-  * 派生特徴量（温度振動比、電力消費量）の生成で精度向上
-  * クラス不均衡への対応（class_weight='balanced'）
-  * ROC-AUC評価により閾値調整の指針を提供
+  * Prediction model integrating sensor data (temperature, vibration, pressure, current)
+  * Utilization of historical information such as runtime as features
+  * Accuracy improvement through derived features (temperature-vibration ratio, power consumption)
+  * Addressing class imbalance (class_weight='balanced')
+  * ROC-AUC evaluation provides guidance for threshold adjustment
 
-## ⏱️ 4.2 残存有用寿命（RUL）推定
+## ⏱️ 4.2 Remaining Useful Life (RUL) Estimation
 
-### RUL推定の重要性
+### Importance of RUL Estimation
 
-故障を「いつ起こるか」までPredictionできれば、最適な保全タイミングを計画できます。 RUL推定は、現在の設備状態から故障までの残り hoursを推定する技術です。 
+If we can predict "when" a failure will occur, we can plan optimal maintenance timing. RUL estimation is a technology that estimates the remaining time until failure from the current equipment condition. 
 
-### 劣化曲線モデル
+### Degradation Curve Model
 
 $$ \text{Health Index}(t) = 100 \times \exp\left(-\frac{t}{\tau}\right) $$ 
 
-ここで、\\( \tau \\) は劣化時定数、健全度が閾値（例: 20%）を下回ると故障と判定 
+where \\( \tau \\) is the degradation time constant, and failure is determined when the health index falls below a threshold (e.g., 20%) 
 
-### 💻 Code Examples4.2: LSTMによる残存有用寿命推定
+### 💻 Code Example 4.2: Remaining Useful Life Estimation with LSTM
     
     
     import numpy as np
@@ -208,34 +208,34 @@ $$ \text{Health Index}(t) = 100 \times \exp\left(-\frac{t}{\tau}\right) $$
     import warnings
     warnings.filterwarnings('ignore')
     
-    # TensorFlow/Kerasのインポート（実際の実装では必要）
+    # TensorFlow/Keras import (required for actual implementation)
     # from tensorflow.keras.models import Sequential
     # from tensorflow.keras.layers import LSTM, Dense, Dropout
     
     plt.rcParams['font.sans-serif'] = ['Arial Unicode MS', 'DejaVu Sans']
     plt.rcParams['axes.unicode_minus'] = False
     
-    # 設備劣化データの生成（模擬的なRULデータ）
+    # Generate equipment degradation data (simulated RUL data)
     np.random.seed(42)
-    n_cycles = 200  # ライフサイクル数
-    time_steps = 100  # 各サイクルのタイムステップ数
+    n_cycles = 200  # Number of life cycles
+    time_steps = 100  # Time steps for each cycle
     
-    # 3台の設備の劣化パターンを生成
+    # Generate degradation patterns for 3 equipment units
     def generate_degradation_data(n_cycles, time_steps, failure_threshold=20):
-        """設備劣化データの生成"""
+        """Generate equipment degradation data"""
         data_list = []
     
         for cycle_id in range(n_cycles):
-            # ランダムな劣化速度
-            tau = np.random.uniform(60, 120)  # 劣化時定数
+            # Random degradation rate
+            tau = np.random.uniform(60, 120)  # Degradation time constant
             noise_level = np.random.uniform(2, 5)
     
-            # 健全度の計算（指数関数的劣化 + ノイズ）
+            # Health index calculation (exponential degradation + noise)
             t = np.arange(time_steps)
             health_index = 100 * np.exp(-t / tau) + np.random.normal(0, noise_level, time_steps)
             health_index = np.clip(health_index, 0, 100)
     
-            # RUL計算（健全度が閾値を下回るまでの hours）
+            # RUL calculation (time until health index falls below threshold)
             failure_time = np.where(health_index < failure_threshold)[0]
             if len(failure_time) > 0:
                 failure_step = failure_time[0]
@@ -244,7 +244,7 @@ $$ \text{Health Index}(t) = 100 \times \exp\left(-\frac{t}{\tau}\right) $$
     
             rul = np.maximum(0, failure_step - t)
     
-            # センサデータ（健全度に応じて変化）
+            # Sensor data (changes according to health index)
             temperature = 60 + (100 - health_index) * 0.5 + np.random.normal(0, 2, time_steps)
             vibration = 0.2 + (100 - health_index) * 0.008 + np.random.normal(0, 0.05, time_steps)
             pressure = 1.8 + (100 - health_index) * 0.01 + np.random.normal(0, 0.1, time_steps)
@@ -262,35 +262,35 @@ $$ \text{Health Index}(t) = 100 \times \exp\left(-\frac{t}{\tau}\right) $$
     
         return pd.DataFrame(data_list)
     
-    # データ生成
+    # Generate data
     degradation_data = generate_degradation_data(n_cycles, time_steps)
     
-    # データの前処理
+    # Data preprocessing
     feature_columns = ['temperature', 'vibration', 'pressure', 'health_index']
     scaler = MinMaxScaler()
     degradation_data[feature_columns] = scaler.fit_transform(degradation_data[feature_columns])
     
-    # RULの正規化（0-1範囲）
+    # RUL normalization (0-1 range)
     max_rul = degradation_data['RUL'].max()
     degradation_data['RUL_normalized'] = degradation_data['RUL'] / max_rul
     
-    # 訓練データとテストデータの minutes割
+    # Split training and test data
     train_cycles = int(n_cycles * 0.8)
     train_data = degradation_data[degradation_data['cycle_id'] < train_cycles]
     test_data = degradation_data[degradation_data['cycle_id'] >= train_cycles]
     
     print("=" * 60)
-    print("残存有用寿命（RUL）推定システム")
+    print("Remaining Useful Life (RUL) Estimation System")
     print("=" * 60)
-    print(f"\n総サイクル数: {n_cycles}")
-    print(f"訓練サイクル: {train_cycles}")
-    print(f"テストサイクル: {n_cycles - train_cycles}")
-    print(f"各サイクルのタイムステップ数: {time_steps}")
-    print(f"\nRUL範囲: 0 ~ {max_rul:.0f} ステップ")
+    print(f"\nTotal cycles: {n_cycles}")
+    print(f"Training cycles: {train_cycles}")
+    print(f"Test cycles: {n_cycles - train_cycles}")
+    print(f"Time steps per cycle: {time_steps}")
+    print(f"\nRUL range: 0 ~ {max_rul:.0f} steps")
     
-    # 簡易的なPrediction（実際のLSTMの代わりに移動平均ベースのPredictionを使用）
+    # Simple prediction (using moving average-based prediction instead of actual LSTM)
     def simple_rul_prediction(data, window=10):
-        """移動平均ベースの簡易RULPrediction"""
+        """Simple RUL prediction based on moving average"""
         predictions = []
         actuals = []
     
@@ -298,89 +298,89 @@ $$ \text{Health Index}(t) = 100 \times \exp\left(-\frac{t}{\tau}\right) $$
             cycle_data = data[data['cycle_id'] == cycle_id].copy()
     
             for i in range(window, len(cycle_data)):
-                # 過去windowステップの健全度の平均的な低下率からPrediction
+                # Predict from average decline rate of health index over past window steps
                 recent_health = cycle_data.iloc[i-window:i]['health_index'].values
                 health_decline_rate = (recent_health[0] - recent_health[-1]) / window
     
                 current_health = cycle_data.iloc[i]['health_index']
     
-                # 健全度が20%に達するまでのステップ数を推定
+                # Estimate steps until health index reaches 20%
                 if health_decline_rate > 0.0001:
                     estimated_rul = max(0, (current_health - 0.2) / health_decline_rate)
                 else:
-                    estimated_rul = max_rul  # 劣化が見られない場合
+                    estimated_rul = max_rul  # If no degradation observed
     
-                estimated_rul = min(estimated_rul, max_rul)  # 上限制約
+                estimated_rul = min(estimated_rul, max_rul)  # Upper limit constraint
     
-                predictions.append(estimated_rul / max_rul)  # 正規化
+                predictions.append(estimated_rul / max_rul)  # Normalize
                 actuals.append(cycle_data.iloc[i]['RUL_normalized'])
     
         return np.array(predictions), np.array(actuals)
     
-    # テストデータでPrediction
+    # Predict on test data
     y_pred, y_true = simple_rul_prediction(test_data, window=10)
     
-    # 評価指標
+    # Evaluation metrics
     mae = mean_absolute_error(y_true * max_rul, y_pred * max_rul)
     rmse = np.sqrt(mean_squared_error(y_true * max_rul, y_pred * max_rul))
     
-    print(f"\nPrediction性能:")
-    print(f"MAE (平均絶対誤差): {mae:.2f} ステップ")
-    print(f"RMSE (二乗平均平方根誤差): {rmse:.2f} ステップ")
+    print(f"\nPrediction Performance:")
+    print(f"MAE (Mean Absolute Error): {mae:.2f} steps")
+    print(f"RMSE (Root Mean Square Error): {rmse:.2f} steps")
     
-    # 可視化
+    # Visualization
     fig, axes = plt.subplots(2, 2, figsize=(14, 10))
     
-    # サンプルサイクルの劣化曲線
+    # Degradation curves for sample cycles
     sample_cycles = [0, 1, 2]
     for i, cycle_id in enumerate(sample_cycles):
         cycle_data = degradation_data[degradation_data['cycle_id'] == cycle_id]
         axes[0, 0].plot(cycle_data['time_step'], cycle_data['health_index'],
-                        label=f'サイクル {cycle_id}', alpha=0.7)
+                        label=f'Cycle {cycle_id}', alpha=0.7)
     
-    axes[0, 0].axhline(y=0.2, color='red', linestyle='--', linewidth=1, label='故障閾値 (20%)')
-    axes[0, 0].set_xlabel('タイムステップ')
-    axes[0, 0].set_ylabel('健全度（正規化）')
-    axes[0, 0].set_title('設備劣化曲線（サンプル）', fontsize=12, fontweight='bold')
+    axes[0, 0].axhline(y=0.2, color='red', linestyle='--', linewidth=1, label='Failure Threshold (20%)')
+    axes[0, 0].set_xlabel('Time Step')
+    axes[0, 0].set_ylabel('Health Index (Normalized)')
+    axes[0, 0].set_title('Equipment Degradation Curves (Sample)', fontsize=12, fontweight='bold')
     axes[0, 0].legend()
     axes[0, 0].grid(alpha=0.3)
     
-    # RULPrediction vs 実測
+    # RUL prediction vs actual
     axes[0, 1].scatter(y_true * max_rul, y_pred * max_rul, alpha=0.3, s=10, color='#11998e')
-    axes[0, 1].plot([0, max_rul], [0, max_rul], 'r--', lw=2, label='理想的なPrediction')
-    axes[0, 1].set_xlabel('実測RUL（ステップ）')
-    axes[0, 1].set_ylabel('PredictionRUL（ステップ）')
-    axes[0, 1].set_title('RULPrediction精度', fontsize=12, fontweight='bold')
+    axes[0, 1].plot([0, max_rul], [0, max_rul], 'r--', lw=2, label='Ideal Prediction')
+    axes[0, 1].set_xlabel('Actual RUL (Steps)')
+    axes[0, 1].set_ylabel('Predicted RUL (Steps)')
+    axes[0, 1].set_title('RUL Prediction Accuracy', fontsize=12, fontweight='bold')
     axes[0, 1].legend()
     axes[0, 1].grid(alpha=0.3)
     
-    # Prediction誤差の minutes布
+    # Prediction error distribution
     errors = (y_pred - y_true) * max_rul
     axes[1, 0].hist(errors, bins=50, color='#38ef7d', alpha=0.7, edgecolor='black')
-    axes[1, 0].axvline(x=0, color='red', linestyle='--', linewidth=2, label='誤差ゼロ')
-    axes[1, 0].set_xlabel('Prediction誤差（ステップ）')
-    axes[1, 0].set_ylabel('頻度')
-    axes[1, 0].set_title('RULPrediction誤差 minutes布', fontsize=12, fontweight='bold')
+    axes[1, 0].axvline(x=0, color='red', linestyle='--', linewidth=2, label='Zero Error')
+    axes[1, 0].set_xlabel('Prediction Error (Steps)')
+    axes[1, 0].set_ylabel('Frequency')
+    axes[1, 0].set_title('RUL Prediction Error Distribution', fontsize=12, fontweight='bold')
     axes[1, 0].legend()
     axes[1, 0].grid(alpha=0.3)
     
-    # 特定サイクルのRUL時系列
+    # RUL time series for specific cycle
     test_cycle = test_data['cycle_id'].unique()[0]
-    test_cycle_data = test_data[test_data['cycle_id'] == test_cycle].iloc[10:]  # windowサイズ minutesスキップ
+    test_cycle_data = test_data[test_data['cycle_id'] == test_cycle].iloc[10:]  # Skip window size
     cycle_pred, cycle_true = simple_rul_prediction(
         test_data[test_data['cycle_id'] == test_cycle], window=10
     )
     
     axes[1, 1].plot(test_cycle_data['time_step'].values, cycle_true * max_rul,
-                    label='実測RUL', color='blue', linewidth=2)
+                    label='Actual RUL', color='blue', linewidth=2)
     axes[1, 1].plot(test_cycle_data['time_step'].values, cycle_pred * max_rul,
-                    label='PredictionRUL', color='orange', linewidth=2, linestyle='--')
+                    label='Predicted RUL', color='orange', linewidth=2, linestyle='--')
     axes[1, 1].fill_between(test_cycle_data['time_step'].values,
                              cycle_pred * max_rul - 10, cycle_pred * max_rul + 10,
-                             alpha=0.2, color='orange', label='Prediction誤差範囲 (±10)')
-    axes[1, 1].set_xlabel('タイムステップ')
-    axes[1, 1].set_ylabel('RUL（ステップ）')
-    axes[1, 1].set_title(f'RUL時系列Prediction（サイクル {test_cycle}）', fontsize=12, fontweight='bold')
+                             alpha=0.2, color='orange', label='Prediction Error Range (±10)')
+    axes[1, 1].set_xlabel('Time Step')
+    axes[1, 1].set_ylabel('RUL (Steps)')
+    axes[1, 1].set_title(f'RUL Time Series Prediction (Cycle {test_cycle})', fontsize=12, fontweight='bold')
     axes[1, 1].legend()
     axes[1, 1].grid(alpha=0.3)
     
@@ -389,27 +389,27 @@ $$ \text{Health Index}(t) = 100 \times \exp\left(-\frac{t}{\tau}\right) $$
     plt.show()
     
 
-**実装のポイント:**
+**Implementation Points:**
 
-  * 時系列データ（温度、振動、圧力、健全度）から将来の故障時期を推定
-  * 実際の実装ではLSTM（Long Short-Term Memory）などのRNNを使用
-  * 健全度指標を定義し、劣化パターンを学習
-  * Prediction誤差の評価により、保全計画の信頼性を定量化
-  * 残り hoursの可視化により、保全担当者の意思決定を支援
+  * Estimation of future failure timing from time series data (temperature, vibration, pressure, health index)
+  * In actual implementation, use RNN such as LSTM (Long Short-Term Memory)
+  * Define health index and learn degradation patterns
+  * Quantify maintenance plan reliability through prediction error evaluation
+  * Support decision-making of maintenance personnel through remaining time visualization
 
-## 🚨 4.3 異常検出と早期警報システム
+## 🚨 4.3 Anomaly Detection and Early Warning System
 
-### 異常検出の2つのアプローチ
+### Two Approaches to Anomaly Detection
 
-  1. **教師あり学習** : 過去の故障事例から学習（ラベル付きデータ必要）
-  2. **教師なし学習** : 正常パターンからの逸脱を検出（異常データ不要）
+  1. **Supervised Learning** : Learn from past failure cases (requires labeled data)
+  2. **Unsupervised Learning** : Detect deviations from normal patterns (no anomaly data required)
 
-**💡 教師なし異常検出の利点**  
-・未知の異常パターンも検出可能  
-・故障事例の少ない新設備にも適用可能  
-・ラベル付けコストの削減 
+**💡 Advantages of Unsupervised Anomaly Detection**  
+\- Can detect unknown anomaly patterns  
+\- Applicable to new equipment with few failure cases  
+\- Reduction of labeling costs 
 
-### 💻 Code Examples4.3: Isolation Forestによる異常検出
+### 💻 Code Example 4.3: Anomaly Detection with Isolation Forest
     
     
     import numpy as np
@@ -424,12 +424,12 @@ $$ \text{Health Index}(t) = 100 \times \exp\left(-\frac{t}{\tau}\right) $$
     plt.rcParams['font.sans-serif'] = ['Arial Unicode MS', 'DejaVu Sans']
     plt.rcParams['axes.unicode_minus'] = False
     
-    # 正常運転データの生成
+    # Generate normal operation data
     np.random.seed(42)
     n_normal = 800
     n_anomaly = 50
     
-    # 正常データ（多変量正規 minutes布）
+    # Normal data (multivariate normal distribution)
     mean_normal = [70, 0.25, 2.0, 14, 50]
     cov_normal = [[25, 0, 0, 0, 0],
                   [0, 0.0025, 0, 0, 0],
@@ -439,65 +439,65 @@ $$ \text{Health Index}(t) = 100 \times \exp\left(-\frac{t}{\tau}\right) $$
     
     normal_data = np.random.multivariate_normal(mean_normal, cov_normal, n_normal)
     
-    # 異常データ（様々な異常パターン）
+    # Anomaly data (various anomaly patterns)
     anomaly_patterns = []
     
-    # パターン1: 高温異常
+    # Pattern 1: High temperature anomaly
     high_temp = np.random.multivariate_normal([95, 0.25, 2.0, 14, 50], cov_normal, n_anomaly // 5)
     anomaly_patterns.append(high_temp)
     
-    # パターン2: 振動異常
+    # Pattern 2: Vibration anomaly
     high_vibration = np.random.multivariate_normal([70, 0.7, 2.0, 14, 50], cov_normal, n_anomaly // 5)
     anomaly_patterns.append(high_vibration)
     
-    # パターン3: 圧力異常
+    # Pattern 3: Pressure anomaly
     high_pressure = np.random.multivariate_normal([70, 0.25, 3.5, 14, 50], cov_normal, n_anomaly // 5)
     anomaly_patterns.append(high_pressure)
     
-    # パターン4: 電流異常
+    # Pattern 4: Current anomaly
     high_current = np.random.multivariate_normal([70, 0.25, 2.0, 25, 50], cov_normal, n_anomaly // 5)
     anomaly_patterns.append(high_current)
     
-    # パターン5: 複合異常
+    # Pattern 5: Combined anomaly
     combined = np.random.multivariate_normal([90, 0.6, 2.8, 20, 80], cov_normal, n_anomaly // 5)
     anomaly_patterns.append(combined)
     
     anomaly_data = np.vstack(anomaly_patterns)
     
-    # データフレーム作成
+    # Create dataframe
     columns = ['temperature', 'vibration', 'pressure', 'current', 'humidity']
     df_normal = pd.DataFrame(normal_data, columns=columns)
-    df_normal['label'] = 0  # 正常
+    df_normal['label'] = 0  # Normal
     
     df_anomaly = pd.DataFrame(anomaly_data, columns=columns)
-    df_anomaly['label'] = 1  # 異常
+    df_anomaly['label'] = 1  # Anomaly
     
     df = pd.concat([df_normal, df_anomaly], ignore_index=True)
-    df = df.sample(frac=1, random_state=42).reset_index(drop=True)  # シャッフル
+    df = df.sample(frac=1, random_state=42).reset_index(drop=True)  # Shuffle
     
-    # データの標準化
+    # Data standardization
     X = df[columns].values
     y_true = df['label'].values
     
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
     
-    # Isolation Forest モデル
+    # Isolation Forest model
     iso_forest = IsolationForest(
-        contamination=0.1,  # 異常データの割合の推定値
+        contamination=0.1,  # Estimated proportion of anomaly data
         random_state=42,
         n_estimators=100,
         max_samples='auto'
     )
     
-    # 異常スコアの計算
+    # Calculate anomaly scores
     y_pred = iso_forest.fit_predict(X_scaled)
     anomaly_scores = iso_forest.score_samples(X_scaled)
     
-    # Predictionラベルを0/1に変換（-1→1（異常）, 1→0（正常））
+    # Convert prediction labels to 0/1 (-1 → 1 (anomaly), 1 → 0 (normal))
     y_pred_binary = np.where(y_pred == -1, 1, 0)
     
-    # 評価指標の計算
+    # Calculate evaluation metrics
     from sklearn.metrics import precision_score, recall_score, f1_score, confusion_matrix
     
     precision = precision_score(y_true, y_pred_binary)
@@ -506,62 +506,62 @@ $$ \text{Health Index}(t) = 100 \times \exp\left(-\frac{t}{\tau}\right) $$
     cm = confusion_matrix(y_true, y_pred_binary)
     
     print("=" * 60)
-    print("異常検出システム評価（Isolation Forest）")
+    print("Anomaly Detection System Evaluation (Isolation Forest)")
     print("=" * 60)
-    print(f"\n総サンプル数: {len(df)}")
-    print(f"正常データ: {n_normal} ({n_normal/len(df)*100:.1f}%)")
-    print(f"異常データ: {n_anomaly} ({n_anomaly/len(df)*100:.1f}%)")
-    print(f"\n検出性能:")
-    print(f"適合率 (Precision): {precision:.3f}")
-    print(f"再現率 (Recall): {recall:.3f}")
-    print(f"F1スコア: {f1:.3f}")
-    print(f"\n混同行列:")
-    print(f"真陰性: {cm[0,0]}, 偽陽性: {cm[0,1]}")
-    print(f"偽陰性: {cm[1,0]}, 真陽性: {cm[1,1]}")
+    print(f"\nTotal samples: {len(df)}")
+    print(f"Normal data: {n_normal} ({n_normal/len(df)*100:.1f}%)")
+    print(f"Anomaly data: {n_anomaly} ({n_anomaly/len(df)*100:.1f}%)")
+    print(f"\nDetection Performance:")
+    print(f"Precision: {precision:.3f}")
+    print(f"Recall: {recall:.3f}")
+    print(f"F1 Score: {f1:.3f}")
+    print(f"\nConfusion Matrix:")
+    print(f"True Negative: {cm[0,0]}, False Positive: {cm[0,1]}")
+    print(f"False Negative: {cm[1,0]}, True Positive: {cm[1,1]}")
     
-    # PCAで2次元に次元削減（可視化用）
+    # Dimensionality reduction to 2D with PCA (for visualization)
     pca = PCA(n_components=2)
     X_pca = pca.fit_transform(X_scaled)
     
-    # 可視化
+    # Visualization
     fig, axes = plt.subplots(2, 2, figsize=(14, 10))
     
-    # PCA空間での異常検出結果
+    # Anomaly detection results in PCA space
     scatter1 = axes[0, 0].scatter(X_pca[y_pred_binary==0, 0], X_pca[y_pred_binary==0, 1],
-                                   c='green', s=20, alpha=0.6, label='正常と判定')
+                                   c='green', s=20, alpha=0.6, label='Classified as Normal')
     scatter2 = axes[0, 0].scatter(X_pca[y_pred_binary==1, 0], X_pca[y_pred_binary==1, 1],
-                                   c='red', s=40, alpha=0.8, marker='X', label='異常と判定')
-    axes[0, 0].set_xlabel(f'第1主成 minutes (寄与率: {pca.explained_variance_ratio_[0]:.1%})')
-    axes[0, 0].set_ylabel(f'第2主成 minutes (寄与率: {pca.explained_variance_ratio_[1]:.1%})')
-    axes[0, 0].set_title('異常検出結果（PCA空間）', fontsize=12, fontweight='bold')
+                                   c='red', s=40, alpha=0.8, marker='X', label='Classified as Anomaly')
+    axes[0, 0].set_xlabel(f'PC1 (Variance: {pca.explained_variance_ratio_[0]:.1%})')
+    axes[0, 0].set_ylabel(f'PC2 (Variance: {pca.explained_variance_ratio_[1]:.1%})')
+    axes[0, 0].set_title('Anomaly Detection Results (PCA Space)', fontsize=12, fontweight='bold')
     axes[0, 0].legend()
     axes[0, 0].grid(alpha=0.3)
     
-    # 異常スコアの minutes布
-    axes[0, 1].hist(anomaly_scores[y_true==0], bins=50, alpha=0.6, label='正常', color='green')
-    axes[0, 1].hist(anomaly_scores[y_true==1], bins=50, alpha=0.6, label='異常', color='red')
-    axes[0, 1].set_xlabel('異常スコア（小さいほど異常）')
-    axes[0, 1].set_ylabel('頻度')
-    axes[0, 1].set_title('異常スコア minutes布', fontsize=12, fontweight='bold')
+    # Anomaly score distribution
+    axes[0, 1].hist(anomaly_scores[y_true==0], bins=50, alpha=0.6, label='Normal', color='green')
+    axes[0, 1].hist(anomaly_scores[y_true==1], bins=50, alpha=0.6, label='Anomaly', color='red')
+    axes[0, 1].set_xlabel('Anomaly Score (Lower = More Anomalous)')
+    axes[0, 1].set_ylabel('Frequency')
+    axes[0, 1].set_title('Anomaly Score Distribution', fontsize=12, fontweight='bold')
     axes[0, 1].legend()
     axes[0, 1].grid(alpha=0.3)
     
-    # 混同行列ヒートマップ
+    # Confusion matrix heatmap
     import seaborn as sns
     sns.heatmap(cm, annot=True, fmt='d', cmap='RdYlGn', ax=axes[1, 0],
-                xticklabels=['正常', '異常'], yticklabels=['正常', '異常'])
-    axes[1, 0].set_title('混同行列', fontsize=12, fontweight='bold')
-    axes[1, 0].set_ylabel('真のラベル')
-    axes[1, 0].set_xlabel('Predictionラベル')
+                xticklabels=['Normal', 'Anomaly'], yticklabels=['Normal', 'Anomaly'])
+    axes[1, 0].set_title('Confusion Matrix', fontsize=12, fontweight='bold')
+    axes[1, 0].set_ylabel('True Label')
+    axes[1, 0].set_xlabel('Predicted Label')
     
-    # 時系列での異常検出（模擬的なリアルタイムMonitoring）
+    # Time series anomaly detection (simulated real-time monitoring)
     time_series_length = 200
     time_indices = np.arange(time_series_length)
     
-    # 時系列データの生成（正常→異常→正常）
+    # Generate time series data (normal → anomaly → normal)
     ts_data = []
     for i in range(time_series_length):
-        if 80 <= i <= 120:  # 異常期間
+        if 80 <= i <= 120:  # Anomaly period
             sample = np.random.multivariate_normal([90, 0.6, 2.8, 20, 80], cov_normal)
         else:
             sample = np.random.multivariate_normal(mean_normal, cov_normal)
@@ -572,16 +572,16 @@ $$ \text{Health Index}(t) = 100 \times \exp\left(-\frac{t}{\tau}\right) $$
     ts_scores = iso_forest.score_samples(ts_scaled)
     ts_pred = iso_forest.predict(ts_scaled)
     
-    # 異常閾値の計算（異常スコアの下位10%点）
+    # Calculate anomaly threshold (10th percentile of anomaly scores)
     threshold = np.percentile(anomaly_scores, 10)
     
-    axes[1, 1].plot(time_indices, ts_scores, color='#11998e', linewidth=1.5, label='異常スコア')
-    axes[1, 1].axhline(y=threshold, color='red', linestyle='--', linewidth=2, label=f'異常閾値 ({threshold:.3f})')
+    axes[1, 1].plot(time_indices, ts_scores, color='#11998e', linewidth=1.5, label='Anomaly Score')
+    axes[1, 1].axhline(y=threshold, color='red', linestyle='--', linewidth=2, label=f'Anomaly Threshold ({threshold:.3f})')
     axes[1, 1].fill_between(time_indices, threshold, ts_scores.min(),
-                             where=(ts_scores < threshold), alpha=0.3, color='red', label='異常検出')
-    axes[1, 1].set_xlabel('時刻')
-    axes[1, 1].set_ylabel('異常スコア')
-    axes[1, 1].set_title('リアルタイム異常検出（模擬）', fontsize=12, fontweight='bold')
+                             where=(ts_scores < threshold), alpha=0.3, color='red', label='Anomaly Detected')
+    axes[1, 1].set_xlabel('Time')
+    axes[1, 1].set_ylabel('Anomaly Score')
+    axes[1, 1].set_title('Real-time Anomaly Detection (Simulated)', fontsize=12, fontweight='bold')
     axes[1, 1].legend()
     axes[1, 1].grid(alpha=0.3)
     
@@ -589,35 +589,35 @@ $$ \text{Health Index}(t) = 100 \times \exp\left(-\frac{t}{\tau}\right) $$
     plt.savefig('anomaly_detection_analysis.png', dpi=300, bbox_inches='tight')
     plt.show()
     
-    # 異常検出時の警報メッセージ生成
+    # Generate warning messages when anomalies are detected
     detected_anomalies = np.where(ts_pred == -1)[0]
     if len(detected_anomalies) > 0:
-        print(f"\n⚠️ 警報: {len(detected_anomalies)}件の異常を検出")
-        print(f"異常検出時刻: {detected_anomalies[:10]}..." if len(detected_anomalies) > 10 else f"異常検出時刻: {detected_anomalies}")
+        print(f"\n⚠️ Warning: {len(detected_anomalies)} anomalies detected")
+        print(f"Anomaly detection times: {detected_anomalies[:10]}..." if len(detected_anomalies) > 10 else f"Anomaly detection times: {detected_anomalies}")
     
 
-**実装のポイント:**
+**Implementation Points:**
 
-  * Isolation Forestは正常データのみで学習可能（教師なし学習）
-  * 多次元センサデータから異常パターンを自動検出
-  * リアルタイムMonitoringシステムへの組み込みが容易
-  * 閾値調整により警報感度をチューニング可能
-  * 早期警報により、故障前の予防保全を実現
+  * Isolation Forest can be trained with normal data only (unsupervised learning)
+  * Automatically detect anomaly patterns from multi-dimensional sensor data
+  * Easy integration into real-time monitoring systems
+  * Warning sensitivity can be tuned through threshold adjustment
+  * Achieve preventive maintenance before failure through early warning
 
-## 🔍 4.4 根本原因 minutes析（RCA）
+## 🔍 4.4 Root Cause Analysis (RCA)
 
-### トラブル発生時の minutes析フロー
+### Analysis Flow When Trouble Occurs
 
-  1. **症状の特定** : 何が起こったか（品質不良、設備停止など）
-  2. **直接原因の調査** : 直前の変化・イベントの確認
-  3. **根本原因の特定** : なぜそれが起こったか（5回のWhy）
-  4. **対策の立案** : 再発防止策の検討
+  1. **Symptom Identification** : What happened (quality defect, equipment shutdown, etc.)
+  2. **Direct Cause Investigation** : Confirm immediately preceding changes/events
+  3. **Root Cause Identification** : Why it happened (5 Whys)
+  4. **Countermeasure Planning** : Consider recurrence prevention measures
 
-### データ駆動型RCA
+### Data-Driven RCA
 
-大量のProcessデータから、品質異常や設備故障に寄与した要因を特定するには、 統計的手法やMachine Learningが有効です。相関 minutes析、決定木、SHAP値などを用いて、 影響度の高いパラメータを可視化します。 
+To identify factors that contributed to quality anomalies or equipment failures from large amounts of process data, statistical methods and machine learning are effective. Visualize parameters with high impact using correlation analysis, decision trees, SHAP values, etc. 
 
-### 💻 Code Examples4.4: 決定木とSHAP値による根本原因 minutes析
+### 💻 Code Example 4.4: Root Cause Analysis with Decision Trees and SHAP Values
     
     
     import numpy as np
@@ -631,11 +631,11 @@ $$ \text{Health Index}(t) = 100 \times \exp\left(-\frac{t}{\tau}\right) $$
     plt.rcParams['font.sans-serif'] = ['Arial Unicode MS', 'DejaVu Sans']
     plt.rcParams['axes.unicode_minus'] = False
     
-    # 品質不良データの生成（根本原因が明確なSimulationデータ）
+    # Generate quality defect data (simulation data with clear root causes)
     np.random.seed(42)
     n_samples = 500
     
-    # 正常品（60%）
+    # Normal products (60%)
     n_normal = int(n_samples * 0.6)
     temp_normal = np.random.normal(75, 3, n_normal)
     ph_normal = np.random.normal(6.5, 0.2, n_normal)
@@ -643,7 +643,7 @@ $$ \text{Health Index}(t) = 100 \times \exp\left(-\frac{t}{\tau}\right) $$
     mixing_time_normal = np.random.normal(120, 10, n_normal)
     additive_amount_normal = np.random.normal(2.0, 0.1, n_normal)
     
-    # 不良品パターン1: 高温起因（20%）
+    # Defective pattern 1: High temperature cause (20%)
     n_defect1 = int(n_samples * 0.2)
     temp_defect1 = np.random.normal(90, 5, n_defect1)
     ph_defect1 = np.random.normal(6.5, 0.2, n_defect1)
@@ -651,7 +651,7 @@ $$ \text{Health Index}(t) = 100 \times \exp\left(-\frac{t}{\tau}\right) $$
     mixing_time_defect1 = np.random.normal(120, 10, n_defect1)
     additive_amount_defect1 = np.random.normal(2.0, 0.1, n_defect1)
     
-    # 不良品パターン2: pH異常起因（10%）
+    # Defective pattern 2: pH anomaly cause (10%)
     n_defect2 = int(n_samples * 0.1)
     temp_defect2 = np.random.normal(75, 3, n_defect2)
     ph_defect2 = np.random.normal(7.5, 0.3, n_defect2)
@@ -659,7 +659,7 @@ $$ \text{Health Index}(t) = 100 \times \exp\left(-\frac{t}{\tau}\right) $$
     mixing_time_defect2 = np.random.normal(120, 10, n_defect2)
     additive_amount_defect2 = np.random.normal(2.0, 0.1, n_defect2)
     
-    # 不良品パターン3: 添加剤量不足起因（10%）
+    # Defective pattern 3: Insufficient additive amount cause (10%)
     n_defect3 = n_samples - n_normal - n_defect1 - n_defect2
     temp_defect3 = np.random.normal(75, 3, n_defect3)
     ph_defect3 = np.random.normal(6.5, 0.2, n_defect3)
@@ -667,7 +667,7 @@ $$ \text{Health Index}(t) = 100 \times \exp\left(-\frac{t}{\tau}\right) $$
     mixing_time_defect3 = np.random.normal(120, 10, n_defect3)
     additive_amount_defect3 = np.random.normal(1.5, 0.15, n_defect3)
     
-    # データフレーム作成
+    # Create dataframe
     data = pd.DataFrame({
         'temperature': np.concatenate([temp_normal, temp_defect1, temp_defect2, temp_defect3]),
         'pH': np.concatenate([ph_normal, ph_defect1, ph_defect2, ph_defect3]),
@@ -682,15 +682,15 @@ $$ \text{Health Index}(t) = 100 \times \exp\left(-\frac{t}{\tau}\right) $$
         ])
     })
     
-    # データのシャッフル
+    # Shuffle data
     data = data.sample(frac=1, random_state=42).reset_index(drop=True)
     
-    # 訓練データとテストデータの minutes割
+    # Split training and test data
     X = data.drop('quality', axis=1)
     y = data['quality']
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42, stratify=y)
     
-    # 決定木モデルの訓練（深さを制限して解釈性を重視）
+    # Train decision tree model (limit depth to prioritize interpretability)
     dt_model = DecisionTreeClassifier(
         max_depth=4,
         min_samples_split=20,
@@ -699,56 +699,56 @@ $$ \text{Health Index}(t) = 100 \times \exp\left(-\frac{t}{\tau}\right) $$
     )
     dt_model.fit(X_train, y_train)
     
-    # Predictionと評価
+    # Prediction and evaluation
     y_pred = dt_model.predict(X_test)
     from sklearn.metrics import classification_report, accuracy_score
     
     accuracy = accuracy_score(y_test, y_pred)
     
     print("=" * 60)
-    print("根本原因 minutes析（Decision Tree）")
+    print("Root Cause Analysis (Decision Tree)")
     print("=" * 60)
-    print(f"\nモデル精度: {accuracy:.3f}")
-    print("\n minutes類レポート:")
-    print(classification_report(y_test, y_pred, target_names=['正常', '不良']))
+    print(f"\nModel Accuracy: {accuracy:.3f}")
+    print("\nClassification Report:")
+    print(classification_report(y_test, y_pred, target_names=['Normal', 'Defective']))
     
-    # 特徴量重要度
+    # Feature importance
     feature_importance = pd.DataFrame({
         'feature': X.columns,
         'importance': dt_model.feature_importances_
     }).sort_values('importance', ascending=False)
     
-    print("\n特徴量重要度（品質不良への寄与度）:")
+    print("\nFeature Importance (Contribution to Quality Defects):")
     print(feature_importance.to_string(index=False))
     
-    # 可視化
+    # Visualization
     fig = plt.figure(figsize=(16, 10))
     
-    # 決定木の可視化
+    # Decision tree visualization
     ax1 = plt.subplot(2, 2, (1, 2))
-    plot_tree(dt_model, feature_names=X.columns, class_names=['正常', '不良'],
+    plot_tree(dt_model, feature_names=X.columns, class_names=['Normal', 'Defective'],
               filled=True, rounded=True, fontsize=9, ax=ax1)
-    ax1.set_title('決定木による根本原因 minutes析', fontsize=14, fontweight='bold')
+    ax1.set_title('Root Cause Analysis by Decision Tree', fontsize=14, fontweight='bold')
     
-    # 特徴量重要度
+    # Feature importance
     ax2 = plt.subplot(2, 2, 3)
     bars = ax2.barh(feature_importance['feature'], feature_importance['importance'], color='#38ef7d')
-    ax2.set_xlabel('重要度スコア')
-    ax2.set_title('品質不良への寄与度', fontsize=12, fontweight='bold')
+    ax2.set_xlabel('Importance Score')
+    ax2.set_title('Contribution to Quality Defects', fontsize=12, fontweight='bold')
     ax2.grid(axis='x', alpha=0.3)
     
-    # 重要な特徴量の minutes布比較
+    # Important feature distribution comparison
     ax3 = plt.subplot(2, 2, 4)
     top_feature = feature_importance.iloc[0]['feature']
     
     normal_values = data[data['quality'] == 0][top_feature]
     defect_values = data[data['quality'] == 1][top_feature]
     
-    ax3.hist(normal_values, bins=30, alpha=0.6, label='正常', color='green')
-    ax3.hist(defect_values, bins=30, alpha=0.6, label='不良', color='red')
+    ax3.hist(normal_values, bins=30, alpha=0.6, label='Normal', color='green')
+    ax3.hist(defect_values, bins=30, alpha=0.6, label='Defective', color='red')
     ax3.set_xlabel(f'{top_feature}')
-    ax3.set_ylabel('頻度')
-    ax3.set_title(f'最重要因子の minutes布比較: {top_feature}', fontsize=12, fontweight='bold')
+    ax3.set_ylabel('Frequency')
+    ax3.set_title(f'Distribution Comparison of Most Important Factor: {top_feature}', fontsize=12, fontweight='bold')
     ax3.legend()
     ax3.grid(alpha=0.3)
     
@@ -756,16 +756,16 @@ $$ \text{Health Index}(t) = 100 \times \exp\left(-\frac{t}{\tau}\right) $$
     plt.savefig('root_cause_analysis.png', dpi=300, bbox_inches='tight')
     plt.show()
     
-    # RCA レポート生成
+    # Generate RCA report
     print("\n" + "=" * 60)
-    print("根本原因 minutes析レポート")
+    print("Root Cause Analysis Report")
     print("=" * 60)
     
-    # 決定木のルール抽出（トップノードのみ）
+    # Extract decision tree rules (top nodes only)
     from sklearn.tree import _tree
     
     def extract_rules(tree, feature_names, node=0, depth=0, max_depth=2):
-        """決定木からルールを抽出"""
+        """Extract rules from decision tree"""
         if depth > max_depth:
             return
     
@@ -774,62 +774,62 @@ $$ \text{Health Index}(t) = 100 \times \exp\left(-\frac{t}{\tau}\right) $$
     
         if feature != _tree.TREE_UNDEFINED:
             name = feature_names[feature]
-            print(f"{'  ' * depth}├─ {name} <= {threshold:.2f}の場合:")
+            print(f"{'  ' * depth}├─ If {name} <= {threshold:.2f}:")
             extract_rules(tree, feature_names, tree.children_left[node], depth + 1, max_depth)
-            print(f"{'  ' * depth}└─ {name} > {threshold:.2f}の場合:")
+            print(f"{'  ' * depth}└─ If {name} > {threshold:.2f}:")
             extract_rules(tree, feature_names, tree.children_right[node], depth + 1, max_depth)
         else:
             value = tree.value[node][0]
             total = value.sum()
             defect_rate = value[1] / total if total > 0 else 0
-            print(f"{'  ' * depth}   → 不良率: {defect_rate:.1%} (サンプル数: {int(total)})")
+            print(f"{'  ' * depth}   → Defect Rate: {defect_rate:.1%} (Samples: {int(total)})")
     
-    print("\n主要な判定ルール:")
+    print("\nKey Decision Rules:")
     extract_rules(dt_model.tree_, X.columns)
     
-    print("\n推奨される対策:")
+    print("\nRecommended Countermeasures:")
     if feature_importance.iloc[0]['feature'] == 'temperature':
-        print("・温度管理の強化: 75±5℃の範囲にControl")
-        print("・冷却システムの点検と改善")
+        print("- Strengthen temperature management: Control within 75±5°C range")
+        print("- Inspect and improve cooling system")
     elif feature_importance.iloc[0]['feature'] == 'pH':
-        print("・pH調整Processの見直し")
-        print("・pH計の校正頻度の増加")
+        print("- Review pH adjustment process")
+        print("- Increase pH meter calibration frequency")
     elif feature_importance.iloc[0]['feature'] == 'additive_amount':
-        print("・添加剤の投入量管理の厳格化")
-        print("・自動投入システムの導入検討")
+        print("- Stricter management of additive dosage")
+        print("- Consider introducing automated dosing system")
     
 
-**実装のポイント:**
+**Implementation Points:**
 
-  * 決定木により、不良品発生の判定ルールを可視化
-  * 特徴量重要度により、影響度の高いパラメータを特定
-  * SHAP値を用いることで、各サンプルへの別要因も minutes析可能（Implementation ExampleではSHAPライブラリが必要）
-  * 人間が理解可能なルールを抽出し、対策立案を支援
-  * データ駆動型のRCAにより、経験則だけに頼らない minutes析が可能
+  * Visualize decision rules for defect occurrence using decision trees
+  * Identify parameters with high impact through feature importance
+  * Individual factors for each sample can be analyzed using SHAP values (SHAP library required in implementation example)
+  * Extract human-understandable rules to support countermeasure planning
+  * Data-driven RCA enables analysis not relying solely on empirical rules
 
 ## 📚 Summary
 
-本 Chapterでは、AIを活用した予知保全とトラブルシューティングの技術を学びました。
+In this chapter, we learned about AI-powered predictive maintenance and troubleshooting technologies.
 
-### 主要なポイント
+### Key Points
 
-  * Machine Learningによる設備故障Predictionモデルの構築
-  * 残存有用寿命（RUL）推定による最適保全計画
-  * 教師なし学習（Isolation Forest）による異常検出
-  * 決定木とSHAP値を用いた根本原因 minutes析
-  * データ駆動型アプローチによる保全効率の向上
+  * Building equipment failure prediction models using machine learning
+  * Optimal maintenance planning through Remaining Useful Life (RUL) estimation
+  * Anomaly detection using unsupervised learning (Isolation Forest)
+  * Root cause analysis using decision trees and SHAP values
+  * Improving maintenance efficiency through data-driven approaches
 
-### 実務での応用
+### Practical Applications
 
-  * センサデータの継続的な収集とモデルの定期的な再訓練
-  * 早期警報システムによる計画的な保全スケジューリング
-  * RCA結果を活用した設備改善とProcessOptimization
-  * 保全コストと設備稼働率のバランスOptimization
+  * Continuous collection of sensor data and periodic model retraining
+  * Planned maintenance scheduling through early warning systems
+  * Equipment improvement and process optimization utilizing RCA results
+  * Optimizing the balance between maintenance costs and equipment uptime
 
-**🎯 次 Chapter予告**  
-Chapter 5では、これまで学んだ技術を統合した実際のケーススタディを紹介します。 具体的なFoodManufacturingProcess（乳製品、飲料、スナックFoodなど）における AIシステムの導入事例と、その効果について詳しく解説します。 
+**🎯 Next Chapter Preview**  
+In Chapter 5, we will introduce actual case studies integrating the technologies learned so far. We will explain in detail AI system implementation cases in specific food manufacturing processes (dairy products, beverages, snack foods, etc.) and their effectiveness. 
 
-[← Chapter 3: ProcessOptimization](<chapter-3.html>) [Chapter 5: ケーススタディ →](<chapter-5.html>)
+[← Chapter 3: Process Optimization](<chapter-3.html>) [Chapter 5: Case Studies →](<chapter-3.html>)
 
 ## References
 
