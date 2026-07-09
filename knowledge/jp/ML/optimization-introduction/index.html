@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="機械学習のための最適化シリーズ - 勾配降下法と適応的オプティマイザからメタヒューリスティクス、ベイズ最適化まで、実行可能なPythonコード例で学ぶ実践ガイド。" name="description"/>
+<title>機械学習のための最適化シリーズ - AI Terakoya</title>
+<!-- CSS Styling -->
+<link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+<!-- Mermaid for diagrams -->
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+        // Mermaid.js Converter - Converts markdown-style mermaid code blocks to renderable divs
+        document.addEventListener('DOMContentLoaded', function() {
+            const mermaidCodeBlocks = document.querySelectorAll('pre.codehilite code.language-mermaid, pre code.language-mermaid');
+            mermaidCodeBlocks.forEach(function(codeBlock) {
+                const pre = codeBlock.parentElement;
+                const mermaidCode = codeBlock.textContent;
+                const mermaidDiv = document.createElement('div');
+                mermaidDiv.className = 'mermaid';
+                mermaidDiv.textContent = mermaidCode.trim();
+                pre.parentNode.replaceChild(mermaidDiv, pre);
+            });
+            if (typeof mermaid !== 'undefined') {
+                mermaid.initialize({ startOnLoad: true, theme: 'default' });
+                mermaid.init(undefined, document.querySelectorAll('.mermaid'));
+            }
+        });
+    </script>
+</head>
+<body>
+<nav class="breadcrumb">
+<div class="breadcrumb-content">
+<a href="../../index.html">AI寺子屋トップ</a><span class="breadcrumb-separator">›</span><a href="../index.html">機械学習</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">機械学習のための最適化</span>
+</div>
+</nav><div class="locale-switcher">
+<span class="current-locale">🌐 JP</span>
+<span class="locale-separator">|</span>
+<a class="locale-link" href="../../../en/ML/optimization-introduction/index.html">🇬🇧 English</a>
+<span class="locale-meta">Last sync: 2026-07-09</span>
+</div>
+
+<header>
+<div class="container">
+<h1>機械学習のための最適化</h1>
+<p style="font-size: 1.1rem; margin-top: 0.5rem; opacity: 0.95;">モデルはどのように学習するのか — 勾配降下法からベイズ最適化まで</p>
+<div class="meta">
+<span>📖 総学習時間: 1.5-2時間</span>
+<span>📊 レベル: 初級〜上級</span>
+</div>
+</div>
+</header>
+<main class="container">
+<p><strong>機械学習モデルの学習とチューニングを支えるアルゴリズムを、スクラッチ実装とSciPy・Optunaなどの実務ツールの両面から、実際に動かしながら理解します。</strong></p>
+
+<h2 id="overview">シリーズ概要</h2>
+<p>このシリーズは、あらゆる機械学習モデルの土台となるエンジンである<strong>最適化</strong>を実践的に学ぶ全3章のガイドです。ニューラルネットワークの学習を支える勾配ベースの手法から始まり、微分が利用できない問題のための勾配フリーなメタヒューリスティクス、そして1回の評価が高コストな場合のモデルチューニングに用いるベイズ最適化へと段階的に進みます。</p>
+<p><strong>最適化</strong>とは、目的関数を最小化（または最大化）するパラメータの値を見つけるプロセスです。機械学習では2つのレベルで登場します。1つは学習（訓練）で、SGDやAdamなどのオプティマイザが損失を減らすようにモデルパラメータを調整します。もう1つはハイパーパラメータチューニングで、ベイズ最適化などの手法が設定の探索を行います。本シリーズはこの両方を扱い、数学的な理解と実行可能なPythonコードを組み合わせることで、それぞれの手法が実際の損失地形上でどのように振る舞うかを目で見て確認できます。</p>
+<p><strong>特徴:</strong></p>
+<ul>
+<li>✅ <strong>理論から実践まで</strong>: 各手法を導出したうえで、実装して動かす</li>
+<li>✅ <strong>実装重視</strong>: シリーズ全体で30個の実行可能なPythonコード例</li>
+<li>✅ <strong>スクラッチとツールの両方</strong>: 手書きの勾配降下法とSciPy・Optunaを併用</li>
+<li>✅ <strong>視覚的な直感</strong>: 損失地形、収束経路、獲得関数を可視化</li>
+<li>✅ <strong>実践的な指針</strong>: どの場面でどの手法群を選ぶべきかを解説</li>
+</ul>
+<p><strong>総学習時間</strong>: 1.5-2時間（コード実行と演習を含む）</p>
+
+<h2 id="learning">学習の進め方</h2>
+<h3>推奨学習順序</h3>
+<div class="mermaid">
+graph TD
+    A[第1章: 最適化の基礎] --&gt; B[第2章: メタヒューリスティクス最適化]
+    B --&gt; C[第3章: ベイズ最適化]
+
+    style A fill:#e3f2fd
+    style B fill:#fff3e0
+    style C fill:#f3e5f5
+</div>
+<p><strong>初学者の方（最適化をまったく知らない）:</strong><br/>
+        - 第1章 → 第2章 → 第3章（全章推奨）<br/>
+        - 所要時間: 1.5-2時間</p>
+<p><strong>中級者の方（勾配降下法に馴染みがある）:</strong><br/>
+        - 第2章 → 第3章<br/>
+        - 所要時間: 50-60分</p>
+<p><strong>特定トピックの強化:</strong><br/>
+        - 勾配降下法・Adam・学習率スケジュール: 第1章<br/>
+        - 焼きなまし法・遺伝的アルゴリズム・PSO: 第2章<br/>
+        - ガウス過程・獲得関数・Optuna: 第3章</p>
+
+<h2 id="chapters">各章の詳細</h2>
+
+<h3><a href="./chapter1-optimization-fundamentals.html">第1章：最適化の基礎</a></h3>
+<p><strong>難易度</strong>: 初級〜中級<br/>
+<strong>読了時間</strong>: 25-30分<br/>
+<strong>コード例</strong>: 10個</p>
+<h4>学習内容</h4>
+<ol>
+<li><strong>機械学習における最適化とは</strong> - 目的関数、最小値、学習ループ</li>
+<li><strong>凸性と損失地形</strong> - 凸・非凸の目的関数、局所解、鞍点</li>
+<li><strong>勾配降下法をスクラッチで実装</strong> - 更新則、ステップ幅、収束</li>
+<li><strong>確率的勾配降下法とミニバッチ</strong> - ノイズと速度のトレードオフ</li>
+<li><strong>Momentum・RMSProp・Adam</strong> - 適応的オプティマイザとその仕組み</li>
+<li><strong>学習率スケジュール</strong> - ステップ減衰、コサインアニーリング、ウォームアップ</li>
+</ol>
+<h4>学習目標</h4>
+<ul>
+<li>✅ 凸性を説明し、損失地形を読み取れる</li>
+<li>✅ 勾配降下法をスクラッチで実装できる</li>
+<li>✅ 確率的勾配降下法とミニバッチのトレードオフを理解する</li>
+<li>✅ Momentum・RMSProp・Adamを実装できる</li>
+<li>✅ 学習率スケジュールを選択し実装できる</li>
+</ul>
+<p><strong><a href="./chapter1-optimization-fundamentals.html">第1章を読む →</a></strong></p>
+<hr/>
+
+<h3><a href="./chapter2-metaheuristics.html">第2章：メタヒューリスティクス最適化</a></h3>
+<p><strong>難易度</strong>: 中級<br/>
+<strong>読了時間</strong>: 25-30分<br/>
+<strong>コード例</strong>: 9個</p>
+<h4>学習内容</h4>
+<ol>
+<li><strong>なぜ勾配フリー最適化なのか</strong> - 離散・ノイズあり・多峰性の目的関数</li>
+<li><strong>焼きなまし法（シミュレーテッドアニーリング）</strong> - メトロポリス基準と冷却スケジュール</li>
+<li><strong>遺伝的アルゴリズム</strong> - 選択、交叉、突然変異</li>
+<li><strong>粒子群最適化（PSO）</strong> - 群れのダイナミクスと収束</li>
+<li><strong>SciPyによる差分進化</strong> - 頑健で実用的な大域的最適化手法</li>
+<li><strong>実践的な指針</strong> - メタヒューリスティクスの選び方と公平な評価予算の設定</li>
+</ol>
+<h4>学習目標</h4>
+<ul>
+<li>✅ 勾配法が破綻し勾配フリー探索が必要になる場面を見極められる</li>
+<li>✅ メトロポリス基準を用いた焼きなまし法を実装できる</li>
+<li>✅ 遺伝的アルゴリズムを実装できる</li>
+<li>✅ 粒子群最適化を実装し、収束を可視化できる</li>
+<li>✅ 同一の評価予算でメタヒューリスティクスを公平に比較できる</li>
+</ul>
+<p><strong><a href="./chapter2-metaheuristics.html">第2章を読む →</a></strong></p>
+<hr/>
+
+<h3><a href="./chapter3-bayesian-optimization.html">第3章：ベイズ最適化とサロゲートモデル</a></h3>
+<p><strong>難易度</strong>: 中級〜上級<br/>
+<strong>読了時間</strong>: 25-30分<br/>
+<strong>コード例</strong>: 11個</p>
+<h4>学習内容</h4>
+<ol>
+<li><strong>ハイパーパラメータ探索のコスト問題</strong> - 1回の評価が丸ごと1回の学習になるとき</li>
+<li><strong>ガウス過程サロゲート</strong> - 不確実性つきで目的関数をモデル化する</li>
+<li><strong>獲得関数</strong> - 期待改善量（EI）と探索・活用のトレードオフ</li>
+<li><strong>Optunaによる実践的ベイズ最適化</strong> - TPE、サンプラー、枝刈り（Pruning）</li>
+<li><strong>探索空間の設計と落とし穴</strong> - 対数スケール、条件付き空間、よくある間違い</li>
+</ol>
+<h4>学習目標</h4>
+<ul>
+<li>✅ ベイズ最適化が高コストな目的関数に適する理由を説明できる</li>
+<li>✅ ガウス過程サロゲートと予測の不確実性を理解する</li>
+<li>✅ 期待改善量（EI）などの獲得関数を解釈できる</li>
+<li>✅ Optunaでベイズ最適化を実行できる</li>
+<li>✅ 効果的な探索空間を設計し、よくある落とし穴を回避できる</li>
+</ul>
+<p><strong><a href="./chapter3-bayesian-optimization.html">第3章を読む →</a></strong></p>
+<hr/>
+
+<h2 id="outcomes">全体の学習成果</h2>
+<p>このシリーズを完了すると、以下のスキルと知識を習得できます：</p>
+<h3>知識レベル（Understanding）</h3>
+<ul>
+<li>✅ 勾配ベースのオプティマイザが機械学習モデルをどのように学習させるかを説明できる</li>
+<li>✅ 凸最適化問題と非凸最適化問題を区別できる</li>
+<li>✅ メタヒューリスティクスとベイズ最適化の原理を理解している</li>
+<li>✅ 探索と活用のトレードオフを説明できる</li>
+</ul>
+<h3>実践スキル（Doing）</h3>
+<ul>
+<li>✅ 勾配降下法・Momentum・RMSProp・Adamをスクラッチで実装できる</li>
+<li>✅ 焼きなまし法・遺伝的アルゴリズム・PSOを実装できる</li>
+<li>✅ SciPyの差分進化とOptunaのベイズ最適化を使いこなせる</li>
+<li>✅ 損失地形・収束経路・獲得関数を可視化できる</li>
+</ul>
+<h3>応用力（Applying）</h3>
+<ul>
+<li>✅ 問題に適した最適化手法の系統を選択できる</li>
+<li>✅ 限られた評価予算のもとで効率的にハイパーパラメータをチューニングできる</li>
+<li>✅ 最適化を扱いやすくする探索空間を設計できる</li>
+</ul>
+<hr/>
+
+<h2 id="prerequisites">前提知識</h2>
+<p>このシリーズを効果的に学習するために、以下の知識があることが望ましいです：</p>
+<h3>必須（Must Have）</h3>
+<ul>
+<li>✅ <strong>Python基礎</strong>: 変数、関数、ループ、クラス</li>
+<li>✅ <strong>NumPy</strong>: 配列とベクトル化演算</li>
+<li>✅ <strong>微分積分の基礎</strong>: 微分と勾配</li>
+<li>✅ <strong>機械学習の基礎</strong>: 損失関数とモデルの学習（推奨）</li>
+</ul>
+<h3>推奨（Nice to Have）</h3>
+<ul>
+<li>💡 <strong>Matplotlib</strong>: 可視化を再現するため</li>
+<li>💡 <strong>確率・統計</strong>: 第3章のガウス過程の理解のため</li>
+<li>💡 <strong>scikit-learn</strong>: ハイパーパラメータチューニングの例のため</li>
+</ul>
+<hr/>
+
+<h2 id="tech">使用技術とツール</h2>
+<h3>主要ライブラリ</h3>
+<ul>
+<li><strong>NumPy 1.24+</strong> - 数値計算とスクラッチ実装</li>
+<li><strong>SciPy 1.10+</strong> - 差分進化と最適化ユーティリティ</li>
+<li><strong>Optuna 3.4+</strong> - ベイズ最適化とハイパーパラメータ探索</li>
+<li><strong>Matplotlib 3.7+</strong> - 損失地形と収束の可視化</li>
+<li><strong>scikit-learn 1.3+</strong> - チューニング例で使用するモデル</li>
+</ul>
+<h3>開発環境</h3>
+<ul>
+<li><strong>Python 3.8+</strong> - プログラミング言語</li>
+<li><strong>Jupyter Notebook / Lab</strong> - コード例をインタラクティブに実行するために推奨</li>
+</ul>
+<hr/>
+
+<h2 id="start">さあ、始めましょう！</h2>
+<p>準備はできましたか？ 第1章から始めて、最適化を土台から組み上げていきましょう。</p>
+<p><strong><a href="./chapter1-optimization-fundamentals.html">第1章：最適化の基礎 →</a></strong></p>
+<hr/>
+
+<h2 id="next">次のステップ</h2>
+<p>このシリーズを完了した後、以下の関連トピックへ進むことをお勧めします：</p>
+<h3>関連シリーズ</h3>
+<ul>
+<li>🎯 <a href="../automl-introduction/index.html">AutoML入門</a> - ハイパーパラメータ最適化とモデル選択の自動化</li>
+<li>🎯 <a href="../neural-networks-introduction/index.html">ニューラルネットワーク入門</a> - 勾配ベースのオプティマイザが活躍する舞台</li>
+</ul>
+<hr/>
+
+<p><strong>更新履歴</strong></p>
+<ul>
+<li><strong>2026-07-09</strong>: v1.0 初版公開</li>
+</ul>
+</main>
+
+<section class="disclaimer">
+<h3>免責事項</h3>
+<ul>
+<li>本コンテンツは教育・研究・情報提供のみを目的としており、専門的な助言(法律・会計・技術的保証など)を提供するものではありません。</li>
+<li>本コンテンツおよび付随するコード例は「現状有姿(AS IS)」で提供され、明示または黙示を問わず、商品性、特定目的適合性、権利非侵害、正確性・完全性、動作・安全性等いかなる保証もしません。</li>
+<li>外部リンク、第三者が提供するデータ・ツール・ライブラリ等の内容・可用性・安全性について、作成者および東北大学は一切の責任を負いません。</li>
+<li>本コンテンツの利用・実行・解釈により直接的・間接的・付随的・特別・結果的・懲罰的損害が生じた場合でも、適用法で許容される最大限の範囲で、作成者および東北大学は責任を負いません。</li>
+<li>本コンテンツの内容は、予告なく変更・更新・提供停止されることがあります。</li>
+<li>本コンテンツの著作権・ライセンスは明記された条件(例: CC BY 4.0)に従います。当該ライセンスは通常、無保証条項を含みます。</li>
+</ul>
+</section>
+
+<footer>
+<div class="container">
+<p>&copy; 2025 AI Terakoya - Dr. Yusuke Hashimoto, Tohoku University</p>
+<p>Licensed under CC BY 4.0</p>
+</div>
+</footer>
+</body>
+</html>

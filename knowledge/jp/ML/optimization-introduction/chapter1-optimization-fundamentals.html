@@ -1,0 +1,1229 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="第1章：最適化の基礎 - AI Terakoya" name="description"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>第1章：最適化の基礎 - AI Terakoya</title>
+<link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+<script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+<!-- MathJax for LaTeX equation rendering -->
+<script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+<script async="" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<nav class="breadcrumb">
+<div class="breadcrumb-content">
+<a href="../../index.html">AI寺子屋トップ</a><span class="breadcrumb-separator">›</span><a href="../index.html">機械学習</a><span class="breadcrumb-separator">›</span><a href="index.html">機械学習のための最適化</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">第1章</span>
+</div>
+</nav><div class="locale-switcher">
+<span class="current-locale">🌐 JP</span>
+<span class="locale-separator">|</span>
+<a class="locale-link" href="../../../en/ML/optimization-introduction/chapter1-optimization-fundamentals.html">🇬🇧 English</a>
+<span class="locale-meta">Last sync: 2026-07-08</span>
+</div>
+<header>
+<div class="header-content">
+<h1>第1章：最適化の基礎</h1>
+<p class="subtitle">損失地形からAdamまで — 機械学習モデルが実際に学習する仕組みを理解する</p>
+<div class="meta">
+<span class="meta-item">📖 読了時間: 25-30分</span>
+<span class="meta-item">📊 難易度: 初級〜中級</span>
+<span class="meta-item">💻 コード例: 7</span>
+<span class="meta-item">📝 演習問題: 3</span>
+</div>
+</div>
+</header>
+<main class="container">
+
+<p class="chapter-description">この章はシリーズ全体の土台を築きます。機械学習における「最適化」とは何を意味するのか、なぜ損失地形の形状が重要なのか、そして素朴な勾配降下法からAdamに至る勾配ベースの最適化手法のファミリーが実際にどう動くのかを学びます。すべてのアルゴリズムをNumPyでゼロから実装するので、各更新ステップで何が起きているかを正確に確認できます。</p>
+<h2>学習目標</h2>
+<p>この章を完了すると、以下を習得できます：</p>
+<ul>
+<li>✅ 機械学習における最適化の意味 — パラメータに関する損失関数の最小化 — を理解する</li>
+<li>✅ 凸な損失地形と非凸な損失地形を区別し、局所最小値と鞍点を説明できる</li>
+<li>✅ 勾配降下法をゼロから実装し、2次元テスト関数上でその軌跡を可視化できる</li>
+<li>✅ SGD・モメンタム・RMSProp・Adamの違いを、更新則を含めて説明できる</li>
+<li>✅ 学習率スケジュール（ステップ減衰、コサインアニーリング、ウォームアップ）を選択し実装できる</li>
+</ul>
+<hr/>
+<h2>1.1 機械学習における最適化とは？</h2>
+<h3>学習とは最小化である</h3>
+<p>機械学習モデルが「学習」するとき、そこでは必ず同じ数学的な出来事が起きています。すなわち、コンピュータが<strong>損失関数（Loss Function：モデルの予測がどれだけ間違っているかを数値化したスコア）</strong>をできるだけ小さくするパラメータの値を探索しているのです。ニューラルネットワークの訓練も、回帰直線のフィッティングも、推薦システムのチューニングも、すべて同じ問題の実例です：</p>
+<p>$$
+\theta^* = \arg\min_\theta \mathcal{L}(\theta)
+$$</p>
+<ul>
+<li>$\theta$：<strong>パラメータ（Parameters：重みやバイアスなど、モデル内部の調整可能な数値）</strong></li>
+<li>$\mathcal{L}(\theta)$：損失関数。パラメータの設定を、予測誤差を測る1つの数値に写像する</li>
+<li>$\theta^*$：<strong>最適パラメータ</strong> — 損失を最小にする設定</li>
+<li>$\arg\min$：「最小化する引数」— 最小値そのものではなく、最小値が達成される場所を求める</li>
+</ul>
+<p>この定式化は最初は抽象的に感じられるかもしれないので、最も単純なモデルで具体化してみましょう。ノイズを含むデータに直線 $\hat{y} = w x + b$ を当てはめる問題です。ここでは $\theta = (w, b)$ であり、自然な損失は<strong>平均二乗誤差（MSE: Mean Squared Error：予測値と真の値の差の二乗の平均）</strong>です：</p>
+<p>$$
+\mathcal{L}(w, b) = \frac{1}{N} \sum_{i=1}^{N} \left( w x_i + b - y_i \right)^2
+$$</p>
+<h3>パラメータ空間</h3>
+<p>$\theta = (w, b)$ は2つの成分を持つので、$\mathcal{L}$ を2次元平面上の曲面として思い描くことができます。すべての点 $(w, b)$ が、その損失に等しい高さを持つのです。最適化とは、この曲面の最も低い点を探すことです。深層学習でもまったく同じ描像が成り立ちます。ただし「平面」の次元が数百万になるため、もはや描くことはできませんが、数学は同一です。</p>
+<h3>あらゆる最適化問題の3つの構成要素</h3>
+<table>
+<thead>
+<tr>
+<th>構成要素</th>
+<th>意味</th>
+<th>例（線形回帰）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>決定変数</strong></td>
+<td>変更してよいもの</td>
+<td>$w$ と $b$</td>
+</tr>
+<tr>
+<td><strong>目的関数</strong></td>
+<td>最小化（または最大化）したい数値</td>
+<td>MSE損失 $\mathcal{L}(w, b)$</td>
+</tr>
+<tr>
+<td><strong>制約条件</strong></td>
+<td>変数が従うべきルール（基本的なMLでは無いことが多い）</td>
+<td>制約なし：任意の実数 $w, b$</td>
+</tr>
+</tbody>
+</table>
+<h3>コード例1：損失曲面の評価</h3>
+<p>人工データを生成し、$(w, b)$ のグリッド上でMSE損失を評価してみましょう。損失をパラメータに対するルックアップテーブルとして捉えることは、このシリーズで最も役立つメンタルモデルです。</p>
+<pre><code class="language-python"># 動作環境:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;3.0.0
+
+"""
+例1: パラメータグリッド上でのMSE損失曲面の評価
+
+目的: 損失関数がすべてのパラメータ設定に1つの数値を割り当てること、
+      そして「訓練」= 最も低い点を見つけることであると示す
+対象: 初級者
+実行時間: 5秒以内
+依存: NumPyのみ
+"""
+
+import numpy as np
+
+# --- 人工データ: y = 2x + 1 + ノイズ ---
+rng = np.random.default_rng(42)
+x_data = rng.uniform(-3, 3, 50)
+y_data = 2.0 * x_data + 1.0 + rng.normal(0, 0.5, 50)
+
+def mse_loss(w, b, x, y):
+    """直線 y_hat = w*x + b の平均二乗誤差。"""
+    y_pred = w * x + b
+    return np.mean((y_pred - y) ** 2)
+
+# --- (w, b) のグリッド上で損失を評価 ---
+w_grid = np.linspace(-1.0, 5.0, 121)
+b_grid = np.linspace(-2.0, 4.0, 121)
+loss_surface = np.zeros((len(b_grid), len(w_grid)))
+
+for i, b in enumerate(b_grid):
+    for j, w in enumerate(w_grid):
+        loss_surface[i, j] = mse_loss(w, b, x_data, y_data)
+
+# --- グリッド上で最も低い点を特定 ---
+i_min, j_min = np.unravel_index(np.argmin(loss_surface), loss_surface.shape)
+print("=== 損失曲面の分析 ===")
+print(f"グリッドサイズ: {loss_surface.shape[0]} x {loss_surface.shape[1]} "
+      f"= {loss_surface.size} 回の損失評価")
+print(f"最良のグリッド点: w = {w_grid[j_min]:.2f}, b = {b_grid[i_min]:.2f}")
+print(f"最良グリッド点での損失: {loss_surface[i_min, j_min]:.4f}")
+print(f"真のパラメータ (w=2, b=1) での損失: {mse_loss(2.0, 1.0, x_data, y_data):.4f}")
+print(f"悪い推測 (w=-1, b=-2) での損失:   {mse_loss(-1.0, -2.0, x_data, y_data):.4f}")
+</code></pre>
+<p><strong>出力例</strong>:</p>
+<pre><code>=== 損失曲面の分析 ===
+グリッドサイズ: 121 x 121 = 14641 回の損失評価
+最良のグリッド点: w = 2.00, b = 0.90
+最良グリッド点での損失: 0.1439
+真のパラメータ (w=2, b=1) での損失: 0.1506
+悪い推測 (w=-1, b=-2) での損失:   37.9308
+</code></pre>
+<p>最良のグリッド点（$b = 0.90$）が真の値（$b = 1.0$）と正確には一致していない点に注目してください。この50点の標本に含まれるノイズが、経験的な最小値の位置をわずかにずらしているのです。これは期待どおりの挙動であり、バグではありません。</p>
+<p>この実験からは2つの重要な観察が導かれます：</p>
+<ol>
+<li><strong>グリッドサーチはスケールしない。</strong> パラメータが2つで各121通りの場合、14,641回の評価が必要でした。パラメータがわずか10個のモデルでは $121^{10} \approx 6.7 \times 10^{20}$ 回となり、完全に実行不可能です。現代のネットワークは数百万のパラメータを持つため、より賢い探索戦略が必要です。その戦略が1.3節で登場する<strong>勾配降下法</strong>です。</li>
+<li><strong>最小損失はゼロではない。</strong> データにノイズが含まれるため、真のパラメータでさえ完全にフィットすることはできません。これは正常で健全なことです。ノイズを含むデータで損失が正確にゼロになる場合、それは通常<strong>過学習（Overfitting：パターンを学習する代わりにノイズを暗記してしまうこと）</strong>のシグナルです。</li>
+</ol>
+<hr/>
+<h2>1.2 凸性と損失地形</h2>
+<h3>なぜ損失の形状が重要なのか</h3>
+<p>最適化が易しいか難しいかは、ほぼ完全に<strong>損失地形（Loss Landscape：パラメータ空間上の曲面として見たときの損失関数の形状）</strong>に依存します。鍵となる性質は<strong>凸性（Convexity）</strong>です。</p>
+<p>関数 $f$ が<strong>凸</strong>であるとは、そのグラフ上の任意の2点を結ぶ線分がグラフの下に沈まないことをいいます。形式的には、すべての $x, y$ とすべての $\lambda \in [0, 1]$ について：</p>
+<p>$$
+f(\lambda x + (1 - \lambda) y) \;\leq\; \lambda f(x) + (1 - \lambda) f(y)
+$$</p>
+<p>直観的には、凸関数はお椀の形をしています。これは実用上、非常に大きな保証を与えてくれます：</p>
+<blockquote>
+<p><strong>凸関数では、すべての局所最小値が大域的最小値です。</strong> 下り坂を歩き続ける限り、間違った谷に閉じ込められることはありません — 谷は1つしかないのです。</p>
+</blockquote>
+<h3>機械学習における凸と非凸</h3>
+<table>
+<thead>
+<tr>
+<th>性質</th>
+<th>凸</th>
+<th>非凸</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>形状</strong></td>
+<td>単一のお椀</td>
+<td>複数の谷、尾根、平坦部</td>
+</tr>
+<tr>
+<td><strong>局所最小値</strong></td>
+<td>すべて大域的</td>
+<td>多数存在しうる。質の悪いものもある</td>
+</tr>
+<tr>
+<td><strong>保証</strong></td>
+<td>勾配降下法が大域的最適解を見つける</td>
+<td>局所最適解（または鞍点）のみ保証される</td>
+</tr>
+<tr>
+<td><strong>MLでの例</strong></td>
+<td>線形回帰（MSE）、ロジスティック回帰、SVM</td>
+<td>あらゆる深さのニューラルネットワーク</td>
+</tr>
+</tbody>
+</table>
+<h3>局所最小値と鞍点</h3>
+<p>非凸地形では、2種類の「平坦な地点」（勾配がゼロになる点）が最適化を停滞させる可能性があります：</p>
+<ul>
+<li><strong>局所最小値（Local Minimum）</strong>：周囲のどの点よりも低いが、別の場所にある大域的最小値よりは高い可能性がある点。あらゆる方向が上り坂なので、最適化はここで止まってしまいます。</li>
+<li><strong>鞍点（Saddle Point）</strong>：ある方向には最小、別の方向には最大となる点 — 馬の鞍の中央のような形です。勾配はゼロなのに、最小値ではまったくありません。高次元空間では鞍点の数は局所最小値をはるかに上回り、そこから脱出することは深層学習の中心的な関心事です。確率的勾配降下法（1.4節）に含まれるノイズが、実はここで役立ちます。</li>
+</ul>
+<div class="mermaid">
+graph LR
+    A[勾配ゼロの点] --&gt; B{全方向の曲率は?}
+    B --&gt;|すべて上向き| C[局所最小値]
+    B --&gt;|すべて下向き| D[局所最大値]
+    B --&gt;|混在| E[鞍点]
+    C --&gt;|すべての谷の中で最も低い| F[大域的最小値]
+
+    style C fill:#e3f2fd
+    style E fill:#fff3e0
+    style F fill:#e8f5e9
+</div>
+<h3>コード例2：凸・非凸・鞍点の地形を可視化する</h3>
+<pre><code class="language-python"># 動作環境:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;3.0.0
+# - matplotlib&gt;=3.7.0
+
+"""
+例2: 凸関数 vs 非凸関数と鞍点
+
+目的: 非凸地形の最適化がなぜ難しいかを可視化する
+対象: 初級者
+実行時間: 10秒以内
+依存: NumPy, Matplotlib
+"""
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+x = np.linspace(-2.5, 2.5, 400)
+convex = x ** 2                          # 単一のお椀
+nonconvex = x ** 4 - 3 * x ** 2 + x      # 深さの異なる2つの谷
+
+# --- 非凸曲線の離散的な局所最小値を求める ---
+is_local_min = np.logical_and(nonconvex[1:-1] &lt;= nonconvex[:-2],
+                              nonconvex[1:-1] &lt;= nonconvex[2:])
+min_idx = np.where(is_local_min)[0] + 1
+
+fig, axes = plt.subplots(1, 3, figsize=(15, 4))
+
+axes[0].plot(x, convex, color='tab:blue')
+axes[0].set_title('Convex: $f(x) = x^2$\n(one valley, easy)')
+axes[0].set_xlabel('x')
+axes[0].set_ylabel('f(x)')
+
+axes[1].plot(x, nonconvex, color='tab:orange')
+axes[1].scatter(x[min_idx], nonconvex[min_idx], color='red', zorder=3,
+                label='local minima')
+axes[1].set_title('Non-convex: $f(x) = x^4 - 3x^2 + x$\n(two valleys, one is a trap)')
+axes[1].set_xlabel('x')
+axes[1].legend()
+
+# --- 鞍点: z = x^2 - y^2 (x方向には最小、y方向には最大) ---
+xx, yy = np.meshgrid(np.linspace(-2, 2, 200), np.linspace(-2, 2, 200))
+zz = xx ** 2 - yy ** 2
+cs = axes[2].contour(xx, yy, zz, levels=15, cmap='coolwarm')
+axes[2].scatter([0], [0], color='black', zorder=3, label='saddle at (0, 0)')
+axes[2].set_title('Saddle: $f(x, y) = x^2 - y^2$\n(gradient is zero, but not a minimum)')
+axes[2].set_xlabel('x')
+axes[2].set_ylabel('y')
+axes[2].legend()
+
+plt.tight_layout()
+plt.savefig('landscapes.png', dpi=110)
+plt.close()
+
+print("=== 非凸関数の局所最小値 ===")
+for i in min_idx:
+    print(f"x = {x[i]:+.3f}, f(x) = {nonconvex[i]:+.3f}")
+print("深い方の谷が大域的最小値で、浅い方の谷は罠です。")
+print("図を landscapes.png に保存しました")
+</code></pre>
+<p><strong>出力例</strong>:</p>
+<pre><code>=== 非凸関数の局所最小値 ===
+x = -1.297, f(x) = -3.514
+x = +1.134, f(x) = -1.070
+深い方の谷が大域的最小値で、浅い方の谷は罠です。
+図を landscapes.png に保存しました
+</code></pre>
+<p>$x = 2$ から開始した勾配ベースの最適化は、$x \approx 1.13$ にある浅い右側の谷に滑り込み、そこに留まってしまいます。$x \approx -1.30$ にあるより深い谷を発見することは決してありません。これは純粋に局所的な手法の根本的な限界であり、大域的に探索するよう設計された第2章の<strong>メタヒューリスティクス手法</strong>と第3章の<strong>ベイズ最適化</strong>の動機でもあります。</p>
+<p>ニューラルネットワークの損失は高度に非凸なのだから深層学習は絶望的だ、と心配になるかもしれません。実際には、非常に高次元の地形ではSGDが到達可能な局所最小値の大半が同程度に良い損失値を持つことが研究で示されており、「閉じ込められる」ことは1次元の描像が示唆するほど致命的ではありません。それでも、訓練時の問題を診断するには、この幾何学の理解が不可欠です。</p>
+<hr/>
+<h2>1.3 勾配降下法をゼロから実装する</h2>
+<h3>核となるアイデア</h3>
+<p><strong>勾配（Gradient：偏微分を並べたベクトル $\nabla \mathcal{L}(\theta)$ で、損失が最も急激に増加する方向を指す）</strong>は、グリッドサーチに欠けていたもの — 局所的な羅針盤 — をまさに与えてくれます。損失を減らすには、勾配と<em>逆</em>の方向に進めばよいのです：</p>
+<p>$$
+\theta_{t+1} = \theta_t - \eta \, \nabla \mathcal{L}(\theta_t)
+$$</p>
+<ul>
+<li>$\theta_t$：ステップ $t$ でのパラメータ</li>
+<li>$\eta$（イータ）：<strong>学習率（Learning Rate：ステップ幅 — 1回の更新でどれだけ進むか）</strong></li>
+<li>$\nabla \mathcal{L}(\theta_t)$：現在のパラメータにおける損失の勾配</li>
+</ul>
+<p>学習率は、このシリーズ全体を通して最も重要なハイパーパラメータです：</p>
+<table>
+<thead>
+<tr>
+<th>学習率</th>
+<th>挙動</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>小さすぎる</strong></td>
+<td>収束はするが、非常に遅い — 数千回の小刻みなステップが必要</td>
+</tr>
+<tr>
+<td><strong>適切</strong></td>
+<td>最小値への速く安定した降下</td>
+</tr>
+<tr>
+<td><strong>大きすぎる</strong></td>
+<td>谷を飛び越え、振動するか、無限大に発散する</td>
+</tr>
+</tbody>
+</table>
+<h3>2つのテスト関数</h3>
+<p>実装は2つの古典的な2次元テスト関数で試します：</p>
+<ol>
+<li><strong>悪条件の二次関数</strong>：$f(x, y) = x^2 + 10 y^2$。凸ですが、谷は $x$ 方向より $y$ 方向に10倍急峻です。この曲率の不一致 — <strong>悪条件（Ill-Conditioning）</strong>と呼ばれます — が小さな学習率を強制し、ジグザグ運動を引き起こします。</li>
+<li><strong>Rosenbrock関数</strong>：$f(x, y) = (1 - x)^2 + 100 (y - x^2)^2$。狭く湾曲したバナナ形の谷を持つ有名なベンチマークです。大域的最小値は $(1, 1)$ にあります。勾配降下法は谷にはすぐ到達しますが、その後は谷に沿って非常にゆっくりとしか進めません — モメンタムや適応的手法が必要になる理由の正直な予告編です。</li>
+</ol>
+<h3>コード例3：軌跡の可視化つき勾配降下法</h3>
+<pre><code class="language-python"># 動作環境:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;3.0.0
+# - matplotlib&gt;=3.7.0
+
+"""
+例3: 二次関数とRosenbrock関数でのゼロからの勾配降下法
+
+目的: 更新則 theta = theta - lr * grad を実装し、
+      等高線図上に最適化の経路を可視化する
+対象: 初級〜中級者
+実行時間: 10-20秒
+依存: NumPy, Matplotlib
+"""
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+# --- テスト関数1: 悪条件の二次関数 ---
+def quad(p):
+    x, y = p
+    return x ** 2 + 10 * y ** 2
+
+def quad_grad(p):
+    x, y = p
+    return np.array([2 * x, 20 * y])
+
+# --- テスト関数2: Rosenbrock ---
+def rosenbrock(p):
+    x, y = p
+    return (1 - x) ** 2 + 100 * (y - x ** 2) ** 2
+
+def rosenbrock_grad(p):
+    x, y = p
+    return np.array([-2 * (1 - x) - 400 * x * (y - x ** 2),
+                     200 * (y - x ** 2)])
+
+def gradient_descent(grad_fn, p0, lr, n_steps):
+    """素朴な勾配降下法。訪問した点の全経路を返す。"""
+    p = np.array(p0, dtype=float)
+    path = [p.copy()]
+    for _ in range(n_steps):
+        p = p - lr * grad_fn(p)
+        path.append(p.copy())
+    return np.array(path)
+
+# --- 二次関数で実行 (注意: 収束には lr &lt; 2/20 = 0.1 が必要) ---
+path_quad = gradient_descent(quad_grad, p0=(-9.0, 2.5), lr=0.09, n_steps=60)
+
+# --- Rosenbrockで実行 (急峻な壁のため学習率を非常に小さくする必要がある) ---
+path_rosen = gradient_descent(rosenbrock_grad, p0=(-1.0, 1.0), lr=0.001,
+                              n_steps=2000)
+
+# --- 軌跡つきの等高線図 ---
+fig, axes = plt.subplots(1, 2, figsize=(13, 5))
+
+gx, gy = np.meshgrid(np.linspace(-10, 10, 300), np.linspace(-4, 4, 300))
+axes[0].contour(gx, gy, gx ** 2 + 10 * gy ** 2, levels=25, cmap='viridis')
+axes[0].plot(path_quad[:, 0], path_quad[:, 1], 'r.-', linewidth=1,
+             markersize=3, label='GD path')
+axes[0].scatter([0], [0], marker='*', s=180, color='gold',
+                edgecolor='black', zorder=3, label='minimum (0, 0)')
+axes[0].set_title('Quadratic $x^2 + 10y^2$: zigzag from ill-conditioning')
+axes[0].legend()
+
+rx, ry = np.meshgrid(np.linspace(-1.6, 1.6, 300), np.linspace(-0.6, 1.6, 300))
+rz = (1 - rx) ** 2 + 100 * (ry - rx ** 2) ** 2
+axes[1].contour(rx, ry, rz, levels=np.logspace(-1, 3, 20), cmap='viridis')
+axes[1].plot(path_rosen[::20, 0], path_rosen[::20, 1], 'r.-',
+             linewidth=1, markersize=3, label='GD path (every 20th step)')
+axes[1].scatter([1], [1], marker='*', s=180, color='gold',
+                edgecolor='black', zorder=3, label='minimum (1, 1)')
+axes[1].set_title('Rosenbrock: fast into the valley, slow along it')
+axes[1].legend()
+
+plt.tight_layout()
+plt.savefig('gradient_descent_paths.png', dpi=110)
+plt.close()
+
+print("=== 勾配降下法の結果 ===")
+print(f"二次関数:   初期損失 = {quad(path_quad[0]):9.4f}, "
+      f"最終損失 = {quad(path_quad[-1]):.2e} ({len(path_quad) - 1} ステップ後)")
+print(f"Rosenbrock: 初期損失 = {rosenbrock(path_rosen[0]):9.4f}, "
+      f"最終損失 = {rosenbrock(path_rosen[-1]):.2e} ({len(path_rosen) - 1} ステップ後)")
+print(f"Rosenbrockの最終点: ({path_rosen[-1][0]:.4f}, {path_rosen[-1][1]:.4f})"
+      f"  (真の最小値は (1, 1))")
+print("図を gradient_descent_paths.png に保存しました")
+</code></pre>
+<p><strong>出力例</strong>:</p>
+<pre><code>=== 勾配降下法の結果 ===
+二次関数:   初期損失 =  143.5000, 最終損失 = 3.83e-09 (60 ステップ後)
+Rosenbrock: 初期損失 =    4.0000, 最終損失 = 7.42e-02 (2000 ステップ後)
+Rosenbrockの最終点: (0.7279, 0.5286)  (真の最小値は (1, 1))
+図を gradient_descent_paths.png に保存しました
+</code></pre>
+<p>2つのパネルをよく観察してください — そこには素朴な勾配降下法が抱える2つの慢性病が要約されています：</p>
+<ol>
+<li><strong>悪条件の問題でのジグザグ運動。</strong> 二次関数では、経路は狭い軸を横切って跳ね回りながら、浅い軸に沿ってじりじりとしか進みません。学習率は最も急峻な方向によって上限が決まる（ここでは $\eta \lt 2/20 = 0.1$）ため、浅い方向の進行は遅くなります。</li>
+<li><strong>湾曲した谷に沿った這うような前進。</strong> Rosenbrockでは、2,000ステップかけても最小値からほど遠い場所にいます（損失はまだ0.074）。谷底に沿った勾配は微小なので、各ステップはほとんど進みません。この学習率で最小値に到達するには約20,000ステップかかり、しかも急峻な谷の壁が発散を引き起こすため学習率を上げることもできません。</li>
+</ol>
+<p>この2つの病は、1.5節の最適化手法によって治療されます。しかしその前に、実践的な問題に向き合わなければなりません。巨大なデータセット全体で正確な勾配を計算するのは高コストなのです。</p>
+<hr/>
+<h2>1.4 確率的勾配降下法とミニバッチ</h2>
+<h3>計算コストの問題</h3>
+<p>機械学習では、損失は $N$ 個の訓練例にわたる平均です：$\mathcal{L}(\theta) = \frac{1}{N} \sum_{i=1}^{N} \ell_i(\theta)$。ここで $\ell_i$ は例 $i$ に対する損失です。正確な（「フルバッチ」の）勾配を計算するには、1ステップごとに全 $N$ 例に触れる必要があります。数百万の例があると、これは許容できないほど遅くなります。</p>
+<p><strong>確率的勾配降下法（SGD: Stochastic Gradient Descent：各ステップでデータの小さなランダムな部分集合を使って勾配を推定する勾配降下法）</strong>は、正確な勾配を<strong>ミニバッチ（Mini-Batch：$B$ 個の訓練例からなる小さなランダムな部分集合）</strong>からの推定値に置き換えることでこれを解決します：</p>
+<p>$$
+\theta_{t+1} = \theta_t - \eta \cdot \frac{1}{B} \sum_{i \in \text{batch}} \nabla \ell_i(\theta_t)
+$$</p>
+<h3>分散／ノイズのトレードオフ</h3>
+<p>ミニバッチ勾配は<strong>不偏推定量（Unbiased Estimator：ランダムなバッチについて平均すると真の勾配に一致する）</strong>ですが、個々のバッチが与えるのはノイズを含む推定値です。バッチサイズ $B$ は根本的なトレードオフを制御します：</p>
+<table>
+<thead>
+<tr>
+<th>バッチサイズ</th>
+<th>勾配ノイズ</th>
+<th>1回の更新コスト</th>
+<th>特徴</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>$B = N$（フルバッチ）</td>
+<td>なし（正確）</td>
+<td>最も高い</td>
+<td>滑らかな経路。データ1周あたりの更新回数は少ない</td>
+</tr>
+<tr>
+<td>$B = 32$–$256$（ミニバッチ）</td>
+<td>中程度</td>
+<td>低い</td>
+<td>深層学習における実用上のスイートスポット</td>
+</tr>
+<tr>
+<td>$B = 1$（純粋な確率的）</td>
+<td>最も大きい</td>
+<td>最も低い</td>
+<td>非常にノイジーな経路。損失はノイズフロアの周りで跳ね回る</td>
+</tr>
+</tbody>
+</table>
+<p>勾配推定の分散はおよそ $1/B$ に比例します。バッチサイズを4倍にすればノイズの標準偏差は半分になります。興味深いことに、非凸地形では多少のノイズはむしろ<em>有益</em>です — 鞍点や浅い局所最小値から最適化を蹴り出してくれることがあるのです。これは深層学習でSGDの汎化性能が高い理由の1つです。</p>
+<p>もう1つ、これから頻繁に出会う用語があります。<strong>エポック（Epoch：訓練データセット全体を1回通り抜けること）</strong>です。$N = 200$ 例で $B = 32$ の場合、1エポックは $\lceil 200 / 32 \rceil = 7$ 回の更新ステップからなります。</p>
+<h3>コード例4：線形回帰でのバッチ vs ミニバッチ vs 確率的</h3>
+<pre><code class="language-python"># 動作環境:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;3.0.0
+# - matplotlib&gt;=3.7.0
+
+"""
+例4: バッチ・ミニバッチ・確率的勾配降下法の比較
+
+目的: 人工的な線形回帰問題で、バッチサイズが制御する
+      ノイズ/コストのトレードオフを示す
+対象: 初級〜中級者
+実行時間: 10-20秒
+依存: NumPy, Matplotlib
+"""
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+# --- 人工回帰データ: y = 3x - 1.5 + ノイズ ---
+rng = np.random.default_rng(0)
+n_samples = 200
+X = rng.uniform(-2, 2, n_samples)
+y = 3.0 * X - 1.5 + rng.normal(0, 0.5, n_samples)
+
+def predict(theta, x):
+    return theta[0] * x + theta[1]           # theta = [w, b]
+
+def full_loss(theta):
+    return 0.5 * np.mean((predict(theta, X) - y) ** 2)
+
+def batch_grad(theta, idx):
+    """idx に含まれる例で計算した損失の勾配。"""
+    err = predict(theta, X[idx]) - y[idx]
+    return np.array([np.mean(err * X[idx]), np.mean(err)])
+
+def train(batch_size, lr=0.1, n_epochs=40, seed=1):
+    """指定のバッチサイズで訓練し、毎エポック全データでの損失を記録する。"""
+    local_rng = np.random.default_rng(seed)
+    theta = np.zeros(2)
+    history = [full_loss(theta)]
+    n_updates = 0
+    for _ in range(n_epochs):
+        perm = local_rng.permutation(n_samples)
+        for start in range(0, n_samples, batch_size):
+            idx = perm[start:start + batch_size]
+            theta = theta - lr * batch_grad(theta, idx)
+            n_updates += 1
+        history.append(full_loss(theta))
+    return theta, np.array(history), n_updates
+
+configs = [("Full batch (B=200)", n_samples),
+           ("Mini-batch (B=32)", 32),
+           ("Stochastic (B=1)", 1)]
+
+print("=== バッチサイズの比較 (40エポック, lr=0.1) ===")
+plt.figure(figsize=(8, 5))
+for label, B in configs:
+    theta, history, n_updates = train(batch_size=B)
+    plt.semilogy(history, label=label)
+    print(f"{label:22s} 最終損失 = {history[-1]:.5f}, "
+          f"w = {theta[0]:.3f}, b = {theta[1]:.3f}, 更新回数 = {n_updates}")
+
+plt.xlabel('Epoch')
+plt.ylabel('Full-data loss (log scale)')
+plt.title('Effect of batch size on convergence')
+plt.legend()
+plt.tight_layout()
+plt.savefig('batch_size_comparison.png', dpi=110)
+plt.close()
+print("真のパラメータ: w = 3.000, b = -1.500")
+print("図を batch_size_comparison.png に保存しました")
+</code></pre>
+<p><strong>出力例</strong>:</p>
+<pre><code>=== バッチサイズの比較 (40エポック, lr=0.1) ===
+Full batch (B=200)     最終損失 = 0.13114, w = 2.953, b = -1.500, 更新回数 = 40
+Mini-batch (B=32)      最終損失 = 0.13078, w = 2.982, b = -1.569, 更新回数 = 280
+Stochastic (B=1)       最終損失 = 0.13778, w = 3.056, b = -1.616, 更新回数 = 8000
+</code></pre>
+<p>保存された図の3本の曲線を、更新回数と合わせて読み取ってください：</p>
+<ul>
+<li><strong>フルバッチ</strong>は滑らかに降下しますが、1エポックあたり1回しか更新しません — 大規模データセットでは、その1回1回の更新が非常に高コストです。</li>
+<li><strong>ミニバッチ</strong>は、1エポックあたり7回の安価な更新で実質的に同じ損失に到達し、実問題でははるかに短い実時間で収束します。数十〜数百の範囲の $B$ がどこでもデフォルトになっているのはこのためです。</li>
+<li><strong>確率的（$B=1$）</strong>は序盤の進行は速いものの、その後はノイズフロアの周りでガタガタと揺れ続けます。学習率が一定だと、1例ごとの勾配がパラメータを毎回別の方向に引っ張るため、決して落ち着きません。$\eta$ を時間とともに減らせばこれは解決します — それがまさに1.6節のテーマです。</li>
+</ul>
+<hr/>
+<h2>1.5 モメンタム・RMSProp・Adam</h2>
+<p>ここからは、1.3節で診断した2つの病を治療します。現代的な最適化手法はいずれも、素朴なSGDの更新にパラメータごとの少量のメモリを追加します。</p>
+<h3>モメンタム：坂を転がり落ちる重いボール</h3>
+<p><strong>モメンタム（Momentum：過去の勾配の指数減衰移動平均を更新方向として使う手法）</strong>は、パラメータベクトルを重いボールのように扱います。勾配は力として作用し、速度が蓄積されていきます。</p>
+<p>$$
+\begin{aligned}
+v_{t+1} &amp;= \gamma \, v_t + \eta \, \nabla \mathcal{L}(\theta_t) \\
+\theta_{t+1} &amp;= \theta_t - v_{t+1}
+\end{aligned}
+$$</p>
+<ul>
+<li>$v$：速度ベクトル（ゼロで初期化）</li>
+<li>$\gamma$（ガンマ）：モメンタム係数。通常 $0.9$ — 過去の速度をどれだけ保持するか</li>
+</ul>
+<p>なぜ効くのか：一貫した下り方向（谷底）に沿っては速度が成長し続け、素朴なステップの最大 $1/(1-\gamma) = 10$ 倍に達します。谷を横切る方向（ジグザグ方向）では、連続する勾配が逆向きになり $v$ の中で打ち消し合います。したがってモメンタムは、遅い方向を加速し、<em>かつ</em>振動を減衰させる — 2つの病を同時に攻撃するのです。</p>
+<h3>RMSProp：パラメータごとの学習率</h3>
+<p><strong>RMSProp（Root Mean Square Propagation：各パラメータのステップを、その典型的な勾配の大きさの移動推定値で割る適応的手法）</strong>は、勾配の二乗の指数移動平均を保持します：</p>
+<p>$$
+\begin{aligned}
+s_{t+1} &amp;= \rho \, s_t + (1 - \rho) \, \big(\nabla \mathcal{L}(\theta_t)\big)^2 \\
+\theta_{t+1} &amp;= \theta_t - \frac{\eta}{\sqrt{s_{t+1}} + \epsilon} \, \nabla \mathcal{L}(\theta_t)
+\end{aligned}
+$$</p>
+<ul>
+<li>$s$：勾配の二乗の移動平均。要素ごとに計算（ゼロで初期化）</li>
+<li>$\rho$（ロー）：減衰率。通常 $0.9$</li>
+<li>$\epsilon$：ゼロ除算を防ぐ微小な定数（例：$10^{-8}$）</li>
+<li>すべての演算は要素ごと：各パラメータが独自の実効学習率を持つ</li>
+</ul>
+<p>持続的に大きな勾配を持つパラメータ（急峻な方向）はステップが縮小され、勾配の小さいパラメータ（浅い方向）は相対的に大きなステップを得ます。これは、方向ごとに $\eta$ を手動調整することなく悪条件を直接修正します。</p>
+<h3>Adam：モメンタム + RMSProp + バイアス補正</h3>
+<p><strong>Adam（Adaptive Moment Estimation）</strong>は両方のアイデアを組み合わせます。1次モーメント $m$（勾配の平均。モメンタムに相当）と2次モーメント $v$（勾配の二乗の平均。RMSPropに相当）を追跡し、両者をゼロで初期化することに起因する開始時のバイアスを補正します：</p>
+<p>$$
+\begin{aligned}
+m_{t+1} &amp;= \beta_1 m_t + (1 - \beta_1) \nabla \mathcal{L}(\theta_t) \\
+v_{t+1} &amp;= \beta_2 v_t + (1 - \beta_2) \big(\nabla \mathcal{L}(\theta_t)\big)^2 \\
+\hat{m} &amp;= \frac{m_{t+1}}{1 - \beta_1^{t+1}}, \qquad
+\hat{v} = \frac{v_{t+1}}{1 - \beta_2^{t+1}} \\
+\theta_{t+1} &amp;= \theta_t - \frac{\eta \, \hat{m}}{\sqrt{\hat{v}} + \epsilon}
+\end{aligned}
+$$</p>
+<p>デフォルト値 $\beta_1 = 0.9$、$\beta_2 = 0.999$、$\epsilon = 10^{-8}$ は驚くほど広範囲の問題でうまく機能します。Adamが今日の深層学習で最も一般的なデフォルトの最適化手法である理由はここにあります。</p>
+<table>
+<thead>
+<tr>
+<th>最適化手法</th>
+<th>パラメータあたりの追加状態</th>
+<th>ジグザグを解決?</th>
+<th>悪条件を解決?</th>
+<th>典型的な用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>SGD</strong></td>
+<td>なし</td>
+<td>いいえ</td>
+<td>いいえ</td>
+<td>ベースライン。良いスケジュールと組み合わせると強力</td>
+</tr>
+<tr>
+<td><strong>モメンタム</strong></td>
+<td>1個（$v$）</td>
+<td>はい</td>
+<td>部分的に</td>
+<td>コンピュータビジョン、よく調整された設定</td>
+</tr>
+<tr>
+<td><strong>RMSProp</strong></td>
+<td>1個（$s$）</td>
+<td>部分的に</td>
+<td>はい</td>
+<td>再帰型ネットワーク、オンライン学習</td>
+</tr>
+<tr>
+<td><strong>Adam</strong></td>
+<td>2個（$m, v$）</td>
+<td>はい</td>
+<td>はい</td>
+<td>ほぼあらゆる場面での最初のデフォルト</td>
+</tr>
+</tbody>
+</table>
+<h3>コード例5：4つの最適化手法をゼロから実装しRosenbrockで比較</h3>
+<pre><code class="language-python"># 動作環境:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;3.0.0
+# - matplotlib&gt;=3.7.0
+
+"""
+例5: SGD・モメンタム・RMSProp・Adamのゼロからの実装
+
+目的: Rosenbrock関数上で4つの最適化手法の収束経路を比較する
+対象: 中級者
+実行時間: 10-30秒
+依存: NumPy, Matplotlib
+"""
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+def rosenbrock(p):
+    x, y = p
+    return (1 - x) ** 2 + 100 * (y - x ** 2) ** 2
+
+def rosenbrock_grad(p):
+    x, y = p
+    return np.array([-2 * (1 - x) - 400 * x * (y - x ** 2),
+                     200 * (y - x ** 2)])
+
+def run_sgd(p0, lr=0.001, n_steps=5000):
+    p = np.array(p0, dtype=float)
+    path = [p.copy()]
+    for _ in range(n_steps):
+        p = p - lr * rosenbrock_grad(p)
+        path.append(p.copy())
+    return np.array(path)
+
+def run_momentum(p0, lr=0.0002, gamma=0.9, n_steps=5000):
+    p = np.array(p0, dtype=float)
+    v = np.zeros_like(p)
+    path = [p.copy()]
+    for _ in range(n_steps):
+        v = gamma * v + lr * rosenbrock_grad(p)
+        p = p - v
+        path.append(p.copy())
+    return np.array(path)
+
+def run_rmsprop(p0, lr=0.002, rho=0.9, eps=1e-8, n_steps=5000):
+    p = np.array(p0, dtype=float)
+    s = np.zeros_like(p)
+    path = [p.copy()]
+    for _ in range(n_steps):
+        g = rosenbrock_grad(p)
+        s = rho * s + (1 - rho) * g ** 2
+        p = p - lr * g / (np.sqrt(s) + eps)
+        path.append(p.copy())
+    return np.array(path)
+
+def run_adam(p0, lr=0.02, beta1=0.9, beta2=0.999, eps=1e-8, n_steps=5000):
+    p = np.array(p0, dtype=float)
+    m = np.zeros_like(p)
+    v = np.zeros_like(p)
+    path = [p.copy()]
+    for t in range(1, n_steps + 1):
+        g = rosenbrock_grad(p)
+        m = beta1 * m + (1 - beta1) * g
+        v = beta2 * v + (1 - beta2) * g ** 2
+        m_hat = m / (1 - beta1 ** t)
+        v_hat = v / (1 - beta2 ** t)
+        p = p - lr * m_hat / (np.sqrt(v_hat) + eps)
+        path.append(p.copy())
+    return np.array(path)
+
+p0 = (-1.0, 1.0)
+runs = [("SGD (lr=0.001)", run_sgd(p0), 'tab:red'),
+        ("Momentum (lr=0.0002, gamma=0.9)", run_momentum(p0), 'tab:blue'),
+        ("RMSProp (lr=0.002)", run_rmsprop(p0), 'tab:green'),
+        ("Adam (lr=0.02)", run_adam(p0), 'tab:purple')]
+
+# --- 4つの経路すべてを重ねた等高線図 ---
+rx, ry = np.meshgrid(np.linspace(-1.6, 1.6, 300), np.linspace(-0.6, 1.6, 300))
+rz = (1 - rx) ** 2 + 100 * (ry - rx ** 2) ** 2
+
+plt.figure(figsize=(9, 6))
+plt.contour(rx, ry, rz, levels=np.logspace(-1, 3, 20), cmap='gray')
+for label, path, color in runs:
+    plt.plot(path[::50, 0], path[::50, 1], '.-', color=color,
+             linewidth=1, markersize=3, label=label)
+plt.scatter([1], [1], marker='*', s=200, color='gold',
+            edgecolor='black', zorder=3, label='minimum (1, 1)')
+plt.title('Optimizer paths on the Rosenbrock function (5000 steps)')
+plt.xlabel('x')
+plt.ylabel('y')
+plt.legend(fontsize=8)
+plt.tight_layout()
+plt.savefig('optimizer_comparison.png', dpi=110)
+plt.close()
+
+print("=== 5000ステップ後の最終結果 ===")
+for label, path, _ in runs:
+    p_final = path[-1]
+    print(f"{label:34s} 点 = ({p_final[0]:+.4f}, {p_final[1]:+.4f}), "
+          f"損失 = {rosenbrock(p_final):.2e}")
+print("図を optimizer_comparison.png に保存しました")
+</code></pre>
+<p><strong>出力例</strong>（乱数を使っていないので、実行結果は完全に一致します）:</p>
+<pre><code>=== 5000ステップ後の最終結果 ===
+SGD (lr=0.001)                     点 = (+0.9398, +0.8830), 損失 = 3.63e-03
+Momentum (lr=0.0002, gamma=0.9)    点 = (+0.9927, +0.9855), 損失 = 5.28e-05
+RMSProp (lr=0.002)                 点 = (+0.9960, +0.9949), 損失 = 9.08e-04
+Adam (lr=0.02)                     点 = (+0.9999, +0.9999), 損失 = 3.40e-09
+</code></pre>
+<p>Adamが小数点以下9桁の精度で最小値に到達している一方、素朴なSGDはまだ6桁も後れを取っています。モメンタムだけでもSGDの70倍の改善が得られています。ここで、2つの正直な注意点を述べておきます。第一に、これらの結果はチューニングに依存します。実は lr=0.01 のRMSPropはこの関数でSGDより<em>悪い</em>結果（損失 $2.2 \times 10^{-2}$）になります。モメンタムなしでは正規化されたステップが谷を横切って跳ね続けるためです — ぜひ自分で試してみてください。ここでの各手法の学習率は、小規模な手動探索で選んだものです。第二に、Rosenbrockは単一の決定論的な関数であり、本物のML訓練ではありません。ノイズを含むミニバッチ勾配を伴う実タスクでは、よく調整されたモメンタム付きSGDの方がAdamより汎化性能が高いこともあります。実践的なアドバイスは次のとおりです：<strong>まずAdamから始め、最後の性能を絞り出す段階でSGD + モメンタム + 良いスケジュールを検討する。</strong></p>
+<hr/>
+<h2>1.6 学習率スケジュール</h2>
+<h3>なぜ固定学習率が最適になることは稀なのか</h3>
+<p>1.4節で見たように、一定の学習率のSGDはノイズフロアの周りでガタガタと揺れ続けます。訓練の序盤に理想的だったステップ幅は、最小値の近くでは大きすぎるのです。<strong>学習率スケジュール（Learning-Rate Schedule：訓練の経過に応じて学習率を変化させるルール）</strong>はこの緊張関係を解決します。大きく始めて速く進み、小さく終えて精密に落ち着くのです。</p>
+<h3>3つの標準的なスケジュール</h3>
+<p><strong>1. ステップ減衰（Step Decay）</strong> — $s$ エポックごとに学習率に係数 $\gamma \lt 1$ を掛けます：</p>
+<p>$$
+\eta_t = \eta_0 \cdot \gamma^{\lfloor t / s \rfloor}
+$$</p>
+<p><strong>2. コサインアニーリング（Cosine Annealing）</strong> — $T$ エポックかけて $\eta_0$ から $\eta_{\min}$ まで半コサイン曲線に沿って滑らかに減衰させます：</p>
+<p>$$
+\eta_t = \eta_{\min} + \frac{1}{2} (\eta_0 - \eta_{\min}) \left( 1 + \cos \frac{\pi t}{T} \right)
+$$</p>
+<p><strong>3. ウォームアップ（+ コサイン）</strong> — 最初の数エポックで学習率をほぼゼロから $\eta_0$ まで線形に引き上げ、その後減衰させます。<strong>ウォームアップ（Warmup：学習率を徐々に上げていく短い初期フェーズ）</strong>は、パラメータがまだランダムで勾配が大きい、あるいはスケーリングが不適切な段階での乱暴な初期更新を防ぎます。Transformerの訓練では標準的な手法です。</p>
+<h3>コード例6：スケジュールのプロット</h3>
+<pre><code class="language-python"># 動作環境:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;3.0.0
+# - matplotlib&gt;=3.7.0
+
+"""
+例6: 学習率スケジュールの実装とプロット
+
+目的: ステップ減衰・コサインアニーリング・ウォームアップ+コサインを
+      エポック番号の単純な関数として実装する
+対象: 初級〜中級者
+実行時間: 5秒以内
+依存: NumPy, Matplotlib
+"""
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+def step_decay(epoch, lr0=0.5, drop=0.5, every=20):
+    """`every` エポックごとに学習率に `drop` を掛ける。"""
+    return lr0 * (drop ** (epoch // every))
+
+def cosine_schedule(epoch, lr0=0.5, total=80, lr_min=0.005):
+    """`total` エポックかけて lr0 から lr_min まで滑らかな半コサイン減衰。"""
+    progress = min(epoch / total, 1.0)
+    return lr_min + 0.5 * (lr0 - lr_min) * (1 + np.cos(np.pi * progress))
+
+def warmup_cosine(epoch, lr0=0.5, total=80, warmup=8, lr_min=0.005):
+    """`warmup` エポックの線形ウォームアップの後、コサイン減衰。"""
+    if epoch &lt; warmup:
+        return lr0 * (epoch + 1) / warmup
+    progress = (epoch - warmup) / max(1, total - warmup)
+    return lr_min + 0.5 * (lr0 - lr_min) * (1 + np.cos(np.pi * min(progress, 1.0)))
+
+total_epochs = 80
+epochs = np.arange(total_epochs)
+
+schedules = [("Constant", [0.5 for _ in epochs]),
+             ("Step decay (x0.5 every 20)", [step_decay(e) for e in epochs]),
+             ("Cosine annealing", [cosine_schedule(e) for e in epochs]),
+             ("Warmup (8) + cosine", [warmup_cosine(e) for e in epochs])]
+
+plt.figure(figsize=(8, 5))
+for label, lrs in schedules:
+    plt.plot(epochs, lrs, label=label)
+plt.xlabel('Epoch')
+plt.ylabel('Learning rate')
+plt.title('Learning-rate schedules')
+plt.legend()
+plt.tight_layout()
+plt.savefig('lr_schedules.png', dpi=110)
+plt.close()
+
+print("=== 主要エポックにおける学習率 ===")
+print(f"{'Epoch':&gt;6s} {'Step':&gt;8s} {'Cosine':&gt;8s} {'Warmup+Cos':&gt;11s}")
+for e in [0, 4, 10, 20, 40, 60, 79]:
+    print(f"{e:6d} {step_decay(e):8.4f} {cosine_schedule(e):8.4f} "
+          f"{warmup_cosine(e):11.4f}")
+print("図を lr_schedules.png に保存しました")
+</code></pre>
+<p><strong>出力例</strong>:</p>
+<pre><code>=== 主要エポックにおける学習率 ===
+ Epoch     Step   Cosine  Warmup+Cos
+     0   0.5000   0.5000      0.0625
+     4   0.5000   0.4970      0.3125
+    10   0.5000   0.4812      0.4991
+    20   0.2500   0.4275      0.4668
+    40   0.1250   0.2525      0.2955
+    60   0.0625   0.0775      0.0934
+    79   0.0625   0.0052      0.0052
+</code></pre>
+<h3>コード例7：スケジュールが収束をどう変えるか</h3>
+<p>次に、これらのスケジュールを1.4節の回帰問題のミニバッチSGDに取り付けます。意図的に、そのままでは落ち着けないほど大きな学習率（$\eta_0 = 0.8$）から始めます。</p>
+<pre><code class="language-python"># 動作環境:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;3.0.0
+# - matplotlib&gt;=3.7.0
+
+"""
+例7: 学習率スケジュールがSGDの収束に与える効果
+
+目的: 学習率を減衰させることで、ノイズを含むSGDが固定学習率の
+      ノイズフロアよりはるかに深くまで落ち着けることを示す
+対象: 中級者
+実行時間: 10-20秒
+依存: NumPy, Matplotlib
+"""
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+# --- 例4と同じ人工回帰データ ---
+rng = np.random.default_rng(0)
+n_samples = 200
+X = rng.uniform(-2, 2, n_samples)
+y = 3.0 * X - 1.5 + rng.normal(0, 0.5, n_samples)
+
+def predict(theta, x):
+    return theta[0] * x + theta[1]
+
+def full_loss(theta):
+    return 0.5 * np.mean((predict(theta, X) - y) ** 2)
+
+def batch_grad(theta, idx):
+    err = predict(theta, X[idx]) - y[idx]
+    return np.array([np.mean(err * X[idx]), np.mean(err)])
+
+def step_decay(epoch, lr0=0.8, drop=0.5, every=20):
+    return lr0 * (drop ** (epoch // every))
+
+def cosine_schedule(epoch, lr0=0.8, total=80, lr_min=0.005):
+    progress = min(epoch / total, 1.0)
+    return lr_min + 0.5 * (lr0 - lr_min) * (1 + np.cos(np.pi * progress))
+
+def warmup_cosine(epoch, lr0=0.8, total=80, warmup=8, lr_min=0.005):
+    if epoch &lt; warmup:
+        return lr0 * (epoch + 1) / warmup
+    progress = (epoch - warmup) / max(1, total - warmup)
+    return lr_min + 0.5 * (lr0 - lr_min) * (1 + np.cos(np.pi * min(progress, 1.0)))
+
+def train_with_schedule(schedule_fn, batch_size=16, n_epochs=80, seed=1):
+    local_rng = np.random.default_rng(seed)
+    theta = np.zeros(2)
+    history = [full_loss(theta)]
+    for epoch in range(n_epochs):
+        lr = schedule_fn(epoch)
+        perm = local_rng.permutation(n_samples)
+        for start in range(0, n_samples, batch_size):
+            idx = perm[start:start + batch_size]
+            theta = theta - lr * batch_grad(theta, idx)
+        history.append(full_loss(theta))
+    return theta, np.array(history)
+
+# 削減不可能な損失: 最良の直線 (最小二乗法) のMSE
+A = np.column_stack([X, np.ones(n_samples)])
+theta_star, *_ = np.linalg.lstsq(A, y, rcond=None)
+loss_star = full_loss(theta_star)
+
+schedules = [("Constant lr=0.8", lambda e: 0.8),
+             ("Step decay", step_decay),
+             ("Cosine annealing", cosine_schedule),
+             ("Warmup + cosine", warmup_cosine)]
+
+print("=== ミニバッチSGDでのスケジュール比較 (B=16, 80エポック) ===")
+print(f"達成可能な最良損失 (最小二乗法): {loss_star:.6f}\n")
+
+plt.figure(figsize=(8, 5))
+for label, fn in schedules:
+    theta, history = train_with_schedule(fn)
+    gap = history[-1] - loss_star
+    plt.semilogy(history - loss_star + 1e-12, label=label)
+    print(f"{label:18s} 最終損失 = {history[-1]:.6f}  "
+          f"(最適値との差: {gap:.2e})")
+
+plt.xlabel('Epoch')
+plt.ylabel('Excess loss over optimum (log scale)')
+plt.title('Learning-rate schedules: how close SGD gets to the optimum')
+plt.legend()
+plt.tight_layout()
+plt.savefig('schedule_convergence.png', dpi=110)
+plt.close()
+print("図を schedule_convergence.png に保存しました")
+</code></pre>
+<p><strong>出力例</strong>:</p>
+<pre><code>=== ミニバッチSGDでのスケジュール比較 (B=16, 80エポック) ===
+達成可能な最良損失 (最小二乗法): 0.130268
+
+Constant lr=0.8    最終損失 = 0.262402  (最適値との差: 1.32e-01)
+Step decay         最終損失 = 0.131259  (最適値との差: 9.92e-04)
+Cosine annealing   最終損失 = 0.130282  (最適値との差: 1.39e-05)
+Warmup + cosine    最終損失 = 0.130284  (最適値との差: 1.59e-05)
+</code></pre>
+<p>対数スケールのプロットが物語を鮮明にします。固定学習率は、コサインスケジュールより最適値から約10,000倍も遠い位置で頭打ちになります。序盤の速い進行はどのスケジュールも同じですが、減衰するスケジュールは縮んでいくステップがミニバッチのノイズを平均化して消すため、その後も改善が続きます。この小さな凸問題ではウォームアップの追加効果はありません — その真価は初期勾配のスケーリングが悪い大規模な非凸問題で現れます — が、コストが何もかからないことにも注目してください。</p>
+<h3>実践でのスケジュール選択</h3>
+<table>
+<thead>
+<tr>
+<th>状況</th>
+<th>推奨される出発点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>素早い実験、小規模モデル</td>
+<td>固定学習率 + Adam</td>
+</tr>
+<tr>
+<td>長めの訓練、エポック数の予算が既知</td>
+<td>ほぼゼロまでのコサインアニーリング</td>
+</tr>
+<tr>
+<td>大規模モデル、Transformer、大きなバッチサイズ</td>
+<td>ウォームアップ + コサイン（またはウォームアップ + 線形減衰）</td>
+</tr>
+<tr>
+<td>古い論文の再現（ResNet時代）</td>
+<td>論文が指定するエポックでのステップ減衰</td>
+</tr>
+</tbody>
+</table>
+<hr/>
+<h2>1.7 章のまとめ</h2>
+<h3>学んだこと</h3>
+<ol>
+<li><p><strong>最適化は学習のエンジンである</strong></p>
+<ul>
+<li>モデルの訓練とは $\theta^* = \arg\min_\theta \mathcal{L}(\theta)$ を解くこと</li>
+<li>グリッドサーチはごく少数のパラメータを超えると実行不可能。勾配がスケーラブルな局所的羅針盤を与える</li>
+</ul></li>
+<li><p><strong>地形の幾何学が難易度を決める</strong></p>
+<ul>
+<li>凸問題の谷は1つだけ — すべての局所最小値が大域的</li>
+<li>非凸問題（すべてのニューラルネットワーク）には局所最小値と、とりわけ鞍点が含まれる</li>
+</ul></li>
+<li><p><strong>勾配降下法とその2つの病</strong></p>
+<ul>
+<li>更新則：$\theta_{t+1} = \theta_t - \eta \nabla \mathcal{L}(\theta_t)$。学習率がすべてを支配する</li>
+<li>病1：悪条件の問題でのジグザグ運動。病2：湾曲した谷に沿った這うような前進</li>
+</ul></li>
+<li><p><strong>SGDはノイズと引き換えに速度を得る</strong></p>
+<ul>
+<li>ミニバッチ勾配は不偏だがノイズを含む。分散は $1/B$ に比例</li>
+<li>中程度のバッチサイズ（32–256）が実用上のスイートスポット。多少のノイズは鞍点からの脱出をむしろ助ける</li>
+</ul></li>
+<li><p><strong>現代的な最適化手法はメモリを追加する</strong></p>
+<ul>
+<li>モメンタムは速度を蓄積し、RMSPropはパラメータごとのステップ幅を適応させ、Adamはバイアス補正つきで両方を行う</li>
+<li>デフォルトの助言：まずAdamから始め、最終性能には調整済みSGD + モメンタムを検討する</li>
+</ul></li>
+<li><p><strong>スケジュールが仕上げをする</strong></p>
+<ul>
+<li>大きく始めて小さく終える：ステップ減衰・コサインアニーリング・ウォームアップにより、ノイズを含むSGDが最適値に数桁近くまで落ち着ける</li>
+</ul></li>
+</ol>
+<h3>次の章へ</h3>
+<p>勾配ベースの手法は微分可能な損失を必要とし、<em>局所</em>最適解しか見つけられません。第2章<strong>「メタヒューリスティクス最適化」</strong>では、この2つの制約を取り払います：</p>
+<ul>
+<li>焼きなまし法：制御されたランダム性による局所最小値からの脱出</li>
+<li>遺伝的アルゴリズム：候補解の集団を進化させる</li>
+<li>粒子群最適化：群れの行動に着想を得た集団的探索</li>
+<li>勾配降下法より微分フリー手法を選ぶべき場面</li>
+</ul>
+<hr/>
+<h2>演習問題</h2>
+<h3>問題1（難易度：easy）</h3>
+<p>関数 $f(x) = x^2$（勾配 $f'(x) = 2x$）と初期点 $x_0 = 5$ を用いて、3つの学習率 $\eta = 0.01$、$\eta = 0.5$、$\eta = 1.05$ で勾配降下法を30ステップ実装してください。それぞれの最終的な $x$ を報告し、観察される3つの挙動を説明してください。</p>
+<details>
+<summary>解答例</summary>
+<pre><code class="language-python"># 動作環境:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;3.0.0
+
+import numpy as np
+
+def gd_on_parabola(lr, x0=5.0, n_steps=30):
+    x = x0
+    for _ in range(n_steps):
+        x = x - lr * (2 * x)      # x^2 の勾配は 2x
+    return x
+
+print("=== f(x) = x^2 における学習率の実験 ===")
+for lr in [0.01, 0.5, 1.05]:
+    x_final = gd_on_parabola(lr)
+    print(f"lr = {lr:5.2f}: 最終的な x = {x_final:.6e}")
+</code></pre>
+<p><strong>出力</strong>:</p>
+<pre><code>=== f(x) = x^2 における学習率の実験 ===
+lr =  0.01: 最終的な x = 2.727422e+00
+lr =  0.50: 最終的な x = 0.000000e+00
+lr =  1.05: 最終的な x = 8.724701e+01
+</code></pre>
+<p><strong>解説</strong>：各ステップは $x$ に係数 $(1 - 2\eta)$ を掛けるので、挙動はこの係数によって完全に決まります：</p>
+<ul>
+<li>$\eta = 0.01$：係数 $0.98$ — <strong>収束するが遅い</strong>。30ステップ後は $x = 5 \times 0.98^{30} \approx 2.73$ で、0に近づくにはさらに数百ステップが必要です。</li>
+<li>$\eta = 0.5$：係数 $0$ — 1回の更新でちょうど最小値に着地します。これは $\eta = 1/2 \cdot (2/f'') = $ この曲率に対する理想的な学習率という特殊なケースです。</li>
+<li>$\eta = 1.05$：係数 $-1.1$。絶対値が1を超えるため<strong>発散</strong>します。反復値は谷の反対側へ飛び越え、符号を反転させながら毎ステップ10%ずつ成長し、30ステップ後には約 $87$（$5 \times 1.1^{30} \approx 87.2$）に達し、その後も際限なく増大します。</li>
+</ul>
+<p>2階微分 $f''$ を持つ二次関数に対する一般的な安定性の規則は $\eta \lt 2 / f''$ です。ここでは $f'' = 2$ なので、$\eta \lt 1$ なら収束し、$\eta \gt 1$ なら発散します。</p>
+</details>
+<h3>問題2（難易度：medium）</h3>
+<p>強い悪条件を持つ二次関数 $f(x, y) = x^2 + 100 y^2$（最大曲率 $L = 200$、最小曲率 $\mu = 2$、条件数 $\kappa = L/\mu = 100$）の上で、$\eta = 0.009$（安定限界 $2/L = 0.01$ のすぐ下）の素朴な勾配降下法と、理論的に最適なパラメータ</p>
+<p>$$
+\eta = \frac{4}{(\sqrt{L} + \sqrt{\mu})^2}, \qquad
+\gamma = \left( \frac{\sqrt{L} - \sqrt{\mu}}{\sqrt{L} + \sqrt{\mu}} \right)^2
+$$</p>
+<p>を用いたヘビーボール・モメンタムを実装してください。どちらも $(-9, 2.5)$ から開始します。各手法が損失を $10^{-8}$ 未満にするのに必要なステップ数を数え、その差の大きさを説明してください。</p>
+<details>
+<summary>解答例</summary>
+<pre><code class="language-python"># 動作環境:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;3.0.0
+
+import numpy as np
+
+L, mu = 200.0, 2.0      # f の最大 / 最小曲率
+
+def loss(p):
+    return p[0] ** 2 + 100 * p[1] ** 2
+
+def grad(p):
+    return np.array([2 * p[0], 200 * p[1]])
+
+def steps_gd(lr=0.009, tol=1e-8, max_steps=200000):
+    p = np.array([-9.0, 2.5])
+    for t in range(1, max_steps + 1):
+        p = p - lr * grad(p)
+        if loss(p) &lt; tol:
+            return t
+    return None
+
+def steps_momentum(lr, gamma, tol=1e-8, max_steps=200000):
+    p = np.array([-9.0, 2.5])
+    v = np.zeros(2)
+    for t in range(1, max_steps + 1):
+        v = gamma * v + lr * grad(p)
+        p = p - v
+        if loss(p) &lt; tol:
+            return t
+    return None
+
+# 二次関数に対するヘビーボールの最適ハイパーパラメータ
+lr_opt = 4 / (np.sqrt(L) + np.sqrt(mu)) ** 2
+gamma_opt = ((np.sqrt(L) - np.sqrt(mu)) / (np.sqrt(L) + np.sqrt(mu))) ** 2
+
+n_gd = steps_gd()
+n_mom = steps_momentum(lr_opt, gamma_opt)
+print("=== 損失が 1e-8 を下回るまでのステップ数 (kappa = 100) ===")
+print(f"モメンタムの最適ハイパーパラメータ: lr = {lr_opt:.4f}, "
+      f"gamma = {gamma_opt:.3f}")
+print(f"素朴な勾配降下法 (lr=0.009): {n_gd} ステップ")
+print(f"ヘビーボール・モメンタム: {n_mom} ステップ")
+print(f"高速化率: {n_gd / n_mom:.1f}倍")
+</code></pre>
+<p><strong>出力</strong>:</p>
+<pre><code>=== 損失が 1e-8 を下回るまでのステップ数 (kappa = 100) ===
+モメンタムの最適ハイパーパラメータ: lr = 0.0165, gamma = 0.669
+素朴な勾配降下法 (lr=0.009): 629 ステップ
+ヘビーボール・モメンタム: 88 ステップ
+高速化率: 7.1倍
+</code></pre>
+<p><strong>解説</strong>：素朴な勾配降下法の学習率は急峻な $y$ 方向によって上限が決まる（$\eta \lt 2/L = 0.01$）ため、浅い $x$ 方向における1ステップあたりの収縮率はわずか $1 - 2 \times 0.009 = 0.982$ です。$x$ 方向の誤差を8桁縮めるには数百ステップが必要になります。二次関数では、勾配降下法の反復回数は条件数 $\kappa$ に線形にスケールするのに対し、最適に調整されたヘビーボール・モメンタムは $\sqrt{\kappa}$ にスケールします。$\kappa = 100$ では理論的な改善率は約 $\sqrt{100} = 10$ 倍で、測定値は $7.1$ 倍 — よく一致しています（定数因子が漸近理論とわずかに異なります）。メカニズムは1.5節で説明したとおりです：</p>
+<ol>
+<li><strong>浅い $x$ 方向では</strong>、連続する勾配がすべて同じ向きを指すため速度が蓄積され、実効的なステップは素朴なステップをはるかに超えて成長します。</li>
+<li><strong>急峻な $y$ 方向では</strong>、反復値が行き過ぎて連続する勾配の符号が交互に入れ替わります。それらは速度の平均の中で打ち消し合い、振動は増幅されるのではなく減衰します。</li>
+</ol>
+<p>この実験からの教訓を1つ。モメンタムは自動的に速くなるわけでは<em>ありません</em>。$\eta = 0.01, \gamma = 0.9$ のような安易な選択で再実行すると、モメンタムには約219ステップかかります — この問題では勾配降下法よりはまだ速いものの、最適からはほど遠く、条件の穏やかな問題では調整の悪いモメンタムが素朴な勾配降下法に負けることさえあります。ハイパーパラメータは重要なのです。</p>
+</details>
+<h3>問題3（難易度：hard）</h3>
+<p>1.5節と1.6節で作ったものを組み合わせましょう。(a) 固定学習率 $\eta = 0.02$ のAdamと、(b) ピーク学習率 $\eta_0 = 0.1$ のウォームアップ + コサインスケジュール（ウォームアップ100ステップ、全体3000ステップ）のAdamを実装し、どちらもRosenbrock関数上で $(-1, 1)$ から3000ステップ実行してください。最終損失を比較し、スケジュールの効果を説明してください。</p>
+<details>
+<summary>解答例</summary>
+<pre><code class="language-python"># 動作環境:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;3.0.0
+
+import numpy as np
+
+def rosenbrock(p):
+    x, y = p
+    return (1 - x) ** 2 + 100 * (y - x ** 2) ** 2
+
+def rosenbrock_grad(p):
+    x, y = p
+    return np.array([-2 * (1 - x) - 400 * x * (y - x ** 2),
+                     200 * (y - x ** 2)])
+
+def warmup_cosine_step(t, lr0=0.1, total=3000, warmup=100, lr_min=1e-4):
+    """ステップ t (0始まり) で添字づけられたスケジュール。"""
+    if t &lt; warmup:
+        return lr0 * (t + 1) / warmup
+    progress = (t - warmup) / max(1, total - warmup)
+    return lr_min + 0.5 * (lr0 - lr_min) * (1 + np.cos(np.pi * min(progress, 1.0)))
+
+def run_adam(schedule_fn, p0=(-1.0, 1.0), n_steps=3000,
+             beta1=0.9, beta2=0.999, eps=1e-8):
+    p = np.array(p0, dtype=float)
+    m = np.zeros_like(p)
+    v = np.zeros_like(p)
+    for t in range(1, n_steps + 1):
+        lr = schedule_fn(t - 1)
+        g = rosenbrock_grad(p)
+        m = beta1 * m + (1 - beta1) * g
+        v = beta2 * v + (1 - beta2) * g ** 2
+        m_hat = m / (1 - beta1 ** t)
+        v_hat = v / (1 - beta2 ** t)
+        p = p - lr * m_hat / (np.sqrt(v_hat) + eps)
+    return p
+
+p_const = run_adam(lambda t: 0.02)
+p_sched = run_adam(warmup_cosine_step)
+
+print("=== Adam: 固定学習率 vs ウォームアップ+コサイン (3000ステップ) ===")
+print(f"固定 lr=0.02:          点 = ({p_const[0]:+.5f}, {p_const[1]:+.5f}), "
+      f"損失 = {rosenbrock(p_const):.3e}")
+print(f"ウォームアップ+コサイン: 点 = ({p_sched[0]:+.5f}, {p_sched[1]:+.5f}), "
+      f"損失 = {rosenbrock(p_sched):.3e}")
+</code></pre>
+<p><strong>出力</strong>:</p>
+<pre><code>=== Adam: 固定学習率 vs ウォームアップ+コサイン (3000ステップ) ===
+固定 lr=0.02:          点 = (+1.00000, +0.99999), 損失 = 1.521e-11
+ウォームアップ+コサイン: 点 = (+1.00000, +1.00000), 損失 = 2.155e-27
+</code></pre>
+<p>（正確な桁はNumPyのバージョンによってわずかに変わる可能性がありますが、順序関係は頑健です。）</p>
+<p><strong>解説</strong>：どちらの実行も最小値に到達します — この問題でAdamに3000ステップは十分すぎるほどです — が、スケジュールありの実行は約<strong>16桁も深い</strong>ところに着地しています。3つの効果が組み合わさっています：</p>
+<ul>
+<li><strong>ウォームアップフェーズ</strong>は、Adamの2次モーメント推定 $v$ がごく少数の勾配から構築され、適切なステップ幅を大きく見誤りうる、壊れやすい序盤のステップを保護します。0.1という攻めたピーク学習率を安全にしているのはこれです。</li>
+<li><strong>訓練中盤の大きな学習率</strong>（固定実行の0.02の5倍）は、湾曲した谷に沿った距離を素早くカバーし、予算の多くを精密化に残します。</li>
+<li><strong>コサインの尾部</strong>は終盤にステップをゼロへ向けて縮めるので、反復値はステップ幅で制限された距離で最小値の周りをうろつく代わりに、極めて高い精度で最小値に沈み込みます — 固定実行が $10^{-11}$ で頭打ちになる原因はまさにこれです。</li>
+</ul>
+<p>なお、$10^{-27}$ という損失に機械学習上の実用的な意味はありません — 現実の損失はそのはるか手前でデータノイズに支配されます。この実験が切り出しているのは<em>メカニズム</em>です。1つの固定学習率では移動フェーズと沈着フェーズの両方に対応できず、スケジュールがその緊張関係を解決するのです。同じ理屈が、より穏やかなスケールで、実物のニューラルネットワーク訓練にも当てはまります。</p>
+</details>
+<hr/>
+<h2>参考文献</h2>
+<ol>
+<li>Ruder, S. (2016). <em>An overview of gradient descent optimization algorithms</em>. arXiv:1609.04747.</li>
+<li>Kingma, D. P., &amp; Ba, J. (2015). <em>Adam: A Method for Stochastic Optimization</em>. ICLR 2015.</li>
+<li>Tieleman, T., &amp; Hinton, G. (2012). <em>Lecture 6.5 - RMSProp</em>. COURSERA: Neural Networks for Machine Learning.</li>
+<li>Polyak, B. T. (1964). <em>Some methods of speeding up the convergence of iteration methods</em>. USSR Computational Mathematics and Mathematical Physics, 4(5), 1-17.</li>
+<li>Loshchilov, I., &amp; Hutter, F. (2017). <em>SGDR: Stochastic Gradient Descent with Warm Restarts</em>. ICLR 2017.</li>
+<li>Boyd, S., &amp; Vandenberghe, L. (2004). <em>Convex Optimization</em>. Cambridge University Press.</li>
+<li>Goodfellow, I., Bengio, Y., &amp; Courville, A. (2016). <em>Deep Learning</em>, Chapter 8: Optimization for Training Deep Models. MIT Press.</li>
+</ol>
+<div class="navigation">
+<a class="nav-button" href="index.html">← シリーズ目次</a>
+<a class="nav-button" href="chapter2-metaheuristics.html">次の章: メタヒューリスティクス最適化 →</a>
+</div>
+</main>
+<section class="disclaimer">
+<h3>免責事項</h3>
+<ul>
+<li>本コンテンツは教育・研究・情報提供のみを目的としており、専門的な助言（法律・会計・技術的保証など）を提供するものではありません。</li>
+<li>本コンテンツおよび付随するコード例は「現状有姿（AS IS）」で提供され、明示または黙示を問わず、商品性、特定目的適合性、権利非侵害、正確性・完全性、動作・安全性等いかなる保証もしません。</li>
+<li>外部リンク、第三者が提供するデータ・ツール・ライブラリ等の内容・可用性・安全性について、作成者および東北大学は一切の責任を負いません。</li>
+<li>本コンテンツの利用・実行・解釈により直接的・間接的・付随的・特別・結果的・懲罰的損害が生じた場合でも、適用法で許容される最大限の範囲で、作成者および東北大学は責任を負いません。</li>
+<li>本コンテンツの内容は、予告なく変更・更新・提供停止されることがあります。</li>
+<li>本コンテンツの著作権・ライセンスは明記された条件（例: CC BY 4.0）に従います。当該ライセンスは通常、無保証条項を含みます。</li>
+</ul>
+</section>
+<footer>
+<p><strong>作成者</strong>: AI Terakoya Content Team</p>
+<p><strong>バージョン</strong>: 1.0 | <strong>作成日</strong>: 2026-07-08</p>
+<p><strong>ライセンス</strong>: Creative Commons BY 4.0</p>
+<p>© 2025 AI Terakoya. All rights reserved.</p>
+</footer>
+</body>
+</html>

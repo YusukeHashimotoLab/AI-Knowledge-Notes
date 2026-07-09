@@ -1,0 +1,1096 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="第2章：メタヒューリスティクス最適化 - AI Terakoya" name="description"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>第2章：メタヒューリスティクス最適化 - AI Terakoya</title>
+<link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+<script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+<!-- MathJax for LaTeX equation rendering -->
+<script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+<script async="" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<nav class="breadcrumb">
+<div class="breadcrumb-content">
+<a href="../../index.html">AI寺子屋トップ</a><span class="breadcrumb-separator">›</span><a href="../index.html">機械学習</a><span class="breadcrumb-separator">›</span><a href="index.html">機械学習のための最適化</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">第2章</span>
+</div>
+</nav><div class="locale-switcher">
+<span class="current-locale">🌐 JP</span>
+<span class="locale-separator">|</span>
+<a class="locale-link" href="../../../en/ML/optimization-introduction/chapter2-metaheuristics.html">🇬🇧 English</a>
+<span class="locale-meta">Last sync: 2026-07-09</span>
+</div>
+<header>
+<div class="header-content">
+<h1>第2章：メタヒューリスティクス最適化</h1>
+<p class="subtitle">焼きなまし法・遺伝的アルゴリズム・群知能による勾配フリー探索</p>
+<div class="meta">
+<span class="meta-item">📖 読了時間: 25-30分</span>
+<span class="meta-item">📊 難易度: 中級</span>
+<span class="meta-item">💻 コード例: 7</span>
+<span class="meta-item">📝 演習問題: 3</span>
+</div>
+</div>
+</header>
+<main class="container">
+
+<p class="chapter-description">第1章では、目的関数が滑らかで微分可能なときに高速かつ確実に機能する勾配ベースの最適化を紹介しました。しかし、機械学習における現実の最適化問題の多くはそうではありません。ハイパーパラメータの選択は離散的で、評価結果にはノイズが含まれ、そもそも使える勾配が存在しない目的関数もあります。本章では、汎用的な勾配フリー探索戦略であるメタヒューリスティクス（Metaheuristics）を紹介し、その古典である焼きなまし法、遺伝的アルゴリズム、粒子群最適化の3つをゼロから実装する方法を示します。さらに、SciPyの実用品質の差分進化を使い、これらの手法を公平に比較する方法も学びます。</p>
+<h2>学習目標</h2>
+<p>本章を完了すると、以下を習得できます：</p>
+<ul>
+<li>✅ 勾配フリー手法が必要となる状況（微分不可能・離散・ノイズを含む目的関数）を理解する</li>
+<li>✅ メトロポリス基準と冷却スケジュールを用いた焼きなまし法をゼロから実装する</li>
+<li>✅ 特徴量選択問題に対する遺伝的アルゴリズム（選択・交叉・突然変異）を実装する</li>
+<li>✅ 粒子群最適化を実装し、群れが収束していく様子を可視化する</li>
+<li>✅ 実用的な大域的最適化のために <code>scipy.optimize.differential_evolution</code> を使う</li>
+<li>✅ 同一の評価回数予算のもとで、メタヒューリスティクスと勾配法を公平に比較する</li>
+</ul>
+<hr/>
+<h2>2.1 なぜ勾配フリー最適化なのか？</h2>
+<h3>メタヒューリスティクスとは何か</h3>
+<p><strong>メタヒューリスティクス（Metaheuristic）</strong>とは、<em>関数評価</em>のみを用いて最適化問題の良い解を見つける汎用的な探索戦略です。勾配を一切必要としません。名前は「メタ」（上位の、超えた）と「ヒューリスティック」（実用的な経験則）の組み合わせです。つまりメタヒューリスティクスとは、「現在の解を少し変化させる」「2つの良い解を組み合わせる」といった単純な探索操作を導く、より高次のレシピなのです。</p>
+<p>これは無償のアップグレードではなく、明確なトレードオフです。勾配法は微分情報を使うため、局所的に最良の移動方向がわかります。一方、メタヒューリスティクスは試行錯誤によって良い方向を発見しなければならないため、通常はるかに多くの関数評価を必要とします。それでもメタヒューリスティクスが必要なのは、勾配情報が入手できない、あるいは誤解を招くことがしばしばあるからです。</p>
+<h3>勾配が破綻する3つのケース</h3>
+<table>
+<thead>
+<tr>
+<th>破綻のモード</th>
+<th>勾配が使えない理由</th>
+<th>機械学習での例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>微分不可能・離散</strong></td>
+<td>目的関数が区分定数、または離散集合上で定義されているため、勾配がゼロか未定義になる</td>
+<td>特徴量選択、層の数、カーネルの選択、指標としての正解率</td>
+</tr>
+<tr>
+<td><strong>ノイズを含む評価</strong></td>
+<td>評価のたびに少しずつ異なる値が返る。有限差分はそのノイズを微小なステップ幅で割るため、値が爆発する</td>
+<td>交差検証スコア、確率的シミュレーション、物理実験</td>
+</tr>
+<tr>
+<td><strong>多数の局所最小値</strong></td>
+<td>勾配は存在するが最寄りの谷を指しており、それが最良の谷であることは通常ない</td>
+<td>ニューラルネットワークのハイパーパラメータ地形、分子配座</td>
+</tr>
+</tbody>
+</table>
+<p>3つ目のケースは微妙です。多峰性関数（多数の局所最小値を持つ関数）でも勾配降下法は<em>動く</em>には動きますが、初期点に最も近い局所最小値に収束してしまうだけです。メタヒューリスティクスは、最初に見つけた谷に固執せず探索を続けるように設計されています。</p>
+<h3>破綻のモードをコードで確かめる</h3>
+<p>最初の2つの破綻モードを具体的に実演してみましょう。真の最適解がいずれも $x^* = 2$ にある3つの1次元関数、すなわち滑らかな放物線、その「階段」版（区分定数）、ノイズ入り版を最小化します。有限差分を用いた勾配降下法と、最も単純な勾配フリー手法である<strong>ランダムサーチ（Random Search）</strong>（ランダムな点を評価して最良のものを残す方法）を比較します。</p>
+<pre><code class="language-python"># 必要要件:
+# - Python 3.9+
+# - numpy&gt;=1.24.0
+
+"""
+例1: 勾配が破綻する場所
+
+目的: 有限差分による勾配降下法が階段状・ノイズ入りの目的関数で
+      破綻する一方、ランダムサーチは破綻しないことを示す
+対象: 中級者
+実行時間: 5秒以内
+"""
+
+import numpy as np
+
+rng = np.random.default_rng(42)
+
+def smooth_objective(x):
+    """微分可能: ここでは勾配降下法がうまく機能する。"""
+    return (x - 2.0) ** 2
+
+def step_objective(x):
+    """区分定数: ほぼいたるところで勾配がゼロ。"""
+    return np.floor(4.0 * (x - 2.0) ** 2) / 4.0
+
+def noisy_objective(x):
+    """ノイズを含む評価: 有限差分がノイズを増幅する。"""
+    return (x - 2.0) ** 2 + rng.normal(0.0, 0.1)
+
+def finite_diff_descent(f, x0, lr=0.1, eps=1e-4, n_steps=200):
+    """中心有限差分による勾配を用いた勾配降下法。"""
+    x = x0
+    for _ in range(n_steps):
+        grad = (f(x + eps) - f(x - eps)) / (2.0 * eps)
+        x = x - lr * grad
+        if abs(x) &gt; 1e6:  # 反復点が発散したら停止
+            return x, True
+    return x, False
+
+def random_search(f, low=-5.0, high=5.0, n_evals=200, seed=0):
+    """勾配フリー手法のベースライン: 純粋なランダムサンプリング。"""
+    rs = np.random.default_rng(seed)
+    candidates = rs.uniform(low, high, size=n_evals)
+    values = np.array([f(c) for c in candidates])
+    return candidates[np.argmin(values)]
+
+print("真の最適解: x* = 2.0\n")
+for name, f in [("smooth", smooth_objective),
+                ("step  ", step_objective),
+                ("noisy ", noisy_objective)]:
+    x_gd, diverged = finite_diff_descent(f, x0=4.0)
+    x_rs = random_search(f)
+    gd_str = "DIVERGED" if diverged else f"{x_gd:8.4f}"
+    print(f"{name} | 勾配降下法: {gd_str} | ランダムサーチ: {x_rs:8.4f}")
+</code></pre>
+<p><strong>出力</strong>:</p>
+<pre><code>真の最適解: x* = 2.0
+
+smooth | 勾配降下法:   2.0000 | ランダムサーチ:   2.0265
+step   | 勾配降下法:   4.0000 | ランダムサーチ:   2.2950
+noisy  | 勾配降下法: -41.2292 | ランダムサーチ:   2.2149
+</code></pre>
+<p>この表を注意深く読んでください。本章の動機のすべてがここに要約されています：</p>
+<ul>
+<li><strong>smooth（滑らか）</strong>: 勾配降下法は最適解をぴたりと当てます。勾配が使えるときは勾配を使うべきです。</li>
+<li><strong>step（階段）</strong>: 勾配降下法は一歩も動きません。各「段」の内部では関数が平坦なので、有限差分による勾配はゼロとなり、反復点は初期点 $x = 4$ に留まり続けます。</li>
+<li><strong>noisy（ノイズ入り）</strong>: 勾配降下法は最適解から大きく迷走します。有限差分は大きさ $\sim 0.1$ の評価ノイズを $2\varepsilon = 2 \times 10^{-4}$ で割るため、真の勾配を圧倒する大きさ $\sim 500$ の勾配推定値が生じます。</li>
+</ul>
+<p>粗削りなランダムサーチが3つのケースすべてで最適解から約 $0.3$ 以内に到達しているのは、関数の<em>値</em>を比較するだけの操作しか行わないからです。この操作は平坦性に対して頑健で、ノイズに対してもそこそこ頑健です。本章に登場するすべてのメタヒューリスティクスは、本質的にはランダムサーチをより賢くしたものなのです。</p>
+<hr/>
+<h2>2.2 焼きなまし法</h2>
+<h3>物理的なメタファー</h3>
+<p><strong>焼きなまし法（Simulated Annealing、SA）</strong>は、冶金における焼きなましに着想を得た、単一解を扱うメタヒューリスティクスです。金属を加熱した後に<em>ゆっくり</em>冷却すると低エネルギーの結晶状態に落ち着きますが、急冷すると欠陥が凍結されてしまいます。最適化の言葉では、「エネルギー」は目的関数値 $E = f(\mathbf{x})$ に対応し、「温度」$T$ は目的関数を<em>悪化</em>させる移動をどれだけ受け入れるかを制御します。</p>
+<p>なぜわざわざ悪い解を受け入れるのでしょうか？ それこそが局所最小値から脱出する方法だからです。より深い谷に到達するには、現在の谷から登って出なければならないことがあります。改善のみを受け入れる手法（<strong>貪欲探索（Greedy Search）</strong>）は、最初に入った谷に閉じ込められてしまいます。</p>
+<h3>メトロポリス基準</h3>
+<p>SAは各ステップで現在の解にランダムな摂動を加えた候補を提案し、目的関数値の変化 $\Delta E = f(\mathbf{x}_{\text{new}}) - f(\mathbf{x}_{\text{current}})$ を計算します。提案は<strong>メトロポリス基準（Metropolis Criterion）</strong>で与えられる確率で受理されます：</p>
+<p>$$
+P(\text{accept}) =
+\begin{cases}
+1 &amp; \text{if } \Delta E \le 0 \\[4pt]
+\exp\!\left(-\dfrac{\Delta E}{T}\right) &amp; \text{if } \Delta E &gt; 0
+\end{cases}
+$$</p>
+<p>改善は常に受理されます。悪化は、その悪化量（$\Delta E$）が大きいほど、また系が冷えている（$T$ が小さい）ほど、指数関数的に小さくなる確率で受理されます。高温ではSAは広く探索するランダムウォークのように振る舞い、$T \to 0$ では改善のみを受け入れる純粋な貪欲探索になります。</p>
+<h3>冷却スケジュール</h3>
+<p><strong>冷却スケジュール（Cooling Schedule）</strong>は、反復回数 $k$ に対して温度をどのように下げるかを規定します。代表的な3つの選択肢：</p>
+<table>
+<thead>
+<tr>
+<th>スケジュール</th>
+<th>式</th>
+<th>特徴</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>指数（幾何）冷却</strong></td>
+<td>$T_k = T_0 \cdot \alpha^k$、$\alpha$ は1よりわずかに小さい値（例: 0.999）</td>
+<td>実用上のデフォルト。序盤は速く、終盤はゆっくり冷える</td>
+</tr>
+<tr>
+<td><strong>線形冷却</strong></td>
+<td>$T_k = T_0 \left(1 - k/K\right)$（総ステップ数 $K$）</td>
+<td>単純。低温領域で過ごす時間が比較的短い</td>
+</tr>
+<tr>
+<td><strong>対数冷却</strong></td>
+<td>$T_k = T_0 / \ln(k + 2)$</td>
+<td>理論的な収束保証を持つ（Geman &amp; Geman, 1984）が、冷却が遅すぎて実用にならない</td>
+</tr>
+</tbody>
+</table>
+<p>対数スケジュールは、理論と実践の違いについての正直な教訓を示しています。大域的最適解への収束が証明されている唯一のスケジュールですが、その証明が要求する反復回数はあまりに多く、誰も使いません。実務家は指数スケジュールを使い、$\alpha$ を経験的に調整します。</p>
+<h3>テスト問題：Rastrigin関数</h3>
+<p>SAは、標準的な多峰性ベンチマークである<strong>Rastrigin関数</strong>でテストします：</p>
+<p>$$
+f(\mathbf{x}) = 10n + \sum_{i=1}^{n} \left[ x_i^2 - 10\cos(2\pi x_i) \right]
+$$</p>
+<p>放物線に余弦の波を重ねた形をしており、局所最小値の規則的な格子（おおよそ各整数座標の近くに1つ）が生じます。大域的最小値は $f(\mathbf{0}) = 0$ です。2次元の $[-5.12, 5.12]^2$ 上には100を超える局所最小値があり、貪欲法にとっては本物の罠です。</p>
+<h3>ゼロからの実装</h3>
+<pre><code class="language-python"># 必要要件:
+# - Python 3.9+
+# - numpy&gt;=1.24.0
+
+"""
+例2: 2次元Rastrigin関数に対する焼きなまし法
+
+目的: メトロポリス基準と指数冷却スケジュールを用いたSAを実装し、
+      貪欲探索と比較する
+対象: 中級者
+実行時間: 10-30秒
+"""
+
+import numpy as np
+
+def rastrigin(x):
+    """Rastrigin関数: 大域的最小値 f(0,...,0) = 0。"""
+    x = np.asarray(x, dtype=float)
+    return 10.0 * x.size + np.sum(x**2 - 10.0 * np.cos(2.0 * np.pi * x))
+
+def simulated_annealing(f, x0, T0=10.0, alpha=0.999, step_size=0.5,
+                        n_iter=20000, seed=0):
+    """焼きなまし法でfを最小化する。
+
+    T0:        初期温度
+    alpha:     指数冷却係数。毎反復 T &lt;- T * alpha
+    step_size: ガウス摂動（提案分布）の標準偏差
+    """
+    rng = np.random.default_rng(seed)
+    x = np.array(x0, dtype=float)
+    fx = f(x)
+    best_x, best_f = x.copy(), fx
+    T = T0
+    history = np.empty(n_iter)
+    for k in range(n_iter):
+        candidate = x + rng.normal(0.0, step_size, size=x.shape)
+        f_cand = f(candidate)
+        delta = f_cand - fx
+        # メトロポリス基準: 改善は常に受理し、悪化は確率
+        # exp(-delta / T) で受理する
+        if delta &lt;= 0.0 or rng.random() &lt; np.exp(-delta / T):
+            x, fx = candidate, f_cand
+            if fx &lt; best_f:
+                best_x, best_f = x.copy(), fx
+        T = max(T * alpha, 1e-12)
+        history[k] = best_f
+    return best_x, best_f, history
+
+def greedy_search(f, x0, step_size=0.2, n_iter=20000, seed=0):
+    """同じ提案機構だが、改善のみを受理する（T = 0 に相当）。"""
+    rng = np.random.default_rng(seed)
+    x = np.array(x0, dtype=float)
+    fx = f(x)
+    for _ in range(n_iter):
+        candidate = x + rng.normal(0.0, step_size, size=x.shape)
+        f_cand = f(candidate)
+        if f_cand &lt; fx:
+            x, fx = candidate, f_cand
+    return x, fx
+
+# 遠い初期点からのSA単独実行
+x0 = np.array([4.5, 4.5])
+best_x, best_f, history = simulated_annealing(rastrigin, x0, seed=3)
+print(f"開始点:       x = [4.5, 4.5],  f = {rastrigin(x0):.3f}")
+print(f"SAの最良解:   x = [{best_x[0]:.4f}, {best_x[1]:.4f}],  f = {best_f:.6f}")
+print(f"大域的最適解: x = [0, 0],  f = 0")
+
+# SA対貪欲法の公平な比較: 同じ提案、同じ予算、10シード
+sa_finals = [simulated_annealing(rastrigin, x0, step_size=0.2, seed=s)[1]
+             for s in range(10)]
+greedy_finals = [greedy_search(rastrigin, x0, step_size=0.2, seed=s)[1]
+                 for s in range(10)]
+print(f"\nstep_size = 0.2 の場合（乱数シード10個）:")
+print(f"SA:     平均最良 f = {np.mean(sa_finals):7.3f} +/- {np.std(sa_finals):.3f}")
+print(f"貪欲法: 平均最良 f = {np.mean(greedy_finals):7.3f} +/- {np.std(greedy_finals):.3f}")
+</code></pre>
+<p><strong>出力</strong>:</p>
+<pre><code>開始点:       x = [4.5, 4.5],  f = 80.500
+SAの最良解:   x = [0.0004, -0.0027],  f = 0.001511
+大域的最適解: x = [0, 0],  f = 0
+
+step_size = 0.2 の場合（乱数シード10個）:
+SA:     平均最良 f =   2.529 +/- 2.783
+貪欲法: 平均最良 f =  35.820 +/- 6.748
+</code></pre>
+<p>観察すべき点は2つあります：</p>
+<ul>
+<li>$f = 80.5$ の初期点から出発したSAは大域的な谷に到達し、$f \approx 0.0015$ で終了しています。100を超える局所最小値を持つ関数の、事実上の大域的最適解です。</li>
+<li>複数シードでの比較がその<em>理由</em>を示しています。小さいステップ（0.2）では、貪欲探索は初期点近くの局所最小値に捕まります（平均 $f \approx 36$）が、SAはときどき登り方向の移動を受け入れることで谷から谷へ飛び移れます（平均 $f \approx 2.5$）。</li>
+</ul>
+<p>1つ正直な注意点があります。<code>step_size=0.5</code> で比較をやり直すと、この問題に限っては貪欲探索もSAとほぼ同等の性能を出します。大きなガウスステップならRastrigin関数の密に並んだ谷の間を直接飛び越えられるからです。登り方向の移動を受け入れることの利点は、ステップ幅が局所最小値の間隔に比べて小さいときに最大になります。そして、地形を目視できない高次元の現実問題では、それがむしろ普通の状況なのです。</p>
+<h3>冷却スケジュールを実験で比較する</h3>
+<p>どのスケジュールを使うべきでしょうか？ 言い伝えを信じる代わりに、測定してみましょう。同じSAのコア処理を、事前に計算した4種類の温度系列で駆動し、10シードで平均します。</p>
+<pre><code class="language-python"># 必要要件:
+# - Python 3.9+
+# - numpy&gt;=1.24.0
+
+"""
+例3: 2次元Rastrigin関数での冷却スケジュール比較
+
+目的: 同一の反復回数予算のもとで、指数・線形・対数・定温の
+      温度スケジュールを比較する
+対象: 中級者
+実行時間: 1-2分
+"""
+
+import numpy as np
+
+def rastrigin(x):
+    x = np.asarray(x, dtype=float)
+    return 10.0 * x.size + np.sum(x**2 - 10.0 * np.cos(2.0 * np.pi * x))
+
+def sa_with_schedule(f, x0, temps, step_size=0.5, seed=0):
+    """事前計算した温度配列で駆動する焼きなまし法。"""
+    rng = np.random.default_rng(seed)
+    x = np.array(x0, dtype=float)
+    fx = f(x)
+    best_f = fx
+    for T in temps:
+        candidate = x + rng.normal(0.0, step_size, size=x.shape)
+        f_cand = f(candidate)
+        delta = f_cand - fx
+        if delta &lt;= 0.0 or rng.random() &lt; np.exp(-delta / max(T, 1e-12)):
+            x, fx = candidate, f_cand
+            best_f = min(best_f, fx)
+    return best_f
+
+K = 20000
+T0 = 10.0
+k = np.arange(K)
+schedules = {
+    "exponential (alpha=0.999)": T0 * 0.999**k,
+    "linear": T0 * (1.0 - k / K),
+    "logarithmic": T0 / np.log(k + 2.0),
+    "constant T=1": np.full(K, 1.0),
+}
+
+n_seeds = 10
+x0 = np.array([4.5, 4.5])
+print(f"{'schedule':&lt;28}{'mean best f':&gt;14}{'std':&gt;10}")
+for name, temps in schedules.items():
+    finals = [sa_with_schedule(rastrigin, x0, temps, seed=s)
+              for s in range(n_seeds)]
+    print(f"{name:&lt;28}{np.mean(finals):&gt;14.4f}{np.std(finals):&gt;10.4f}")
+</code></pre>
+<p><strong>出力</strong>:</p>
+<pre><code>schedule                       mean best f       std
+exponential (alpha=0.999)           0.0069    0.0058
+linear                              0.0290    0.0157
+logarithmic                         0.0261    0.0276
+constant T=1                        0.0164    0.0155
+</code></pre>
+<p>ここでは指数スケジュールが勝っており、一般的な実務経験と一致します。ただし、<em>定温</em>でもそれなりに健闘しており、この問題では線形や対数を上回っている点に注目してください。これは有用な現実チェックです。簡単な2次元ベンチマークでは、スケジュールの選択よりも、ステップ幅と温度スケールをおおよそ正しく設定することのほうが重要なのです。基本を確認する前にスケジュールを過剰にチューニングしてはいけません。</p>
+<hr/>
+<h2>2.3 遺伝的アルゴリズム</h2>
+<h3>単一解から集団へ</h3>
+<p><strong>遺伝的アルゴリズム（Genetic Algorithm、GA）</strong>は、自然選択に着想を得た集団ベースのメタヒューリスティクスです。単一の解を改善するのではなく、候補解の<strong>集団（Population）</strong>を維持し、<strong>世代（Generation）</strong>を重ねて進化させます。用語は生物学に由来します：</p>
+<ul>
+<li><strong>染色体（Chromosome、個体）</strong>: 1つの候補解の符号化表現。ここでは2値ベクトルです。</li>
+<li><strong>適応度（Fitness）</strong>: 個体の良さを測るスコア（慣例として高いほど良い）。</li>
+<li><strong>選択（Selection）</strong>: 適応度の高い個体を優先して親を選ぶこと。ここでは<strong>トーナメント選択（Tournament Selection）</strong>を使います。ランダムに $k$ 個体を取り出し、最も適応度の高いものを残す方法です。</li>
+<li><strong>交叉（Crossover、組換え）</strong>: 2つの親を組み合わせて子を作ること。<strong>一点交叉（One-Point Crossover）</strong>は、両親をランダムな位置で切断し、末尾部分を交換します。</li>
+<li><strong>突然変異（Mutation）</strong>: 小さい確率でビットをランダムに反転させること。多様性を維持し、交叉だけでは構成できない解に集団が到達できるようにします。</li>
+<li><strong>エリート保存（Elitism）</strong>: 最良個体をそのまま次世代にコピーすること。これにより、それまでの最良適応度が決して悪化しなくなります。</li>
+</ul>
+<div class="mermaid">
+graph LR
+    A[ランダムな初期集団を生成] --&gt; B[適応度を評価]
+    B --&gt; C[親を選択<br/>トーナメント選択]
+    C --&gt; D[交叉]
+    D --&gt; E[突然変異]
+    E --&gt; F[次世代を構成<br/>+ エリート保存]
+    F --&gt; B
+
+    style A fill:#e3f2fd
+    style B fill:#fff3e0
+    style F fill:#e8f5e9
+</div>
+<h3>GAが離散問題で輝く理由：特徴量選択</h3>
+<p><strong>特徴量選択（Feature Selection）</strong>、すなわちモデルが使うべき入力列を選ぶ問題は、GAの格好のショーケースです。特徴量が20個あれば、可能な部分集合は $2^{20} \approx 10^6$ 通りあります。目的関数（選んだ部分集合で学習したモデルの検証誤差）は2値ベクトル上で定義されるため勾配を持たず、特徴量数が増えると全探索はすぐに不可能になります。2値の染色体は問題に直接対応します。ビット $i$ が特徴量 $i$ を使うかどうかを表すのです。</p>
+<p>20個の特徴量のうち5個だけが信号を持つ合成回帰データセットを作り、GAがちょうどその5個を見つけられるかを確認します。</p>
+<pre><code class="language-python"># 必要要件:
+# - Python 3.9+
+# - numpy&gt;=1.24.0
+
+"""
+例4: 特徴量選択のための遺伝的アルゴリズム
+
+目的: 選択・交叉・突然変異をゼロから実装し、合成データセットの
+      情報を持つ特徴量を復元する
+対象: 中級者
+実行時間: 10-30秒
+"""
+
+import numpy as np
+
+rng = np.random.default_rng(0)
+
+# 合成回帰データ: 特徴量20個のうち信号を持つのは5個だけ
+n_samples, n_features = 300, 20
+informative = [0, 3, 7, 12, 18]
+X = rng.normal(size=(n_samples, n_features))
+true_coef = np.zeros(n_features)
+true_coef[informative] = [3.0, -2.0, 1.5, 2.5, -1.0]
+y = X @ true_coef + rng.normal(0.0, 0.5, size=n_samples)
+
+n_train = 200
+X_train, X_val = X[:n_train], X[n_train:]
+y_train, y_val = y[:n_train], y[n_train:]
+
+def fitness(mask):
+    """検証MSEの符号反転に、特徴量1個あたりの小さなペナルティを加えたもの。"""
+    if mask.sum() == 0:
+        return -np.inf
+    cols = mask.astype(bool)
+    coef, *_ = np.linalg.lstsq(X_train[:, cols], y_train, rcond=None)
+    mse = np.mean((X_val[:, cols] @ coef - y_val) ** 2)
+    return -mse - 0.02 * mask.sum()
+
+def tournament_select(pop, scores, rng, k=3):
+    """ランダムにk個体を取り出し、最も適応度の高い個体のコピーを返す。"""
+    idx = rng.choice(len(pop), size=k, replace=False)
+    return pop[idx[np.argmax(scores[idx])]].copy()
+
+def one_point_crossover(p1, p2, rng):
+    """両親を1点で切断し、末尾部分を交換する。"""
+    cut = rng.integers(1, len(p1))
+    c1 = np.concatenate([p1[:cut], p2[cut:]])
+    c2 = np.concatenate([p2[:cut], p1[cut:]])
+    return c1, c2
+
+def mutate(mask, rng, rate=0.05):
+    """各ビットを独立に確率 `rate` で反転させる。"""
+    flip = rng.random(len(mask)) &lt; rate
+    mask = mask.copy()
+    mask[flip] = 1 - mask[flip]
+    return mask
+
+def genetic_algorithm(pop_size=40, n_generations=30, seed=1):
+    rng = np.random.default_rng(seed)
+    pop = (rng.random((pop_size, n_features)) &lt; 0.5).astype(int)
+    for gen in range(n_generations):
+        scores = np.array([fitness(ind) for ind in pop])
+        if gen % 10 == 0 or gen == n_generations - 1:
+            print(f"世代 {gen:2d}: 最良適応度 = {scores.max():.4f}, "
+                  f"平均 = {scores[np.isfinite(scores)].mean():.4f}")
+        new_pop = [pop[np.argmax(scores)].copy()]  # エリート保存: 最良個体を残す
+        while len(new_pop) &lt; pop_size:
+            p1 = tournament_select(pop, scores, rng)
+            p2 = tournament_select(pop, scores, rng)
+            c1, c2 = one_point_crossover(p1, p2, rng)
+            new_pop.append(mutate(c1, rng))
+            if len(new_pop) &lt; pop_size:
+                new_pop.append(mutate(c2, rng))
+        pop = np.array(new_pop)
+    scores = np.array([fitness(ind) for ind in pop])
+    return pop[np.argmax(scores)], scores.max()
+
+best_mask, best_score = genetic_algorithm()
+selected = np.where(best_mask == 1)[0].tolist()
+print(f"\n選択された特徴量:   {selected}")
+print(f"情報を持つ特徴量:   {informative}")
+print(f"全特徴量の適応度:   {fitness(np.ones(n_features, dtype=int)):.4f}")
+print(f"GAの最良適応度:     {best_score:.4f}")
+</code></pre>
+<p><strong>出力</strong>:</p>
+<pre><code>世代  0: 最良適応度 = -3.3562, 平均 = -13.1745
+世代 10: 最良適応度 = -0.3652, 平均 = -1.8847
+世代 20: 最良適応度 = -0.3652, 平均 = -1.2705
+世代 29: 最良適応度 = -0.3652, 平均 = -1.6963
+
+選択された特徴量:   [0, 3, 7, 12, 18]
+情報を持つ特徴量:   [0, 3, 7, 12, 18]
+全特徴量の適応度:   -0.6799
+GAの最良適応度:     -0.3652
+</code></pre>
+<p>GAは $2^{20}$ 通りの部分集合の中から、情報を持つ5個の特徴量をちょうど復元しました。しかもその解は、20個すべての特徴量を使う場合（ノイズ列に過学習します）よりも良いスコアを出しています。適応度関数に含まれる特徴量1個あたりの小さなペナルティに注目してください。これがないと、GAには無害だが無用な特徴量を捨てる動機がありません。適応度関数の設計こそ、あなたの問題知識のほとんどがGAに注入される場所なのです。</p>
+<hr/>
+<h2>2.4 粒子群最適化</h2>
+<h3>隣人から学ぶ</h3>
+<p><strong>粒子群最適化（Particle Swarm Optimization、PSO）</strong>は、1995年にKennedyとEberhartが提案した、鳥の群れの動きに着想を得た集団ベースの手法です。各<strong>粒子（Particle）</strong>$i$ は位置 $\mathbf{x}_i$（候補解）と速度 $\mathbf{v}_i$ を持ち、自分自身がこれまでに訪れた最良の位置 $\mathbf{p}_i$ を記憶しています。群れ全体は、誰かが見つけた最良の位置 $\mathbf{g}$ を共有します。各反復で：</p>
+<p>$$
+\mathbf{v}_i^{t+1} = \omega\, \mathbf{v}_i^{t}
++ c_1 r_1 \left(\mathbf{p}_i - \mathbf{x}_i^{t}\right)
++ c_2 r_2 \left(\mathbf{g} - \mathbf{x}_i^{t}\right)
+$$</p>
+<p>$$
+\mathbf{x}_i^{t+1} = \mathbf{x}_i^{t} + \mathbf{v}_i^{t+1}
+$$</p>
+<p>ここで $r_1, r_2 \sim \mathcal{U}(0, 1)$ は毎ステップ（次元ごとに）新しく引く乱数です。3つの項には直感的な名前が付いています：</p>
+<ul>
+<li><strong>慣性項（Inertia）</strong> $\omega\, \mathbf{v}_i^t$: 現在の方向に動き続ける。典型的には $\omega \approx 0.4$〜$0.9$。大きいほど探索寄りになります。</li>
+<li><strong>認知項（Cognitive Term）</strong> $c_1 r_1 (\mathbf{p}_i - \mathbf{x}_i)$: 粒子自身の最良の記憶へ引き戻す。</li>
+<li><strong>社会項（Social Term）</strong> $c_2 r_2 (\mathbf{g} - \mathbf{x}_i)$: 群れ全体の最良の発見へ引き寄せる。典型的には $c_1 = c_2 \approx 1.5$〜$2.0$。</li>
+</ul>
+<h3>軌跡の可視化付き実装</h3>
+<pre><code class="language-python"># 必要要件:
+# - Python 3.9+
+# - numpy&gt;=1.24.0
+# - matplotlib&gt;=3.7.0
+
+"""
+例5: 軌跡の可視化付き粒子群最適化
+
+目的: 2次元Rastrigin関数に対してPSOを実装し、群れが大域的最適解へ
+      収縮していく様子を可視化する
+対象: 中級者
+実行時間: 10-30秒
+"""
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+def rastrigin(x):
+    x = np.asarray(x, dtype=float)
+    return 10.0 * x.size + np.sum(x**2 - 10.0 * np.cos(2.0 * np.pi * x))
+
+def pso(f, bounds, n_particles=30, n_iter=100, omega=0.7,
+        c1=1.5, c2=1.5, seed=2, record=False):
+    """粒子群最適化でfを最小化する。
+
+    bounds: 次元ごとの (low, high) のリスト
+    omega:  慣性重み
+    c1, c2: 認知・社会の加速係数
+    """
+    rng = np.random.default_rng(seed)
+    dim = len(bounds)
+    low = np.array([b[0] for b in bounds])
+    high = np.array([b[1] for b in bounds])
+
+    x = rng.uniform(low, high, size=(n_particles, dim))
+    v = rng.uniform(-1.0, 1.0, size=(n_particles, dim))
+    p_best = x.copy()
+    p_best_f = np.array([f(xi) for xi in x])
+    g_idx = np.argmin(p_best_f)
+    g_best, g_best_f = p_best[g_idx].copy(), p_best_f[g_idx]
+
+    trajectory = [x.copy()] if record else None
+    for _ in range(n_iter):
+        r1 = rng.random((n_particles, dim))
+        r2 = rng.random((n_particles, dim))
+        v = (omega * v
+             + c1 * r1 * (p_best - x)
+             + c2 * r2 * (g_best - x))
+        x = np.clip(x + v, low, high)
+        fx = np.array([f(xi) for xi in x])
+        improved = fx &lt; p_best_f
+        p_best[improved] = x[improved]
+        p_best_f[improved] = fx[improved]
+        g_idx = np.argmin(p_best_f)
+        if p_best_f[g_idx] &lt; g_best_f:
+            g_best, g_best_f = p_best[g_idx].copy(), p_best_f[g_idx]
+        if record:
+            trajectory.append(x.copy())
+    return g_best, g_best_f, trajectory
+
+bounds = [(-5.12, 5.12), (-5.12, 5.12)]
+g_best, g_best_f, traj = pso(rastrigin, bounds, record=True)
+print(f"PSOの最良解: x = [{g_best[0]:.4f}, {g_best[1]:.4f}], f = {g_best_f:.6f}")
+
+# 3つの時点における群れの様子を可視化
+traj = np.array(traj)
+xg = np.linspace(-5.12, 5.12, 200)
+Xg, Yg = np.meshgrid(xg, xg)
+Z = 20 + Xg**2 + Yg**2 - 10 * (np.cos(2*np.pi*Xg) + np.cos(2*np.pi*Yg))
+
+fig, axes = plt.subplots(1, 3, figsize=(15, 4.5))
+for ax, it in zip(axes, [0, 10, 100]):
+    ax.contourf(Xg, Yg, Z, levels=30, cmap="viridis")
+    ax.scatter(traj[it][:, 0], traj[it][:, 1],
+               c="white", edgecolors="black", s=30)
+    ax.set_title(f"反復 {it}")
+    ax.set_xlabel("$x_1$")
+    ax.set_ylabel("$x_2$")
+plt.tight_layout()
+plt.savefig("pso_trajectory.png", dpi=120)
+plt.show()
+</code></pre>
+<p><strong>出力</strong>:</p>
+<pre><code>PSOの最良解: x = [-0.0000, 0.0000], f = 0.000000
+</code></pre>
+<p>保存された図の3枚のパネルが物語を語っています。反復0では粒子は一様に散らばっています。反復10までにはいくつかの有望な谷の周りに集まり始めます。反復100では群れは原点の大域的最適解へと収縮しています。この収縮はPSOの強みであると同時に弱みでもあります。ひとたび群れが収縮してしまうと、他の場所を探索する能力はほとんど残りません。早い段階で見つかった大域的最良解が誤った谷にあれば、群れ全体がそこへ早すぎる収束（Premature Convergence）を起こしかねません。$\omega$ を大きくする、粒子数を増やす、群れを再スタートさせる、というのが標準的な対策です。</p>
+<hr/>
+<h2>2.5 SciPyによる差分進化</h2>
+<h3>アルゴリズム</h3>
+<p><strong>差分進化（Differential Evolution、DE）</strong>は、1997年にStornとPriceが提案した連続空間向けの集団ベース手法で、その単純さに比して驚くほど効果的です。DEは集団内の各個体 $\mathbf{x}_i$ に対し、ランダムに選んだ他の3個体から<strong>変異ベクトル（Mutant Vector）</strong>を作ります：</p>
+<p>$$
+\mathbf{v}_i = \mathbf{x}_{r_1} + F \cdot \left(\mathbf{x}_{r_2} - \mathbf{x}_{r_3}\right)
+$$</p>
+<p>ここで $F \in (0, 2]$ は<strong>突然変異係数（Mutation Factor、差分重みとも呼ばれます）</strong>です。巧妙なのは、摂動 $\mathbf{x}_{r_2} - \mathbf{x}_{r_3}$ が集団メンバー同士の差であるため、そのスケールと方向が集団の現在の広がりに<em>自動的に適応する</em>点です。序盤は大きな探索的ステップ、集団が収束するにつれて小さな精密化ステップになります。変異ベクトルは次に、<strong>交叉確率（Crossover Probability）</strong>$CR$ で座標ごとに $\mathbf{x}_i$ と混合され（二項交叉）、得られた試行ベクトルは元の $\mathbf{x}_i$ と同等以上に良い場合にのみ置き換えられます。</p>
+<h3>scipy.optimize.differential_evolutionの使い方</h3>
+<p>DEを自分で実装する必要はありません。SciPyには十分にテストされた実装が備わっています。以下は5次元Rastrigin関数での完全な例で、最も公平な勾配ベースの対抗馬、すなわちランダムな20点から再スタートするL-BFGS-Bと対戦させます。</p>
+<pre><code class="language-python"># 必要要件:
+# - Python 3.9+
+# - numpy&gt;=1.24.0
+# - scipy&gt;=1.11.0
+
+"""
+例6: SciPyの差分進化 対 マルチスタートL-BFGS-B
+
+目的: 5次元Rastrigin問題を scipy.optimize.differential_evolution で
+      解き、再スタート付き勾配法とコスト・品質を比較する
+対象: 中級者
+実行時間: 10-30秒
+"""
+
+import numpy as np
+from scipy.optimize import differential_evolution, minimize
+
+def rastrigin(x):
+    x = np.asarray(x, dtype=float)
+    return 10.0 * x.size + np.sum(x**2 - 10.0 * np.cos(2.0 * np.pi * x))
+
+dim = 5
+bounds5 = [(-5.12, 5.12)] * dim
+
+# --- 差分進化 ---
+result = differential_evolution(
+    rastrigin,
+    bounds5,
+    strategy="best1bin",     # 変異戦略: best + 差分1個、二項交叉
+    maxiter=300,             # 世代数
+    popsize=20,              # 集団サイズ = popsize * dim 個体
+    mutation=(0.5, 1.0),     # Fを毎世代この範囲から引く（ディザリング）
+    recombination=0.7,       # 交叉確率 CR
+    tol=1e-8,
+    seed=7,
+    polish=True,             # 最後にL-BFGS-Bで局所精密化する
+)
+print("=== 差分進化（5次元Rastrigin関数） ===")
+print(f"最良 f:  {result.fun:.8f}")
+print(f"最良 x:  {np.round(result.x, 5)}")
+print(f"関数評価回数: {result.nfev}")
+
+# --- マルチスタートL-BFGS-B: 公平な勾配ベースのベースライン ---
+rng = np.random.default_rng(0)
+finals, total_nfev = [], 0
+for _ in range(20):
+    x0 = rng.uniform(-5.12, 5.12, size=dim)
+    res = minimize(rastrigin, x0=x0, method="L-BFGS-B", bounds=bounds5)
+    finals.append(res.fun)
+    total_nfev += res.nfev
+finals = np.array(finals)
+print("\n=== L-BFGS-B、ランダム初期点から20回再スタート ===")
+print(f"20回中の最良値:  {finals.min():.4f}")
+print(f"中央値:          {np.median(finals):.4f}")
+print(f"f &lt; 1 到達回数:  {(finals &lt; 1).sum()} / 20")
+print(f"総評価回数:      {total_nfev}")
+</code></pre>
+<p><strong>出力</strong>:</p>
+<pre><code>=== 差分進化（5次元Rastrigin関数） ===
+最良 f:  0.00000000
+最良 x:  [ 0.  0. -0.  0.  0.]
+関数評価回数: 17906
+
+=== L-BFGS-B、ランダム初期点から20回再スタート ===
+20回中の最良値:  10.9445
+中央値:          37.3107
+f &lt; 1 到達回数:  0 / 20
+総評価回数:      1980
+</code></pre>
+<p>これが本章の約束していた公平な比較であり、その両面に意味があります：</p>
+<ul>
+<li>DEは厳密な大域的最適解を見つけました。一方、20回の勾配法再スタートはどれも近づくことすらできていません（最良でも $f \approx 10.9$）。多峰性の強い関数では、局所解法の再スタートだけでは不十分なのです。</li>
+<li>しかしDEは約9倍の関数評価（17,906回 対 1,980回）を費やしました。1回の評価が30分のモデル学習だとしたら、この差は数日分の計算に相当します。メタヒューリスティクスは、評価回数と引き換えに大域的探索能力を買っているのです。</li>
+</ul>
+<h3>手法比較表</h3>
+<table>
+<thead>
+<tr>
+<th>手法</th>
+<th>強み</th>
+<th>弱み</th>
+<th>使いどころ</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>勾配法</strong>（第1章）</td>
+<td>収束が最速。数百万パラメータまでスケールする</td>
+<td>微分可能性が必要。最寄りの局所最小値に捕まる。ノイズに弱い</td>
+<td>勾配が使える滑らかな目的関数 — 例: ニューラルネットワークの重み学習</td>
+</tr>
+<tr>
+<td><strong>焼きなまし法</strong></td>
+<td>単純。単一解なので低メモリ。離散・組合せ空間をうまく扱える</td>
+<td>冷却スケジュールとステップ幅に敏感。逐次的で並列化しにくい</td>
+<td>組合せ問題（スケジューリング、経路探索、原子配置）。手早いベースライン</td>
+</tr>
+<tr>
+<td><strong>遺伝的アルゴリズム</strong></td>
+<td>符号化の自由度が非常に高い（2値、順列、木）。本質的に並列</td>
+<td>設計上の選択肢が多い（符号化、演算子、各種確率）。滑らかな連続問題では遅い</td>
+<td>離散・構造化された探索空間 — 特徴量選択、アーキテクチャ探索、プログラム合成</td>
+</tr>
+<tr>
+<td><strong>粒子群最適化</strong></td>
+<td>ハイパーパラメータが少ない。序盤の進みが速い。実装が容易</td>
+<td>紛らわしい地形では早すぎる収束。連続空間のみ</td>
+<td>速度が重要な低〜中次元の連続問題</td>
+</tr>
+<tr>
+<td><strong>差分進化</strong></td>
+<td>ステップ幅が自己適応。デフォルト設定が頑健。SciPyに優れた実装がある</td>
+<td>集団が必要なため評価回数が多い。連続空間のみ</td>
+<td>勾配が使えない連続大域的最適化のデフォルト選択</td>
+</tr>
+</tbody>
+</table>
+<hr/>
+<h2>2.6 実践的な指針</h2>
+<h3>最適化アルゴリズム自身にもハイパーパラメータがある</h3>
+<p>本章の核心には皮肉があります。ハイパーパラメータをチューニングするためにメタヒューリスティクスに頼ることが多いのに、メタヒューリスティクス自身にもハイパーパラメータがあるのです（SAの $T_0$ と $\alpha$、GAの集団サイズ・交叉率・突然変異率、PSOの $\omega$・$c_1$・$c_2$、DEの $F$ と $CR$）。これらの設定は実際に結果を左右します。どの程度か、測ってみましょう。SciPyのDEを約15,000評価の固定予算のもと、異なる設定で走らせます：</p>
+<pre><code class="language-python"># 必要要件:
+# - Python 3.9+
+# - numpy&gt;=1.24.0
+# - scipy&gt;=1.11.0
+
+"""
+例7: DE自身のハイパーパラメータに対する感度
+
+目的: 同一の評価予算でも、最適化アルゴリズムの設定次第で結果が
+      大きく変わることを示す
+対象: 中級者
+実行時間: 1-3分
+"""
+
+import numpy as np
+from scipy.optimize import differential_evolution
+
+def rastrigin(x):
+    x = np.asarray(x, dtype=float)
+    return 10.0 * x.size + np.sum(x**2 - 10.0 * np.cos(2.0 * np.pi * x))
+
+dim = 5
+bounds5 = [(-5.12, 5.12)] * dim
+budget = 15000  # 関数評価回数のおおよその予算
+
+def run_de_budget(mutation, recombination, popsize, seed):
+    # 1世代あたりの評価数 = popsize * dim なので世代数を制限する
+    maxiter = budget // (popsize * dim) - 1
+    res = differential_evolution(
+        rastrigin, bounds5,
+        mutation=mutation, recombination=recombination,
+        popsize=popsize, maxiter=maxiter, tol=0, seed=seed,
+        polish=False,   # 局所精密化なし: DE単体の性能を測る
+    )
+    return res.fun
+
+settings = [
+    ("default   (F=0.5-1.0, CR=0.7, pop=15)", (0.5, 1.0), 0.7, 15),
+    ("high CR   (F=0.5-1.0, CR=0.95, pop=15)", (0.5, 1.0), 0.95, 15),
+    ("low F     (F=0.2, CR=0.7, pop=15)", 0.2, 0.7, 15),
+    ("large pop (F=0.5-1.0, CR=0.7, pop=40)", (0.5, 1.0), 0.7, 40),
+]
+
+print(f"予算: 約 {budget} 回の評価、5次元Rastrigin、10シード\n")
+print(f"{'setting':&lt;42}{'mean f':&gt;10}{'std':&gt;8}")
+for name, mut, cr, pop in settings:
+    finals = [run_de_budget(mut, cr, pop, seed=s) for s in range(10)]
+    print(f"{name:&lt;42}{np.mean(finals):&gt;10.4f}{np.std(finals):&gt;8.4f}")
+</code></pre>
+<p><strong>出力</strong>:</p>
+<pre><code>予算: 約 15000 回の評価、5次元Rastrigin、10シード
+
+setting                                       mean f     std
+default   (F=0.5-1.0, CR=0.7, pop=15)         0.0995  0.2985
+high CR   (F=0.5-1.0, CR=0.95, pop=15)        1.4924  1.7937
+low F     (F=0.2, CR=0.7, pop=15)             5.7708  3.9247
+large pop (F=0.5-1.0, CR=0.7, pop=40)         0.9058  0.5534
+</code></pre>
+<p>同一予算のもとで、結果はほぼ2桁の幅で散らばりました。実践的な教訓は3つあります：</p>
+<ul>
+<li><strong>ライブラリのデフォルトから始めましょう。</strong>ここではSciPyのデフォルト（ディザリング付き $F$、$CR = 0.7$）が最良の設定でした。デフォルトには蓄積された経験が大量に詰まっています。</li>
+<li><strong>突然変異係数が小さすぎるのは古典的な失敗です。</strong>$F = 0.2$ ではステップが小さすぎて局所構造から抜け出せず、集団が早すぎる収束を起こします。</li>
+<li><strong>集団を大きくするのはタダではありません。</strong>大きい集団は1世代あたりの探索量は増えますが、固定予算のもとでは回せる世代数が減ります。集団サイズは「広さ」と「深さ」のトレードオフなのです。</li>
+</ul>
+<h3>評価予算の考慮</h3>
+<p>勾配フリー最適化における最も重要な数はただ1つ、<strong>評価予算（Evaluation Budget）</strong>、すなわち目的関数を何回評価できるかです。手法はこの数を軸に計画しましょう：</p>
+<table>
+<thead>
+<tr>
+<th>予算（評価回数）</th>
+<th>典型的な状況</th>
+<th>妥当なアプローチ</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>&lt; 100</td>
+<td>1回の評価が物理実験、または大規模な学習実行</td>
+<td>ここではメタヒューリスティクスは無駄が多い — ベイズ最適化（第3章）を使う</td>
+</tr>
+<tr>
+<td>100 – 10,000</td>
+<td>評価に数秒〜数分かかる</td>
+<td>小さめの集団でDEかPSO。離散問題ならSA</td>
+</tr>
+<tr>
+<td>&gt; 10,000</td>
+<td>評価が安価（高速なシミュレーション、解析的な関数）</td>
+<td>どのメタヒューリスティクスでも可。余った予算は再スタートと複数シードに投資する</td>
+</tr>
+</tbody>
+</table>
+<p>自己欺瞞のほとんどを防いでくれる、予算に関する2つのルール：</p>
+<ol>
+<li><strong>手法の比較は同一評価回数で行うこと。</strong>同一反復回数で比較してはいけません。GAの1「世代」は集団全体分の評価を消費しますが、SAの1「反復」は1回の評価です。例6で <code>nfev</code> を数えたのはまさにこのためです。</li>
+<li><strong>複数シードで報告すること。</strong>メタヒューリスティクスは確率的です。たまたま運の良かった1回の実行は何も証明しません。例3と例7の平均±標準偏差の表が誠実な報告形式です。</li>
+</ol>
+<h3>ノーフリーランチ定理</h3>
+<p>最適化における<strong>ノーフリーランチ定理（No-Free-Lunch Theorem、NFL定理）</strong>（Wolpert &amp; Macready, 1997）は、<em>あり得るすべての</em>目的関数にわたって平均すると、純粋なランダムサーチを含むあらゆる最適化アルゴリズムの性能は完全に等しくなる、と述べています。普遍的に最良な最適化手法は存在しないのです。</p>
+<p>この定理が何を意味し、何を意味しないのかを正確に押さえておきましょう：</p>
+<ul>
+<li><strong>意味すること</strong>: ある問題クラスでランダムサーチに勝つ手法は、別のクラスでは必ず負けます。論文やベンダーがある最適化手法を「最良」と主張するとき、意味のある問いはただ1つ、<em>どの問題クラスで最良なのか？</em>です。</li>
+<li><strong>意味しないこと</strong>: 実践において手法の選択が無意味だ、ということではありません。現実の目的関数は、あり得るすべての関数から一様に引かれるわけではなく、構造（滑らかさ、低い実効次元、良い領域のクラスタ）を持っています。最適化手法が成功するのは、まさにその問題が実際に持つ構造を利用するからです。DEは連続性を、GAは良い部分解同士がうまく組み合わさる傾向を、SAは良い解が別の良い解の近くにあるという事実を、それぞれ利用しています。</li>
+</ul>
+<p>実践的な帰結はこうです。手法の仮定を問題の構造に合わせ、そして常にランダムサーチをベースラインとして残しておくこと。丹念にチューニングしたメタヒューリスティクスが同一予算のランダムサーチに明確に勝てないなら、それは何の構造も利用できていないということです — より単純な手法を使いましょう。</p>
+<hr/>
+<h2>2.7 本章のまとめ</h2>
+<h3>学んだこと</h3>
+<ol>
+<li><p><strong>勾配フリー手法が必要になるとき</strong></p>
+<ul>
+<li>離散・区分定数の目的関数: 勾配はゼロか未定義</li>
+<li>ノイズを含む評価: 有限差分はノイズを破滅的に増幅する</li>
+<li>多峰性の地形: 勾配は最良の谷ではなく最寄りの局所最小値へ導く</li>
+</ul></li>
+<li><p><strong>焼きなまし法</strong></p>
+<ul>
+<li>メトロポリス基準: 悪化した解を確率 $\exp(-\Delta E / T)$ で受理する</li>
+<li>冷却スケジュール: 実用上のデフォルトは指数冷却。理論保証のある対数冷却は遅すぎて使えない</li>
+<li>登り方向の移動を受け入れることこそ、貪欲探索を捕える局所最小値からSAが脱出できる理由</li>
+</ul></li>
+<li><p><strong>遺伝的アルゴリズム</strong></p>
+<ul>
+<li>集団 + トーナメント選択 + 交叉 + 突然変異 + エリート保存</li>
+<li>離散的な符号化と自然に適合する — 本章のGAは $2^{20}$ 候補の中から情報を持つ特徴量部分集合を正確に復元した</li>
+<li>適応度関数こそ、あなたの問題知識が宿る場所</li>
+</ul></li>
+<li><p><strong>粒子群最適化</strong></p>
+<ul>
+<li>速度更新 = 慣性 + 認知的な引力 + 社会的な引力</li>
+<li>収束は速いが、群れが誤った谷へ早すぎる収縮を起こすことがある</li>
+</ul></li>
+<li><p><strong>差分進化と公平な比較</strong></p>
+<ul>
+<li>差分ベクトルによる変異はステップ幅を自己適応させる。<code>scipy.optimize.differential_evolution</code> は強力なデフォルト</li>
+<li>DEは5次元Rastriginを厳密に解いた一方、20回の勾配法再スタートはすべて失敗した — ただし評価回数は9倍</li>
+<li>比較は同一評価予算・複数シードで行い、ランダムサーチのベースラインと対比すること</li>
+<li>ノーフリーランチ: あらゆる最適化手法は、問題の構造を利用することによってのみ勝つ</li>
+</ul></li>
+</ol>
+<h3>次の章</h3>
+<p>メタヒューリスティクスは、評価を数千回単位で消費できるほど安価であることを前提としています。1回の評価がモデルの学習実行や実験室での実験であるときには、1回1回の評価から最大限の情報を絞り出す手法が必要です。第3章では<strong>ベイズ最適化（Bayesian Optimization）</strong>を学びます：</p>
+<ul>
+<li>ガウス過程による代理モデル</li>
+<li>獲得関数（期待改善量、上側信頼限界）</li>
+<li>明示化された探索と活用のトレードオフ</li>
+<li>現実的な評価予算でのハイパーパラメータチューニング</li>
+</ul>
+<hr/>
+<h2>演習問題</h2>
+<h3>問題1（難易度：easy）</h3>
+<p>焼きなまし法では、提案のステップ幅は冷却スケジュールと同じくらい重要です。例2の <code>simulated_annealing</code> 関数を、2次元Rastrigin関数に対して <code>step_size</code> を 0.05、0.5、3.0 に変えて実行してください（他の設定はデフォルトのまま、<code>seed=1</code>）。それぞれの最良目的関数値を報告し、観察されるパターンを説明してください。</p>
+<details>
+<summary>解答例</summary>
+<pre><code class="language-python"># 必要要件:
+# - Python 3.9+
+# - numpy&gt;=1.24.0
+
+import numpy as np
+
+# （例2の rastrigin と simulated_annealing を再利用）
+
+def rastrigin(x):
+    x = np.asarray(x, dtype=float)
+    return 10.0 * x.size + np.sum(x**2 - 10.0 * np.cos(2.0 * np.pi * x))
+
+def simulated_annealing(f, x0, T0=10.0, alpha=0.999, step_size=0.5,
+                        n_iter=20000, seed=0):
+    rng = np.random.default_rng(seed)
+    x = np.array(x0, dtype=float)
+    fx = f(x)
+    best_x, best_f = x.copy(), fx
+    T = T0
+    for k in range(n_iter):
+        candidate = x + rng.normal(0.0, step_size, size=x.shape)
+        f_cand = f(candidate)
+        delta = f_cand - fx
+        if delta &lt;= 0.0 or rng.random() &lt; np.exp(-delta / T):
+            x, fx = candidate, f_cand
+            if fx &lt; best_f:
+                best_x, best_f = x.copy(), fx
+        T = max(T * alpha, 1e-12)
+    return best_x, best_f
+
+for ss in [0.05, 0.5, 3.0]:
+    _, bf = simulated_annealing(rastrigin, np.array([4.5, 4.5]),
+                                step_size=ss, seed=1)
+    print(f"SA step_size={ss}: 最良 f = {bf:.4f}")
+</code></pre>
+<p><strong>出力</strong>:</p>
+<pre><code>SA step_size=0.05: 最良 f = 24.8739
+SA step_size=0.5: 最良 f = 0.0008
+SA step_size=3.0: 最良 f = 0.0632
+</code></pre>
+<p><strong>説明</strong>: ステップ幅は地形の長さスケールに合っていなければなりません。</p>
+<ul>
+<li><strong>小さすぎる場合（0.05）</strong>: Rastrigin関数の局所最小値は約1の間隔で並んでいます。0.05のステップでは1回の移動で障壁を越えることはほぼなく、登り経路を積み重ねて受理されることも稀なので、探索は原点から遠く離れた場所に捕まったままです（$f \approx 25$）。</li>
+<li><strong>適切な場合（0.5）</strong>: ステップが隣の谷に頻繁に届き、メトロポリス基準がそれらを効果的に選別します — ほぼ完璧な結果です。</li>
+<li><strong>大きすぎる場合（3.0）</strong>: 探索は大域的な谷には容易に到達しますが、その内部を精密化できません。提案のほとんどが遠くに飛んで棄却されるため、最終精度は0.5の場合より悪くなります。</li>
+</ul>
+<p>実践でよく使われる対策は、温度と一緒にステップ幅も縮めていくこと、あるいは受理率が20〜50%程度に保たれるようステップ幅を適応させることです。</p>
+</details>
+<h3>問題2（難易度：medium）</h3>
+<p>メトロポリス基準 $P = \exp(-\Delta E / T)$ における温度 $T$ の役割を説明してください。$T \to \infty$ と $T \to 0$ の2つの極限で、焼きなまし法は何になるでしょうか？ これを用いて、良い冷却スケジュールが速すぎても遅すぎてもいけない理由を説明してください。</p>
+<details>
+<summary>解答例</summary>
+<p><strong>解答</strong>:</p>
+<p><strong>温度の役割</strong>: $T$ は、探索が許容する目的関数値の悪化のスケールを定めます。目的関数を $\Delta E$ だけ悪化させる提案は確率 $\exp(-\Delta E / T)$ で受理されるため、$\Delta E \ll T$ の移動はほぼ自由に受理され、$\Delta E \gg T$ の移動はほぼ必ず棄却されます。したがって温度は、探索（Exploration）と活用（Exploitation）の間を連続的に補間するつまみとして働きます。</p>
+<p><strong>2つの極限</strong>:</p>
+<ul>
+<li>$T \to \infty$: 任意の有限な $\Delta E$ に対して $\exp(-\Delta E / T) \to \exp(0) = 1$。すべての提案が受理され、SAは<strong>純粋なランダムウォーク</strong>に退化します — 探索は最大、活用はゼロ。あらゆる場所を訪れますが、どこにも落ち着きません。</li>
+<li>$T \to 0$: 任意の $\Delta E &gt; 0$ に対して $\exp(-\Delta E / T) \to 0$。改善のみが受理され、SAは<strong>貪欲な局所探索</strong>に退化します — 活用は最大、探索はゼロ。最寄りの局所最小値に降りてそこに留まります（これはまさに例2の <code>greedy_search</code> ベースラインであり、SAの平均 $f \approx 2.5$ に対して平均 $f \approx 36$ でした）。</li>
+</ul>
+<p><strong>冷却速度が重要な理由</strong>:</p>
+<ul>
+<li><strong>冷却が速すぎる</strong>と、ほぼ即座に $T \approx 0$ の領域に飛び込みます。良い谷を見つけるのに十分な探索を行う前に貪欲になり、たまたま近くにあった局所最小値を「凍結」してしまいます — 急冷された金属が欠陥を凍結するのと同じです。</li>
+<li><strong>冷却が遅すぎる</strong>と、評価予算のほとんどをランダムウォークに近い領域で浪費し、解を精密化するための低温反復が足りなくなります。極端な場合（2.2節の対数スケジュール）、収束は理論上保証されますが、非現実的なほど多くの反復を要します。</li>
+</ul>
+<p>良いスケジュールとは、正しい領域を見つけるのに十分な時間を高い $T$ で過ごし、その中を精密化するのに十分な時間を低い $T$ で過ごすものです。その両方をこなす指数スケジュールが実用上のデフォルトである理由がここにあります。</p>
+</details>
+<h3>問題3（難易度：hard）</h3>
+<p>もう1つの標準的な多峰性ベンチマークで、大域的最小値 $f(\mathbf{0}) = 0$ を持つ2次元<strong>Ackley関数</strong>の上で、焼きなまし法、PSO、差分進化、ランダムサーチの公平な比較を行ってください：</p>
+<p>$$
+f(\mathbf{x}) = -20 \exp\!\left(-0.2\sqrt{\tfrac{1}{n}\sum_i x_i^2}\right)
+- \exp\!\left(\tfrac{1}{n}\sum_i \cos(2\pi x_i)\right) + 20 + e
+$$</p>
+<p>すべての手法に約6,000回の関数評価という同一予算を与え、各5シード実行して、最良目的関数値の平均と標準偏差を報告してください。どの手法が問題を解けたか、そこから何が結論できるかを述べてください。</p>
+<details>
+<summary>解答例</summary>
+<pre><code class="language-python"># 必要要件:
+# - Python 3.9+
+# - numpy&gt;=1.24.0
+# - scipy&gt;=1.11.0
+
+import numpy as np
+from scipy.optimize import differential_evolution
+
+def ackley(x):
+    x = np.asarray(x, dtype=float)
+    n = x.size
+    return (-20.0 * np.exp(-0.2 * np.sqrt(np.sum(x**2) / n))
+            - np.exp(np.sum(np.cos(2.0 * np.pi * x)) / n)
+            + 20.0 + np.e)
+
+def simulated_annealing(f, x0, T0=10.0, alpha=0.999, step_size=0.5,
+                        n_iter=20000, seed=0):
+    rng = np.random.default_rng(seed)
+    x = np.array(x0, dtype=float)
+    fx = f(x)
+    best_x, best_f = x.copy(), fx
+    T = T0
+    for k in range(n_iter):
+        candidate = x + rng.normal(0.0, step_size, size=x.shape)
+        f_cand = f(candidate)
+        delta = f_cand - fx
+        if delta &lt;= 0.0 or rng.random() &lt; np.exp(-delta / T):
+            x, fx = candidate, f_cand
+            if fx &lt; best_f:
+                best_x, best_f = x.copy(), fx
+        T = max(T * alpha, 1e-12)
+    return best_x, best_f
+
+def pso(f, bounds, n_particles=30, n_iter=100, omega=0.7,
+        c1=1.5, c2=1.5, seed=2):
+    rng = np.random.default_rng(seed)
+    dim = len(bounds)
+    low = np.array([b[0] for b in bounds])
+    high = np.array([b[1] for b in bounds])
+    x = rng.uniform(low, high, size=(n_particles, dim))
+    v = rng.uniform(-1.0, 1.0, size=(n_particles, dim))
+    p_best = x.copy()
+    p_best_f = np.array([f(xi) for xi in x])
+    g_idx = np.argmin(p_best_f)
+    g_best, g_best_f = p_best[g_idx].copy(), p_best_f[g_idx]
+    for _ in range(n_iter):
+        r1 = rng.random((n_particles, dim))
+        r2 = rng.random((n_particles, dim))
+        v = omega * v + c1 * r1 * (p_best - x) + c2 * r2 * (g_best - x)
+        x = np.clip(x + v, low, high)
+        fx = np.array([f(xi) for xi in x])
+        improved = fx &lt; p_best_f
+        p_best[improved] = x[improved]
+        p_best_f[improved] = fx[improved]
+        g_idx = np.argmin(p_best_f)
+        if p_best_f[g_idx] &lt; g_best_f:
+            g_best, g_best_f = p_best[g_idx].copy(), p_best_f[g_idx]
+    return g_best, g_best_f
+
+bounds = [(-5.0, 5.0)] * 2
+n_seeds = 5
+budget = 6000
+
+sa_res = [simulated_annealing(ackley, np.array([4.0, -4.0]),
+                              n_iter=budget, seed=s)[1]
+          for s in range(n_seeds)]
+pso_res = [pso(ackley, bounds, n_particles=30,
+               n_iter=budget // 30, seed=s)[1]
+           for s in range(n_seeds)]
+de_res = []
+for s in range(n_seeds):
+    r = differential_evolution(ackley, bounds, popsize=15,
+                               maxiter=budget // (15 * 2) - 1,
+                               tol=0, seed=s, polish=False)
+    de_res.append(r.fun)
+rs_res = []
+for s in range(n_seeds):
+    rg = np.random.default_rng(s)
+    cands = rg.uniform(-5, 5, size=(budget, 2))
+    rs_res.append(min(ackley(c) for c in cands))
+
+for name, res in [("SA", sa_res), ("PSO", pso_res),
+                  ("DE", de_res), ("random", rs_res)]:
+    print(f"{name:&lt;8} 平均最良 f = {np.mean(res):.4f} +/- {np.std(res):.4f}")
+</code></pre>
+<p><strong>出力</strong>:</p>
+<pre><code>SA       平均最良 f = 0.0362 +/- 0.0176
+PSO      平均最良 f = 0.0000 +/- 0.0000
+DE       平均最良 f = 0.0000 +/- 0.0000
+random   平均最良 f = 0.3056 +/- 0.1684
+</code></pre>
+<p><strong>結論</strong>:</p>
+<ol>
+<li><strong>3つのメタヒューリスティクスはすべて、同一予算のランダムサーチに明確に勝っています。</strong>つまりAckley地形の構造（原点へ向かう強い大域的なすり鉢形状）を本当に利用できているということであり、ノーフリーランチのチェックに合格しています。</li>
+<li><strong>集団ベースの手法（PSO、DE）は全シードでこの問題を事実上厳密に解いています。</strong>Ackley関数の全体的なすり鉢形状は集団手法に向いています。集団内で情報を共有することで大域的な傾向を素早く特定でき、集団が収縮するにつれてステップ幅が自動的に縮むからです。</li>
+<li><strong>SAは近くまでは行くものの完全には精密化できていません</strong>（$f \approx 0.04$）。提案ステップ幅を0.5に固定したままでは終盤の精度に限界があり、問題1の教訓の再確認になっています — SAの終盤の精度はステップ幅を縮めることにかかっています。</li>
+<li><strong>方法論上のポイント</strong>: ここで用いた「同一予算・複数シード・ランダムベースライン」というプロトコルは、公表したり意思決定に使ったりするあらゆる最適化手法比較の最低基準です。予算が不揃いな単発の実行では、どんな手法でも勝者に見せかけられます。</li>
+</ol>
+</details>
+<hr/>
+<h2>参考文献</h2>
+<ol>
+<li>Kirkpatrick, S., Gelatt, C. D., &amp; Vecchi, M. P. (1983). <em>Optimization by Simulated Annealing</em>. Science, 220(4598), 671-680.</li>
+<li>Metropolis, N., Rosenbluth, A. W., Rosenbluth, M. N., Teller, A. H., &amp; Teller, E. (1953). <em>Equation of State Calculations by Fast Computing Machines</em>. Journal of Chemical Physics, 21(6), 1087-1092.</li>
+<li>Holland, J. H. (1975). <em>Adaptation in Natural and Artificial Systems</em>. University of Michigan Press.</li>
+<li>Kennedy, J., &amp; Eberhart, R. (1995). <em>Particle Swarm Optimization</em>. Proceedings of ICNN'95, 1942-1948.</li>
+<li>Storn, R., &amp; Price, K. (1997). <em>Differential Evolution - A Simple and Efficient Heuristic for Global Optimization over Continuous Spaces</em>. Journal of Global Optimization, 11, 341-359.</li>
+<li>Wolpert, D. H., &amp; Macready, W. G. (1997). <em>No Free Lunch Theorems for Optimization</em>. IEEE Transactions on Evolutionary Computation, 1(1), 67-82.</li>
+<li>Geman, S., &amp; Geman, D. (1984). <em>Stochastic Relaxation, Gibbs Distributions, and the Bayesian Restoration of Images</em>. IEEE Transactions on Pattern Analysis and Machine Intelligence, 6(6), 721-741.</li>
+</ol>
+<div class="navigation">
+<a class="nav-button" href="chapter1-optimization-fundamentals.html">← 第1章：最適化の基礎</a>
+<a class="nav-button" href="chapter3-bayesian-optimization.html">第3章：ベイズ最適化 →</a>
+</div>
+</main>
+<section class="disclaimer">
+<h3>免責事項</h3>
+<ul>
+<li>本コンテンツは教育・研究・情報提供のみを目的としており、専門的な助言(法律・会計・技術的保証など)を提供するものではありません。</li>
+<li>本コンテンツおよび付随するコード例は「現状有姿(AS IS)」で提供され、明示または黙示を問わず、商品性、特定目的適合性、権利非侵害、正確性・完全性、動作・安全性等いかなる保証もしません。</li>
+<li>外部リンク、第三者が提供するデータ・ツール・ライブラリ等の内容・可用性・安全性について、作成者および東北大学は一切の責任を負いません。</li>
+<li>本コンテンツの利用・実行・解釈により直接的・間接的・付随的・特別・結果的・懲罰的損害が生じた場合でも、適用法で許容される最大限の範囲で、作成者および東北大学は責任を負いません。</li>
+<li>本コンテンツの内容は、予告なく変更・更新・提供停止されることがあります。</li>
+<li>本コンテンツの著作権・ライセンスは明記された条件(例: CC BY 4.0)に従います。当該ライセンスは通常、無保証条項を含みます。</li>
+</ul>
+</section>
+<footer>
+<p><strong>作成者</strong>: AI Terakoya Content Team</p>
+<p><strong>バージョン</strong>: 1.0 | <strong>作成日</strong>: 2026-07-08</p>
+<p><strong>ライセンス</strong>: Creative Commons BY 4.0</p>
+<p>© 2026 AI Terakoya. All rights reserved.</p>
+</footer>
+</body>
+</html>

@@ -1,0 +1,1099 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="第3章：ベイズ最適化とサロゲートモデル - AI Terakoya" name="description"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>第3章：ベイズ最適化とサロゲートモデル - AI Terakoya</title>
+<link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+<script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+<!-- MathJax for LaTeX equation rendering -->
+<script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+<script async="" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<nav class="breadcrumb">
+<div class="breadcrumb-content">
+<a href="../../index.html">AI寺子屋トップ</a><span class="breadcrumb-separator">›</span><a href="../index.html">機械学習</a><span class="breadcrumb-separator">›</span><a href="index.html">機械学習のための最適化</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">第3章</span>
+</div>
+</nav><div class="locale-switcher">
+<span class="current-locale">🌐 JP</span>
+<span class="locale-separator">|</span>
+<a class="locale-link" href="../../../en/ML/optimization-introduction/chapter3-bayesian-optimization.html">🇬🇧 English</a>
+<span class="locale-meta">Last sync: 2026-07-08</span>
+</div>
+<header>
+<div class="header-content">
+<h1>第3章：ベイズ最適化とサロゲートモデル</h1>
+<p class="subtitle">1回の評価に学習1回分のコストがかかるときのハイパーパラメータチューニング</p>
+<div class="meta">
+<span class="meta-item">📖 読了時間: 25-30分</span>
+<span class="meta-item">📊 難易度: 中級〜上級</span>
+<span class="meta-item">💻 コード例: 7</span>
+<span class="meta-item">📝 演習問題: 3</span>
+</div>
+</div>
+</header>
+<main class="container">
+
+<p class="chapter-description">第1章と第2章では、目的関数の評価は安価であると仮定していました。勾配降下法は目的関数を何千回も評価し、メタヒューリスティクスは世代ごとに集団全体を評価していました。ハイパーパラメータチューニングはこの前提を打ち破ります。1回の評価が、数分から数時間かかる完全な学習の実行そのものだからです。この最終章では、その標準的な解決策を組み立てます。すなわち、目的関数の安価な統計的<em>サロゲート（代理モデル）</em>を構築し、次にどこへ高価な評価を投じるべきかをサロゲートに決めさせる、という方法です。ガウス過程回帰と期待改善量をゼロから実装し、完全なベイズ最適化ループがランダムサーチに勝つ様子を観察したうえで、本番品質のツールであるOptunaを実際のscikit-learnチューニング問題に適用します。</p>
+<h2>学習目標</h2>
+<p>この章を完了すると、以下を習得できます：</p>
+<ul>
+<li>✅ 高価なブラックボックス目的関数ではグリッドサーチが無駄になり、サロゲートモデルが必要になる理由を説明できる</li>
+<li>✅ ガウス過程回帰を実用レベルで理解する：カーネル、事後平均 $\mu(x)$、事後不確実性 $\sigma(x)$</li>
+<li>✅ 期待改善量（EI）獲得関数をゼロから実装し、完全なベイズ最適化ループを実行できる</li>
+<li>✅ Optunaを使ってscikit-learnモデルのハイパーパラメータをチューニングできる（TPEサンプリングと見込みのないトライアルの枝刈りを含む）</li>
+<li>✅ 古典的な落とし穴を回避できる：線形スケールの探索空間、シード分散の無視、検証セットへの過学習</li>
+</ul>
+<hr/>
+<h2>3.1 ハイパーパラメータ探索のコスト問題</h2>
+<h3>最適化問題の上に載るもう一つの最適化問題</h3>
+<p>モデルの学習は、<strong>パラメータ</strong>に関する最適化 $\theta^* = \arg\min_\theta \mathcal{L}(\theta)$ を解くことです（第1章）。しかし、その学習手続き自体は<strong>ハイパーパラメータ（Hyperparameter、学習前に選ばれ、学習プロセス自身では調整できない設定 — 学習率、木の深さ、正則化強度など）</strong>によって制御されています。ハイパーパラメータの選択は、外側にあるもう一つの最適化問題です：</p>
+<p>$$
+\lambda^* = \arg\max_{\lambda \in \Lambda} \; \text{ValidationScore}\big(\text{Train}(\lambda)\big)
+$$</p>
+<ul>
+<li>$\lambda$: ハイパーパラメータ設定（例：学習率 $= 0.05$、最大深さ $= 4$）</li>
+<li>$\Lambda$: <strong>探索空間（Search Space、許容される設定の集合）</strong></li>
+<li>$\text{Train}(\lambda)$: 完全な学習の実行 — この問題を高価にしている張本人です</li>
+</ul>
+<p>この外側の目的関数には3つの性質があり、第1章で構築したすべての手法を無効にし、第2章の手法にも大きな負担をかけます：</p>
+<table>
+<thead>
+<tr>
+<th>性質</th>
+<th>意味</th>
+<th>帰結</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>ブラックボックス</strong></td>
+<td>数式がなく、勾配 $\nabla_\lambda$ も得られない</td>
+<td>勾配降下法は使えない</td>
+</tr>
+<tr>
+<td><strong>高価</strong></td>
+<td>1回の評価 = 1回の学習実行（数分〜数時間）</td>
+<td>評価回数の予算は20〜200回であり、2万回ではない</td>
+</tr>
+<tr>
+<td><strong>ノイズあり</strong></td>
+<td>スコアが乱数シードやデータ分割に依存する</td>
+<td>小さなスコア差には意味がない（3.5節）</td>
+</tr>
+</tbody>
+</table>
+<p>メタヒューリスティクス（第2章）はブラックボックスの部分には対応できますが、集団サイズ50で40世代回す遺伝的アルゴリズムには2,000回の学習実行が必要で、ここでは通常まったく手が届きません。1回1回の評価から最大限の情報を絞り出す手法が必要です。</p>
+<h3>グリッドサーチ vs ランダムサーチ：Bergstra–Bengioの議論</h3>
+<p>古典的なベースラインである<strong>グリッドサーチ（Grid Search、規則的な格子上の値の全組み合わせを評価する方法）</strong>には、BergstraとBengio（2012）が指摘した見落とされがちな欠陥があります。実際には、検証性能はたいてい1つか2つのハイパーパラメータに支配されており、目的関数の<strong>実効次元は低い</strong>のです。$4 \times 4$ のグリッドは16回の評価を費やしますが、各ハイパーパラメータについて試すのは<em>わずか4つの異なる値</em>だけです。どの値も、もう一方の軸のすべての値と組み合わせて再利用されるからです。同じ予算のランダムサーチは、すべてのハイパーパラメータについて<em>16個の異なる値</em>を試します。もし本当に重要なのが学習率だけなら、ランダムサーチは同じコストでその軸を4倍密に調べることになります。</p>
+<h3>コード例1: 1つのハイパーパラメータが支配的なときのグリッドサーチ vs ランダムサーチ</h3>
+<p>この状況を、学習率には強く反応し正則化強度にはほとんど反応しない合成の「検証精度」曲面でシミュレートします。誇張はされていますが、構造的には現実的な設定です。</p>
+<pre><code class="language-python"># 必要要件:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;3.0.0
+
+"""
+例1: 1つのハイパーパラメータが支配的なときのグリッドサーチ vs ランダムサーチ
+
+目的: Bergstra-Bengioの議論を再現する — 固定予算のもとで、
+      ランダムサーチはグリッドよりも各軸をはるかに密にカバーする
+対象: 中級者
+実行時間: 5秒以内
+依存: NumPyのみ
+"""
+
+import numpy as np
+
+# --- 2つのハイパーパラメータ上の合成「検証精度」曲面 ---
+# 学習率には敏感で、正則化強度に対してはほぼ平坦。
+def val_accuracy(log10_lr, reg):
+    lr_effect = 0.10 * np.exp(-((log10_lr + 2.0) ** 2) / 0.25)   # lr = 1e-2 にピーク
+    reg_effect = 0.005 * np.sin(3.0 * reg)                        # ほぼ無関係
+    return 0.85 + lr_effect + reg_effect
+
+BUDGET = 16   # 両手法ともモデル評価はちょうど16回まで
+
+# --- グリッドサーチ: 4 x 4 グリッド -&gt; 試される学習率は4種類だけ ---
+lr_grid = np.linspace(-4.0, 0.0, 4)       # log10(lr) を [-4, 0] で
+reg_grid = np.linspace(0.0, 1.0, 4)
+grid_scores = [val_accuracy(lr, r) for lr in lr_grid for r in reg_grid]
+grid_best = max(grid_scores)
+
+# --- ランダムサーチ: 16サンプル -&gt; 16種類の学習率が試される ---
+rng = np.random.default_rng(0)
+n_repeats = 1000
+random_bests = []
+for _ in range(n_repeats):
+    lrs = rng.uniform(-4.0, 0.0, BUDGET)
+    regs = rng.uniform(0.0, 1.0, BUDGET)
+    random_bests.append(max(val_accuracy(l, r) for l, r in zip(lrs, regs)))
+random_bests = np.array(random_bests)
+
+true_best = val_accuracy(-2.0, np.pi / 6)   # 解析的な最適値
+
+print("=== グリッドサーチ vs ランダムサーチ（予算: 16評価）===")
+print(f"真の最良精度:                        {true_best:.4f}")
+print(f"グリッドサーチ (4x4) の最良値:       {grid_best:.4f}")
+print(f"ランダムサーチの最良値（{n_repeats}回の平均）: {random_bests.mean():.4f}"
+      f" +/- {random_bests.std():.4f}")
+print(f"ランダムがグリッドに勝った割合: {np.mean(random_bests &gt; grid_best) * 100:.1f}%")
+print(f"試された学習率の異なり数: グリッド = 4, ランダム = 16")
+</code></pre>
+<p><strong>出力例</strong>:</p>
+<pre><code>=== グリッドサーチ vs ランダムサーチ（予算: 16評価）===
+真の最良精度:                        0.9550
+グリッドサーチ (4x4) の最良値:       0.8714
+ランダムサーチの最良値（1000回の平均）: 0.9453 +/- 0.0130
+ランダムがグリッドに勝った割合: 99.6%
+試された学習率の異なり数: グリッド = 4, ランダム = 16
+</code></pre>
+<p>グリッドは $\text{lr} = 10^{-2}$ 付近にある幅の狭い精度のピークをほぼ完全に取り逃がします。4つの学習率の値がピークをまたいでしまい、その上に乗らないのです。一方、ランダムサーチはほぼすべての繰り返しで最適値に近い値を見つけます。ハイパーパラメータが2つ以上関わる場合には<strong>グリッドサーチではなくランダムサーチをベースラインにすべき</strong>である理由がここにあります。</p>
+<h3>ランダムから適応的へ</h3>
+<p>ランダムサーチにも明らかな非効率が残っています。50回目の評価は、1〜49回目の評価から学べたはずのことをすべて無視しているのです。<strong>適応的手法（Adaptive Method、過去のすべての結果を使って次の設定を選ぶ手法）</strong>ならもっと良くできるはずです。実務を席巻しているレシピは次のとおりです：</p>
+<ol>
+<li>安価な<strong>サロゲートモデル（Surrogate Model、これまでに評価した設定から構築する、高価な目的関数の統計的近似）</strong>を適合させる。</li>
+<li>サロゲート — その<em>不確実性</em>も含めて — を使い、最も情報量の多い次の設定を決める。</li>
+<li>評価し、サロゲートを更新し、繰り返す。</li>
+</ol>
+<p>これが<strong>ベイズ最適化（Bayesian Optimization; BO、確率的サロゲートと獲得関数を用いて高価なブラックボックス関数を逐次最適化する手法）</strong>です。続く2つの節で、この両方の部品をゼロから構築します。</p>
+<hr/>
+<h2>3.2 ガウス過程サロゲート</h2>
+<h3>サロゲートは「自分が知らないこと」を知らなければならない</h3>
+<p>ふつうの回帰モデル（たとえば多項式フィット）は、入力ごとに1つの数値 $\hat{f}(x)$ を予測します。それでは足りません。有望な領域を試すことと未知の領域を探ることのバランスを取るには、サロゲートは自分が<em>どれだけ自信があるか</em>も報告する必要があります。<strong>ガウス過程（Gaussian Process; GP、関数の上の確率分布であり、任意の有限個の関数値の組が同時ガウス分布に従うもの）</strong>はまさにこれを提供します。すべての候補点 $x$ において、事後平均 $\mu(x)$（最良の推測）と事後標準偏差 $\sigma(x)$（正直な誤差バー）を返すのです。</p>
+<h3>カーネル：「似た入力は似たスコアを与える」の符号化</h3>
+<p>GPは<strong>カーネル（Kernel、$x$ と $x'$ における関数値の相関の強さを測る共分散関数 $k(x, x')$）</strong>によって指定されます。定番は<strong>RBFカーネル（Radial Basis Function、二乗指数カーネルとも呼ばれます）</strong>です：</p>
+<p>$$
+k(x, x') = \sigma_f^2 \exp\!\left( -\frac{(x - x')^2}{2 \ell^2} \right)
+$$</p>
+<ul>
+<li>$\ell$: <strong>長さスケール（length scale）</strong> — 2つの入力がどれだけ離れてもスコアの相関が保たれるか。小さい $\ell$ → 波打つ関数、大きい $\ell$ → 滑らかでゆっくり変化する関数。</li>
+<li>$\sigma_f^2$: 信号分散 — 関数の縦方向の全体的なスケール。</li>
+</ul>
+<p>直観的には、カーネルは「学習率0.010と0.011はほぼ同じ検証スコアを与えるだろうが、0.01と0.3ではまったく違うかもしれない」という事前の信念を符号化しています。たった5個の観測が曲線全体を拘束できるのは、まさにこの1つの仮定のおかげです。</p>
+<h3>事後分布：平均と不確実性の閉形式</h3>
+<p>観測ノイズ $\sigma_n^2$ のもとで $n$ 組の観測ペア $(X, \mathbf{y})$ が与えられたとき、新しい点 $x$ におけるGPの事後分布は厳密な閉形式を持ちます：</p>
+<p>$$
+\begin{aligned}
+\mu(x) &amp;= \mathbf{k}_*^\top \left( K + \sigma_n^2 I \right)^{-1} \mathbf{y} \\
+\sigma^2(x) &amp;= k(x, x) - \mathbf{k}_*^\top \left( K + \sigma_n^2 I \right)^{-1} \mathbf{k}_*
+\end{aligned}
+$$</p>
+<ul>
+<li>$K$: 観測入力間の $n \times n$ カーネル行列、$K_{ij} = k(x_i, x_j)$</li>
+<li>$\mathbf{k}_*$: 観測入力とクエリ点との間のカーネル値からなる $n$ 次元ベクトル、$k(x_i, x)$</li>
+<li>$\mu(x)$ は観測スコアの重み付き平均 — $x$ に近い観測ほど大きな重みを持ちます</li>
+<li>$\sigma^2(x)$ は事前分散 $k(x,x)$ から出発し、観測が $x$ について与える情報の分だけ<em>減少</em>します。データの近くでは $\sigma \approx 0$、データから遠いところでは $\sigma$ は事前分散に戻ります</li>
+</ul>
+<p>この2つの式がエンジンのすべてです。実装は15行ほどで済みます。</p>
+<h3>コード例2: 1次元トイ目的関数に対するGP回帰のスクラッチ実装</h3>
+<p>高価なチューニング問題の代役はこうです。$x$ は単一のハイパーパラメータの役（$\log_{10}$ 学習率だと考えてください）、$f(x) = 0.8\sin(3x) + 0.3x^2$ は検証誤差の役を演じます。<code>black_box</code> の呼び出し1回が、完全な学習の実行1回に相当します。</p>
+<pre><code class="language-python"># 必要要件:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;3.0.0
+# - matplotlib&gt;=3.7.0
+
+"""
+例2: 1次元トイ目的関数に対するガウス過程回帰のスクラッチ実装
+
+目的: GPの事後平均と事後標準偏差を実装し、ベイズ最適化を駆動する
+      不確実性バンドを可視化する
+対象: 中級〜上級者
+実行時間: 10秒以内
+依存: NumPy, Matplotlib
+"""
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+# --- 「高価な」ブラックボックス: 単一ハイパーパラメータに対する検証誤差 ---
+# x は log10(学習率) だと考える。1回の呼び出し = 1回の完全な学習実行。
+def black_box(x):
+    return np.sin(3.0 * x) * 0.8 + 0.3 * x ** 2
+
+def rbf_kernel(A, B, length_scale=0.6, variance=1.0):
+    """点集合AとBの間のRBF（二乗指数）カーネル行列。"""
+    sq_dists = (A.reshape(-1, 1) - B.reshape(1, -1)) ** 2
+    return variance * np.exp(-0.5 * sq_dists / length_scale ** 2)
+
+def gp_posterior(X_train, y_train, X_test, noise=1e-6,
+                 length_scale=0.6, variance=1.0):
+    """平均ゼロのGPのテスト点における事後平均と事後標準偏差。"""
+    K = rbf_kernel(X_train, X_train, length_scale, variance)
+    K += noise * np.eye(len(X_train))
+    K_s = rbf_kernel(X_train, X_test, length_scale, variance)
+    K_ss = rbf_kernel(X_test, X_test, length_scale, variance)
+
+    L = np.linalg.cholesky(K)                       # 数値的に安定な逆行列計算
+    alpha = np.linalg.solve(L.T, np.linalg.solve(L, y_train))
+    mu = K_s.T @ alpha
+    v = np.linalg.solve(L, K_s)
+    cov = K_ss - v.T @ v
+    sigma = np.sqrt(np.clip(np.diag(cov), 0.0, None))
+    return mu, sigma
+
+# --- ブラックボックスを5点で観測する（「学習実行」5回分） ---
+X_train = np.array([-1.8, -0.9, 0.0, 0.9, 1.8])
+y_train = black_box(X_train)
+
+X_test = np.linspace(-2.0, 2.0, 400)
+mu, sigma = gp_posterior(X_train, y_train, X_test)
+
+# --- 平均と95%不確実性バンドをプロット ---
+plt.figure(figsize=(8, 5))
+plt.plot(X_test, black_box(X_test), 'k--', label='true function (unknown)')
+plt.plot(X_test, mu, color='tab:blue', label='GP posterior mean $\\mu(x)$')
+plt.fill_between(X_test, mu - 1.96 * sigma, mu + 1.96 * sigma,
+                 color='tab:blue', alpha=0.2, label='95% interval $\\pm 1.96\\sigma(x)$')
+plt.scatter(X_train, y_train, color='red', zorder=3, label='observations')
+plt.xlabel('hyperparameter x')
+plt.ylabel('validation error f(x)')
+plt.title('Gaussian process surrogate after 5 evaluations')
+plt.legend()
+plt.tight_layout()
+plt.savefig('gp_posterior.png', dpi=110)
+plt.close()
+
+print("=== 選択した点でのGP事後分布 ===")
+print(f"{'x':&gt;6s} {'true f(x)':&gt;10s} {'mu(x)':&gt;8s} {'sigma(x)':&gt;9s}")
+for x in [-1.8, -1.35, -0.45, 0.45, 1.35]:
+    m, s = gp_posterior(X_train, y_train, np.array([x]))
+    print(f"{x:6.2f} {black_box(x):10.4f} {m[0]:8.4f} {s[0]:9.4f}")
+print("図を gp_posterior.png に保存しました")
+</code></pre>
+<p><strong>出力例</strong>:</p>
+<pre><code>=== 選択した点でのGP事後分布 ===
+     x  true f(x)    mu(x)  sigma(x)
+ -1.80     1.5902   1.5902    0.0010
+ -1.35     1.1776   0.8426    0.3522
+ -0.45    -0.7198  -0.3189    0.3333
+  0.45     0.8413   0.3819    0.3333
+  1.35    -0.0841   0.5344    0.3522
+図を gp_posterior.png に保存しました
+</code></pre>
+<p>この表を保存された図と並べて読むと、GPを理想的なサロゲートにしている2つの振る舞いが見えてきます：</p>
+<ul>
+<li><strong>観測済みの点では</strong>（$x = -1.80$）：事後平均は観測値に一致し、$\sigma \approx 0$ です。GPは自分のデータを疑いません（ノイズがほぼゼロの場合）。</li>
+<li><strong>観測点の間では</strong>（$x = -1.35$、$-0.45$ など）：平均は滑らかに補間し、$\sigma$ は約 $0.35$ まで大きくなります。GPは、そこでは間違っているかもしれないと率直に認めているのです。実際、$x = -0.45$ では真の誤差（$-0.72$）は平均（$-0.32$）よりかなり低いのですが、95%バンドの中には十分収まっています。</li>
+</ul>
+<p>先に進む前に、実務上の注意を2つ。第一に、コレスキー分解による解法のコストは観測数に対して $O(n^3)$ ですが、評価回数 $n \le 200$ の範囲では無視できます — これはまさにハイパーパラメータチューニングの領域です。第二に、ここではわかりやすさのためにカーネルのハイパーパラメータ（$\ell = 0.6$、$\sigma_f^2 = 1$）を手で固定しました。本番用のライブラリは、毎回の反復で周辺尤度を最大化してこれらを適合させます。</p>
+<hr/>
+<h2>3.3 獲得関数：次にどこを評価するかを決める</h2>
+<h3>探索と活用のジレンマ</h3>
+<p>$\mu(x)$ と $\sigma(x)$ が手に入ったとして、次の高価な評価はどこに投じるべきでしょうか？ 2つの純粋な戦略はどちらも失敗します：</p>
+<ul>
+<li><strong>純粋な活用（exploitation）</strong> — $\mu(x)$ の最小点を評価する。視野狭窄に陥る危険があります。サロゲートの平均は未探索領域で大きく間違っている可能性があり、それを知る機会が永遠に来ません。</li>
+<li><strong>純粋な探索（exploration）</strong> — $\sigma(x)$ が最大の場所を評価する。関数全体を正確にマッピングできますが、明らかに悪い領域に評価を浪費します。</li>
+</ul>
+<p><strong>獲得関数（Acquisition Function、$\mu(x)$ と $\sigma(x)$ からなる安価な関数で、その最大点が次に評価すべき点を指定するもの）</strong>は、この妥協を定式化したものです。3つの標準的な選択肢を、現在の最良観測値を $y_{\text{best}}$ とする<em>最小化</em>問題の形で示します：</p>
+<p><strong>1. 改善確率（Probability of Improvement; PI）</strong> — $y_{\text{best}}$ より少なくとも $\xi$ 良くなる確率：</p>
+<p>$$
+\text{PI}(x) = \Phi\!\left( \frac{y_{\text{best}} - \mu(x) - \xi}{\sigma(x)} \right)
+$$</p>
+<p><strong>2. 期待改善量（Expected Improvement; EI）</strong> — 確率だけでなく、改善量 $\max(y_{\text{best}} - f(x), 0)$ の期待<em>値の大きさ</em>：</p>
+<p>$$
+\text{EI}(x) = \left( y_{\text{best}} - \mu(x) - \xi \right) \Phi(z) + \sigma(x)\, \phi(z),
+\qquad z = \frac{y_{\text{best}} - \mu(x) - \xi}{\sigma(x)}
+$$</p>
+<p><strong>3. 下側信頼限界（Lower Confidence Bound; LCB）</strong> — 不確実性のもとでの楽観主義。$\mu$ から $\sigma$ のボーナスを引いた値を最小化します：</p>
+<p>$$
+\text{LCB}(x) = \mu(x) - \kappa\, \sigma(x)
+$$</p>
+<ul>
+<li>$\Phi$、$\phi$: 標準正規分布のCDFとPDF</li>
+<li>$\xi \ge 0$: 探索マージン（$\xi$ が大きいほど探索寄り）。$\kappa &gt; 0$ はLCBにおいて同じ役割を果たします（最大化問題では同じ考え方が上側信頼限界 Upper Confidence Bound、UCB になります）</li>
+<li>3つとも、密な候補グリッド上または安価な内側最適化器で最大化（LCBの場合は最小化）されます。目的関数と違って、これらの評価にかかるのはマイクロ秒単位です</li>
+</ul>
+<p>ほとんどのツールでデフォルトの選択肢はEIです。PIと違って、単に「改善しそう」なだけでなく<em>大きな</em>改善の見込みに報酬を与え、LCBと違って、調整に敏感な $\kappa$ を持たないからです。</p>
+<h3>コード例3: 期待改善量（EI）のスクラッチ実装</h3>
+<p>例2で定義した <code>black_box</code>、<code>rbf_kernel</code>、<code>gp_posterior</code> をそのまま再利用します：</p>
+<pre><code class="language-python"># 必要要件:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;3.0.0
+# - scipy&gt;=1.10.0
+
+"""
+例3: 期待改善量（EI）のスクラッチ実装
+
+目的: 閉形式のEI公式を実装し、例2のGP事後分布の上で
+      その最大点を特定する
+対象: 中級〜上級者
+実行時間: 5秒以内
+依存: NumPy, SciPy
+"""
+
+import numpy as np
+from scipy.stats import norm
+
+# --- black_box, rbf_kernel, gp_posterior: 例2と同一 ---
+def black_box(x):
+    return np.sin(3.0 * x) * 0.8 + 0.3 * x ** 2
+
+def rbf_kernel(A, B, length_scale=0.6, variance=1.0):
+    sq_dists = (A.reshape(-1, 1) - B.reshape(1, -1)) ** 2
+    return variance * np.exp(-0.5 * sq_dists / length_scale ** 2)
+
+def gp_posterior(X_train, y_train, X_test, noise=1e-6,
+                 length_scale=0.6, variance=1.0):
+    K = rbf_kernel(X_train, X_train, length_scale, variance)
+    K += noise * np.eye(len(X_train))
+    K_s = rbf_kernel(X_train, X_test, length_scale, variance)
+    L = np.linalg.cholesky(K)
+    alpha = np.linalg.solve(L.T, np.linalg.solve(L, y_train))
+    mu = K_s.T @ alpha
+    v = np.linalg.solve(L, K_s)
+    K_ss = rbf_kernel(X_test, X_test, length_scale, variance)
+    sigma = np.sqrt(np.clip(np.diag(K_ss - v.T @ v), 0.0, None))
+    return mu, sigma
+
+def expected_improvement(mu, sigma, y_best, xi=0.01):
+    """最小化のためのEI: 改善量 = y_best - f(x)。"""
+    with np.errstate(divide='ignore', invalid='ignore'):
+        z = (y_best - mu - xi) / sigma
+        ei = (y_best - mu - xi) * norm.cdf(z) + sigma * norm.pdf(z)
+        ei[sigma == 0.0] = 0.0
+    return ei
+
+# --- 例2と同じ5つの観測 ---
+X_train = np.array([-1.8, -0.9, 0.0, 0.9, 1.8])
+y_train = black_box(X_train)
+y_best = y_train.min()
+
+X_test = np.linspace(-2.0, 2.0, 400)
+mu, sigma = gp_posterior(X_train, y_train, X_test)
+
+print("=== 期待改善量（EI）の分析 ===")
+print(f"これまでの最良観測値: {y_best:.4f} (x = {X_train[y_train.argmin()]:.2f})")
+for xi in [0.0, 0.01, 0.1]:
+    ei = expected_improvement(mu, sigma, y_best, xi=xi)
+    x_next = X_test[ei.argmax()]
+    print(f"xi = {xi:4.2f}: EIの最大点は x = {x_next:+.3f} "
+          f"(EI = {ei.max():.4f})")
+
+mu_at, sigma_at = gp_posterior(X_train, y_train,
+                               np.array([X_test[expected_improvement(mu, sigma, y_best).argmax()]]))
+print(f"\nEI最適点での値: mu = {mu_at[0]:.4f}, sigma = {sigma_at[0]:.4f}")
+print("EIは、平均が低く、かつ不確実性が大きい場所で高くなります。")
+</code></pre>
+<p><strong>出力例</strong>:</p>
+<pre><code>=== 期待改善量（EI）の分析 ===
+これまでの最良観測値: -0.0989 (x = -0.90)
+xi = 0.00: EIの最大点は x = -0.516 (EI = 0.2794)
+xi = 0.01: EIの最大点は x = -0.516 (EI = 0.2718)
+xi = 0.10: EIの最大点は x = -0.516 (EI = 0.2079)
+
+EI最適点での値: mu = -0.3337, sigma = 0.3248
+EIは、平均が低く、かつ不確実性が大きい場所で高くなります。
+</code></pre>
+<p>EIが提案するのは $x = -0.516$ です。これは観測点の中で事後平均が最も低い点<em>ではなく</em>、有望な平均（$-0.33$）とかなりの不確実性（$0.32$）を最も良く兼ね備えた点です。この点は最も低い2つの観測値の間、まさに真の最小値が隠れている場所に位置しています。また、この事後分布の上では提案は $\xi$ に対して頑健であることにも注目してください。3つのマージンすべてが同じ点を選び、EIの大きさだけが縮んでいます。</p>
+<h3>コード例4: 完全なベイズ最適化ループ</h3>
+<p>いよいよループを閉じ、同一予算15評価のもとでランダムサーチと比較します。</p>
+<div class="mermaid">
+graph TD
+    A[少数のランダムな初期設定を評価] --&gt; B[全観測データにGPサロゲートを適合]
+    B --&gt; C[候補点上で獲得関数EIを最大化]
+    C --&gt; D[提案された点でブラックボックスを評価<br/>= 高価な学習実行1回分]
+    D --&gt; E{予算は残っているか?}
+    E --&gt;|はい| B
+    E --&gt;|いいえ| F[見つかった最良の設定を返す]
+
+    style B fill:#e3f2fd
+    style C fill:#fff3e0
+    style F fill:#e8f5e9
+</div>
+<pre><code class="language-python"># 必要要件:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;3.0.0
+# - scipy&gt;=1.10.0
+
+"""
+例4: 完全なベイズ最適化ループ vs ランダムサーチ
+
+目的: GPの適合とEIの最大化を12回交互に繰り返し、同じ評価予算の
+      ランダムサーチと比較する
+対象: 中級〜上級者
+実行時間: 30秒以内
+依存: NumPy, SciPy
+"""
+
+import numpy as np
+from scipy.stats import norm
+
+# --- 共通の部品。例2〜3と同一 ---
+def black_box(x):
+    return np.sin(3.0 * x) * 0.8 + 0.3 * x ** 2
+
+def rbf_kernel(A, B, length_scale=0.6, variance=1.0):
+    sq_dists = (A.reshape(-1, 1) - B.reshape(1, -1)) ** 2
+    return variance * np.exp(-0.5 * sq_dists / length_scale ** 2)
+
+def gp_posterior(X_train, y_train, X_test, noise=1e-6,
+                 length_scale=0.6, variance=1.0):
+    K = rbf_kernel(X_train, X_train, length_scale, variance)
+    K += noise * np.eye(len(X_train))
+    K_s = rbf_kernel(X_train, X_test, length_scale, variance)
+    L = np.linalg.cholesky(K)
+    alpha = np.linalg.solve(L.T, np.linalg.solve(L, y_train))
+    mu = K_s.T @ alpha
+    v = np.linalg.solve(L, K_s)
+    K_ss = rbf_kernel(X_test, X_test, length_scale, variance)
+    sigma = np.sqrt(np.clip(np.diag(K_ss - v.T @ v), 0.0, None))
+    return mu, sigma
+
+def expected_improvement(mu, sigma, y_best, xi=0.01):
+    with np.errstate(divide='ignore', invalid='ignore'):
+        z = (y_best - mu - xi) / sigma
+        ei = (y_best - mu - xi) * norm.cdf(z) + sigma * norm.pdf(z)
+        ei[sigma == 0.0] = 0.0
+    return ei
+
+def bayesian_optimization(n_init=3, n_iter=12, seed=7):
+    rng = np.random.default_rng(seed)
+    X_cand = np.linspace(-2.0, 2.0, 1000)          # 候補グリッド
+    X_obs = rng.uniform(-2.0, 2.0, n_init)          # ランダムな初期計画
+    y_obs = black_box(X_obs)
+    history = [y_obs.min()]
+    for t in range(n_iter):
+        mu, sigma = gp_posterior(X_obs, y_obs, X_cand)
+        ei = expected_improvement(mu, sigma, y_obs.min())
+        x_next = X_cand[ei.argmax()]
+        y_next = black_box(x_next)
+        X_obs = np.append(X_obs, x_next)
+        y_obs = np.append(y_obs, y_next)
+        history.append(y_obs.min())
+    return X_obs, y_obs, np.array(history)
+
+def random_search(n_evals=15, seed=0):
+    rng = np.random.default_rng(seed)
+    X = rng.uniform(-2.0, 2.0, n_evals)
+    y = black_box(X)
+    return np.minimum.accumulate(y)
+
+# --- 参照用の真の最小値（細かいグリッドで） ---
+xx = np.linspace(-2.0, 2.0, 100001)
+yy = black_box(xx)
+print(f"真の最小値: f({xx[yy.argmin()]:+.4f}) = {yy.min():.4f}\n")
+
+# --- BOを1回実行し、経過を表示 ---
+X_obs, y_obs, hist = bayesian_optimization()
+print("=== ベイズ最適化（初期3点 + BO 12評価）===")
+for t in [0, 3, 6, 9, 12]:
+    print(f"BO反復 {t:2d}回後: 最良 f = {hist[t]:.4f}")
+print(f"見つかった最良点: x = {X_obs[y_obs.argmin()]:+.4f}, "
+      f"f = {y_obs.min():.4f}")
+
+# --- 20シードでランダムサーチと比較（同じ予算: 15評価） ---
+bo_finals = [bayesian_optimization(seed=s)[2][-1] for s in range(20)]
+rs_finals = [random_search(seed=s)[-1] for s in range(20)]
+print("\n=== 20回の繰り返し、予算 = 各15評価 ===")
+print(f"BO     の最良値: 平均 = {np.mean(bo_finals):.4f}, "
+      f"最悪 = {np.max(bo_finals):.4f}")
+print(f"ランダムの最良値: 平均 = {np.mean(rs_finals):.4f}, "
+      f"最悪 = {np.max(rs_finals):.4f}")
+</code></pre>
+<p><strong>出力例</strong>:</p>
+<pre><code>真の最小値: f(-0.4832) = -0.7241
+
+=== ベイズ最適化（初期3点 + BO 12評価）===
+BO反復  0回後: 最良 f = -0.0415
+BO反復  3回後: 最良 f = -0.4976
+BO反復  6回後: 最良 f = -0.7235
+BO反復  9回後: 最良 f = -0.7239
+BO反復 12回後: 最良 f = -0.7240
+見つかった最良点: x = -0.4865, f = -0.7240
+
+=== 20回の繰り返し、予算 = 各15評価 ===
+BO     の最良値: 平均 = -0.7239, 最悪 = -0.7232
+ランダムの最良値: 平均 = -0.6323, 最悪 = -0.1162
+</code></pre>
+<p>比較結果は歴然としています。15回の評価で、20回のBO実行はすべて真の最小値（$-0.7241$）から $10^{-3}$ 以内に到達しました。ランダムサーチの平均は明らかに悪く、<em>最悪</em>の実行（$-0.12$）は良い領域を完全に取り逃がしています。1回ごとの実行の振る舞いも同じくらい示唆的です。BOは最初の数反復を探索に使い、6反復目までに正しい谷に照準を合わせ、その後は磨き上げに入ります。このサンプル効率 — 生の速度ではなく — こそがBOの価値のすべてです。1回の評価にGPU1時間分のコストがかかるとき、この2つの列の差は日数単位で効いてきます。</p>
+<p>正直な注意をひとつ。このトイ問題は1次元・ノイズなし・滑らかという、GPにとって理想的な条件です。現実のハイパーパラメータ空間は混合型（連続・整数・カテゴリカル）で、条件付きで、ノイズを含みます。スクラッチ実装のGPをそこまで拡張する代わりに、3.4節ではそのために設計されたツールに切り替えます。</p>
+<hr/>
+<h2>3.4 Optunaによる実践的ベイズ最適化</h2>
+<h3>プロトタイプから本番ツールへ</h3>
+<p><strong>Optuna（define-by-run APIを中心に設計されたオープンソースのハイパーパラメータ最適化フレームワーク）</strong>は、私たちのプロトタイプにできなかったことをすべて処理します。混合型・条件付きの探索空間、並列ワーカー、結果の保存、早期打ち切りです。デフォルトのサンプラーは<strong>TPE（Tree-structured Parzen Estimator、良い設定と悪い設定の密度 $p(\lambda \mid \text{good})$ と $p(\lambda \mid \text{bad})$ をモデル化し、その比を最大化する点を提案するベイズ最適化アルゴリズム）</strong>です。TPEは私たちのGP + EIの組み合わせと同じ役割を果たしますが、GPが苦手とする高次元・混合型の空間にも無理なくスケールします。</p>
+<p>探索空間は目的関数の<em>内側</em>に記述します。各 <code>trial.suggest_*</code> の呼び出しが、ハイパーパラメータの宣言と、現在のトライアルにおける具体的な値の取得を同時に行うのです。</p>
+<h3>コード例5: TPEによるGradientBoostingのチューニング</h3>
+<pre><code class="language-python"># 必要要件:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;3.0.0
+# - scikit-learn&gt;=1.3.0
+# - optuna&gt;=3.0.0
+
+"""
+例5: Optuna（TPE）によるGradientBoostingのハイパーパラメータチューニング
+
+目的: 合成分類タスクでGradientBoostingClassifierの4つのハイパー
+      パラメータをチューニングし、デフォルト設定と比較する
+対象: 中級〜上級者
+実行時間: 1〜3分
+依存: NumPy, scikit-learn, Optuna
+"""
+
+import numpy as np
+import optuna
+from sklearn.datasets import make_classification
+from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.model_selection import cross_val_score
+
+optuna.logging.set_verbosity(optuna.logging.WARNING)
+
+# --- 合成2値分類タスク ---
+X, y = make_classification(n_samples=600, n_features=20, n_informative=8,
+                           n_redundant=6, class_sep=0.8, random_state=42)
+
+def objective(trial):
+    params = {
+        "n_estimators": trial.suggest_int("n_estimators", 50, 300),
+        "learning_rate": trial.suggest_float("learning_rate", 1e-3, 0.3, log=True),
+        "max_depth": trial.suggest_int("max_depth", 2, 6),
+        "subsample": trial.suggest_float("subsample", 0.5, 1.0),
+    }
+    model = GradientBoostingClassifier(random_state=0, **params)
+    return cross_val_score(model, X, y, cv=3).mean()
+
+sampler = optuna.samplers.TPESampler(seed=42)
+study = optuna.create_study(direction="maximize", sampler=sampler)
+study.optimize(objective, n_trials=40)
+
+print("=== Optuna TPE: 40トライアル ===")
+print(f"最良CV精度: {study.best_value:.4f}")
+print("最良ハイパーパラメータ:")
+for k, v in study.best_params.items():
+    print(f"  {k:14s} = {v:.4f}" if isinstance(v, float) else f"  {k:14s} = {v}")
+
+# --- ベースライン: デフォルトのハイパーパラメータ ---
+default_score = cross_val_score(GradientBoostingClassifier(random_state=0),
+                                X, y, cv=3).mean()
+print(f"\nデフォルトのハイパーパラメータ: {default_score:.4f}")
+print(f"改善幅: {(study.best_value - default_score) * 100:+.2f}ポイント")
+
+# --- 最良値の推移 ---
+best_so_far = np.maximum.accumulate([t.value for t in study.trials])
+for n in [5, 10, 20, 40]:
+    print(f"{n:2d}トライアル後の最良値: {best_so_far[n - 1]:.4f}")
+</code></pre>
+<p><strong>出力例</strong>（optuna 4.9.0、scikit-learn 1.8.0で実行）:</p>
+<pre><code>=== Optuna TPE: 40トライアル ===
+最良CV精度: 0.8433
+最良ハイパーパラメータ:
+  n_estimators   = 108
+  learning_rate  = 0.2849
+  max_depth      = 6
+  subsample      = 0.8932
+
+デフォルトのハイパーパラメータ: 0.7983
+改善幅: +4.50ポイント
+ 5トライアル後の最良値: 0.8183
+10トライアル後の最良値: 0.8183
+20トライアル後の最良値: 0.8300
+40トライアル後の最良値: 0.8433
+</code></pre>
+<p>注目すべき点は3つあります。第一に、チューニングによってデフォルト比で精度が4.5ポイント向上しました — モデリング作業ゼロで得られる利得としては大きなものです。第二に、進捗曲線はTPEの典型例です。最初の約10トライアルはほぼランダム探索に近く（Optunaのデフォルトはスタートアップトライアル10回）、モデル主導の改善はその後にやって来ます。第三に、学習率に付いた <code>log=True</code> に注目してください — これを省くことが最もありがちな探索空間の誤りである理由を3.5節で説明します。</p>
+<h3>枝刈り：見込みのないトライアルを早期に打ち切る</h3>
+<p>BOが減らすのは、評価する設定の<em>数</em>です。<strong>枝刈り（Pruning、途中結果が同じ段階の他のトライアルよりすでに悪い場合に、そのトライアルを早期終了すること）</strong>が減らすのは、<em>1回の評価にかかるコスト</em>です。学習の途中で <code>trial.report(value, step)</code> により中間スコアを定期的に報告すると、<strong>MedianPruner（同じステップにおける過去トライアルの中央値を中間スコアが下回ったトライアルを枝刈りするプルーナー）</strong>などのプルーナーが打ち切るかどうかを判断します。同じ仕組みがsuccessive halvingやHyperbandのプルーナーも駆動しています。</p>
+<h3>コード例6: warm_startを使った勾配ブースティングの枝刈り</h3>
+<p>勾配ブースティングは木を逐次的に学習するため、<code>warm_start=True</code> でアンサンブルを段階的に成長させ、10本の木を追加するごとに検証精度を報告できます。</p>
+<pre><code class="language-python"># 必要要件:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;3.0.0
+# - scikit-learn&gt;=1.3.0
+# - optuna&gt;=3.0.0
+
+"""
+例6: OptunaのMedianPrunerによる見込みのないトライアルの枝刈り
+
+目的: アンサンブルを成長させながら中間検証スコアを報告し、
+      明らかに負けているトライアルをOptunaに打ち切らせる
+対象: 上級者
+実行時間: 約30秒
+依存: NumPy, scikit-learn, Optuna
+"""
+
+import time
+import numpy as np
+import optuna
+from sklearn.datasets import make_classification
+from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.model_selection import train_test_split
+
+optuna.logging.set_verbosity(optuna.logging.WARNING)
+
+X, y = make_classification(n_samples=600, n_features=20, n_informative=8,
+                           n_redundant=6, class_sep=0.8, random_state=42)
+X_train, X_valid, y_train, y_valid = train_test_split(
+    X, y, test_size=0.25, random_state=0, stratify=y)
+
+MAX_STAGES = 30          # アンサンブルを10本ずつ30段階で成長させる
+
+def objective(trial):
+    params = {
+        "learning_rate": trial.suggest_float("learning_rate", 1e-3, 0.3, log=True),
+        "max_depth": trial.suggest_int("max_depth", 2, 6),
+        "subsample": trial.suggest_float("subsample", 0.5, 1.0),
+    }
+    model = GradientBoostingClassifier(n_estimators=10, warm_start=True,
+                                       random_state=0, **params)
+    for stage in range(1, MAX_STAGES + 1):
+        model.n_estimators = stage * 10          # さらに10本の木を追加
+        model.fit(X_train, y_train)              # warm_start で学習を継続
+        acc = model.score(X_valid, y_valid)
+        trial.report(acc, step=stage)            # 中間スコアをOptunaに報告
+        if trial.should_prune():                 # 見込みなし? なら早期終了
+            raise optuna.TrialPruned()
+    return acc
+
+pruner = optuna.pruners.MedianPruner(n_startup_trials=5, n_warmup_steps=5)
+study = optuna.create_study(direction="maximize",
+                            sampler=optuna.samplers.TPESampler(seed=42),
+                            pruner=pruner)
+t0 = time.time()
+study.optimize(objective, n_trials=40)
+elapsed = time.time() - t0
+
+n_pruned = sum(t.state == optuna.trial.TrialState.PRUNED for t in study.trials)
+n_complete = sum(t.state == optuna.trial.TrialState.COMPLETE for t in study.trials)
+
+print("=== Optuna + MedianPruner: 40トライアル ===")
+print(f"完了したトライアル:     {n_complete}")
+print(f"枝刈りされたトライアル: {n_pruned}")
+print(f"最良検証精度: {study.best_value:.4f}")
+print("最良ハイパーパラメータ:")
+for k, v in study.best_params.items():
+    print(f"  {k:14s} = {v:.4f}" if isinstance(v, float) else f"  {k:14s} = {v}")
+print(f"実行時間: {elapsed:.1f} 秒")
+
+# 枝刈りされたトライアルはどれくらい早く止められたか?
+pruned_steps = [t.last_step for t in study.trials
+                if t.state == optuna.trial.TrialState.PRUNED]
+if pruned_steps:
+    print(f"枝刈りされたトライアルは平均で {MAX_STAGES} 段階中 "
+          f"{np.mean(pruned_steps):.1f} 段階で停止")
+</code></pre>
+<p><strong>出力例</strong>:</p>
+<pre><code>=== Optuna + MedianPruner: 40トライアル ===
+完了したトライアル:     23
+枝刈りされたトライアル: 17
+最良検証精度: 0.8267
+最良ハイパーパラメータ:
+  learning_rate  = 0.2760
+  max_depth      = 5
+  subsample      = 0.9914
+実行時間: 18.1 秒
+枝刈りされたトライアルは平均で 30 段階中 5.6 段階で停止
+</code></pre>
+<p>40トライアルのうち17個が、平均して30段階中5.6段階で打ち切られました。枝刈りされた各トライアルが支払ったコストは、フルコストのおよそ5分の1です。「段階」が「エポック」を意味するニューラルネットワークでは、これが一晩で終わるチューニングジョブと終わらないジョブの分かれ目になることが日常的にあります。プルーナーの設定には現実的なトレードオフが込められています。攻めた枝刈り（小さな <code>n_warmup_steps</code>）は計算をより多く節約しますが、スロースターター — 予算をすべて使えば勝っていたはずの、小さな学習率の設定 — を殺してしまう可能性があります。</p>
+<p>ベイズ最適化は、モデル選択・特徴量エンジニアリング・ニューラルアーキテクチャ探索を含む、より大きなAutoMLの構図の一部品です。その全体像については<a href="../automl-introduction/index.html">AutoML入門シリーズ</a>を参照してください。</p>
+<hr/>
+<h2>3.5 探索空間の設計と落とし穴</h2>
+<p>実務では、チューニングの質を決めるのはサンプラーよりも、あなたがサンプラーに与える探索空間です。無駄になる計算のほとんどは、次の4つの問題で説明できます。</p>
+<h3>落とし穴1: スケールフリーなハイパーパラメータへの線形スケール</h3>
+<p>学習率、正則化強度、カーネル幅は<em>乗法的</em>に作用します。0.001から0.01への一歩は、0.01から0.1への一歩と同じくらい重要です。このようなハイパーパラメータは<strong>対数スケール（Log Scale、$\lambda$ ではなく $\log \lambda$ 上で一様にサンプリングすること）</strong>で探索しなければなりません。次の実験では、落とし穴2 — <strong>シード分散</strong> — も定量化します。1つの固定した設定を、10通りの異なる乱数シードで再評価するのです。</p>
+<h3>コード例7: 対数スケールサンプリングとシード分散によるノイズフロア</h3>
+<pre><code class="language-python"># 必要要件:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;3.0.0
+# - scikit-learn&gt;=1.3.0
+
+"""
+例7: 対数スケールサンプリングとシード分散によるノイズフロア
+
+目的: (A) 一様サンプリングと対数一様サンプリングが実際にどこへ落ちるかを示す
+      (B) 1つの設定のCVスコアがシードによってどれだけ変動するかを測る
+対象: 中級〜上級者
+実行時間: 約1分
+依存: NumPy, scikit-learn
+"""
+
+import numpy as np
+from sklearn.datasets import make_classification
+from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.model_selection import cross_val_score, StratifiedKFold
+
+X, y = make_classification(n_samples=600, n_features=20, n_informative=8,
+                           n_redundant=6, class_sep=0.8, random_state=42)
+
+# --- Part A: 学習率の一様サンプリング vs 対数一様サンプリング ---
+rng = np.random.default_rng(0)
+n = 10000
+uniform_samples = rng.uniform(1e-3, 0.3, n)
+log_uniform_samples = 10 ** rng.uniform(np.log10(1e-3), np.log10(0.3), n)
+
+decades = [(1e-3, 1e-2), (1e-2, 1e-1), (1e-1, 0.3)]
+print("=== Part A: サンプルはどこに落ちるか?（10,000サンプル）===")
+print(f"{'範囲':&gt;16s} {'一様':&gt;9s} {'対数一様':&gt;12s}")
+for lo, hi in decades:
+    u = np.mean((uniform_samples &gt;= lo) &amp; (uniform_samples &lt; hi)) * 100
+    g = np.mean((log_uniform_samples &gt;= lo) &amp; (log_uniform_samples &lt; hi)) * 100
+    print(f"[{lo:.3f}, {hi:.3f}) {u:8.1f}% {g:11.1f}%")
+
+# --- Part B: 1つの設定のシード分散 ---
+params = {"n_estimators": 150, "learning_rate": 0.08,
+          "max_depth": 3, "subsample": 0.8}
+scores = []
+for seed in range(10):
+    cv = StratifiedKFold(n_splits=3, shuffle=True, random_state=seed)
+    model = GradientBoostingClassifier(random_state=seed, **params)
+    scores.append(cross_val_score(model, X, y, cv=cv).mean())
+scores = np.array(scores)
+
+print("\n=== Part B: 1つの設定、10通りのシード ===")
+print(f"CV精度: 平均 = {scores.mean():.4f}, 標準偏差 = {scores.std():.4f}")
+print(f"範囲: [{scores.min():.4f}, {scores.max():.4f}] "
+      f"(幅 = {(scores.max() - scores.min()) * 100:.2f}ポイント)")
+print("スコア差がこの幅より小さい2つのトライアルは、信頼できる形では")
+print("区別できません。ノイズの範囲内で同着とみなすべきです。")
+</code></pre>
+<p><strong>出力例</strong>:</p>
+<pre><code>=== Part A: サンプルはどこに落ちるか?（10,000サンプル）===
+              範囲      一様     対数一様
+[0.001, 0.010)      3.0%        38.9%
+[0.010, 0.100)     30.1%        41.9%
+[0.100, 0.300)     66.9%        19.3%
+</code></pre>
+<pre><code>=== Part B: 1つの設定、10通りのシード ===
+CV精度: 平均 = 0.8115, 標準偏差 = 0.0081
+範囲: [0.7967, 0.8217] (幅 = 2.50ポイント)
+スコア差がこの幅より小さい2つのトライアルは、信頼できる形では
+区別できません。ノイズの範囲内で同着とみなすべきです。
+</code></pre>
+<p><strong>Part A</strong>: 一様サンプリングは、サンプルの67%を最上位の桁 $[0.1, 0.3)$ に置き、最下位の桁にはわずか3%しか置きません。最適値が0.005付近にあるなら、一様探索はほとんどそこを見に行かないのです。対数一様サンプリングは予算を各桁にほぼ均等に配分します。Optunaでは、まさにこれを行うのが <code>log=True</code> です。</p>
+<p><strong>Part B</strong>: まったく同じ設定が、乱数シードとフォールドの割り当て以外に何も変えていないのに、0.797から0.822までのどこかのスコアを取ります。この2.5ポイントの幅が、このチューニング設定の<strong>ノイズフロア（noise floor）</strong>です。例5を振り返ってみましょう。デフォルト比4.5ポイントの利得はこのフロアを超えていますが、最良トライアル（0.8433）と、たとえば0.8300の次点との差は超えていません。そうしたトライアルは同着として扱い、よりシンプルな設定を選ぶべきです。シード分散の確認なしに「チューニングしたモデルは精度を0.4ポイント改善した」と報告することは、応用機械学習で最もよくある誤りのひとつです。</p>
+<h3>落とし穴3: 条件付きハイパーパラメータ</h3>
+<p>あるハイパーパラメータは、別のハイパーパラメータが特定の値を取るときにしか存在しません。<code>degree</code> は多項式カーネルのときにだけ意味を持ち、モメンタムはSGDのときにだけ意味を持ちます。無関係なパラメータを無条件に宣言すると、サンプラーはノイズをモデル化させられることになります。Optunaのdefine-by-run APIはこれを自然に処理します。探索空間はただのPython制御フローだからです：</p>
+<pre><code class="language-python">def objective(trial):
+    optimizer = trial.suggest_categorical("optimizer", ["adam", "sgd"])
+    if optimizer == "sgd":
+        # 実際に意味を持つときだけサンプリングされ、学習の対象になる
+        momentum = trial.suggest_float("momentum", 0.5, 0.99)
+</code></pre>
+<h3>落とし穴4: 検証セットへの過学習</h3>
+<p>すべてのトライアルは検証データへの問い合わせです。200トライアルの後、最良スコアの一部は本物の改善ですが、一部はその特定の検証セットにたまたま合っていた幸運です。学習が訓練データに過学習するのとまったく同じように、外側の最適化は<strong>検証セットに過学習</strong>し得るのです。防御策は標準的ですが忘れられがちです：</p>
+<ul>
+<li><strong>チューナーが決して見ないテストセット</strong>を確保し、最終性能はそこでちょうど1回だけ報告する。</li>
+<li>単一の分割ではなく、目的関数の内部で交差検証を使う（例5のように）。各トライアルのスコアのノイズが最初から減ります。</li>
+<li>勝者を宣言する前に、上位数個の設定を新しいシードで再評価する（例7のPart B）。</li>
+</ul>
+<h3>ランダムサーチで十分なのはどんなときか</h3>
+<p>誠実に言えば、BOが常にその複雑さに見合うわけではありません：</p>
+<table>
+<thead>
+<tr>
+<th>状況</th>
+<th>推奨</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>評価が安価（数秒）で並列性が豊富にある</td>
+<td>ランダムサーチ — サンプル効率は問題にならず、自明に並列化できる</td>
+</tr>
+<tr>
+<td>ハイパーパラメータが1〜2個で応答が滑らか</td>
+<td>ランダムサーチ、あるいは粗い手動スイープでも十分</td>
+</tr>
+<tr>
+<td>スコア差がノイズフロアの内側にある</td>
+<td>どの手法も役に立たない — まずノイズを減らす（フォールドやシードを増やす）</td>
+</tr>
+<tr>
+<td>評価が高価（数分〜数時間）でハイパーパラメータが3〜10個</td>
+<td>BO（TPE/GP）+ 枝刈り — 本章のスイートスポット</td>
+</tr>
+<tr>
+<td>非常に高次元、または条件分岐の多い空間</td>
+<td>GPベースのBOよりも、TPE、進化的手法、Hyperband系バンディット</td>
+</tr>
+</tbody>
+</table>
+<p>ベイズ最適化の応用範囲はハイパーパラメータをはるかに超えて広がっています。同じGP + 獲得関数の機構が、化学やプロセス工学における実験計画を駆動しているのです。<a href="../../PI/bayesian-optimization/index.html">プロセスインフォマティクス道場のベイズ最適化シリーズ</a>では、その方向を深く掘り下げています。</p>
+<hr/>
+<h2>3.6 本章のまとめ</h2>
+<h3>学んだこと</h3>
+<ol>
+<li><p><strong>ハイパーパラメータチューニングは高価なブラックボックス最適化である</strong></p>
+<ul>
+<li>勾配なし、評価予算は数十〜数百回、スコアにはノイズが乗る</li>
+<li>現実の目的関数は実効次元が低いため、ランダムサーチはグリッドサーチに勝る（Bergstra–Bengio）</li>
+</ul></li>
+<li><p><strong>ガウス過程は誤差バー付きのサロゲートである</strong></p>
+<ul>
+<li>カーネルが「似た入力は似たスコアを与える」を符号化し、事後分布が $\mu(x)$ と $\sigma(x)$ を閉形式で与える</li>
+<li>観測点では $\sigma \approx 0$、データから離れるほど大きくなる — GPは自分が知らないことを知っている</li>
+</ul></li>
+<li><p><strong>獲得関数が探索と活用の対立を解決する</strong></p>
+<ul>
+<li>EIは改善の確率と大きさの両方を重み付けする。PIとLCB/UCBが主な代替手段</li>
+<li>BOループ — サロゲートを適合、獲得関数を最大化、評価、繰り返し — は、ランダムサーチがはるかに多くの評価を要した1次元の最適値を約9評価で発見した</li>
+</ul></li>
+<li><p><strong>OptunaがBOを実用にする</strong></p>
+<ul>
+<li>TPEは混合型・条件付き空間を扱える。define-by-runにより探索空間はただのPythonコードになる</li>
+<li>枝刈りは、明らかな敗者を早期に打ち切ることで、40トライアル中17個のコストを5分の1に削減した</li>
+</ul></li>
+<li><p><strong>サンプラーよりも探索空間のほうが重要である</strong></p>
+<ul>
+<li>乗法的なハイパーパラメータは対数スケールで。条件付きパラメータは条件付きで宣言する</li>
+<li>シード分散によるノイズフロアを測定し、それより小さい改善を決して信用しない。手つかずのテストセットを確保する</li>
+</ul></li>
+</ol>
+<h3>シリーズのまとめ</h3>
+<p>この章で、『機械学習のための最適化』の3部構成の道のりが完結します。第1章では内側のループ — 何千回もの安価な評価で導関数を活用してモデルを学習させる、勾配ベースの最適化器 — を扱いました。第2章では、評価回数と引き換えに大域的な到達力を得るメタヒューリスティクスによって、勾配の要件を取り除きました。この章では正反対の極端 — 支払える評価回数があまりに少ないため、1回1回を目的関数自体のモデルで選ばなければならない状況 — に取り組みました。この3つのレジーム — 勾配ありで安価、勾配なしで安価、勾配なしで高価 — で、機械学習の実務で出会う最適化問題のほぼすべてをカバーできます。アルゴリズムを選ぶ前に、自分がどのレジームにいるのかを見極めること。それが、このシリーズが残せる最も応用の利くスキルです。</p>
+<hr/>
+<h2>演習問題</h2>
+<h3>問題1（難易度：easy）</h3>
+<p>例2のGP事後分布（同じ5つの観測）を使って、改善確率（PI）と、$\kappa = 2$ の下側信頼限界 $\mu(x) - \kappa\sigma(x)$ を実装してください。各獲得関数が提案する次の評価点を報告し、EIの提案（$x = -0.516$）と比較して、違いを説明してください。</p>
+<details>
+<summary>解答例</summary>
+<pre><code class="language-python"># 必要要件:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;3.0.0
+# - scipy&gt;=1.10.0
+
+import numpy as np
+from scipy.stats import norm
+
+# --- 共通の部品。例2〜3と同一 ---
+def black_box(x):
+    return np.sin(3.0 * x) * 0.8 + 0.3 * x ** 2
+
+def rbf_kernel(A, B, length_scale=0.6, variance=1.0):
+    sq_dists = (A.reshape(-1, 1) - B.reshape(1, -1)) ** 2
+    return variance * np.exp(-0.5 * sq_dists / length_scale ** 2)
+
+def gp_posterior(X_train, y_train, X_test, noise=1e-6,
+                 length_scale=0.6, variance=1.0):
+    K = rbf_kernel(X_train, X_train, length_scale, variance)
+    K += noise * np.eye(len(X_train))
+    K_s = rbf_kernel(X_train, X_test, length_scale, variance)
+    L = np.linalg.cholesky(K)
+    alpha = np.linalg.solve(L.T, np.linalg.solve(L, y_train))
+    mu = K_s.T @ alpha
+    v = np.linalg.solve(L, K_s)
+    K_ss = rbf_kernel(X_test, X_test, length_scale, variance)
+    sigma = np.sqrt(np.clip(np.diag(K_ss - v.T @ v), 0.0, None))
+    return mu, sigma
+
+def expected_improvement(mu, sigma, y_best, xi=0.01):
+    with np.errstate(divide='ignore', invalid='ignore'):
+        z = (y_best - mu - xi) / sigma
+        ei = (y_best - mu - xi) * norm.cdf(z) + sigma * norm.pdf(z)
+        ei[sigma == 0.0] = 0.0
+    return ei
+
+def probability_of_improvement(mu, sigma, y_best, xi=0.01):
+    with np.errstate(divide='ignore', invalid='ignore'):
+        z = (y_best - mu - xi) / sigma
+        pi = norm.cdf(z)
+        pi[sigma == 0.0] = 0.0
+    return pi
+
+def lower_confidence_bound(mu, sigma, kappa=2.0):
+    """最小化の場合: mu - kappa*sigma の最小点を選ぶ。"""
+    return mu - kappa * sigma
+
+X_train = np.array([-1.8, -0.9, 0.0, 0.9, 1.8])
+y_train = black_box(X_train)
+y_best = y_train.min()
+
+X_test = np.linspace(-2.0, 2.0, 400)
+mu, sigma = gp_posterior(X_train, y_train, X_test)
+
+ei = expected_improvement(mu, sigma, y_best)
+pi = probability_of_improvement(mu, sigma, y_best)
+lcb = lower_confidence_bound(mu, sigma)
+
+print("=== 各獲得関数が提案する次の評価点 ===")
+print(f"EI  (xi=0.01):  x = {X_test[ei.argmax()]:+.3f}")
+print(f"PI  (xi=0.01):  x = {X_test[pi.argmax()]:+.3f}")
+print(f"LCB (kappa=2):  x = {X_test[lcb.argmin()]:+.3f}")
+print(f"\nブラックボックスの真の最小点: x = -0.4832")
+</code></pre>
+<p><strong>出力</strong>:</p>
+<pre><code>=== 各獲得関数が提案する次の評価点 ===
+EI  (xi=0.01):  x = -0.516
+PI  (xi=0.01):  x = -0.827
+LCB (kappa=2):  x = -0.476
+
+ブラックボックスの真の最小点: x = -0.4832
+</code></pre>
+<p><strong>解説</strong>: PIは $x = -0.827$、つまり既存の最良観測点 $x = -0.9$ のすぐ隣を提案します。これはPIの既知のバイアスです。高い確実性で $y_{\text{best}}$ よりわずかにだけ良い点は、期待される改善の<em>量</em>がごく小さくても、改善の<em>確率</em>を最大化してしまうのです — PIは活用に偏りすぎます。EI（$-0.516$）とLCB（$-0.476$）はどちらも、最も低い2つの観測値の間の不確実な領域に踏み込みます。潜在的な改善の大きさに報酬を与えるからで、どちらも真の最小点（$-0.483$）の近くに着地します。EIが通常のデフォルトであり、PIが主に歴史的な関心の対象である理由がここにあります。なお、LCBの振る舞いは $\kappa$ に依存します — 問題2でその依存性を定量化します。</p>
+</details>
+<h3>問題2（難易度：medium）</h3>
+<p>例4のBOループのEIをLCB規則（$\mu - \kappa\sigma$ が最小の点を評価する）に置き換え、$\kappa \in \{0.1, 0.5, 2.0, 5.0\}$ のそれぞれについて20回の繰り返し（シード0〜19）を実行してください。各 $\kappa$ について、最良値の平均と最悪値、および評価された異なる点の平均個数を報告し、結果を探索と活用の観点から解釈してください。</p>
+<details>
+<summary>解答例</summary>
+<pre><code class="language-python"># 必要要件:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;3.0.0
+
+import numpy as np
+
+# --- 共通の部品。例2と同一 ---
+def black_box(x):
+    return np.sin(3.0 * x) * 0.8 + 0.3 * x ** 2
+
+def rbf_kernel(A, B, length_scale=0.6, variance=1.0):
+    sq_dists = (A.reshape(-1, 1) - B.reshape(1, -1)) ** 2
+    return variance * np.exp(-0.5 * sq_dists / length_scale ** 2)
+
+def gp_posterior(X_train, y_train, X_test, noise=1e-6,
+                 length_scale=0.6, variance=1.0):
+    K = rbf_kernel(X_train, X_train, length_scale, variance)
+    K += noise * np.eye(len(X_train))
+    K_s = rbf_kernel(X_train, X_test, length_scale, variance)
+    L = np.linalg.cholesky(K)
+    alpha = np.linalg.solve(L.T, np.linalg.solve(L, y_train))
+    mu = K_s.T @ alpha
+    v = np.linalg.solve(L, K_s)
+    K_ss = rbf_kernel(X_test, X_test, length_scale, variance)
+    sigma = np.sqrt(np.clip(np.diag(K_ss - v.T @ v), 0.0, None))
+    return mu, sigma
+
+def bo_with_lcb(kappa, n_init=3, n_iter=12, seed=7):
+    rng = np.random.default_rng(seed)
+    X_cand = np.linspace(-2.0, 2.0, 1000)
+    X_obs = rng.uniform(-2.0, 2.0, n_init)
+    y_obs = black_box(X_obs)
+    for _ in range(n_iter):
+        mu, sigma = gp_posterior(X_obs, y_obs, X_cand)
+        x_next = X_cand[(mu - kappa * sigma).argmin()]
+        X_obs = np.append(X_obs, x_next)
+        y_obs = np.append(y_obs, black_box(x_next))
+    return y_obs.min(), len(np.unique(np.round(X_obs, 2)))
+
+print("=== 異なるkappaでのLCB（20シードの平均）===")
+print(f"{'kappa':&gt;6s} {'mean best f':&gt;12s} {'worst best f':&gt;13s} "
+      f"{'mean distinct x':&gt;16s}")
+for kappa in [0.1, 0.5, 2.0, 5.0]:
+    results = [bo_with_lcb(kappa, seed=s) for s in range(20)]
+    bests = np.array([r[0] for r in results])
+    distinct = np.array([r[1] for r in results])
+    print(f"{kappa:6.1f} {bests.mean():12.4f} {bests.max():13.4f} "
+          f"{distinct.mean():16.1f}")
+print("\n真の最小値: f(-0.4832) = -0.7241")
+</code></pre>
+<p><strong>出力</strong>:</p>
+<pre><code>=== 異なるkappaでのLCB（20シードの平均）===
+ kappa  mean best f  worst best f  mean distinct x
+   0.1      -0.6027       -0.1173              6.3
+   0.5      -0.7241       -0.7240              7.1
+   2.0      -0.7241       -0.7241              8.7
+   5.0      -0.7241       -0.7241             10.2
+
+真の最小値: f(-0.4832) = -0.7241
+</code></pre>
+<p><strong>解説</strong>: $\kappa = 0.1$ では、この規則は事後平均のほぼ純粋な活用になります。15点のうち約6個の異なる点しか評価せず — $\mu$ の（実質的に）同じ最小点を提案し続け — 最悪のシードでは凡庸な領域から抜け出せず、真の $-0.72$ に対して $-0.12$ で終わっています。これはまさに3.3節で述べた視野狭窄の失敗です。$\kappa = 0.5$ 以上では、$\sigma$ ボーナスが十分な探索を強制するため、20シードすべてが大域最小値を見つけます。$\kappa$ をさらに大きくしても、この易しい1次元問題では結果は改善せず、予算のうちより多くを別々の探索的な点に費やすだけです（$\kappa = 5$ で10.2個）。より難しい問題では、非常に大きな $\kappa$ はいずれ活用不足によって害になります。実務的な読み方はこうです。LCBは $\kappa$ の広い中間域でうまく機能しますが、このつまみが存在すること自体 — EIはこれをほぼ回避しています — が主な不便さです。</p>
+</details>
+<h3>問題3（難易度：hard）</h3>
+<p>TPEは実際のチューニング問題でランダムサンプリングに本当に勝つのでしょうか？ 例5のタスクの小さめの変種（サンプル400個、<code>n_estimators</code> を [30, 120]、<code>max_depth</code> を [2, 5]、25トライアル）を使い、Optunaを <code>TPESampler</code> と <code>RandomSampler</code> のそれぞれで3つの異なるシードで実行し、最良CV精度の平均を比較してください。観測された差が、3.5節のノイズフロアの議論に照らして信頼に値するかどうかを論じてください。</p>
+<details>
+<summary>解答例</summary>
+<pre><code class="language-python"># 必要要件:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;3.0.0
+# - scikit-learn&gt;=1.3.0
+# - optuna&gt;=3.0.0
+
+import numpy as np
+import optuna
+from sklearn.datasets import make_classification
+from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.model_selection import cross_val_score
+
+optuna.logging.set_verbosity(optuna.logging.WARNING)
+
+X, y = make_classification(n_samples=400, n_features=20, n_informative=8,
+                           n_redundant=6, class_sep=0.8, random_state=42)
+
+def objective(trial):
+    params = {
+        "n_estimators": trial.suggest_int("n_estimators", 30, 120),
+        "learning_rate": trial.suggest_float("learning_rate", 1e-3, 0.3, log=True),
+        "max_depth": trial.suggest_int("max_depth", 2, 5),
+        "subsample": trial.suggest_float("subsample", 0.5, 1.0),
+    }
+    model = GradientBoostingClassifier(random_state=0, **params)
+    return cross_val_score(model, X, y, cv=3).mean()
+
+def run_study(sampler_cls, seed, n_trials=25):
+    study = optuna.create_study(direction="maximize",
+                                sampler=sampler_cls(seed=seed))
+    study.optimize(objective, n_trials=n_trials)
+    return study.best_value
+
+print("=== TPE vs ランダムサンプラー（各25トライアル、3シード）===")
+results = {}
+for name, cls in [("TPE", optuna.samplers.TPESampler),
+                  ("Random", optuna.samplers.RandomSampler)]:
+    bests = [run_study(cls, seed=s) for s in [0, 1, 2]]
+    results[name] = bests
+    print(f"{name:6s}: 最良値 = "
+          + ", ".join(f"{b:.4f}" for b in bests)
+          + f"  (平均 = {np.mean(bests):.4f})")
+
+diff = np.mean(results["TPE"]) - np.mean(results["Random"])
+print(f"\nTPEの平均的な優位: {diff * 100:+.2f}ポイント")
+</code></pre>
+<p><strong>出力</strong>（実行に約2〜3分）:</p>
+<pre><code>=== TPE vs ランダムサンプラー（各25トライアル、3シード）===
+TPE   : 最良値 = 0.8427, 0.8601, 0.8552  (平均 = 0.8526)
+Random: 最良値 = 0.8427, 0.8376, 0.8401  (平均 = 0.8401)
+
+TPEの平均的な優位: +1.25ポイント
+</code></pre>
+<p><strong>解説</strong>: TPEは平均で1.25精度ポイント勝っており、シードごとに見ても、TPEの最悪の実行（0.8427）がRandomの最良に並んでいます。これは理論と整合的です。10回のランダムなスタートアップトライアルの後、TPEは残り15トライアルを密度比モデルが有望と判断した領域に集中させるのに対し、ランダムサンプリングはトライアルをあらゆる場所に費やし続けます。</p>
+<p>ではこの差は信頼できるのでしょうか？ 部分的にしか信頼できません — そしてそう言えることこそが、この演習の要点です。3つのシードから得られる平均は非常に粗いものです。TPEだけでも実行間のばらつき（0.843〜0.860）が1.25ポイントの差より大きいのです。さらに、報告された各「最良値」はそれ自体、25個のノイズを含むCVスコアの最大値であり、上方に偏っています（3.5節の検証セット過学習の効果です）。この偏りは<em>両方</em>のサンプラーに等しくかかるので比較自体は公平ですが、絶対値はモデルを実際より良く見せています。出版に耐える比較なら、サンプラーごとに10以上のシードを使い、最良値を新しいCVシードで再評価して報告し、シード間で有意性を検定するでしょう。それでも、現実的な予算での方向性を示す知見としては、この結果はより広い文献と一致しています。モデルベースのサンプラーが最も役立つのは、まさにトライアル予算が探索空間の大きさに比べて小さいときなのです。</p>
+</details>
+<hr/>
+<h2>参考文献</h2>
+<ol>
+<li>Bergstra, J., &amp; Bengio, Y. (2012). <em>Random Search for Hyper-Parameter Optimization</em>. Journal of Machine Learning Research, 13, 281-305.</li>
+<li>Bergstra, J., Bardenet, R., Bengio, Y., &amp; Kégl, B. (2011). <em>Algorithms for Hyper-Parameter Optimization</em>. NeurIPS 2011. (TPEの原論文)</li>
+<li>Snoek, J., Larochelle, H., &amp; Adams, R. P. (2012). <em>Practical Bayesian Optimization of Machine Learning Algorithms</em>. NeurIPS 2012.</li>
+<li>Rasmussen, C. E., &amp; Williams, C. K. I. (2006). <em>Gaussian Processes for Machine Learning</em>. MIT Press.</li>
+<li>Frazier, P. I. (2018). <em>A Tutorial on Bayesian Optimization</em>. arXiv:1807.02811.</li>
+<li>Akiba, T., Sano, S., Yanase, T., Ohta, T., &amp; Koyama, M. (2019). <em>Optuna: A Next-generation Hyperparameter Optimization Framework</em>. KDD 2019.</li>
+<li>Feurer, M., &amp; Hutter, F. (2019). <em>Hyperparameter Optimization</em>. In: Automated Machine Learning, Springer, 3-33.</li>
+</ol>
+<div class="navigation">
+<a class="nav-button" href="chapter2-metaheuristics.html">← 第2章：メタヒューリスティクス最適化</a>
+<a class="nav-button" href="index.html">シリーズ目次 →</a>
+</div>
+</main>
+<section class="disclaimer">
+<h3>免責事項</h3>
+<ul>
+<li>本コンテンツは教育・研究・情報提供のみを目的としており、専門的な助言（法律・会計・技術的保証など）を提供するものではありません。</li>
+<li>本コンテンツおよび付随するコード例は「現状有姿（AS IS）」で提供され、明示または黙示を問わず、商品性、特定目的適合性、権利非侵害、正確性・完全性、動作・安全性等いかなる保証もしません。</li>
+<li>外部リンク、第三者が提供するデータ・ツール・ライブラリ等の内容・可用性・安全性について、作成者および東北大学は一切の責任を負いません。</li>
+<li>本コンテンツの利用・実行・解釈により直接的・間接的・付随的・特別・結果的・懲罰的損害が生じた場合でも、適用法で許容される最大限の範囲で、作成者および東北大学は責任を負いません。</li>
+<li>本コンテンツの内容は、予告なく変更・更新・提供停止されることがあります。</li>
+<li>本コンテンツの著作権・ライセンスは明記された条件（例: CC BY 4.0）に従います。当該ライセンスは通常、無保証条項を含みます。</li>
+</ul>
+</section>
+<footer>
+<p><strong>作成者</strong>: AI Terakoya Content Team</p>
+<p><strong>バージョン</strong>: 1.0 | <strong>作成日</strong>: 2026-07-08</p>
+<p><strong>ライセンス</strong>: Creative Commons BY 4.0</p>
+<p>© 2025 AI Terakoya. All rights reserved.</p>
+</footer>
+</body>
+</html>
