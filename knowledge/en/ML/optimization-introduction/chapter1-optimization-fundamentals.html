@@ -1,0 +1,1229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="Chapter 1: Optimization Fundamentals - AI Terakoya" name="description"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chapter 1: Optimization Fundamentals - AI Terakoya</title>
+<link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+<script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+<!-- MathJax for LaTeX equation rendering -->
+<script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+<script async="" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<nav class="breadcrumb">
+<div class="breadcrumb-content">
+<a href="../../index.html">AI Terakoya Top</a><span class="breadcrumb-separator">›</span><a href="../index.html">Machine Learning</a><span class="breadcrumb-separator">›</span><a href="index.html">Optimization for Machine Learning</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 1</span>
+</div>
+</nav><div class="locale-switcher">
+<span class="current-locale">🌐 EN</span>
+<span class="locale-separator">|</span>
+<span class="locale-link disabled">日本語 (準備中)</span>
+<span class="locale-meta">Last sync: 2026-07-08</span>
+</div>
+<header>
+<div class="header-content">
+<h1>Chapter 1: Optimization Fundamentals</h1>
+<p class="subtitle">From Loss Landscapes to Adam - Understanding How Machine Learning Models Actually Learn</p>
+<div class="meta">
+<span class="meta-item">📖 Reading Time: 25-30 minutes</span>
+<span class="meta-item">📊 Difficulty: Beginner-Intermediate</span>
+<span class="meta-item">💻 Code Examples: 7</span>
+<span class="meta-item">📝 Exercises: 3</span>
+</div>
+</div>
+</header>
+<main class="container">
+
+<p class="chapter-description">This chapter builds the foundation for the entire series. You will learn what "optimization" means in machine learning, why the shape of the loss landscape matters, and how the family of gradient-based optimizers — from plain gradient descent to Adam — actually works. Every algorithm is implemented from scratch with NumPy so you can see exactly what happens at each update step.</p>
+<h2>Learning Objectives</h2>
+<p>By completing this chapter, you will master the following:</p>
+<ul>
+<li>✅ Understand what optimization means in machine learning: minimizing a loss function over parameters</li>
+<li>✅ Distinguish convex from non-convex loss landscapes, and explain local minima and saddle points</li>
+<li>✅ Implement gradient descent from scratch and visualize its trajectory on 2D test functions</li>
+<li>✅ Explain the differences between SGD, momentum, RMSProp, and Adam, including their update rules</li>
+<li>✅ Choose and implement learning-rate schedules (step decay, cosine annealing, warmup)</li>
+</ul>
+<hr/>
+<h2>1.1 What is Optimization in Machine Learning?</h2>
+<h3>Learning is Minimization</h3>
+<p>Every time a machine learning model "learns", the same mathematical event takes place: a computer searches for parameter values that make a <strong>loss function (a numerical score of how wrong the model's predictions are)</strong> as small as possible. Training a neural network, fitting a regression line, and tuning a recommendation system are all instances of the same problem:</p>
+<p>$$
+\theta^* = \arg\min_\theta \mathcal{L}(\theta)
+$$</p>
+<ul>
+<li>$\theta$: the <strong>parameters (the adjustable numbers inside the model, such as weights and biases)</strong></li>
+<li>$\mathcal{L}(\theta)$: the loss function, which maps a parameter setting to a single number measuring prediction error</li>
+<li>$\theta^*$: the <strong>optimal parameters</strong> — the setting that achieves the smallest loss</li>
+<li>$\arg\min$: "the argument that minimizes" — we want the location of the minimum, not just its value</li>
+</ul>
+<p>This framing may feel abstract at first, so let us make it concrete with the simplest possible model: a straight line $\hat{y} = w x + b$ fitted to noisy data. Here $\theta = (w, b)$, and a natural loss is the <strong>mean squared error (MSE, the average of the squared differences between predictions and true values)</strong>:</p>
+<p>$$
+\mathcal{L}(w, b) = \frac{1}{N} \sum_{i=1}^{N} \left( w x_i + b - y_i \right)^2
+$$</p>
+<h3>The Parameter Space</h3>
+<p>Because $\theta = (w, b)$ has two components, we can picture $\mathcal{L}$ as a surface over a 2D plane: every point $(w, b)$ has a height equal to its loss. Optimization is the search for the lowest point of this surface. In deep learning the same picture holds, except the "plane" has millions of dimensions — we can no longer draw it, but the mathematics is identical.</p>
+<h3>Three Components of Every Optimization Problem</h3>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Meaning</th>
+<th>Example (linear regression)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Decision variables</strong></td>
+<td>What we are allowed to change</td>
+<td>$w$ and $b$</td>
+</tr>
+<tr>
+<td><strong>Objective function</strong></td>
+<td>The number we want to minimize (or maximize)</td>
+<td>MSE loss $\mathcal{L}(w, b)$</td>
+</tr>
+<tr>
+<td><strong>Constraints</strong></td>
+<td>Rules the variables must obey (often none in basic ML)</td>
+<td>Unconstrained: any real $w, b$</td>
+</tr>
+</tbody>
+</table>
+<h3>Code Example 1: Evaluating a Loss Surface</h3>
+<p>Let us generate synthetic data and evaluate the MSE loss over a grid of $(w, b)$ values. Seeing the loss as a lookup table over parameters is the single most useful mental model in this series.</p>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;3.0.0
+
+"""
+Example 1: Evaluating an MSE loss surface over a parameter grid
+
+Purpose: Show that a loss function assigns one number to every
+         parameter setting, and that "training" = finding the lowest one
+Target: Beginner
+Execution time: under 5 seconds
+Dependencies: NumPy only
+"""
+
+import numpy as np
+
+# --- Synthetic data: y = 2x + 1 plus noise ---
+rng = np.random.default_rng(42)
+x_data = rng.uniform(-3, 3, 50)
+y_data = 2.0 * x_data + 1.0 + rng.normal(0, 0.5, 50)
+
+def mse_loss(w, b, x, y):
+    """Mean squared error of the line y_hat = w*x + b."""
+    y_pred = w * x + b
+    return np.mean((y_pred - y) ** 2)
+
+# --- Evaluate the loss on a grid of (w, b) values ---
+w_grid = np.linspace(-1.0, 5.0, 121)
+b_grid = np.linspace(-2.0, 4.0, 121)
+loss_surface = np.zeros((len(b_grid), len(w_grid)))
+
+for i, b in enumerate(b_grid):
+    for j, w in enumerate(w_grid):
+        loss_surface[i, j] = mse_loss(w, b, x_data, y_data)
+
+# --- Locate the lowest point on the grid ---
+i_min, j_min = np.unravel_index(np.argmin(loss_surface), loss_surface.shape)
+print("=== Loss Surface Analysis ===")
+print(f"Grid size: {loss_surface.shape[0]} x {loss_surface.shape[1]} "
+      f"= {loss_surface.size} loss evaluations")
+print(f"Best grid point: w = {w_grid[j_min]:.2f}, b = {b_grid[i_min]:.2f}")
+print(f"Loss at best grid point: {loss_surface[i_min, j_min]:.4f}")
+print(f"Loss at true parameters (w=2, b=1): {mse_loss(2.0, 1.0, x_data, y_data):.4f}")
+print(f"Loss at a bad guess (w=-1, b=-2):   {mse_loss(-1.0, -2.0, x_data, y_data):.4f}")
+</code></pre>
+<p><strong>Sample Output</strong>:</p>
+<pre><code>=== Loss Surface Analysis ===
+Grid size: 121 x 121 = 14641 loss evaluations
+Best grid point: w = 2.00, b = 0.90
+Loss at best grid point: 0.1439
+Loss at true parameters (w=2, b=1): 0.1506
+Loss at a bad guess (w=-1, b=-2):   37.9308
+</code></pre>
+<p>Notice that the best grid point ($b = 0.90$) is not exactly the true value ($b = 1.0$): the noise in this particular sample of 50 points shifts the empirical minimum slightly. This is expected behavior, not a bug.</p>
+<p>Two important observations follow from this experiment:</p>
+<ol>
+<li><strong>Grid search does not scale.</strong> With 2 parameters and 121 values each, we needed 14,641 evaluations. A model with just 10 parameters would need $121^{10} \approx 6.7 \times 10^{20}$ — completely infeasible. Modern networks have millions of parameters, so we need a smarter search strategy. That strategy is <strong>gradient descent</strong>, coming in Section 1.3.</li>
+<li><strong>The minimum loss is not zero.</strong> Because the data contains noise, even the true parameters cannot fit it perfectly. This is normal and healthy — a loss of exactly zero on noisy data usually signals <strong>overfitting (memorizing noise instead of learning the pattern)</strong>.</li>
+</ol>
+<hr/>
+<h2>1.2 Convexity and Loss Landscapes</h2>
+<h3>Why the Shape of the Loss Matters</h3>
+<p>Whether optimization is easy or hard depends almost entirely on the <strong>loss landscape (the shape of the loss function viewed as a surface over parameter space)</strong>. The key property is <strong>convexity</strong>.</p>
+<p>A function $f$ is <strong>convex</strong> if the line segment between any two points on its graph never dips below the graph. Formally, for all $x, y$ and all $\lambda \in [0, 1]$:</p>
+<p>$$
+f(\lambda x + (1 - \lambda) y) \;\leq\; \lambda f(x) + (1 - \lambda) f(y)
+$$</p>
+<p>Intuitively, a convex function is bowl-shaped. This gives an enormous practical guarantee:</p>
+<blockquote>
+<p><strong>For a convex function, every local minimum is a global minimum.</strong> If you keep walking downhill, you cannot get trapped in a wrong valley — there is only one valley.</p>
+</blockquote>
+<h3>Convex vs Non-Convex in Machine Learning</h3>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Convex</th>
+<th>Non-convex</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Shape</strong></td>
+<td>Single bowl</td>
+<td>Multiple valleys, ridges, plateaus</td>
+</tr>
+<tr>
+<td><strong>Local minima</strong></td>
+<td>All are global</td>
+<td>Can be many, possibly poor</td>
+</tr>
+<tr>
+<td><strong>Guarantee</strong></td>
+<td>Gradient descent finds the global optimum</td>
+<td>Only a local optimum (or saddle) is guaranteed</td>
+</tr>
+<tr>
+<td><strong>ML examples</strong></td>
+<td>Linear regression (MSE), logistic regression, SVM</td>
+<td>Neural networks of any depth</td>
+</tr>
+</tbody>
+</table>
+<h3>Local Minima and Saddle Points</h3>
+<p>Two kinds of "flat spots" (points where the gradient is zero) can stall an optimizer in non-convex landscapes:</p>
+<ul>
+<li><strong>Local minimum</strong>: a point lower than all its neighbors, but possibly higher than the global minimum elsewhere. The optimizer stops here because every direction goes uphill.</li>
+<li><strong>Saddle point</strong>: a point that is a minimum along some directions and a maximum along others — like the center of a horse saddle. The gradient is zero, yet the point is not a minimum at all. In high-dimensional spaces, saddle points vastly outnumber local minima, and escaping them is a central concern in deep learning. The noise in stochastic gradient descent (Section 1.4) turns out to help here.</li>
+</ul>
+<div class="mermaid">
+graph LR
+    A[Zero-gradient point] --&gt; B{Curvature in all directions?}
+    B --&gt;|All upward| C[Local minimum]
+    B --&gt;|All downward| D[Local maximum]
+    B --&gt;|Mixed| E[Saddle point]
+    C --&gt;|Lowest of all valleys| F[Global minimum]
+
+    style C fill:#e3f2fd
+    style E fill:#fff3e0
+    style F fill:#e8f5e9
+</div>
+<h3>Code Example 2: Visualizing Convex, Non-Convex, and Saddle Landscapes</h3>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;3.0.0
+# - matplotlib&gt;=3.7.0
+
+"""
+Example 2: Convex vs non-convex functions and a saddle point
+
+Purpose: Visualize why non-convex landscapes are harder to optimize
+Target: Beginner
+Execution time: under 10 seconds
+Dependencies: NumPy, Matplotlib
+"""
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+x = np.linspace(-2.5, 2.5, 400)
+convex = x ** 2                          # single bowl
+nonconvex = x ** 4 - 3 * x ** 2 + x      # two valleys of different depth
+
+# --- Find discrete local minima of the non-convex curve ---
+is_local_min = np.logical_and(nonconvex[1:-1] &lt;= nonconvex[:-2],
+                              nonconvex[1:-1] &lt;= nonconvex[2:])
+min_idx = np.where(is_local_min)[0] + 1
+
+fig, axes = plt.subplots(1, 3, figsize=(15, 4))
+
+axes[0].plot(x, convex, color='tab:blue')
+axes[0].set_title('Convex: $f(x) = x^2$\n(one valley, easy)')
+axes[0].set_xlabel('x')
+axes[0].set_ylabel('f(x)')
+
+axes[1].plot(x, nonconvex, color='tab:orange')
+axes[1].scatter(x[min_idx], nonconvex[min_idx], color='red', zorder=3,
+                label='local minima')
+axes[1].set_title('Non-convex: $f(x) = x^4 - 3x^2 + x$\n(two valleys, one is a trap)')
+axes[1].set_xlabel('x')
+axes[1].legend()
+
+# --- Saddle: z = x^2 - y^2 (minimum along x, maximum along y) ---
+xx, yy = np.meshgrid(np.linspace(-2, 2, 200), np.linspace(-2, 2, 200))
+zz = xx ** 2 - yy ** 2
+cs = axes[2].contour(xx, yy, zz, levels=15, cmap='coolwarm')
+axes[2].scatter([0], [0], color='black', zorder=3, label='saddle at (0, 0)')
+axes[2].set_title('Saddle: $f(x, y) = x^2 - y^2$\n(gradient is zero, but not a minimum)')
+axes[2].set_xlabel('x')
+axes[2].set_ylabel('y')
+axes[2].legend()
+
+plt.tight_layout()
+plt.savefig('landscapes.png', dpi=110)
+plt.close()
+
+print("=== Local Minima of the Non-Convex Function ===")
+for i in min_idx:
+    print(f"x = {x[i]:+.3f}, f(x) = {nonconvex[i]:+.3f}")
+print("The deeper valley is the global minimum; the shallower one is a trap.")
+print("Figure saved to landscapes.png")
+</code></pre>
+<p><strong>Sample Output</strong>:</p>
+<pre><code>=== Local Minima of the Non-Convex Function ===
+x = -1.297, f(x) = -3.514
+x = +1.134, f(x) = -1.070
+The deeper valley is the global minimum; the shallower one is a trap.
+Figure saved to landscapes.png
+</code></pre>
+<p>A gradient-based optimizer started at $x = 2$ will slide into the shallow right valley at $x \approx 1.13$ and stay there, never discovering the deeper valley at $x \approx -1.30$. This is the fundamental limitation of purely local methods — and the motivation for the <strong>metaheuristic methods</strong> in Chapter 2 and <strong>Bayesian optimization</strong> in Chapter 3, which are designed to search globally.</p>
+<p>You might reasonably worry that deep learning is doomed, since neural network losses are highly non-convex. In practice, research has shown that in very high-dimensional landscapes most local minima reachable by SGD have similarly good loss values, so "getting trapped" is less catastrophic than the 1D picture suggests. Still, understanding the geometry is essential for diagnosing training problems.</p>
+<hr/>
+<h2>1.3 Gradient Descent from Scratch</h2>
+<h3>The Core Idea</h3>
+<p>The <strong>gradient (the vector of partial derivatives $\nabla \mathcal{L}(\theta)$, which points in the direction of steepest increase of the loss)</strong> gives us exactly what grid search lacked: a local compass. To decrease the loss, step in the <em>opposite</em> direction of the gradient:</p>
+<p>$$
+\theta_{t+1} = \theta_t - \eta \, \nabla \mathcal{L}(\theta_t)
+$$</p>
+<ul>
+<li>$\theta_t$: parameters at step $t$</li>
+<li>$\eta$ (eta): the <strong>learning rate (the step size — how far we move per update)</strong></li>
+<li>$\nabla \mathcal{L}(\theta_t)$: gradient of the loss at the current parameters</li>
+</ul>
+<p>The learning rate is the single most important hyperparameter in this entire series:</p>
+<table>
+<thead>
+<tr>
+<th>Learning rate</th>
+<th>Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Too small</strong></td>
+<td>Converges, but painfully slowly — thousands of tiny steps</td>
+</tr>
+<tr>
+<td><strong>Well chosen</strong></td>
+<td>Fast, stable descent to a minimum</td>
+</tr>
+<tr>
+<td><strong>Too large</strong></td>
+<td>Overshoots the valley, oscillates, or diverges to infinity</td>
+</tr>
+</tbody>
+</table>
+<h3>Two Test Functions</h3>
+<p>We will exercise our implementation on two classic 2D test functions:</p>
+<ol>
+<li><strong>Ill-conditioned quadratic</strong>: $f(x, y) = x^2 + 10 y^2$. Convex, but the valley is 10 times steeper in $y$ than in $x$. This mismatch of curvatures — called <strong>ill-conditioning</strong> — forces a small learning rate and causes zigzagging.</li>
+<li><strong>Rosenbrock function</strong>: $f(x, y) = (1 - x)^2 + 100 (y - x^2)^2$. A famous benchmark with a narrow, curved, banana-shaped valley. The global minimum is at $(1, 1)$. Gradient descent finds the valley quickly but then crawls along it very slowly — an honest preview of why we will need momentum and adaptive methods.</li>
+</ol>
+<h3>Code Example 3: Gradient Descent with Trajectory Visualization</h3>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;3.0.0
+# - matplotlib&gt;=3.7.0
+
+"""
+Example 3: Gradient descent from scratch on a quadratic and Rosenbrock
+
+Purpose: Implement the update rule theta = theta - lr * grad and
+         visualize the optimization path on contour plots
+Target: Beginner-Intermediate
+Execution time: 10-20 seconds
+Dependencies: NumPy, Matplotlib
+"""
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+# --- Test function 1: ill-conditioned quadratic ---
+def quad(p):
+    x, y = p
+    return x ** 2 + 10 * y ** 2
+
+def quad_grad(p):
+    x, y = p
+    return np.array([2 * x, 20 * y])
+
+# --- Test function 2: Rosenbrock ---
+def rosenbrock(p):
+    x, y = p
+    return (1 - x) ** 2 + 100 * (y - x ** 2) ** 2
+
+def rosenbrock_grad(p):
+    x, y = p
+    return np.array([-2 * (1 - x) - 400 * x * (y - x ** 2),
+                     200 * (y - x ** 2)])
+
+def gradient_descent(grad_fn, p0, lr, n_steps):
+    """Plain gradient descent. Returns the full path of visited points."""
+    p = np.array(p0, dtype=float)
+    path = [p.copy()]
+    for _ in range(n_steps):
+        p = p - lr * grad_fn(p)
+        path.append(p.copy())
+    return np.array(path)
+
+# --- Run on the quadratic (note: lr must satisfy lr &lt; 2/20 = 0.1 to converge) ---
+path_quad = gradient_descent(quad_grad, p0=(-9.0, 2.5), lr=0.09, n_steps=60)
+
+# --- Run on Rosenbrock (steep walls force a tiny learning rate) ---
+path_rosen = gradient_descent(rosenbrock_grad, p0=(-1.0, 1.0), lr=0.001,
+                              n_steps=2000)
+
+# --- Contour plots with trajectories ---
+fig, axes = plt.subplots(1, 2, figsize=(13, 5))
+
+gx, gy = np.meshgrid(np.linspace(-10, 10, 300), np.linspace(-4, 4, 300))
+axes[0].contour(gx, gy, gx ** 2 + 10 * gy ** 2, levels=25, cmap='viridis')
+axes[0].plot(path_quad[:, 0], path_quad[:, 1], 'r.-', linewidth=1,
+             markersize=3, label='GD path')
+axes[0].scatter([0], [0], marker='*', s=180, color='gold',
+                edgecolor='black', zorder=3, label='minimum (0, 0)')
+axes[0].set_title('Quadratic $x^2 + 10y^2$: zigzag from ill-conditioning')
+axes[0].legend()
+
+rx, ry = np.meshgrid(np.linspace(-1.6, 1.6, 300), np.linspace(-0.6, 1.6, 300))
+rz = (1 - rx) ** 2 + 100 * (ry - rx ** 2) ** 2
+axes[1].contour(rx, ry, rz, levels=np.logspace(-1, 3, 20), cmap='viridis')
+axes[1].plot(path_rosen[::20, 0], path_rosen[::20, 1], 'r.-',
+             linewidth=1, markersize=3, label='GD path (every 20th step)')
+axes[1].scatter([1], [1], marker='*', s=180, color='gold',
+                edgecolor='black', zorder=3, label='minimum (1, 1)')
+axes[1].set_title('Rosenbrock: fast into the valley, slow along it')
+axes[1].legend()
+
+plt.tight_layout()
+plt.savefig('gradient_descent_paths.png', dpi=110)
+plt.close()
+
+print("=== Gradient Descent Results ===")
+print(f"Quadratic:  start loss = {quad(path_quad[0]):9.4f}, "
+      f"final loss = {quad(path_quad[-1]):.2e} after {len(path_quad) - 1} steps")
+print(f"Rosenbrock: start loss = {rosenbrock(path_rosen[0]):9.4f}, "
+      f"final loss = {rosenbrock(path_rosen[-1]):.2e} after {len(path_rosen) - 1} steps")
+print(f"Rosenbrock final point: ({path_rosen[-1][0]:.4f}, {path_rosen[-1][1]:.4f})"
+      f"  (true minimum is (1, 1))")
+print("Figure saved to gradient_descent_paths.png")
+</code></pre>
+<p><strong>Sample Output</strong>:</p>
+<pre><code>=== Gradient Descent Results ===
+Quadratic:  start loss =  143.5000, final loss = 3.83e-09 after 60 steps
+Rosenbrock: start loss =    4.0000, final loss = 7.42e-02 after 2000 steps
+Rosenbrock final point: (0.7279, 0.5286)  (true minimum is (1, 1))
+</code></pre>
+<p>Study the two panels carefully — they summarize the two chronic diseases of plain gradient descent:</p>
+<ol>
+<li><strong>Zigzagging on ill-conditioned problems.</strong> On the quadratic, the path bounces across the narrow axis while creeping along the shallow one. The learning rate is capped by the steepest direction ($\eta \lt 2/20 = 0.1$ here), so progress in the shallow direction is slow.</li>
+<li><strong>Crawling along curved valleys.</strong> On Rosenbrock, 2,000 steps leave us far from the minimum (loss still 0.074). The gradient along the valley floor is tiny, so each step barely moves — reaching the minimum takes roughly 20,000 steps at this learning rate, and the rate cannot be raised because the steep valley walls would cause divergence.</li>
+</ol>
+<p>Both diseases are treated by the optimizers in Section 1.5. But first, we must confront a practical issue: computing the exact gradient over a huge dataset is expensive.</p>
+<hr/>
+<h2>1.4 Stochastic Gradient Descent and Mini-Batching</h2>
+<h3>The Cost Problem</h3>
+<p>In machine learning the loss is an average over $N$ training examples: $\mathcal{L}(\theta) = \frac{1}{N} \sum_{i=1}^{N} \ell_i(\theta)$, where $\ell_i$ is the loss on example $i$. Computing the exact ("full-batch") gradient touches all $N$ examples per step. With millions of examples, that is prohibitively slow.</p>
+<p><strong>Stochastic gradient descent (SGD, gradient descent using a small random subset of the data to estimate the gradient at each step)</strong> solves this by replacing the exact gradient with an estimate from a <strong>mini-batch (a small random subset of $B$ training examples)</strong>:</p>
+<p>$$
+\theta_{t+1} = \theta_t - \eta \cdot \frac{1}{B} \sum_{i \in \text{batch}} \nabla \ell_i(\theta_t)
+$$</p>
+<h3>The Variance / Noise Trade-off</h3>
+<p>The mini-batch gradient is an <strong>unbiased estimator (on average over random batches it equals the true gradient)</strong>, but any single batch gives a noisy estimate. The batch size $B$ controls a fundamental trade-off:</p>
+<table>
+<thead>
+<tr>
+<th>Batch size</th>
+<th>Gradient noise</th>
+<th>Cost per update</th>
+<th>Character</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>$B = N$ (full batch)</td>
+<td>None (exact)</td>
+<td>Highest</td>
+<td>Smooth path, few updates per pass over the data</td>
+</tr>
+<tr>
+<td>$B = 32$–$256$ (mini-batch)</td>
+<td>Moderate</td>
+<td>Low</td>
+<td>The practical sweet spot in deep learning</td>
+</tr>
+<tr>
+<td>$B = 1$ (pure stochastic)</td>
+<td>Highest</td>
+<td>Lowest</td>
+<td>Very noisy path; loss jumps around a noise floor</td>
+</tr>
+</tbody>
+</table>
+<p>The variance of the gradient estimate scales roughly as $1/B$: quadrupling the batch size halves the noise standard deviation. Interestingly, some noise is <em>beneficial</em> in non-convex landscapes — it can kick the optimizer out of saddle points and shallow local minima. This is one reason SGD generalizes well in deep learning.</p>
+<p>One more term you will meet constantly: an <strong>epoch (one complete pass through the entire training dataset)</strong>. With $N = 200$ examples and $B = 32$, one epoch consists of $\lceil 200 / 32 \rceil = 7$ update steps.</p>
+<h3>Code Example 4: Batch vs Mini-Batch vs Stochastic on Linear Regression</h3>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;3.0.0
+# - matplotlib&gt;=3.7.0
+
+"""
+Example 4: Comparing batch, mini-batch, and stochastic gradient descent
+
+Purpose: Show the noise/cost trade-off controlled by batch size on a
+         synthetic linear regression problem
+Target: Beginner-Intermediate
+Execution time: 10-20 seconds
+Dependencies: NumPy, Matplotlib
+"""
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+# --- Synthetic regression data: y = 3x - 1.5 + noise ---
+rng = np.random.default_rng(0)
+n_samples = 200
+X = rng.uniform(-2, 2, n_samples)
+y = 3.0 * X - 1.5 + rng.normal(0, 0.5, n_samples)
+
+def predict(theta, x):
+    return theta[0] * x + theta[1]           # theta = [w, b]
+
+def full_loss(theta):
+    return 0.5 * np.mean((predict(theta, X) - y) ** 2)
+
+def batch_grad(theta, idx):
+    """Gradient of the loss computed on the examples in idx."""
+    err = predict(theta, X[idx]) - y[idx]
+    return np.array([np.mean(err * X[idx]), np.mean(err)])
+
+def train(batch_size, lr=0.1, n_epochs=40, seed=1):
+    """Train with the given batch size; record full-data loss each epoch."""
+    local_rng = np.random.default_rng(seed)
+    theta = np.zeros(2)
+    history = [full_loss(theta)]
+    n_updates = 0
+    for _ in range(n_epochs):
+        perm = local_rng.permutation(n_samples)
+        for start in range(0, n_samples, batch_size):
+            idx = perm[start:start + batch_size]
+            theta = theta - lr * batch_grad(theta, idx)
+            n_updates += 1
+        history.append(full_loss(theta))
+    return theta, np.array(history), n_updates
+
+configs = [("Full batch (B=200)", n_samples),
+           ("Mini-batch (B=32)", 32),
+           ("Stochastic (B=1)", 1)]
+
+print("=== Batch Size Comparison (40 epochs, lr=0.1) ===")
+plt.figure(figsize=(8, 5))
+for label, B in configs:
+    theta, history, n_updates = train(batch_size=B)
+    plt.semilogy(history, label=label)
+    print(f"{label:22s} final loss = {history[-1]:.5f}, "
+          f"w = {theta[0]:.3f}, b = {theta[1]:.3f}, updates = {n_updates}")
+
+plt.xlabel('Epoch')
+plt.ylabel('Full-data loss (log scale)')
+plt.title('Effect of batch size on convergence')
+plt.legend()
+plt.tight_layout()
+plt.savefig('batch_size_comparison.png', dpi=110)
+plt.close()
+print("True parameters: w = 3.000, b = -1.500")
+print("Figure saved to batch_size_comparison.png")
+</code></pre>
+<p><strong>Sample Output</strong>:</p>
+<pre><code>=== Batch Size Comparison (40 epochs, lr=0.1) ===
+Full batch (B=200)     final loss = 0.13114, w = 2.953, b = -1.500, updates = 40
+Mini-batch (B=32)      final loss = 0.13078, w = 2.982, b = -1.569, updates = 280
+Stochastic (B=1)       final loss = 0.13778, w = 3.056, b = -1.616, updates = 8000
+</code></pre>
+<p>Read the three curves in the saved figure together with the update counts:</p>
+<ul>
+<li><strong>Full batch</strong> descends smoothly but makes only 1 update per epoch — on large datasets each of those updates is very expensive.</li>
+<li><strong>Mini-batch</strong> reaches essentially the same loss with 7 cheap updates per epoch, converging in far less wall-clock time on real problems. This is why $B$ in the tens-to-hundreds range is the default everywhere.</li>
+<li><strong>Stochastic ($B=1$)</strong> makes rapid early progress but then rattles around a noise floor: with a constant learning rate, the parameter never settles because every single-example gradient yanks it in a different direction. Reducing $\eta$ over time fixes this — precisely the topic of Section 1.6.</li>
+</ul>
+<hr/>
+<h2>1.5 Momentum, RMSProp, and Adam</h2>
+<p>We now treat the two diseases diagnosed in Section 1.3. Each modern optimizer adds a small amount of per-parameter memory to the plain SGD update.</p>
+<h3>Momentum: A Heavy Ball Rolling Downhill</h3>
+<p><strong>Momentum (an exponentially decaying moving average of past gradients, used as the update direction)</strong> treats the parameter vector like a heavy ball: gradients act as forces, and velocity accumulates.</p>
+<p>$$
+\begin{aligned}
+v_{t+1} &amp;= \gamma \, v_t + \eta \, \nabla \mathcal{L}(\theta_t) \\
+\theta_{t+1} &amp;= \theta_t - v_{t+1}
+\end{aligned}
+$$</p>
+<ul>
+<li>$v$: the velocity vector (initialized to zero)</li>
+<li>$\gamma$ (gamma): the momentum coefficient, typically $0.9$ — how much past velocity is retained</li>
+</ul>
+<p>Why it helps: along a consistent downhill direction (the valley floor) the velocity keeps growing, up to $1/(1-\gamma) = 10\times$ the plain step. Across the valley (the zigzag direction) successive gradients point in opposite directions and cancel inside $v$. Momentum therefore accelerates the slow direction <em>and</em> damps the oscillation — attacking both diseases at once.</p>
+<h3>RMSProp: A Per-Parameter Learning Rate</h3>
+<p><strong>RMSProp (Root Mean Square Propagation, an adaptive method that divides each parameter's step by a running estimate of its typical gradient magnitude)</strong> keeps an exponential moving average of squared gradients:</p>
+<p>$$
+\begin{aligned}
+s_{t+1} &amp;= \rho \, s_t + (1 - \rho) \, \big(\nabla \mathcal{L}(\theta_t)\big)^2 \\
+\theta_{t+1} &amp;= \theta_t - \frac{\eta}{\sqrt{s_{t+1}} + \epsilon} \, \nabla \mathcal{L}(\theta_t)
+\end{aligned}
+$$</p>
+<ul>
+<li>$s$: running average of squared gradients, element-wise (initialized to zero)</li>
+<li>$\rho$ (rho): decay rate, typically $0.9$</li>
+<li>$\epsilon$: a tiny constant (e.g., $10^{-8}$) that prevents division by zero</li>
+<li>All operations are element-wise: each parameter gets its own effective learning rate</li>
+</ul>
+<p>Parameters with persistently large gradients (steep directions) get their steps shrunk; parameters with small gradients (shallow directions) get relatively larger steps. This directly fixes ill-conditioning without hand-tuning $\eta$ per direction.</p>
+<h3>Adam: Momentum + RMSProp + Bias Correction</h3>
+<p><strong>Adam (Adaptive Moment Estimation)</strong> combines both ideas. It tracks the first moment $m$ (mean of gradients, like momentum) and the second moment $v$ (mean of squared gradients, like RMSProp), and corrects the startup bias caused by initializing both at zero:</p>
+<p>$$
+\begin{aligned}
+m_{t+1} &amp;= \beta_1 m_t + (1 - \beta_1) \nabla \mathcal{L}(\theta_t) \\
+v_{t+1} &amp;= \beta_2 v_t + (1 - \beta_2) \big(\nabla \mathcal{L}(\theta_t)\big)^2 \\
+\hat{m} &amp;= \frac{m_{t+1}}{1 - \beta_1^{t+1}}, \qquad
+\hat{v} = \frac{v_{t+1}}{1 - \beta_2^{t+1}} \\
+\theta_{t+1} &amp;= \theta_t - \frac{\eta \, \hat{m}}{\sqrt{\hat{v}} + \epsilon}
+\end{aligned}
+$$</p>
+<p>The defaults $\beta_1 = 0.9$, $\beta_2 = 0.999$, $\epsilon = 10^{-8}$ work well across a remarkable range of problems, which is why Adam is the most common default optimizer in deep learning today.</p>
+<table>
+<thead>
+<tr>
+<th>Optimizer</th>
+<th>Extra state per parameter</th>
+<th>Fixes zigzag?</th>
+<th>Fixes ill-conditioning?</th>
+<th>Typical use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>SGD</strong></td>
+<td>None</td>
+<td>No</td>
+<td>No</td>
+<td>Baseline; strong with good schedules</td>
+</tr>
+<tr>
+<td><strong>Momentum</strong></td>
+<td>1 value ($v$)</td>
+<td>Yes</td>
+<td>Partially</td>
+<td>Computer vision, well-tuned setups</td>
+</tr>
+<tr>
+<td><strong>RMSProp</strong></td>
+<td>1 value ($s$)</td>
+<td>Partially</td>
+<td>Yes</td>
+<td>Recurrent networks, online learning</td>
+</tr>
+<tr>
+<td><strong>Adam</strong></td>
+<td>2 values ($m, v$)</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Default first choice almost everywhere</td>
+</tr>
+</tbody>
+</table>
+<h3>Code Example 5: Four Optimizers from Scratch on Rosenbrock</h3>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;3.0.0
+# - matplotlib&gt;=3.7.0
+
+"""
+Example 5: SGD, Momentum, RMSProp, and Adam implemented from scratch
+
+Purpose: Compare the convergence paths of four optimizers on the
+         Rosenbrock function
+Target: Intermediate
+Execution time: 10-30 seconds
+Dependencies: NumPy, Matplotlib
+"""
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+def rosenbrock(p):
+    x, y = p
+    return (1 - x) ** 2 + 100 * (y - x ** 2) ** 2
+
+def rosenbrock_grad(p):
+    x, y = p
+    return np.array([-2 * (1 - x) - 400 * x * (y - x ** 2),
+                     200 * (y - x ** 2)])
+
+def run_sgd(p0, lr=0.001, n_steps=5000):
+    p = np.array(p0, dtype=float)
+    path = [p.copy()]
+    for _ in range(n_steps):
+        p = p - lr * rosenbrock_grad(p)
+        path.append(p.copy())
+    return np.array(path)
+
+def run_momentum(p0, lr=0.0002, gamma=0.9, n_steps=5000):
+    p = np.array(p0, dtype=float)
+    v = np.zeros_like(p)
+    path = [p.copy()]
+    for _ in range(n_steps):
+        v = gamma * v + lr * rosenbrock_grad(p)
+        p = p - v
+        path.append(p.copy())
+    return np.array(path)
+
+def run_rmsprop(p0, lr=0.002, rho=0.9, eps=1e-8, n_steps=5000):
+    p = np.array(p0, dtype=float)
+    s = np.zeros_like(p)
+    path = [p.copy()]
+    for _ in range(n_steps):
+        g = rosenbrock_grad(p)
+        s = rho * s + (1 - rho) * g ** 2
+        p = p - lr * g / (np.sqrt(s) + eps)
+        path.append(p.copy())
+    return np.array(path)
+
+def run_adam(p0, lr=0.02, beta1=0.9, beta2=0.999, eps=1e-8, n_steps=5000):
+    p = np.array(p0, dtype=float)
+    m = np.zeros_like(p)
+    v = np.zeros_like(p)
+    path = [p.copy()]
+    for t in range(1, n_steps + 1):
+        g = rosenbrock_grad(p)
+        m = beta1 * m + (1 - beta1) * g
+        v = beta2 * v + (1 - beta2) * g ** 2
+        m_hat = m / (1 - beta1 ** t)
+        v_hat = v / (1 - beta2 ** t)
+        p = p - lr * m_hat / (np.sqrt(v_hat) + eps)
+        path.append(p.copy())
+    return np.array(path)
+
+p0 = (-1.0, 1.0)
+runs = [("SGD (lr=0.001)", run_sgd(p0), 'tab:red'),
+        ("Momentum (lr=0.0002, gamma=0.9)", run_momentum(p0), 'tab:blue'),
+        ("RMSProp (lr=0.002)", run_rmsprop(p0), 'tab:green'),
+        ("Adam (lr=0.02)", run_adam(p0), 'tab:purple')]
+
+# --- Contour plot with all four paths ---
+rx, ry = np.meshgrid(np.linspace(-1.6, 1.6, 300), np.linspace(-0.6, 1.6, 300))
+rz = (1 - rx) ** 2 + 100 * (ry - rx ** 2) ** 2
+
+plt.figure(figsize=(9, 6))
+plt.contour(rx, ry, rz, levels=np.logspace(-1, 3, 20), cmap='gray')
+for label, path, color in runs:
+    plt.plot(path[::50, 0], path[::50, 1], '.-', color=color,
+             linewidth=1, markersize=3, label=label)
+plt.scatter([1], [1], marker='*', s=200, color='gold',
+            edgecolor='black', zorder=3, label='minimum (1, 1)')
+plt.title('Optimizer paths on the Rosenbrock function (5000 steps)')
+plt.xlabel('x')
+plt.ylabel('y')
+plt.legend(fontsize=8)
+plt.tight_layout()
+plt.savefig('optimizer_comparison.png', dpi=110)
+plt.close()
+
+print("=== Final Results after 5000 Steps ===")
+for label, path, _ in runs:
+    p_final = path[-1]
+    print(f"{label:34s} point = ({p_final[0]:+.4f}, {p_final[1]:+.4f}), "
+          f"loss = {rosenbrock(p_final):.2e}")
+print("Figure saved to optimizer_comparison.png")
+</code></pre>
+<p><strong>Sample Output</strong> (your exact numbers will match, since there is no randomness):</p>
+<pre><code>=== Final Results after 5000 Steps ===
+SGD (lr=0.001)                     point = (+0.9398, +0.8830), loss = 3.63e-03
+Momentum (lr=0.0002, gamma=0.9)    point = (+0.9927, +0.9855), loss = 5.28e-05
+RMSProp (lr=0.002)                 point = (+0.9960, +0.9949), loss = 9.08e-04
+Adam (lr=0.02)                     point = (+0.9999, +0.9999), loss = 3.40e-09
+</code></pre>
+<p>Adam reaches the minimum to nine decimal places while plain SGD is still six orders of magnitude behind, and momentum alone already buys a 70-fold improvement over SGD. Two honest caveats are worth stating. First, these results depend on tuning: RMSProp with lr=0.01 actually ends up <em>worse</em> than SGD on this function (loss $2.2 \times 10^{-2}$), because without momentum its normalized steps keep bouncing across the valley — try it yourself. Every optimizer's learning rate here was chosen by a small manual search. Second, Rosenbrock is a single deterministic function, not a full ML training run; on real tasks with noisy mini-batch gradients, well-tuned SGD with momentum sometimes generalizes better than Adam. The practical advice is: <strong>start with Adam, and consider SGD + momentum + a good schedule when squeezing out final performance.</strong></p>
+<hr/>
+<h2>1.6 Learning-Rate Schedules</h2>
+<h3>Why a Fixed Learning Rate is Rarely Optimal</h3>
+<p>Section 1.4 showed that SGD with a constant learning rate rattles around a noise floor: the step size that was ideal early in training is too large near the minimum. A <strong>learning-rate schedule (a rule that changes the learning rate over the course of training)</strong> resolves this tension: start large to make fast progress, end small to settle precisely.</p>
+<h3>Three Standard Schedules</h3>
+<p><strong>1. Step decay</strong> — multiply the rate by a factor $\gamma \lt 1$ every $s$ epochs:</p>
+<p>$$
+\eta_t = \eta_0 \cdot \gamma^{\lfloor t / s \rfloor}
+$$</p>
+<p><strong>2. Cosine annealing</strong> — decay smoothly along a half-cosine from $\eta_0$ to $\eta_{\min}$ over $T$ epochs:</p>
+<p>$$
+\eta_t = \eta_{\min} + \frac{1}{2} (\eta_0 - \eta_{\min}) \left( 1 + \cos \frac{\pi t}{T} \right)
+$$</p>
+<p><strong>3. Warmup (+ cosine)</strong> — ramp the rate linearly from near zero to $\eta_0$ over the first few epochs, then decay. <strong>Warmup (a brief initial phase of gradually increasing learning rate)</strong> prevents violent early updates when the parameters are still random and gradients are large or poorly scaled. It is standard practice when training Transformers.</p>
+<h3>Code Example 6: Plotting the Schedules</h3>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;3.0.0
+# - matplotlib&gt;=3.7.0
+
+"""
+Example 6: Implementing and plotting learning-rate schedules
+
+Purpose: Implement step decay, cosine annealing, and warmup + cosine
+         as plain functions of the epoch index
+Target: Beginner-Intermediate
+Execution time: under 5 seconds
+Dependencies: NumPy, Matplotlib
+"""
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+def step_decay(epoch, lr0=0.5, drop=0.5, every=20):
+    """Multiply lr by `drop` every `every` epochs."""
+    return lr0 * (drop ** (epoch // every))
+
+def cosine_schedule(epoch, lr0=0.5, total=80, lr_min=0.005):
+    """Smooth half-cosine decay from lr0 to lr_min over `total` epochs."""
+    progress = min(epoch / total, 1.0)
+    return lr_min + 0.5 * (lr0 - lr_min) * (1 + np.cos(np.pi * progress))
+
+def warmup_cosine(epoch, lr0=0.5, total=80, warmup=8, lr_min=0.005):
+    """Linear warmup for `warmup` epochs, then cosine decay."""
+    if epoch &lt; warmup:
+        return lr0 * (epoch + 1) / warmup
+    progress = (epoch - warmup) / max(1, total - warmup)
+    return lr_min + 0.5 * (lr0 - lr_min) * (1 + np.cos(np.pi * min(progress, 1.0)))
+
+total_epochs = 80
+epochs = np.arange(total_epochs)
+
+schedules = [("Constant", [0.5 for _ in epochs]),
+             ("Step decay (x0.5 every 20)", [step_decay(e) for e in epochs]),
+             ("Cosine annealing", [cosine_schedule(e) for e in epochs]),
+             ("Warmup (8) + cosine", [warmup_cosine(e) for e in epochs])]
+
+plt.figure(figsize=(8, 5))
+for label, lrs in schedules:
+    plt.plot(epochs, lrs, label=label)
+plt.xlabel('Epoch')
+plt.ylabel('Learning rate')
+plt.title('Learning-rate schedules')
+plt.legend()
+plt.tight_layout()
+plt.savefig('lr_schedules.png', dpi=110)
+plt.close()
+
+print("=== Learning Rate at Selected Epochs ===")
+print(f"{'Epoch':&gt;6s} {'Step':&gt;8s} {'Cosine':&gt;8s} {'Warmup+Cos':&gt;11s}")
+for e in [0, 4, 10, 20, 40, 60, 79]:
+    print(f"{e:6d} {step_decay(e):8.4f} {cosine_schedule(e):8.4f} "
+          f"{warmup_cosine(e):11.4f}")
+print("Figure saved to lr_schedules.png")
+</code></pre>
+<p><strong>Sample Output</strong>:</p>
+<pre><code>=== Learning Rate at Selected Epochs ===
+ Epoch     Step   Cosine  Warmup+Cos
+     0   0.5000   0.5000      0.0625
+     4   0.5000   0.4970      0.3125
+    10   0.5000   0.4812      0.4991
+    20   0.2500   0.4275      0.4668
+    40   0.1250   0.2525      0.2955
+    60   0.0625   0.0775      0.0934
+    79   0.0625   0.0052      0.0052
+</code></pre>
+<h3>Code Example 7: How Schedules Change Convergence</h3>
+<p>Now we attach these schedules to mini-batch SGD on the regression problem from Section 1.4, deliberately starting with a learning rate that is too large to settle ($\eta_0 = 0.8$).</p>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;3.0.0
+# - matplotlib&gt;=3.7.0
+
+"""
+Example 7: Effect of learning-rate schedules on SGD convergence
+
+Purpose: Show that decaying the learning rate lets noisy SGD settle
+         far below the noise floor of a constant learning rate
+Target: Intermediate
+Execution time: 10-20 seconds
+Dependencies: NumPy, Matplotlib
+"""
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+# --- Same synthetic regression data as Example 4 ---
+rng = np.random.default_rng(0)
+n_samples = 200
+X = rng.uniform(-2, 2, n_samples)
+y = 3.0 * X - 1.5 + rng.normal(0, 0.5, n_samples)
+
+def predict(theta, x):
+    return theta[0] * x + theta[1]
+
+def full_loss(theta):
+    return 0.5 * np.mean((predict(theta, X) - y) ** 2)
+
+def batch_grad(theta, idx):
+    err = predict(theta, X[idx]) - y[idx]
+    return np.array([np.mean(err * X[idx]), np.mean(err)])
+
+def step_decay(epoch, lr0=0.8, drop=0.5, every=20):
+    return lr0 * (drop ** (epoch // every))
+
+def cosine_schedule(epoch, lr0=0.8, total=80, lr_min=0.005):
+    progress = min(epoch / total, 1.0)
+    return lr_min + 0.5 * (lr0 - lr_min) * (1 + np.cos(np.pi * progress))
+
+def warmup_cosine(epoch, lr0=0.8, total=80, warmup=8, lr_min=0.005):
+    if epoch &lt; warmup:
+        return lr0 * (epoch + 1) / warmup
+    progress = (epoch - warmup) / max(1, total - warmup)
+    return lr_min + 0.5 * (lr0 - lr_min) * (1 + np.cos(np.pi * min(progress, 1.0)))
+
+def train_with_schedule(schedule_fn, batch_size=16, n_epochs=80, seed=1):
+    local_rng = np.random.default_rng(seed)
+    theta = np.zeros(2)
+    history = [full_loss(theta)]
+    for epoch in range(n_epochs):
+        lr = schedule_fn(epoch)
+        perm = local_rng.permutation(n_samples)
+        for start in range(0, n_samples, batch_size):
+            idx = perm[start:start + batch_size]
+            theta = theta - lr * batch_grad(theta, idx)
+        history.append(full_loss(theta))
+    return theta, np.array(history)
+
+# The irreducible loss: MSE of the best possible line (least squares)
+A = np.column_stack([X, np.ones(n_samples)])
+theta_star, *_ = np.linalg.lstsq(A, y, rcond=None)
+loss_star = full_loss(theta_star)
+
+schedules = [("Constant lr=0.8", lambda e: 0.8),
+             ("Step decay", step_decay),
+             ("Cosine annealing", cosine_schedule),
+             ("Warmup + cosine", warmup_cosine)]
+
+print("=== Schedules with Mini-Batch SGD (B=16, 80 epochs) ===")
+print(f"Best achievable loss (least squares): {loss_star:.6f}\n")
+
+plt.figure(figsize=(8, 5))
+for label, fn in schedules:
+    theta, history = train_with_schedule(fn)
+    gap = history[-1] - loss_star
+    plt.semilogy(history - loss_star + 1e-12, label=label)
+    print(f"{label:18s} final loss = {history[-1]:.6f}  "
+          f"(excess over optimum: {gap:.2e})")
+
+plt.xlabel('Epoch')
+plt.ylabel('Excess loss over optimum (log scale)')
+plt.title('Learning-rate schedules: how close SGD gets to the optimum')
+plt.legend()
+plt.tight_layout()
+plt.savefig('schedule_convergence.png', dpi=110)
+plt.close()
+print("Figure saved to schedule_convergence.png")
+</code></pre>
+<p><strong>Sample Output</strong>:</p>
+<pre><code>=== Schedules with Mini-Batch SGD (B=16, 80 epochs) ===
+Best achievable loss (least squares): 0.130268
+
+Constant lr=0.8    final loss = 0.262402  (excess over optimum: 1.32e-01)
+Step decay         final loss = 0.131259  (excess over optimum: 9.92e-04)
+Cosine annealing   final loss = 0.130282  (excess over optimum: 1.39e-05)
+Warmup + cosine    final loss = 0.130284  (excess over optimum: 1.59e-05)
+</code></pre>
+<p>The log-scale plot makes the story vivid: the constant learning rate plateaus about 10,000 times further from the optimum than the cosine schedules. All schedules make the same fast early progress; the decaying ones then keep improving as the shrinking steps average away the mini-batch noise. On this small convex problem warmup gives no extra benefit — its value appears on large non-convex problems with poorly scaled initial gradients — but note that it costs nothing either.</p>
+<h3>Choosing a Schedule in Practice</h3>
+<table>
+<thead>
+<tr>
+<th>Situation</th>
+<th>Recommended starting point</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Quick experiments, small models</td>
+<td>Constant rate with Adam</td>
+</tr>
+<tr>
+<td>Longer training, known epoch budget</td>
+<td>Cosine annealing to near zero</td>
+</tr>
+<tr>
+<td>Large models, Transformers, large batch sizes</td>
+<td>Warmup + cosine (or warmup + linear decay)</td>
+</tr>
+<tr>
+<td>Reproducing older papers (ResNet era)</td>
+<td>Step decay at the epochs the paper specifies</td>
+</tr>
+</tbody>
+</table>
+<hr/>
+<h2>1.7 Chapter Summary</h2>
+<h3>What We Learned</h3>
+<ol>
+<li><p><strong>Optimization is the engine of learning</strong></p>
+<ul>
+<li>Training a model means solving $\theta^* = \arg\min_\theta \mathcal{L}(\theta)$</li>
+<li>Grid search is infeasible beyond a handful of parameters; gradients give a scalable local compass</li>
+</ul></li>
+<li><p><strong>Landscape geometry decides difficulty</strong></p>
+<ul>
+<li>Convex problems have a single valley — every local minimum is global</li>
+<li>Non-convex problems (all neural networks) contain local minima and, especially, saddle points</li>
+</ul></li>
+<li><p><strong>Gradient descent and its two diseases</strong></p>
+<ul>
+<li>Update rule: $\theta_{t+1} = \theta_t - \eta \nabla \mathcal{L}(\theta_t)$; the learning rate governs everything</li>
+<li>Disease 1: zigzagging on ill-conditioned problems; Disease 2: crawling along curved valleys</li>
+</ul></li>
+<li><p><strong>SGD trades noise for speed</strong></p>
+<ul>
+<li>Mini-batch gradients are unbiased but noisy; variance scales as $1/B$</li>
+<li>Moderate batch sizes (32–256) are the practical sweet spot; some noise even helps escape saddles</li>
+</ul></li>
+<li><p><strong>Modern optimizers add memory</strong></p>
+<ul>
+<li>Momentum accumulates velocity; RMSProp adapts per-parameter step sizes; Adam does both with bias correction</li>
+<li>Default advice: start with Adam, consider tuned SGD + momentum for final performance</li>
+</ul></li>
+<li><p><strong>Schedules finish the job</strong></p>
+<ul>
+<li>Start large, end small: step decay, cosine annealing, and warmup let noisy SGD settle orders of magnitude closer to the optimum</li>
+</ul></li>
+</ol>
+<h3>Next Chapter</h3>
+<p>Gradient-based methods require a differentiable loss and only find <em>local</em> optima. In Chapter 2, <strong>Metaheuristic Optimization</strong>, we lift both restrictions:</p>
+<ul>
+<li>Simulated annealing: escaping local minima with controlled randomness</li>
+<li>Genetic algorithms: evolving populations of candidate solutions</li>
+<li>Particle swarm optimization: collective search inspired by flocking</li>
+<li>When to prefer derivative-free methods over gradient descent</li>
+</ul>
+<hr/>
+<h2>Exercises</h2>
+<h3>Problem 1 (Difficulty: easy)</h3>
+<p>Using the function $f(x) = x^2$ with gradient $f'(x) = 2x$ and starting point $x_0 = 5$, implement gradient descent for 30 steps with three learning rates: $\eta = 0.01$, $\eta = 0.5$, and $\eta = 1.05$. Report the final $x$ for each and explain the three behaviors you observe.</p>
+<details>
+<summary>Sample Answer</summary>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;3.0.0
+
+import numpy as np
+
+def gd_on_parabola(lr, x0=5.0, n_steps=30):
+    x = x0
+    for _ in range(n_steps):
+        x = x - lr * (2 * x)      # gradient of x^2 is 2x
+    return x
+
+print("=== Learning Rate Experiment on f(x) = x^2 ===")
+for lr in [0.01, 0.5, 1.05]:
+    x_final = gd_on_parabola(lr)
+    print(f"lr = {lr:5.2f}: final x = {x_final:.6e}")
+</code></pre>
+<p><strong>Output</strong>:</p>
+<pre><code>=== Learning Rate Experiment on f(x) = x^2 ===
+lr =  0.01: final x = 2.727422e+00
+lr =  0.50: final x = 0.000000e+00
+lr =  1.05: final x = 8.724701e+01
+</code></pre>
+<p><strong>Explanation</strong>: Each step multiplies $x$ by the factor $(1 - 2\eta)$, so the behavior is fully determined by that factor:</p>
+<ul>
+<li>$\eta = 0.01$: factor $0.98$ — <strong>convergent but slow</strong>. After 30 steps $x = 5 \times 0.98^{30} \approx 2.73$; hundreds more steps are needed to get close to 0.</li>
+<li>$\eta = 0.5$: factor $0$ — the step lands exactly at the minimum in one update. This is the special case $\eta = 1/2 \cdot (2/f'') = $ the ideal rate for this curvature.</li>
+<li>$\eta = 1.05$: factor $-1.1$, whose absolute value exceeds 1 — <strong>divergence</strong>. The iterate overshoots to the other side of the valley and grows by 10% per step while flipping sign, ending near $87$ after 30 steps ($5 \times 1.1^{30} \approx 87.2$) and growing without bound thereafter.</li>
+</ul>
+<p>The general stability rule for a quadratic with second derivative $f''$ is $\eta \lt 2 / f''$. Here $f'' = 2$, so any $\eta \lt 1$ converges and any $\eta \gt 1$ diverges.</p>
+</details>
+<h3>Problem 2 (Difficulty: medium)</h3>
+<p>On the strongly ill-conditioned quadratic $f(x, y) = x^2 + 100 y^2$ (largest curvature $L = 200$, smallest curvature $\mu = 2$, condition number $\kappa = L/\mu = 100$), implement plain gradient descent with $\eta = 0.009$ (just under its stability limit $2/L = 0.01$) and heavy-ball momentum with the theoretically optimal parameters</p>
+<p>$$
+\eta = \frac{4}{(\sqrt{L} + \sqrt{\mu})^2}, \qquad
+\gamma = \left( \frac{\sqrt{L} - \sqrt{\mu}}{\sqrt{L} + \sqrt{\mu}} \right)^2
+$$</p>
+<p>Both start from $(-9, 2.5)$. Count how many steps each method needs to bring the loss below $10^{-8}$, and explain the size of the gap.</p>
+<details>
+<summary>Sample Answer</summary>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;3.0.0
+
+import numpy as np
+
+L, mu = 200.0, 2.0      # largest / smallest curvature of f
+
+def loss(p):
+    return p[0] ** 2 + 100 * p[1] ** 2
+
+def grad(p):
+    return np.array([2 * p[0], 200 * p[1]])
+
+def steps_gd(lr=0.009, tol=1e-8, max_steps=200000):
+    p = np.array([-9.0, 2.5])
+    for t in range(1, max_steps + 1):
+        p = p - lr * grad(p)
+        if loss(p) &lt; tol:
+            return t
+    return None
+
+def steps_momentum(lr, gamma, tol=1e-8, max_steps=200000):
+    p = np.array([-9.0, 2.5])
+    v = np.zeros(2)
+    for t in range(1, max_steps + 1):
+        v = gamma * v + lr * grad(p)
+        p = p - v
+        if loss(p) &lt; tol:
+            return t
+    return None
+
+# Heavy-ball optimal hyperparameters for a quadratic
+lr_opt = 4 / (np.sqrt(L) + np.sqrt(mu)) ** 2
+gamma_opt = ((np.sqrt(L) - np.sqrt(mu)) / (np.sqrt(L) + np.sqrt(mu))) ** 2
+
+n_gd = steps_gd()
+n_mom = steps_momentum(lr_opt, gamma_opt)
+print("=== Steps to reach loss below 1e-8 (kappa = 100) ===")
+print(f"Optimal momentum hyperparameters: lr = {lr_opt:.4f}, "
+      f"gamma = {gamma_opt:.3f}")
+print(f"Plain GD (lr=0.009): {n_gd} steps")
+print(f"Heavy-ball momentum: {n_mom} steps")
+print(f"Speedup: {n_gd / n_mom:.1f}x")
+</code></pre>
+<p><strong>Output</strong>:</p>
+<pre><code>=== Steps to reach loss below 1e-8 (kappa = 100) ===
+Optimal momentum hyperparameters: lr = 0.0165, gamma = 0.669
+Plain GD (lr=0.009): 629 steps
+Heavy-ball momentum: 88 steps
+Speedup: 7.1x
+</code></pre>
+<p><strong>Explanation</strong>: Plain GD's learning rate is capped by the steep $y$ direction ($\eta \lt 2/L = 0.01$), so its contraction per step along the shallow $x$ direction is only $1 - 2 \times 0.009 = 0.982$ — it needs hundreds of steps to shrink the $x$ error by eight orders of magnitude. For quadratics, the iteration count of GD scales linearly with the condition number $\kappa$, whereas optimally tuned heavy-ball momentum scales with $\sqrt{\kappa}$. With $\kappa = 100$ the theoretical improvement is about $\sqrt{100} = 10\times$; we measure $7.1\times$, in good agreement (the constant factors differ slightly from the asymptotic theory). The mechanism is the one described in Section 1.5:</p>
+<ol>
+<li><strong>In the shallow $x$ direction</strong>, successive gradients all point the same way, so velocity accumulates and the effective step grows well beyond the plain step.</li>
+<li><strong>In the steep $y$ direction</strong>, the iterate overshoots and successive gradients alternate in sign; they cancel inside the velocity average, damping the oscillation instead of amplifying it.</li>
+</ol>
+<p>A cautionary note from this experiment: momentum is <em>not</em> automatically faster. If you rerun with a casual choice such as $\eta = 0.01, \gamma = 0.9$, momentum takes about 219 steps — still faster than GD here, but far from optimal, and on mildly conditioned problems a poorly tuned momentum can even lose to plain GD. Hyperparameters matter.</p>
+</details>
+<h3>Problem 3 (Difficulty: hard)</h3>
+<p>Combine what you built in Sections 1.5 and 1.6: implement Adam with (a) a constant learning rate $\eta = 0.02$ and (b) a warmup + cosine schedule peaking at $\eta_0 = 0.1$ (warmup 100 steps, total 3000 steps), and run both on the Rosenbrock function from $(-1, 1)$ for 3000 steps. Compare final losses and describe the effect of the schedule.</p>
+<details>
+<summary>Sample Answer</summary>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;3.0.0
+
+import numpy as np
+
+def rosenbrock(p):
+    x, y = p
+    return (1 - x) ** 2 + 100 * (y - x ** 2) ** 2
+
+def rosenbrock_grad(p):
+    x, y = p
+    return np.array([-2 * (1 - x) - 400 * x * (y - x ** 2),
+                     200 * (y - x ** 2)])
+
+def warmup_cosine_step(t, lr0=0.1, total=3000, warmup=100, lr_min=1e-4):
+    """Schedule indexed by step t (0-based)."""
+    if t &lt; warmup:
+        return lr0 * (t + 1) / warmup
+    progress = (t - warmup) / max(1, total - warmup)
+    return lr_min + 0.5 * (lr0 - lr_min) * (1 + np.cos(np.pi * min(progress, 1.0)))
+
+def run_adam(schedule_fn, p0=(-1.0, 1.0), n_steps=3000,
+             beta1=0.9, beta2=0.999, eps=1e-8):
+    p = np.array(p0, dtype=float)
+    m = np.zeros_like(p)
+    v = np.zeros_like(p)
+    for t in range(1, n_steps + 1):
+        lr = schedule_fn(t - 1)
+        g = rosenbrock_grad(p)
+        m = beta1 * m + (1 - beta1) * g
+        v = beta2 * v + (1 - beta2) * g ** 2
+        m_hat = m / (1 - beta1 ** t)
+        v_hat = v / (1 - beta2 ** t)
+        p = p - lr * m_hat / (np.sqrt(v_hat) + eps)
+    return p
+
+p_const = run_adam(lambda t: 0.02)
+p_sched = run_adam(warmup_cosine_step)
+
+print("=== Adam: Constant vs Warmup + Cosine (3000 steps) ===")
+print(f"Constant lr=0.02:  point = ({p_const[0]:+.5f}, {p_const[1]:+.5f}), "
+      f"loss = {rosenbrock(p_const):.3e}")
+print(f"Warmup + cosine:   point = ({p_sched[0]:+.5f}, {p_sched[1]:+.5f}), "
+      f"loss = {rosenbrock(p_sched):.3e}")
+</code></pre>
+<p><strong>Output</strong>:</p>
+<pre><code>=== Adam: Constant vs Warmup + Cosine (3000 steps) ===
+Constant lr=0.02:  point = (+1.00000, +0.99999), loss = 1.521e-11
+Warmup + cosine:   point = (+1.00000, +1.00000), loss = 2.155e-27
+</code></pre>
+<p>(Exact digits may vary slightly with NumPy version, but the ordering is robust.)</p>
+<p><strong>Explanation</strong>: Both runs reach the minimum — 3000 steps is plenty for Adam on this problem — but the scheduled run lands about <strong>16 orders of magnitude deeper</strong>. Three effects combine:</p>
+<ul>
+<li>The <strong>warmup phase</strong> protects the fragile early steps, when Adam's second-moment estimate $v$ is built from very few gradients and can badly misestimate the appropriate step size. This is what makes the aggressive peak rate of 0.1 safe.</li>
+<li>The <strong>large mid-training rate</strong> (five times the constant run's 0.02) covers the distance along the curved valley quickly, leaving more of the budget for refinement.</li>
+<li>The <strong>cosine tail</strong> shrinks the steps toward zero at the end, so the iterate settles into the minimum with extreme precision instead of hovering around it at a step-size-limited distance — which is exactly what caps the constant run at $10^{-11}$.</li>
+</ul>
+<p>Be aware that a $10^{-27}$ loss has no practical meaning in machine learning — real losses are dominated by data noise long before that. The experiment isolates the <em>mechanism</em>: one fixed rate cannot serve both the traversal phase and the settling phase, and schedules resolve that tension. The same reasoning, at more modest magnitudes, applies to full-scale neural network training.</p>
+</details>
+<hr/>
+<h2>References</h2>
+<ol>
+<li>Ruder, S. (2016). <em>An overview of gradient descent optimization algorithms</em>. arXiv:1609.04747.</li>
+<li>Kingma, D. P., &amp; Ba, J. (2015). <em>Adam: A Method for Stochastic Optimization</em>. ICLR 2015.</li>
+<li>Tieleman, T., &amp; Hinton, G. (2012). <em>Lecture 6.5 - RMSProp</em>. COURSERA: Neural Networks for Machine Learning.</li>
+<li>Polyak, B. T. (1964). <em>Some methods of speeding up the convergence of iteration methods</em>. USSR Computational Mathematics and Mathematical Physics, 4(5), 1-17.</li>
+<li>Loshchilov, I., &amp; Hutter, F. (2017). <em>SGDR: Stochastic Gradient Descent with Warm Restarts</em>. ICLR 2017.</li>
+<li>Boyd, S., &amp; Vandenberghe, L. (2004). <em>Convex Optimization</em>. Cambridge University Press.</li>
+<li>Goodfellow, I., Bengio, Y., &amp; Courville, A. (2016). <em>Deep Learning</em>, Chapter 8: Optimization for Training Deep Models. MIT Press.</li>
+</ol>
+<div class="navigation">
+<a class="nav-button" href="index.html">← Series Index</a>
+<a class="nav-button" href="chapter2-metaheuristics.html">Chapter 2: Metaheuristic Optimization →</a>
+</div>
+</main>
+<section class="disclaimer">
+<h3>Disclaimer</h3>
+<ul>
+<li>This content is provided for educational, research, and informational purposes only and does not constitute professional advice (legal, accounting, technical guarantees, etc.).</li>
+<li>This content and accompanying code examples are provided "AS IS" without any express or implied warranties, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, and safety.</li>
+<li>The content creators and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, or libraries.</li>
+<li>The content creators and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content, to the maximum extent permitted by applicable law.</li>
+<li>The content of this material is subject to change, update, or discontinuation without notice.</li>
+<li>The copyright and license of this content are subject to the specified terms (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.</li>
+</ul>
+</section>
+<footer>
+<p><strong>Author</strong>: AI Terakoya Content Team</p>
+<p><strong>Version</strong>: 1.0 | <strong>Created</strong>: 2026-07-08</p>
+<p><strong>License</strong>: Creative Commons BY 4.0</p>
+<p>© 2025 AI Terakoya. All rights reserved.</p>
+</footer>
+</body>
+</html>

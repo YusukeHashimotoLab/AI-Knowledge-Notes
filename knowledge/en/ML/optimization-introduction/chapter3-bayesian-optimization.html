@@ -1,0 +1,1096 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="Chapter 3: Bayesian Optimization and Surrogate Models - AI Terakoya" name="description"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chapter 3: Bayesian Optimization and Surrogate Models - AI Terakoya</title>
+<link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+<script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+<!-- MathJax for LaTeX equation rendering -->
+<script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+<script async="" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<nav class="breadcrumb">
+<div class="breadcrumb-content">
+<a href="../../index.html">AI Terakoya Top</a><span class="breadcrumb-separator">›</span><a href="../index.html">Machine Learning</a><span class="breadcrumb-separator">›</span><a href="index.html">Optimization for Machine Learning</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 3</span>
+</div>
+</nav><div class="locale-switcher">
+<span class="current-locale">🌐 EN</span>
+<span class="locale-separator">|</span>
+<span class="locale-link disabled">日本語 (準備中)</span>
+<span class="locale-meta">Last sync: 2026-07-08</span>
+</div>
+<header>
+<div class="header-content">
+<h1>Chapter 3: Bayesian Optimization and Surrogate Models</h1>
+<p class="subtitle">Tuning Hyperparameters When Every Evaluation Costs a Full Training Run</p>
+<div class="meta">
+<span class="meta-item">📖 Reading Time: 25-30 minutes</span>
+<span class="meta-item">📊 Difficulty: Intermediate-Advanced</span>
+<span class="meta-item">💻 Code Examples: 7</span>
+<span class="meta-item">📝 Exercises: 3</span>
+</div>
+</div>
+</header>
+<main class="container">
+
+<p class="chapter-description">Chapters 1 and 2 assumed the objective function was cheap: gradient descent evaluated it thousands of times, and metaheuristics evaluated whole populations per generation. Hyperparameter tuning breaks that assumption — each evaluation is a complete training run that may take minutes or hours. This final chapter develops the standard answer: build a cheap statistical <em>surrogate</em> of the objective, and let the surrogate decide where to spend the next expensive evaluation. You will implement Gaussian process regression and Expected Improvement from scratch, watch a full Bayesian optimization loop beat random search, and then apply the production-grade tool Optuna to a real scikit-learn tuning problem.</p>
+<h2>Learning Objectives</h2>
+<p>By completing this chapter, you will master the following:</p>
+<ul>
+<li>✅ Explain why expensive black-box objectives make grid search wasteful and surrogate models necessary</li>
+<li>✅ Understand Gaussian process regression at a working level: kernels, posterior mean $\mu(x)$, and posterior uncertainty $\sigma(x)$</li>
+<li>✅ Implement the Expected Improvement acquisition function from scratch and run a complete Bayesian optimization loop</li>
+<li>✅ Tune scikit-learn model hyperparameters with Optuna, including TPE sampling and pruning of hopeless trials</li>
+<li>✅ Avoid the classic pitfalls: linear-scale search spaces, ignoring seed variance, and overfitting to the validation set</li>
+</ul>
+<hr/>
+<h2>3.1 The Cost Problem of Hyperparameter Search</h2>
+<h3>An Optimization Problem on Top of an Optimization Problem</h3>
+<p>Training a model solves $\theta^* = \arg\min_\theta \mathcal{L}(\theta)$ over the <strong>parameters</strong> (Chapter 1). But the training procedure itself is controlled by <strong>hyperparameters (settings chosen before training that the training process cannot adjust — learning rate, tree depth, regularization strength, and so on)</strong>. Choosing them is a second, outer optimization problem:</p>
+<p>$$
+\lambda^* = \arg\max_{\lambda \in \Lambda} \; \text{ValidationScore}\big(\text{Train}(\lambda)\big)
+$$</p>
+<ul>
+<li>$\lambda$: a hyperparameter configuration (e.g., learning rate $= 0.05$, max depth $= 4$)</li>
+<li>$\Lambda$: the <strong>search space (the set of allowed configurations)</strong></li>
+<li>$\text{Train}(\lambda)$: a full training run — this is what makes the problem expensive</li>
+</ul>
+<p>This outer objective has three properties that disqualify everything we built in Chapter 1 and strain the methods of Chapter 2:</p>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Meaning</th>
+<th>Consequence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Black-box</strong></td>
+<td>No formula, no gradient $\nabla_\lambda$</td>
+<td>Gradient descent is unavailable</td>
+</tr>
+<tr>
+<td><strong>Expensive</strong></td>
+<td>One evaluation = one training run (minutes to hours)</td>
+<td>Budgets of 20–200 evaluations, not 20,000</td>
+</tr>
+<tr>
+<td><strong>Noisy</strong></td>
+<td>Score depends on random seeds and data splits</td>
+<td>Small score differences are meaningless (Section 3.5)</td>
+</tr>
+</tbody>
+</table>
+<p>Metaheuristics (Chapter 2) handle the black-box part, but a genetic algorithm that evaluates a population of 50 for 40 generations needs 2,000 training runs — usually unaffordable here. We need a method that squeezes the most out of every single evaluation.</p>
+<h3>Grid Search vs Random Search: The Bergstra–Bengio Argument</h3>
+<p>The classical baseline, <strong>grid search (evaluating every combination on a regular lattice of values)</strong>, has a subtle flaw identified by Bergstra and Bengio (2012). In practice, validation performance is usually dominated by one or two hyperparameters — the objective has <strong>low effective dimensionality</strong>. A $4 \times 4$ grid spends 16 evaluations but tests only <em>4 distinct values</em> of each hyperparameter, because every value is reused across the other axis. Random search with the same budget tests <em>16 distinct values</em> of every hyperparameter. If only the learning rate really matters, random search probes its axis four times more densely at identical cost.</p>
+<h3>Code Example 1: Grid vs Random Search When One Hyperparameter Dominates</h3>
+<p>We simulate this with a synthetic "validation accuracy" surface that responds strongly to the learning rate and barely at all to the regularization strength — an exaggerated but structurally realistic situation.</p>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;3.0.0
+
+"""
+Example 1: Grid search vs random search when one hyperparameter dominates
+
+Purpose: Reproduce the Bergstra-Bengio argument — with a fixed budget,
+         random search covers each axis far more densely than a grid
+Target: Intermediate
+Execution time: under 5 seconds
+Dependencies: NumPy only
+"""
+
+import numpy as np
+
+# --- A synthetic "validation accuracy" surface over 2 hyperparameters ---
+# Sensitive to the learning rate, almost flat in the regularization strength.
+def val_accuracy(log10_lr, reg):
+    lr_effect = 0.10 * np.exp(-((log10_lr + 2.0) ** 2) / 0.25)   # peak at lr = 1e-2
+    reg_effect = 0.005 * np.sin(3.0 * reg)                        # nearly irrelevant
+    return 0.85 + lr_effect + reg_effect
+
+BUDGET = 16   # both methods may evaluate the model exactly 16 times
+
+# --- Grid search: 4 x 4 grid -&gt; only 4 DISTINCT learning rates tested ---
+lr_grid = np.linspace(-4.0, 0.0, 4)       # log10(lr) in [-4, 0]
+reg_grid = np.linspace(0.0, 1.0, 4)
+grid_scores = [val_accuracy(lr, r) for lr in lr_grid for r in reg_grid]
+grid_best = max(grid_scores)
+
+# --- Random search: 16 samples -&gt; 16 distinct learning rates tested ---
+rng = np.random.default_rng(0)
+n_repeats = 1000
+random_bests = []
+for _ in range(n_repeats):
+    lrs = rng.uniform(-4.0, 0.0, BUDGET)
+    regs = rng.uniform(0.0, 1.0, BUDGET)
+    random_bests.append(max(val_accuracy(l, r) for l, r in zip(lrs, regs)))
+random_bests = np.array(random_bests)
+
+true_best = val_accuracy(-2.0, np.pi / 6)   # analytic optimum
+
+print("=== Grid vs Random Search (budget: 16 evaluations) ===")
+print(f"True best accuracy:               {true_best:.4f}")
+print(f"Grid search (4x4) best:           {grid_best:.4f}")
+print(f"Random search best (mean of {n_repeats}): {random_bests.mean():.4f}"
+      f" +/- {random_bests.std():.4f}")
+print(f"Random beats grid in {np.mean(random_bests &gt; grid_best) * 100:.1f}% of repeats")
+print(f"Distinct learning rates tried: grid = 4, random = 16")
+</code></pre>
+<p><strong>Sample Output</strong>:</p>
+<pre><code>=== Grid vs Random Search (budget: 16 evaluations) ===
+True best accuracy:               0.9550
+Grid search (4x4) best:           0.8714
+Random search best (mean of 1000): 0.9453 +/- 0.0130
+Random beats grid in 99.6% of repeats
+Distinct learning rates tried: grid = 4, random = 16
+</code></pre>
+<p>The grid misses the narrow accuracy peak near $\text{lr} = 10^{-2}$ almost entirely — its 4 learning-rate values straddle the peak without landing on it — while random search finds a near-optimal value in virtually every repeat. This is why <strong>random search should be your baseline, never grid search</strong>, whenever more than one or two hyperparameters are involved.</p>
+<h3>From Random to Adaptive</h3>
+<p>Random search still has an obvious inefficiency: evaluation 50 ignores everything learned from evaluations 1–49. An <strong>adaptive method (one that uses all past results to choose the next configuration)</strong> should do better. The recipe that dominates practice is:</p>
+<ol>
+<li>Fit a cheap <strong>surrogate model (a statistical approximation of the expensive objective, built from the configurations evaluated so far)</strong>.</li>
+<li>Use the surrogate — including its <em>uncertainty</em> — to decide the most informative next configuration.</li>
+<li>Evaluate, update the surrogate, repeat.</li>
+</ol>
+<p>This is <strong>Bayesian optimization (BO, sequential optimization of expensive black-box functions using a probabilistic surrogate and an acquisition function)</strong>. The next two sections build both ingredients from scratch.</p>
+<hr/>
+<h2>3.2 Gaussian Process Surrogates</h2>
+<h3>Why the Surrogate Must Know What It Does Not Know</h3>
+<p>A plain regression model (say, a fitted polynomial) predicts one number $\hat{f}(x)$ per input. That is not enough: to balance trying promising regions against exploring unknown ones, the surrogate must also report <em>how confident</em> it is. A <strong>Gaussian process (GP, a probability distribution over functions, under which any finite set of function values is jointly Gaussian)</strong> delivers exactly this: at every candidate $x$ it produces a posterior mean $\mu(x)$ (best guess) and a posterior standard deviation $\sigma(x)$ (honest error bar).</p>
+<h3>Kernels: Encoding "Similar Inputs Give Similar Scores"</h3>
+<p>A GP is specified by a <strong>kernel (covariance function $k(x, x')$ measuring how strongly the function values at $x$ and $x'$ are correlated)</strong>. The workhorse is the <strong>RBF kernel (Radial Basis Function, also called squared exponential)</strong>:</p>
+<p>$$
+k(x, x') = \sigma_f^2 \exp\!\left( -\frac{(x - x')^2}{2 \ell^2} \right)
+$$</p>
+<ul>
+<li>$\ell$: the <strong>length scale</strong> — how far apart two inputs can be while their scores remain correlated. Small $\ell$ → wiggly functions; large $\ell$ → smooth, slowly varying functions.</li>
+<li>$\sigma_f^2$: the signal variance — the overall vertical scale of the function.</li>
+</ul>
+<p>Intuitively, the kernel encodes the prior belief "a learning rate of 0.010 and one of 0.011 will give almost the same validation score, while 0.01 and 0.3 may differ completely." That single assumption is what lets five observations constrain an entire curve.</p>
+<h3>The Posterior: Mean and Uncertainty in Closed Form</h3>
+<p>Given $n$ observed pairs $(X, \mathbf{y})$ with observation noise $\sigma_n^2$, the GP posterior at a new point $x$ has an exact closed form:</p>
+<p>$$
+\begin{aligned}
+\mu(x) &amp;= \mathbf{k}_*^\top \left( K + \sigma_n^2 I \right)^{-1} \mathbf{y} \\
+\sigma^2(x) &amp;= k(x, x) - \mathbf{k}_*^\top \left( K + \sigma_n^2 I \right)^{-1} \mathbf{k}_*
+\end{aligned}
+$$</p>
+<ul>
+<li>$K$: the $n \times n$ kernel matrix between the observed inputs, $K_{ij} = k(x_i, x_j)$</li>
+<li>$\mathbf{k}_*$: the $n$-vector of kernel values between the observed inputs and the query point, $k(x_i, x)$</li>
+<li>$\mu(x)$ is a weighted average of the observed scores — observations near $x$ get large weights</li>
+<li>$\sigma^2(x)$ starts at the prior variance $k(x,x)$ and is <em>reduced</em> by however much the observations inform $x$: near data, $\sigma \approx 0$; far from data, $\sigma$ returns to the prior</li>
+</ul>
+<p>These two formulas are the entire engine. Implementing them takes about fifteen lines.</p>
+<h3>Code Example 2: GP Regression from Scratch on a 1-D Toy Objective</h3>
+<p>Our stand-in for an expensive tuning problem: $x$ plays the role of a single hyperparameter (think $\log_{10}$ learning rate), and $f(x) = 0.8\sin(3x) + 0.3x^2$ plays the role of validation error. Every call to <code>black_box</code> represents one full training run.</p>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;3.0.0
+# - matplotlib&gt;=3.7.0
+
+"""
+Example 2: Gaussian process regression from scratch on a 1-D toy objective
+
+Purpose: Implement the GP posterior mean and standard deviation and
+         visualize the uncertainty band that drives Bayesian optimization
+Target: Intermediate-Advanced
+Execution time: under 10 seconds
+Dependencies: NumPy, Matplotlib
+"""
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+# --- The "expensive" black-box: validation error vs a single hyperparameter ---
+# Think of x as log10(learning rate); each call = one full training run.
+def black_box(x):
+    return np.sin(3.0 * x) * 0.8 + 0.3 * x ** 2
+
+def rbf_kernel(A, B, length_scale=0.6, variance=1.0):
+    """RBF (squared exponential) kernel matrix between point sets A and B."""
+    sq_dists = (A.reshape(-1, 1) - B.reshape(1, -1)) ** 2
+    return variance * np.exp(-0.5 * sq_dists / length_scale ** 2)
+
+def gp_posterior(X_train, y_train, X_test, noise=1e-6,
+                 length_scale=0.6, variance=1.0):
+    """Posterior mean and std of a zero-mean GP at the test points."""
+    K = rbf_kernel(X_train, X_train, length_scale, variance)
+    K += noise * np.eye(len(X_train))
+    K_s = rbf_kernel(X_train, X_test, length_scale, variance)
+    K_ss = rbf_kernel(X_test, X_test, length_scale, variance)
+
+    L = np.linalg.cholesky(K)                       # stable inversion
+    alpha = np.linalg.solve(L.T, np.linalg.solve(L, y_train))
+    mu = K_s.T @ alpha
+    v = np.linalg.solve(L, K_s)
+    cov = K_ss - v.T @ v
+    sigma = np.sqrt(np.clip(np.diag(cov), 0.0, None))
+    return mu, sigma
+
+# --- Observe the black-box at 5 points (5 "training runs") ---
+X_train = np.array([-1.8, -0.9, 0.0, 0.9, 1.8])
+y_train = black_box(X_train)
+
+X_test = np.linspace(-2.0, 2.0, 400)
+mu, sigma = gp_posterior(X_train, y_train, X_test)
+
+# --- Plot mean and 95% uncertainty band ---
+plt.figure(figsize=(8, 5))
+plt.plot(X_test, black_box(X_test), 'k--', label='true function (unknown)')
+plt.plot(X_test, mu, color='tab:blue', label='GP posterior mean $\\mu(x)$')
+plt.fill_between(X_test, mu - 1.96 * sigma, mu + 1.96 * sigma,
+                 color='tab:blue', alpha=0.2, label='95% interval $\\pm 1.96\\sigma(x)$')
+plt.scatter(X_train, y_train, color='red', zorder=3, label='observations')
+plt.xlabel('hyperparameter x')
+plt.ylabel('validation error f(x)')
+plt.title('Gaussian process surrogate after 5 evaluations')
+plt.legend()
+plt.tight_layout()
+plt.savefig('gp_posterior.png', dpi=110)
+plt.close()
+
+print("=== GP Posterior at Selected Points ===")
+print(f"{'x':&gt;6s} {'true f(x)':&gt;10s} {'mu(x)':&gt;8s} {'sigma(x)':&gt;9s}")
+for x in [-1.8, -1.35, -0.45, 0.45, 1.35]:
+    m, s = gp_posterior(X_train, y_train, np.array([x]))
+    print(f"{x:6.2f} {black_box(x):10.4f} {m[0]:8.4f} {s[0]:9.4f}")
+print("Figure saved to gp_posterior.png")
+</code></pre>
+<p><strong>Sample Output</strong>:</p>
+<pre><code>=== GP Posterior at Selected Points ===
+     x  true f(x)    mu(x)  sigma(x)
+ -1.80     1.5902   1.5902    0.0010
+ -1.35     1.1776   0.8426    0.3522
+ -0.45    -0.7198  -0.3189    0.3333
+  0.45     0.8413   0.3819    0.3333
+  1.35    -0.0841   0.5344    0.3522
+</code></pre>
+<p>Read the table alongside the saved figure — it shows the two behaviors that make GPs ideal surrogates:</p>
+<ul>
+<li><strong>At an observed point</strong> ($x = -1.80$): the posterior mean equals the observed value and $\sigma \approx 0$. The GP does not second-guess its data (with near-zero noise).</li>
+<li><strong>Between observations</strong> ($x = -1.35$, $-0.45$, ...): the mean interpolates smoothly, and $\sigma$ grows to about $0.35$ — the GP openly admits it could be wrong there. Indeed at $x = -0.45$ the true error ($-0.72$) is well below the mean ($-0.32$), but comfortably inside the 95% band.</li>
+</ul>
+<p>Two practical notes before moving on. First, the Cholesky solve costs $O(n^3)$ in the number of observations — irrelevant for $n \le 200$ evaluations, which is exactly the regime of hyperparameter tuning. Second, we fixed the kernel hyperparameters ($\ell = 0.6$, $\sigma_f^2 = 1$) by hand for clarity; production libraries fit them by maximizing the marginal likelihood at every iteration.</p>
+<hr/>
+<h2>3.3 Acquisition Functions: Deciding Where to Evaluate Next</h2>
+<h3>The Exploration–Exploitation Dilemma</h3>
+<p>With $\mu(x)$ and $\sigma(x)$ in hand, where should the next expensive evaluation go? Two pure strategies both fail:</p>
+<ul>
+<li><strong>Pure exploitation</strong> — evaluate at the minimum of $\mu(x)$. Risks tunnel vision: the surrogate mean can be badly wrong in unexplored regions, and we would never find out.</li>
+<li><strong>Pure exploration</strong> — evaluate where $\sigma(x)$ is largest. Maps the whole function accurately but wastes evaluations in regions that are clearly bad.</li>
+</ul>
+<p>An <strong>acquisition function (a cheap function of $\mu(x)$ and $\sigma(x)$ whose maximum designates the next point to evaluate)</strong> formalizes the compromise. The three standards, written here for <em>minimization</em> with current best observation $y_{\text{best}}$:</p>
+<p><strong>1. Probability of Improvement (PI)</strong> — the chance of doing at least $\xi$ better than $y_{\text{best}}$:</p>
+<p>$$
+\text{PI}(x) = \Phi\!\left( \frac{y_{\text{best}} - \mu(x) - \xi}{\sigma(x)} \right)
+$$</p>
+<p><strong>2. Expected Improvement (EI)</strong> — not just the probability but the expected <em>size</em> of the improvement $\max(y_{\text{best}} - f(x), 0)$:</p>
+<p>$$
+\text{EI}(x) = \left( y_{\text{best}} - \mu(x) - \xi \right) \Phi(z) + \sigma(x)\, \phi(z),
+\qquad z = \frac{y_{\text{best}} - \mu(x) - \xi}{\sigma(x)}
+$$</p>
+<p><strong>3. Lower Confidence Bound (LCB)</strong> — optimism under uncertainty; minimize $\mu$ minus a $\sigma$ bonus:</p>
+<p>$$
+\text{LCB}(x) = \mu(x) - \kappa\, \sigma(x)
+$$</p>
+<ul>
+<li>$\Phi$, $\phi$: the standard normal CDF and PDF</li>
+<li>$\xi \ge 0$: an exploration margin (larger $\xi$ → more exploration); $\kappa &gt; 0$ plays the same role for LCB (for maximization problems the same idea is the Upper Confidence Bound, UCB)</li>
+<li>All three are maximized (or, for LCB, minimized) over a dense candidate grid or with a cheap inner optimizer — evaluating them costs microseconds, unlike the objective</li>
+</ul>
+<p>EI is the default choice in most tools: unlike PI it rewards <em>large</em> potential improvements rather than merely likely ones, and unlike LCB it has no sensitive $\kappa$ to tune.</p>
+<h3>Code Example 3: Expected Improvement from Scratch</h3>
+<p>Reusing <code>black_box</code>, <code>rbf_kernel</code>, and <code>gp_posterior</code> exactly as defined in Example 2:</p>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;3.0.0
+# - scipy&gt;=1.10.0
+
+"""
+Example 3: Expected Improvement from scratch
+
+Purpose: Implement the closed-form EI formula and locate its maximum
+         on the GP posterior from Example 2
+Target: Intermediate-Advanced
+Execution time: under 5 seconds
+Dependencies: NumPy, SciPy
+"""
+
+import numpy as np
+from scipy.stats import norm
+
+# --- black_box, rbf_kernel, gp_posterior: identical to Example 2 ---
+def black_box(x):
+    return np.sin(3.0 * x) * 0.8 + 0.3 * x ** 2
+
+def rbf_kernel(A, B, length_scale=0.6, variance=1.0):
+    sq_dists = (A.reshape(-1, 1) - B.reshape(1, -1)) ** 2
+    return variance * np.exp(-0.5 * sq_dists / length_scale ** 2)
+
+def gp_posterior(X_train, y_train, X_test, noise=1e-6,
+                 length_scale=0.6, variance=1.0):
+    K = rbf_kernel(X_train, X_train, length_scale, variance)
+    K += noise * np.eye(len(X_train))
+    K_s = rbf_kernel(X_train, X_test, length_scale, variance)
+    L = np.linalg.cholesky(K)
+    alpha = np.linalg.solve(L.T, np.linalg.solve(L, y_train))
+    mu = K_s.T @ alpha
+    v = np.linalg.solve(L, K_s)
+    K_ss = rbf_kernel(X_test, X_test, length_scale, variance)
+    sigma = np.sqrt(np.clip(np.diag(K_ss - v.T @ v), 0.0, None))
+    return mu, sigma
+
+def expected_improvement(mu, sigma, y_best, xi=0.01):
+    """EI for MINIMIZATION: improvement = y_best - f(x)."""
+    with np.errstate(divide='ignore', invalid='ignore'):
+        z = (y_best - mu - xi) / sigma
+        ei = (y_best - mu - xi) * norm.cdf(z) + sigma * norm.pdf(z)
+        ei[sigma == 0.0] = 0.0
+    return ei
+
+# --- Same 5 observations as Example 2 ---
+X_train = np.array([-1.8, -0.9, 0.0, 0.9, 1.8])
+y_train = black_box(X_train)
+y_best = y_train.min()
+
+X_test = np.linspace(-2.0, 2.0, 400)
+mu, sigma = gp_posterior(X_train, y_train, X_test)
+
+print("=== Expected Improvement Analysis ===")
+print(f"Best observed value so far: {y_best:.4f} at x = {X_train[y_train.argmin()]:.2f}")
+for xi in [0.0, 0.01, 0.1]:
+    ei = expected_improvement(mu, sigma, y_best, xi=xi)
+    x_next = X_test[ei.argmax()]
+    print(f"xi = {xi:4.2f}: EI is maximized at x = {x_next:+.3f} "
+          f"(EI = {ei.max():.4f})")
+
+mu_at, sigma_at = gp_posterior(X_train, y_train,
+                               np.array([X_test[expected_improvement(mu, sigma, y_best).argmax()]]))
+print(f"\nAt the EI-optimal point: mu = {mu_at[0]:.4f}, sigma = {sigma_at[0]:.4f}")
+print("EI is high where the mean is low AND the uncertainty is large.")
+</code></pre>
+<p><strong>Sample Output</strong>:</p>
+<pre><code>=== Expected Improvement Analysis ===
+Best observed value so far: -0.0989 at x = -0.90
+xi = 0.00: EI is maximized at x = -0.516 (EI = 0.2794)
+xi = 0.01: EI is maximized at x = -0.516 (EI = 0.2718)
+xi = 0.10: EI is maximized at x = -0.516 (EI = 0.2079)
+
+At the EI-optimal point: mu = -0.3337, sigma = 0.3248
+EI is high where the mean is low AND the uncertainty is large.
+</code></pre>
+<p>EI proposes $x = -0.516$ — a point that has <em>not</em> the lowest posterior mean among the observations, but the best combination of a promising mean ($-0.33$) and substantial uncertainty ($0.32$). It sits between the two lowest observations, right where the true minimum actually hides. Note also that on this posterior the proposal is robust to $\xi$: all three margins pick the same point, only the EI magnitude shrinks.</p>
+<h3>Code Example 4: The Complete Bayesian Optimization Loop</h3>
+<p>Now we close the loop and compare against random search under an identical budget of 15 evaluations.</p>
+<div class="mermaid">
+graph TD
+    A[Evaluate a few random initial configurations] --&gt; B[Fit GP surrogate to all observations]
+    B --&gt; C[Maximize acquisition function EI over candidates]
+    C --&gt; D[Evaluate the black-box at the proposed point<br/>= one expensive training run]
+    D --&gt; E{Budget left?}
+    E --&gt;|Yes| B
+    E --&gt;|No| F[Return best configuration found]
+
+    style B fill:#e3f2fd
+    style C fill:#fff3e0
+    style F fill:#e8f5e9
+</div>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;3.0.0
+# - scipy&gt;=1.10.0
+
+"""
+Example 4: A complete Bayesian optimization loop vs random search
+
+Purpose: Alternate GP fitting and EI maximization for 12 iterations and
+         compare against random search at the same evaluation budget
+Target: Intermediate-Advanced
+Execution time: under 30 seconds
+Dependencies: NumPy, SciPy
+"""
+
+import numpy as np
+from scipy.stats import norm
+
+# --- Shared machinery, identical to Examples 2-3 ---
+def black_box(x):
+    return np.sin(3.0 * x) * 0.8 + 0.3 * x ** 2
+
+def rbf_kernel(A, B, length_scale=0.6, variance=1.0):
+    sq_dists = (A.reshape(-1, 1) - B.reshape(1, -1)) ** 2
+    return variance * np.exp(-0.5 * sq_dists / length_scale ** 2)
+
+def gp_posterior(X_train, y_train, X_test, noise=1e-6,
+                 length_scale=0.6, variance=1.0):
+    K = rbf_kernel(X_train, X_train, length_scale, variance)
+    K += noise * np.eye(len(X_train))
+    K_s = rbf_kernel(X_train, X_test, length_scale, variance)
+    L = np.linalg.cholesky(K)
+    alpha = np.linalg.solve(L.T, np.linalg.solve(L, y_train))
+    mu = K_s.T @ alpha
+    v = np.linalg.solve(L, K_s)
+    K_ss = rbf_kernel(X_test, X_test, length_scale, variance)
+    sigma = np.sqrt(np.clip(np.diag(K_ss - v.T @ v), 0.0, None))
+    return mu, sigma
+
+def expected_improvement(mu, sigma, y_best, xi=0.01):
+    with np.errstate(divide='ignore', invalid='ignore'):
+        z = (y_best - mu - xi) / sigma
+        ei = (y_best - mu - xi) * norm.cdf(z) + sigma * norm.pdf(z)
+        ei[sigma == 0.0] = 0.0
+    return ei
+
+def bayesian_optimization(n_init=3, n_iter=12, seed=7):
+    rng = np.random.default_rng(seed)
+    X_cand = np.linspace(-2.0, 2.0, 1000)          # candidate grid
+    X_obs = rng.uniform(-2.0, 2.0, n_init)          # random initial design
+    y_obs = black_box(X_obs)
+    history = [y_obs.min()]
+    for t in range(n_iter):
+        mu, sigma = gp_posterior(X_obs, y_obs, X_cand)
+        ei = expected_improvement(mu, sigma, y_obs.min())
+        x_next = X_cand[ei.argmax()]
+        y_next = black_box(x_next)
+        X_obs = np.append(X_obs, x_next)
+        y_obs = np.append(y_obs, y_next)
+        history.append(y_obs.min())
+    return X_obs, y_obs, np.array(history)
+
+def random_search(n_evals=15, seed=0):
+    rng = np.random.default_rng(seed)
+    X = rng.uniform(-2.0, 2.0, n_evals)
+    y = black_box(X)
+    return np.minimum.accumulate(y)
+
+# --- True minimum for reference (fine grid) ---
+xx = np.linspace(-2.0, 2.0, 100001)
+yy = black_box(xx)
+print(f"True minimum: f({xx[yy.argmin()]:+.4f}) = {yy.min():.4f}\n")
+
+# --- One BO run, with progress ---
+X_obs, y_obs, hist = bayesian_optimization()
+print("=== Bayesian Optimization (3 initial + 12 BO evaluations) ===")
+for t in [0, 3, 6, 9, 12]:
+    print(f"After {t:2d} BO iterations: best f = {hist[t]:.4f}")
+print(f"Best point found: x = {X_obs[y_obs.argmin()]:+.4f}, "
+      f"f = {y_obs.min():.4f}")
+
+# --- Compare with random search over 20 seeds (same budget: 15 evals) ---
+bo_finals = [bayesian_optimization(seed=s)[2][-1] for s in range(20)]
+rs_finals = [random_search(seed=s)[-1] for s in range(20)]
+print("\n=== 20 Repeats, Budget = 15 Evaluations Each ===")
+print(f"BO     best-found: mean = {np.mean(bo_finals):.4f}, "
+      f"worst = {np.max(bo_finals):.4f}")
+print(f"Random best-found: mean = {np.mean(rs_finals):.4f}, "
+      f"worst = {np.max(rs_finals):.4f}")
+</code></pre>
+<p><strong>Sample Output</strong>:</p>
+<pre><code>True minimum: f(-0.4832) = -0.7241
+
+=== Bayesian Optimization (3 initial + 12 BO evaluations) ===
+After  0 BO iterations: best f = -0.0415
+After  3 BO iterations: best f = -0.4976
+After  6 BO iterations: best f = -0.7235
+After  9 BO iterations: best f = -0.7239
+After 12 BO iterations: best f = -0.7240
+Best point found: x = -0.4865, f = -0.7240
+
+=== 20 Repeats, Budget = 15 Evaluations Each ===
+BO     best-found: mean = -0.7239, worst = -0.7232
+Random best-found: mean = -0.6323, worst = -0.1162
+</code></pre>
+<p>The comparison is stark. In 15 evaluations, every one of the 20 BO runs lands within $10^{-3}$ of the true minimum ($-0.7241$); random search averages a substantially worse value, and its <em>worst</em> run ($-0.12$) misses the good region entirely. The per-run behavior is equally instructive: BO spends its first few iterations exploring, locks onto the correct valley by iteration 6, and then polishes. This sample efficiency — not raw speed — is the entire value proposition of BO. When each evaluation costs an hour of GPU time, the difference between these two columns is measured in days.</p>
+<p>One honest caveat: our toy is 1-D, noise-free, and smooth — ideal GP territory. Real hyperparameter spaces are mixed (continuous, integer, categorical), conditional, and noisy. Rather than extending our from-scratch GP to handle all that, Section 3.4 switches to a tool engineered for it.</p>
+<hr/>
+<h2>3.4 Practical Bayesian Optimization with Optuna</h2>
+<h3>From Prototype to Production Tool</h3>
+<p><strong>Optuna (an open-source hyperparameter optimization framework built around a define-by-run API)</strong> handles everything our prototype could not: mixed and conditional search spaces, parallel workers, result storage, and early stopping. Its default sampler is <strong>TPE (Tree-structured Parzen Estimator, a Bayesian optimization algorithm that models the densities of good and bad configurations, $p(\lambda \mid \text{good})$ and $p(\lambda \mid \text{bad})$, and proposes points that maximize their ratio)</strong>. TPE plays the role our GP + EI combination played, but scales gracefully to high-dimensional, mixed-type spaces where GPs struggle.</p>
+<p>You describe the search space <em>inside</em> the objective function: each <code>trial.suggest_*</code> call both declares a hyperparameter and returns a concrete value for the current trial.</p>
+<h3>Code Example 5: Tuning GradientBoosting with TPE</h3>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;3.0.0
+# - scikit-learn&gt;=1.3.0
+# - optuna&gt;=3.0.0
+
+"""
+Example 5: Hyperparameter tuning with Optuna (TPE) on GradientBoosting
+
+Purpose: Tune four hyperparameters of GradientBoostingClassifier on a
+         synthetic classification task and compare against the defaults
+Target: Intermediate-Advanced
+Execution time: 1-3 minutes
+Dependencies: NumPy, scikit-learn, Optuna
+"""
+
+import numpy as np
+import optuna
+from sklearn.datasets import make_classification
+from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.model_selection import cross_val_score
+
+optuna.logging.set_verbosity(optuna.logging.WARNING)
+
+# --- Synthetic binary classification task ---
+X, y = make_classification(n_samples=600, n_features=20, n_informative=8,
+                           n_redundant=6, class_sep=0.8, random_state=42)
+
+def objective(trial):
+    params = {
+        "n_estimators": trial.suggest_int("n_estimators", 50, 300),
+        "learning_rate": trial.suggest_float("learning_rate", 1e-3, 0.3, log=True),
+        "max_depth": trial.suggest_int("max_depth", 2, 6),
+        "subsample": trial.suggest_float("subsample", 0.5, 1.0),
+    }
+    model = GradientBoostingClassifier(random_state=0, **params)
+    return cross_val_score(model, X, y, cv=3).mean()
+
+sampler = optuna.samplers.TPESampler(seed=42)
+study = optuna.create_study(direction="maximize", sampler=sampler)
+study.optimize(objective, n_trials=40)
+
+print("=== Optuna TPE: 40 Trials ===")
+print(f"Best CV accuracy: {study.best_value:.4f}")
+print("Best hyperparameters:")
+for k, v in study.best_params.items():
+    print(f"  {k:14s} = {v:.4f}" if isinstance(v, float) else f"  {k:14s} = {v}")
+
+# --- Baseline: default hyperparameters ---
+default_score = cross_val_score(GradientBoostingClassifier(random_state=0),
+                                X, y, cv=3).mean()
+print(f"\nDefault hyperparameters: {default_score:.4f}")
+print(f"Improvement: {(study.best_value - default_score) * 100:+.2f} points")
+
+# --- Best value over time ---
+best_so_far = np.maximum.accumulate([t.value for t in study.trials])
+for n in [5, 10, 20, 40]:
+    print(f"Best after {n:2d} trials: {best_so_far[n - 1]:.4f}")
+</code></pre>
+<p><strong>Sample Output</strong> (executed with optuna 4.9.0, scikit-learn 1.8.0):</p>
+<pre><code>=== Optuna TPE: 40 Trials ===
+Best CV accuracy: 0.8433
+Best hyperparameters:
+  n_estimators   = 108
+  learning_rate  = 0.2849
+  max_depth      = 6
+  subsample      = 0.8932
+
+Default hyperparameters: 0.7983
+Improvement: +4.50 points
+Best after  5 trials: 0.8183
+Best after 10 trials: 0.8183
+Best after 20 trials: 0.8300
+Best after 40 trials: 0.8433
+</code></pre>
+<p>Three things to notice. First, tuning buys 4.5 accuracy points over the defaults — a large gain for zero modeling work. Second, the progress curve is typical of TPE: the first ~10 trials are close to random exploration (Optuna's default is 10 startup trials), and the model-guided improvements arrive after that. Third, note <code>log=True</code> on the learning rate — Section 3.5 explains why omitting it is the most common search-space mistake.</p>
+<h3>Pruning: Stop Hopeless Trials Early</h3>
+<p>BO reduces <em>how many</em> configurations you evaluate. <strong>Pruning (terminating a trial early when its interim results are already worse than other trials at the same stage)</strong> reduces <em>how much each evaluation costs</em>. During training you periodically report an intermediate score with <code>trial.report(value, step)</code>; a pruner such as <strong>MedianPruner (prunes a trial whose interim score falls below the median of previous trials at the same step)</strong> then decides whether to abort. The same mechanism powers successive-halving and Hyperband pruners.</p>
+<h3>Code Example 6: Pruning with Warm-Started Gradient Boosting</h3>
+<p>Gradient boosting trains trees sequentially, so we can grow the ensemble in stages with <code>warm_start=True</code> and report the validation accuracy after every 10 trees.</p>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;3.0.0
+# - scikit-learn&gt;=1.3.0
+# - optuna&gt;=3.0.0
+
+"""
+Example 6: Pruning unpromising trials with Optuna's MedianPruner
+
+Purpose: Report interim validation scores while the ensemble grows and
+         let Optuna abort trials that are clearly losing
+Target: Advanced
+Execution time: about 30 seconds
+Dependencies: NumPy, scikit-learn, Optuna
+"""
+
+import time
+import numpy as np
+import optuna
+from sklearn.datasets import make_classification
+from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.model_selection import train_test_split
+
+optuna.logging.set_verbosity(optuna.logging.WARNING)
+
+X, y = make_classification(n_samples=600, n_features=20, n_informative=8,
+                           n_redundant=6, class_sep=0.8, random_state=42)
+X_train, X_valid, y_train, y_valid = train_test_split(
+    X, y, test_size=0.25, random_state=0, stratify=y)
+
+MAX_STAGES = 30          # grow the ensemble in 30 steps of 10 trees each
+
+def objective(trial):
+    params = {
+        "learning_rate": trial.suggest_float("learning_rate", 1e-3, 0.3, log=True),
+        "max_depth": trial.suggest_int("max_depth", 2, 6),
+        "subsample": trial.suggest_float("subsample", 0.5, 1.0),
+    }
+    model = GradientBoostingClassifier(n_estimators=10, warm_start=True,
+                                       random_state=0, **params)
+    for stage in range(1, MAX_STAGES + 1):
+        model.n_estimators = stage * 10          # add 10 more trees
+        model.fit(X_train, y_train)              # warm_start continues training
+        acc = model.score(X_valid, y_valid)
+        trial.report(acc, step=stage)            # tell Optuna the interim score
+        if trial.should_prune():                 # hopeless? stop early
+            raise optuna.TrialPruned()
+    return acc
+
+pruner = optuna.pruners.MedianPruner(n_startup_trials=5, n_warmup_steps=5)
+study = optuna.create_study(direction="maximize",
+                            sampler=optuna.samplers.TPESampler(seed=42),
+                            pruner=pruner)
+t0 = time.time()
+study.optimize(objective, n_trials=40)
+elapsed = time.time() - t0
+
+n_pruned = sum(t.state == optuna.trial.TrialState.PRUNED for t in study.trials)
+n_complete = sum(t.state == optuna.trial.TrialState.COMPLETE for t in study.trials)
+
+print("=== Optuna with MedianPruner: 40 Trials ===")
+print(f"Completed trials: {n_complete}")
+print(f"Pruned trials:    {n_pruned}")
+print(f"Best validation accuracy: {study.best_value:.4f}")
+print("Best hyperparameters:")
+for k, v in study.best_params.items():
+    print(f"  {k:14s} = {v:.4f}" if isinstance(v, float) else f"  {k:14s} = {v}")
+print(f"Wall-clock time: {elapsed:.1f} s")
+
+# How early were the pruned trials stopped?
+pruned_steps = [t.last_step for t in study.trials
+                if t.state == optuna.trial.TrialState.PRUNED]
+if pruned_steps:
+    print(f"Pruned trials stopped after {np.mean(pruned_steps):.1f} of "
+          f"{MAX_STAGES} stages on average")
+</code></pre>
+<p><strong>Sample Output</strong>:</p>
+<pre><code>=== Optuna with MedianPruner: 40 Trials ===
+Completed trials: 23
+Pruned trials:    17
+Best validation accuracy: 0.8267
+Best hyperparameters:
+  learning_rate  = 0.2760
+  max_depth      = 5
+  subsample      = 0.9914
+Wall-clock time: 18.1 s
+Pruned trials stopped after 5.6 of 30 stages on average
+</code></pre>
+<p>Seventeen of forty trials were aborted after, on average, 5.6 of 30 stages — each pruned trial paid roughly a fifth of its full cost. On a neural network where "stage" means "epoch", this is routinely the difference between a tuning job that fits in a night and one that does not. The pruner settings encode a real trade-off: aggressive pruning (small <code>n_warmup_steps</code>) saves more compute but can kill slow starters — configurations with small learning rates that would have won given their full budget.</p>
+<p>Bayesian optimization is one building block of the larger AutoML picture — model selection, feature engineering, and neural architecture search; see the <a href="../automl-introduction/index.html">AutoML Introduction series</a> for that broader view.</p>
+<hr/>
+<h2>3.5 Search-Space Design and Pitfalls</h2>
+<p>In practice, the quality of a tuning run is decided less by the sampler and more by the search space you give it. Four issues account for most wasted compute.</p>
+<h3>Pitfall 1: Linear Scale for Scale-Free Hyperparameters</h3>
+<p>Learning rates, regularization strengths, and kernel widths act <em>multiplicatively</em>: the step from 0.001 to 0.01 matters as much as the step from 0.01 to 0.1. Such hyperparameters must be searched on a <strong>log scale (sampling uniformly in $\log \lambda$ rather than in $\lambda$)</strong>. The following experiment also quantifies pitfall 2 — <strong>seed variance</strong> — by re-evaluating a single fixed configuration under ten different random seeds.</p>
+<h3>Code Example 7: Log-Scale Sampling and the Seed-Variance Noise Floor</h3>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;3.0.0
+# - scikit-learn&gt;=1.3.0
+
+"""
+Example 7: Log-scale sampling and the seed-variance noise floor
+
+Purpose: (A) Show where uniform vs log-uniform sampling actually lands;
+         (B) measure how much one configuration's CV score varies with seeds
+Target: Intermediate-Advanced
+Execution time: about 1 minute
+Dependencies: NumPy, scikit-learn
+"""
+
+import numpy as np
+from sklearn.datasets import make_classification
+from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.model_selection import cross_val_score, StratifiedKFold
+
+X, y = make_classification(n_samples=600, n_features=20, n_informative=8,
+                           n_redundant=6, class_sep=0.8, random_state=42)
+
+# --- Part A: uniform vs log-uniform sampling of a learning rate ---
+rng = np.random.default_rng(0)
+n = 10000
+uniform_samples = rng.uniform(1e-3, 0.3, n)
+log_uniform_samples = 10 ** rng.uniform(np.log10(1e-3), np.log10(0.3), n)
+
+decades = [(1e-3, 1e-2), (1e-2, 1e-1), (1e-1, 0.3)]
+print("=== Part A: Where Do the Samples Land? (10,000 samples) ===")
+print(f"{'Range':&gt;16s} {'Uniform':&gt;9s} {'Log-uniform':&gt;12s}")
+for lo, hi in decades:
+    u = np.mean((uniform_samples &gt;= lo) &amp; (uniform_samples &lt; hi)) * 100
+    g = np.mean((log_uniform_samples &gt;= lo) &amp; (log_uniform_samples &lt; hi)) * 100
+    print(f"[{lo:.3f}, {hi:.3f}) {u:8.1f}% {g:11.1f}%")
+
+# --- Part B: seed variance of a single configuration ---
+params = {"n_estimators": 150, "learning_rate": 0.08,
+          "max_depth": 3, "subsample": 0.8}
+scores = []
+for seed in range(10):
+    cv = StratifiedKFold(n_splits=3, shuffle=True, random_state=seed)
+    model = GradientBoostingClassifier(random_state=seed, **params)
+    scores.append(cross_val_score(model, X, y, cv=cv).mean())
+scores = np.array(scores)
+
+print("\n=== Part B: One Configuration, 10 Different Seeds ===")
+print(f"CV accuracy: mean = {scores.mean():.4f}, std = {scores.std():.4f}")
+print(f"Range: [{scores.min():.4f}, {scores.max():.4f}] "
+      f"(spread = {(scores.max() - scores.min()) * 100:.2f} points)")
+print("Any two trials whose scores differ by less than this spread")
+print("cannot be distinguished reliably: they are tied within noise.")
+</code></pre>
+<p><strong>Sample Output</strong>:</p>
+<pre><code>=== Part A: Where Do the Samples Land? (10,000 samples) ===
+           Range   Uniform  Log-uniform
+[0.001, 0.010)      3.0%        38.9%
+[0.010, 0.100)     30.1%        41.9%
+[0.100, 0.300)     66.9%        19.3%
+</code></pre>
+<pre><code>=== Part B: One Configuration, 10 Different Seeds ===
+CV accuracy: mean = 0.8115, std = 0.0081
+Range: [0.7967, 0.8217] (spread = 2.50 points)
+Any two trials whose scores differ by less than this spread
+cannot be distinguished reliably: they are tied within noise.
+</code></pre>
+<p><strong>Part A</strong>: uniform sampling puts 67% of its samples in the top decade $[0.1, 0.3)$ and only 3% in the bottom decade — if the optimum lives near 0.005, a uniform search will almost never look there. Log-uniform sampling spreads the budget nearly evenly across decades. In Optuna, this is exactly what <code>log=True</code> does.</p>
+<p><strong>Part B</strong>: the same configuration scores anywhere between 0.797 and 0.822 depending on nothing but random seeds and fold assignments. This 2.5-point spread is the <strong>noise floor</strong> of this tuning setup. Look back at Example 5: the 4.5-point gain over the defaults clears the floor, but the gap between the best trial (0.8433) and, say, a 0.8300 runner-up does not — treat those trials as tied, and prefer the simpler configuration. Reporting "our tuned model improved accuracy by 0.4 points" without a seed-variance check is one of the most common errors in applied ML.</p>
+<h3>Pitfall 3: Conditional Hyperparameters</h3>
+<p>Some hyperparameters only exist when another takes a particular value — <code>degree</code> matters only for a polynomial kernel, momentum only for SGD. Declaring irrelevant parameters unconditionally forces the sampler to model noise. Optuna's define-by-run API handles this naturally, because the search space is just Python control flow:</p>
+<pre><code class="language-python">def objective(trial):
+    optimizer = trial.suggest_categorical("optimizer", ["adam", "sgd"])
+    if optimizer == "sgd":
+        # Only sampled — and only learned from — when it actually applies
+        momentum = trial.suggest_float("momentum", 0.5, 0.99)
+</code></pre>
+<h3>Pitfall 4: Overfitting the Validation Set</h3>
+<p>Every trial is a query against the validation data. After 200 trials, the best score is partly a real improvement and partly luck that happened to fit that particular validation set — the outer optimization can <strong>overfit the validation set</strong> just as training overfits the training set. The defenses are standard but easy to forget:</p>
+<ul>
+<li>Keep a <strong>test set that the tuner never sees</strong>, and report final performance on it exactly once.</li>
+<li>Use cross-validation inside the objective (as in Example 5) rather than a single split, so each trial's score is less noisy to begin with.</li>
+<li>Re-evaluate the top few configurations with fresh seeds before declaring a winner (Example 7, Part B).</li>
+</ul>
+<h3>When is Random Search Enough?</h3>
+<p>Honesty requires saying that BO is not always worth its complexity:</p>
+<table>
+<thead>
+<tr>
+<th>Situation</th>
+<th>Recommendation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Evaluations are cheap (seconds) and parallelism is plentiful</td>
+<td>Random search — sample efficiency does not matter; trivially parallel</td>
+</tr>
+<tr>
+<td>1–2 hyperparameters, smooth response</td>
+<td>Random search or even a coarse manual sweep is fine</td>
+</tr>
+<tr>
+<td>Score differences are inside the noise floor</td>
+<td>No method helps — reduce noise (more folds, more seeds) first</td>
+</tr>
+<tr>
+<td>Expensive evaluations (minutes-hours), 3-10 hyperparameters</td>
+<td>BO (TPE/GP) + pruning — the sweet spot of this chapter</td>
+</tr>
+<tr>
+<td>Very high-dimensional or heavily conditional spaces</td>
+<td>TPE, evolutionary methods, or Hyperband-style bandits over GP-BO</td>
+</tr>
+</tbody>
+</table>
+<p>Bayesian optimization also extends far beyond hyperparameters — the same GP + acquisition machinery drives experiment design in chemistry and process engineering; the <a href="../../PI/bayesian-optimization/index.html">Bayesian Optimization series in the Process Informatics Dojo</a> develops that direction in depth.</p>
+<hr/>
+<h2>3.6 Chapter Summary</h2>
+<h3>What We Learned</h3>
+<ol>
+<li><p><strong>Hyperparameter tuning is expensive black-box optimization</strong></p>
+<ul>
+<li>No gradients, budgets of tens-to-hundreds of evaluations, noisy scores</li>
+<li>Random search beats grid search because real objectives have low effective dimensionality (Bergstra–Bengio)</li>
+</ul></li>
+<li><p><strong>Gaussian processes are surrogates with error bars</strong></p>
+<ul>
+<li>A kernel encodes "similar inputs give similar scores"; the posterior gives $\mu(x)$ and $\sigma(x)$ in closed form</li>
+<li>$\sigma \approx 0$ at observed points, growing with distance from data — the GP knows what it does not know</li>
+</ul></li>
+<li><p><strong>Acquisition functions resolve exploration vs exploitation</strong></p>
+<ul>
+<li>EI weighs both the probability and the size of improvement; PI and LCB/UCB are the main alternatives</li>
+<li>The BO loop — fit surrogate, maximize acquisition, evaluate, repeat — found a 1-D optimum in ~9 evaluations where random search needed far more</li>
+</ul></li>
+<li><p><strong>Optuna makes BO practical</strong></p>
+<ul>
+<li>TPE handles mixed and conditional spaces; define-by-run means the space is just Python code</li>
+<li>Pruning cut 17 of 40 trials to a fifth of their cost by aborting clear losers early</li>
+</ul></li>
+<li><p><strong>The search space matters more than the sampler</strong></p>
+<ul>
+<li>Log-scale for multiplicative hyperparameters; conditionals declared conditionally</li>
+<li>Measure the seed-variance noise floor, and never trust improvements smaller than it; keep an untouched test set</li>
+</ul></li>
+</ol>
+<h3>Series Conclusion</h3>
+<p>This chapter completes the three-part arc of <em>Optimization for Machine Learning</em>. Chapter 1 covered the inner loop — gradient-based optimizers that train models by exploiting derivatives at thousands of cheap evaluations. Chapter 2 removed the gradient requirement with metaheuristics that trade evaluations for global reach. This chapter addressed the opposite extreme: so few affordable evaluations that every one must be chosen by a model of the objective itself. The three regimes — cheap with gradients, cheap without gradients, expensive without gradients — cover nearly every optimization problem you will meet in machine learning practice. Knowing which regime you are in, before choosing an algorithm, is the most transferable skill this series can leave you with.</p>
+<hr/>
+<h2>Exercises</h2>
+<h3>Problem 1 (Difficulty: easy)</h3>
+<p>Using the GP posterior from Example 2 (same five observations), implement Probability of Improvement and the Lower Confidence Bound $\mu(x) - \kappa\sigma(x)$ with $\kappa = 2$. Report the next evaluation point each acquisition function proposes, compare with EI's proposal ($x = -0.516$), and explain the differences.</p>
+<details>
+<summary>Sample Answer</summary>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;3.0.0
+# - scipy&gt;=1.10.0
+
+import numpy as np
+from scipy.stats import norm
+
+# --- Shared machinery, identical to Examples 2-3 ---
+def black_box(x):
+    return np.sin(3.0 * x) * 0.8 + 0.3 * x ** 2
+
+def rbf_kernel(A, B, length_scale=0.6, variance=1.0):
+    sq_dists = (A.reshape(-1, 1) - B.reshape(1, -1)) ** 2
+    return variance * np.exp(-0.5 * sq_dists / length_scale ** 2)
+
+def gp_posterior(X_train, y_train, X_test, noise=1e-6,
+                 length_scale=0.6, variance=1.0):
+    K = rbf_kernel(X_train, X_train, length_scale, variance)
+    K += noise * np.eye(len(X_train))
+    K_s = rbf_kernel(X_train, X_test, length_scale, variance)
+    L = np.linalg.cholesky(K)
+    alpha = np.linalg.solve(L.T, np.linalg.solve(L, y_train))
+    mu = K_s.T @ alpha
+    v = np.linalg.solve(L, K_s)
+    K_ss = rbf_kernel(X_test, X_test, length_scale, variance)
+    sigma = np.sqrt(np.clip(np.diag(K_ss - v.T @ v), 0.0, None))
+    return mu, sigma
+
+def expected_improvement(mu, sigma, y_best, xi=0.01):
+    with np.errstate(divide='ignore', invalid='ignore'):
+        z = (y_best - mu - xi) / sigma
+        ei = (y_best - mu - xi) * norm.cdf(z) + sigma * norm.pdf(z)
+        ei[sigma == 0.0] = 0.0
+    return ei
+
+def probability_of_improvement(mu, sigma, y_best, xi=0.01):
+    with np.errstate(divide='ignore', invalid='ignore'):
+        z = (y_best - mu - xi) / sigma
+        pi = norm.cdf(z)
+        pi[sigma == 0.0] = 0.0
+    return pi
+
+def lower_confidence_bound(mu, sigma, kappa=2.0):
+    """For minimization: pick the minimum of mu - kappa*sigma."""
+    return mu - kappa * sigma
+
+X_train = np.array([-1.8, -0.9, 0.0, 0.9, 1.8])
+y_train = black_box(X_train)
+y_best = y_train.min()
+
+X_test = np.linspace(-2.0, 2.0, 400)
+mu, sigma = gp_posterior(X_train, y_train, X_test)
+
+ei = expected_improvement(mu, sigma, y_best)
+pi = probability_of_improvement(mu, sigma, y_best)
+lcb = lower_confidence_bound(mu, sigma)
+
+print("=== Next Point Proposed by Each Acquisition Function ===")
+print(f"EI  (xi=0.01):  x = {X_test[ei.argmax()]:+.3f}")
+print(f"PI  (xi=0.01):  x = {X_test[pi.argmax()]:+.3f}")
+print(f"LCB (kappa=2):  x = {X_test[lcb.argmin()]:+.3f}")
+print(f"\nTrue minimizer of the black-box: x = -0.4832")
+</code></pre>
+<p><strong>Output</strong>:</p>
+<pre><code>=== Next Point Proposed by Each Acquisition Function ===
+EI  (xi=0.01):  x = -0.516
+PI  (xi=0.01):  x = -0.827
+LCB (kappa=2):  x = -0.476
+
+True minimizer of the black-box: x = -0.4832
+</code></pre>
+<p><strong>Explanation</strong>: PI proposes $x = -0.827$, right next to the best existing observation at $x = -0.9$. This is PI's known bias: a point barely better than $y_{\text{best}}$ with high certainty maximizes the <em>probability</em> of improvement even though the expected <em>amount</em> of improvement is tiny — PI over-exploits. EI ($-0.516$) and LCB ($-0.476$) both move into the uncertain region between the two lowest observations, because they reward the magnitude of potential improvement; both land near the true minimizer ($-0.483$). This is why EI is the usual default and PI is mainly of historical interest. Note that LCB's behavior depends on $\kappa$ — Problem 2 quantifies that dependence.</p>
+</details>
+<h3>Problem 2 (Difficulty: medium)</h3>
+<p>Replace EI in the BO loop of Example 4 with the LCB rule (evaluate where $\mu - \kappa\sigma$ is minimal) and run 20 repeats (seeds 0–19) for $\kappa \in \{0.1, 0.5, 2.0, 5.0\}$. For each $\kappa$ report the mean and worst best-found value, plus the average number of distinct points evaluated. Interpret the results in terms of exploration vs exploitation.</p>
+<details>
+<summary>Sample Answer</summary>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;3.0.0
+
+import numpy as np
+
+# --- Shared machinery, identical to Example 2 ---
+def black_box(x):
+    return np.sin(3.0 * x) * 0.8 + 0.3 * x ** 2
+
+def rbf_kernel(A, B, length_scale=0.6, variance=1.0):
+    sq_dists = (A.reshape(-1, 1) - B.reshape(1, -1)) ** 2
+    return variance * np.exp(-0.5 * sq_dists / length_scale ** 2)
+
+def gp_posterior(X_train, y_train, X_test, noise=1e-6,
+                 length_scale=0.6, variance=1.0):
+    K = rbf_kernel(X_train, X_train, length_scale, variance)
+    K += noise * np.eye(len(X_train))
+    K_s = rbf_kernel(X_train, X_test, length_scale, variance)
+    L = np.linalg.cholesky(K)
+    alpha = np.linalg.solve(L.T, np.linalg.solve(L, y_train))
+    mu = K_s.T @ alpha
+    v = np.linalg.solve(L, K_s)
+    K_ss = rbf_kernel(X_test, X_test, length_scale, variance)
+    sigma = np.sqrt(np.clip(np.diag(K_ss - v.T @ v), 0.0, None))
+    return mu, sigma
+
+def bo_with_lcb(kappa, n_init=3, n_iter=12, seed=7):
+    rng = np.random.default_rng(seed)
+    X_cand = np.linspace(-2.0, 2.0, 1000)
+    X_obs = rng.uniform(-2.0, 2.0, n_init)
+    y_obs = black_box(X_obs)
+    for _ in range(n_iter):
+        mu, sigma = gp_posterior(X_obs, y_obs, X_cand)
+        x_next = X_cand[(mu - kappa * sigma).argmin()]
+        X_obs = np.append(X_obs, x_next)
+        y_obs = np.append(y_obs, black_box(x_next))
+    return y_obs.min(), len(np.unique(np.round(X_obs, 2)))
+
+print("=== LCB with Different kappa (mean over 20 seeds) ===")
+print(f"{'kappa':&gt;6s} {'mean best f':&gt;12s} {'worst best f':&gt;13s} "
+      f"{'mean distinct x':&gt;16s}")
+for kappa in [0.1, 0.5, 2.0, 5.0]:
+    results = [bo_with_lcb(kappa, seed=s) for s in range(20)]
+    bests = np.array([r[0] for r in results])
+    distinct = np.array([r[1] for r in results])
+    print(f"{kappa:6.1f} {bests.mean():12.4f} {bests.max():13.4f} "
+          f"{distinct.mean():16.1f}")
+print("\nTrue minimum: f(-0.4832) = -0.7241")
+</code></pre>
+<p><strong>Output</strong>:</p>
+<pre><code>=== LCB with Different kappa (mean over 20 seeds) ===
+ kappa  mean best f  worst best f  mean distinct x
+   0.1      -0.6027       -0.1173              6.3
+   0.5      -0.7241       -0.7240              7.1
+   2.0      -0.7241       -0.7241              8.7
+   5.0      -0.7241       -0.7241             10.2
+</code></pre>
+<p><strong>Explanation</strong>: With $\kappa = 0.1$ the rule is nearly pure exploitation of the posterior mean. It evaluates only about 6 distinct points out of 15 — it keeps re-proposing (essentially) the same minimizer of $\mu$ — and in the worst seed it never escapes a mediocre region, finishing at $-0.12$ versus the true $-0.72$. This is exactly the tunnel-vision failure described in Section 3.3. From $\kappa = 0.5$ upward, the $\sigma$ bonus forces enough exploration that all 20 seeds find the global minimum; larger $\kappa$ simply spends more of the budget on distinct exploratory points (10.2 at $\kappa = 5$) without improving the result on this easy 1-D problem. On harder problems, very large $\kappa$ would eventually hurt by under-exploiting. The practical reading: LCB works well over a broad middle range of $\kappa$, but the existence of this knob — which EI largely avoids — is its main inconvenience.</p>
+</details>
+<h3>Problem 3 (Difficulty: hard)</h3>
+<p>Does TPE actually beat random sampling on a real tuning problem? Using a smaller variant of Example 5's task (400 samples, <code>n_estimators</code> in [30, 120], <code>max_depth</code> in [2, 5], 25 trials), run Optuna with <code>TPESampler</code> and with <code>RandomSampler</code>, each with 3 different seeds, and compare the mean best CV accuracy. Discuss whether the observed difference is trustworthy given Section 3.5's noise-floor argument.</p>
+<details>
+<summary>Sample Answer</summary>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;3.0.0
+# - scikit-learn&gt;=1.3.0
+# - optuna&gt;=3.0.0
+
+import numpy as np
+import optuna
+from sklearn.datasets import make_classification
+from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.model_selection import cross_val_score
+
+optuna.logging.set_verbosity(optuna.logging.WARNING)
+
+X, y = make_classification(n_samples=400, n_features=20, n_informative=8,
+                           n_redundant=6, class_sep=0.8, random_state=42)
+
+def objective(trial):
+    params = {
+        "n_estimators": trial.suggest_int("n_estimators", 30, 120),
+        "learning_rate": trial.suggest_float("learning_rate", 1e-3, 0.3, log=True),
+        "max_depth": trial.suggest_int("max_depth", 2, 5),
+        "subsample": trial.suggest_float("subsample", 0.5, 1.0),
+    }
+    model = GradientBoostingClassifier(random_state=0, **params)
+    return cross_val_score(model, X, y, cv=3).mean()
+
+def run_study(sampler_cls, seed, n_trials=25):
+    study = optuna.create_study(direction="maximize",
+                                sampler=sampler_cls(seed=seed))
+    study.optimize(objective, n_trials=n_trials)
+    return study.best_value
+
+print("=== TPE vs Random Sampler (25 trials each, 3 seeds) ===")
+results = {}
+for name, cls in [("TPE", optuna.samplers.TPESampler),
+                  ("Random", optuna.samplers.RandomSampler)]:
+    bests = [run_study(cls, seed=s) for s in [0, 1, 2]]
+    results[name] = bests
+    print(f"{name:6s}: best values = "
+          + ", ".join(f"{b:.4f}" for b in bests)
+          + f"  (mean = {np.mean(bests):.4f})")
+
+diff = np.mean(results["TPE"]) - np.mean(results["Random"])
+print(f"\nMean advantage of TPE: {diff * 100:+.2f} points")
+</code></pre>
+<p><strong>Output</strong> (about 2-3 minutes to run):</p>
+<pre><code>=== TPE vs Random Sampler (25 trials each, 3 seeds) ===
+TPE   : best values = 0.8427, 0.8601, 0.8552  (mean = 0.8526)
+Random: best values = 0.8427, 0.8376, 0.8401  (mean = 0.8401)
+
+Mean advantage of TPE: +1.25 points
+</code></pre>
+<p><strong>Explanation</strong>: TPE wins by 1.25 accuracy points on average, and by seeds: TPE's worst run (0.8427) matches Random's best. This is consistent with the theory — after its 10 random startup trials, TPE concentrates its remaining 15 trials in the region the density-ratio model considers promising, while random sampling keeps spending trials everywhere.</p>
+<p>Is the difference trustworthy? Only partially — and saying so is the point of the exercise. Three seeds give a very rough mean; the run-to-run spread of TPE alone (0.843–0.860) is larger than the 1.25-point gap. Moreover, each reported "best value" is itself a maximum over 25 noisy CV scores, which biases it upward (the validation-overfitting effect of Section 3.5) — for <em>both</em> samplers, so the comparison is fair, but the absolute numbers flatter the models. A publication-grade comparison would use 10+ seeds per sampler, report the best value re-evaluated with fresh CV seeds, and test significance across seeds. As a directional finding at a realistic budget, however, the result matches the broader literature: model-based samplers help most exactly when the trial budget is small relative to the search-space size.</p>
+</details>
+<hr/>
+<h2>References</h2>
+<ol>
+<li>Bergstra, J., &amp; Bengio, Y. (2012). <em>Random Search for Hyper-Parameter Optimization</em>. Journal of Machine Learning Research, 13, 281-305.</li>
+<li>Bergstra, J., Bardenet, R., Bengio, Y., &amp; Kégl, B. (2011). <em>Algorithms for Hyper-Parameter Optimization</em>. NeurIPS 2011. (The TPE paper)</li>
+<li>Snoek, J., Larochelle, H., &amp; Adams, R. P. (2012). <em>Practical Bayesian Optimization of Machine Learning Algorithms</em>. NeurIPS 2012.</li>
+<li>Rasmussen, C. E., &amp; Williams, C. K. I. (2006). <em>Gaussian Processes for Machine Learning</em>. MIT Press.</li>
+<li>Frazier, P. I. (2018). <em>A Tutorial on Bayesian Optimization</em>. arXiv:1807.02811.</li>
+<li>Akiba, T., Sano, S., Yanase, T., Ohta, T., &amp; Koyama, M. (2019). <em>Optuna: A Next-generation Hyperparameter Optimization Framework</em>. KDD 2019.</li>
+<li>Feurer, M., &amp; Hutter, F. (2019). <em>Hyperparameter Optimization</em>. In: Automated Machine Learning, Springer, 3-33.</li>
+</ol>
+<div class="navigation">
+<a class="nav-button" href="chapter2-metaheuristics.html">← Chapter 2: Metaheuristic Optimization</a>
+<a class="nav-button" href="index.html">Series Index →</a>
+</div>
+</main>
+<section class="disclaimer">
+<h3>Disclaimer</h3>
+<ul>
+<li>This content is provided for educational, research, and informational purposes only and does not constitute professional advice (legal, accounting, technical guarantees, etc.).</li>
+<li>This content and accompanying code examples are provided "AS IS" without any express or implied warranties, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, and safety.</li>
+<li>The content creators and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, or libraries.</li>
+<li>The content creators and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content, to the maximum extent permitted by applicable law.</li>
+<li>The content of this material is subject to change, update, or discontinuation without notice.</li>
+<li>The copyright and license of this content are subject to the specified terms (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.</li>
+</ul>
+</section>
+<footer>
+<p><strong>Author</strong>: AI Terakoya Content Team</p>
+<p><strong>Version</strong>: 1.0 | <strong>Created</strong>: 2026-07-08</p>
+<p><strong>License</strong>: Creative Commons BY 4.0</p>
+<p>© 2025 AI Terakoya. All rights reserved.</p>
+</footer>
+</body>
+</html>
