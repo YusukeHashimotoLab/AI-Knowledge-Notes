@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 5: Python Practice: Electronic Structure Calculations - Introduction to Materials Chemistry</title>
+    <meta name="description" content="From the fundamentals of DFT (Density Functional Theory), building and optimizing crystal structures with ASE, data-driven materials discovery using the Materials Project API, to integration with machine learning. A hands-on capstone chapter on electronic structure calculations for the Introduction to Materials Chemistry series.">
+
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", sans-serif; line-height: 1.8; color: #2c3e50; max-width: 1200px; margin: 0 auto; padding: 20px; background: #f8f9fa; }
+        h1, h2, h3 { color: #2c3e50; margin-top: 2rem; }
+        h1 { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 1.5rem; border-radius: 10px; }
+        h2 { border-left: 5px solid #f5576c; padding-left: 15px; background: linear-gradient(to right, rgba(245,87,108,0.1), transparent); }
+        .code-block { background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 8px; overflow-x: auto; margin: 1rem 0; }
+        .equation { background: #fff3cd; padding: 15px; border-left: 4px solid #ffc107; margin: 1rem 0; border-radius: 5px; }
+        .exercise { background: #e7f3ff; padding: 20px; border-left: 4px solid #2196F3; margin: 1.5rem 0; border-radius: 8px; }
+        .solution { background: #f0f0f0; padding: 15px; margin-top: 10px; border-radius: 5px; }
+        .reference { background: white; padding: 15px; margin: 10px 0; border-left: 3px solid #f5576c; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .mermaid { background: white; padding: 20px; border-radius: 10px; margin: 1.5rem 0; }
+        .note { background: #fff0f0; padding: 15px; border-left: 4px solid #f5576c; margin: 1rem 0; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Chapter 5: Python Practice: Electronic Structure Calculations</h1>
+
+    <p>In Chapter 1, we understood chemical bonding through classical potential models (the Madelung constant, the Morse potential, etc.); in Chapter 2, we understood band structure through the LCAO method and the tight-binding approximation; in Chapter 3, we understood the splitting of d orbitals in transition-metal complexes through crystal field theory; and in Chapter 4, we understood phase equilibria through the Gibbs free energy and the regular solution model. Each of these theories made the behavior of electrons and atoms tractable through some kind of approximation or modeling.</p>
+
+    <p>However, to quantitatively predict the properties of real solids and molecules, we must somehow solve the <strong>many-body problem</strong>, in which numerous electrons move while interacting with one another. The most successful practical solution to this problem is <strong>Density Functional Theory (DFT)</strong>. Instead of the complicated many-electron wavefunction, DFT uses the far more tractable electron density $n(\mathbf{r})$ as its fundamental variable, making it possible to compute a material's total energy, electronic structure, and the forces acting on its atoms as an <strong>ab initio calculation</strong> that does not rely on empirical parameters.</p>
+
+    <p>As the final chapter of this series, we begin by learning the basic concepts of DFT. We then use the Python library <strong>ASE (Atomic Simulation Environment)</strong> to build and manipulate crystal structures, getting hands-on experience with the general workflow of structure optimization and electronic structure calculation. We also learn the idea of <strong>data-driven materials discovery</strong> using materials databases such as the Materials Project, and finally we summarize how the knowledge accumulated across Chapters 1 through 4 connects within modern computational materials chemistry powered by machine learning.</p>
+
+    <div class="reference" style="text-align: center;">
+        <p><strong>Reading time:</strong> 30-35 minutes　｜　<strong>Difficulty:</strong> Advanced　｜　<strong>Code examples:</strong> 11</p>
+    </div>
+
+    <div class="exercise">
+        <h3>Learning Objectives for This Chapter</h3>
+        <ul>
+            <li>Understand the basic idea of DFT</li>
+            <li>Be able to build and manipulate crystal structures with ASE</li>
+            <li>Understand the general workflow of electronic structure calculations</li>
+            <li>Understand the idea of data-driven materials discovery</li>
+            <li>Integrate an overall understanding of what was learned throughout this series</li>
+        </ul>
+    </div>
+
+    <p style="text-align: center; margin: 1.5rem 0;">
+        <a href="chapter-4.html" style="color: #f5576c; text-decoration: none; font-weight: bold;">← Chapter 4</a>
+        <span style="color: #adb5bd; margin: 0 0.8rem;">|</span>
+        <a href="index.html" style="color: #f5576c; text-decoration: none; font-weight: bold;">Series Index</a>
+    </p>
+
+    <h2>5.1 Fundamental Concepts of DFT (Density Functional Theory)</h2>
+    <p>To exactly determine the ground state of a system containing $N$ electrons, one must solve the Schrödinger equation for the many-body wavefunction $\Psi(\mathbf{r}_1, \ldots, \mathbf{r}_N)$ defined on a $3N$-dimensional configuration space.</p>
+
+    <div class="equation">
+        $$\hat{H}\Psi = \left[-\sum_i \frac{\hbar^2}{2m}\nabla_i^2 + \sum_i V_{ext}(\mathbf{r}_i) + \sum_{i \lt j}\frac{e^2}{|\mathbf{r}_i-\mathbf{r}_j|}\right]\Psi = E\Psi$$
+        <p>Once the number of electrons $N$ exceeds a few dozen, the computational cost of exact methods that handle the wavefunction directly grows exponentially, making them unsolvable in any realistic amount of time.</p>
+    </div>
+
+    <p>The groundbreaking idea for circumventing this difficulty is the pair of theorems presented by Hohenberg and Kohn in 1964, known as the <strong>Hohenberg-Kohn Theorems</strong>.</p>
+
+    <ul>
+        <li><strong>First theorem</strong>: The ground-state electron density $n(\mathbf{r})$ of a system uniquely determines the external potential $V_{ext}(\mathbf{r})$ (up to an additive constant). Consequently, every physical quantity of the ground state can be expressed as a functional of the density $n(\mathbf{r})$.</li>
+        <li><strong>Second theorem</strong>: There exists a universal functional that gives the total energy $E[n]$ as a functional of the density, and the true ground-state density minimizes this functional (the variational principle).</li>
+    </ul>
+
+    <p>This allows us to work with the electron density $n(\mathbf{r})$, a mere three-dimensional function, as the fundamental variable, instead of the $3N$-dimensional wavefunction. However, the Hohenberg-Kohn theorems only guarantee the "existence" of the energy functional; they do not give its explicit form. In 1965, Kohn and Sham provided a practical computational scheme by constructing a non-interacting auxiliary electron system (the <strong>Kohn-Sham system</strong>) that reproduces the same density as the true interacting electron system. This is the <strong>Kohn-Sham Equations</strong>.</p>
+
+    <div class="equation">
+        $$\left[-\frac{\hbar^2}{2m}\nabla^2 + V_{eff}(\mathbf{r})\right]\psi_i(\mathbf{r}) = \epsilon_i \psi_i(\mathbf{r})$$
+        $$V_{eff}(\mathbf{r}) = V_{ext}(\mathbf{r}) + V_H(\mathbf{r}) + V_{xc}(\mathbf{r})$$
+        <p>Here $\psi_i$ are the Kohn-Sham orbitals and $\epsilon_i$ are the Kohn-Sham eigenvalues. The effective potential $V_{eff}$ is expressed as the sum of the external potential $V_{ext}$ due to the atomic nuclei, the <strong>Hartree potential</strong> $V_H(\mathbf{r}) = e^2\int n(\mathbf{r}')/|\mathbf{r}-\mathbf{r}'|\,d\mathbf{r}'$, which represents the classical electrostatic repulsion between electron densities, and the <strong>Exchange-Correlation Potential</strong> $V_{xc}(\mathbf{r}) = \delta E_{xc}[n]/\delta n(\mathbf{r})$, which packs in all the quantum mechanical exchange and correlation effects.</p>
+    </div>
+
+    <p>The electron density is computed from the occupied Kohn-Sham orbitals as $n(\mathbf{r}) = \sum_i^{occ}|\psi_i(\mathbf{r})|^2$, but this density is needed to determine the effective potential $V_{eff}$ (in particular $V_H$ and $V_{xc}$), while $\psi_i$ — and hence $n(\mathbf{r})$ — can only be obtained once $V_{eff}$ has been solved. To resolve this circularity, one starts from some initial guess density and repeats the following cycle: (1) compute the effective potential, (2) diagonalize the Kohn-Sham equations, (3) compute a new density, and (4) return to (1) until convergence is reached. This is called a <strong>Self-Consistent Field calculation (SCF)</strong>. The true exchange-correlation functional $E_{xc}[n]$ is, strictly speaking, unknown, and practical calculations use approximate functionals such as the <strong>Local Density Approximation (LDA)</strong> or the <strong>Generalized Gradient Approximation (GGA)</strong> (the PBE functional being a representative example).</p>
+
+    <p>Below, instead of performing an actual DFT calculation, we implement in Python a simplified toy model (a simplified model for educational purposes) that lets us intuitively understand the mechanics of the SCF cycle itself. We consider a two-electron system bound in a one-dimensional harmonic potential, and iteratively solve the Schrödinger equation by the finite-difference method under a simplified Hartree-like mean-field potential that depends on the electron density. Note that the Hartree term here is not a genuine integral but a mock term proportional to the local density. Even so, the structure of the SCF loop itself — density → effective potential → orbitals → new density — is the same as in an actual DFT calculation.</p>
+
+    <h3>Python Implementation: A Toy Model for Self-Consistent Field (SCF) Calculation</h3>
+    <pre class="code-block"><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+def solve_1d_schrodinger(V, x):
+    """Solve the one-dimensional Schrödinger equation by the finite-difference method (atomic units, hbar=m=1)"""
+    N = len(x)
+    dx = x[1] - x[0]
+    kinetic = np.zeros((N, N))
+    for i in range(N):
+        kinetic[i, i] = 2.0
+        if i &gt; 0:
+            kinetic[i, i - 1] = -1.0
+        if i &lt; N - 1:
+            kinetic[i, i + 1] = -1.0
+    kinetic /= (2 * dx**2)
+
+    H = kinetic + np.diag(V)
+    eigenvalues, eigenvectors = np.linalg.eigh(H)
+    eigenvectors = eigenvectors / np.sqrt(dx)  # normalization: integral |psi|^2 dx = 1
+    return eigenvalues, eigenvectors
+
+
+def self_consistent_field(x, V_ext, U_hartree=0.3, n_electrons=2, max_iter=80, tol=1e-8, mix=0.3):
+    """
+    A toy model of a simplified self-consistent field (SCF) calculation.
+
+    Just as in actual Kohn-Sham DFT, this repeats the cycle of solving the
+    one-electron equation under a density-dependent effective potential and
+    then updating the effective potential with the resulting density, until
+    convergence is reached. Note that the Hartree term here is not a genuine
+    integral but a simplified mock term proportional to the local density.
+    """
+    N = len(x)
+    dx = x[1] - x[0]
+    n = np.zeros(N)
+    energies_history = []
+
+    for iteration in range(max_iter):
+        V_eff = V_ext + U_hartree * n
+        eigenvalues, eigenvectors = solve_1d_schrodinger(V_eff, x)
+
+        n_new = np.zeros(N)
+        remaining = n_electrons
+        idx = 0
+        while remaining &gt; 0:
+            occ = min(2, remaining)
+            n_new += occ * eigenvectors[:, idx]**2
+            remaining -= occ
+            idx += 1
+
+        n_next = mix * n_new + (1 - mix) * n  # simple mixing to suppress SCF oscillations
+
+        E_band = _occupied_energy_sum(eigenvalues, n_electrons)
+        E_hartree_dc = 0.5 * U_hartree * np.sum(n_new**2) * dx  # double-counting correction
+        energies_history.append(E_band - E_hartree_dc)
+
+        if np.max(np.abs(n_next - n)) &lt; tol:
+            n = n_next
+            break
+        n = n_next
+
+    return n, eigenvalues, energies_history
+
+
+def _occupied_energy_sum(eigenvalues, n_electrons):
+    total, remaining, idx = 0.0, n_electrons, 0
+    while remaining &gt; 0:
+        occ = min(2, remaining)
+        total += occ * eigenvalues[idx]
+        remaining -= occ
+        idx += 1
+    return total
+
+
+# Computational grid: a two-electron system in a one-dimensional harmonic potential (mimicking nuclear confinement)
+L, N = 6.0, 300
+x = np.linspace(-L, L, N)
+V_ext = 0.5 * x**2
+
+n_final, eigenvalues, energies_history = self_consistent_field(x, V_ext, U_hartree=0.3, n_electrons=2)
+n_noninteracting, ev0, _ = self_consistent_field(x, V_ext, U_hartree=0.0, n_electrons=2, max_iter=1)
+
+print(f"Number of iterations to SCF convergence: {len(energies_history)}")
+print(f"Total energy after convergence: {energies_history[-1]:.6f} (atomic units)")
+print(f"Eigenvalues of the lowest three Kohn-Sham orbitals: {np.round(eigenvalues[:3], 6)}")
+print(f"Normalization check of the electron density: integral n(x) dx = {np.trapezoid(n_final, x):.4f} (should be close to 2 for a two-electron system)")
+print(f"\nReference: lowest-orbital energy with no electron-electron interaction (U=0) = {ev0[0]:.6f}")
+print("Exact solution for the harmonic oscillator (ground state, m=omega=hbar=1): E_0 = 0.5")
+print(f"-&gt; The interaction (U=0.3) pushes up the lowest orbital energy by {eigenvalues[0]-ev0[0]:.4f}")
+print("  (the term mimicking Coulomb repulsion between electrons causes the electrons to occupy a more spread-out state)")
+
+fig, axes = plt.subplots(1, 2, figsize=(13, 5.5))
+axes[0].plot(range(1, len(energies_history) + 1), energies_history, 'o-', color='#f5576c')
+axes[0].set_xlabel('SCF iteration', fontsize=12)
+axes[0].set_ylabel('Total energy (atomic units)', fontsize=12)
+axes[0].set_title('Convergence of Total Energy During the SCF Cycle', fontsize=13, fontweight='bold')
+axes[0].grid(True, alpha=0.3)
+
+axes[1].plot(x, n_final, color='#f5576c', linewidth=2.5, label='Self-consistent density (U=0.3)')
+axes[1].plot(x, n_noninteracting, '--', color='#2c3e50', linewidth=2, label='No interaction (U=0)')
+axes[1].set_xlabel('Position x (atomic units)', fontsize=12)
+axes[1].set_ylabel('Electron density n(x)', fontsize=12)
+axes[1].set_title('Electron Density Distribution After Convergence', fontsize=13, fontweight='bold')
+axes[1].legend()
+axes[1].grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('scf_toy_model.png', dpi=300)
+plt.show()
+</code></pre>
+    <p><strong>Result</strong>: The SCF cycle converges after 48 iterations (using simple mixing with a mixing parameter of 0.3), and the electron density is correctly normalized to the two electrons (integral value 2.0000). Without interaction ($U=0$), the lowest orbital energy is 0.499950, in good agreement with the exact harmonic-oscillator solution $E_0=0.5$. Introducing the term mimicking Coulomb repulsion between electrons ($U=0.3$) pushes up the lowest orbital energy by 0.2284, and the electron density distribution also spreads out further. This qualitatively corresponds to the effect that the Hartree and exchange-correlation terms have on orbital energies and density distributions in an actual DFT calculation.</p>
+
+    <h2>5.2 Using ASE (Atomic Simulation Environment)</h2>
+    <p><strong>ASE (Atomic Simulation Environment)</strong> is an open-source library that provides a unified Python API for building and manipulating atomic, molecular, and crystal structures, and for interfacing with various calculation engines (EMT, GPAW, VASP, etc.). At the core of ASE is the <code>Atoms</code> object, which collectively holds structural information such as the types of atoms, their position coordinates, whether periodic boundary conditions are applied, and the unit cell (the <strong>lattice vectors</strong>).</p>
+
+    <p>Building a crystal structure by hand from a unit cell requires knowledge of symmetry operations, but ASE's <code>ase.build.bulk()</code> function lets you build representative crystal structures in a single line simply by specifying the element symbol and the name of the crystal structure (<code>'fcc'</code>, <code>'bcc'</code>, <code>'diamond'</code>, <code>'rocksalt'</code>, etc.).</p>
+
+    <h3>Python Implementation: Building Various Crystal Structures with ASE</h3>
+    <pre class="code-block"><code class="language-python">import numpy as np
+from ase import Atoms
+from ase.build import bulk
+
+# Build a bulk crystal of copper (FCC structure)
+cu = bulk('Cu', 'fcc', a=3.615)
+print("=== Unit cell of copper (FCC) ===")
+print(f"Chemical formula: {cu.get_chemical_formula()}")
+print(f"Lattice constants: {cu.cell.cellpar()}")
+print(f"Number of atoms: {len(cu)}")
+print(f"Volume: {cu.get_volume():.4f} A^3")
+
+# Silicon (diamond structure)
+si = bulk('Si', 'diamond', a=5.431)
+print("\n=== Unit cell of silicon (diamond structure) ===")
+print(f"Chemical formula: {si.get_chemical_formula()}")
+print(f"Lattice constants: {si.cell.cellpar()}")
+print(f"Number of atoms: {len(si)}")
+
+# NaCl structure (rock salt, containing two types of atoms)
+nacl = bulk('NaCl', 'rocksalt', a=5.64)
+print("\n=== Unit cell of NaCl (rock salt structure) ===")
+print(f"Chemical formula: {nacl.get_chemical_formula()}")
+print(f"Atomic positions (fractional coordinates):\n{nacl.get_scaled_positions()}")
+</code></pre>
+    <p><strong>Result</strong>: The FCC unit cell of copper (the default of <code>bulk()</code> is the primitive cell, containing one atom) has a volume of 11.8104 Å³, with the angle between lattice vectors being 60° (a rhombohedral description). The diamond structure of silicon is built as a unit cell containing two atoms (<code>Si2</code>), and the NaCl structure is built as a rock-salt structure with Na and Cl placed at (0, 0, 0) and (0.5, 0.5, 0.5) respectively. We can see that the ionic crystal (NaCl-type) learned in Chapter 1 and the highly covalent diamond structure learned in Chapter 2 can both be handled uniformly with the same <code>bulk()</code> function.</p>
+
+    <p>In actual calculations, one often needs to build large <strong>supercells</strong> by repeating the unit cell, or to directly manipulate atomic positions to model lattice defects or surface structures. The <code>repeat()</code> method and the <code>positions</code> attribute of the <code>Atoms</code> object let you carry out these operations with the same feel as working with NumPy arrays.</p>
+
+    <h3>Python Implementation: Creating a Supercell and Manipulating Atomic Positions</h3>
+    <pre class="code-block"><code class="language-python">import numpy as np
+from ase.build import bulk
+
+cu = bulk('Cu', 'fcc', a=3.615)
+
+# Create a 2x2x2 supercell
+cu_super = cu.repeat((2, 2, 2))
+print("=== 2x2x2 supercell of copper ===")
+print(f"Number of atoms: {len(cu_super)} ({len(cu_super)//len(cu)} times the unit cell)")
+
+# Direct manipulation of atomic positions: displace one Cu atom to model a lattice defect
+cu_defect = cu_super.copy()
+displacement = np.array([0.1, 0.0, 0.0])
+cu_defect.positions[0] += displacement
+disp_check = np.linalg.norm(cu_defect.positions[0] - cu_super.positions[0])
+print(f"Displacement of the moved atom: {disp_check:.4f} A")
+
+# Filtering by atomic number/chemical symbol (example: extracting only the Na atoms from the NaCl structure)
+nacl_super = bulk('NaCl', 'rocksalt', a=5.64).repeat((2, 2, 2))
+na_indices = [atom.index for atom in nacl_super if atom.symbol == 'Na']
+print(f"\nNumber of Na atoms in the NaCl 2x2x2 supercell: {len(na_indices)} / total atoms: {len(nacl_super)}")
+</code></pre>
+    <p><strong>Result</strong>: <code>repeat((2, 2, 2))</code> gives a supercell whose number of atoms is 8 times larger (from 1 atom to 8 atoms). Because the <code>positions</code> attribute is itself a NumPy array, structures can easily be deformed simply by selecting specific atoms and adding to their coordinates. An <code>Atoms</code> object can also be iterated atom by atom with a Python for loop, and filtering by chemical symbol can be written intuitively as well. By attaching a calculation engine (a <strong>Calculator</strong>) to a structure object built in this way, as described in the next section, actual calculations such as energy, forces, and structure optimization become possible.</p>
+
+    <h2>5.3 Crystal Structure Optimization and the Electronic Structure Calculation Workflow</h2>
+    <p>The typical workflow for electronic structure calculation and structure optimization in ASE can be organized into the following three steps.</p>
+
+    <ol>
+        <li>Build an <code>Atoms</code> object (as described in the previous section)</li>
+        <li>Attach a calculation engine (a Calculator) with <code>atoms.calc = Calculator()</code></li>
+        <li>Relax the atomic positions and cell shape with an optimization algorithm (such as <code>BFGS</code>), and obtain physical quantities with <code>get_potential_energy()</code> and <code>get_forces()</code></li>
+    </ol>
+
+    <p>The key here is the choice of Calculator in step 2. ASE is designed so that you can switch between a common interface, from fast empirical potentials such as EMT (<strong>Effective Medium Theory</strong>) to full-fledged DFT codes such as GPAW, VASP, and Quantum ESPRESSO. EMT is an extremely fast empirical potential parameterized for a handful of metals such as Ni, Cu, Pd, Ag, Pt, and Al; it is useful for learning the workflow itself and for grasping rough trends, but it does not have the quantum mechanical accuracy of DFT. Below, we first use EMT to actually carry out two kinds of optimization: lattice-constant optimization and structural relaxation of atomic positions.</p>
+
+    <h3>Python Implementation: Equation-of-State (EOS) Fitting and BFGS Structure Optimization</h3>
+    <pre class="code-block"><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+from ase.build import bulk
+from ase.calculators.emt import EMT
+from ase.optimize import BFGS
+from ase.eos import EquationOfState
+
+a0 = 3.615  # experimental lattice constant of copper (A)
+
+# Sweep the lattice constant, evaluate the energy with the EMT calculator, and use equation-of-state (EOS)
+# fitting to find the most stable volume, lattice constant, and bulk modulus
+volumes, energies = [], []
+for s in np.linspace(0.94, 1.06, 9):
+    atoms = bulk('Cu', 'fcc', a=a0 * s)
+    atoms.calc = EMT()
+    volumes.append(atoms.get_volume())
+    energies.append(atoms.get_potential_energy())
+
+eos = EquationOfState(volumes, energies, eos='birchmurnaghan')
+v0, E0, B = eos.fit()
+a_opt = (4 * v0) ** (1 / 3)          # FCC (1 atom/unit cell): V = a^3/4
+B_GPa = B * 160.2176634              # conversion factor from eV/A^3 to GPa
+
+print("=== Structure optimization via equation-of-state (EOS) fitting ===")
+print(f"Optimal lattice constant from EMT: {a_opt:.4f} A (experimental value: {a0} A)")
+print(f"Bulk modulus from EMT: {B_GPa:.2f} GPa (experimental value: about 140 GPa)")
+print(f"Total energy at the most stable volume: {E0:.6f} eV/atom")
+
+# Direct optimization of atomic positions via the BFGS method (a quasi-Newton method)
+# Artificially displace one atom of a 2x2x2 supercell and relax it until the forces vanish
+cu = bulk('Cu', 'fcc', a=a_opt).repeat((2, 2, 2))
+cu.calc = EMT()
+cu.positions[0] += [0.15, 0.10, 0.05]  # artificial displacement mimicking a lattice defect
+
+print(f"\n=== BFGS structure optimization ===")
+print(f"Maximum residual force before optimization: {np.max(np.abs(cu.get_forces())):.4f} eV/A")
+
+opt = BFGS(cu, logfile=None)
+opt.run(fmax=0.01)
+
+print(f"Maximum residual force after optimization: {np.max(np.abs(cu.get_forces())):.6f} eV/A")
+print(f"Number of steps required for optimization: {opt.get_number_of_steps()}")
+
+# Visualize the E-V curve
+plt.figure(figsize=(9, 6))
+plt.plot(volumes, energies, 'o', color='#f093fb', markersize=9, label='EMT calculated points')
+plt.axvline(v0, color='#f5576c', linestyle='--', label=f'Optimal volume V0 = {v0:.3f} A^3/atom')
+plt.xlabel('Volume (A^3/atom)', fontsize=12)
+plt.ylabel('Total energy (eV/atom)', fontsize=12)
+plt.title('Equation-of-State (EOS) Fitting for Copper (FCC)', fontsize=14, fontweight='bold')
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.savefig('eos_cu_final.png', dpi=300)
+plt.show()
+</code></pre>
+    <p><strong>Result</strong>: The optimal lattice constant of copper from EMT is 3.5900 Å (a 0.7% error from the experimental value of 3.615 Å), and the bulk modulus is 133.01 GPa (about a 5% error from the experimental value of roughly 140 GPa), showing good agreement for a simple empirical potential. Meanwhile, in the BFGS structure optimization, the residual force on the artificially displaced atom converges from 1.28 eV/Å to 0.0038 eV/Å in 12 steps, confirming that the <strong>BFGS method (a quasi-Newton method)</strong> can efficiently search for an energy minimum by successively approximating the Hessian matrix from force information.</p>
+
+    <div class="note">
+        <p><strong>Caution (limits of EMT accuracy)</strong>: EMT is an empirical potential parameterized for only a small number of metals such as Cu, Ni, and Al, and its accuracy can degrade substantially depending on the element and crystal structure (in Exercise 2 at the end of this chapter, we will see an example in which EMT's bulk modulus for Al deviates from the experimental value by more than 50%). For research requiring quantitative reliability, the full-fledged DFT calculations described next are essential.</p>
+    </div>
+
+    <p>To make quantitative predictions in actual materials science research, one needs a full-fledged DFT code rather than an empirical potential such as EMT. ASE can interface with numerous DFT codes, including <strong>GPAW</strong> (a DFT code based on the <strong>PAW method, the Projector Augmented-Wave method</strong>). GPAW is a flexible code that can perform calculations using plane-wave, real-space grid, or LCAO bases, and it is well suited to band structure and density-of-states calculations for crystals under periodic boundary conditions. Below is an example implementation that uses GPAW to compute the band structure and density of states of copper. <strong>Running the code in this section requires a separate installation of GPAW</strong> (after <code>conda install -c conda-forge gpaw</code> or <code>pip install gpaw</code>, you also need to set up the pseudopotential/PAW datasets). Once GPAW itself is installed, this code can be run as is.</p>
+
+    <h3>Python Implementation (requires GPAW installation): Band Structure and Density of States of Copper</h3>
+    <pre class="code-block"><code class="language-python"># Running this code requires a separate installation of GPAW:
+#   conda install -c conda-forge gpaw   (recommended)
+#   or after pip install gpaw, fetch the PAW datasets with `gpaw install-data`
+# GPAW depends on external libraries such as mpi4py and libxc, so an Anaconda environment is recommended.
+
+from ase.build import bulk
+from gpaw import GPAW, PW, FermiDirac
+
+# Self-consistent (SCF) ground-state calculation for bulk copper (FCC)
+atoms = bulk('Cu', 'fcc', a=3.615)
+calc = GPAW(
+    mode=PW(400),                  # plane-wave basis, cutoff energy 400 eV
+    kpts={'size': (8, 8, 8), 'gamma': True},  # k-point sampling (discretization of the Brillouin zone)
+    xc='PBE',                      # exchange-correlation functional: GGA (PBE)
+    occupations=FermiDirac(0.05),  # finite-temperature Fermi-Dirac smearing for the metal
+    txt='cu_scf.txt'
+)
+atoms.calc = calc
+E_total = atoms.get_potential_energy()  # run the SCF calculation
+print(f"Total energy of copper: {E_total:.4f} eV")
+calc.write('cu_gs.gpw')  # save the ground-state wavefunctions
+
+# Band structure calculation: a non-self-consistent (non-SCF) calculation along high-symmetry points
+from ase.dft.kpoints import bandpath
+
+path = bandpath('GXWLGK', atoms.cell, npoints=100)  # high-symmetry path in the first Brillouin zone
+calc_bands = GPAW('cu_gs.gpw').fixed_density(
+    kpts=path, symmetry='off', txt='cu_bands.txt'
+)
+bs = calc_bands.band_structure()
+bs.write('cu_bandstructure.json')
+# bs.plot(emin=-10, emax=10, filename='cu_bands.png')  # draw the band structure diagram
+
+# Compute the density of states (DOS)
+energies, dos = calc.get_dos(spin=0, npts=500, width=0.1)
+print(f"Fermi level: {calc.get_fermi_level():.4f} eV")
+</code></pre>
+    <p>This code computes, from first principles, for a real three-dimensional crystal (copper) the same kind of simple one-dimensional band structure and density of states that we handled with the tight-binding model in Chapter 2. The density of the k-point sampling specified with <code>kpts</code>, and the plane-wave cutoff energy specified with <code>mode=PW(400)</code>, are important convergence parameters that govern computational accuracy and cost, and in practice a <strong>convergence test</strong> — running the calculation with several different values and confirming that the results no longer change — is indispensable.</p>
+
+    <h2>5.4 Data-Driven Materials Discovery with the Materials Project API</h2>
+    <p><strong>Materials Project</strong> is one of the world's largest materials databases, openly publishing the crystal structures, energies, band gaps, elastic constants, and other properties of over 150,000 inorganic materials obtained from DFT calculations. Using <code>mp-api</code> (the Python client library), you can search for materials that meet specified conditions and retrieve their DFT calculation results. This makes possible <strong>data-driven materials discovery</strong>, in which candidate materials are narrowed down from existing calculated data before performing experiments or costly DFT calculations.</p>
+
+    <p>Using the Materials Project API requires registering for a free API key and an internet connection, so first we experience a similar idea with a small local dataset. Based on the theory of the <strong>Shockley-Queisser Limit</strong>, the optimal band gap for a light-absorbing layer usable in solar cells is considered to be roughly 1.0-1.6 eV for a single junction. Below, we use experimentally measured band gap values for representative semiconductors and insulators to perform screening (narrowing down) under this condition.</p>
+
+    <h3>Python Implementation: Material Screening by Band Gap (Local Dataset)</h3>
+    <pre class="code-block"><code class="language-python">import numpy as np
+import pandas as pd
+
+# Experimental band gap values for representative semiconductors and insulators (eV)
+# Source: representative values such as those in Kittel, "Introduction to Solid State Physics," 8th Ed.
+materials = pd.DataFrame({
+    'formula':      ['Ge', 'Si', 'InP', 'GaAs', 'CdTe', 'CdS', 'SiC', 'ZnO', 'GaN', 'Diamond'],
+    'band_gap_eV':  [0.67, 1.11, 1.34, 1.42, 1.50, 2.42, 2.36, 3.37, 3.40, 5.47],
+    # Pauling electronegativity difference |chi_A - chi_B| (reusing the electronegativity concept introduced in Chapter 1)
+    'delta_chi':    [0.00, 0.00, 0.42, 0.10, 0.54, 0.79, 0.65, 1.79, 1.23, 0.00],
+})
+
+# Screen for a band gap suited to a single-junction solar cell (roughly 1.0-1.6 eV), based on the Shockley-Queisser limit
+target_min, target_max = 1.0, 1.6
+candidates = materials[(materials['band_gap_eV'] &gt;= target_min) &amp; (materials['band_gap_eV'] &lt;= target_max)]
+
+print("=== Candidate materials with a band gap (1.0-1.6 eV) suited to solar cell applications ===")
+print(candidates[['formula', 'band_gap_eV']].to_string(index=False))
+print(f"\n{len(candidates)} out of {len(materials)} materials were extracted as candidates")
+</code></pre>
+    <p><strong>Result</strong>: Of the 10 materials, four — Si (1.11 eV), InP (1.34 eV), GaAs (1.42 eV), and CdTe (1.50 eV) — fall within the optimal range of the Shockley-Queisser limit. Indeed, GaAs and CdTe are used in practice as high-efficiency solar cell materials, and Si is the most widely deployed solar cell material. This shows that even simple condition-based filtering can be an effective first stage of narrowing down in materials discovery.</p>
+
+    <p>Applying this idea to a large-scale database such as the Materials Project allows instantaneous screening from hundreds of thousands of candidates. Actual search code using <code>mp-api</code> looks like the following (<strong>running this code requires registering for a free API key and an internet connection</strong>; you can register at <a href="https://materialsproject.org/api" target="_blank">https://materialsproject.org/api</a>).</p>
+
+    <h3>Python Implementation (requires an API key): Searching for Materials via the Materials Project API</h3>
+    <pre class="code-block"><code class="language-python"># Running this code requires a free API key registration:
+#   1. Register an account at https://materialsproject.org/api and obtain an API key
+#   2. pip install mp-api
+#   3. Set the environment variable MP_API_KEY, or specify the key directly in the code
+
+from mp_api.client import MPRester
+
+with MPRester("YOUR_API_KEY") as mpr:
+    # Example: search for materials with a band gap of 1.0-1.6 eV, a negative formation
+    # energy (thermodynamically stable), excluding oxides
+    docs = mpr.materials.summary.search(
+        band_gap=(1.0, 1.6),
+        formation_energy=(None, 0.0),
+        fields=["material_id", "formula_pretty", "band_gap",
+                "formation_energy_per_atom", "is_stable"]
+    )
+
+    print(f"Number of materials matching the criteria: {len(docs)}")
+    for doc in docs[:10]:
+        print(f"{doc.material_id}: {doc.formula_pretty}, "
+              f"Eg={doc.band_gap:.3f} eV, "
+              f"Ef={doc.formation_energy_per_atom:.3f} eV/atom, "
+              f"stable phase={doc.is_stable}")
+</code></pre>
+    <p>We see that exactly the same narrowing-down logic (restricting the range of the band gap) used with the local mini-dataset can be executed on the Materials Project in combination with a much richer set of conditions, such as <code>formation_energy</code> (an indicator of thermodynamic stability related to the Gibbs free energy learned in Chapter 4) and <code>is_stable</code> (a phase-stability determination based on convex-hull analysis).</p>
+
+    <h2>5.5 Integrating Computational Materials Chemistry with Machine Learning</h2>
+    <p>Looking back over the four preceding sections, the computational approaches in materials chemistry build up as follows. DFT (Section 5.1) provides the electronic states and total energies of individual materials from first principles; ASE (Sections 5.2-5.3) provides the foundation for structure building and workflow to carry out those calculations; and the Materials Project (Section 5.4) functions as a massive database accumulating the results of DFT calculations performed around the world. <strong>Machine Learning</strong> is the final piece: it learns statistical patterns from this accumulated data to rapidly predict material properties without running new DFT calculations.</p>
+
+    <p>The performance of a machine learning model is heavily influenced by the quality of the <strong>descriptors</strong> (also called features) given as input. The Pauling electronegativity difference learned in Chapter 1 can serve as a descriptor characterizing the ionicity of a bond, but it does not necessarily explain the magnitude of the band gap on its own. Below, we compare how prediction performance changes when a descriptor representing the atomic size of the constituent elements (the row, or period number, in the periodic table) is combined with the electronegativity difference.</p>
+
+    <h3>Python Implementation: Building and Evaluating a Band Gap Prediction Model Using Descriptors</h3>
+    <pre class="code-block"><code class="language-python">import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import LeaveOneOut
+from sklearn.metrics import mean_absolute_error, r2_score
+
+# Experimental band gap values (eV) and descriptors for representative semiconductors and insulators
+materials = pd.DataFrame({
+    'formula':      ['Ge', 'Si', 'InP', 'GaAs', 'CdTe', 'CdS', 'SiC', 'ZnO', 'GaN', 'Diamond'],
+    'band_gap_eV':  [0.67, 1.11, 1.34, 1.42, 1.50, 2.42, 2.36, 3.37, 3.40, 5.47],
+    'delta_chi':    [0.00, 0.00, 0.42, 0.10, 0.54, 0.79, 0.65, 1.79, 1.23, 0.00],
+    # Average period number of the constituent elements (a descriptor capturing the tendency that elements with
+    # larger atomic numbers have larger atomic radii and greater orbital overlap, generally leading to a smaller band gap)
+    'avg_period':   [4.0, 3.0, 4.0, 4.0, 5.0, 4.0, 2.5, 3.0, 3.0, 2.0],
+})
+
+def evaluate_model(feature_cols, label):
+    X = materials[feature_cols].values
+    y = materials['band_gap_eV'].values
+    model = LinearRegression().fit(X, y)
+    r2_train = r2_score(y, model.predict(X))
+
+    # With so little data, use Leave-One-Out cross-validation to rigorously evaluate generalization performance
+    loo = LeaveOneOut()
+    y_pred_loo = np.zeros_like(y)
+    for train_idx, test_idx in loo.split(X):
+        m = LinearRegression().fit(X[train_idx], y[train_idx])
+        y_pred_loo[test_idx] = m.predict(X[test_idx])
+    mae_loo = mean_absolute_error(y, y_pred_loo)
+    r2_loo = r2_score(y, y_pred_loo)
+    print(f"{label:28s}: R^2(train)={r2_train:.3f}  MAE(LOO)={mae_loo:.3f} eV  R^2(LOO)={r2_loo:.3f}")
+    return y, y_pred_loo, model
+
+print("=== Comparison of prediction performance by descriptor (feature) ===")
+evaluate_model(['delta_chi'], 'delta_chi only (Chapter 1 metric)')
+evaluate_model(['avg_period'], 'avg_period only')
+y, y_pred_loo, model = evaluate_model(['delta_chi', 'avg_period'], 'delta_chi + avg_period')
+
+print(f"\nCoefficients of the final model: delta_chi={model.coef_[0]:.3f}, avg_period={model.coef_[1]:.3f}, intercept={model.intercept_:.3f}")
+print("\nCaution: this dataset contains only 10 materials, and this model is merely an educational example")
+print("illustrating the idea of feature engineering. A single electronegativity difference alone has")
+print("little explanatory power, and adding the atomic size (period number) improves the fit to the")
+print("training data. However, as the LOO cross-validation results show, generalization performance is")
+print("limited with only 10 data points, and actual materials discovery requires a large-scale database")
+print("such as the Materials Project along with a richer set of descriptors.")
+
+plt.figure(figsize=(7, 7))
+plt.scatter(y, y_pred_loo, s=90, color='#f5576c', zorder=3)
+lims = [0, 6]
+plt.plot(lims, lims, '--', color='gray', zorder=1)
+for f, yt, yp in zip(materials['formula'], y, y_pred_loo):
+    plt.annotate(f, (yt, yp), textcoords="offset points", xytext=(6, 4), fontsize=9)
+plt.xlabel('Measured band gap (eV)', fontsize=12)
+plt.ylabel('LOO-predicted band gap (eV)', fontsize=12)
+plt.title('Band Gap Prediction via delta_chi + avg_period (LOO Cross-Validation)', fontsize=13, fontweight='bold')
+plt.xlim(lims); plt.ylim(lims)
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.savefig('ml_bandgap_final.png', dpi=300)
+plt.show()
+</code></pre>
+    <p><strong>Result</strong>: Using only the electronegativity difference delta_chi as the explanatory variable gives a low <strong>Coefficient of Determination (R²)</strong> of just 0.099 (because there are cases like Diamond, where delta_chi=0 yet the band gap is a very large 5.47 eV). Using avg_period, representing atomic size, alone improves this to R²=0.491, and combining both raises the fit to the training data to R²=0.557. However, when generalization performance is rigorously evaluated with <strong>Leave-One-Out Cross-Validation (LOO-CV)</strong>, the mean absolute error is around 1 eV, and the coefficient of determination can even become negative — meaning that, with only 10 materials, this cannot be called a statistically reliable prediction model. This result should be taken seriously at face value, and it underscores why actual materials discovery requires data on the scale of tens of thousands of entries, as in the Materials Project, together with the rich sets of descriptors provided by dedicated libraries such as matminer.</p>
+
+    <p>Let us now organize the connections among everything learned in this chapter, and in the series as a whole. The chemical bonding theory of Chapter 1 explained, using classical models, the "origin of the energy" behind why atoms bond together. The molecular orbital theory and band theory of Chapter 2 described, within the common framework of the LCAO method, what quantum mechanical states the electrons responsible for that bonding occupy. The crystal field theory of Chapter 3 focused on the special but important class of transition-metal compounds and showed how the details of electronic states — the splitting of d orbitals — govern magnetism, color, and reactivity. The thermodynamics of Chapter 4 dealt not with individual bonds or electronic states but with the larger-scale behavior of which phase is stable for a macroscopic system composed of many atoms. And the DFT of this chapter provides the unified foundation — computing the quantum mechanical ground state of electrons from first principles — underlying all of these phenomenological models (bonding energy, orbital energy, d-orbital splitting, formation energy). The formation energies used in building a CALPHAD thermodynamic database come not only from experimental data but also from DFT calculations, and the training data for machine learning models likewise derives from the accumulation of DFT calculations (the Materials Project). In this way, the five chapters are not an unrelated collection of separate topics but form a single connected narrative spanning "why bonds form," to "how a stable structure or phase is determined," and finally to "how to compute this from first principles and search at scale."</p>
+
+    <div class="mermaid">
+        flowchart TD
+            A[Computational Materials Chemistry Workflow] --> B[DFT Fundamentals]
+            B --> C[Structure Building with ASE]
+            C --> D[Structure Optimization]
+            D --> E[Electronic Structure Calculation]
+            E --> F[Materials Project Database]
+            F --> G[Machine Learning Model]
+            G --> H[Prediction and Discovery of New Materials]
+
+            B --> B1[Hohenberg-Kohn Theorems]
+            B --> B2[Kohn-Sham Equations]
+            D --> D1[EOS Fitting]
+            D --> D2[BFGS Optimization]
+            E --> E1[Band Structure]
+            E --> E2[Density of States]
+            G --> G1[Descriptor Engineering]
+            G --> G2[Cross-Validation]
+
+            I[Chapter 1: Chemical Bonding] -.underlying bonding energy.-> B
+            J[Chapter 2: Molecular Orbitals/Band Theory] -.description of electronic states.-> E
+            K[Chapter 3: Crystal Field Theory] -.quantification of d-orbital splitting.-> B
+            L[Chapter 4: Thermodynamics/CALPHAD] -.supply of formation energies.-> F
+
+            style A fill:#f093fb,stroke:#f5576c,stroke-width:3px,color:#fff
+            style B fill:#f5576c,stroke:#f093fb,stroke-width:2px,color:#fff
+            style C fill:#f5576c,stroke:#f093fb,stroke-width:2px,color:#fff
+            style D fill:#f5576c,stroke:#f093fb,stroke-width:2px,color:#fff
+            style E fill:#f5576c,stroke:#f093fb,stroke-width:2px,color:#fff
+            style F fill:#f5576c,stroke:#f093fb,stroke-width:2px,color:#fff
+            style G fill:#f5576c,stroke:#f093fb,stroke-width:2px,color:#fff
+            style H fill:#f5576c,stroke:#f093fb,stroke-width:2px,color:#fff
+    </div>
+
+    <h2>Exercises</h2>
+
+    <div class="exercise">
+        <h3>Problem 1 (Easy): Atomic Packing Fraction of FCC and BCC Structures</h3>
+        <p>Using ASE's <code>bulk()</code> function, build unit cells for Al (FCC, lattice constant 4.05 Å) and Fe (BCC, lattice constant 2.87 Å), and compute the unit cell volume and the atomic packing fraction under the hard-sphere model for each. Compare them with the theoretical value of 0.7405 for FCC and 0.6802 for BCC.</p>
+        <div class="solution">
+            <h4>Solution</h4>
+<pre class="code-block"><code class="language-python">import numpy as np
+from ase.build import bulk
+
+al = bulk('Al', 'fcc', a=4.05)
+fe = bulk('Fe', 'bcc', a=2.87)
+
+print("=== Al (FCC) ===")
+print(f"Chemical formula: {al.get_chemical_formula()}, atoms (unit cell): {len(al)}")
+print(f"Volume (unit cell): {al.get_volume():.4f} A^3")
+
+print("\n=== Fe (BCC) ===")
+print(f"Chemical formula: {fe.get_chemical_formula()}, atoms (unit cell): {len(fe)}")
+print(f"Volume (unit cell): {fe.get_volume():.4f} A^3")
+
+# Packing fraction: an index of how much of space can be filled under the hard-sphere model
+# The theoretical value is 0.7405 for FCC and 0.6802 for BCC
+r_al = 4.05 * np.sqrt(2) / 4  # half the nearest-neighbor distance for FCC = a*sqrt(2)/4
+r_fe = 2.87 * np.sqrt(3) / 4  # half the nearest-neighbor distance for BCC = a*sqrt(3)/4
+
+packing_fcc = (len(al) * (4/3) * np.pi * r_al**3) / al.get_volume()
+packing_bcc = (len(fe) * (4/3) * np.pi * r_fe**3) / fe.get_volume()
+print(f"\nPacking fraction of Al (FCC): {packing_fcc:.4f} (theoretical value 0.7405)")
+print(f"Packing fraction of Fe (BCC): {packing_bcc:.4f} (theoretical value 0.6802)")
+print("\nFCC has a higher packing fraction than BCC, which is one of the reasons FCC metals")
+print("(Al, Cu, Ni, etc.) generally exhibit superior ductility.")
+</code></pre>
+            <p><strong>Result</strong>: The default of <code>bulk()</code> returns the primitive cell (1 atom/unit cell for both Al and Fe). The hard-sphere packing fraction is 0.7405 for Al (FCC) and 0.6802 for Fe (BCC), in exact agreement with the theoretical values (this also confirms that the lattice constants and atomic positions returned by <code>bulk()</code> correctly reproduce the physical crystal structure). The FCC structure has a higher space-filling fraction, which — together with the free-electron model of metallic bonding learned in Chapter 1 — is known to be one of the reasons FCC metals are rich in malleability and ductility.</p>
+        </div>
+    </div>
+
+    <div class="exercise">
+        <h3>Problem 2 (Medium): EMT Equation-of-State Calculation for Al and Its Accuracy Limits</h3>
+        <p>Following the example of copper in the main text, perform equation-of-state (EOS) fitting with the EMT calculator for Al (experimental lattice constant 4.05 Å, experimental bulk modulus approximately 76 GPa) to find its optimal lattice constant and bulk modulus. Evaluate the error against the experimental values and discuss the accuracy limits of EMT.</p>
+        <div class="solution">
+            <h4>Solution</h4>
+<pre class="code-block"><code class="language-python">import numpy as np
+from ase.build import bulk
+from ase.calculators.emt import EMT
+from ase.eos import EquationOfState
+
+a0 = 4.05  # experimental lattice constant of Al
+volumes, energies = [], []
+for s in np.linspace(0.94, 1.06, 9):
+    atoms = bulk('Al', 'fcc', a=a0 * s)
+    atoms.calc = EMT()
+    volumes.append(atoms.get_volume())
+    energies.append(atoms.get_potential_energy())
+
+eos = EquationOfState(volumes, energies, eos='birchmurnaghan')
+v0, E0, B = eos.fit()
+a_opt = (4 * v0) ** (1 / 3)
+B_GPa = B * 160.2176634
+
+print(f"Optimal lattice constant of Al from EMT: {a_opt:.4f} A (experimental value: 4.05 A)")
+print(f"Bulk modulus from EMT: {B_GPa:.2f} GPa (experimental value: about 76 GPa)")
+error_a = abs(a_opt - 4.05) / 4.05 * 100
+error_B = abs(B_GPa - 76) / 76 * 100
+print(f"Error in lattice constant: {error_a:.2f}%")
+print(f"Error in bulk modulus: {error_B:.1f}%")
+</code></pre>
+            <p><strong>Result</strong>: The optimal lattice constant of Al from EMT is 3.9957 Å (a 1.34% error from the experimental value), showing good agreement, whereas the bulk modulus is 35.31 GPa, a large 53.5% deviation from the experimental value of 76 GPa. This is because EMT is an empirical potential using parameters fitted to the experimental data of specific elements such as Cu, and while it can reproduce a quantity "close to a first derivative," such as the equilibrium lattice constant, reasonably well, the reproducibility of a quantity that depends on a "second derivative (curvature)," such as the bulk modulus, varies greatly from element to element. This result confirms that, while structure optimization with an empirical potential is useful for learning the workflow or grasping rough trends, quantitative property prediction requires a full-fledged DFT calculation such as the GPAW calculation described in the main text.</p>
+        </div>
+    </div>
+
+    <div class="exercise">
+        <h3>Problem 3 (Hard): Correlation Analysis of Descriptors and Discovery of Wide-Band-Gap Materials</h3>
+        <p>Using the datasets from Sections 5.4 and 5.5, extract wide-band-gap materials with a band gap exceeding 3.0 eV (expected to be useful for applications such as UV LEDs). Also compute the correlation coefficient between each of <code>delta_chi</code> and <code>avg_period</code> and the band gap, and discuss which descriptor shows the stronger correlation.</p>
+        <div class="solution">
+            <h4>Solution</h4>
+<pre class="code-block"><code class="language-python">import numpy as np
+import pandas as pd
+
+materials = pd.DataFrame({
+    'formula':      ['Ge', 'Si', 'InP', 'GaAs', 'CdTe', 'CdS', 'SiC', 'ZnO', 'GaN', 'Diamond'],
+    'band_gap_eV':  [0.67, 1.11, 1.34, 1.42, 1.50, 2.42, 2.36, 3.37, 3.40, 5.47],
+    'delta_chi':    [0.00, 0.00, 0.42, 0.10, 0.54, 0.79, 0.65, 1.79, 1.23, 0.00],
+    'avg_period':   [4.0, 3.0, 4.0, 4.0, 5.0, 4.0, 2.5, 3.0, 3.0, 2.0],
+})
+
+# Screen for wide-band-gap materials (band_gap &gt; 3.0 eV) applicable to UV LEDs and similar applications
+wide_gap = materials[materials['band_gap_eV'] &gt; 3.0].sort_values('band_gap_eV', ascending=False)
+print("=== Candidate wide-band-gap materials (band_gap &gt; 3.0 eV) ===")
+print(wide_gap[['formula', 'band_gap_eV']].to_string(index=False))
+
+# Check the correlation coefficient between each descriptor and the band gap
+corr_chi = np.corrcoef(materials['delta_chi'], materials['band_gap_eV'])[0, 1]
+corr_period = np.corrcoef(materials['avg_period'], materials['band_gap_eV'])[0, 1]
+print(f"\nCorrelation coefficient of delta_chi with the band gap: {corr_chi:.3f}")
+print(f"Correlation coefficient of avg_period with the band gap: {corr_period:.3f}")
+print("\navg_period shows the stronger correlation, suggesting that atomic size (orbital overlap)")
+print("is the descriptor that more strongly governs the magnitude of the band gap. However, with")
+print("only 10 materials, no statistically definitive conclusion can be drawn, and verification with")
+print("a large-scale database such as the Materials Project is desirable.")
+</code></pre>
+            <p><strong>Result</strong>: Three materials are extracted as wide-band-gap materials: Diamond (5.47 eV), GaN (3.40 eV), and ZnO (3.37 eV). The correlation coefficient of <code>delta_chi</code> is a weak positive 0.315, whereas that of <code>avg_period</code> is a comparatively strong negative -0.701. This corroborates the physical trend that elements with larger atomic numbers (further down the periodic table) have more extended atomic orbitals and stronger orbital overlap, which — in the language of the tight-binding model from Chapter 2 — increases the magnitude of the hopping integral $|\beta|$, widening the bandwidth and consequently narrowing the band gap. However, this is a correlation coefficient from only 10 samples, and it does not amount to a definitive conclusion.</p>
+        </div>
+    </div>
+
+    <h2>References</h2>
+    <div class="reference">
+        <p>1. Hohenberg, P., Kohn, W. (1964). "Inhomogeneous Electron Gas". <em>Physical Review</em>, 136(3B), B864-B871.</p>
+    </div>
+    <div class="reference">
+        <p>2. Kohn, W., Sham, L.J. (1965). "Self-Consistent Equations Including Exchange and Correlation Effects". <em>Physical Review</em>, 140(4A), A1133-A1138.</p>
+    </div>
+    <div class="reference">
+        <p>3. Larsen, A.H., et al. (2017). "The atomic simulation environment—a Python library for working with atoms". <em>Journal of Physics: Condensed Matter</em>, 29(27), 273002.</p>
+    </div>
+    <div class="reference">
+        <p>4. Enkovaara, J., et al. (2010). "Electronic structure calculations with GPAW: a real-space implementation of the projector augmented-wave method". <em>Journal of Physics: Condensed Matter</em>, 22(25), 253202.</p>
+    </div>
+    <div class="reference">
+        <p>5. Jain, A., et al. (2013). "Commentary: The Materials Project: A materials genome approach to accelerating materials innovation". <em>APL Materials</em>, 1(1), 011002.</p>
+    </div>
+    <div class="reference">
+        <p>6. Martin, R.M. (2004). <em>Electronic Structure: Basic Theory and Practical Methods</em>. Cambridge University Press, pp. 120-180.</p>
+    </div>
+    <div class="reference">
+        <p>7. Perdew, J.P., Burke, K., Ernzerhof, M. (1996). "Generalized Gradient Approximation Made Simple". <em>Physical Review Letters</em>, 77(18), 3865-3868.</p>
+    </div>
+    <div class="reference">
+        <p>8. Pedregosa, F., et al. (2011). "Scikit-learn: Machine Learning in Python". <em>Journal of Machine Learning Research</em>, 12, 2825-2830.</p>
+    </div>
+    <div class="reference">
+        <p>9. Ward, L., et al. (2016). "A general-purpose machine learning framework for predicting properties of inorganic materials". <em>npj Computational Materials</em>, 2, 16028.</p>
+    </div>
+    <div class="reference">
+        <p>10. Kittel, C. (2005). <em>Introduction to Solid State Physics</em>, 8th Edition. Wiley, pp. 185-220.</p>
+    </div>
+
+    <h2>Checking Your Learning Objectives</h2>
+    <div class="exercise">
+        <h3>Level 1 (Basic Understanding)</h3>
+        <ul>
+            <li>Explain the basic ideas of the Hohenberg-Kohn theorems and the Kohn-Sham equations</li>
+            <li>Understand how the self-consistent field (SCF) calculation cycle converges</li>
+            <li>Understand how ASE's <code>Atoms</code> object and <code>bulk()</code> function build crystal structures</li>
+            <li>Explain the basic idea of data-driven materials discovery (conditional searches on a database)</li>
+        </ul>
+
+        <h3>Level 2 (Practical Skills)</h3>
+        <ul>
+            <li>Implement a simple SCF loop in Python and confirm its convergence behavior</li>
+            <li>Build various crystal structures (FCC, diamond, rock salt) with ASE and manipulate supercells and atomic positions</li>
+            <li>Run EOS fitting and BFGS structure optimization using the EMT calculator</li>
+            <li>Perform conditional materials screening using pandas</li>
+        </ul>
+
+        <h3>Level 3 (Applied Skills)</h3>
+        <ul>
+            <li>Understand the appropriate use and accuracy limits of empirical potentials (EMT) versus full-fledged DFT calculations (GPAW)</li>
+            <li>Quantitatively evaluate the predictive performance and limitations of a machine learning model through descriptor engineering and cross-validation</li>
+            <li>Explain how DFT, ASE, the Materials Project, and machine learning work together within an actual materials discovery pipeline</li>
+            <li>Understand how the chemical bonding, molecular orbital theory, crystal field theory, thermodynamics, and electronic structure calculations learned across Chapters 1-5 of this series connect as a coherent theoretical framework in materials science</li>
+        </ul>
+    </div>
+
+    <div class="note">
+        <p><strong>Series Summary</strong>: The "Introduction to Materials Chemistry" series began with chemical bonding (Chapter 1) — the most fundamental question of "why do atoms bond?" — then described, with molecular orbital theory and band theory (Chapter 2), the quantum states of the electrons responsible for that bonding; delved, with crystal field theory (Chapter 3), into the details of electronic states — d-orbital splitting — in the important special class of transition-metal compounds; addressed, with thermodynamics (Chapter 4), the phase stability of macroscopic systems composed of many atoms rather than individual bonds or electronic states; and finally arrived, with electronic structure calculations (Chapter 5), at the framework of first-principles calculation and data-driven science underlying all of this phenomenological understanding. We hope that this series, which has taken you from microscopic electronic states to macroscopic phase equilibria, and from theoretical understanding to computational and data-scientific practice, will serve as a solid foundation for your materials science research.</p>
+    </div>
+
+    <p style="text-align: center; margin-top: 3rem;">
+        <a href="chapter-4.html" style="color: #f5576c; text-decoration: none; font-weight: bold;">← Chapter 4</a>
+        <span style="color: #adb5bd; margin: 0 0.8rem;">|</span>
+        <a href="index.html" style="color: #f5576c; text-decoration: none; font-weight: bold;">Series Index</a>
+    </p>
+<section class="disclaimer">
+<h3>Disclaimer</h3>
+<ul>
+<li>This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical warranty, etc.).</li>
+<li>This content and accompanying code examples are provided "AS IS" without any warranty, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
+<li>The author and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.</li>
+<li>To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+<li>The content may be changed, updated, or discontinued without notice.</li>
+<li>The copyright and license of this content are subject to the stated conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.</li>
+</ul>
+</section>
+
+</body>
+</html>

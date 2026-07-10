@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chapter 3: Automatic Differentiation (Autograd) - PyTorch Basics Introduction - AI Terakoya</title>
+  <meta name="description" content="Learn how PyTorch's autograd (automatic differentiation) works. Understand computation graphs, requires_grad, backward(), gradient accumulation and resetting, and how to stop differentiation with torch.no_grad() through practical code examples.">
+
+  <style>
+    :root {
+      --color-primary: #2c3e50;
+      --color-primary-dark: #1a252f;
+      --color-accent: #7b2cbf;
+      --color-accent-light: #9d4edd;
+      --color-text: #2d3748;
+      --color-text-light: #4a5568;
+      --color-bg: #ffffff;
+      --color-bg-alt: #f7fafc;
+      --color-border: #e2e8f0;
+      --color-code-bg: #f8f9fa;
+      --color-link: #3182ce;
+      --color-link-hover: #2c5aa0;
+
+      --spacing-xs: 0.5rem;
+      --spacing-sm: 1rem;
+      --spacing-md: 1.5rem;
+      --spacing-lg: 2rem;
+      --spacing-xl: 3rem;
+
+      --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+      --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+      --border-radius: 8px;
+      --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: var(--font-body);
+      line-height: 1.7;
+      color: var(--color-text);
+      background-color: var(--color-bg);
+      font-size: 16px;
+    }
+
+    header {
+      background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+      color: white;
+      padding: var(--spacing-xl) var(--spacing-md);
+      margin-bottom: var(--spacing-xl);
+      box-shadow: var(--box-shadow);
+    }
+
+    .header-content {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: var(--spacing-sm);
+      line-height: 1.2;
+    }
+
+    .subtitle {
+      font-size: 1.1rem;
+      opacity: 0.95;
+      font-weight: 400;
+      margin-bottom: var(--spacing-md);
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--spacing-md);
+      font-size: 0.9rem;
+      opacity: 0.9;
+    }
+
+    .meta-item {
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 var(--spacing-md) var(--spacing-xl);
+    }
+
+    h2 {
+      font-size: 1.75rem;
+      color: var(--color-primary);
+      margin-top: var(--spacing-xl);
+      margin-bottom: var(--spacing-md);
+      padding-bottom: var(--spacing-xs);
+      border-bottom: 3px solid var(--color-accent);
+    }
+
+    h3 {
+      font-size: 1.4rem;
+      color: var(--color-primary);
+      margin-top: var(--spacing-lg);
+      margin-bottom: var(--spacing-sm);
+    }
+
+    h4 {
+      font-size: 1.1rem;
+      color: var(--color-primary-dark);
+      margin-top: var(--spacing-md);
+      margin-bottom: var(--spacing-sm);
+    }
+
+    p {
+      margin-bottom: var(--spacing-md);
+      color: var(--color-text);
+    }
+
+    a {
+      color: var(--color-link);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    a:hover {
+      color: var(--color-link-hover);
+      text-decoration: underline;
+    }
+
+    ul, ol {
+      margin-left: var(--spacing-lg);
+      margin-bottom: var(--spacing-md);
+    }
+
+    li {
+      margin-bottom: var(--spacing-xs);
+      color: var(--color-text);
+    }
+
+    pre {
+      background-color: var(--color-code-bg);
+      border: 1px solid var(--color-border);
+      border-radius: var(--border-radius);
+      padding: var(--spacing-md);
+      overflow-x: auto;
+      margin-bottom: var(--spacing-md);
+      font-family: var(--font-mono);
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: 0.9em;
+      background-color: var(--color-code-bg);
+      padding: 0.2em 0.4em;
+      border-radius: 3px;
+    }
+
+    pre code {
+      background-color: transparent;
+      padding: 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: var(--spacing-md);
+      font-size: 0.95rem;
+    }
+
+    th, td {
+      border: 1px solid var(--color-border);
+      padding: var(--spacing-sm);
+      text-align: left;
+    }
+
+    th {
+      background-color: var(--color-bg-alt);
+      font-weight: 600;
+      color: var(--color-primary);
+    }
+
+    blockquote {
+      border-left: 4px solid var(--color-accent);
+      padding-left: var(--spacing-md);
+      margin: var(--spacing-md) 0;
+      color: var(--color-text-light);
+      font-style: italic;
+      background-color: var(--color-bg-alt);
+      padding: var(--spacing-md);
+      border-radius: var(--border-radius);
+    }
+
+    .mermaid {
+      text-align: center;
+      margin: var(--spacing-lg) 0;
+      background-color: var(--color-bg-alt);
+      padding: var(--spacing-md);
+      border-radius: var(--border-radius);
+    }
+
+    details {
+      background-color: var(--color-bg-alt);
+      border: 1px solid var(--color-border);
+      border-radius: var(--border-radius);
+      padding: var(--spacing-md);
+      margin-bottom: var(--spacing-md);
+    }
+
+    summary {
+      cursor: pointer;
+      font-weight: 600;
+      color: var(--color-primary);
+      user-select: none;
+      padding: var(--spacing-xs);
+      margin: calc(-1 * var(--spacing-md));
+      padding: var(--spacing-md);
+      border-radius: var(--border-radius);
+    }
+
+    summary:hover {
+      background-color: rgba(123, 44, 191, 0.1);
+    }
+
+    details[open] summary {
+      margin-bottom: var(--spacing-md);
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    .chapter-description {
+      margin: 1.5rem 0;
+      padding: 1rem;
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+      border-left: 4px solid #7b2cbf;
+      border-radius: 8px;
+      font-size: 1.05rem;
+      line-height: 1.8;
+      color: #2d3748;
+    }
+
+    .learning-objectives {
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+      padding: var(--spacing-lg);
+      border-radius: var(--border-radius);
+      border-left: 4px solid var(--color-accent);
+      margin-bottom: var(--spacing-xl);
+    }
+
+    .learning-objectives h2 {
+      margin-top: 0;
+      border-bottom: none;
+    }
+
+    .navigation {
+      display: flex;
+      justify-content: space-between;
+      gap: var(--spacing-md);
+      margin: var(--spacing-xl) 0;
+      padding-top: var(--spacing-lg);
+      border-top: 2px solid var(--color-border);
+    }
+
+    .nav-button {
+      flex: 1;
+      padding: var(--spacing-md);
+      background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+      color: white;
+      border-radius: var(--border-radius);
+      text-align: center;
+      font-weight: 600;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: var(--box-shadow);
+    }
+
+    .nav-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      text-decoration: none;
+    }
+
+    .nav-button.disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      background: #6c757d;
+    }
+
+    .nav-button.disabled:hover {
+      transform: none;
+      box-shadow: var(--box-shadow);
+    }
+
+    footer {
+      margin-top: var(--spacing-xl);
+      padding: var(--spacing-lg) var(--spacing-md);
+      background-color: var(--color-bg-alt);
+      border-top: 1px solid var(--color-border);
+      text-align: center;
+      font-size: 0.9rem;
+      color: var(--color-text-light);
+    }
+    .disclaimer {
+      max-width: 900px;
+      margin: 2rem auto;
+      padding: 1.5rem;
+      background: #f8f9fa;
+      border-left: 4px solid #6c757d;
+      border-radius: 4px;
+    }
+
+    .disclaimer h3 {
+      color: #495057;
+      margin-bottom: 1rem;
+      font-size: 1.1rem;
+    }
+
+    .disclaimer ul {
+      list-style: none;
+      padding-left: 0;
+    }
+
+    .disclaimer li {
+      padding: 0.5rem 0;
+      padding-left: 1.5rem;
+      position: relative;
+      font-size: 0.9rem;
+      color: #6c757d;
+      line-height: 1.6;
+    }
+
+    .disclaimer li::before {
+      content: "⚠️";
+      position: absolute;
+      left: 0;
+    }
+
+    /* Breadcrumb styles */
+    .breadcrumb {
+      background: #f7fafc;
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid #e2e8f0;
+      font-size: 0.9rem;
+    }
+
+    .breadcrumb-content {
+      max-width: 900px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .breadcrumb a {
+      color: #667eea;
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .breadcrumb a:hover {
+      color: #764ba2;
+      text-decoration: underline;
+    }
+
+    .breadcrumb-separator {
+      color: #a0aec0;
+      margin: 0 0.25rem;
+    }
+
+    .breadcrumb-current {
+      color: #4a5568;
+      font-weight: 500;
+    }
+
+    .info-box {
+      background: #e3f2fd;
+      border-left: 4px solid #2196f3;
+      padding: var(--spacing-md);
+      margin: var(--spacing-md) 0;
+      border-radius: var(--border-radius);
+    }
+
+    .warning-box {
+      background: #fff3e0;
+      border-left: 4px solid #ff9800;
+      padding: var(--spacing-md);
+      margin: var(--spacing-md) 0;
+      border-radius: var(--border-radius);
+    }
+
+    .success-box {
+      background: #e8f5e9;
+      border-left: 4px solid #4caf50;
+      padding: var(--spacing-md);
+      margin: var(--spacing-md) 0;
+      border-radius: var(--border-radius);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .container {
+        padding: 0 1rem 2rem;
+      }
+
+      h1 {
+        font-size: 1.6rem;
+      }
+
+      h2 {
+        font-size: 1.4rem;
+      }
+
+      .navigation {
+        flex-direction: column;
+      }
+    }
+  </style>
+
+  <!-- Mermaid for diagrams -->
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <!-- Prism.js for syntax highlighting -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+  <!-- MathJax for equations -->
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+  <script>
+    // Mermaid.js initialization
+    document.addEventListener('DOMContentLoaded', function() {
+      if (typeof mermaid !== 'undefined') {
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+      }
+    });
+  </script>
+</head>
+<body>
+  <nav class="breadcrumb">
+    <div class="breadcrumb-content">
+      <a href="../../index.html">AI Terakoya Home</a><span class="breadcrumb-separator">›</span><a href="../index.html">Machine Learning</a><span class="breadcrumb-separator">›</span><a href="./index.html">PyTorch Basics Introduction</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 3</span>
+    </div>
+  </nav>
+
+  <header>
+    <div class="header-content">
+      <h1>Chapter 3: Automatic Differentiation (Autograd)</h1>
+      <p class="subtitle">Understand computation graphs and master gradient computation</p>
+      <div class="meta">
+        <span class="meta-item">📖 Reading time: 25-30 min</span>
+        <span class="meta-item">📊 Difficulty: Beginner to Intermediate</span>
+        <span class="meta-item">💻 Code examples: 14</span>
+        <span class="meta-item">📝 Exercises: 3</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="chapter-description">
+      <p>Training a deep learning model is a repeated process of differentiating a loss function with respect to its parameters and using the resulting gradient to update those parameters. In this chapter, we'll take a deep look at the mechanism PyTorch uses to perform this differentiation automatically: <strong>autograd (automatic differentiation)</strong>. From building the computation graph, to <code>requires_grad</code>, <code>backward()</code>, gradient accumulation and resetting, and stopping differentiation with <code>torch.no_grad()</code> — let's learn by getting our hands on the code.</p>
+    </div>
+
+    <div class="learning-objectives">
+      <h2>Learning Objectives</h2>
+      <ul>
+        <li>✅ Explain how automatic differentiation works</li>
+        <li>✅ Understand the relationship between computation graphs and gradient computation</li>
+        <li>✅ Master requires_grad and backward()</li>
+        <li>✅ Correctly handle gradient accumulation and initialization</li>
+        <li>✅ Appropriately stop differentiation with torch.no_grad() and other tools</li>
+      </ul>
+    </div>
+
+    <h2 id="what-is-autograd">1. What is Automatic Differentiation</h2>
+
+    <p><strong>Automatic Differentiation (AD)</strong> is a technique for computing the derivative (gradient) of a function defined in a program accurately and efficiently by leveraging the structure of its computation. Training a neural network requires differentiating the loss function with respect to millions of parameters, and computing this by hand is not realistic. Autograd automates this enormous amount of differentiation.</p>
+
+    <h3>Three Approaches to Computing Derivatives</h3>
+
+    <p>There are broadly three approaches to computing the derivative of a function.</p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Method</th>
+          <th>Mechanism</th>
+          <th>Challenges</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Numerical Differentiation</strong></td>
+          <td>Approximated using finite differences $\frac{f(x+h)-f(x-h)}{2h}$</td>
+          <td>Subject to rounding and truncation error; computational cost grows with the number of variables</td>
+        </tr>
+        <tr>
+          <td><strong>Symbolic Differentiation</strong></td>
+          <td>Transforms the expression itself using differentiation rules</td>
+          <td>Expressions can explode in length as complexity increases (expression swell)</td>
+        </tr>
+        <tr>
+          <td><strong>Automatic Differentiation</strong></td>
+          <td>Records the computation process and mechanically applies the chain rule</td>
+          <td>Implementation is somewhat complex, but error is small and computation is efficient</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p>PyTorch's autograd adopts automatic differentiation, and specifically a method called <strong>Reverse-mode Automatic Differentiation</strong>. Reverse mode is extremely well suited to the structure of deep learning, where there are many input variables and few outputs (typically millions of parameters and a single scalar output, the loss).</p>
+
+    <div class="info-box">
+      <p><strong>💡 Why Reverse Mode Suits Deep Learning</strong></p>
+      <p>Reverse-mode automatic differentiation can compute the gradients of all inputs with respect to a single output in one backward pass. Since neural networks have a "many parameters → one loss value" structure, this property fits extremely well.</p>
+    </div>
+
+    <p>Let's first compare the results of numerical differentiation and autograd to confirm that autograd returns an exact gradient.</p>
+
+    <pre><code class="language-python">import torch
+
+def f(x):
+    return x ** 2
+
+# Numerical differentiation (approximation via finite differences)
+def numerical_grad(f, x, eps=1e-5):
+    return (f(x + eps) - f(x - eps)) / (2 * eps)
+
+x_value = 3.0
+approx_grad = numerical_grad(f, x_value)
+print(f"Approximate gradient from numerical differentiation: {approx_grad:.6f}")
+
+# Automatic differentiation (PyTorch autograd)
+x = torch.tensor(x_value, requires_grad=True)
+y = f(x)
+y.backward()
+print(f"Exact gradient from automatic differentiation: {x.grad.item():.6f}")
+# The derivative of f(x) = x^2 is 2x, so the correct answer at x=3 is 6.0
+</code></pre>
+
+    <p>Numerical differentiation returns an approximate value (extremely close to 6.000000, but with a small error), while autograd returns the analytically exact value <code>6.0</code> based on the chain rule. This difference becomes increasingly important for training stability as models grow larger.</p>
+
+    <h2 id="computation-graph">2. Computation Graphs and Gradient Computation</h2>
+
+    <p>At the heart of autograd is the <strong>Computational Graph</strong>. A computation graph is a <strong>Directed Acyclic Graph (DAG)</strong> that represents operations as nodes and the flow of data as edges. In PyTorch, this computation graph is dynamically built at runtime every time an operation is performed on a tensor (this approach is called <strong>Define-by-Run</strong>).</p>
+
+    <h3>Forward Pass and Backward Pass</h3>
+
+    <p>There are two directions of processing in a computation graph.</p>
+
+    <ul>
+      <li><strong>Forward Pass</strong>: Executes the computation from input to output, and simultaneously builds the computation graph</li>
+      <li><strong>Backward Pass / Backpropagation</strong>: Applies the <strong>Chain Rule</strong> from output to input, computing the gradient of each variable</li>
+    </ul>
+
+    <p>The chain rule is the mathematical property that the derivative of a composite function can be computed as "the product of the local derivatives at each stage." When $y = g(f(x))$, the following holds.</p>
+
+    <p>$$\frac{dy}{dx} = \frac{dy}{du} \cdot \frac{du}{dx} \quad (u = f(x))$$</p>
+
+    <p>Autograd traces the graph built during the forward pass and mechanically applies this chain rule at each node. Let's confirm this with actual code.</p>
+
+    <pre><code class="language-python">import torch
+
+x = torch.tensor(2.0, requires_grad=True)
+y = x ** 2          # y = x^2
+z = y * 3            # z = 3y = 3x^2
+w = z + 1             # w = z + 1 = 3x^2 + 1
+
+# Each tensor holds a reference (grad_fn) to the operation that created it
+print(f"y.grad_fn: {y.grad_fn}")
+print(f"z.grad_fn: {z.grad_fn}")
+print(f"w.grad_fn: {w.grad_fn}")
+# Example output:
+# y.grad_fn: &lt;PowBackward0 object at 0x7f8b1c0a3400&gt;
+# z.grad_fn: &lt;MulBackward0 object at 0x7f8b1c0a3460&gt;
+# w.grad_fn: &lt;AddBackward0 object at 0x7f8b1c0a34c0&gt;
+
+w.backward()
+print(f"dw/dx = {x.grad.item()}")
+# w = 3x^2 + 1, so dw/dx = 6x = 6*2 = 12.0
+</code></pre>
+
+    <p>The <code>grad_fn</code> attribute held by each tensor provides the clue for tracing the edges of the computation graph. When <code>w.backward()</code> is called, PyTorch traces the path <code>w → z → y → x</code> in reverse, multiplying the local derivatives at each stage to obtain the final gradient. This process is illustrated in the diagram below.</p>
+
+    <div class="mermaid">
+graph LR
+    X[x = 2.0] -->|square| Y[y = x^2]
+    Y -->|multiply by 3| Z[z = 3y]
+    Z -->|add 1| W[w = z+1]
+    W -.backward.-> Z
+    Z -.backward.-> Y
+    Y -.backward.-> X
+    </div>
+
+    <p>Solid lines represent the forward computation path, and dashed lines represent the path along which gradients flow during the backward pass. Thanks to the computation graph, no matter how complex the chain of operations becomes, an exact gradient can be obtained simply by mechanically applying the chain rule.</p>
+
+    <h2 id="tensor-requires-grad">3. torch.Tensor and requires_grad</h2>
+
+    <p>Whether a PyTorch tensor tracks gradient computation is controlled by the <code>requires_grad</code> attribute. Every operation on a tensor for which this is <code>True</code> is recorded in the computation graph.</p>
+
+    <h3>How to Set requires_grad</h3>
+
+    <p>There are mainly two ways to set it: specifying it at tensor creation, and enabling it after creation.</p>
+
+    <pre><code class="language-python">import torch
+
+# Scalar Tensor (0-dimensional)
+x_scalar = torch.tensor(3.0, requires_grad=True)
+print(f"x_scalar: {x_scalar}, requires_grad: {x_scalar.requires_grad}, is_leaf: {x_scalar.is_leaf}")
+
+# Vector Tensor (1-dimensional)
+x_vector = torch.tensor([1.0, 2.0, 3.0], requires_grad=True)
+print(f"x_vector: {x_vector}, requires_grad: {x_vector.requires_grad}, is_leaf: {x_vector.is_leaf}")
+
+# Enable requires_grad after creation
+y = torch.randn(3)
+print(f"requires_grad immediately after creation: {y.requires_grad}")  # False
+
+y.requires_grad_(True)  # The trailing underscore indicates an in-place operation
+print(f"requires_grad after setting: {y.requires_grad}")  # True
+</code></pre>
+
+    <p>Let's also touch on the concept of a <strong>Leaf Tensor</strong> introduced here. A tensor with <code>requires_grad=True</code> that the user creates directly (such as <code>x_scalar</code> or <code>x_vector</code> in the example above) is a "leaf," and its <code>is_leaf</code> is <code>True</code>. On the other hand, a tensor newly generated by an operation becomes a "non-leaf" intermediate tensor.</p>
+
+    <div class="warning-box">
+      <p><strong>⚠️ Integer Tensors Cannot Have requires_grad</strong></p>
+      <p>Since gradient computation is only meaningful for floating-point (or complex) numbers, specifying <code>requires_grad=True</code> on an integer tensor causes an error. Let's confirm this with the following code.</p>
+    </div>
+
+    <pre><code class="language-python">import torch
+
+try:
+    int_tensor = torch.tensor([1, 2, 3], requires_grad=True)
+except RuntimeError as e:
+    print(f"Error: {e}")
+# Example output:
+# Error: Only Tensors of floating point and complex dtype can require gradients
+
+# Solution: specify a floating-point dtype such as float32
+float_tensor = torch.tensor([1, 2, 3], dtype=torch.float32, requires_grad=True)
+print(f"float_tensor: {float_tensor}, requires_grad: {float_tensor.requires_grad}")
+</code></pre>
+
+    <h3>Gradient Differences Between Leaf and Intermediate Tensors</h3>
+
+    <p>By default, only leaf tensors have a value stored in <code>.grad</code> after <code>backward()</code> is executed. The <code>.grad</code> of intermediate tensors remains <code>None</code> to save memory. If you also want to inspect the gradient of an intermediate tensor, you need to call <code>retain_grad()</code> beforehand.</p>
+
+    <pre><code class="language-python">import torch
+
+x = torch.tensor(2.0, requires_grad=True)  # leaf tensor
+y = x ** 2                                  # intermediate tensor (non-leaf)
+z = y * 3                                   # intermediate tensor (non-leaf)
+
+z.backward()
+print(f"x.grad (leaf): {x.grad}")       # 12.0 -> value is stored
+print(f"y.grad (non-leaf): {y.grad}")   # None -> not retained by default
+
+# Use retain_grad() to keep the gradient of an intermediate tensor
+x2 = torch.tensor(2.0, requires_grad=True)
+y2 = x2 ** 2
+y2.retain_grad()  # instruct PyTorch to retain y2's gradient
+z2 = y2 * 3
+z2.backward()
+print(f"y2.grad (retained): {y2.grad}")  # dz2/dy2 = 3.0 -> retained and populated
+</code></pre>
+
+    <h2 id="backward-method">4. How to Use the backward() Method</h2>
+
+    <p>The <code>backward()</code> method executes reverse-mode automatic differentiation, computing the gradient for every leaf tensor in the computation graph (those with <code>requires_grad=True</code>) and storing it in each tensor's <code>.grad</code> attribute.</p>
+
+    <h3>backward() for Scalar Output</h3>
+
+    <p>When the output is a scalar (a single element), you can compute the gradient simply by calling <code>backward()</code> with no arguments. The same applies when there are multiple variables.</p>
+
+    <pre><code class="language-python">import torch
+
+a = torch.tensor(2.0, requires_grad=True)
+b = torch.tensor(3.0, requires_grad=True)
+
+c = a ** 2 + b ** 3  # c = a^2 + b^3 = 4 + 27 = 31
+c.backward()
+
+print(f"dc/da = {a.grad}")  # dc/da = 2a = 4.0
+print(f"dc/db = {b.grad}")  # dc/db = 3b^2 = 27.0
+</code></pre>
+
+    <h3>backward() for Vector Output</h3>
+
+    <p>When the output is not a scalar (i.e., a vector or matrix), you must pass a <code>gradient</code> argument to <code>backward()</code> with the same shape as the output. This represents an "upstream gradient" vector flowing in from the output side, and mathematically corresponds to computing a <strong>Jacobian-Vector Product</strong>.</p>
+
+    <pre><code class="language-python">import torch
+
+x = torch.tensor([1.0, 2.0, 3.0], requires_grad=True)
+y = x ** 2  # Vector output: y = [1, 4, 9]
+
+# Since y is not a scalar, backward() requires a gradient vector to be passed
+gradient = torch.tensor([1.0, 1.0, 1.0])
+y.backward(gradient=gradient)
+
+print(f"x.grad: {x.grad}")  # dy/dx = 2x = [2, 4, 6]
+</code></pre>
+
+    <p>Passing a vector of all ones as <code>gradient</code> is equivalent to computing the gradient with respect to the sum of the outputs. In practice, when computing a loss function, it's common to convert the output to a scalar with <code>sum()</code> or <code>mean()</code> before calling <code>backward()</code>, as shown below.</p>
+
+    <pre><code class="language-python">import torch
+
+x = torch.tensor([1.0, 2.0, 3.0], requires_grad=True)
+y = x ** 2
+loss = y.sum()  # Convert vector to scalar
+loss.backward()
+
+print(f"x.grad: {x.grad}")  # [2, 4, 6] -> same result as the previous example
+</code></pre>
+
+    <div class="info-box">
+      <p><strong>💡 A Practical Tip</strong></p>
+      <p>When training a neural network, the loss function is always designed to output a scalar. As a result, in practice you rarely need to explicitly pass a <code>gradient</code> argument, and you can usually write something as simple as <code>loss.backward()</code>.</p>
+    </div>
+
+    <h3>The retain_graph Option</h3>
+
+    <p>By default, once <code>backward()</code> is executed, the intermediate buffers of the computation graph are freed to save memory. Consequently, calling <code>backward()</code> twice on the same graph results in an error. If you want to run the backward pass multiple times while keeping the graph, specify <code>retain_graph=True</code>.</p>
+
+    <pre><code class="language-python">import torch
+
+x = torch.tensor(2.0, requires_grad=True)
+y = x ** 3  # y = x^3
+
+y.backward(retain_graph=True)  # Keep the graph instead of freeing it
+print(f"1st gradient: {x.grad}")  # dy/dx = 3x^2 = 12.0
+
+# Since retain_graph=True was specified, backward() can be called again
+x.grad.zero_()
+y.backward()
+print(f"2nd gradient: {x.grad}")  # dy/dx = 3x^2 = 12.0 (recomputed on the same graph)
+</code></pre>
+
+    <h2 id="gradient-accumulation">5. Gradient Accumulation and Initialization</h2>
+
+    <p>PyTorch's autograd has an important behavior that often trips up beginners: <strong><code>.grad</code> accumulates (adds up) by default</strong>. Each time <code>backward()</code> is called, the new gradient is not overwritten but added to the existing value of <code>.grad</code>.</p>
+
+    <pre><code class="language-python">import torch
+
+x = torch.tensor(2.0, requires_grad=True)
+
+# First backward pass
+y1 = x ** 2
+y1.backward()
+print(f"1st gradient: {x.grad}")  # dy1/dx = 2x = 4.0
+
+# Second backward pass (accumulates because the gradient wasn't reset)
+y2 = x ** 4
+y2.backward()
+print(f"2nd gradient (after accumulation): {x.grad}")  # 4.0 + dy2/dx(=4x^3=32.0) = 36.0
+
+# Reset the gradient to zero
+x.grad.zero_()
+y3 = x ** 4
+y3.backward()
+print(f"Gradient after reset: {x.grad}")  # 32.0 only (no accumulation)
+</code></pre>
+
+    <div class="warning-box">
+      <p><strong>⚠️ Important</strong></p>
+      <p>This "gradient accumulation" behavior is useful for a technique called <strong>Gradient Accumulation</strong>, which sums gradients across multiple mini-batches. However, if you forget to reset the gradient in a normal training loop, gradients from past steps will get mixed in, making parameter updates unstable.</p>
+    </div>
+
+    <p>In an actual training loop, it's standard to use the <code>optimizer.zero_grad()</code> method provided by a <code>torch.optim</code> optimizer, instead of calling <code>tensor.grad.zero_()</code> one tensor at a time. Below is an example of a minimal loop that trains a linear regression model using gradient descent.</p>
+
+    <pre><code class="language-python">import torch
+
+torch.manual_seed(0)
+w = torch.randn(1, requires_grad=True)
+b = torch.randn(1, requires_grad=True)
+optimizer = torch.optim.SGD([w, b], lr=0.01)
+
+X = torch.randn(20, 1)
+y_true = 2 * X + 1
+
+for step in range(3):
+    y_pred = w * X + b
+    loss = ((y_pred - y_true) ** 2).mean()
+
+    optimizer.zero_grad()  # Reset gradients at the start of each step
+    loss.backward()
+    optimizer.step()       # Update parameters using the gradients
+
+    print(f"Step {step+1}: loss={loss.item():.4f}")
+</code></pre>
+
+    <p>Running this loop, you can observe that <code>loss</code> decreases with each step, because <code>optimizer.zero_grad()</code> resets the gradient at every step. If you forget to call <code>optimizer.zero_grad()</code>, gradients will accumulate without bound, and training will not proceed correctly.</p>
+
+    <h2 id="stop-gradient">6. Techniques for Stopping Differentiation</h2>
+
+    <p>It's not always necessary to track the gradients of every operation. At inference time, or in transfer learning scenarios where you want to freeze some parameters, you can deliberately stop gradient tracking to reduce memory usage and computation time. PyTorch offers three main approaches.</p>
+
+    <h3>Method 1: torch.no_grad()</h3>
+
+    <p><code>torch.no_grad()</code> is a context manager that stops the construction of the computation graph itself for operations performed within its block. It is most commonly used during inference.</p>
+
+    <pre><code class="language-python">import torch
+
+x = torch.tensor(2.0, requires_grad=True)
+
+# Normal computation - a computation graph is built
+y = x ** 2
+print(f"y.requires_grad: {y.requires_grad}")  # True
+
+# Inside torch.no_grad(), no computation graph is built
+with torch.no_grad():
+    z = x ** 2
+    print(f"z.requires_grad: {z.requires_grad}")  # False
+
+# A common pattern used at inference time
+def predict(model_w, model_b, x_input):
+    with torch.no_grad():
+        return model_w * x_input + model_b
+
+w = torch.tensor(2.0, requires_grad=True)
+b = torch.tensor(1.0, requires_grad=True)
+prediction = predict(w, b, torch.tensor(5.0))
+print(f"Prediction: {prediction}, requires_grad: {prediction.requires_grad}")
+# Prediction: 11.0, requires_grad: False
+</code></pre>
+
+    <h3>Method 2: detach()</h3>
+
+    <p><code>detach()</code> returns a new tensor that has the same value as the original but is detached from the computation graph. Note that it shares memory (data) with the original tensor.</p>
+
+    <pre><code class="language-python">import torch
+
+x = torch.tensor(3.0, requires_grad=True)
+y = x ** 2
+
+# Create a new Tensor detached from the graph with detach()
+y_detached = y.detach()
+print(f"y.requires_grad: {y.requires_grad}")            # True
+print(f"y_detached.requires_grad: {y_detached.requires_grad}")  # False
+
+# y and y_detached share memory, so an in-place change to one affects the other
+y_detached.mul_(2)
+print(f"y after modification: {y}")  # y's value also changes to 18.0
+</code></pre>
+
+    <div class="warning-box">
+      <p><strong>⚠️ Watch Out for Memory Sharing with detach()</strong></p>
+      <p>If you modify a tensor obtained from <code>detach()</code> using an in-place operation (a method with a trailing underscore, such as <code>mul_()</code> or <code>add_()</code>), the value of the original tensor also changes. If you want a fully independent value, combine it with <code>clone()</code>, as in <code>y.detach().clone()</code>.</p>
+    </div>
+
+    <h3>Method 3: requires_grad_(False)</h3>
+
+    <p>You can also permanently switch a tensor's own <code>requires_grad</code> attribute to <code>False</code>. This is often used in transfer learning to "freeze" some layers of a pretrained model so their parameters are not updated.</p>
+
+    <pre><code class="language-python">import torch
+
+# A common pattern in transfer learning: freeze some parameters
+w1 = torch.randn(3, requires_grad=True)
+w2 = torch.randn(3, requires_grad=True)
+
+# Freeze w1 (exclude it from gradient computation)
+w1.requires_grad_(False)
+
+x = torch.randn(3)
+y = (w1 * x).sum() + (w2 * x).sum()
+y.backward()
+
+print(f"w1.grad: {w1.grad}")  # None (frozen, so no gradient is computed)
+print(f"w2.grad is None: {w2.grad is None}")  # False (w2's gradient is computed as usual)
+</code></pre>
+
+    <p>Each of the three methods has situations where it fits best. The table below summarizes guidelines for choosing among them.</p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Method</th>
+          <th>Scope</th>
+          <th>Primary Use</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>torch.no_grad()</code></td>
+          <td>Entire code block</td>
+          <td>Inference, evaluation loops, temporarily stopping tracking during parameter updates</td>
+        </tr>
+        <tr>
+          <td><code>tensor.detach()</code></td>
+          <td>A single specific tensor</td>
+          <td>Detach only part of the graph, extract values for logging</td>
+        </tr>
+        <tr>
+          <td><code>tensor.requires_grad_(False)</code></td>
+          <td>A single specific tensor (permanent)</td>
+          <td>Freezing parameters in transfer learning</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2 id="exercises">Exercises</h2>
+
+    <details>
+      <summary><strong>Exercise 1: Automatic Differentiation of a Scalar Function</strong></summary>
+      <p>For the function $f(x) = 3x^3 - 2x^2 + 5$, compute the derivative $\frac{df}{dx}$ at $x=2$ using autograd.</p>
+      <pre><code class="language-python"># Write your code here
+import torch
+
+x = torch.tensor(2.0, requires_grad=True)
+# Compute f(x) = 3x^3 - 2x^2 + 5 and call backward()
+</code></pre>
+      <details>
+        <summary>View Answer</summary>
+        <pre><code class="language-python">import torch
+
+x = torch.tensor(2.0, requires_grad=True)
+f = 3 * x ** 3 - 2 * x ** 2 + 5
+f.backward()
+print(f"df/dx = {x.grad.item()}")
+# df/dx = 9x^2 - 4x = 9*4 - 4*2 = 36 - 8 = 28.0
+</code></pre>
+        <p>Mathematically, $\frac{df}{dx} = 9x^2 - 4x$, and substituting $x=2$ gives $9(4) - 4(2) = 28$. This matches the result computed by autograd.</p>
+      </details>
+    </details>
+
+    <details>
+      <summary><strong>Exercise 2: Verifying Vector Gradients and Accumulation</strong></summary>
+      <p>For the vector $x = [1, 2, 3, 4]$ (with <code>requires_grad=True</code>), compute $\frac{\partial y}{\partial x}$ by calling <code>backward()</code> on <code>y.sum()</code> for $y = x^2$. Then, without resetting <code>x.grad</code>, compute the gradient of <code>z = x**3</code> for the same <code>x</code> and confirm that the gradients accumulate.</p>
+      <details>
+        <summary>View Answer</summary>
+        <pre><code class="language-python">import torch
+
+x = torch.tensor([1.0, 2.0, 3.0, 4.0], requires_grad=True)
+
+y = x ** 2
+y.sum().backward()
+print(f"1st (dy/dx = 2x): {x.grad}")
+# tensor([2., 4., 6., 8.])
+
+# Continue without resetting, computing the gradient of z = x^3
+z = x ** 3
+z.sum().backward()
+print(f"2nd (after accumulation): {x.grad}")
+# dz/dx = 3x^2 = [3, 12, 27, 48] is added,
+# resulting in tensor([ 5., 16., 33., 56.])
+</code></pre>
+        <p>The first gradient <code>[2, 4, 6, 8]</code> is added to the second gradient <code>[3, 12, 27, 48]</code>, resulting in <code>[5, 16, 33, 56]</code>. This confirms that calling <code>backward()</code> repeatedly without resetting causes the gradients to keep accumulating.</p>
+      </details>
+    </details>
+
+    <details>
+      <summary><strong>Exercise 3: Inference with torch.no_grad()</strong></summary>
+      <p>For a linear model $y = wx + b$ with trained parameters $w=2.5$ and $b=1.0$, implement inference for $x=4.0$ using <code>torch.no_grad()</code>, and confirm that the output tensor's <code>requires_grad</code> is <code>False</code>.</p>
+      <details>
+        <summary>View Answer</summary>
+        <pre><code class="language-python">import torch
+
+w = torch.tensor(2.5, requires_grad=True)
+b = torch.tensor(1.0, requires_grad=True)
+x = torch.tensor(4.0)
+
+with torch.no_grad():
+    y_pred = w * x + b
+    print(f"Prediction: {y_pred.item()}")           # 2.5*4 + 1.0 = 11.0
+    print(f"requires_grad: {y_pred.requires_grad}")  # False
+</code></pre>
+        <p>Inside a <code>torch.no_grad()</code> block, even though <code>w</code> and <code>b</code> have <code>requires_grad=True</code>, the result of the operation, <code>y_pred</code>, is not recorded in the computation graph, and its <code>requires_grad</code> becomes <code>False</code>. Using this approach at inference time avoids building an unnecessary computation graph, saving memory and computation time.</p>
+      </details>
+    </details>
+
+    <h2 id="review">Review of Learning Objectives</h2>
+
+    <p>Let's review the learning objectives set out at the beginning of this chapter.</p>
+
+    <ul>
+      <li>✅ <strong>Explain how automatic differentiation works</strong>: We learned the differences from numerical and symbolic differentiation, and how autograd uses the chain rule to compute exact gradients</li>
+      <li>✅ <strong>Understand the relationship between computation graphs and gradient computation</strong>: We confirmed how the computation graph is dynamically built during the forward pass, and how the chain rule is applied during the backward pass</li>
+      <li>✅ <strong>Master requires_grad and backward()</strong>: We practiced setting <code>requires_grad</code> on both scalar and vector tensors, and how to call <code>backward()</code> (including the <code>gradient</code> argument)</li>
+      <li>✅ <strong>Correctly handle gradient accumulation and initialization</strong>: We confirmed that <code>.grad</code> accumulates by default, and the importance of resetting it with <code>zero_()</code> and <code>optimizer.zero_grad()</code></li>
+      <li>✅ <strong>Appropriately stop differentiation with torch.no_grad() and other tools</strong>: We learned the three techniques <code>torch.no_grad()</code>, <code>detach()</code>, and <code>requires_grad_(False)</code>, and when to use each</li>
+    </ul>
+
+    <h2 id="summary">Summary</h2>
+
+    <p>In this chapter, we learned how PyTorch's autograd (automatic differentiation) works.</p>
+
+    <ul>
+      <li>✅ Unlike numerical or symbolic differentiation, autograd computes gradients accurately and efficiently using the computation graph and the chain rule</li>
+      <li>✅ PyTorch dynamically builds the computation graph with every operation (Define-by-Run), and each tensor records the operation that created it via <code>grad_fn</code></li>
+      <li>✅ A tensor with <code>requires_grad=True</code> becomes a "leaf tensor," and after <code>backward()</code>, its gradient is stored in <code>.grad</code> (intermediate tensors require <code>retain_grad()</code>)</li>
+      <li>✅ Scalar outputs allow <code>backward()</code> to be called without arguments, but vector outputs require a <code>gradient</code> argument</li>
+      <li>✅ Since <code>.grad</code> accumulates by default, training loops must reset it with <code>zero_grad()</code> at every step</li>
+      <li>✅ By choosing among <code>torch.no_grad()</code>, <code>detach()</code>, and <code>requires_grad_(False)</code> as appropriate, you can stop unnecessary gradient tracking and save memory and computation cost</li>
+    </ul>
+
+    <div class="success-box">
+      <p><strong>🎉 Next Steps</strong></p>
+      <p>Now that you understand how autograd works, the next chapter builds on this automatic differentiation to learn how to construct neural networks using <code>torch.nn.Module</code>. Look forward to seeing how the linear model you've been writing by hand is expressed through a more systematic class design.</p>
+    </div>
+
+    <div class="navigation">
+      <a href="./chapter-2.html" class="nav-button">← Chapter 2</a>
+      <a href="./index.html" class="nav-button">Series Index</a>
+      <a href="./chapter-4.html" class="nav-button">Chapter 4 →</a>
+    </div>
+
+    <hr style="margin: 2rem 0;">
+
+    <p><strong>Reference Resources</strong></p>
+    <ul>
+      <li><a href="https://pytorch.org/docs/stable/autograd.html" target="_blank">PyTorch Official Documentation: Autograd mechanics</a></li>
+      <li><a href="https://pytorch.org/tutorials/beginner/blitz/autograd_tutorial.html" target="_blank">PyTorch Official Tutorial: A Gentle Introduction to torch.autograd</a></li>
+      <li><a href="https://pytorch.org/docs/stable/notes/autograd.html" target="_blank">PyTorch Official Notes: Autograd mechanics (detailed)</a></li>
+    </ul>
+
+  </main>
+
+  <section class="disclaimer">
+    <h3>Disclaimer</h3>
+    <ul>
+      <li>This content is intended solely for educational, research, and informational purposes and does not provide professional advice (legal, accounting, technical guarantees, etc.).</li>
+      <li>This content and accompanying code examples are provided "AS IS" without warranty of any kind, either express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
+      <li>The authors and Tohoku University assume no responsibility for the content, availability, or security of external links, third-party data, tools, libraries, etc.</li>
+      <li>To the maximum extent permitted by applicable law, the authors and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+      <li>The content of this material may be changed, updated, or discontinued without notice.</li>
+      <li>The copyright and license of this content are subject to the specified conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.</li>
+    </ul>
+  </section>
+
+  <footer>
+    <div class="container">
+      <p>&copy; 2025 AI Terakoya - Dr. Yusuke Hashimoto, Tohoku University</p>
+      <p>Licensed under CC BY 4.0</p>
+    </div>
+  </footer>
+</body>
+</html>

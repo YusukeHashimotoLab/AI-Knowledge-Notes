@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 2: Molecular Orbital Theory and Electronic Structure - Introduction to Materials Chemistry</title>
+    <meta name="description" content="Fundamentals of the LCAO method, Hückel theory, the tight-binding approximation, and band theory with Python practice. A hierarchical understanding of electronic states, from molecular orbitals to the band structure and density of states of solids.">
+
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", sans-serif; line-height: 1.8; color: #2c3e50; max-width: 1200px; margin: 0 auto; padding: 20px; background: #f8f9fa; }
+        h1, h2, h3 { color: #2c3e50; margin-top: 2rem; }
+        h1 { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 1.5rem; border-radius: 10px; }
+        h2 { border-left: 5px solid #f5576c; padding-left: 15px; background: linear-gradient(to right, rgba(245,87,108,0.1), transparent); }
+        .code-block { background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 8px; overflow-x: auto; margin: 1rem 0; }
+        .equation { background: #fff3cd; padding: 15px; border-left: 4px solid #ffc107; margin: 1rem 0; border-radius: 5px; }
+        .exercise { background: #e7f3ff; padding: 20px; border-left: 4px solid #2196F3; margin: 1.5rem 0; border-radius: 8px; }
+        .solution { background: #f0f0f0; padding: 15px; margin-top: 10px; border-radius: 5px; }
+        .reference { background: white; padding: 15px; margin: 10px 0; border-left: 3px solid #f5576c; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .mermaid { background: white; padding: 20px; border-radius: 10px; margin: 1.5rem 0; }
+    </style>
+</head>
+<body>
+    <h1>Chapter 2: Molecular Orbital Theory and Electronic Structure</h1>
+
+    <p>In Chapter 1, we learned about the four classes of chemical bonding — ionic, covalent, metallic, and intermolecular forces — and the classical potential models that describe each of them (the Madelung constant, the Morse potential, the Drude model, and the Lennard-Jones potential). These models explain the magnitude of bonding energies well, but they do not delve deeply into the quantum mechanical states (orbitals) that electrons actually occupy within molecules and crystals.</p>
+
+    <p>In this chapter, we revisit chemical bonding from the perspective of electron wavefunctions through <strong>Molecular Orbital Theory</strong>. Our starting point is the <strong>LCAO method (Linear Combination of Atomic Orbitals)</strong>, which constructs molecular orbitals by combining atomic orbitals. Applying the LCAO method to conjugated π-electron systems yields <strong>Hückel theory</strong>, which we use to compute the electronic states of molecules such as benzene explicitly.</p>
+
+    <p>Extending the LCAO method further to an infinitely repeating periodic arrangement of atoms (a crystal) gives the <strong>tight-binding approximation</strong>. This is an important bridge between molecular orbital theory and the solid-state <strong>band theory</strong>, and it forms the foundation for understanding the differences among metals, semiconductors, and insulators. Finally, we will learn how to compute the <strong>density of states (DOS)</strong>, a statistical description of electronic states, and visualize it with Python.</p>
+
+    <p>Through this chapter, as we expand the system size from an isolated diatomic molecule to a finite conjugated molecule and then to an infinitely periodic crystal, we hope you will experience how the description of electronic states remains connected within a single, consistent framework.</p>
+
+    <div class="reference" style="text-align: center;">
+        <p><strong>Reading time:</strong> 30-35 minutes　｜　<strong>Difficulty:</strong> Intermediate　｜　<strong>Code examples:</strong> 9</p>
+    </div>
+
+    <div class="exercise">
+        <h3>Learning Objectives for This Chapter</h3>
+        <ul>
+            <li>Understand the basic idea of the LCAO method</li>
+            <li>Be able to describe π-electron systems using Hückel theory</li>
+            <li>Understand the mechanics of the tight-binding approximation</li>
+            <li>Be able to explain the fundamentals of band theory</li>
+            <li>Be able to compute and visualize band structures and densities of states in Python</li>
+        </ul>
+    </div>
+
+    <p style="text-align: center; margin: 1.5rem 0;">
+        <a href="chapter-1.html" style="color: #f5576c; text-decoration: none; font-weight: bold;">← Chapter 1</a>
+        <span style="color: #adb5bd; margin: 0 0.8rem;">|</span>
+        <a href="index.html" style="color: #f5576c; text-decoration: none; font-weight: bold;">Series Index</a>
+        <span style="color: #adb5bd; margin: 0 0.8rem;">|</span>
+        <a href="chapter-3.html" style="color: #f5576c; text-decoration: none; font-weight: bold;">Chapter 3 →</a>
+    </p>
+
+    <h2>2.1 Fundamentals of the LCAO Method (Linear Combination of Atomic Orbitals)</h2>
+    <p>A <strong>molecular orbital (MO)</strong> can be constructed by superposing the <strong>atomic orbitals (AOs)</strong> of the atoms that make up a molecule. This idea is called the <strong>LCAO method</strong>, and it expresses the molecular orbital $\psi$ as a linear combination of atomic orbitals $\phi_i$ as follows.</p>
+
+    <div class="equation">
+        $$\psi = \sum_i c_i \phi_i$$
+        <p>Here $c_i$ is the mixing coefficient of each atomic orbital, determined by the variational principle so as to minimize the energy of the molecule.</p>
+    </div>
+
+    <p>Applying the variational principle, the coefficients $c_i$ and the energy $E$ must satisfy the following <strong>secular equation</strong>.</p>
+
+    <div class="equation">
+        $$\mathbf{H} \mathbf{c} = E \mathbf{S} \mathbf{c}$$
+        <p>$H_{ij} = \int \phi_i^* \hat{H} \phi_j \, d\tau$ is the Hamiltonian matrix element, and $S_{ij} = \int \phi_i^* \phi_j \, d\tau$ is the <strong>overlap integral</strong>. Under the approximation that the atomic orbitals form an orthonormal set ($S_{ij} = \delta_{ij}$), this equation reduces to the ordinary eigenvalue problem $\mathbf{H}\mathbf{c} = E\mathbf{c}$.</p>
+    </div>
+
+    <p>The diagonal elements $H_{ii} = \alpha_i$ are called the <strong>Coulomb integral</strong>, corresponding to the energy of an electron residing in the isolated atomic orbital $i$. The off-diagonal elements $H_{ij} = \beta_{ij}$ are called the <strong>resonance integral</strong> (also known as the hopping or transfer integral), representing the stabilization gained when an electron delocalizes between orbitals $i$ and $j$. $\beta_{ij}$ is usually negative, and the larger its magnitude, the stronger the interaction between the orbitals.</p>
+
+    <p>As the simplest example, consider a two-orbital system in which two identical atomic orbitals $\phi_1, \phi_2$ are coupled by a single resonance integral $\beta$.</p>
+
+    <h3>Python Implementation: LCAO Calculation for a Two-Orbital System (Bonding and Antibonding Orbitals)</h3>
+    <pre class="code-block"><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+def lcao_two_orbital(alpha, beta):
+    """
+    Diagonalize the simplest LCAO system consisting of two atomic orbitals
+
+    Parameters:
+    alpha: Coulomb integral (energy of the atomic orbital)
+    beta: resonance integral (interaction between orbitals, usually negative)
+
+    Returns:
+    eigenvalues, eigenvectors
+    """
+    H = np.array([
+        [alpha, beta],
+        [beta, alpha]
+    ])
+    eigenvalues, eigenvectors = np.linalg.eigh(H)
+    return eigenvalues, eigenvectors
+
+# Normalized parameters (alpha=0 as the reference energy)
+alpha, beta = 0.0, -1.0
+eigenvalues, eigenvectors = lcao_two_orbital(alpha, beta)
+
+print("Eigenvalues:", eigenvalues)
+print("Eigenvectors:\n", eigenvectors)
+
+E_bonding = alpha + beta       # bonding orbital
+E_antibonding = alpha - beta   # antibonding orbital
+print(f"\nBonding orbital energy: E = alpha + beta = {E_bonding:.3f}")
+print(f"Antibonding orbital energy: E = alpha - beta = {E_antibonding:.3f}")
+
+# Energy level diagram
+fig, ax = plt.subplots(figsize=(6, 6))
+ax.hlines(alpha, -0.5, 2.5, colors='gray', linestyles='dashed', label='Atomic orbital (alpha)')
+ax.hlines(E_bonding, 0.7, 1.3, colors='#f5576c', linewidth=4)
+ax.hlines(E_antibonding, 0.7, 1.3, colors='#f093fb', linewidth=4)
+ax.text(1.0, E_bonding - 0.15, 'Bonding orbital', ha='center', fontsize=11)
+ax.text(1.0, E_antibonding + 0.08, 'Antibonding orbital', ha='center', fontsize=11)
+ax.set_xticks([])
+ax.set_ylabel('Energy (units of |beta|)', fontsize=12)
+ax.set_title('LCAO Splitting in a Two-Orbital System', fontsize=14, fontweight='bold')
+ax.set_xlim(-0.5, 2.5)
+ax.legend(loc='upper right')
+plt.tight_layout()
+plt.savefig('lcao_two_orbital.png', dpi=300)
+plt.show()
+</code></pre>
+    <p><strong>Result</strong>: For alpha=0, beta=-1, the bonding orbital splits to E = alpha + beta = -1.000 and the antibonding orbital to E = alpha - beta = 1.000. Since beta is negative, the bonding orbital (the symmetric combination $\frac{1}{\sqrt{2}}(\phi_1+\phi_2)$) has lower energy and is more stable.</p>
+
+    <h2>2.2 Describing π-Electron Systems with Hückel Theory</h2>
+    <p>Applying the LCAO method to conjugated molecules with a <strong>π-electron system</strong>, such as benzene, gives <strong>Hückel theory</strong>. Proposed by Erich Hückel in 1931, this theory introduces several approximations that simplify the electronic states of π-electron systems enough to be handled even by hand calculation.</p>
+
+    <p>The three main approximations of Hückel theory are:</p>
+    <ul>
+        <li>The Coulomb integral is the same for all carbon atoms: $H_{ii} = \alpha$</li>
+        <li>The resonance integral takes a finite value only between adjacent (bonded) atoms: $H_{ij} = \beta$ for adjacent atoms, and 0 otherwise</li>
+        <li>The atomic orbitals are treated as an orthonormal set: $S_{ij} = \delta_{ij}$</li>
+    </ul>
+
+    <p>Under these approximations, the Hamiltonian matrix can be written as $\mathbf{H} = \alpha \mathbf{I} + \beta \mathbf{A}$ using the <strong>adjacency matrix</strong> $\mathbf{A}$, which represents the molecule's bonding structure. The element $A_{ij}$ of $\mathbf{A}$ is 1 if atoms $i$ and $j$ are bonded, and 0 otherwise.</p>
+
+    <p>Benzene ($\text{C}_6\text{H}_6$) has six carbon atoms bonded in a ring, and each carbon atom contributes one π orbital (a 2p_z orbital). The adjacency matrix has a 6×6 cyclic structure, and diagonalizing it yields the molecular orbital energies of the π-electron system.</p>
+
+    <h3>Python Implementation: Computing the π-Electron States of Benzene with Hückel Theory</h3>
+    <pre class="code-block"><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+def huckel_matrix_ring(n_atoms, alpha, beta):
+    """
+    Construct the Hückel Hamiltonian matrix for a cyclic π-electron system (e.g., benzene)
+
+    Parameters:
+    n_atoms: number of atoms in the ring
+    alpha: Coulomb integral
+    beta: resonance integral (between adjacent atoms)
+
+    Returns:
+    H: Hückel Hamiltonian matrix (n_atoms x n_atoms)
+    """
+    H = np.full((n_atoms, n_atoms), 0.0)
+    np.fill_diagonal(H, alpha)
+    for i in range(n_atoms):
+        j = (i + 1) % n_atoms  # cyclic boundary condition (the last atom is bonded to the first)
+        H[i, j] = beta
+        H[j, i] = beta
+    return H
+
+# Benzene: alpha=0 as the reference energy, beta=-1 as the unit
+alpha, beta = 0.0, -1.0
+H_benzene = huckel_matrix_ring(n_atoms=6, alpha=alpha, beta=beta)
+
+eigenvalues, eigenvectors = np.linalg.eigh(H_benzene)
+print("Benzene pi molecular orbital energies (x in alpha + x*beta):")
+print(np.sort(eigenvalues))
+
+# Fill the 6 pi electrons two at a time from the lowest-energy orbital (Aufbau principle)
+n_pi_electrons = 6
+n_occupied = n_pi_electrons // 2
+E_pi_total = 2 * np.sum(eigenvalues[:n_occupied])
+print(f"\nTotal pi-electron energy up to the HOMO: {E_pi_total:.4f} (units with alpha=0, beta=-1)")
+
+# Compare with three localized, isolated double bonds (ethylene-like)
+E_localized = n_pi_electrons * (alpha + beta)
+E_delocalization = E_pi_total - E_localized
+print(f"Energy assuming three isolated double bonds: {E_localized:.4f}")
+print(f"Delocalization energy (resonance energy): {E_delocalization:.4f}")
+
+# Energy level diagram (accounting for degeneracy)
+fig, ax = plt.subplots(figsize=(6, 6))
+unique_levels = sorted(set(np.round(eigenvalues, 6)))
+for level in unique_levels:
+    degeneracy = np.sum(np.isclose(eigenvalues, level))
+    offsets = np.linspace(-0.4, 0.4, degeneracy + 2)[1:-1]
+    for off in offsets:
+        ax.hlines(level, off - 0.15, off + 0.15, colors='#f5576c', linewidth=4)
+
+ax.set_xticks([])
+ax.set_xlim(-0.6, 0.6)
+ax.set_ylabel('Energy (alpha + x * beta)', fontsize=12)
+ax.set_title('Hückel pi-Orbital Energy Levels of Benzene', fontsize=14, fontweight='bold')
+plt.tight_layout()
+plt.savefig('huckel_benzene_levels.png', dpi=300)
+plt.show()
+</code></pre>
+    <p><strong>Result</strong>: The eigenvalues, expressed relative to alpha, are x = -2, -1, -1, +1, +1, +2 (in units of β), splitting into four levels: $\alpha + 2\beta$ (one orbital), $\alpha + \beta$ (doubly degenerate), $\alpha - \beta$ (doubly degenerate), and $\alpha - 2\beta$ (one orbital). The 6 π electrons occupy the three most stable orbitals (the $\alpha+2\beta$ orbital and the two $\alpha+\beta$ orbitals), giving a total π-electron energy of $8\beta$. Comparing this with three isolated double bonds (2 electrons in each $\alpha+\beta$ orbital, totaling $6\beta$), the delocalization energy (resonance energy) is found to be $2\beta$. According to the literature, the resonance integral β for π bonds is typically estimated in the range of about -1 to -3 eV (for example, Streitwieser (1961) uses a representative value of $\beta \approx -2.5$ eV), which gives a rough estimate of about 5 eV for the resonance energy of benzene. However, this value is an idealized estimate from simple Hückel theory, and it differs from the experimental resonance energy (obtained by comparing heats of hydrogenation, about 150 kJ/mol ≈ 1.6 eV) owing to the coarseness of the approximation.</p>
+
+    <h2>2.3 The Tight-Binding Approximation</h2>
+    <p>Hückel theory dealt with molecules composed of a finite number of atoms, but the same LCAO idea can also be applied to a crystal (solid) in which atoms are arranged in an infinite periodic array. This is called the <strong>tight-binding approximation</strong>. The name "tight-binding" comes from the physical picture in which electrons are tightly bound to each atomic orbital, so that hopping to neighboring atoms can be treated perturbatively.</p>
+
+    <p>In a periodic crystal, we assume identical atoms are arranged at every lattice constant $a$ and impose periodic boundary conditions (the <strong>Born-von Karman boundary condition</strong>). The molecular orbital (Bloch state) labeled by the crystal momentum $k$ can then be written as a linear combination of the atomic orbitals $\phi_n$ (at the $n$-th lattice site) as follows.</p>
+
+    <div class="equation">
+        $$\psi_k = \frac{1}{\sqrt{N}} \sum_n e^{ikna} \phi_n$$
+        <p>This is a consequence of <strong>Bloch's theorem</strong>, where $N$ is the total number of lattice sites.</p>
+    </div>
+
+    <p>Substituting this wavefunction into a one-dimensional chain with a resonance integral (<strong>hopping integral</strong>) $\beta$ only between nearest-neighbor atoms gives the $k$-dependence of the energy (the <strong>dispersion relation</strong>).</p>
+
+    <div class="equation">
+        $$E(k) = \alpha + 2\beta \cos(ka)$$
+        <p>$k$ ranges over the first <strong>Brillouin zone</strong>, $-\pi/a \lt k \le \pi/a$. This set of $E(k)$ values is called an <strong>energy band</strong>.</p>
+    </div>
+
+    <p>Interestingly, this dispersion relation shares the same mathematical origin as Hückel theory. The Hückel theory of an $N$-membered ring such as benzene can be viewed as the periodic-boundary-condition one-dimensional tight-binding chain quantized to a finite size ($N=6$). The allowed wavenumbers are discretized as $k_m = 2\pi m / (Na)$ ($m = 0, 1, \dots, N-1$), and substituting these $k_m$ into the dispersion relation $E(k)$ reproduces exactly the Hückel eigenvalues of benzene.</p>
+
+    <h3>Python Implementation: Band Structure of the One-Dimensional Tight-Binding Model</h3>
+    <pre class="code-block"><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+def tight_binding_1d(k, alpha, beta, a=1.0):
+    """Compute the dispersion relation E(k) of a one-dimensional tight-binding chain"""
+    return alpha + 2 * beta * np.cos(k * a)
+
+alpha, beta, a = 0.0, -1.0, 1.0
+
+# Continuous k points within the first Brillouin zone
+k = np.linspace(-np.pi / a, np.pi / a, 400)
+E_k = tight_binding_1d(k, alpha, beta, a)
+
+print(f"Band minimum: {E_k.min():.4f} (alpha + 2*beta)")
+print(f"Band maximum: {E_k.max():.4f} (alpha - 2*beta)")
+print(f"Bandwidth: {E_k.max() - E_k.min():.4f} (= 4|beta|)")
+
+plt.figure(figsize=(8, 6))
+plt.plot(k * a / np.pi, E_k, color='#f5576c', linewidth=2.5)
+plt.axvline(x=0, color='gray', linestyle='--', alpha=0.5)
+plt.xlabel('k a / π', fontsize=12)
+plt.ylabel('E(k)  (alpha + x*beta)', fontsize=12)
+plt.title('Band Structure of a One-Dimensional Tight-Binding Chain', fontsize=14, fontweight='bold')
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.savefig('tight_binding_band_1d.png', dpi=300)
+plt.show()
+</code></pre>
+
+    <h3>Python Implementation: Verifying Consistency Between Hückel Theory and Tight-Binding</h3>
+    <pre class="code-block"><code class="language-python">import numpy as np
+
+alpha, beta, a = 0.0, -1.0, 1.0
+
+# Recompute the Hückel eigenvalues for benzene (N=6 ring)
+n_atoms = 6
+H = np.zeros((n_atoms, n_atoms))
+for i in range(n_atoms):
+    j = (i + 1) % n_atoms
+    H[i, j] = beta
+    H[j, i] = beta
+huckel_eigenvalues = np.sort(np.linalg.eigvalsh(H))
+
+# Allowed k points under the Born-von Karman boundary condition (N=6)
+N = n_atoms
+m = np.arange(N)
+k_allowed = 2 * np.pi * m / (N * a)
+E_tb_sampled = np.sort(alpha + 2 * beta * np.cos(k_allowed * a))
+
+print("Hückel eigenvalues :", huckel_eigenvalues)
+print("Tight-binding      :", E_tb_sampled)
+print("Do they agree?:", np.allclose(huckel_eigenvalues, E_tb_sampled))
+</code></pre>
+    <p><strong>Result</strong>: The two sets of values agree exactly (<code>np.allclose</code> returns True). In other words, the Hückel molecular orbitals of benzene are nothing more than the band of an infinitely long one-dimensional tight-binding chain, sampled at the six $k$ points discretized by the ring (periodic) boundary condition. A finite π-electron system (a molecule) and an infinitely periodic system (a crystal) are continuously connected within the same physical framework (LCAO/tight-binding).</p>
+
+    <h2>2.4 Band Theory and Energy Band Structure</h2>
+    <p>The one-dimensional chain in the previous section was the simplest possible case, with only one atomic orbital per unit cell. In real crystals, the unit cell often contains multiple atoms (sublattices), in which case the energy band splits into multiple bands. Here we consider a <strong>diatomic chain model</strong> with two atoms (A, B) per unit cell, in which the hopping integral alternates between two different values, $t_1$ (an intramolecular-type bond) and $t_2$ (an intermolecular-type bond). This model also corresponds to the electronic structure of conjugated polymers such as polyacetylene, in which single and double bonds alternate, and it is known as the <strong>Su-Schrieffer-Heeger (SSH) model</strong>.</p>
+
+    <p>Diagonalizing the 2×2 Bloch Hamiltonian, whose components are the amplitudes on the A and B sublattices, at each wavenumber $k$ gives two energy bands.</p>
+
+    <div class="equation">
+        $$H(k) = \begin{pmatrix} \alpha & -(t_1 + t_2 e^{-ika}) \\ -(t_1 + t_2 e^{ika}) & \alpha \end{pmatrix}$$
+        $$E_{\pm}(k) = \alpha \pm \sqrt{t_1^2 + t_2^2 + 2t_1 t_2 \cos(ka)}$$
+    </div>
+
+    <p>When $t_1 = t_2$ (equivalent bonds, no dimerization), the two bands touch at the edge of the Brillouin zone and reduce to a single, gapless band (the same physics as the monatomic chain in the previous section). When $t_1 \neq t_2$, on the other hand, an energy gap opens at the Brillouin zone boundary ($k = \pi/a$), with magnitude $\Delta E = 2|t_1 - t_2|$. If the lower band (the <strong>valence band</strong>) is completely filled with electrons and the upper band (the <strong>conduction band</strong>) is empty, the system behaves as an insulator or semiconductor with a <strong>band gap</strong>. Conversely, if a band is only partially occupied, empty states exist near the Fermi level, electrons can move freely, and the system exhibits metallic behavior.</p>
+
+    <h3>Python Implementation: Band Structure and Gap Formation in the Diatomic Chain Model</h3>
+    <pre class="code-block"><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+def diatomic_chain_bands(k, alpha, t1, t2, a=1.0):
+    """Compute the two-band dispersion relation of a diatomic chain with alternating hopping"""
+    delta = np.sqrt(t1**2 + t2**2 + 2 * t1 * t2 * np.cos(k * a))
+    return alpha + delta, alpha - delta  # upper band, lower band
+
+alpha, a = 0.0, 1.0
+k = np.linspace(-np.pi / a, np.pi / a, 400)
+
+# Case 1: uniform chain (no gap)
+E_upper_uniform, E_lower_uniform = diatomic_chain_bands(k, alpha, t1=1.0, t2=1.0, a=a)
+
+# Case 2: dimerized chain (with gap)
+t1, t2 = 1.0, 0.6
+E_upper, E_lower = diatomic_chain_bands(k, alpha, t1, t2, a=a)
+
+gap = E_upper.min() - E_lower.max()
+print(f"Band gap for t1={t1}, t2={t2}: {gap:.4f}")
+print(f"Analytical gap 2|t1-t2|: {2 * abs(t1 - t2):.4f}")
+
+fig, axes = plt.subplots(1, 2, figsize=(12, 5.5), sharey=True)
+
+axes[0].plot(k * a / np.pi, E_upper_uniform, color='#f5576c', linewidth=2.5)
+axes[0].plot(k * a / np.pi, E_lower_uniform, color='#f093fb', linewidth=2.5)
+axes[0].set_title('Uniform chain (t1=t2=1.0): no gap', fontsize=12)
+axes[0].set_xlabel('k a / π', fontsize=12)
+axes[0].set_ylabel('E(k)', fontsize=12)
+axes[0].grid(True, alpha=0.3)
+
+axes[1].plot(k * a / np.pi, E_upper, color='#f5576c', linewidth=2.5, label='Conduction band')
+axes[1].plot(k * a / np.pi, E_lower, color='#f093fb', linewidth=2.5, label='Valence band')
+axes[1].set_title(f'Dimerized chain (t1={t1}, t2={t2}): with gap', fontsize=12)
+axes[1].set_xlabel('k a / π', fontsize=12)
+axes[1].legend()
+axes[1].grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('diatomic_chain_bands.png', dpi=300)
+plt.show()
+</code></pre>
+    <p><strong>Result</strong>: When $t_1 = t_2 = 1.0$, the gap is zero and the two bands fold into what is effectively a single band. Dimerizing to $t_1=1.0, t_2=0.6$ opens a gap $\Delta E = 2|t_1-t_2| = 0.8$ (in units of β) at the Brillouin zone boundary. This phenomenon is also known as the <strong>Peierls transition</strong>, an important mechanism by which a one-dimensional system lowers its energy by distorting its lattice.</p>
+
+    <h2>2.5 Computing and Visualizing the Density of States (DOS)</h2>
+    <p>The <strong>density of states (DOS)</strong> $g(E)$ is a function representing the number of electronic states per unit energy width, and it is a fundamental quantity used to compute macroscopic properties of solids — such as specific heat, electrical conductivity, and magnetic susceptibility — from the electronic states. Starting from energy levels defined discretely at a finite number of $k$ points, the density of states can be constructed as a histogram as follows.</p>
+
+    <div class="equation">
+        $$g(E) \approx \frac{1}{N} \sum_{k} \delta(E - E(k))$$
+        <p>In actual numerical calculations, the delta function is approximated by histogramming the energies into bins of finite width.</p>
+    </div>
+
+    <p>For the one-dimensional tight-binding band $E(k) = \alpha + 2\beta\cos(ka)$, the density of states can be obtained analytically in the following form.</p>
+
+    <div class="equation">
+        $$g(E) = \frac{1}{\pi \sqrt{4\beta^2 - (E-\alpha)^2}}$$
+        <p>This expression diverges characteristically at the top and bottom edges of the band ($E = \alpha \pm 2\beta$), a feature known as a <strong>van Hove singularity</strong>. This is a property specific to one-dimensional systems, arising because the group velocity $dE/dk$ vanishes at the band edges.</p>
+    </div>
+
+    <h3>Python Implementation: Density of States of the Tight-Binding Band (Histogram vs. Analytical Solution)</h3>
+    <pre class="code-block"><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+alpha, beta, a = 0.0, -1.0, 1.0
+
+# Densely sample the first Brillouin zone with many k points
+n_k = 5000
+k_samples = np.linspace(-np.pi / a, np.pi / a, n_k, endpoint=False)
+E_samples = alpha + 2 * beta * np.cos(k_samples * a)
+
+# Approximate the density of states with a histogram
+hist, bin_edges = np.histogram(E_samples, bins=60, density=True)
+bin_centers = 0.5 * (bin_edges[:-1] + bin_edges[1:])
+
+# Analytical solution (avoid the divergence near the band edges)
+E_dense = np.linspace(2 * beta + 1e-3, -2 * beta - 1e-3, 400)
+g_analytic = 1.0 / (np.pi * np.sqrt(4 * beta**2 - (E_dense - alpha)**2))
+
+plt.figure(figsize=(9, 6))
+plt.bar(bin_centers, hist, width=(bin_edges[1] - bin_edges[0]),
+        color='#f093fb', alpha=0.6, label='Histogram (numerical)')
+plt.plot(E_dense, g_analytic, color='#f5576c', linewidth=2.5, label='Analytical solution')
+plt.xlabel('Energy E (alpha + x*beta)', fontsize=12)
+plt.ylabel('Density of states g(E)', fontsize=12)
+plt.title('Density of States of a One-Dimensional Tight-Binding Band', fontsize=14, fontweight='bold')
+plt.ylim(0, 2.0)
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.savefig('dos_1d_tight_binding.png', dpi=300)
+plt.show()
+
+print(f"Confirm the density of states rises sharply near the band edges E={2*beta:.2f}, {-2*beta:.2f}")
+print(f"Histogram value near the band center (E=0): {hist[len(hist)//2]:.4f}")
+</code></pre>
+    <p><strong>Result</strong>: The histogram and the analytical solution agree well; the density of states is nearly flat near the band center ($E \approx \alpha$), whereas it increases sharply as it approaches the band edges ($E = \alpha \pm 2\beta$). This is because the group velocity approaches zero at the band edges, allowing more $k$ points to be packed into a given unit energy width.</p>
+
+    <div class="mermaid">
+        flowchart TD
+            A[Hierarchical Description of Electronic States] --> B[LCAO Method]
+            B --> C[Hückel Theory]
+            C --> D[Tight-Binding Approximation]
+            D --> E[Band Theory]
+            E --> F[Density of States DOS]
+
+            C --> C1[Benzene: splits into 6 levels]
+            D --> D1[Periodic boundary conditions to k-space]
+            E --> E1[Gap formation: metal, semiconductor, insulator]
+            F --> F1[van Hove singularity]
+
+            style A fill:#f093fb,stroke:#f5576c,stroke-width:3px,color:#fff
+            style B fill:#f5576c,stroke:#f093fb,stroke-width:2px,color:#fff
+            style C fill:#f5576c,stroke:#f093fb,stroke-width:2px,color:#fff
+            style D fill:#f5576c,stroke:#f093fb,stroke-width:2px,color:#fff
+            style E fill:#f5576c,stroke:#f093fb,stroke-width:2px,color:#fff
+            style F fill:#f5576c,stroke:#f093fb,stroke-width:2px,color:#fff
+    </div>
+
+    <h2>Exercises</h2>
+
+    <div class="exercise">
+        <h3>Problem 1 (Easy): Hückel Calculation for the Allyl System</h3>
+        <p>Construct the Hückel matrix for the allyl system (allyl, $\text{C}_3\text{H}_5$, a linear π-electron system, not a ring) and find its eigenvalues. Using the three resulting orbital energies, compute and compare the total π-electron energy of the allyl cation (2 π electrons), the allyl radical (3 π electrons), and the allyl anion (4 π electrons).</p>
+        <div class="solution">
+            <h4>Solution</h4>
+<pre class="code-block"><code class="language-python">import numpy as np
+
+alpha, beta = 0.0, -1.0
+
+# Hückel matrix for the allyl system (linear chain, N=3, not a ring)
+H_allyl = np.array([
+    [alpha, beta, 0.0],
+    [beta, alpha, beta],
+    [0.0, beta, alpha]
+])
+
+eigenvalues = np.sort(np.linalg.eigvalsh(H_allyl))
+print("Orbital energies of the allyl system (alpha + x*beta):", eigenvalues)
+
+def fill_orbitals(eigenvalues, n_electrons):
+    """Fill electrons from the lowest-energy orbital in the ground-state configuration (Aufbau principle)"""
+    occupations = np.zeros(len(eigenvalues))
+    remaining = n_electrons
+    for i in range(len(eigenvalues)):
+        add = min(2, remaining)
+        occupations[i] = add
+        remaining -= add
+    return occupations
+
+for n_electrons, species in [(2, "Allyl cation"), (3, "Allyl radical"), (4, "Allyl anion")]:
+    occ = fill_orbitals(eigenvalues, n_electrons)
+    E_total = np.sum(occ * eigenvalues)
+    print(f"{species} ({n_electrons} pi electrons): occupations={occ}, total pi-electron energy={E_total:.4f}")
+</code></pre>
+            <p><strong>Result</strong>: The three orbital energies are, in order, $\alpha+\sqrt{2}\beta$ (bonding, about -1.414), $\alpha$ (non-bonding, about 0), and $\alpha-\sqrt{2}\beta$ (antibonding, about +1.414). The middle orbital is a non-bonding orbital with energy equal to $\alpha$, so filling it does not contribute to the total π-electron energy of the system. As a result, within simple Hückel theory, the allyl cation, radical, and anion all have the same total π-electron energy, $2\sqrt{2}\beta$ (≈ -2.828, in units of β). Note, however, that this only means the total energies are equal — the charge distribution and reactivity (behavior as a nucleophile or electrophile) differ substantially among the three species.</p>
+        </div>
+    </div>
+
+    <div class="exercise">
+        <h3>Problem 2 (Medium): Estimating the Effective Mass at the Band Bottom</h3>
+        <p>For the one-dimensional tight-binding band $E(k) = \alpha + 2\beta\cos(ka)$ ($\alpha=0$, $\beta=-1$, $a=1$), analytically derive the effective mass $m^*$ at the band bottom ($k=0$) from the second derivative of $E(k)$, and verify it numerically using finite differences (<code>np.gradient</code>). Also explain, physically, how the effective mass changes as $|\beta|$ (the magnitude of the hopping integral) increases.</p>
+        <div class="solution">
+            <h4>Solution</h4>
+<pre class="code-block"><code class="language-python">import numpy as np
+
+alpha, beta, a = 0.0, -1.0, 1.0
+
+def E_k(k):
+    return alpha + 2 * beta * np.cos(k * a)
+
+# Analytical solution: near the band bottom (k=0), E(k) ≈ alpha + 2*beta - beta*(a*k)^2 + ...
+# so d2E/dk2|_(k=0) = -2*beta*a^2, and the effective mass is m* = hbar^2 / (d2E/dk2)
+m_eff_analytic = 1.0 / (-2 * beta * a**2)  # natural units with hbar=1
+print(f"Analytical effective mass: m* = {m_eff_analytic:.4f}")
+
+# Verification via numerical differentiation
+k_fine = np.linspace(-0.01, 0.01, 5)
+E_fine = E_k(k_fine)
+d2E_dk2 = np.gradient(np.gradient(E_fine, k_fine), k_fine)[2]
+m_eff_numeric = 1.0 / d2E_dk2
+print(f"Numerically differentiated effective mass: m* = {m_eff_numeric:.4f}")
+
+# Comparison for different magnitudes of beta
+for beta_test in [-0.5, -1.0, -2.0]:
+    m_test = 1.0 / (-2 * beta_test * a**2)
+    print(f"beta = {beta_test}: m* = {m_test:.4f}")
+</code></pre>
+            <p><strong>Result</strong>: The analytical solution $m^* = \hbar^2/(-2\beta a^2)$ gives $m^*=0.5$ for $\beta=-1$, in agreement with the numerical differentiation result. Increasing $|\beta|$ (the magnitude of the hopping integral) widens the bandwidth $4|\beta|$ and makes the band curve more sharply, so the effective mass decreases in inverse proportion ($m^*=1.0$ for $\beta=-0.5$, $m^*=0.25$ for $\beta=-2.0$). Physically, this corresponds to the fact that greater orbital overlap between neighboring atoms makes it easier for an electron to hop to the next atom, giving it a lighter apparent mass (effective mass).</p>
+        </div>
+    </div>
+
+    <div class="exercise">
+        <h3>Problem 3 (Hard): Density of States and the Band Gap of a Dimerized Chain</h3>
+        <p>From the band structure of the diatomic chain model ($t_1=1.0$, $t_2=0.6$, $\alpha=0$), compute the density of states as a histogram and numerically confirm that no electronic states exist within the band gap. Also compare the numerical gap width with the analytical gap width $2|t_1-t_2|$.</p>
+        <div class="solution">
+            <h4>Solution</h4>
+<pre class="code-block"><code class="language-python">import numpy as np
+
+alpha = 0.0
+t1, t2 = 1.0, 0.6
+a = 1.0
+
+n_k = 4000
+k = np.linspace(-np.pi / a, np.pi / a, n_k, endpoint=False)
+delta = np.sqrt(t1**2 + t2**2 + 2 * t1 * t2 * np.cos(k * a))
+E_upper = alpha + delta
+E_lower = alpha - delta
+E_all = np.concatenate([E_upper, E_lower])
+
+hist, bin_edges = np.histogram(E_all, bins=100, density=True)
+bin_centers = 0.5 * (bin_edges[:-1] + bin_edges[1:])
+
+gap_lower_edge = E_lower.max()
+gap_upper_edge = E_upper.min()
+gap_width = gap_upper_edge - gap_lower_edge
+print(f"Numerical gap width: {gap_width:.4f}")
+print(f"Analytical gap width 2|t1-t2|: {2 * abs(t1 - t2):.4f}")
+
+in_gap = (bin_centers &gt; gap_lower_edge) &amp; (bin_centers &lt; gap_upper_edge)
+print(f"Histogram values within the gap (should all be 0): {hist[in_gap]}")
+</code></pre>
+            <p><strong>Result</strong>: The numerical gap width (about 0.7999...) agrees well with the analytical solution $2|t_1-t_2|=0.8$. Furthermore, every histogram bin within the gap region (from the top of the valence band to the bottom of the conduction band) is zero, numerically confirming that no electron-occupiable states exist in this range. This provides direct evidence that the dimerized chain behaves as an insulator (or semiconductor).</p>
+        </div>
+    </div>
+
+    <h2>References</h2>
+    <div class="reference">
+        <p>1. Hückel, E. (1931). "Quantentheoretische Beiträge zum Benzolproblem". <em>Zeitschrift für Physik</em>, 70(3-4), 204-286.</p>
+    </div>
+    <div class="reference">
+        <p>2. Streitwieser, A. (1961). <em>Molecular Orbital Theory for Organic Chemists</em>. John Wiley &amp; Sons.</p>
+    </div>
+    <div class="reference">
+        <p>3. Ashcroft, N.W., Mermin, N.D. (1976). <em>Solid State Physics</em>. Brooks Cole, pp. 176-190.</p>
+    </div>
+    <div class="reference">
+        <p>4. Kittel, C. (2005). <em>Introduction to Solid State Physics</em>, 8th Edition. Wiley, pp. 179-200.</p>
+    </div>
+    <div class="reference">
+        <p>5. Su, W.P., Schrieffer, J.R., Heeger, A.J. (1979). "Solitons in Polyacetylene". <em>Physical Review Letters</em>, 42(25), 1698-1701.</p>
+    </div>
+    <div class="reference">
+        <p>6. Hoffmann, R. (1963). "An Extended Hückel Theory". <em>Journal of Chemical Physics</em>, 39(6), 1397-1412.</p>
+    </div>
+    <div class="reference">
+        <p>7. Atkins, P., de Paula, J. (2010). <em>Physical Chemistry</em>, 9th Edition. Oxford University Press, pp. 380-420.</p>
+    </div>
+    <div class="reference">
+        <p>8. NumPy Developers. "numpy.linalg.eigh — NumPy Documentation". https://numpy.org/doc/stable/reference/generated/numpy.linalg.eigh.html</p>
+    </div>
+
+    <h2>Checking Your Learning Objectives</h2>
+    <div class="exercise">
+        <h3>Level 1 (Basic Understanding)</h3>
+        <ul>
+            <li>Explain the meaning of the secular equation, the Coulomb integral, and the resonance integral in the LCAO method</li>
+            <li>Understand the three approximations of Hückel theory (equal Coulomb integrals, resonance integrals only between adjacent atoms, and an orthonormal orbital set)</li>
+            <li>Explain that the tight-binding approximation extends the LCAO method to periodic systems</li>
+            <li>Understand the basic concepts of energy bands, the Brillouin zone, and the band gap</li>
+        </ul>
+
+        <h3>Level 2 (Practical Skills)</h3>
+        <ul>
+            <li>Diagonalize a Hückel matrix in Python using numpy.linalg.eigh to obtain molecular orbital energies</li>
+            <li>Compute and plot the band structure of a one-dimensional tight-binding model</li>
+            <li>Numerically compute the density of states using a histogram and compare it with the analytical solution</li>
+        </ul>
+
+        <h3>Level 3 (Applied Skills)</h3>
+        <ul>
+            <li>Explain the mathematical continuity between a finite π-electron system (Hückel theory) and an infinitely periodic system (tight-binding theory)</li>
+            <li>Understand the mechanism of band gap formation in the diatomic chain model (the Peierls transition) and explain the differences among metals, semiconductors, and insulators</li>
+            <li>Explain the physical origin of the van Hove singularity in the density of states in terms of the group velocity</li>
+        </ul>
+    </div>
+
+    <p style="text-align: center; margin-top: 3rem;">
+        <a href="chapter-1.html" style="color: #f5576c; text-decoration: none; font-weight: bold;">← Chapter 1</a>
+        <span style="color: #adb5bd; margin: 0 0.8rem;">|</span>
+        <a href="index.html" style="color: #f5576c; text-decoration: none; font-weight: bold;">Series Index</a>
+        <span style="color: #adb5bd; margin: 0 0.8rem;">|</span>
+        <a href="chapter-3.html" style="color: #f5576c; text-decoration: none; font-weight: bold;">Chapter 3 →</a>
+    </p>
+<section class="disclaimer">
+<h3>Disclaimer</h3>
+<ul>
+<li>This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical warranty, etc.).</li>
+<li>This content and accompanying code examples are provided "AS IS" without any warranty, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
+<li>The author and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.</li>
+<li>To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+<li>The content may be changed, updated, or discontinued without notice.</li>
+<li>The copyright and license of this content are subject to the stated conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.</li>
+</ul>
+</section>
+
+</body>
+</html>

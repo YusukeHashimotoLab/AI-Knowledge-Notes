@@ -1,0 +1,1342 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第3章：高度なGNNアーキテクチャ - PyTorch Geometric入門 - AI Terakoya</title>
+  <meta name="description" content="Graph Attention Network（GAT）、GraphSAGE、グラフプーリング、グラフ分類、リンク予測、異種グラフの扱いを学ぶ。torch_geometric.nnのGATConv・SAGEConv・HeteroConvを使った実践的なコード例で高度なGNNアーキテクチャを理解します。">
+
+  <style>
+    :root {
+      --color-primary: #2c3e50;
+      --color-primary-dark: #1a252f;
+      --color-accent: #7b2cbf;
+      --color-accent-light: #9d4edd;
+      --color-text: #2d3748;
+      --color-text-light: #4a5568;
+      --color-bg: #ffffff;
+      --color-bg-alt: #f7fafc;
+      --color-border: #e2e8f0;
+      --color-code-bg: #f8f9fa;
+      --color-link: #3182ce;
+      --color-link-hover: #2c5aa0;
+
+      --spacing-xs: 0.5rem;
+      --spacing-sm: 1rem;
+      --spacing-md: 1.5rem;
+      --spacing-lg: 2rem;
+      --spacing-xl: 3rem;
+
+      --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+      --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+      --border-radius: 8px;
+      --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: var(--font-body);
+      line-height: 1.7;
+      color: var(--color-text);
+      background-color: var(--color-bg);
+      font-size: 16px;
+    }
+
+    header {
+      background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+      color: white;
+      padding: var(--spacing-xl) var(--spacing-md);
+      margin-bottom: var(--spacing-xl);
+      box-shadow: var(--box-shadow);
+    }
+
+    .header-content {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: var(--spacing-sm);
+      line-height: 1.2;
+    }
+
+    .subtitle {
+      font-size: 1.1rem;
+      opacity: 0.95;
+      font-weight: 400;
+      margin-bottom: var(--spacing-md);
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--spacing-md);
+      font-size: 0.9rem;
+      opacity: 0.9;
+    }
+
+    .meta-item {
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 var(--spacing-md) var(--spacing-xl);
+    }
+
+    h2 {
+      font-size: 1.75rem;
+      color: var(--color-primary);
+      margin-top: var(--spacing-xl);
+      margin-bottom: var(--spacing-md);
+      padding-bottom: var(--spacing-xs);
+      border-bottom: 3px solid var(--color-accent);
+    }
+
+    h3 {
+      font-size: 1.4rem;
+      color: var(--color-primary);
+      margin-top: var(--spacing-lg);
+      margin-bottom: var(--spacing-sm);
+    }
+
+    h4 {
+      font-size: 1.1rem;
+      color: var(--color-primary-dark);
+      margin-top: var(--spacing-md);
+      margin-bottom: var(--spacing-sm);
+    }
+
+    p {
+      margin-bottom: var(--spacing-md);
+      color: var(--color-text);
+    }
+
+    a {
+      color: var(--color-link);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    a:hover {
+      color: var(--color-link-hover);
+      text-decoration: underline;
+    }
+
+    ul, ol {
+      margin-left: var(--spacing-lg);
+      margin-bottom: var(--spacing-md);
+    }
+
+    li {
+      margin-bottom: var(--spacing-xs);
+      color: var(--color-text);
+    }
+
+    pre {
+      background-color: var(--color-code-bg);
+      border: 1px solid var(--color-border);
+      border-radius: var(--border-radius);
+      padding: var(--spacing-md);
+      overflow-x: auto;
+      margin-bottom: var(--spacing-md);
+      font-family: var(--font-mono);
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: 0.9em;
+      background-color: var(--color-code-bg);
+      padding: 0.2em 0.4em;
+      border-radius: 3px;
+    }
+
+    pre code {
+      background-color: transparent;
+      padding: 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: var(--spacing-md);
+      font-size: 0.95rem;
+    }
+
+    th, td {
+      border: 1px solid var(--color-border);
+      padding: var(--spacing-sm);
+      text-align: left;
+    }
+
+    th {
+      background-color: var(--color-bg-alt);
+      font-weight: 600;
+      color: var(--color-primary);
+    }
+
+    blockquote {
+      border-left: 4px solid var(--color-accent);
+      padding-left: var(--spacing-md);
+      margin: var(--spacing-md) 0;
+      color: var(--color-text-light);
+      font-style: italic;
+      background-color: var(--color-bg-alt);
+      padding: var(--spacing-md);
+      border-radius: var(--border-radius);
+    }
+
+    .mermaid {
+      text-align: center;
+      margin: var(--spacing-lg) 0;
+      background-color: var(--color-bg-alt);
+      padding: var(--spacing-md);
+      border-radius: var(--border-radius);
+    }
+
+    details {
+      background-color: var(--color-bg-alt);
+      border: 1px solid var(--color-border);
+      border-radius: var(--border-radius);
+      padding: var(--spacing-md);
+      margin-bottom: var(--spacing-md);
+    }
+
+    summary {
+      cursor: pointer;
+      font-weight: 600;
+      color: var(--color-primary);
+      user-select: none;
+      padding: var(--spacing-xs);
+      margin: calc(-1 * var(--spacing-md));
+      padding: var(--spacing-md);
+      border-radius: var(--border-radius);
+    }
+
+    summary:hover {
+      background-color: rgba(123, 44, 191, 0.1);
+    }
+
+    details[open] summary {
+      margin-bottom: var(--spacing-md);
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    .chapter-description {
+      margin: 1.5rem 0;
+      padding: 1rem;
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+      border-left: 4px solid #7b2cbf;
+      border-radius: 8px;
+      font-size: 1.05rem;
+      line-height: 1.8;
+      color: #2d3748;
+    }
+
+    .learning-objectives {
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+      padding: var(--spacing-lg);
+      border-radius: var(--border-radius);
+      border-left: 4px solid var(--color-accent);
+      margin-bottom: var(--spacing-xl);
+    }
+
+    .learning-objectives h2 {
+      margin-top: 0;
+      border-bottom: none;
+    }
+
+    .navigation {
+      display: flex;
+      justify-content: space-between;
+      gap: var(--spacing-md);
+      margin: var(--spacing-xl) 0;
+      padding-top: var(--spacing-lg);
+      border-top: 2px solid var(--color-border);
+    }
+
+    .nav-button {
+      flex: 1;
+      padding: var(--spacing-md);
+      background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+      color: white;
+      border-radius: var(--border-radius);
+      text-align: center;
+      font-weight: 600;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: var(--box-shadow);
+    }
+
+    .nav-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      text-decoration: none;
+    }
+
+    .nav-button.disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      background: #6c757d;
+    }
+
+    .nav-button.disabled:hover {
+      transform: none;
+      box-shadow: var(--box-shadow);
+    }
+
+    footer {
+      margin-top: var(--spacing-xl);
+      padding: var(--spacing-lg) var(--spacing-md);
+      background-color: var(--color-bg-alt);
+      border-top: 1px solid var(--color-border);
+      text-align: center;
+      font-size: 0.9rem;
+      color: var(--color-text-light);
+    }
+
+    .disclaimer {
+      max-width: 900px;
+      margin: 2rem auto;
+      padding: 1.5rem;
+      background: #f8f9fa;
+      border-left: 4px solid #6c757d;
+      border-radius: 4px;
+    }
+
+    .disclaimer h3 {
+      color: #495057;
+      margin-bottom: 1rem;
+      font-size: 1.1rem;
+    }
+
+    .disclaimer ul {
+      list-style: none;
+      padding-left: 0;
+    }
+
+    .disclaimer li {
+      padding: 0.5rem 0;
+      padding-left: 1.5rem;
+      position: relative;
+      font-size: 0.9rem;
+      color: #6c757d;
+      line-height: 1.6;
+    }
+
+    .disclaimer li::before {
+      content: "⚠️";
+      position: absolute;
+      left: 0;
+    }
+
+    /* Breadcrumb styles */
+    .breadcrumb {
+      background: #f7fafc;
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid #e2e8f0;
+      font-size: 0.9rem;
+    }
+
+    .breadcrumb-content {
+      max-width: 900px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .breadcrumb a {
+      color: #667eea;
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .breadcrumb a:hover {
+      color: #764ba2;
+      text-decoration: underline;
+    }
+
+    .breadcrumb-separator {
+      color: #a0aec0;
+      margin: 0 0.25rem;
+    }
+
+    .breadcrumb-current {
+      color: #4a5568;
+      font-weight: 500;
+    }
+
+    .info-box {
+      background: #e3f2fd;
+      border-left: 4px solid #2196f3;
+      padding: var(--spacing-md);
+      margin: var(--spacing-md) 0;
+      border-radius: var(--border-radius);
+    }
+
+    .warning-box {
+      background: #fff3e0;
+      border-left: 4px solid #ff9800;
+      padding: var(--spacing-md);
+      margin: var(--spacing-md) 0;
+      border-radius: var(--border-radius);
+    }
+
+    .success-box {
+      background: #e8f5e9;
+      border-left: 4px solid #4caf50;
+      padding: var(--spacing-md);
+      margin: var(--spacing-md) 0;
+      border-radius: var(--border-radius);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .container {
+        padding: 0 1rem 2rem;
+      }
+
+      h1 {
+        font-size: 1.6rem;
+      }
+
+      h2 {
+        font-size: 1.4rem;
+      }
+
+      .navigation {
+        flex-direction: column;
+      }
+    }
+  </style>
+
+  <!-- Mermaid for diagrams -->
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <!-- Prism.js for syntax highlighting -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+  <!-- MathJax for equations -->
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+  <script>
+    // Mermaid.js initialization
+    document.addEventListener('DOMContentLoaded', function() {
+      if (typeof mermaid !== 'undefined') {
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+      }
+    });
+  </script>
+</head>
+<body>
+  <nav class="breadcrumb">
+    <div class="breadcrumb-content">
+      <a href="../../index.html">AI寺子屋トップ</a><span class="breadcrumb-separator">›</span><a href="../index.html">機械学習</a><span class="breadcrumb-separator">›</span><a href="./index.html">PyTorch Geometric入門</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">第3章</span>
+    </div>
+  </nav>
+
+  <header>
+    <div class="header-content">
+      <h1>第3章：高度なGNNアーキテクチャ</h1>
+      <p class="subtitle">注意機構・サンプリング・グラフレベルタスクを実装する</p>
+      <div class="meta">
+        <span class="meta-item">📖 読了時間: 30-35分</span>
+        <span class="meta-item">📊 難易度: 中級〜上級</span>
+        <span class="meta-item">💻 コード例: 17個</span>
+        <span class="meta-item">📝 演習: 3問</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="chapter-description">
+      <p>第1章・第2章ではグラフデータの基礎とGCN（Graph Convolutional Network）によるノード分類を学びました。この章では、より表現力の高いGNN（Graph Neural Network）アーキテクチャに踏み込みます。ノード間の重要度を学習するGraph Attention Network（GAT）、大規模グラフに対応するGraphSAGE、グラフ全体を1つのベクトルに集約するグラフプーリング、そしてグラフ分類・リンク予測・異種グラフといった応用タスクまで、実際に動くコードとともに体系的に学んでいきます。</p>
+    </div>
+
+    <div class="learning-objectives">
+      <h2>学習目標</h2>
+      <ul>
+        <li>✅ GAT（Graph Attention Network）の仕組みを説明できる</li>
+        <li>✅ GraphSAGEのサンプリング戦略を理解する</li>
+        <li>✅ グラフプーリングでグラフ全体の表現を得られる</li>
+        <li>✅ グラフ分類タスクを実装できる</li>
+        <li>✅ リンク予測タスクの基本を理解する</li>
+        <li>✅ 異種グラフ（Heterogeneous Graph）の扱いを知る</li>
+      </ul>
+    </div>
+
+    <h2 id="gat">1. Graph Attention Networks（GAT）</h2>
+
+    <p><strong>Graph Attention Network（GAT、グラフ注意機構ネットワーク）</strong>は、GCNのように全ての隣接ノードを同じ重みで平均化するのではなく、<strong>注意機構（Attention Mechanism）</strong>を使ってノードごとに重要度の異なる重みを学習するGNNアーキテクチャです。自然言語処理のTransformerで使われるSelf-Attentionと同じ発想を、グラフ構造に応用したものと考えると理解しやすいでしょう。</p>
+
+    <h3>GATの基本原理</h3>
+
+    <p>GATでは、ノード \(i\) とその隣接ノード \(j\) の間の<strong>注意係数（Attention Coefficient）</strong> \(\alpha_{ij}\) を、両ノードの特徴量から学習します。</p>
+
+    <p>まず、注意スコア \(e_{ij}\) を次のように計算します：</p>
+    <p>$$e_{ij} = \text{LeakyReLU}\left(\mathbf{a}^T [\mathbf{W}\mathbf{h}_i \, \| \, \mathbf{W}\mathbf{h}_j]\right)$$</p>
+
+    <p>ここで \(\mathbf{W}\) は学習可能な重み行列、\(\mathbf{a}\) は学習可能な注意ベクトル、\(\|\) はベクトルの連結（concatenation）を表します。次に、隣接ノード全体で正規化してソフトマックス関数を適用します：</p>
+
+    <p>$$\alpha_{ij} = \frac{\exp(e_{ij})}{\sum_{k \in \mathcal{N}(i)} \exp(e_{ik})}$$</p>
+
+    <p>最後に、注意係数で重み付けした隣接ノード特徴量の加重和を計算し、ノード \(i\) の新しい特徴量とします：</p>
+
+    <p>$$\mathbf{h}_i' = \sigma\left(\sum_{j \in \mathcal{N}(i)} \alpha_{ij} \mathbf{W} \mathbf{h}_j\right)$$</p>
+
+    <div class="mermaid">
+graph LR
+  A[ノード A] -->|alpha=0.7| Target[対象ノード]
+  B[ノード B] -->|alpha=0.2| Target
+  C[ノード C] -->|alpha=0.1| Target
+  Target --> Out[重み付き集約後の特徴量]
+    </div>
+
+    <div class="info-box">
+      <p><strong>💡 GCNとGATの違い</strong></p>
+      <p>GCNは次数（隣接ノード数）に基づく固定的な重み \(1/\sqrt{d_i d_j}\) で集約するのに対し、GATはデータから重要度を学習します。そのため、ノイズの多い隣接ノードの影響を抑えたり、重要な隣接ノードを強調したりすることが可能になり、多くのタスクでGCNより高い表現力を持ちます。</p>
+    </div>
+
+    <h3>マルチヘッド注意機構（Multi-Head Attention）</h3>
+
+    <p>GATは、Transformerと同様に<strong>マルチヘッド注意機構</strong>を使い、複数の独立した注意機構を並列に学習して結果を連結（または平均化）することで、学習を安定させ表現力を高めます。<code>torch_geometric.nn.GATConv</code>では<code>heads</code>引数でヘッド数を指定します。</p>
+
+    <h3>GATConvの実装</h3>
+
+    <p>Coraデータセット（引用ネットワーク）を使って、GATConvによるノード分類を実装してみましょう。</p>
+
+    <pre><code class="language-python">import torch
+import torch.nn.functional as F
+from torch_geometric.nn import GATConv
+from torch_geometric.datasets import Planetoid
+
+dataset = Planetoid(root='/tmp/Cora', name='Cora')
+data = dataset[0]
+
+class GAT(torch.nn.Module):
+    def __init__(self, num_features, num_classes, hidden_channels=8, heads=8):
+        super().__init__()
+        # 第1層: 8ヘッドの注意機構を使い、出力を連結（concat=True）
+        self.conv1 = GATConv(num_features, hidden_channels, heads=heads, dropout=0.6)
+        # 第2層: 1ヘッドで出力次元をクラス数に合わせる
+        self.conv2 = GATConv(hidden_channels * heads, num_classes, heads=1,
+                              concat=False, dropout=0.6)
+
+    def forward(self, x, edge_index):
+        x = F.dropout(x, p=0.6, training=self.training)
+        x = F.elu(self.conv1(x, edge_index))
+        x = F.dropout(x, p=0.6, training=self.training)
+        x = self.conv2(x, edge_index)
+        return F.log_softmax(x, dim=1)
+
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+model = GAT(dataset.num_features, dataset.num_classes).to(device)
+data = data.to(device)
+optimizer = torch.optim.Adam(model.parameters(), lr=0.005, weight_decay=5e-4)
+
+model.train()
+for epoch in range(100):
+    optimizer.zero_grad()
+    out = model(data.x, data.edge_index)
+    loss = F.nll_loss(out[data.train_mask], data.y[data.train_mask])
+    loss.backward()
+    optimizer.step()
+    if (epoch + 1) % 20 == 0:
+        print(f'Epoch {epoch+1:03d}, Loss: {loss:.4f}')
+
+model.eval()
+with torch.no_grad():
+    pred = model(data.x, data.edge_index).argmax(dim=1)
+    test_acc = (pred[data.test_mask] == data.y[data.test_mask]).float().mean().item()
+print(f'Test Accuracy: {test_acc:.4f}')
+</code></pre>
+
+    <p><strong>出力例：</strong></p>
+
+    <pre><code>Epoch 020, Loss: 1.2345
+Epoch 040, Loss: 0.7823
+Epoch 060, Loss: 0.5412
+Epoch 080, Loss: 0.4501
+Epoch 100, Loss: 0.3987
+Test Accuracy: 0.8280
+</code></pre>
+
+    <div class="info-box">
+      <p><strong>💡 注意重みの可視化</strong></p>
+      <p><code>GATConv</code>の<code>forward</code>呼び出し時に<code>return_attention_weights=True</code>を指定すると、各エッジに割り当てられた注意係数 \(\alpha_{ij}\) を取得できます。これにより「モデルがどのノードを重視して予測したか」を分析でき、モデルの解釈可能性（Interpretability）が向上します。</p>
+    </div>
+
+    <h2 id="graphsage">2. GraphSAGE（サンプリング型GNN）</h2>
+
+    <p><strong>GraphSAGE（Graph SAmple and aggreGatE）</strong>は、数百万〜数十億ノード規模の大規模グラフでも学習できるように設計されたGNNです。GCNやGATが全ての隣接ノードを使って一度にグラフ全体を処理する<strong>フルバッチ学習（Full-batch Learning）</strong>を前提とするのに対し、GraphSAGEは各ノードの隣接ノードを固定数だけ<strong>サンプリング（Sampling）</strong>し、ミニバッチ単位で学習することでメモリ使用量と計算量を抑えます。</p>
+
+    <h3>GraphSAGEのアルゴリズム</h3>
+
+    <p>GraphSAGEの各層では、次の2ステップを行います。</p>
+
+    <ol>
+      <li><strong>サンプリング</strong>: 各ノードについて、隣接ノードから固定数（例: 10個）をランダムに抽出する</li>
+      <li><strong>集約（Aggregation）</strong>: サンプリングした隣接ノードの特徴量を集約し、自ノードの特徴量と結合して更新する</li>
+    </ol>
+
+    <p>$$\mathbf{h}_i^{(k)} = \sigma\left(\mathbf{W}^{(k)} \cdot \text{CONCAT}\left(\mathbf{h}_i^{(k-1)}, \; \text{AGG}_k\left(\{\mathbf{h}_j^{(k-1)} : j \in \mathcal{N}_s(i)\}\right)\right)\right)$$</p>
+
+    <p>ここで \(\mathcal{N}_s(i)\) はノード \(i\) のサンプリングされた隣接ノード集合、\(\text{AGG}_k\) は集約関数です。</p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>集約関数</th>
+          <th>説明</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Mean Aggregator</td>
+          <td>隣接ノード特徴量の平均を取る。最もシンプルで計算コストが低い</td>
+        </tr>
+        <tr>
+          <td>Pooling Aggregator</td>
+          <td>各隣接ノード特徴量をMLPに通した後、要素ごとの最大値を取る</td>
+        </tr>
+        <tr>
+          <td>LSTM Aggregator</td>
+          <td>隣接ノードをランダムな順序でLSTMに入力する。表現力が高いが順序依存性という課題がある</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="info-box">
+      <p><strong>💡 なぜサンプリングが有効か</strong></p>
+      <p>GCNのようにグラフ全体を1回の順伝播で処理すると、隣接ノードをたどるたびに参照範囲が指数的に拡大してしまいます（近傍爆発、Neighbor Explosion）。GraphSAGEは各層でサンプリング数を固定することで、この爆発を抑え、グラフサイズに依存しない一定のメモリ使用量でミニバッチ学習を可能にします。</p>
+    </div>
+
+    <h3>SAGEConvモデルの実装</h3>
+
+    <pre><code class="language-python">import torch
+import torch.nn.functional as F
+from torch_geometric.nn import SAGEConv
+from torch_geometric.datasets import Planetoid
+
+dataset = Planetoid(root='/tmp/Cora', name='Cora')
+data = dataset[0]
+
+class GraphSAGE(torch.nn.Module):
+    def __init__(self, num_features, num_classes, hidden_channels=16):
+        super().__init__()
+        self.conv1 = SAGEConv(num_features, hidden_channels)
+        self.conv2 = SAGEConv(hidden_channels, num_classes)
+
+    def forward(self, x, edge_index):
+        x = F.relu(self.conv1(x, edge_index))
+        x = F.dropout(x, p=0.5, training=self.training)
+        x = self.conv2(x, edge_index)
+        return x
+
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+model = GraphSAGE(dataset.num_features, dataset.num_classes).to(device)
+print(model)
+</code></pre>
+
+    <h3>NeighborLoaderによるミニバッチ学習</h3>
+
+    <p>大規模グラフを想定し、<code>torch_geometric.loader.NeighborLoader</code>を使って隣接ノードのサンプリングとミニバッチ生成を行います。<code>num_neighbors=[10, 5]</code>は「1層目で最大10個、2層目で最大5個の隣接ノードをサンプリングする」という意味です。</p>
+
+    <pre><code class="language-python">from torch_geometric.loader import NeighborLoader
+
+# 訓練ノードを起点に、2ホップ分の隣接ノードをサンプリングしながらミニバッチを生成
+train_loader = NeighborLoader(
+    data,
+    num_neighbors=[10, 5],
+    batch_size=128,
+    input_nodes=data.train_mask,
+    shuffle=True,
+)
+
+optimizer = torch.optim.Adam(model.parameters(), lr=0.01, weight_decay=5e-4)
+
+model.train()
+for epoch in range(20):
+    total_loss = 0
+    for batch in train_loader:
+        batch = batch.to(device)
+        optimizer.zero_grad()
+        out = model(batch.x, batch.edge_index)
+        # バッチ内の先頭 batch_size 件が「起点ノード（seed nodes）」であり、
+        # それ以外はサンプリングで追加された隣接ノード（損失計算には使わない）
+        loss = F.cross_entropy(out[:batch.batch_size], batch.y[:batch.batch_size])
+        loss.backward()
+        optimizer.step()
+        total_loss += loss.item()
+    if (epoch + 1) % 5 == 0:
+        print(f'Epoch {epoch+1:03d}, Loss: {total_loss / len(train_loader):.4f}')
+</code></pre>
+
+    <h3>評価</h3>
+
+    <pre><code class="language-python">model.eval()
+data_device = data.to(device)
+with torch.no_grad():
+    out = model(data_device.x, data_device.edge_index)
+    pred = out.argmax(dim=1)
+    test_acc = (pred[data_device.test_mask] == data_device.y[data_device.test_mask]).float().mean().item()
+print(f'Test Accuracy: {test_acc:.4f}')
+</code></pre>
+
+    <p><strong>出力例：</strong></p>
+
+    <pre><code>Epoch 005, Loss: 1.5432
+Epoch 010, Loss: 0.9821
+Epoch 015, Loss: 0.6543
+Epoch 020, Loss: 0.4987
+Test Accuracy: 0.7920
+</code></pre>
+
+    <div class="warning-box">
+      <p><strong>⚠️ サンプリングによる精度への影響</strong></p>
+      <p>ミニバッチ学習ではグラフ全体の情報を一度に使わないため、フルバッチのGCN/GATと比べて精度がわずかに低下することがあります。ただし、数百万ノード規模のグラフではフルバッチ学習自体がメモリの制約で不可能なことが多く、GraphSAGEのサンプリング戦略はそのような場面で不可欠な手法です。</p>
+    </div>
+
+    <h2 id="pooling">3. グラフプーリング手法</h2>
+
+    <p>ここまで見てきたGCN・GAT・GraphSAGEは、いずれも各ノードの特徴量を更新する<strong>ノードレベル（Node-level）</strong>の処理でした。しかし、分子全体の毒性予測やタンパク質の機能分類のように「グラフ全体」に対して1つの予測を行いたい場合は、ノードごとの特徴量をグラフ全体の1つのベクトルに集約する必要があります。この集約処理を<strong>グラフプーリング（Graph Pooling）</strong>または<strong>読み出し（Readout）</strong>と呼びます。</p>
+
+    <h3>グローバルプーリング</h3>
+
+    <p>最も基本的なプーリングは、全ノードの特徴量を単純な統計量で集約する<strong>グローバルプーリング（Global Pooling）</strong>です。</p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>関数</th>
+          <th>集約方法</th>
+          <th>特徴</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>global_mean_pool</code></td>
+          <td>全ノード特徴量の平均</td>
+          <td>グラフサイズに頑健。最も広く使われる</td>
+        </tr>
+        <tr>
+          <td><code>global_max_pool</code></td>
+          <td>全ノード特徴量の要素ごとの最大値</td>
+          <td>顕著な特徴を強調する。外れ値に敏感</td>
+        </tr>
+        <tr>
+          <td><code>global_add_pool</code></td>
+          <td>全ノード特徴量の合計</td>
+          <td>ノード数（グラフサイズ）の情報を保持できる</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <pre><code class="language-python">import torch
+from torch_geometric.nn import global_mean_pool, global_max_pool, global_add_pool
+from torch_geometric.datasets import TUDataset
+from torch_geometric.loader import DataLoader
+
+dataset = TUDataset(root='/tmp/MUTAG', name='MUTAG')
+loader = DataLoader(dataset, batch_size=4, shuffle=True)
+
+batch = next(iter(loader))
+print(f'Batch: {batch.num_graphs} graphs, {batch.num_nodes} nodes total')
+
+# ノード特徴量をそのままグラフ表現とみなし、各プーリング手法の出力形状を比較
+mean_pooled = global_mean_pool(batch.x, batch.batch)
+max_pooled = global_max_pool(batch.x, batch.batch)
+sum_pooled = global_add_pool(batch.x, batch.batch)
+
+print(f'Mean pooling shape: {mean_pooled.shape}')
+print(f'Max pooling shape: {max_pooled.shape}')
+print(f'Sum pooling shape: {sum_pooled.shape}')
+</code></pre>
+
+    <p><strong>出力例：</strong></p>
+
+    <pre><code>Batch: 4 graphs, 71 nodes total
+Mean pooling shape: torch.Size([4, 7])
+Max pooling shape: torch.Size([4, 7])
+Sum pooling shape: torch.Size([4, 7])
+</code></pre>
+
+    <p>出力形状が <code>[グラフ数, 特徴次元]</code> になっている点に注目してください。<code>batch</code>属性（各ノードがどのグラフに属するかを表すインデックス）を使って、ノード数の異なる複数のグラフを1つのバッチにまとめたまま、グラフごとに正しく集約できています。</p>
+
+    <h3>階層的プーリング（Hierarchical Pooling）</h3>
+
+    <p>グローバルプーリングは全ノードを一度に集約しますが、<strong>階層的プーリング</strong>ではCNNのプーリング層のように、GNN層の間でノード数を段階的に削減していきます。<code>TopKPooling</code>は、学習可能なスコア関数でノードの重要度を評価し、上位 \(k\) 個（比率<code>ratio</code>で指定）のノードだけを残す代表的な手法です。</p>
+
+    <pre><code class="language-python">import torch
+import torch.nn.functional as F
+from torch_geometric.nn import GraphConv, TopKPooling, global_mean_pool
+
+class HierarchicalPoolNet(torch.nn.Module):
+    def __init__(self, num_features, num_classes, hidden_channels=64):
+        super().__init__()
+        self.conv1 = GraphConv(num_features, hidden_channels)
+        # 重要度スコア上位80%のノードのみを残す
+        self.pool1 = TopKPooling(hidden_channels, ratio=0.8)
+        self.conv2 = GraphConv(hidden_channels, hidden_channels)
+        self.lin = torch.nn.Linear(hidden_channels, num_classes)
+
+    def forward(self, x, edge_index, batch):
+        x = F.relu(self.conv1(x, edge_index))
+        # プーリングでノード数を削減しつつ、edge_indexとbatchも整合させて更新
+        x, edge_index, _, batch, _, _ = self.pool1(x, edge_index, None, batch)
+        x = F.relu(self.conv2(x, edge_index))
+        x = global_mean_pool(x, batch)
+        return self.lin(x)
+
+model = HierarchicalPoolNet(num_features=7, num_classes=2)
+print(model)
+</code></pre>
+
+    <div class="info-box">
+      <p><strong>💡 どちらを使うべきか</strong></p>
+      <p>グローバルプーリングは実装が単純で計算コストも低いため、まず試すべき第一選択です。階層的プーリングは表現力が高い一方でモデルが複雑になり学習が不安定になりやすいため、グローバルプーリングで精度が不十分な場合や、大きなグラフで計算量を削減したい場合に検討すると良いでしょう。</p>
+    </div>
+
+    <h2 id="graph-classification">4. グラフ分類タスク</h2>
+
+    <p><strong>グラフ分類（Graph Classification）</strong>は、グラフ全体に1つのラベルを予測するタスクです。分子の毒性・活性予測、タンパク質の機能分類などが代表例です。ここでは<strong>MUTATデータセット</strong>ならぬ<strong>MUTAGデータセット</strong>（変異原性を持つ化合物の分子グラフ、TUDatasetの1つ）を使って、GATConvとSAGEConvを組み合わせたグラフ分類モデルを最初から最後まで実装します。</p>
+
+    <h3>データセットの準備</h3>
+
+    <pre><code class="language-python">import torch
+import torch.nn.functional as F
+from torch_geometric.datasets import TUDataset
+from torch_geometric.loader import DataLoader
+from torch_geometric.nn import GATConv, SAGEConv, global_mean_pool
+
+torch.manual_seed(42)
+
+# MUTAG: 188個の分子グラフ、2クラス分類（変異原性の有無）
+dataset = TUDataset(root='/tmp/MUTAG', name='MUTAG').shuffle()
+
+train_dataset = dataset[:150]
+test_dataset = dataset[150:]
+
+train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+test_loader = DataLoader(test_dataset, batch_size=32)
+
+print(f'Number of training graphs: {len(train_dataset)}')
+print(f'Number of test graphs: {len(test_dataset)}')
+print(f'Number of node features: {dataset.num_node_features}')
+print(f'Number of classes: {dataset.num_classes}')
+</code></pre>
+
+    <p><strong>出力例：</strong></p>
+
+    <pre><code>Number of training graphs: 150
+Number of test graphs: 38
+Number of node features: 7
+Number of classes: 2
+</code></pre>
+
+    <h3>モデルの定義</h3>
+
+    <p>GATConvでノード間の重要度を学習した後、SAGEConvで近傍情報を集約し、最後に<code>global_mean_pool</code>でグラフ全体のベクトル表現を得る、というアーキテクチャです。</p>
+
+    <pre><code class="language-python">class GraphClassifier(torch.nn.Module):
+    def __init__(self, num_features, num_classes, hidden_channels=64):
+        super().__init__()
+        # GAT層: マルチヘッド注意機構でノード間の重要度を考慮した特徴抽出
+        self.gat = GATConv(num_features, hidden_channels, heads=4, concat=True, dropout=0.2)
+        # GraphSAGE層: 近傍情報を集約して特徴量を洗練
+        self.sage = SAGEConv(hidden_channels * 4, hidden_channels)
+        self.lin = torch.nn.Linear(hidden_channels, num_classes)
+
+    def forward(self, x, edge_index, batch):
+        x = F.elu(self.gat(x, edge_index))
+        x = F.dropout(x, p=0.2, training=self.training)
+        x = F.relu(self.sage(x, edge_index))
+        # グラフ全体を1つのベクトルに集約（readout）
+        x = global_mean_pool(x, batch)
+        x = F.dropout(x, p=0.5, training=self.training)
+        return self.lin(x)
+
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+model = GraphClassifier(dataset.num_node_features, dataset.num_classes).to(device)
+optimizer = torch.optim.Adam(model.parameters(), lr=0.01, weight_decay=5e-4)
+print(model)
+</code></pre>
+
+    <h3>学習と評価</h3>
+
+    <pre><code class="language-python">def train():
+    model.train()
+    total_loss = 0
+    for data in train_loader:
+        data = data.to(device)
+        optimizer.zero_grad()
+        out = model(data.x, data.edge_index, data.batch)
+        loss = F.cross_entropy(out, data.y)
+        loss.backward()
+        optimizer.step()
+        total_loss += loss.item() * data.num_graphs
+    return total_loss / len(train_loader.dataset)
+
+@torch.no_grad()
+def test(loader):
+    model.eval()
+    correct = 0
+    for data in loader:
+        data = data.to(device)
+        out = model(data.x, data.edge_index, data.batch)
+        pred = out.argmax(dim=1)
+        correct += (pred == data.y).sum().item()
+    return correct / len(loader.dataset)
+
+for epoch in range(1, 101):
+    loss = train()
+    if epoch % 20 == 0:
+        train_acc = test(train_loader)
+        test_acc = test(test_loader)
+        print(f'Epoch {epoch:03d}, Loss: {loss:.4f}, '
+              f'Train Acc: {train_acc:.4f}, Test Acc: {test_acc:.4f}')
+</code></pre>
+
+    <p><strong>出力例：</strong></p>
+
+    <pre><code>Epoch 020, Loss: 0.5893, Train Acc: 0.7133, Test Acc: 0.6842
+Epoch 040, Loss: 0.4721, Train Acc: 0.7867, Test Acc: 0.7368
+Epoch 060, Loss: 0.4102, Train Acc: 0.8200, Test Acc: 0.7632
+Epoch 080, Loss: 0.3654, Train Acc: 0.8467, Test Acc: 0.7895
+Epoch 100, Loss: 0.3389, Train Acc: 0.8600, Test Acc: 0.8158
+</code></pre>
+
+    <div class="success-box">
+      <p><strong>🎉 グラフ分類モデルの完成</strong></p>
+      <p>MUTAGデータセットでテスト精度約80%を達成しました。GAT層で重要な原子（ノード）を重み付けし、SAGEConv層で局所構造を集約、最後にグローバルプーリングで分子全体の表現を得るという流れは、分子特性予測タスクの典型的なパイプラインです。</p>
+    </div>
+
+    <h2 id="link-prediction">5. リンク予測タスク</h2>
+
+    <p><strong>リンク予測（Link Prediction）</strong>は、グラフ中の2つのノード間にエッジ（リンク）が存在するかどうかを予測するタスクです。ソーシャルネットワークの友人推薦、レコメンデーションシステムの商品推薦、知識グラフの欠損関係補完など、幅広い応用があります。</p>
+
+    <h3>タスクの設計</h3>
+
+    <p>リンク予測では、既存のエッジを<strong>正例（Positive Sample）</strong>、存在しないノードペアを<strong>負例（Negative Sample）</strong>としてサンプリングし、二値分類問題として学習します。エッジを訓練・検証・テスト用に分割する際は、情報の漏洩（Leakage）を防ぐため、グラフ構造の分割とラベルの分割を同時に行う必要があります。PyTorch Geometricの<code>RandomLinkSplit</code>がこれを自動化してくれます。</p>
+
+    <pre><code class="language-python">import torch
+import torch.nn.functional as F
+from torch_geometric.datasets import Planetoid
+from torch_geometric.transforms import RandomLinkSplit, NormalizeFeatures
+from torch_geometric.nn import GCNConv
+from torch_geometric.utils import negative_sampling
+
+dataset = Planetoid(root='/tmp/Cora', name='Cora', transform=NormalizeFeatures())
+data = dataset[0]
+
+# エッジを訓練/検証/テスト用に分割（負例エッジも自動生成）
+transform = RandomLinkSplit(
+    num_val=0.05,
+    num_test=0.1,
+    is_undirected=True,
+    add_negative_train_samples=False,
+)
+train_data, val_data, test_data = transform(data)
+
+print(f'Train message-passing edges: {train_data.edge_index.shape}')
+print(f'Train supervision edges: {train_data.edge_label_index.shape}')
+print(f'Val supervision edges: {val_data.edge_label_index.shape}')
+print(f'Test supervision edges: {test_data.edge_label_index.shape}')
+</code></pre>
+
+    <div class="info-box">
+      <p><strong>💡 メッセージパッシング用エッジと教師信号用エッジ</strong></p>
+      <p><code>RandomLinkSplit</code>は、GNNが特徴量を伝播させるために使う<code>edge_index</code>（メッセージパッシング用）と、損失計算・評価に使う<code>edge_label_index</code>（教師信号用）を分けて管理します。これにより「予測対象のエッジ自体をモデルが見てしまう」というリークを防ぎます。</p>
+    </div>
+
+    <h3>エンコーダ・デコーダモデルの実装</h3>
+
+    <p>GCNConvでノード埋め込みを計算する<strong>エンコーダ（Encoder）</strong>と、2つのノード埋め込みの内積でエッジの存在確率を算出する<strong>デコーダ（Decoder）</strong>から成るモデルを構築します。</p>
+
+    <pre><code class="language-python">class LinkPredGCN(torch.nn.Module):
+    def __init__(self, num_features, hidden_channels=128, out_channels=64):
+        super().__init__()
+        self.conv1 = GCNConv(num_features, hidden_channels)
+        self.conv2 = GCNConv(hidden_channels, out_channels)
+
+    def encode(self, x, edge_index):
+        x = F.relu(self.conv1(x, edge_index))
+        return self.conv2(x, edge_index)
+
+    def decode(self, z, edge_label_index):
+        # 2つのノード埋め込みの内積を、エッジが存在するスコアとする
+        src, dst = edge_label_index
+        return (z[src] * z[dst]).sum(dim=-1)
+
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+model = LinkPredGCN(dataset.num_features).to(device)
+optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+
+train_data = train_data.to(device)
+val_data = val_data.to(device)
+test_data = test_data.to(device)
+</code></pre>
+
+    <h3>学習と評価</h3>
+
+    <p>訓練時は毎エポック新しい負例エッジをサンプリングすることで、モデルが特定の負例に過学習することを防ぎます。評価指標には二値分類でよく使われる<strong>ROC-AUC（Receiver Operating Characteristic - Area Under the Curve）</strong>を用います。</p>
+
+    <pre><code class="language-python">from sklearn.metrics import roc_auc_score
+
+def train():
+    model.train()
+    optimizer.zero_grad()
+    z = model.encode(train_data.x, train_data.edge_index)
+
+    # 各エポックで負例エッジ（存在しないエッジ）をランダムに再サンプリング
+    neg_edge_index = negative_sampling(
+        edge_index=train_data.edge_index,
+        num_nodes=train_data.num_nodes,
+        num_neg_samples=train_data.edge_label_index.size(1),
+        method='sparse',
+    )
+
+    edge_label_index = torch.cat([train_data.edge_label_index, neg_edge_index], dim=1)
+    edge_label = torch.cat([
+        train_data.edge_label,
+        train_data.edge_label.new_zeros(neg_edge_index.size(1)),
+    ], dim=0)
+
+    out = model.decode(z, edge_label_index).view(-1)
+    loss = F.binary_cross_entropy_with_logits(out, edge_label)
+    loss.backward()
+    optimizer.step()
+    return loss.item()
+
+@torch.no_grad()
+def test(data):
+    model.eval()
+    z = model.encode(data.x, data.edge_index)
+    out = model.decode(z, data.edge_label_index).view(-1).sigmoid()
+    return roc_auc_score(data.edge_label.cpu().numpy(), out.cpu().numpy())
+
+for epoch in range(1, 101):
+    loss = train()
+    if epoch % 20 == 0:
+        val_auc = test(val_data)
+        test_auc = test(test_data)
+        print(f'Epoch {epoch:03d}, Loss: {loss:.4f}, '
+              f'Val AUC: {val_auc:.4f}, Test AUC: {test_auc:.4f}')
+</code></pre>
+
+    <p><strong>出力例：</strong></p>
+
+    <pre><code>Epoch 020, Loss: 0.6123, Val AUC: 0.7845, Test AUC: 0.7791
+Epoch 040, Loss: 0.5234, Val AUC: 0.8412, Test AUC: 0.8356
+Epoch 060, Loss: 0.4756, Val AUC: 0.8723, Test AUC: 0.8681
+Epoch 080, Loss: 0.4489, Val AUC: 0.8891, Test AUC: 0.8834
+Epoch 100, Loss: 0.4321, Val AUC: 0.8956, Test AUC: 0.8902
+</code></pre>
+
+    <div class="success-box">
+      <p><strong>🎉 リンク予測モデルの完成</strong></p>
+      <p>Coraの引用ネットワークでテストAUC約0.89を達成しました。AUC 0.5はランダム予測と同等、1.0は完全な予測を意味するため、0.89はモデルが「実際に引用されている論文ペア」と「引用されていないペア」をかなり正確に見分けられていることを示しています。</p>
+    </div>
+
+    <h2 id="heterogeneous-graphs">6. 異種グラフの扱い</h2>
+
+    <p>ここまで扱ってきたグラフは、全て同じ種類のノード（例: 論文ノードのみ）から成る<strong>同種グラフ（Homogeneous Graph）</strong>でした。しかし実世界の多くのグラフは、ユーザーと商品、著者と論文、原子と結合種別のように、複数の種類のノードやエッジを含む<strong>異種グラフ（Heterogeneous Graph）</strong>です。</p>
+
+    <h3>HeteroDataオブジェクト</h3>
+
+    <p>PyTorch Geometricでは、異種グラフを<code>HeteroData</code>オブジェクトで表現します。ノード特徴量はノード種類ごとに、エッジは<code>(始点ノード種類, 関係名, 終点ノード種類)</code>という3つ組（トリプル）で管理されます。ユーザーが映画を評価するレコメンデーションシステムを例に、二部グラフを構築してみましょう。</p>
+
+    <pre><code class="language-python">import torch
+from torch_geometric.data import HeteroData
+
+data = HeteroData()
+
+# ノード特徴量（ノード種類ごとに次元が異なってもよい）
+data['user'].x = torch.randn(5, 16)    # 5人のユーザー、16次元特徴
+data['movie'].x = torch.randn(8, 32)   # 8本の映画、32次元特徴
+
+# エッジ: (始点ノード種類, 関係名, 終点ノード種類) の3つ組で定義
+data['user', 'rates', 'movie'].edge_index = torch.tensor([
+    [0, 0, 1, 2, 3, 4],
+    [0, 1, 1, 2, 5, 7],
+], dtype=torch.long)
+
+# 逆方向のエッジも明示的に追加する（メッセージパッシングは有向的に扱われるため）
+data['movie', 'rated_by', 'user'].edge_index = \
+    data['user', 'rates', 'movie'].edge_index.flip(0)
+
+print(data)
+print(f'Node types: {data.node_types}')
+print(f'Edge types: {data.edge_types}')
+</code></pre>
+
+    <p><strong>出力例：</strong></p>
+
+    <pre><code>HeteroData(
+  user={ x=[5, 16] },
+  movie={ x=[8, 32] },
+  (user, rates, movie)={ edge_index=[2, 6] },
+  (movie, rated_by, user)={ edge_index=[2, 6] }
+)
+Node types: ['user', 'movie']
+Edge types: [('user', 'rates', 'movie'), ('movie', 'rated_by', 'user')]
+</code></pre>
+
+    <div class="mermaid">
+graph LR
+  subgraph Users
+    U0[user 0]
+    U1[user 1]
+  end
+  subgraph Movies
+    M0[movie 0]
+    M1[movie 1]
+    M2[movie 2]
+  end
+  U0 -->|rates| M0
+  U0 -->|rates| M1
+  U1 -->|rates| M1
+  M0 -->|rated_by| U0
+  M1 -->|rated_by| U0
+  M1 -->|rated_by| U1
+    </div>
+
+    <h3>HeteroConvによる異種グラフGNN</h3>
+
+    <p><code>torch_geometric.nn.HeteroConv</code>を使うと、エッジ種類ごとに個別のGNN層（ここでは<code>SAGEConv</code>）を適用し、同じノード種類に集まった結果を集約するモデルを簡潔に構築できます。ノード種類ごとに入力次元が異なる場合は、<code>SAGEConv((-1, -1), hidden_channels)</code>のように<code>-1</code>を指定すると、初回の順伝播時に入力次元が自動推論されます。</p>
+
+    <pre><code class="language-python">from torch_geometric.nn import HeteroConv, SAGEConv, Linear
+
+class HeteroGNN(torch.nn.Module):
+    def __init__(self, hidden_channels, out_channels):
+        super().__init__()
+        # エッジ種類ごとに個別のSAGEConvを適用し、ノード種類ごとに結果を集約
+        self.conv1 = HeteroConv({
+            ('user', 'rates', 'movie'): SAGEConv((-1, -1), hidden_channels),
+            ('movie', 'rated_by', 'user'): SAGEConv((-1, -1), hidden_channels),
+        }, aggr='sum')
+        self.lin_user = Linear(hidden_channels, out_channels)
+        self.lin_movie = Linear(hidden_channels, out_channels)
+
+    def forward(self, x_dict, edge_index_dict):
+        x_dict = self.conv1(x_dict, edge_index_dict)
+        x_dict = {key: x.relu() for key, x in x_dict.items()}
+        return {
+            'user': self.lin_user(x_dict['user']),
+            'movie': self.lin_movie(x_dict['movie']),
+        }
+
+model = HeteroGNN(hidden_channels=16, out_channels=4)
+out_dict = model(data.x_dict, data.edge_index_dict)
+
+print(f"User embeddings shape: {out_dict['user'].shape}")
+print(f"Movie embeddings shape: {out_dict['movie'].shape}")
+</code></pre>
+
+    <p><strong>出力例：</strong></p>
+
+    <pre><code>User embeddings shape: torch.Size([5, 4])
+Movie embeddings shape: torch.Size([8, 4])
+</code></pre>
+
+    <div class="info-box">
+      <p><strong>💡 to_hetero()という便利な変換関数</strong></p>
+      <p>既存の同種グラフ用GNNモデル（GCN、GATなど）がある場合、<code>torch_geometric.nn.to_hetero()</code>関数を使うと、モデル定義を書き直すことなく異種グラフ対応版に自動変換できます。ゼロから<code>HeteroConv</code>で書く方法と、既存モデルを<code>to_hetero()</code>で変換する方法の2通りを状況に応じて使い分けると良いでしょう。</p>
+    </div>
+
+    <div class="warning-box">
+      <p><strong>⚠️ 異種グラフ設計の注意点</strong></p>
+      <p>異種グラフでは、逆方向のエッジ（例: <code>rated_by</code>）を明示的に追加し忘れると、情報が一方向にしか伝播しません。<code>torch_geometric.transforms.ToUndirected()</code>を使うと、全てのエッジ種類について自動的に逆方向のエッジを追加できるため、実務ではこの変換を使うことが多いです。</p>
+    </div>
+
+    <h2 id="exercises">演習問題</h2>
+
+    <details>
+      <summary><strong>演習1：GATのヘッド数を変えて比較する</strong></summary>
+      <p>「GATConvの実装」で作成したGATモデルについて、<code>heads</code>を2, 4, 8で変化させてCoraデータセットで学習し、テスト精度を比較してください。ヘッド数が精度と学習時間にどう影響するか考察してください。</p>
+
+      <details>
+        <summary>解答を見る</summary>
+        <p><strong>実装のポイント</strong>:</p>
+        <pre><code class="language-python">for heads in [2, 4, 8]:
+    model = GAT(dataset.num_features, dataset.num_classes, heads=heads).to(device)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.005, weight_decay=5e-4)
+
+    model.train()
+    for epoch in range(100):
+        optimizer.zero_grad()
+        out = model(data.x, data.edge_index)
+        loss = F.nll_loss(out[data.train_mask], data.y[data.train_mask])
+        loss.backward()
+        optimizer.step()
+
+    model.eval()
+    with torch.no_grad():
+        pred = model(data.x, data.edge_index).argmax(dim=1)
+        acc = (pred[data.test_mask] == data.y[data.test_mask]).float().mean().item()
+    print(f'heads={heads}: Test Accuracy = {acc:.4f}')
+</code></pre>
+        <p><strong>考察</strong>: 一般にヘッド数を増やすと、複数の異なる「注目パターン」を並列に学習できるため表現力が向上し、精度が安定しやすくなります。一方でパラメータ数と計算量が線形に増加するため、ヘッド数を増やすほど1エポックあたりの学習時間は長くなります。小規模なCoraデータセットでは、ヘッド数8前後で精度が頭打ちになることが多く、それ以上増やしても計算コストに見合う精度向上は得られにくい傾向があります。</p>
+      </details>
+    </details>
+
+    <details>
+      <summary><strong>演習2：グラフ分類モデルにグローバルプーリングの種類を追加する</strong></summary>
+      <p>「グラフ分類タスク」で実装した<code>GraphClassifier</code>を改造し、<code>global_mean_pool</code>と<code>global_max_pool</code>の出力を連結（concatenate）してから全結合層に入力するように変更してください。精度が改善するか確認してください。</p>
+
+      <details>
+        <summary>解答を見る</summary>
+        <p><strong>実装例</strong>:</p>
+        <pre><code class="language-python">from torch_geometric.nn import global_mean_pool, global_max_pool
+
+class GraphClassifierV2(torch.nn.Module):
+    def __init__(self, num_features, num_classes, hidden_channels=64):
+        super().__init__()
+        self.gat = GATConv(num_features, hidden_channels, heads=4, concat=True, dropout=0.2)
+        self.sage = SAGEConv(hidden_channels * 4, hidden_channels)
+        # mean と max の連結により2倍の次元になる
+        self.lin = torch.nn.Linear(hidden_channels * 2, num_classes)
+
+    def forward(self, x, edge_index, batch):
+        x = F.elu(self.gat(x, edge_index))
+        x = F.dropout(x, p=0.2, training=self.training)
+        x = F.relu(self.sage(x, edge_index))
+
+        x_mean = global_mean_pool(x, batch)
+        x_max = global_max_pool(x, batch)
+        x = torch.cat([x_mean, x_max], dim=1)
+
+        x = F.dropout(x, p=0.5, training=self.training)
+        return self.lin(x)
+</code></pre>
+        <p><strong>考察</strong>: <code>global_mean_pool</code>はグラフ全体の「平均的な特徴」を、<code>global_max_pool</code>は「最も顕著な特徴」を捉えるため、両者を連結することでより多くの情報をグラフ表現に残せます。MUTAGのような小規模データセットでは改善幅は数%程度にとどまることもありますが、複雑な分子構造を含むデータセットではより明確な効果が見られる傾向があります。</p>
+      </details>
+    </details>
+
+    <details>
+      <summary><strong>演習3：異種グラフに新しいノード種類を追加する</strong></summary>
+      <p>「HeteroDataオブジェクト」の例に、新しいノード種類<code>'genre'</code>（映画のジャンル、3種類、8次元特徴量）を追加し、<code>('movie', 'has_genre', 'genre')</code>というエッジ種類で映画とジャンルを接続してください。さらに<code>HeteroGNN</code>モデルの<code>HeteroConv</code>にこの新しいエッジ種類のための<code>SAGEConv</code>を追加してください。</p>
+
+      <details>
+        <summary>解答を見る</summary>
+        <p><strong>実装例</strong>:</p>
+        <pre><code class="language-python">import torch
+from torch_geometric.data import HeteroData
+from torch_geometric.nn import HeteroConv, SAGEConv, Linear
+
+data = HeteroData()
+data['user'].x = torch.randn(5, 16)
+data['movie'].x = torch.randn(8, 32)
+data['genre'].x = torch.randn(3, 8)   # 新しいノード種類: ジャンル
+
+data['user', 'rates', 'movie'].edge_index = torch.tensor([
+    [0, 0, 1, 2, 3, 4],
+    [0, 1, 1, 2, 5, 7],
+], dtype=torch.long)
+data['movie', 'rated_by', 'user'].edge_index = \
+    data['user', 'rates', 'movie'].edge_index.flip(0)
+
+# 各映画（0-7）を対応するジャンル（0-2）に接続
+data['movie', 'has_genre', 'genre'].edge_index = torch.tensor([
+    [0, 1, 2, 3, 4, 5, 6, 7],
+    [0, 0, 1, 1, 2, 2, 0, 1],
+], dtype=torch.long)
+
+class HeteroGNNv2(torch.nn.Module):
+    def __init__(self, hidden_channels, out_channels):
+        super().__init__()
+        self.conv1 = HeteroConv({
+            ('user', 'rates', 'movie'): SAGEConv((-1, -1), hidden_channels),
+            ('movie', 'rated_by', 'user'): SAGEConv((-1, -1), hidden_channels),
+            ('movie', 'has_genre', 'genre'): SAGEConv((-1, -1), hidden_channels),
+        }, aggr='sum')
+        self.lin_user = Linear(hidden_channels, out_channels)
+        self.lin_movie = Linear(hidden_channels, out_channels)
+
+    def forward(self, x_dict, edge_index_dict):
+        x_dict = self.conv1(x_dict, edge_index_dict)
+        x_dict = {key: x.relu() for key, x in x_dict.items()}
+        return {
+            'user': self.lin_user(x_dict['user']),
+            'movie': self.lin_movie(x_dict['movie']),
+        }
+
+model = HeteroGNNv2(hidden_channels=16, out_channels=4)
+out_dict = model(data.x_dict, data.edge_index_dict)
+print(f"User embeddings shape: {out_dict['user'].shape}")
+print(f"Movie embeddings shape: {out_dict['movie'].shape}")
+</code></pre>
+        <p><strong>考察</strong>: <code>genre</code>ノードは出力側の<code>lin_genre</code>を定義していないため<code>out_dict</code>には含まれませんが、<code>('movie', 'has_genre', 'genre')</code>のメッセージパッシングによって、ジャンル情報が間接的に<code>movie</code>ノードの表現に影響を与える点がポイントです。異種グラフでは、直接予測に使わないノード種類（この場合は<code>genre</code>）も、補助的な情報源としてグラフに組み込むことができます。</p>
+      </details>
+    </details>
+
+    <h2 id="summary">まとめ</h2>
+
+    <p>この章では、より高度なGNNアーキテクチャとグラフレベルのタスクを学びました。冒頭の学習目標を振り返ってみましょう。</p>
+
+    <ul>
+      <li>✅ <strong>GAT</strong>: 注意機構によりノードごとに異なる重要度を学習し、GCNより柔軟な特徴集約を実現する仕組みを理解しました</li>
+      <li>✅ <strong>GraphSAGE</strong>: 隣接ノードのサンプリングとミニバッチ学習により、大規模グラフでも学習可能にするサンプリング戦略を学びました</li>
+      <li>✅ <strong>グラフプーリング</strong>: <code>global_mean_pool</code>等のグローバルプーリングと、<code>TopKPooling</code>による階層的プーリングでグラフ全体の表現を得る方法を実装しました</li>
+      <li>✅ <strong>グラフ分類</strong>: MUTAGデータセットに対し、GATConvとSAGEConvを組み合わせたモデルで分子の変異原性を予測するパイプラインを構築しました</li>
+      <li>✅ <strong>リンク予測</strong>: エンコーダ・デコーダ構造と負例サンプリングにより、エッジの存在確率を予測する基本を理解しました</li>
+      <li>✅ <strong>異種グラフ</strong>: <code>HeteroData</code>と<code>HeteroConv</code>を使い、複数種類のノード・エッジを持つグラフを扱う方法を学びました</li>
+    </ul>
+
+    <div class="success-box">
+      <p><strong>🎉 高度なGNNアーキテクチャの習得完了</strong></p>
+      <p>これで、ノード分類（第2章）に加えて、グラフ分類・リンク予測・異種グラフという主要なGNNタスクの実装力が身につきました。GAT・GraphSAGE・プーリングは、実務でのGNN活用において最もよく組み合わせて使われる技術です。次章では、これらの技術を実データに応用し、大規模グラフの効率的な扱い方や、モデルの評価・チューニングについてさらに深掘りしていきます。</p>
+    </div>
+
+    <div class="navigation">
+      <a href="./chapter-2.html" class="nav-button">← 第2章</a>
+      <a href="./index.html" class="nav-button">シリーズ目次</a>
+      <a href="./chapter-4.html" class="nav-button">第4章 →</a>
+    </div>
+
+    <hr style="margin: 2rem 0;">
+
+    <p><strong>参考リソース</strong></p>
+    <ul>
+      <li><a href="https://pytorch-geometric.readthedocs.io/" target="_blank">PyTorch Geometric公式ドキュメント</a></li>
+      <li><a href="https://github.com/pyg-team/pytorch_geometric" target="_blank">PyTorch Geometric GitHub</a></li>
+      <li><a href="https://arxiv.org/abs/1710.10903" target="_blank">GAT論文: Graph Attention Networks</a></li>
+      <li><a href="https://arxiv.org/abs/1706.02216" target="_blank">GraphSAGE論文: Inductive Representation Learning on Large Graphs</a></li>
+    </ul>
+
+  </main>
+
+  <section class="disclaimer">
+    <h3>免責事項</h3>
+    <ul>
+      <li>本コンテンツは教育・研究・情報提供のみを目的としており、専門的な助言(法律・会計・技術的保証など)を提供するものではありません。</li>
+      <li>本コンテンツおよび付随するコード例は「現状有姿(AS IS)」で提供され、明示または黙示を問わず、商品性、特定目的適合性、権利非侵害、正確性・完全性、動作・安全性等いかなる保証もしません。</li>
+      <li>外部リンク、第三者が提供するデータ・ツール・ライブラリ等の内容・可用性・安全性について、作成者および東北大学は一切の責任を負いません。</li>
+      <li>本コンテンツの利用・実行・解釈により直接的・間接的・付随的・特別・結果的・懲罰的損害が生じた場合でも、適用法で許容される最大限の範囲で、作成者および東北大学は責任を負いません。</li>
+      <li>本コンテンツの内容は、予告なく変更・更新・提供停止されることがあります。</li>
+      <li>本コンテンツの著作権・ライセンスは明記された条件(例: CC BY 4.0)に従います。当該ライセンスは通常、無保証条項を含みます。</li>
+    </ul>
+  </section>
+
+  <footer>
+    <div class="container">
+      <p>&copy; 2025 AI Terakoya - Dr. Yusuke Hashimoto, Tohoku University</p>
+      <p>Licensed under CC BY 4.0</p>
+    </div>
+  </footer>
+</body>
+</html>

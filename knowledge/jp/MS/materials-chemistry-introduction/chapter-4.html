@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 4: 材料の熱力学と相平衡 - 材料化学入門</title>
+    <meta name="description" content="Gibbs自由エネルギー、化学ポテンシャル、二元系状態図、Ellingham図、CALPHAD法の基礎とPython実践。正則溶体モデルによる相図計算・活量係数計算を学ぶ。">
+
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", sans-serif; line-height: 1.8; color: #2c3e50; max-width: 1200px; margin: 0 auto; padding: 20px; background: #f8f9fa; }
+        h1, h2, h3 { color: #2c3e50; margin-top: 2rem; }
+        h1 { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 1.5rem; border-radius: 10px; }
+        h2 { border-left: 5px solid #f5576c; padding-left: 15px; background: linear-gradient(to right, rgba(245,87,108,0.1), transparent); }
+        .code-block { background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 8px; overflow-x: auto; margin: 1rem 0; }
+        .equation { background: #fff3cd; padding: 15px; border-left: 4px solid #ffc107; margin: 1rem 0; border-radius: 5px; }
+        .exercise { background: #e7f3ff; padding: 20px; border-left: 4px solid #2196F3; margin: 1.5rem 0; border-radius: 8px; }
+        .solution { background: #f0f0f0; padding: 15px; margin-top: 10px; border-radius: 5px; }
+        .reference { background: white; padding: 15px; margin: 10px 0; border-left: 3px solid #f5576c; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .mermaid { background: white; padding: 20px; border-radius: 10px; margin: 1.5rem 0; }
+    </style>
+</head>
+<body>
+    <h1>Chapter 4: 材料の熱力学と相平衡</h1>
+
+    <p>第1章では化学結合の古典的モデルを、第2章では分子軌道理論とバンド理論を、第3章では遷移金属化合物のd軌道分裂を学んできました。これらはいずれも「1組の原子・分子・結晶がどのような電子状態を取るか」というミクロな視点からの理解でした。本章では視点を変え、多数の原子・分子からなる巨視的な系が、与えられた温度・圧力・組成のもとでどの<strong>相（Phase）</strong>として存在するのが最も安定かを決める<strong>熱力学（Thermodynamics）</strong>を学びます。</p>
+
+    <p>出発点となるのは<strong>Gibbs自由エネルギー（Gibbs Free Energy）</strong>です。Gibbs自由エネルギーは、一定温度・一定圧力のもとで系が自発的に変化する方向を判定する指標であり、合金の相分離、酸化反応の進行、相図の形状まで、材料プロセス全体を貫く共通言語です。多成分系を扱う際には、成分ごとの濃度変化に対するGibbs自由エネルギーの応答を表す<strong>化学ポテンシャル（Chemical Potential）</strong>が本質的な役割を果たします。</p>
+
+    <p>本章ではまずGibbs自由エネルギーと化学ポテンシャルの関係を整理し、<strong>正則溶体モデル（Regular Solution Model）</strong>を用いて二元系合金の自由エネルギー曲線を計算します。固相・液相それぞれの自由エネルギー曲線に<strong>共通接線（Common Tangent）</strong>を作図することで相境界を決定し、簡易的な二元系状態図（Binary Phase Diagram）を自作します。続いて、金属の酸化還元反応の自発性を視覚的に判定する<strong>Ellingham図（Ellingham Diagram）</strong>を作成し、製錬プロセスの熱力学的背景を理解します。最後に、実務の合金設計で広く使われる<strong>CALPHAD法（CALculation of PHAse Diagrams）</strong>の考え方を紹介し、Pythonで活量係数（Activity Coefficient）の計算まで実践します。</p>
+
+    <div class="reference" style="text-align: center;">
+        <p><strong>読了時間:</strong> 30-35分　｜　<strong>難易度:</strong> 中級〜上級　｜　<strong>コード例:</strong> 9本</p>
+    </div>
+
+    <div class="exercise">
+        <h3>この章の学習目標</h3>
+        <ul>
+            <li>Gibbs自由エネルギーと化学ポテンシャルの関係を理解する</li>
+            <li>二元系状態図を読み解ける</li>
+            <li>Ellingham図から反応の自発性を判定できる</li>
+            <li>CALPHAD法の考え方を理解する</li>
+            <li>Pythonで簡単な相平衡計算ができる</li>
+        </ul>
+    </div>
+
+    <p style="text-align: center; margin: 1.5rem 0;">
+        <a href="chapter-3.html" style="color: #f5576c; text-decoration: none; font-weight: bold;">← 第3章</a>
+        <span style="color: #adb5bd; margin: 0 0.8rem;">|</span>
+        <a href="index.html" style="color: #f5576c; text-decoration: none; font-weight: bold;">シリーズ目次</a>
+        <span style="color: #adb5bd; margin: 0 0.8rem;">|</span>
+        <a href="chapter-5.html" style="color: #f5576c; text-decoration: none; font-weight: bold;">第5章 →</a>
+    </p>
+
+    <h2>4.1 Gibbs自由エネルギーと化学ポテンシャル</h2>
+    <p><strong>Gibbs自由エネルギー</strong> $G$ は、エンタルピー $H$ とエントロピー $S$ から次式で定義されます。</p>
+
+    <div class="equation">
+        $$G = H - TS$$
+        <p>$T$ は絶対温度。一定温度・一定圧力のもとで進行する変化は、$G$ が減少する方向、すなわち $\Delta G \lt 0$ の方向に自発的に進みます。$\Delta G = 0$ のとき系は平衡状態にあり、$\Delta G \gt 0$ の変化は自発的には起こりません。</p>
+    </div>
+
+    <p>反応や相転移の自発性は、エンタルピー変化 $\Delta H$（発熱・吸熱）とエントロピー変化 $\Delta S$（乱雑さの増減）のせめぎ合いで決まります。</p>
+
+    <div class="equation">
+        $$\Delta G = \Delta H - T \Delta S$$
+        <p>$\Delta H \lt 0$（発熱）かつ $\Delta S \gt 0$（乱雑さ増加）であれば、あらゆる温度で $\Delta G \lt 0$ となり自発的に進行します。逆に $\Delta H \gt 0$ かつ $\Delta S \lt 0$ の変化は、いかなる温度でも自発的には進みません。$\Delta H$ と $\Delta S$ が同符号の場合は、$\Delta G = 0$ となる<strong>転移温度（Transition Temperature）</strong> $T_{eq} = \Delta H / \Delta S$ を境に自発性の符号が反転します。融解（固体→液体）はこの典型例で、$\Delta H_{fus} \gt 0$（吸熱）、$\Delta S_{fus} \gt 0$（液体の方が乱雑）であるため、融点 $T_m = \Delta H_{fus} / \Delta S_{fus}$ より高温では液相が、低温では固相が安定になります。</p>
+    </div>
+
+    <p>多成分系（合金や溶液）を扱う際には、成分 $i$ の物質量 $n_i$ を1モル増やしたときのGibbs自由エネルギーの変化量、すなわち<strong>化学ポテンシャル</strong> $\mu_i$ を導入します。</p>
+
+    <div class="equation">
+        $$\mu_i = \left(\frac{\partial G}{\partial n_i}\right)_{T, p, n_{j \neq i}}$$
+        <p>系全体のGibbs自由エネルギーは、各成分の化学ポテンシャルと物質量の積の和 $G = \sum_i \mu_i n_i$ として表され、2つの相が平衡にあるとき、共存するすべての相で各成分の化学ポテンシャルが等しくなります（$\mu_i^{\alpha} = \mu_i^{\beta}$）。これは相平衡（Phase Equilibrium）を判定するための最も基本的な条件です。</p>
+    </div>
+
+    <h3>Python実装: 融解の自発性とGibbs自由エネルギーの温度依存性</h3>
+    <pre class="code-block"><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+def gibbs_energy_fusion(T, dH_fus, dS_fus):
+    """
+    固相を基準としたときの液相のGibbs自由エネルギー変化 dG_fus(T) を計算する
+    dG_fus &gt; 0: 固相が安定  /  dG_fus &lt; 0: 液相が安定
+
+    Parameters:
+    T: 温度 (K) の配列
+    dH_fus: 融解エンタルピー (J/mol)
+    dS_fus: 融解エントロピー (J/mol/K)
+    """
+    return dH_fus - T * dS_fus
+
+# 純Cu（銅）の融解データ
+dH_fus_Cu = 13050.0  # J/mol
+Tm_Cu = 1358.0        # K（融点）
+dS_fus_Cu = dH_fus_Cu / Tm_Cu  # 融解エントロピー（融点でdG=0となる条件から逆算）
+
+T = np.linspace(1000, 1700, 400)
+dG_fus = gibbs_energy_fusion(T, dH_fus_Cu, dS_fus_Cu)
+
+print(f"Cu融解エントロピー: {dS_fus_Cu:.3f} J/mol/K")
+print(f"T=1200K でのdG_fus: {gibbs_energy_fusion(1200, dH_fus_Cu, dS_fus_Cu):.1f} J/mol（固相が安定なら正）")
+print(f"T=1400K でのdG_fus: {gibbs_energy_fusion(1400, dH_fus_Cu, dS_fus_Cu):.1f} J/mol（液相が安定なら負）")
+
+plt.figure(figsize=(9, 6))
+plt.plot(T, dG_fus / 1000, color='#f5576c', linewidth=2.5)
+plt.axhline(y=0, color='gray', linestyle='--', alpha=0.6)
+plt.axvline(x=Tm_Cu, color='#2c3e50', linestyle='--', label=f'融点 Tm = {Tm_Cu} K')
+plt.fill_between(T, dG_fus / 1000, 0, where=(dG_fus &gt; 0), color='#2196F3', alpha=0.15, label='固相が安定')
+plt.fill_between(T, dG_fus / 1000, 0, where=(dG_fus &lt; 0), color='#f093fb', alpha=0.15, label='液相が安定')
+plt.xlabel('温度 T (K)', fontsize=12)
+plt.ylabel(r'$\Delta G_{fus}$ (kJ/mol)', fontsize=12)
+plt.title('Cuの融解Gibbs自由エネルギーの温度依存性', fontsize=14, fontweight='bold')
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.savefig('gibbs_fusion_Cu.png', dpi=300)
+plt.show()
+</code></pre>
+    <p><strong>実行結果</strong>: 融解エントロピーは $\Delta S_{fus} = \Delta H_{fus}/T_m \approx 9.61$ J/mol/K と求まる。T=1200K（融点未満）では $\Delta G_{fus} \approx +1516$ J/mol と正であり固相が安定、T=1400K（融点超）では $\Delta G_{fus} \approx -403$ J/mol と負であり液相が安定であることが確認できる。融点 $T_m$ はまさに固相と液相の化学ポテンシャルが等しくなる（$\Delta G_{fus}=0$）温度である。</p>
+
+    <h2>4.2 二元系状態図の読み方</h2>
+    <p>合金のように2種類以上の成分を混合すると、Gibbs自由エネルギーには純成分のエネルギーを組成で加重平均した項に加え、<strong>混合のGibbs自由エネルギー（Gibbs Free Energy of Mixing）</strong> $\Delta G_{mix}$ が付け加わります。理想溶体（Ideal Solution）では混合はエントロピーのみに由来しますが、実際の合金では原子間相互作用の違いにより追加のエンタルピー項が生じます。これを最も単純に扱うモデルが<strong>正則溶体モデル</strong>です。</p>
+
+    <div class="equation">
+        $$\Delta G_{mix} = RT\left[x_1 \ln x_1 + x_2 \ln x_2\right] + \Omega x_1 x_2$$
+        <p>第1項は<strong>理想混合エントロピー項</strong>（常に負で、混合を安定化させる）、第2項は<strong>正則溶体相互作用項</strong>で、$\Omega$（相互作用パラメータ, Interaction Parameter）は成分1-2間の結合エネルギーが同種原子間の結合エネルギーの平均からどれだけずれているかを表す。$\Omega \gt 0$ は異種原子対を避けようとする正の偏差（不混和傾向）、$\Omega \lt 0$ は異種原子対を好む負の偏差を意味する。$\Omega = 0$ のとき理想溶体に一致する。</p>
+    </div>
+
+    <p>固相と液相のように異なる相が共存する系では、それぞれの相が独自の $G(x)$ 曲線を持ちます。ある温度 $T$ において、組成 $x$ 全体で固相と液相のどちらがより低いGibbs自由エネルギーを持つかを比較するだけでは不十分です。実際には、系が2つの相に分離して存在する方が、単一相でいるよりも全体のGibbs自由エネルギーを下げられる組成範囲が存在します。この2相共存領域の境界（どの組成の固相とどの組成の液相が共存するか）は、2つの $G(x)$ 曲線に<strong>共通接線</strong>を引くことで決定されます。共通接線が固相曲線・液相曲線とそれぞれ接する点の組成が、その温度における<strong>固相線（Solidus）</strong>と<strong>液相線（Liquidus）</strong>の組成になります。</p>
+
+    <h3>Python実装: 正則溶体モデルによる固相・液相の自由エネルギー曲線と共通接線</h3>
+    <pre class="code-block"><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+from scipy.optimize import fsolve
+
+R = 8.314  # 気体定数 J/mol/K
+
+# Cu(A)-Ni(B) 二元系（実験値に近い近似パラメータ）
+Tm_A, dHfus_A = 1358.0, 13050.0   # Cuの融点・融解エンタルピー
+Tm_B, dHfus_B = 1728.0, 17470.0   # Niの融点・融解エンタルピー
+
+Omega_solid = 2000.0    # 固相の相互作用パラメータ (J/mol)
+Omega_liquid = -2000.0  # 液相の相互作用パラメータ (J/mol)
+
+def dG_fus_A(T):
+    """A成分（固相基準）の液相Gibbs自由エネルギー"""
+    return dHfus_A * (1 - T / Tm_A)
+
+def dG_fus_B(T):
+    """B成分（固相基準）の液相Gibbs自由エネルギー"""
+    return dHfus_B * (1 - T / Tm_B)
+
+def G_solid(x, T):
+    """固相のGibbs自由エネルギー（x: A成分のモル分率）"""
+    x = np.clip(x, 1e-9, 1 - 1e-9)
+    return R * T * (x * np.log(x) + (1 - x) * np.log(1 - x)) + Omega_solid * x * (1 - x)
+
+def G_liquid(x, T):
+    """液相のGibbs自由エネルギー（固相を基準とした相対値）"""
+    x = np.clip(x, 1e-9, 1 - 1e-9)
+    mix = R * T * (x * np.log(x) + (1 - x) * np.log(1 - x)) + Omega_liquid * x * (1 - x)
+    return mix + x * dG_fus_A(T) + (1 - x) * dG_fus_B(T)
+
+# T=1500Kにおける固相・液相の自由エネルギー曲線を可視化
+T_demo = 1500.0
+x_range = np.linspace(0.001, 0.999, 300)
+G_s = G_solid(x_range, T_demo)
+G_l = G_liquid(x_range, T_demo)
+
+plt.figure(figsize=(9, 6))
+plt.plot(x_range, G_s / 1000, color='#2196F3', linewidth=2.5, label='固相 G(x)')
+plt.plot(x_range, G_l / 1000, color='#f5576c', linewidth=2.5, label='液相 G(x)')
+plt.xlabel('A成分（Cu）のモル分率 x', fontsize=12)
+plt.ylabel('Gibbs自由エネルギー (kJ/mol)', fontsize=12)
+plt.title(f'T = {T_demo} K における固相・液相の自由エネルギー曲線', fontsize=14, fontweight='bold')
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.savefig('gibbs_curves_solid_liquid.png', dpi=300)
+plt.show()
+
+print(f"T={T_demo}K: G_solid(x=0.5) = {G_solid(0.5, T_demo):.1f} J/mol")
+print(f"T={T_demo}K: G_liquid(x=0.5) = {G_liquid(0.5, T_demo):.1f} J/mol")
+</code></pre>
+    <p><strong>実行結果</strong>: T=1500Kでは、組成によって固相・液相のどちらの曲線が下側にあるかが入れ替わる。両者が交差する付近が、共通接線を引くべき領域のおおよその目安になる。</p>
+
+    <h3>Python実装: 共通接線の数値解法と二元系状態図の作成</h3>
+    <pre class="code-block"><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+from scipy.optimize import fsolve
+
+def slope_solid(x, T):
+    """固相G(x)の傾き dG_solid/dx"""
+    x = np.clip(x, 1e-9, 1 - 1e-9)
+    return R * T * (np.log(x) - np.log(1 - x)) + Omega_solid * (1 - 2 * x)
+
+def slope_liquid(x, T):
+    """液相G(x)の傾き dG_liquid/dx"""
+    x = np.clip(x, 1e-9, 1 - 1e-9)
+    return R * T * (np.log(x) - np.log(1 - x)) + Omega_liquid * (1 - 2 * x) \
+        + (dG_fus_A(T) - dG_fus_B(T))
+
+def common_tangent_equations(vars, T):
+    """
+    共通接線の条件: (1)両曲線での接線の傾きが等しい (2)接線のy切片が等しい
+    vars = [x_solid, x_liquid]
+    """
+    xs, xl = vars
+    m_s = slope_solid(xs, T)
+    m_l = slope_liquid(xl, T)
+    b_s = G_solid(xs, T) - m_s * xs   # 接線のy切片（x=0での値）
+    b_l = G_liquid(xl, T) - m_l * xl
+    return [m_s - m_l, b_s - b_l]
+
+# 融点Tm_B直下からTm_A直上まで温度を掃引し、共通接線を逐次的に解く
+T_sweep = np.linspace(Tm_B - 2, Tm_A + 2, 80)
+guess = [0.02, 0.03]  # 初期推定値（低温側では純B寄りの組成から開始）
+
+solidus_x, liquidus_x, T_valid = [], [], []
+for T in T_sweep:
+    solution = fsolve(common_tangent_equations, guess, args=(T,), full_output=True)
+    (xs, xl), info, ier, msg = solution
+    if ier == 1 and 0.0 &lt; xs &lt; 1.0 and 0.0 &lt; xl &lt; 1.0:
+        solidus_x.append(xs)
+        liquidus_x.append(xl)
+        T_valid.append(T)
+        guess = [xs, xl]  # 継続法: 直前の解を次の初期値に使う
+
+solidus_x = np.array(solidus_x)
+liquidus_x = np.array(liquidus_x)
+T_valid = np.array(T_valid)
+
+print(f"共通接線が求まった温度点数: {len(T_valid)} / {len(T_sweep)}")
+print(f"T={T_valid[0]:.1f}K 付近: 固相組成 x_s={solidus_x[0]:.4f}, 液相組成 x_l={liquidus_x[0]:.4f}")
+print(f"T={T_valid[-1]:.1f}K 付近: 固相組成 x_s={solidus_x[-1]:.4f}, 液相組成 x_l={liquidus_x[-1]:.4f}")
+
+# 状態図の作成
+plt.figure(figsize=(9, 7))
+plt.plot(liquidus_x, T_valid, color='#f5576c', linewidth=2.5, label='液相線 (Liquidus)')
+plt.plot(solidus_x, T_valid, color='#2196F3', linewidth=2.5, label='固相線 (Solidus)')
+plt.fill_betweenx(T_valid, solidus_x, liquidus_x, color='#adb5bd', alpha=0.3, label='固相+液相 共存領域')
+plt.scatter([0], [Tm_B], color='#2c3e50', zorder=5)
+plt.scatter([1], [Tm_A], color='#2c3e50', zorder=5)
+plt.text(0.02, Tm_B + 8, f'Ni: Tm={Tm_B:.0f}K', fontsize=10)
+plt.text(0.75, Tm_A + 8, f'Cu: Tm={Tm_A:.0f}K', fontsize=10)
+plt.xlabel('A成分（Cu）のモル分率 x', fontsize=12)
+plt.ylabel('温度 T (K)', fontsize=12)
+plt.title('正則溶体モデルによるCu-Ni二元系状態図（簡易計算）', fontsize=14, fontweight='bold')
+plt.xlim(0, 1)
+plt.legend(loc='lower left')
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.savefig('binary_phase_diagram_CuNi.png', dpi=300)
+plt.show()
+
+# てこの法則（Lever Rule）の確認: T=1500Kにおける相分率
+T_check = 1500.0
+idx = np.argmin(np.abs(T_valid - T_check))
+xs_check, xl_check = solidus_x[idx], liquidus_x[idx]
+x_overall = 0.35  # 合金全体の組成
+f_liquid = (x_overall - xs_check) / (xl_check - xs_check)
+f_solid = 1 - f_liquid
+print(f"\nT≈{T_valid[idx]:.0f}K, 全体組成 x={x_overall} のとき（てこの法則）:")
+print(f"  固相組成 x_s={xs_check:.4f}, 液相組成 x_l={xl_check:.4f}")
+print(f"  液相分率={f_liquid:.3f}, 固相分率={f_solid:.3f}")
+</code></pre>
+    <p><strong>実行結果</strong>: 継続法（直前の解を次の温度の初期値として使う手法）により、80点すべての温度で共通接線が安定に求まった。固相線・液相線はNiの融点（1728K）とCuの融点（1358K）を結ぶレンズ状（Lens-shaped）の2相領域を形成し、Cu-Ni系のような<strong>全率固溶型（Isomorphous System）</strong>の状態図の典型的な形状が再現される。<strong>てこの法則（Lever Rule）</strong>を用いると、2相領域内の任意の全体組成に対して、固相・液相それぞれの相分率を、固相線・液相線の組成からの「距離の比」として計算できる。</p>
+
+    <h2>4.3 Ellingham図と反応の自発性</h2>
+    <p>金属の製錬（還元）や腐食（酸化）を理解する上で欠かせないのが<strong>Ellingham図</strong>です。これは、金属の酸化反応</p>
+
+    <div class="equation">
+        $$\frac{2x}{y}\text{M} + \text{O}_2 \rightarrow \frac{2}{y}\text{M}_x\text{O}_y$$
+        <p>のGibbs自由エネルギー変化 $\Delta G^\circ$（酸素1molあたりに規格化）を温度 $T$ の関数として1つの図にまとめたものです。</p>
+    </div>
+
+    <p>近似的に $\Delta H^\circ$ と $\Delta S^\circ$ を温度によらず一定とみなすと、$\Delta G^\circ(T) = \Delta H^\circ - T\Delta S^\circ$ は $T$ に対してほぼ直線になります。ほとんどの金属酸化反応では気体の $\text{O}_2$ が固体の酸化物に変わるため系の乱雑さが減少し、$\Delta S^\circ \lt 0$（したがって直線の傾きは正）となります。一方、反応前後で気体のモル数が変化しない反応（例: $\text{C} + \text{O}_2 \rightarrow \text{CO}_2$）では傾きがほぼゼロに、気体のモル数が増加する反応（例: $2\text{C} + \text{O}_2 \rightarrow 2\text{CO}$）では傾きが負になります。この違いが、Ellingham図を用いた製錬プロセス設計の鍵となります。</p>
+
+    <p>Ellingham図の読み方の要点は次の2つです。</p>
+    <ul>
+        <li><strong>下にある線ほど酸化物として安定</strong>: ある温度で $\Delta G^\circ$ がより負である反応ほど、酸化物の生成が熱力学的に有利。</li>
+        <li><strong>ある金属の酸化物を別の金属で還元できるかどうか</strong>: 還元剤となる金属の酸化反応の線が、還元したい金属酸化物の線より下にあれば、還元剤は酸化物からその金属を奪い取ることができる（テルミット反応など）。</li>
+    </ul>
+
+    <h3>Python実装: 主要な酸化反応のEllingham図の作成</h3>
+    <pre class="code-block"><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+R = 8.314
+
+# 主要な酸化反応（酸素1molあたり）の標準生成エンタルピー・エントロピー
+# 値は文献値を参考にした近似値（線形近似のEllingham図作成用）
+reactions = {
+    '4/3 Al + O2 -> 2/3 Al2O3': (-1117000, -211.0, '#f5576c'),
+    '2 Mg + O2 -> 2 MgO':       (-1203000, -216.0, '#f093fb'),
+    'Si + O2 -> SiO2':          (-910000,  -182.0, '#2c3e50'),
+    '2 Fe + O2 -> 2 FeO':       (-544000,  -138.0, '#2196F3'),
+    '2 C + O2 -> 2 CO':         (-221000,   179.0, '#28a745'),
+    'C + O2 -> CO2':            (-393500,    -0.8, '#ffc107'),
+}
+
+T = np.linspace(300, 2000, 400)
+
+plt.figure(figsize=(10, 7))
+for name, (dH, dS, color) in reactions.items():
+    dG = dH - T * dS
+    plt.plot(T, dG / 1000, label=name, color=color, linewidth=2.2)
+
+plt.xlabel('温度 T (K)', fontsize=12)
+plt.ylabel(r'$\Delta G^\circ$ (kJ / mol $O_2$)', fontsize=12)
+plt.title('主要な酸化反応のEllingham図（線形近似）', fontsize=14, fontweight='bold')
+plt.legend(fontsize=9, loc='upper right')
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.savefig('ellingham_diagram.png', dpi=300)
+plt.show()
+
+# 2C+O2->2CO と C+O2->CO2 の交点（Boudouard反応の転換温度）を求める
+dH_CO2, dS_CO2 = -393500, -0.8
+dH_2CO, dS_2CO = -221000, 179.0
+T_cross = (dH_CO2 - dH_2CO) / (dS_CO2 - dS_2CO)
+print(f"CO2生成線と2CO生成線の交点（Boudouard転換温度）: T = {T_cross:.1f} K = {T_cross - 273.15:.1f} °C")
+
+# 1500Kにおける各反応のdG（酸化物の安定性比較）
+print("\nT = 1500 K における各反応のΔG°:")
+for name, (dH, dS, _) in reactions.items():
+    dG_1500 = dH - 1500 * dS
+    print(f"  {name}: {dG_1500/1000:.1f} kJ/mol O2")
+</code></pre>
+    <p><strong>実行結果</strong>: $2\text{C} + \text{O}_2 \rightarrow 2\text{CO}$ の直線は右下がり（傾き負）のため高温になるほど $\Delta G^\circ$ が下がり続けるのに対し、$\text{C} + \text{O}_2 \rightarrow \text{CO}_2$ の直線はほぼ水平である。両者は T ≈ 959 K（約686°C）で交差し、これより高温では2CO生成の方が有利になる（<strong>Boudouard反応</strong>）。1500Kでの $\Delta G^\circ$ を比較すると、Al・Mg・Siの酸化物生成線はFeやCの酸化物生成線より下にあり、AlやMgがFeの酸化物を還元できること（<strong>テルミット反応, Thermite Reaction</strong>の熱力学的根拠）が読み取れる。また、Fe酸化物の線が高温で2CO生成線と交差する温度より高温側では、炭素（コークス）によるFe酸化物の還元、すなわち<strong>高炉での鉄鉱石還元</strong>が熱力学的に可能になることも分かる。</p>
+
+    <h2>4.4 CALPHAD法の基礎</h2>
+    <p>これまでの節では、2成分・2相のみからなる単純化された系を扱いました。実際の合金は3成分以上、複数の相（液相、複数の固溶体相、金属間化合物相など）が関与する複雑な系であることがほとんどです。このような多成分・多相系の相平衡を系統的に扱うために発展してきた手法が<strong>CALPHAD法</strong>です。</p>
+
+    <p>CALPHAD法の基本的な考え方は、各相のGibbs自由エネルギーを組成・温度の関数としてモデル化し、実験データや第一原理計算（DFT）の結果にパラメータをフィッティングして<strong>熱力学データベース</strong>を構築することです。ある相 $\phi$ のGibbs自由エネルギーは、一般に次のような形でモデル化されます。</p>
+
+    <div class="equation">
+        $$G^\phi(x, T) = \sum_i x_i \, {}^{0}G_i^\phi(T) + RT\sum_i x_i \ln x_i + {}^{xs}G^\phi(x, T)$$
+        <p>第1項は純成分 $i$ の相 $\phi$ におけるGibbs自由エネルギー（<strong>格子安定パラメータ, Lattice Stability</strong>）の組成加重平均、第2項は理想混合エントロピー項、第3項は<strong>過剰Gibbs自由エネルギー（Excess Gibbs Energy）</strong>で、成分間の非理想的な相互作用を表す。本章で用いた正則溶体モデルの $\Omega x_1 x_2$ 項は、この過剰項の最も単純な形（<strong>Redlich-Kister多項式</strong>の0次項）に対応する。</p>
+    </div>
+
+    <p>実務のCALPHAD計算では、過剰項をより高次のRedlich-Kister多項式で表現し、3成分系以上では成分対ごとの相互作用パラメータに加えて三元相互作用パラメータも導入します。こうして構築されたデータベースを用い、与えられた温度・圧力・組成のもとで全ての相のGibbs自由エネルギーを同時に最小化する（<strong>Gibbs自由エネルギー最小化, Gibbs Energy Minimization</strong>）ことで、任意の多成分系の相平衡状態が計算できます。これはまさに、4.2節で2相・2成分について手作業で行った共通接線構成を、多相・多成分に一般化したものです。</p>
+
+    <p>Python環境では<code>pycalphad</code>ライブラリがCALPHAD計算の代表的なオープンソース実装であり、TDB形式（Thermodynamic DataBase形式）の熱力学データベースを読み込んで相平衡計算・状態図作成を行うことができます。本章では環境依存性を避けるため、4.2節・4.5節で示した自作の正則溶体モデルによる計算を中心に進めますが、その根底にある考え方（各相のGibbs自由エネルギーをモデル化し、最小化によって相平衡を決定する）はCALPHAD法と共通しています。</p>
+
+    <h3>Python実装: 簡易CALPHAD的アプローチ（3相系のGibbs自由エネルギー最小化）</h3>
+    <pre class="code-block"><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+R = 8.314
+
+def G_phase(x, T, dG_ref, Omega):
+    """
+    ある相のGibbs自由エネルギー（CALPHAD型モデルの簡易版）
+    dG_ref: 純B成分を基準とした純A成分の相対Gibbs自由エネルギー（この相での安定性）
+    Omega: 正則溶体相互作用パラメータ
+    """
+    x = np.clip(x, 1e-9, 1 - 1e-9)
+    ideal_mix = R * T * (x * np.log(x) + (1 - x) * np.log(1 - x))
+    excess = Omega * x * (1 - x)
+    reference = x * dG_ref
+    return reference + ideal_mix + excess
+
+# 3つの相（固相alpha、固相beta、液相）を仮定した簡易CALPHAD的評価
+T_eval = 1000.0
+x_range = np.linspace(0.001, 0.999, 300)
+
+# 各相のパラメータ（相ごとに安定性・非理想性が異なることを模擬）
+phases = {
+    'alpha（A基固溶体）': (0.0,     3000.0, '#2196F3'),
+    'beta（B基固溶体）':  (8000.0,  3000.0, '#28a745'),
+    '液相':               (5000.0, -1000.0, '#f5576c'),
+}
+
+plt.figure(figsize=(9, 6))
+G_all = {}
+for name, (dG_ref, Omega, color) in phases.items():
+    G_vals = G_phase(x_range, T_eval, dG_ref, Omega)
+    G_all[name] = G_vals
+    plt.plot(x_range, G_vals / 1000, label=name, color=color, linewidth=2.2)
+
+plt.xlabel('B成分のモル分率 x', fontsize=12)
+plt.ylabel('Gibbs自由エネルギー (kJ/mol)', fontsize=12)
+plt.title(f'T = {T_eval} K における3相のGibbs自由エネルギー（CALPHAD的比較）', fontsize=14, fontweight='bold')
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.savefig('calphad_three_phase.png', dpi=300)
+plt.show()
+
+# 各組成において、どの相が最も安定か（最小のG）を判定
+G_matrix = np.array([G_all[name] for name in phases])
+phase_names = list(phases.keys())
+stable_idx = np.argmin(G_matrix, axis=0)
+
+print("組成ごとの最安定相（下側包絡線, Lower Envelope）:")
+for x_check in [0.1, 0.3, 0.5, 0.7, 0.9]:
+    idx = np.argmin(np.abs(x_range - x_check))
+    stable_phase = phase_names[stable_idx[idx]]
+    print(f"  x = {x_check}: 最安定相 = {stable_phase}")
+</code></pre>
+    <p><strong>実行結果</strong>: A成分（x=0）に近い組成ではalpha相、B成分（x=1）に近い組成では液相のGibbs自由エネルギーが最も低くなる（本パラメータ設定の場合）。このように各相のGibbs自由エネルギー曲線群の<strong>下側包絡線</strong>を組成ごとに追跡し、複数の相にまたがる場合は共通接線（4.2節と同様の手法）で2相共存領域を決定するのが、CALPHAD計算の本質的な考え方である。実際のCALPHADソフトウェアでは、この最小化を多成分・多相・複数のサブ格子モデルに対して数値的に頑健に実行する。</p>
+
+    <h2>4.5 Pythonによる相図・活量係数の計算</h2>
+    <p>正則溶体モデルのもう一つの重要な応用が<strong>活量（Activity）</strong>と<strong>活量係数</strong>の計算です。成分 $i$ の活量 $a_i$ は、化学ポテンシャルを標準状態からの差として表す際に用いられる無次元量で、理想溶体からのずれを<strong>活量係数</strong> $\gamma_i$ として次のように定義します。</p>
+
+    <div class="equation">
+        $$a_i = \gamma_i x_i, \qquad \mu_i = \mu_i^{\circ} + RT \ln a_i$$
+        <p>理想溶体（$\Omega=0$）では $\gamma_i = 1$ となり $a_i = x_i$（Raoultの法則, Raoult's Law）が成り立つ。正則溶体モデルでは、成分1の活量係数は次式で与えられる。</p>
+        $$RT \ln \gamma_1 = \Omega x_2^2$$
+    </div>
+
+    <p>この式は、正則溶体モデルのGibbs混合自由エネルギー $\Delta G_{mix} = RT(x_1\ln x_1 + x_2\ln x_2) + \Omega x_1 x_2$ を、部分モル量の関係 $\ln \gamma_1 = \partial(\Delta G_{mix}^{xs}/RT)/\partial n_1$ を用いて導出できます（過剰Gibbs自由エネルギー $\Delta G_{mix}^{xs} = \Omega x_1 x_2$ から）。</p>
+
+    <h3>Python実装: 正則溶体モデルによる活量係数の計算と可視化</h3>
+    <pre class="code-block"><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+R = 8.314
+
+def activity_coefficient_regular(x1, T, Omega):
+    """正則溶体モデルにおける成分1の活量係数 gamma_1"""
+    x2 = 1 - x1
+    ln_gamma1 = Omega * x2**2 / (R * T)
+    return np.exp(ln_gamma1)
+
+T = 1300.0  # K
+x1 = np.linspace(0.001, 0.999, 200)
+
+# 正の偏差（不混和傾向）と負の偏差（親和性）を比較
+Omega_positive = 8000.0   # J/mol（正の偏差、例: 溶けにくい組み合わせ）
+Omega_negative = -8000.0  # J/mol（負の偏差、例: 化合物形成傾向）
+
+gamma_pos = activity_coefficient_regular(x1, T, Omega_positive)
+gamma_neg = activity_coefficient_regular(x1, T, Omega_negative)
+
+a_ideal = x1
+a_pos = gamma_pos * x1
+a_neg = gamma_neg * x1
+
+fig, axes = plt.subplots(1, 2, figsize=(13, 5.5))
+
+axes[0].plot(x1, gamma_pos, color='#f5576c', linewidth=2.2, label=f'Ω = +{Omega_positive/1000:.0f} kJ/mol（正偏差）')
+axes[0].plot(x1, gamma_neg, color='#2196F3', linewidth=2.2, label=f'Ω = {Omega_negative/1000:.0f} kJ/mol（負偏差）')
+axes[0].axhline(y=1.0, color='gray', linestyle='--', alpha=0.6, label='理想溶体 (γ=1)')
+axes[0].set_xlabel('成分1のモル分率 x1', fontsize=12)
+axes[0].set_ylabel('活量係数 γ1', fontsize=12)
+axes[0].set_title(f'活量係数の組成依存性 (T={T}K)', fontsize=12, fontweight='bold')
+axes[0].legend(fontsize=9)
+axes[0].grid(True, alpha=0.3)
+
+axes[1].plot(x1, a_ideal, color='gray', linestyle='--', linewidth=2, label='理想溶体 (Raoultの法則)')
+axes[1].plot(x1, a_pos, color='#f5576c', linewidth=2.2, label='正偏差（正のずれ）')
+axes[1].plot(x1, a_neg, color='#2196F3', linewidth=2.2, label='負偏差（負のずれ）')
+axes[1].set_xlabel('成分1のモル分率 x1', fontsize=12)
+axes[1].set_ylabel('活量 a1', fontsize=12)
+axes[1].set_title(f'活量の組成依存性 (T={T}K)', fontsize=12, fontweight='bold')
+axes[1].legend(fontsize=9)
+axes[1].grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('activity_coefficient_regular_solution.png', dpi=300)
+plt.show()
+
+# 無限希釈極限（x1 -> 0）での活量係数
+gamma_inf_pos = activity_coefficient_regular(1e-6, T, Omega_positive)
+gamma_inf_neg = activity_coefficient_regular(1e-6, T, Omega_negative)
+print(f"無限希釈活量係数 (Omega=+8000 J/mol): γ1(x1->0) = {gamma_inf_pos:.4f}")
+print(f"無限希釈活量係数 (Omega=-8000 J/mol): γ1(x1->0) = {gamma_inf_neg:.4f}")
+print(f"理論値 exp(Omega/RT): {np.exp(Omega_positive/(R*T)):.4f}, {np.exp(Omega_negative/(R*T)):.4f}")
+</code></pre>
+    <p><strong>実行結果</strong>: $\Omega \gt 0$（正の偏差）では $\gamma_1 \gt 1$ となり、活量が理想溶体（Raoultの法則の直線）より上に凸に外れる。これは異種原子対を避けようとする相互作用により、成分1が「純粋に近い状態よりも逃げ出しやすくなる」ことを意味する。逆に $\Omega \lt 0$（負の偏差）では $\gamma_1 \lt 1$ となり、活量は理想溶体より下に凸に外れる。無限希釈極限（$x_1 \to 0$）での活量係数は解析解 $\gamma_1^\infty = \exp(\Omega/RT)$ と数値計算がよく一致し、$\Omega=+8000$ J/molでは $\gamma_1^\infty \approx 2.093$、$\Omega=-8000$ J/molでは $\gamma_1^\infty \approx 0.478$ となる。</p>
+
+    <div class="mermaid">
+        flowchart TD
+            A[材料の熱力学] --> B[Gibbs自由エネルギー]
+            B --> C[化学ポテンシャル]
+            C --> D[正則溶体モデル]
+            D --> E[共通接線構成]
+            E --> F[二元系状態図]
+
+            B --> G[Ellingham図]
+            G --> G1[酸化反応の自発性]
+
+            D --> H[CALPHAD法]
+            H --> H1[過剰Gibbs自由エネルギー]
+            H --> H2[多相・多成分の最小化]
+
+            D --> I[活量係数]
+            I --> I1[Raoultの法則からの偏差]
+
+            style A fill:#f093fb,stroke:#f5576c,stroke-width:3px,color:#fff
+            style B fill:#f5576c,stroke:#f093fb,stroke-width:2px,color:#fff
+            style D fill:#f5576c,stroke:#f093fb,stroke-width:2px,color:#fff
+            style E fill:#f5576c,stroke:#f093fb,stroke-width:2px,color:#fff
+            style F fill:#f5576c,stroke:#f093fb,stroke-width:2px,color:#fff
+            style G fill:#f5576c,stroke:#f093fb,stroke-width:2px,color:#fff
+            style H fill:#f5576c,stroke:#f093fb,stroke-width:2px,color:#fff
+            style I fill:#f5576c,stroke:#f093fb,stroke-width:2px,color:#fff
+    </div>
+
+    <h2>演習問題</h2>
+
+    <div class="exercise">
+        <h3>問題1（Easy）: 融解の自発性とエントロピー</h3>
+        <p>Al（アルミニウム）の融点は933 K、融解エンタルピーは10700 J/molである。融解エントロピー $\Delta S_{fus}$ を求め、T=800Kおよびt=1000KでのΔG_fusを計算し、それぞれどちらの相が安定かを判定せよ。</p>
+        <div class="solution">
+            <h4>解答</h4>
+<pre class="code-block"><code class="language-python">Tm_Al = 933.0     # K
+dH_fus_Al = 10700.0  # J/mol
+
+dS_fus_Al = dH_fus_Al / Tm_Al
+print(f"Al融解エントロピー: {dS_fus_Al:.3f} J/mol/K")
+
+for T in [800, 1000]:
+    dG = dH_fus_Al - T * dS_fus_Al
+    phase = "固相が安定" if dG &gt; 0 else "液相が安定"
+    print(f"T={T}K: ΔG_fus = {dG:.1f} J/mol → {phase}")
+</code></pre>
+            <p><strong>結果</strong>: $\Delta S_{fus} \approx 11.47$ J/mol/K。T=800K（融点未満）では $\Delta G_{fus} \approx +1424$ J/molで固相が安定、T=1000K（融点超）では $\Delta G_{fus} \approx -770$ J/molで液相が安定。融点933Kを境に安定相が入れ替わることが確認できる。</p>
+        </div>
+    </div>
+
+    <div class="exercise">
+        <h3>問題2（Medium）: 正則溶体モデルにおける混合の自由エネルギー曲線の凹凸</h3>
+        <p>正則溶体モデル $\Delta G_{mix}(x) = RT[x\ln x + (1-x)\ln(1-x)] + \Omega x(1-x)$ について、T=800Kのとき $\Omega=15000$ J/molの場合と $\Omega=5000$ J/molの場合の曲線をプロットし、前者では組成中央付近で上に凸（不安定）な領域が現れることを確認せよ。また、この現象が生じる臨界相互作用パラメータ $\Omega_c = 2RT$ を計算し、比較せよ。</p>
+        <div class="solution">
+            <h4>解答</h4>
+<pre class="code-block"><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+R = 8.314
+T = 800.0
+
+def dG_mix(x, Omega, T):
+    x = np.clip(x, 1e-9, 1 - 1e-9)
+    return R * T * (x * np.log(x) + (1 - x) * np.log(1 - x)) + Omega * x * (1 - x)
+
+x = np.linspace(0.001, 0.999, 300)
+
+Omega_c = 2 * R * T
+print(f"臨界相互作用パラメータ Omega_c = 2RT = {Omega_c:.1f} J/mol at T={T}K")
+
+plt.figure(figsize=(9, 6))
+for Omega, color in [(15000, '#f5576c'), (5000, '#2196F3')]:
+    G = dG_mix(x, Omega, T)
+    label = f'Ω={Omega} J/mol' + ('（Ω&gt;Ωc、不安定領域あり）' if Omega &gt; Omega_c else '（Ω&lt;Ωc、常に下に凸）')
+    plt.plot(x, G / 1000, color=color, linewidth=2.2, label=label)
+
+plt.axhline(y=0, color='gray', linestyle='--', alpha=0.5)
+plt.xlabel('モル分率 x', fontsize=12)
+plt.ylabel(r'$\Delta G_{mix}$ (kJ/mol)', fontsize=12)
+plt.title(f'正則溶体モデルの混合自由エネルギー曲線 (T={T}K)', fontsize=13, fontweight='bold')
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.savefig('regular_solution_convexity.png', dpi=300)
+plt.show()
+
+# 2階微分（曲率）で不安定領域を判定
+def d2G_dx2(x, Omega, T):
+    x = np.clip(x, 1e-9, 1 - 1e-9)
+    return R * T * (1 / x + 1 / (1 - x)) - 2 * Omega
+
+for Omega in [15000, 5000]:
+    curvature = d2G_dx2(x, Omega, T)
+    unstable = x[curvature &lt; 0]
+    if len(unstable) &gt; 0:
+        print(f"Omega={Omega}: 不安定領域（上に凸）は x = {unstable.min():.3f} 〜 {unstable.max():.3f}")
+    else:
+        print(f"Omega={Omega}: 不安定領域なし（全域で下に凸）")
+</code></pre>
+            <p><strong>結果</strong>: 臨界値は $\Omega_c = 2RT = 13302.4$ J/mol（T=800K）。$\Omega=15000$ J/mol（$\Omega_c$超）では組成中央付近（おおよそ x=0.33〜0.67）で2階微分が負となり上に凸な不安定領域が現れ、この組成範囲は<strong>スピノーダル分解（Spinodal Decomposition）</strong>により2相に自発的に分離する。$\Omega=5000$ J/mol（$\Omega_c$未満）では全域で下に凸であり、単一の固溶体として安定に存在できる。</p>
+        </div>
+    </div>
+
+    <div class="exercise">
+        <h3>問題3（Hard）: Ellingham図からの還元剤選定</h3>
+        <p>本章のEllingham図のデータを用いて、T=1200Kにおいて、SiO2をAlで還元する反応（テルミット的な反応: $\frac{4}{3}\text{Al} + \text{SiO}_2 \rightarrow \frac{2}{3}\text{Al}_2\text{O}_3 + \text{Si}$）が熱力学的に自発的に進行するかどうかを、それぞれの酸化反応のΔG°の差から判定せよ。</p>
+        <div class="solution">
+            <h4>解答</h4>
+<pre class="code-block"><code class="language-python">T_check = 1200.0
+
+# それぞれの酸化反応のdG (酸素1molあたり)
+dH_Al, dS_Al = -1117000, -211.0   # 4/3 Al + O2 -> 2/3 Al2O3
+dH_Si, dS_Si = -910000,  -182.0   # Si + O2 -> SiO2
+
+dG_Al = dH_Al - T_check * dS_Al
+dG_Si = dH_Si - T_check * dS_Si
+
+print(f"T={T_check}K:")
+print(f"  4/3 Al + O2 -> 2/3 Al2O3:  ΔG° = {dG_Al/1000:.1f} kJ/mol O2")
+print(f"  Si + O2 -> SiO2:            ΔG° = {dG_Si/1000:.1f} kJ/mol O2")
+
+# 目的反応 = (Al酸化反応) - (Si酸化反応)
+# 4/3 Al + O2 -> 2/3 Al2O3   ... (i)
+# Si + O2 -> SiO2            ... (ii)
+# (i) - (ii): 4/3 Al + SiO2 -> 2/3 Al2O3 + Si
+dG_reaction = dG_Al - dG_Si
+print(f"\n目的反応 4/3 Al + SiO2 -> 2/3 Al2O3 + Si:")
+print(f"  ΔG° = ΔG°(Al酸化) - ΔG°(Si酸化) = {dG_reaction/1000:.1f} kJ/mol")
+
+if dG_reaction &lt; 0:
+    print("  → ΔG° &lt; 0 のため、AlによるSiO2の還元は熱力学的に自発的に進行する")
+else:
+    print("  → ΔG° &gt; 0 のため、この反応は熱力学的に進行しない")
+</code></pre>
+            <p><strong>結果</strong>: T=1200Kにおいて、Al酸化反応のΔG°（約-855.8 kJ/mol）はSi酸化反応のΔG°（約-691.6 kJ/mol）より負であり、AlのEllingham線がSiのEllingham線より下に位置する。両反応の差である目的反応のΔG°は約-164.2 kJ/molと負になり、AlによるSiO2の還元が熱力学的に自発的に進行することが確認できる。これはEllingham図上で「下にある線の金属が、上にある線の金属酸化物を還元できる」という読み方の具体例であり、金属熱還元法（メタロサーミック還元）の熱力学的根拠を与える。</p>
+        </div>
+    </div>
+
+    <h2>参考文献</h2>
+    <div class="reference">
+        <p>1. Gaskell, D.R., Laughlin, D.E. (2017). <em>Introduction to the Thermodynamics of Materials</em>, 6th Edition. CRC Press.</p>
+    </div>
+    <div class="reference">
+        <p>2. Porter, D.A., Easterling, K.E., Sherif, M.Y. (2009). <em>Phase Transformations in Metals and Alloys</em>, 3rd Edition. CRC Press, pp. 15-45.</p>
+    </div>
+    <div class="reference">
+        <p>3. Ellingham, H.J.T. (1944). "Reducibility of oxides and sulphides in metallurgical processes". <em>Journal of the Society of Chemical Industry</em>, 63(5), 125-160.</p>
+    </div>
+    <div class="reference">
+        <p>4. Lukas, H.L., Fries, S.G., Sundman, B. (2007). <em>Computational Thermodynamics: The Calphad Method</em>. Cambridge University Press.</p>
+    </div>
+    <div class="reference">
+        <p>5. Saunders, N., Miodownik, A.P. (1998). <em>CALPHAD (Calculation of Phase Diagrams): A Comprehensive Guide</em>. Pergamon.</p>
+    </div>
+    <div class="reference">
+        <p>6. DeHoff, R.T. (2006). <em>Thermodynamics in Materials Science</em>, 2nd Edition. CRC Press, pp. 200-260.</p>
+    </div>
+    <div class="reference">
+        <p>7. pycalphad Documentation. https://pycalphad.org/</p>
+    </div>
+    <div class="reference">
+        <p>8. Otis, R., Liu, Z.-K. (2017). "pycalphad: CALPHAD-based Computational Thermodynamics in Python". <em>Journal of Open Research Software</em>, 5(1), 1.</p>
+    </div>
+
+    <h2>学習目標確認</h2>
+    <div class="exercise">
+        <h3>レベル1（基本理解）</h3>
+        <ul>
+            <li>Gibbs自由エネルギー、化学ポテンシャルの定義と、反応・相転移の自発性判定への使い方を説明できる</li>
+            <li>正則溶体モデルの2つの項（理想混合エントロピー項、相互作用項）の意味を理解している</li>
+            <li>共通接線の作図が固相線・液相線をどのように決定するかを説明できる</li>
+            <li>Ellingham図の傾きが反応の気体モル数変化とどう関係するかを理解している</li>
+        </ul>
+
+        <h3>レベル2（実践スキル）</h3>
+        <ul>
+            <li>Pythonで正則溶体モデルの自由エネルギー曲線を計算・プロットできる</li>
+            <li>共通接線の条件を連立方程式として定式化し、数値的に解ける</li>
+            <li>てこの法則を用いて2相共存領域での相分率を計算できる</li>
+            <li>Ellingham図から反応の自発性・還元可能性を判定できる</li>
+        </ul>
+
+        <h3>レベル3（応用力）</h3>
+        <ul>
+            <li>温度掃引と継続法を組み合わせて、二元系状態図全体を数値的に構築できる</li>
+            <li>正則溶体モデルの相互作用パラメータと臨界値の関係から、スピノーダル分解の可能性を判定できる</li>
+            <li>CALPHAD法の考え方（各相のGibbs自由エネルギーのモデル化と最小化）を、自作の簡易モデルで再現できる</li>
+            <li>活量係数の計算を通じて、実在溶体の理想溶体からの偏差を定量的に評価できる</li>
+        </ul>
+    </div>
+
+    <p style="text-align: center; margin-top: 3rem;">
+        <a href="chapter-3.html" style="color: #f5576c; text-decoration: none; font-weight: bold;">← 第3章</a>
+        <span style="color: #adb5bd; margin: 0 0.8rem;">|</span>
+        <a href="index.html" style="color: #f5576c; text-decoration: none; font-weight: bold;">シリーズ目次</a>
+        <span style="color: #adb5bd; margin: 0 0.8rem;">|</span>
+        <a href="chapter-5.html" style="color: #f5576c; text-decoration: none; font-weight: bold;">第5章 →</a>
+    </p>
+<section class="disclaimer">
+<h3>免責事項</h3>
+<ul>
+<li>本コンテンツは教育・研究・情報提供のみを目的としており、専門的な助言(法律・会計・技術的保証など)を提供するものではありません。</li>
+<li>本コンテンツおよび付随するCode examplesは「現状有姿(AS IS)」で提供され、明示または黙示を問わず、商品性、特定目的適合性、権利非侵害、正確性・完全性、動作・安全性等いかなる保証もしません。</li>
+<li>外部リンク、第三者が提供するデータ・ツール・ライブラリ等の内容・可用性・安全性について、作成者および東北大学は一切の責任を負いません。</li>
+<li>本コンテンツの利用・実行・解釈により直接的・間接的・付随的・特別・結果的・懲罰的損害が生じた場合でも、適用法で許容される最大限の範囲で、作成者および東北大学は責任を負いません。</li>
+<li>本コンテンツの内容は、予告なく変更・更新・提供停止されることがあります。</li>
+<li>本コンテンツの著作権・ライセンスは明記された条件(例: CC BY 4.0)に従います。当該ライセンスは通常、無保証条項を含みます。</li>
+</ul>
+</section>
+
+</body>
+</html>

@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 3: 結晶場理論と配位化学 - 材料化学入門</title>
+    <meta name="description" content="結晶場理論(CFT)、配位子場理論(LFT)、Jahn-Teller効果の基礎とPython実践。八面体場・正四面体場でのd軌道分裂、磁気モーメント、Tanabe-Sugano図まで遷移金属錯体の電子状態を理解する。">
+
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", sans-serif; line-height: 1.8; color: #2c3e50; max-width: 1200px; margin: 0 auto; padding: 20px; background: #f8f9fa; }
+        h1, h2, h3 { color: #2c3e50; margin-top: 2rem; }
+        h1 { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 1.5rem; border-radius: 10px; }
+        h2 { border-left: 5px solid #f5576c; padding-left: 15px; background: linear-gradient(to right, rgba(245,87,108,0.1), transparent); }
+        .code-block { background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 8px; overflow-x: auto; margin: 1rem 0; }
+        .equation { background: #fff3cd; padding: 15px; border-left: 4px solid #ffc107; margin: 1rem 0; border-radius: 5px; }
+        .exercise { background: #e7f3ff; padding: 20px; border-left: 4px solid #2196F3; margin: 1.5rem 0; border-radius: 8px; }
+        .solution { background: #f0f0f0; padding: 15px; margin-top: 10px; border-radius: 5px; }
+        .reference { background: white; padding: 15px; margin: 10px 0; border-left: 3px solid #f5576c; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .mermaid { background: white; padding: 20px; border-radius: 10px; margin: 1.5rem 0; }
+    </style>
+</head>
+<body>
+    <h1>Chapter 3: 結晶場理論と配位化学</h1>
+
+    <p>第2章では、原子軌道の線形結合（LCAO法）を出発点として、分子軌道理論からタイトバインディング近似、そしてバンド理論へと電子状態の記述を拡張しました。しかし、これまでの議論はs軌道やp軌道を中心とした比較的単純な系を想定しており、遷移金属（Transition Metal）に特有のd軌道の性質には触れていません。</p>
+
+    <p>本章では、遷移金属イオンが<strong>配位子（Ligand）</strong>（金属に電子対を供与する分子やイオン）に取り囲まれた<strong>錯体（Complex）</strong>を対象に、d軌道のエネルギーがどのように分裂するかを学びます。出発点となるのは、配位子を単純な点電荷とみなし、静電相互作用のみでd軌道の分裂を説明する<strong>結晶場理論（Crystal Field Theory, CFT）</strong>です。CFTは物理的描像が明快で、八面体（Octahedral）や正四面体（Tetrahedral）といった配位構造ごとのd軌道分裂パターンを直感的に理解する強力な出発点となります。</p>
+
+    <p>続いて、第2章で学んだLCAO法・分子軌道理論の考え方を金属-配位子間の共有結合性まで取り入れた、より精密な<strong>配位子場理論（Ligand Field Theory, LFT）</strong>を紹介します。さらに、d軌道が不均等に占有された錯体で構造が歪む<strong>Jahn-Teller効果（Jahn-Teller Effect）</strong>を学び、最後にd軌道分裂が引き起こす錯体の磁性と光吸収スペクトル（色）をPythonで定量的に計算します。</p>
+
+    <p>本章を通じて、d軌道という一見複雑な電子状態が、対称性という一本の軸に沿って驚くほど体系的に整理できることを実感していただければと思います。</p>
+
+    <div class="reference" style="text-align: center;">
+        <p><strong>読了時間:</strong> 30-35分　｜　<strong>難易度:</strong> 中級　｜　<strong>コード例:</strong> 12本</p>
+    </div>
+
+    <div class="exercise">
+        <h3>この章の学習目標</h3>
+        <ul>
+            <li>結晶場理論の基本的な考え方を理解する</li>
+            <li>八面体場・正四面体場でのd軌道分裂パターンを説明できる</li>
+            <li>配位子場理論との違いを理解する</li>
+            <li>Jahn-Teller効果を説明できる</li>
+            <li>Pythonで磁気モーメント・分裂エネルギーを計算できる</li>
+        </ul>
+    </div>
+
+    <p style="text-align: center; margin: 1.5rem 0;">
+        <a href="chapter-2.html" style="color: #f5576c; text-decoration: none; font-weight: bold;">← 第2章</a>
+        <span style="color: #adb5bd; margin: 0 0.8rem;">|</span>
+        <a href="index.html" style="color: #f5576c; text-decoration: none; font-weight: bold;">シリーズ目次</a>
+        <span style="color: #adb5bd; margin: 0 0.8rem;">|</span>
+        <a href="chapter-4.html" style="color: #f5576c; text-decoration: none; font-weight: bold;">第4章 →</a>
+    </p>
+
+    <h2>3.1 結晶場理論（CFT）の基礎</h2>
+    <p>遷移金属イオンは、周囲に配位子が集まった錯体を形成します。錯体中で金属イオンに直接結合している配位子の数を<strong>配位数（Coordination Number）</strong>と呼び、6配位の<strong>八面体錯体（Octahedral Complex）</strong>が最も一般的です。</p>
+
+    <p><strong>結晶場理論（CFT）</strong>は、配位子を金属イオンの周囲に配置された負の点電荷（またはイオン双極子）とみなし、d軌道の電子と配位子の電子との静電反発（クーロン相互作用）だけでd軌道のエネルギー分裂を説明する近似モデルです。1929年にHans Betheが結晶中のイオンのエネルギー準位分裂を扱った研究に端を発し、1930年代にJohn Van Vleckらによって錯体化学に応用されました。</p>
+
+    <p>孤立した気体状の金属イオンでは、5つのd軌道（$d_{z^2}, d_{x^2-y^2}, d_{xy}, d_{xz}, d_{yz}$）はすべて同じエネルギーを持ちます（5重縮退, Five-fold Degeneracy）。しかし、配位子が特定の対称性で金属イオンに近づくと、d軌道の空間的な広がり方（ローブの向き）に応じて、配位子の負電荷との反発の大きさが軌道ごとに異なります。この結果、縮退していた5つのd軌道は、配位構造の対称性に応じて複数のエネルギー準位に分裂します。</p>
+
+    <div class="equation">
+        $$V(\mathbf{r}) = \sum_{i=1}^{N} \frac{q_i e}{4\pi\epsilon_0 |\mathbf{r} - \mathbf{R}_i|}$$
+        <p>$N$個の点電荷配位子（電荷 $q_i$、位置 $\mathbf{R}_i$）がd電子（位置 $\mathbf{r}$）に及ぼす静電ポテンシャル。この式を球面調和関数（Spherical Harmonics）で展開すると、配位構造の対称性に応じた角度依存項が現れ、それがd軌道間のエネルギー差（結晶場分裂）を生む。</p>
+    </div>
+
+    <p>d軌道のローブがどの方向を向いているかを具体的にイメージするために、5つのd軌道の角度部分（Angular Part）を3次元的に可視化します。</p>
+
+    <h3>Python実装: d軌道の角度部分の3次元可視化</h3>
+    <pre class="code-block"><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+
+theta = np.linspace(0, np.pi, 60)
+phi = np.linspace(0, 2 * np.pi, 60)
+theta, phi = np.meshgrid(theta, phi)
+
+def dz2(theta, phi):
+    """dz2軌道の角度部分（規格化前）"""
+    return 3 * np.cos(theta)**2 - 1
+
+def dxz(theta, phi):
+    return np.sin(theta) * np.cos(theta) * np.cos(phi)
+
+def dyz(theta, phi):
+    return np.sin(theta) * np.cos(theta) * np.sin(phi)
+
+def dxy(theta, phi):
+    return np.sin(theta)**2 * np.sin(2 * phi)
+
+def dx2y2(theta, phi):
+    return np.sin(theta)**2 * np.cos(2 * phi)
+
+orbitals = {
+    'd_z^2': dz2, 'd_xz': dxz, 'd_yz': dyz,
+    'd_xy': dxy, 'd_x^2-y^2': dx2y2,
+}
+
+fig = plt.figure(figsize=(16, 4))
+for i, (name, func) in enumerate(orbitals.items()):
+    f = func(theta, phi)
+    r = np.abs(f)  # ローブの形状を表す動径成分
+    x = r * np.sin(theta) * np.cos(phi)
+    y = r * np.sin(theta) * np.sin(phi)
+    z = r * np.cos(theta)
+
+    ax = fig.add_subplot(1, 5, i + 1, projection='3d')
+    colors = np.where(f &gt;= 0, 'crimson', 'royalblue')  # 波動関数の符号で色分け
+    ax.plot_surface(x, y, z, facecolors=colors, linewidth=0, antialiased=True)
+    ax.set_title(name)
+    ax.set_box_aspect([1, 1, 1])
+    ax.set_axis_off()
+
+plt.tight_layout()
+plt.savefig('d_orbitals_3d.png', dpi=200)
+plt.show()
+
+print("5つのd軌道の角度部分を3次元プロットとして生成しました。")
+print("d_z^2, d_x^2-y^2 (eg軌道): ローブが座標軸（配位子方向）を直接向く")
+print("d_xy, d_xz, d_yz (t2g軌道): ローブが座標軸の間（対角方向）を向く")
+</code></pre>
+    <p><strong>実行結果</strong>: $d_{z^2}$軌道はz軸方向に伸びる主ローブと赤道面のドーナツ状の副ローブを持ち、$d_{x^2-y^2}$軌道はx軸・y軸方向に4つのローブを持つ。これら$e_g$軌道群のローブは座標軸（配位子の方向）を直接向いている。一方、$d_{xy}, d_{xz}, d_{yz}$軌道（$t_{2g}$軌道群）のローブは座標軸の間（対角方向）を向いており、配位子の方向を避けるように分布している。この幾何学的な違いが、次節で見る八面体場でのエネルギー分裂の起源となる。</p>
+
+    <h2>3.2 八面体場・正四面体場でのd軌道分裂</h2>
+    <p>6つの配位子が金属イオンを中心にx, y, z軸の正負方向（±x, ±y, ±z）に位置する<strong>八面体場（Octahedral Field, $O_h$対称性）</strong>を考えます。3.1節で見たように、$d_{z^2}$と$d_{x^2-y^2}$軌道（あわせて<strong>$e_g$軌道</strong>と呼ばれる）は配位子の方向を直接向いているため、配位子の負電荷から強い静電反発を受けエネルギーが上昇します。一方、$d_{xy}, d_{xz}, d_{yz}$軌道（あわせて<strong>$t_{2g}$軌道</strong>と呼ばれる）は配位子の方向を避けているため、反発が弱くエネルギーが低下します。</p>
+
+    <p>ここで$e_g$、$t_{2g}$という記号は、分子の対称性（点群 $O_h$）における既約表現（Irreducible Representation）のラベルであり、それぞれの軌道の組が対称操作に対してどのように変換されるかを表しています。</p>
+
+    <p>結晶場分裂の全体の大きさを<strong>結晶場分裂エネルギー（Crystal Field Splitting Energy）$\Delta_o$</strong>（オクタヘドラルのo）または$10Dq$と呼びます。$e_g$軌道と$t_{2g}$軌道のエネルギーは、d軌道全体の平均エネルギー（重心）を保存するように分裂します。</p>
+
+    <div class="equation">
+        $$E(t_{2g}) = -0.4\,\Delta_o, \qquad E(e_g) = +0.6\,\Delta_o$$
+        <p><strong>重心保存則（Barycenter Rule）</strong>: $3 \times (-0.4\Delta_o) + 2 \times (+0.6\Delta_o) = 0$。分裂によって系全体のエネルギーが変化しないという要請から、この係数（$-0.4$と$+0.6$、あるいは$-4Dq$と$+6Dq$）が導かれる。</p>
+    </div>
+
+    <p>配位子が4つ、正四面体の頂点方向に位置する<strong>正四面体場（Tetrahedral Field, $T_d$対称性）</strong>では、状況が入れ替わります。$T_d$対称性では$d_{xy}, d_{xz}, d_{yz}$軌道（$t_2$軌道）の方が配位子の方向に近く、$d_{z^2}, d_{x^2-y^2}$軌道（$e$軌道）の方が配位子を避けます。したがって八面体場とは逆に、$e$軌道が安定化し$t_2$軌道が不安定化します。</p>
+
+    <div class="equation">
+        $$E(e) = -0.6\,\Delta_t, \qquad E(t_2) = +0.4\,\Delta_t$$
+        $$\Delta_t = \frac{4}{9}\,\Delta_o$$
+        <p>同じ金属イオン・配位子・金属-配位子間距離で比較した場合、正四面体場の分裂エネルギー$\Delta_t$は八面体場の$\Delta_o$のおよそ4/9倍になる。配位子数が6から4に減ることと、配位子が軌道ローブから外れた位置にあることの両方が寄与する。</p>
+    </div>
+
+    <h3>Python実装: 八面体場・正四面体場のd軌道分裂とバリセンター則の検証</h3>
+    <pre class="code-block"><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+delta_o = 1.0  # 八面体場の分裂エネルギー（規格化単位）
+
+# 八面体場(Oh)でのエネルギー
+E_t2g = -0.4 * delta_o
+E_eg = 0.6 * delta_o
+barycenter_Oh = (3 * E_t2g + 2 * E_eg) / 5
+print(f"[Oh] t2g: {E_t2g:.2f} Δo, eg: {E_eg:.2f} Δo, 重心: {barycenter_Oh:.6f} Δo")
+
+# 正四面体場(Td)でのエネルギー: Δt = (4/9) Δo
+delta_t = (4 / 9) * delta_o
+E_e_Td = -0.6 * delta_t
+E_t2_Td = 0.4 * delta_t
+barycenter_Td = (2 * E_e_Td + 3 * E_t2_Td) / 5
+print(f"[Td] Δt = {delta_t:.4f} Δo")
+print(f"[Td] e: {E_e_Td:.4f} Δo, t2: {E_t2_Td:.4f} Δo, 重心: {barycenter_Td:.6f} Δo")
+
+# エネルギー準位図
+fig, axes = plt.subplots(1, 2, figsize=(10, 6), sharey=True)
+
+axes[0].hlines(0, -0.5, 2.5, colors='gray', linestyles='dashed', label='自由イオン')
+axes[0].hlines(E_t2g, 0.2, 1.0, colors='#f5576c', linewidth=4, label='t2g')
+axes[0].hlines(E_eg, 1.2, 2.0, colors='#f093fb', linewidth=4, label='eg')
+axes[0].set_title('八面体場 (Oh)')
+axes[0].set_ylabel('エネルギー (Δo単位)')
+axes[0].legend(loc='upper left', fontsize=9)
+axes[0].set_xticks([])
+
+axes[1].hlines(0, -0.5, 2.5, colors='gray', linestyles='dashed', label='自由イオン')
+axes[1].hlines(E_e_Td, 0.2, 1.0, colors='#f093fb', linewidth=4, label='e')
+axes[1].hlines(E_t2_Td, 1.2, 2.0, colors='#f5576c', linewidth=4, label='t2')
+axes[1].set_title('正四面体場 (Td)')
+axes[1].legend(loc='upper left', fontsize=9)
+axes[1].set_xticks([])
+
+plt.tight_layout()
+plt.savefig('cft_splitting_diagram.png', dpi=200)
+plt.show()
+</code></pre>
+    <p><strong>実行結果</strong>: 八面体場・正四面体場のいずれでも重心は0.000000（規格化された数値誤差の範囲内）となり、重心保存則が数値的に確認できる。また$\Delta_t = 0.4444\,\Delta_o$（= 4/9 $\Delta_o$）が得られ、正四面体錯体は同条件の八面体錯体よりも分裂幅が小さいことがわかる。この理由から、正四面体錯体は八面体錯体に比べて高スピン配置をとりやすい。</p>
+
+    <h2>3.3 配位子場理論（LFT）</h2>
+    <p>結晶場理論は配位子を点電荷として扱う単純化されたモデルであり、金属と配位子の間の化学結合が持つ共有結合性（軌道の重なりによる電子の非局在化）を無視しています。第2章で学んだLCAO法・分子軌道理論の考え方を、金属のd軌道と配位子の軌道の間の相互作用に適用したモデルが<strong>配位子場理論（Ligand Field Theory, LFT）</strong>です。</p>
+
+    <p>LFTでは、金属のd軌道と配位子の軌道（$\sigma$供与軌道や$\pi$供与・受容軌道）が線形結合して分子軌道を形成すると考えます。$e_g$軌道は配位子の$\sigma$軌道と直接重なり、強い反結合性相互作用によりエネルギーが押し上げられます。$t_{2g}$軌道は、配位子が$\pi$供与体（$\pi$-donor、例: F⁻, O²⁻）であれば非結合性軌道から弱く不安定化し、$\pi$受容体（$\pi$-acceptor、例: CO, CN⁻）であれば強く安定化します。これが、CFTの単純な静電モデルでは説明できない$\Delta_o$の配位子依存性、すなわち<strong>分光化学系列（Spectrochemical Series）</strong>の起源です。</p>
+
+    <p>分光化学系列は、実測される$\Delta_o$の大きさに基づいて配位子を強い場（$\Delta_o$大）から弱い場（$\Delta_o$小）へ並べたもので、おおよそ次の順序になります（$\pi$受容性の高い配位子ほど強い場）。</p>
+
+    <div class="equation">
+        $$\text{I}^- \lt \text{Br}^- \lt \text{Cl}^- \lt \text{F}^- \lt \text{H}_2\text{O} \lt \text{NH}_3 \lt \text{en} \lt \text{CN}^- \lt \text{CO}$$
+    </div>
+
+    <p>$\Delta_o$の大きさは、d電子がどのように$t_{2g}$・$e_g$軌道に配置されるかを決定します。d電子数が4〜7個の場合、電子を対にして低いエネルギー軌道に詰める<strong>低スピン（Low Spin）</strong>配置と、Hundの規則に従い対生成エネルギー（Pairing Energy、$P$）を避けて広く分布させる<strong>高スピン（High Spin）</strong>配置のどちらかを選ぶ必要が生じます。$\Delta_o$が$P$より大きければ低スピン、小さければ高スピンが安定になります。</p>
+
+    <h3>Python実装: 高スピン・低スピン配置とCFSEの計算</h3>
+    <pre class="code-block"><code class="language-python">import numpy as np
+
+def fill_d_orbitals(n_electrons, spin='high'):
+    """
+    八面体場中の5つのd軌道(t2g x3, eg x2)に電子を配置する
+
+    Parameters:
+    n_electrons: d電子数
+    spin: 'high'（高スピン）または 'low'（低スピン）
+
+    Returns:
+    cfse: 結晶場安定化エネルギー（Δo単位、静電項のみ）
+    n_pairs: 電子対を形成している軌道の数
+    n_unpaired: 不対電子数
+    occ: 5軌道それぞれの電子占有数 [t2g, t2g, t2g, eg, eg]
+    """
+    orbital_energy = np.array([-0.4, -0.4, -0.4, 0.6, 0.6])
+    occ = np.zeros(5, dtype=int)
+    order = np.argsort(orbital_energy)  # エネルギーの低い順(t2gが先)
+    remaining = n_electrons
+
+    if spin == 'low':
+        for i in order[:3]:
+            if remaining == 0:
+                break
+            occ[i] += 1
+            remaining -= 1
+        c = 0
+        while remaining &gt; 0 and occ[order[:3]].min() &lt; 2:
+            i = order[c % 3]
+            if occ[i] &lt; 2:
+                occ[i] += 1
+                remaining -= 1
+            c += 1
+        for i in order[3:]:
+            if remaining == 0:
+                break
+            occ[i] += 1
+            remaining -= 1
+        c = 0
+        while remaining &gt; 0:
+            i = order[3 + c % 2]
+            if occ[i] &lt; 2:
+                occ[i] += 1
+                remaining -= 1
+            c += 1
+    else:
+        for i in order:
+            if remaining == 0:
+                break
+            occ[i] += 1
+            remaining -= 1
+        c = 0
+        while remaining &gt; 0:
+            i = order[c % 5]
+            if occ[i] &lt; 2:
+                occ[i] += 1
+                remaining -= 1
+            c += 1
+
+    cfse = np.sum(occ * orbital_energy)
+    n_pairs = int(np.sum(occ == 2))
+    n_unpaired = int(np.sum(occ == 1))
+    return cfse, n_pairs, n_unpaired, occ
+
+print(f"{'d^n':&gt;4} {'HS CFSE':&gt;9} {'HS不対電子':&gt;10} {'LS CFSE':&gt;9} {'LS不対電子':&gt;10}")
+for n in range(1, 10):
+    hs = fill_d_orbitals(n, 'high')
+    ls = fill_d_orbitals(n, 'low')
+    print(f"d{n:&lt;3} {hs[0]:&gt;9.2f} {hs[2]:&gt;10} {ls[0]:&gt;9.2f} {ls[2]:&gt;10}")
+
+# 実在錯体での検証: Fe2+ (d6)
+P_Fe2 = 17600          # cm^-1, Fe2+の対生成エネルギー(文献概算値)
+delta_o_aqua = 10400    # cm^-1, [Fe(H2O)6]2+ (弱い場配位子: H2O)
+delta_o_cyano = 33800   # cm^-1, [Fe(CN)6]4- (強い場配位子: CN-)
+
+hs6 = fill_d_orbitals(6, 'high')
+ls6 = fill_d_orbitals(6, 'low')
+extra_pairs = ls6[1] - hs6[1]  # 低スピンで追加発生する電子対数
+
+print(f"\nd6 高スピン: CFSE={hs6[0]:.2f} Δo, 不対電子={hs6[2]}")
+print(f"d6 低スピン: CFSE={ls6[0]:.2f} Δo, 不対電子={ls6[2]}, 追加対数={extra_pairs}")
+
+for name, do in [('[Fe(H2O)6]2+', delta_o_aqua), ('[Fe(CN)6]4-', delta_o_cyano)]:
+    E_HS = hs6[0] * do
+    E_LS = ls6[0] * do + extra_pairs * P_Fe2
+    state = '高スピン' if E_HS &lt; E_LS else '低スピン'
+    print(f"{name}: Δo={do} cm^-1, E_HS={E_HS:.0f} cm^-1, E_LS={E_LS:.0f} cm^-1 -&gt; {state}が安定")
+</code></pre>
+    <p><strong>実行結果</strong>: d4〜d7では高スピンと低スピンで不対電子数が異なり（例: d6高スピンは不対電子4個、低スピンは0個）、d1〜d3, d8〜d10では配位子場の強さによらず配置が一意に決まる。実在錯体で検証すると、弱い場の配位子である水（H₂O）を持つ[Fe(H₂O)₆]²⁺では$\Delta_o$≈10400 cm⁻¹がFe²⁺の対生成エネルギー$P$≈17600 cm⁻¹より小さいため高スピン（E_HS=-4160 cm⁻¹ &lt; E_LS=10240 cm⁻¹）が安定であり、強い場の配位子であるシアン化物イオン（CN⁻）を持つ[Fe(CN)₆]⁴⁻では$\Delta_o$≈33800 cm⁻¹が$P$を上回るため低スピン（E_LS=-45920 cm⁻¹ &lt; E_HS=-13520 cm⁻¹）が安定になる。この予測は、実測される磁化率（[Fe(H₂O)₆]²⁺は常磁性、[Fe(CN)₆]⁴⁻は反磁性）とよく一致する。</p>
+
+    <h3>Python実装: 分光化学系列と$\Delta_o$の配位子依存性</h3>
+    <pre class="code-block"><code class="language-python">import matplotlib.pyplot as plt
+
+# 代表的な配位子とΔoの目安値（cm^-1、複数錯体の分光データに基づく概算）
+ligands = ['I-', 'Br-', 'Cl-', 'F-', 'H2O', 'NH3', 'en', 'CN-']
+delta_o_values = [3000, 3400, 4000, 5500, 10400, 10800, 11500, 26600]
+
+fig, ax = plt.subplots(figsize=(9, 5))
+ax.bar(ligands, delta_o_values, color='#7b2cbf')
+ax.set_ylabel('Δo (cm⁻¹, 目安値)', fontsize=12)
+ax.set_title('分光化学系列: 配位子とΔoの目安', fontsize=14, fontweight='bold')
+ax.grid(axis='y', alpha=0.3)
+plt.tight_layout()
+plt.savefig('spectrochemical_series.png', dpi=200)
+plt.show()
+
+print("弱い場(I-)から強い場(CN-)にかけて、Δoはおよそ1桁近く変化する。")
+</code></pre>
+    <p><strong>実行結果</strong>: ハロゲン化物イオンのような弱い場の配位子から、シアン化物イオンのような強い場の配位子まで、$\Delta_o$の値はおよそ1桁近く変化する。このグラフの値は複数の錯体の分光データから得られた代表的な目安であり、実際には中心金属イオンの種類・酸化数によっても$\Delta_o$は変動する。</p>
+
+    <h2>3.4 Jahn-Teller効果</h2>
+    <p><strong>Jahn-Teller効果（Jahn-Teller Effect）</strong>は、1937年にHermann JahnとEdward Tellerが証明した<strong>Jahn-Teller定理（Jahn-Teller Theorem）</strong>「線形でない分子が縮退した電子状態にあるとき、分子は対称性を下げる歪みを起こしてエネルギーを安定化する」という一般原理の、遷移金属錯体における現れです。</p>
+
+    <p>八面体場のd軌道配置で$e_g$軌道（2つの軌道）が不均等に占有されている場合、正八面体構造のままではエネルギーの縮退が残ります。分子はz軸方向の結合を伸ばす（または縮める）<strong>正方晶歪み（Tetragonal Distortion）</strong>を起こすことで、この縮退を解いてエネルギーをさらに下げることができます。この歪みが起こるのは配位子場理論的に不安定な縮退状態を解消するためであり、系全体としては歪んだ方が安定になります。</p>
+
+    <p>典型例は$d^9$配置を持つCu²⁺錯体です。$e_g$軌道に3個の電子が入るため（$e_g^3$、$d_{z^2}$と$d_{x^2-y^2}$のどちらか一方が2個、他方が1個占有）、正八面体構造では縮退が残ります。z軸方向の結合が伸びる歪みが起こると、$d_{z^2}$（z軸方向の電子密度が減る）が安定化し、$d_{x^2-y^2}$が不安定化する形で縮退が解けます。</p>
+
+    <p>歪みの大きさを表すパラメータ$Q$（一般化座標）に対して、電子-格子相互作用によるエネルギーの一次の項（歪みによる安定化、係数$k$）と、格子の弾性エネルギーによる二次の項（歪みのコスト、係数$f$）を仮定した簡単なモデルで、Jahn-Teller安定化エネルギーを見積もることができます。</p>
+
+    <div class="equation">
+        $$E(Q) = -kQ + \frac{1}{2}fQ^2$$
+        $$Q_{min} = \frac{k}{f}, \qquad E_{min} = -\frac{k^2}{2f}$$
+    </div>
+
+    <h3>Python実装: Jahn-Teller歪みエネルギーの最小化</h3>
+    <pre class="code-block"><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+from scipy.optimize import fminbound
+
+def jt_energy(Q, k, f):
+    """線形-2次カップリングモデルによるJahn-Teller歪みエネルギー"""
+    return -k * Q + 0.5 * f * Q**2
+
+k, f = 2.0, 4.0  # 例示的な電子-格子相互作用定数（eV/Å, eV/Å^2）
+
+# 解析解
+Q_min_analytic = k / f
+E_min_analytic = -k**2 / (2 * f)
+
+# 数値解（scipy.optimize.fminboundで検証）
+Q_min_numeric = fminbound(lambda Q: jt_energy(Q, k, f), -2, 2)
+E_min_numeric = jt_energy(Q_min_numeric, k, f)
+
+print(f"解析解: Q_min = k/f = {Q_min_analytic:.4f} Å, E_min = -k^2/(2f) = {E_min_analytic:.4f} eV")
+print(f"数値解: Q_min = {Q_min_numeric:.4f} Å, E_min = {E_min_numeric:.4f} eV")
+
+Q = np.linspace(-0.5, 1.5, 200)
+E = jt_energy(Q, k, f)
+
+plt.figure(figsize=(7, 5))
+plt.plot(Q, E, color='#f5576c', linewidth=2.5)
+plt.scatter([Q_min_analytic], [E_min_analytic], color='black', zorder=5,
+            label=f'最小点: Q={Q_min_analytic:.2f} Å, E={E_min_analytic:.2f} eV')
+plt.axhline(y=0, color='gray', linestyle='--', alpha=0.5)
+plt.xlabel('歪み Q (Å)', fontsize=12)
+plt.ylabel('エネルギー E(Q) (eV)', fontsize=12)
+plt.title('Jahn-Teller歪みエネルギー（線形-2次モデル）', fontsize=14, fontweight='bold')
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.savefig('jahn_teller_energy.png', dpi=200)
+plt.show()
+</code></pre>
+    <p><strong>実行結果</strong>: k=2.0, f=4.0の例で、解析解と数値最適化（scipy.optimize.fminbound）による最小値がいずれもQ_min=0.5000 Å、E_min=-0.5000 eVで完全に一致する。歪みによる安定化エネルギーが歪みコストを上回る限り、系は必ずQ=0（正八面体）よりも歪んだ構造の方がエネルギー的に有利になる。</p>
+
+    <p>すべてのd電子配置がJahn-Teller活性であるわけではありません。配位子と直接相互作用する$e_g$軌道が不均等に占有されている場合（例: 高スピン$d^4$, $d^9$）は、歪みのエネルギー利得が大きい強いJahn-Teller効果が現れます。一方、$t_{2g}$軌道のみが不均等に占有されている場合（配位子方向を向いていないため歪みへの応答が弱い）は弱いJahn-Teller効果にとどまり、実験的にはほとんど観測されないことが多いとされています。</p>
+
+    <h3>Python実装: d電子配置ごとのJahn-Teller活性の判定</h3>
+    <pre class="code-block"><code class="language-python">def jt_activity(occ):
+    """t2g・eg軌道内の不均等占有(Jahn-Teller活性)を判定する"""
+    t2g_occ = occ[:3]
+    eg_occ = occ[3:]
+    t2g_asymmetric = len(set(t2g_occ)) &gt; 1   # 弱いJahn-Teller活性
+    eg_asymmetric = len(set(eg_occ)) &gt; 1     # 強いJahn-Teller活性
+    return t2g_asymmetric, eg_asymmetric
+
+print(f"{'配置':&gt;10} {'占有 [t2g,t2g,t2g,eg,eg]':&gt;28} {'弱いJT(t2g)':&gt;12} {'強いJT(eg)':&gt;12}")
+for n in range(1, 10):
+    for spin in ['high', 'low']:
+        _, _, _, occ = fill_d_orbitals(n, spin)
+        t2g_a, eg_a = jt_activity(occ)
+        label = f"d{n}({'HS' if spin == 'high' else 'LS'})"
+        print(f"{label:&gt;10} {str(occ.tolist()):&gt;28} {str(t2g_a):&gt;12} {str(eg_a):&gt;12}")
+</code></pre>
+    <p><strong>実行結果</strong>: 高スピン$d^4$（Cr²⁺, Mn³⁺など、占有[1,1,1,1,0]）と$d^9$（Cu²⁺、占有[2,2,2,2,1]）、低スピン$d^7$（占有[2,2,2,1,0]）で$e_g$軌道の不均等占有（強いJahn-Teller活性）が確認される。一方、$d^1, d^2$や高スピン$d^6, d^7$、低スピン$d^5$では$t_{2g}$軌道のみが不均等（弱いJahn-Teller活性）であり、$d^3$、高スピン$d^5$、低スピン$d^6$、$d^8$は完全対称な占有でJahn-Teller不活性である。</p>
+
+    <h2>3.5 磁性と光吸収スペクトル</h2>
+    <p>錯体中の不対電子の数は、物質の巨視的な磁性を決定します。電子のスピン角運動量のみに由来する<strong>スピンのみの磁気モーメント（Spin-only Magnetic Moment）</strong>$\mu_{eff}$は、不対電子数$n$を用いて次式で近似できます。</p>
+
+    <div class="equation">
+        $$\mu_{eff} = \sqrt{n(n+2)}\ \mu_B$$
+        <p>$\mu_B$はボーア磁子（Bohr Magneton）。この式は軌道角運動量の寄与を無視した近似であり、第一遷移系列金属の多くの錯体でよい近似となる。</p>
+    </div>
+
+    <h3>Python実装: d電子数と高スピン磁気モーメントの計算</h3>
+    <pre class="code-block"><code class="language-python">import numpy as np
+
+print(f"{'d^n':&gt;4} {'不対電子':&gt;8} {'mu_eff (muB)':&gt;14}")
+for n in range(1, 10):
+    n_unpaired = fill_d_orbitals(n, 'high')[2]
+    mu_eff = np.sqrt(n_unpaired * (n_unpaired + 2))
+    print(f"d{n:&lt;3} {n_unpaired:&gt;8} {mu_eff:&gt;14.2f}")
+</code></pre>
+    <p><strong>実行結果</strong>: $d^5$高スピン配置（Mn²⁺, Fe³⁺など）で不対電子数が5個と最大になり、$\mu_{eff}$≈5.92 $\mu_B$に達する。実測値は5.9 $\mu_B$前後であり、良い一致を示す。$d^1$と$d^9$（不対電子1個）はいずれも$\mu_{eff}$≈1.73 $\mu_B$で等しくなる。</p>
+
+    <p>結晶場分裂エネルギー$\Delta_o$は、$t_{2g}$軌道から$e_g$軌道への電子遷移（d-d遷移, Metal d-d Transition）に伴う光吸収のエネルギーとしても直接観測できます。吸収される光子のエネルギーが$\Delta_o$に等しいとき、吸収極大の波長$\lambda_{max}$は次式で求まります。</p>
+
+    <div class="equation">
+        $$\Delta_o = h\nu = \frac{hc}{\lambda_{max}} = hc\,\tilde{\nu}$$
+        <p>$\tilde{\nu}$は波数（Wavenumber, cm⁻¹単位）。波数からnm単位の波長への変換は $\lambda_{max}\text{(nm)} = 10^7 / \tilde{\nu}\text{(cm}^{-1}\text{)}$ となる。</p>
+    </div>
+
+    <h3>Python実装: $\Delta_o$と吸収波長の関係</h3>
+    <pre class="code-block"><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+import scipy.constants as const
+
+def delta_o_to_wavelength(delta_o_cm):
+    """Δo(cm^-1)から吸収極大波長(nm)を計算する簡易換算式"""
+    return 1e7 / delta_o_cm
+
+# [Ti(H2O)6]3+ (d1) の例: Δo ≈ 20300 cm^-1
+delta_o_Ti = 20300
+lam_formula = delta_o_to_wavelength(delta_o_Ti)
+
+# 物理定数からの直接計算で検算
+E_photon = const.h * const.c * (delta_o_Ti * 100)  # cm^-1 -&gt; m^-1に変換してエネルギー(J)
+lam_from_constants = const.h * const.c / E_photon * 1e9  # m -&gt; nm
+
+print(f"[Ti(H2O)6]3+: Δo = {delta_o_Ti} cm^-1")
+print(f"簡易換算式による吸収極大波長: {lam_formula:.1f} nm")
+print(f"物理定数からの検算: {lam_from_constants:.1f} nm")
+
+delta_o_range = np.linspace(5000, 35000, 200)
+lam_range = delta_o_to_wavelength(delta_o_range)
+
+plt.figure(figsize=(8, 5))
+plt.plot(delta_o_range, lam_range, color='#2c3e50', linewidth=2.5)
+plt.scatter([delta_o_Ti], [lam_formula], color='#f5576c', zorder=5, label='[Ti(H2O)6]3+')
+plt.xlabel('Δo (cm⁻¹)', fontsize=12)
+plt.ylabel('吸収極大波長 λ_max (nm)', fontsize=12)
+plt.title('結晶場分裂エネルギーと吸収波長の関係', fontsize=14, fontweight='bold')
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.savefig('delta_o_wavelength.png', dpi=200)
+plt.show()
+</code></pre>
+    <p><strong>実行結果</strong>: [Ti(H₂O)₆]³⁺（$d^1$、$\Delta_o$≈20300 cm⁻¹）について、波数からの簡易換算式と物理定数（プランク定数・光速）から直接計算した結果はいずれも$\lambda_{max}$≈492.6 nmと完全に一致する。この波長は緑〜黄色領域の光に対応し、その補色である紫〜赤紫色がこの錯体の色として観測される。</p>
+
+    <p>複数のd電子を持つ錯体（$d^2$〜$d^8$）の吸収スペクトルは、電子間反発（Racahパラメータ$B, C$で特徴づけられる項間相互作用）により複雑な形になり、$\Delta_o$と吸収エネルギーの関係は非線形になります。この関係を配位子場の強さ$Dq$の関数として図示したものが<strong>Tanabe-Sugano図（Tanabe-Sugano Diagram）</strong>であり、1954年にY. TanabeとS. Suganoによって導入されました。多くのd電子配置では、同じ対称性・同じスピン多重度を持つ項同士が混じり合うため、エネルギー準位の曲線が場の強さに応じて湾曲します。</p>
+
+    <p>唯一の例外が$d^1$（および高スピン$d^9$）配置です。電子（またはホール）が1個しかないため電子間反発が働かず、基底状態（$^2T_{2g}$）と励起状態（$^2E_g$）のエネルギーは配位子場の強さに対して単純な直線になります。この特別な場合を用いて、Tanabe-Sugano図の考え方を確認します。</p>
+
+    <h3>Python実装: $d^1$系の簡略化Tanabe-Sugano図</h3>
+    <pre class="code-block"><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+# d1系: 電子間反発がないため、エネルギーはDqに対して直線になる
+Dq_over_B = np.linspace(0, 3, 100)  # 慣例に従いDq/Bを横軸にとる(d1ではBに依存しない)
+
+E_ground_2T2g = -4 * Dq_over_B   # -0.4 * 10Dq = -4Dq
+E_excited_2Eg = 6 * Dq_over_B    # +0.6 * 10Dq = +6Dq
+
+plt.figure(figsize=(7, 5))
+plt.plot(Dq_over_B, E_ground_2T2g, color='#f5576c', linewidth=2.5, label='2T2g (基底状態)')
+plt.plot(Dq_over_B, E_excited_2Eg, color='#f093fb', linewidth=2.5, label='2Eg (励起状態)')
+plt.xlabel('Dq/B (配位子場の強さ、慣例的な無次元表示)', fontsize=11)
+plt.ylabel('E/B', fontsize=12)
+plt.title('d1系の簡略化Tanabe-Sugano図', fontsize=14, fontweight='bold')
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.savefig('tanabe_sugano_d1.png', dpi=200)
+plt.show()
+
+print("2Eg - 2T2g = 10Dq = Δo であり、d1系では場の強さに対して常に直線関係になる。")
+</code></pre>
+    <p><strong>実行結果</strong>: $^2T_{2g}$（基底状態）は傾き$-4$、$^2E_g$（励起状態）は傾き$+6$の直線としてプロットされ、両者のエネルギー差は常に$10Dq = \Delta_o$に等しい。$d^2$以上の多電子系では、同じスピン多重度を持つ複数の項（例えば$d^2$の$^3T_{1g}$項は2つ存在する）が場の強さに応じて混じり合うため、エネルギー準位は直線ではなく曲線を描く。</p>
+
+    <div class="mermaid">
+        flowchart TD
+            A[結晶場理論 CFT] --> B[八面体場 Oh]
+            A --> C[正四面体場 Td]
+            B --> B1[t2g軌道: 安定化]
+            B --> B2[eg軌道: 不安定化]
+            C --> C1[e軌道: 安定化]
+            C --> C2[t2軌道: 不安定化]
+            A --> D[配位子場理論 LFT]
+            D --> D1[分光化学系列]
+            D --> D2[高スピン・低スピン]
+            D2 --> E[Jahn-Teller効果]
+            D2 --> F[磁性: 磁気モーメント]
+            D2 --> G[光吸収スペクトル]
+            G --> G1[Tanabe-Sugano図]
+
+            style A fill:#f093fb,stroke:#f5576c,stroke-width:3px,color:#fff
+            style B fill:#f5576c,stroke:#f093fb,stroke-width:2px,color:#fff
+            style C fill:#f5576c,stroke:#f093fb,stroke-width:2px,color:#fff
+            style D fill:#f5576c,stroke:#f093fb,stroke-width:2px,color:#fff
+            style E fill:#f5576c,stroke:#f093fb,stroke-width:2px,color:#fff
+            style F fill:#f5576c,stroke:#f093fb,stroke-width:2px,color:#fff
+            style G fill:#f5576c,stroke:#f093fb,stroke-width:2px,color:#fff
+    </div>
+
+    <h2>演習問題</h2>
+
+    <div class="exercise">
+        <h3>問題1（Easy）: Mn²⁺錯体の磁気モーメント</h3>
+        <p>Mn²⁺（$d^5$）は、弱い場・強い場いずれの配位子でも高スピン配置をとることが多い配位子です（$\Delta_o$が非常に大きいCN⁻のような配位子を除く）。高スピン$d^5$配置の不対電子数と、スピンのみの磁気モーメント$\mu_{eff}$をPythonで計算し、実験的に知られる値（およそ5.9 $\mu_B$）と比較せよ。</p>
+        <div class="solution">
+            <h4>解答</h4>
+<pre class="code-block"><code class="language-python">import numpy as np
+
+n_unpaired = fill_d_orbitals(5, 'high')[2]
+mu_eff = np.sqrt(n_unpaired * (n_unpaired + 2))
+
+print(f"Mn2+ (d5, 高スピン): 不対電子数 = {n_unpaired}")
+print(f"mu_eff (spin-only) = {mu_eff:.2f} muB")
+print(f"実験値の目安: 約5.9 muB, 差: {abs(mu_eff - 5.9):.2f} muB")
+</code></pre>
+            <p><strong>結果</strong>: 不対電子数5個、$\mu_{eff}$=5.92 $\mu_B$。実験値（約5.9 $\mu_B$）とよく一致する。$d^5$高スピンは5つのd軌道すべてに1電子ずつ入る最大不対電子配置であり、遷移金属イオンの中で最大クラスの磁気モーメントを示す。</p>
+        </div>
+    </div>
+
+    <div class="exercise">
+        <h3>問題2（Medium）: Co³⁺錯体の高スピン・低スピン判定</h3>
+        <p>Co³⁺（$d^6$）の対生成エネルギーを$P$≈21000 cm⁻¹とする。弱い場配位子F⁻を持つ$[\text{CoF}_6]^{3-}$（$\Delta_o$≈13000 cm⁻¹）と、強い場配位子NH₃を持つ$[\text{Co(NH}_3)_6]^{3+}$（$\Delta_o$≈23000 cm⁻¹）について、それぞれ高スピン・低スピンのどちらが安定かをPythonで判定せよ。</p>
+        <div class="solution">
+            <h4>解答</h4>
+<pre class="code-block"><code class="language-python">P_Co3 = 21000           # cm^-1, Co3+の対生成エネルギー(概算)
+delta_o_CoF6 = 13000     # cm^-1, [CoF6]3- (弱い場: F-)
+delta_o_CoNH3 = 23000    # cm^-1, [Co(NH3)6]3+ (強い場: NH3)
+
+hs6 = fill_d_orbitals(6, 'high')
+ls6 = fill_d_orbitals(6, 'low')
+extra_pairs = ls6[1] - hs6[1]
+
+for name, do in [('[CoF6]3-', delta_o_CoF6), ('[Co(NH3)6]3+', delta_o_CoNH3)]:
+    E_HS = hs6[0] * do
+    E_LS = ls6[0] * do + extra_pairs * P_Co3
+    state = '高スピン' if E_HS &lt; E_LS else '低スピン'
+    print(f"{name}: E_HS={E_HS:.0f} cm^-1, E_LS={E_LS:.0f} cm^-1 -&gt; {state}が安定")
+</code></pre>
+            <p><strong>結果</strong>: $[\text{CoF}_6]^{3-}$は E_HS=-5200 cm⁻¹ &lt; E_LS=10800 cm⁻¹ となり高スピンが安定。$[\text{Co(NH}_3)_6]^{3+}$は E_LS=-13200 cm⁻¹ &lt; E_HS=-9200 cm⁻¹ となり低スピンが安定。実験的にも$[\text{CoF}_6]^{3-}$は常磁性（高スピン）、$[\text{Co(NH}_3)_6]^{3+}$は反磁性（低スピン、$d^6$完全対生成）であることが知られており、計算結果と一致する。</p>
+        </div>
+    </div>
+
+    <div class="exercise">
+        <h3>問題3（Hard）: d電子配置とJahn-Teller活性の系統的分類</h3>
+        <p>3.4節の<code>fill_d_orbitals</code>関数と<code>jt_activity</code>関数を用いて、$d^1$から$d^9$までのすべての高スピン・低スピン配置について、強いJahn-Teller活性（$e_g$軌道の不均等占有）・弱いJahn-Teller活性（$t_{2g}$軌道のみ不均等占有）・不活性（対称配置）の3グループに分類せよ。また、なぜ$e_g$軌道の不均等占有の方が$t_{2g}$軌道の不均等占有よりもはるかに強いJahn-Teller歪みを引き起こすのか、軌道の空間的な向きの観点から説明せよ。</p>
+        <div class="solution">
+            <h4>解答</h4>
+<pre class="code-block"><code class="language-python">strong_jt = []
+weak_jt = []
+inactive = []
+
+for n in range(1, 10):
+    for spin in ['high', 'low']:
+        _, _, _, occ = fill_d_orbitals(n, spin)
+        t2g_a, eg_a = jt_activity(occ)
+        label = f"d{n}({'HS' if spin == 'high' else 'LS'})"
+        if eg_a:
+            strong_jt.append(label)
+        elif t2g_a:
+            weak_jt.append(label)
+        else:
+            inactive.append(label)
+
+print("強いJahn-Teller活性 (eg軌道が不均等):", strong_jt)
+print("弱いJahn-Teller活性 (t2g軌道のみ不均等):", weak_jt)
+print("Jahn-Teller不活性 (対称配置):", inactive)
+</code></pre>
+            <p><strong>結果</strong>: 強いJahn-Teller活性（$e_g$不均等）は高スピン$d^4$、低スピン$d^7$、$d^9$（高スピン・低スピン共通）で現れる。弱い活性（$t_{2g}$不均等のみ）は$d^1$、$d^2$、高スピン$d^6$、高スピン$d^7$、低スピン$d^5$で現れる。$d^3$、高スピン$d^5$、低スピン$d^6$、$d^8$は対称配置でJahn-Teller不活性である。$e_g$軌道（$d_{z^2}, d_{x^2-y^2}$）は配位子の方向を直接向いているため、その占有の不均等は$\sigma$結合の強さに直接的な非対称性を生み、歪みによる安定化エネルギーが大きい。一方$t_{2g}$軌道は配位子の方向を避けているため、その不均等占有が結合強度に及ぼす影響は間接的（$\pi$相互作用を介する程度）で小さく、観測される歪みも通常は無視できるほど小さい。</p>
+        </div>
+    </div>
+
+    <h2>参考文献</h2>
+    <div class="reference">
+        <p>1. Jahn, H.A., Teller, E. (1937). "Stability of Polyatomic Molecules in Degenerate Electronic States". <em>Proceedings of the Royal Society A</em>, 161(905), 220-235.</p>
+    </div>
+    <div class="reference">
+        <p>2. Tanabe, Y., Sugano, S. (1954). "On the Absorption Spectra of Complex Ions". <em>Journal of the Physical Society of Japan</em>, 9(5), 753-766.</p>
+    </div>
+    <div class="reference">
+        <p>3. Figgis, B.N., Hitchman, M.A. (2000). <em>Ligand Field Theory and Its Applications</em>. Wiley-VCH, pp. 1-90.</p>
+    </div>
+    <div class="reference">
+        <p>4. Miessler, G.L., Fischer, P.J., Tarr, D.A. (2014). <em>Inorganic Chemistry</em>, 5th Edition. Pearson, pp. 375-430.</p>
+    </div>
+    <div class="reference">
+        <p>5. Housecroft, C.E., Sharpe, A.G. (2018). <em>Inorganic Chemistry</em>, 5th Edition. Pearson, pp. 620-670.</p>
+    </div>
+    <div class="reference">
+        <p>6. Orgel, L.E. (1952). "The Effects of Crystal Fields on the Properties of Transition-Metal Ions". <em>Journal of Chemical Physics</em>, 20, 1819.</p>
+    </div>
+    <div class="reference">
+        <p>7. Bethe, H. (1929). "Termaufspaltung in Kristallen". <em>Annalen der Physik</em>, 395(2), 133-208.</p>
+    </div>
+    <div class="reference">
+        <p>8. Shriver, D.F., Atkins, P.W. (2010). <em>Inorganic Chemistry</em>, 5th Edition. W.H. Freeman, pp. 550-600.</p>
+    </div>
+    <div class="reference">
+        <p>9. SciPy Developers. "scipy.optimize.fminbound — SciPy Documentation". https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.fminbound.html</p>
+    </div>
+
+    <h2>学習目標確認</h2>
+    <div class="exercise">
+        <h3>レベル1（基本理解）</h3>
+        <ul>
+            <li>結晶場理論(CFT)の基本的な考え方（配位子を点電荷とみなす近似）を説明できる</li>
+            <li>八面体場での$e_g$/$t_{2g}$分裂、正四面体場での$e$/$t_2$分裂のパターンとその向きの違いを説明できる</li>
+            <li>配位子場理論(LFT)がCFTに共有結合性を取り入れたモデルであることを理解している</li>
+            <li>Jahn-Teller効果が縮退した電子状態の対称性低下によって生じることを理解している</li>
+        </ul>
+
+        <h3>レベル2（実践スキル）</h3>
+        <ul>
+            <li>Pythonでd軌道の角度部分を3次元可視化できる</li>
+            <li>高スピン・低スピン配置ごとのCFSEをコードで計算し、実在錯体の磁性を予測できる</li>
+            <li>スピンのみの磁気モーメントの式から、d電子数に応じた$\mu_{eff}$を計算できる</li>
+            <li>結晶場分裂エネルギーと吸収波長の関係を数値計算し、可視化できる</li>
+        </ul>
+
+        <h3>レベル3（応用力）</h3>
+        <ul>
+            <li>$\Delta_o$と対生成エネルギー$P$の大小関係から、実在錯体の高スピン・低スピンを定量的に予測できる</li>
+            <li>d電子配置ごとにJahn-Teller活性の強弱を軌道の対称性の観点から分類・説明できる</li>
+            <li>$d^1$系の簡略化Tanabe-Sugano図を通じて、多電子系の吸収スペクトルが非線形になる理由を理解している</li>
+            <li>結晶場理論・配位子場理論を用いて、遷移金属錯体の色・磁性を材料設計の視点から議論できる</li>
+        </ul>
+    </div>
+
+    <p style="text-align: center; margin-top: 3rem;">
+        <a href="chapter-2.html" style="color: #f5576c; text-decoration: none; font-weight: bold;">← 第2章</a>
+        <span style="color: #adb5bd; margin: 0 0.8rem;">|</span>
+        <a href="index.html" style="color: #f5576c; text-decoration: none; font-weight: bold;">シリーズ目次</a>
+        <span style="color: #adb5bd; margin: 0 0.8rem;">|</span>
+        <a href="chapter-4.html" style="color: #f5576c; text-decoration: none; font-weight: bold;">第4章 →</a>
+    </p>
+<section class="disclaimer">
+<h3>免責事項</h3>
+<ul>
+<li>本コンテンツは教育・研究・情報提供のみを目的としており、専門的な助言(法律・会計・技術的保証など)を提供するものではありません。</li>
+<li>本コンテンツおよび付随するCode examplesは「現状有姿(AS IS)」で提供され、明示または黙示を問わず、商品性、特定目的適合性、権利非侵害、正確性・完全性、動作・安全性等いかなる保証もしません。</li>
+<li>外部リンク、第三者が提供するデータ・ツール・ライブラリ等の内容・可用性・安全性について、作成者および東北大学は一切の責任を負いません。</li>
+<li>本コンテンツの利用・実行・解釈により直接的・間接的・付随的・特別・結果的・懲罰的損害が生じた場合でも、適用法で許容される最大限の範囲で、作成者および東北大学は責任を負いません。</li>
+<li>本コンテンツの内容は、予告なく変更・更新・提供停止されることがあります。</li>
+<li>本コンテンツの著作権・ライセンスは明記された条件(例: CC BY 4.0)に従います。当該ライセンスは通常、無保証条項を含みます。</li>
+</ul>
+</section>
+
+</body>
+</html>

@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第2章：Tensorの操作 - PyTorch基礎入門 - AI Terakoya</title>
+    <meta name="description" content="PyTorchのTensor操作を学ぶ。作成・初期化、形状操作、インデックス・スライシング、数学演算、ブロードキャスティング、CPU/GPU間のデータ移動を実践的なコード例で理解します。">
+
+    <style>
+        :root {
+            --color-primary: #2c3e50;
+            --color-primary-dark: #1a252f;
+            --color-accent: #7b2cbf;
+            --color-accent-light: #9d4edd;
+            --color-text: #2d3748;
+            --color-text-light: #4a5568;
+            --color-bg: #ffffff;
+            --color-bg-alt: #f7fafc;
+            --color-border: #e2e8f0;
+            --color-code-bg: #f8f9fa;
+            --color-link: #3182ce;
+            --color-link-hover: #2c5aa0;
+
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+
+            --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+            --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+            --border-radius: 8px;
+            --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-body);
+            line-height: 1.7;
+            color: var(--color-text);
+            background-color: var(--color-bg);
+            font-size: 16px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            padding: var(--spacing-xl) var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+            box-shadow: var(--box-shadow);
+        }
+
+        .header-content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: var(--spacing-sm);
+            line-height: 1.2;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            font-weight: 400;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-md);
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-md) var(--spacing-xl);
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-xl);
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-xs);
+            border-bottom: 3px solid var(--color-accent);
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-lg);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        h4 {
+            font-size: 1.1rem;
+            color: var(--color-primary-dark);
+            margin-top: var(--spacing-md);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        p {
+            margin-bottom: var(--spacing-md);
+            color: var(--color-text);
+        }
+
+        a {
+            color: var(--color-link);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        a:hover {
+            color: var(--color-link-hover);
+            text-decoration: underline;
+        }
+
+        ul, ol {
+            margin-left: var(--spacing-lg);
+            margin-bottom: var(--spacing-md);
+        }
+
+        li {
+            margin-bottom: var(--spacing-xs);
+            color: var(--color-text);
+        }
+
+        pre {
+            background-color: var(--color-code-bg);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            overflow-x: auto;
+            margin-bottom: var(--spacing-md);
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        code {
+            font-family: var(--font-mono);
+            font-size: 0.9em;
+            background-color: var(--color-code-bg);
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+        }
+
+        pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: var(--spacing-md);
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            border: 1px solid var(--color-border);
+            padding: var(--spacing-sm);
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--color-bg-alt);
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        blockquote {
+            border-left: 4px solid var(--color-accent);
+            padding-left: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            color: var(--color-text-light);
+            font-style: italic;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        .mermaid {
+            text-align: center;
+            margin: var(--spacing-lg) 0;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        details {
+            background-color: var(--color-bg-alt);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+        }
+
+        summary {
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--color-primary);
+            user-select: none;
+            padding: var(--spacing-xs);
+            margin: calc(-1 * var(--spacing-md));
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        summary:hover {
+            background-color: rgba(123, 44, 191, 0.1);
+        }
+
+        details[open] summary {
+            margin-bottom: var(--spacing-md);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .chapter-description {
+            margin: 1.5rem 0;
+            padding: 1rem;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-left: 4px solid #7b2cbf;
+            border-radius: 8px;
+            font-size: 1.05rem;
+            line-height: 1.8;
+            color: #2d3748;
+        }
+
+        .learning-objectives {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: var(--spacing-lg);
+            border-radius: var(--border-radius);
+            border-left: 4px solid var(--color-accent);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .learning-objectives h2 {
+            margin-top: 0;
+            border-bottom: none;
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            gap: var(--spacing-md);
+            margin: var(--spacing-xl) 0;
+            padding-top: var(--spacing-lg);
+            border-top: 2px solid var(--color-border);
+        }
+
+        .nav-button {
+            flex: 1;
+            padding: var(--spacing-md);
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            border-radius: var(--border-radius);
+            text-align: center;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: var(--box-shadow);
+        }
+
+        .nav-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            text-decoration: none;
+        }
+
+        .nav-button.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: #6c757d;
+        }
+
+        .nav-button.disabled:hover {
+            transform: none;
+            box-shadow: var(--box-shadow);
+        }
+
+        footer {
+            margin-top: var(--spacing-xl);
+            padding: var(--spacing-lg) var(--spacing-md);
+            background-color: var(--color-bg-alt);
+            border-top: 1px solid var(--color-border);
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--color-text-light);
+        }
+        .disclaimer {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 1.5rem;
+            background: #f8f9fa;
+            border-left: 4px solid #6c757d;
+            border-radius: 4px;
+        }
+
+        .disclaimer h3 {
+            color: #495057;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .disclaimer ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .disclaimer li {
+            padding: 0.5rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+            font-size: 0.9rem;
+            color: #6c757d;
+            line-height: 1.6;
+        }
+
+        .disclaimer li::before {
+            content: "⚠️";
+            position: absolute;
+            left: 0;
+        }
+
+        /* Breadcrumb styles */
+        .breadcrumb {
+            background: #f7fafc;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+        }
+
+        .breadcrumb-content {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .breadcrumb a {
+            color: #667eea;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .breadcrumb a:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+
+        .breadcrumb-separator {
+            color: #a0aec0;
+            margin: 0 0.25rem;
+        }
+
+        .breadcrumb-current {
+            color: #4a5568;
+            font-weight: 500;
+        }
+
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            border-radius: var(--border-radius);
+        }
+
+        .warning-box {
+            background: #fff3e0;
+            border-left: 4px solid #ff9800;
+            padding: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            border-radius: var(--border-radius);
+        }
+
+        .success-box {
+            background: #e8f5e9;
+            border-left: 4px solid #4caf50;
+            padding: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            border-radius: var(--border-radius);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 1rem 2rem;
+            }
+
+            h1 {
+                font-size: 1.6rem;
+            }
+
+            h2 {
+                font-size: 1.4rem;
+            }
+
+            .navigation {
+                flex-direction: column;
+            }
+        }
+    </style>
+
+    <!-- Mermaid for diagrams -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <!-- Prism.js for syntax highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <!-- MathJax for equations -->
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <script>
+        // Mermaid.js initialization
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof mermaid !== 'undefined') {
+                mermaid.initialize({ startOnLoad: true, theme: 'default' });
+            }
+        });
+    </script>
+</head>
+<body>
+    <nav class="breadcrumb">
+        <div class="breadcrumb-content">
+            <a href="../../index.html">AI寺子屋トップ</a><span class="breadcrumb-separator">›</span><a href="../index.html">機械学習</a><span class="breadcrumb-separator">›</span><a href="./index.html">PyTorch基礎入門</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">第2章</span>
+        </div>
+    </nav>
+
+    <header>
+        <div class="header-content">
+            <h1>第2章：Tensorの操作</h1>
+            <p class="subtitle">様々な方法でTensorを作成し、自在に操作する</p>
+            <div class="meta">
+                <span class="meta-item">📖 読了時間: 25-30分</span>
+                <span class="meta-item">📊 難易度: 初級</span>
+                <span class="meta-item">💻 コード例: 18個</span>
+                <span class="meta-item">📝 演習: 3問</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="chapter-description">
+            <p>この章では、PyTorchの中心的なデータ構造である<strong>Tensor</strong>を、思い通りに作成・変形・抽出・演算できるようになることを目指します。第1章で学んだTensorの基本を土台に、多彩な生成方法、形状操作、インデックス・スライシング、行列演算、そして初学者がつまずきやすい<strong>ブロードキャスティング（Broadcasting）</strong>の仕組み、さらにCPUとGPU間でのデータ移動までを、実際に動くコードとともに一つずつ確認していきます。</p>
+        </div>
+
+        <div class="learning-objectives">
+            <h2>学習目標</h2>
+            <ul>
+                <li>✅ 様々な方法でTensorを作成・初期化できる</li>
+                <li>✅ Tensorの形状を自在に操作できる</li>
+                <li>✅ インデックス・スライシングでデータを抽出できる</li>
+                <li>✅ ブロードキャスティングの仕組みを理解する</li>
+                <li>✅ CPU/GPU間でTensorを移動できる</li>
+            </ul>
+        </div>
+
+        <h2 id="tensor-creation">1. Tensorの作成と初期化</h2>
+
+        <p>第1章では<code>torch.tensor()</code>、<code>torch.zeros()</code>、<code>torch.ones()</code>、<code>torch.rand()</code>、<code>torch.randn()</code>といった基本的なTensor生成方法を紹介しました。ここでは、それらに加えて実務でよく使う生成関数と、データ型（dtype）の指定方法を整理します。</p>
+
+        <h3>様々な生成関数</h3>
+
+        <p>PyTorchには目的に応じた多様なTensor生成関数が用意されています。</p>
+
+        <pre><code class="language-python">import torch
+
+# 等差数列（開始, 終了(含まない), ステップ）
+r = torch.arange(0, 10, 2)
+print(f"arange: {r}")
+# 出力: arange: tensor([0, 2, 4, 6, 8])
+
+# 指定した範囲を等間隔に分割
+lin = torch.linspace(0, 1, steps=5)
+print(f"linspace: {lin}")
+# 出力: linspace: tensor([0.0000, 0.2500, 0.5000, 0.7500, 1.0000])
+
+# 単位行列
+identity = torch.eye(3)
+print(f"eye:\n{identity}")
+
+# 指定した値で埋めたTensor
+filled = torch.full((2, 3), 7)
+print(f"full:\n{filled}")
+
+# 0〜9の整数からランダムに3x3のTensorを生成
+randint_tensor = torch.randint(low=0, high=10, size=(3, 3))
+print(f"randint:\n{randint_tensor}")
+</code></pre>
+
+        <h3>データ型（dtype）の指定とキャスト</h3>
+
+        <p>Tensorには要素のデータ型を表す<strong>dtype（data type）</strong>があり、明示的に指定しない場合はPythonの数値リテラルから自動推論されます（整数のリストなら<code>int64</code>、小数を含むリストなら<code>float32</code>）。</p>
+
+        <pre><code class="language-python">import torch
+
+# dtypeを明示的に指定して作成
+int_tensor = torch.tensor([1, 2, 3], dtype=torch.int32)
+float_tensor = torch.tensor([1, 2, 3], dtype=torch.float64)
+print(f"int32: {int_tensor.dtype}, float64: {float_tensor.dtype}")
+
+# dtypeの変換（キャスト）
+x = torch.tensor([1.5, 2.7, 3.9])
+print(f"元のdtype: {x.dtype}")
+
+x_int = x.to(torch.int64)   # .to()で変換
+x_int2 = x.long()           # 専用メソッドでも変換可能
+x_float32 = x_int.float()   # int から float32 へ
+
+print(f"to(int64): {x_int}, dtype={x_int.dtype}")
+print(f".long(): {x_int2}")
+print(f".float(): {x_float32}, dtype={x_float32.dtype}")
+</code></pre>
+
+        <div class="info-box">
+            <p><strong>💡 dtypeの不一致に注意</strong></p>
+            <p>異なるdtype同士のTensorを演算しようとすると、エラーになったり意図しない自動変換が起きたりすることがあります。特に<code>float32</code>と<code>float64</code>が混在する場合は要注意です。演算前に<code>.dtype</code>を確認する習慣をつけましょう。</p>
+        </div>
+
+        <h3>既存Tensorを鋳型にした生成（_like関数）</h3>
+
+        <p>既存のTensorと同じ形状・dtype・デバイスを持つ新しいTensorを作りたい場合、<code>_like</code>が付く関数群が便利です。</p>
+
+        <pre><code class="language-python">import torch
+
+original = torch.randn(2, 3, dtype=torch.float64)
+print(f"元のTensor: shape={original.shape}, dtype={original.dtype}")
+
+zeros_copy = torch.zeros_like(original)
+ones_copy = torch.ones_like(original)
+randn_copy = torch.randn_like(original)
+
+print(f"zeros_like: shape={zeros_copy.shape}, dtype={zeros_copy.dtype}")
+print(f"ones_like: shape={ones_copy.shape}, dtype={ones_copy.dtype}")
+print(f"randn_like: shape={randn_copy.shape}, dtype={randn_copy.dtype}")
+</code></pre>
+
+        <h2 id="shape-operations">2. 形状操作（reshape, view, transpose）</h2>
+
+        <p>ディープラーニングでは、畳み込み層の出力を全結合層に渡す前に平坦化したり、バッチ処理のために次元の並びを変えたりと、Tensorの形状を変換する場面が頻繁にあります。ここでは代表的な形状操作を見ていきます。</p>
+
+        <h3>reshape() と view() の違い</h3>
+
+        <p>第1章で軽く触れた<code>reshape()</code>と<code>view()</code>は、どちらも要素数を変えずに形状を変更しますが、内部的な挙動が異なります。<code>view()</code>はTensorがメモリ上で<strong>連続（contiguous）</strong>である場合にのみ使え、元のデータとメモリを共有します。<code>reshape()</code>は可能な限り<code>view()</code>と同じようにメモリを共有しますが、連続でない場合は自動的にコピーを作成して対応します。</p>
+
+        <pre><code class="language-python">import torch
+
+x = torch.arange(12).reshape(3, 4)
+print(f"x:\n{x}")
+print(f"is_contiguous: {x.is_contiguous()}")
+
+# 転置するとメモリレイアウトが不連続になる
+x_t = x.t()
+print(f"x_t.is_contiguous(): {x_t.is_contiguous()}")
+
+# view()は不連続なTensorには使えない
+try:
+    x_t.view(12)
+except RuntimeError as e:
+    print(f"view()でエラー: {e}")
+
+# reshape()は内部でコピーして自動的に対応する
+y = x_t.reshape(12)
+print(f"reshape()は成功: {y}")
+
+# view()を使いたい場合はcontiguous()を先に呼ぶ
+z = x_t.contiguous().view(12)
+print(f"contiguous().view()も成功: {z}")
+</code></pre>
+
+        <h3>transpose() と permute()</h3>
+
+        <p><code>transpose(dim0, dim1)</code>は指定した2つの次元を入れ替えます。3次元以上のTensorで複数の次元を一度に並び替えたい場合は<code>permute()</code>を使います。</p>
+
+        <pre><code class="language-python">import torch
+
+# 例: 画像データ (channel, height, width) を (height, width, channel) に変換
+image = torch.randn(3, 32, 32)  # C=3, H=32, W=32
+print(f"元の形状 (C, H, W): {image.shape}")
+
+# transposeは2つの次元だけを入れ替える
+transposed = image.transpose(0, 2)
+print(f"transpose(0, 2): {transposed.shape}")
+
+# permuteは次元の並びを自由に指定できる
+permuted = image.permute(1, 2, 0)  # (H, W, C)
+print(f"permute(1, 2, 0): {permuted.shape}")
+</code></pre>
+
+        <h3>flatten() による平坦化</h3>
+
+        <pre><code class="language-python">import torch
+
+x = torch.randn(2, 3, 4)
+
+# 全体を1次元に平坦化
+flat_all = x.flatten()
+print(f"flatten(): {flat_all.shape}")  # torch.Size([24])
+
+# start_dimを指定すると、それ以降の次元だけをまとめる
+# （バッチ次元を保ったまま平坦化する典型的な用途）
+flat_from_1 = x.flatten(start_dim=1)
+print(f"flatten(start_dim=1): {flat_from_1.shape}")  # torch.Size([2, 12])
+</code></pre>
+
+        <h2 id="indexing-slicing">3. インデックスとスライシング</h2>
+
+        <p>NumPyに慣れている方には馴染み深いインデックス（index）とスライス（slice）の記法が、PyTorchでもほぼそのまま使えます。</p>
+
+        <h3>基本的なインデックスとスライス</h3>
+
+        <pre><code class="language-python">import torch
+
+x = torch.arange(24).reshape(4, 6)
+print(f"x:\n{x}")
+
+print(f"x[0]: {x[0]}")               # 1行目
+print(f"x[0, 3]: {x[0, 3]}")         # 1行4列目の要素
+print(f"x[1:3]:\n{x[1:3]}")          # 2〜3行目
+print(f"x[:, 2]: {x[:, 2]}")         # 全行の3列目
+print(f"x[:, 1:4]:\n{x[:, 1:4]}")    # 全行の2〜4列目
+print(f"x[::2]:\n{x[::2]}")          # 1つおきの行
+
+# スカラーTensorから通常のPython数値を取り出す
+scalar = x[0, 0]
+print(f"scalar: {scalar}, item(): {scalar.item()}")
+</code></pre>
+
+        <h3>ブールマスクによるインデックス</h3>
+
+        <p>条件を満たす要素だけを抽出したいときは、比較演算の結果（ブールTensor）をインデックスとして使います。</p>
+
+        <pre><code class="language-python">import torch
+
+x = torch.tensor([[1, -2, 3], [-4, 5, -6]])
+
+mask = x &gt; 0
+print(f"mask:\n{mask}")
+
+positive_values = x[mask]
+print(f"正の値のみ: {positive_values}")
+
+# 条件を満たす要素だけを書き換える
+x[x &lt; 0] = 0
+print(f"負の値を0に置換:\n{x}")
+</code></pre>
+
+        <h3>高度なインデックス（Fancy Indexing）とEllipsis</h3>
+
+        <pre><code class="language-python">import torch
+
+x = torch.arange(10) * 10  # tensor([0, 10, 20, ..., 90])
+
+# 整数のTensorを使って複数要素を同時に取得
+indices = torch.tensor([0, 2, 5])
+print(f"fancy indexing: {x[indices]}")
+
+# 多次元Tensorで、特定の次元だけ指定し残りは省略する
+y = torch.randn(2, 3, 4, 5)
+print(f"y[..., 0].shape: {y[..., 0].shape}")   # 最後の次元だけ0番目を選択
+print(f"y[0, ..., 0].shape: {y[0, ..., 0].shape}")
+
+# 高度なインデックスは元データのコピーを返す（メモリを共有しない）
+sub = x[indices]
+sub[0] = -999
+print(f"元のxは変化しない: {x[0]}")
+</code></pre>
+
+        <div class="warning-box">
+            <p><strong>⚠️ ビューとコピーの違い</strong></p>
+            <p>通常のスライス（<code>x[1:3]</code>など）は元のTensorとメモリを共有する「ビュー（view）」を返しますが、ブールマスクや整数Tensorによる高度なインデックスは新しいメモリを確保した「コピー」を返します。ビューを変更すると元のTensorにも影響するため、この違いを意識しておくとバグを防げます。</p>
+        </div>
+
+        <h2 id="math-operations">4. 数学演算と行列演算</h2>
+
+        <p>第1章では要素ごとの四則演算と単純な行列積を扱いました。ここでは集約演算（reduction）とバッチ行列積を含め、より実践的な演算を整理します。</p>
+
+        <h3>集約演算（sum, mean, max, min など）</h3>
+
+        <pre><code class="language-python">import torch
+
+x = torch.tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])
+
+print(f"合計: {x.sum()}")
+print(f"平均: {x.mean()}")
+print(f"最大値: {x.max()}")
+print(f"最小値: {x.min()}")
+
+# dim引数で集約する軸を指定できる
+print(f"列方向(dim=0)の合計: {x.sum(dim=0)}")   # tensor([5., 7., 9.])
+print(f"行方向(dim=1)の合計: {x.sum(dim=1)}")   # tensor([6., 15.])
+
+# 最大値のインデックスを取得
+print(f"全体の最大値のインデックス: {x.argmax()}")
+print(f"行ごとの最大値のインデックス: {x.argmax(dim=1)}")
+
+# keepdimで次元数を保ったまま集約する
+print(f"keepdim=True: {x.sum(dim=1, keepdim=True).shape}")  # torch.Size([2, 1])
+</code></pre>
+
+        <h3>行列積とバッチ行列積</h3>
+
+        <pre><code class="language-python">import torch
+
+# 2次元同士の行列積（第1章の復習）
+A = torch.randn(3, 4)
+B = torch.randn(4, 5)
+C = A @ B  # torch.matmul(A, B) と同じ
+print(f"A @ B の形状: {C.shape}")  # torch.Size([3, 5])
+
+# バッチ行列積: 複数の行列を一度にまとめて計算する
+batch_A = torch.randn(10, 3, 4)  # バッチサイズ10、各3x4行列
+batch_B = torch.randn(10, 4, 5)  # バッチサイズ10、各4x5行列
+
+batch_C = torch.bmm(batch_A, batch_B)
+print(f"バッチ行列積の形状: {batch_C.shape}")  # torch.Size([10, 3, 5])
+
+# torch.matmul()はバッチ次元を自動認識するため、bmm()の代わりに使うこともできる
+batch_C2 = torch.matmul(batch_A, batch_B)
+print(f"同じ結果か: {torch.allclose(batch_C, batch_C2)}")
+</code></pre>
+
+        <h3>比較演算</h3>
+
+        <pre><code class="language-python">import torch
+
+x = torch.tensor([1, 2, 3, 4])
+y = torch.tensor([4, 3, 2, 1])
+
+print(f"x == y: {x == y}")
+print(f"x &gt; y: {x &gt; y}")
+print(f"torch.eq(x, y): {torch.eq(x, y)}")
+
+# 全要素が等しいか / いずれかが条件を満たすか
+print(f"全て等しいか: {torch.equal(x, x)}")
+print(f"どれか1つでもTrueか: {(x &gt; 2).any()}")
+print(f"全てTrueか: {(x &gt; 0).all()}")
+</code></pre>
+
+        <h2 id="broadcasting">5. ブロードキャスティング</h2>
+
+        <p>異なる形状のTensor同士を演算しようとすると多くの場合エラーになりますが、一定の規則を満たす場合はPyTorchが自動的に形状を「拡張」して演算を可能にします。これを<strong>ブロードキャスティング（Broadcasting）</strong>と呼びます。NumPyのブロードキャスティングと同じ規則です。</p>
+
+        <h3>ブロードキャスティングの規則</h3>
+
+        <p>2つのTensorを演算する際、PyTorchは以下の手順で形状を比較します。</p>
+
+        <ol>
+            <li>形状を末尾（右端）の次元から順に比較する</li>
+            <li>各次元のサイズが等しいか、どちらか一方が1であれば互換性があるとみなす</li>
+            <li>一方のTensorの次元数が少ない場合、足りない次元は先頭にサイズ1が補われたものとして扱われる</li>
+            <li>すべての次元で互換性があれば、サイズ1の次元はもう一方のサイズに合わせて仮想的に「拡張」される（実際にメモリはコピーされない）</li>
+        </ol>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Tensor A の形状</th>
+                    <th>Tensor B の形状</th>
+                    <th>結果の形状</th>
+                    <th>可否</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>(3, 4)</td>
+                    <td>(4,)</td>
+                    <td>(3, 4)</td>
+                    <td>✅ 可能</td>
+                </tr>
+                <tr>
+                    <td>(3, 1)</td>
+                    <td>(1, 4)</td>
+                    <td>(3, 4)</td>
+                    <td>✅ 可能</td>
+                </tr>
+                <tr>
+                    <td>(5, 3, 4)</td>
+                    <td>(3, 4)</td>
+                    <td>(5, 3, 4)</td>
+                    <td>✅ 可能</td>
+                </tr>
+                <tr>
+                    <td>(3, 4)</td>
+                    <td>(3,)</td>
+                    <td>—</td>
+                    <td>❌ 不可（末尾の次元が4と3で不一致）</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>具体例</h3>
+
+        <pre><code class="language-python">import torch
+
+# 例1: スカラーとTensor
+x = torch.tensor([1.0, 2.0, 3.0])
+print(f"x + 10: {x + 10}")  # 10がすべての要素に加算される
+
+# 例2: 形状(3,4)と形状(4,)
+a = torch.ones(3, 4)
+b = torch.tensor([1.0, 2.0, 3.0, 4.0])  # 形状(4,)
+print(f"a + b の形状: {(a + b).shape}")  # torch.Size([3, 4])
+print(f"a + b:\n{a + b}")
+
+# 例3: 形状(3,1)と形状(1,4) を (3,4) に拡張
+c = torch.tensor([[1.0], [2.0], [3.0]])       # 形状(3, 1)
+d = torch.tensor([[10.0, 20.0, 30.0, 40.0]])  # 形状(1, 4)
+print(f"c + d の形状: {(c + d).shape}")  # torch.Size([3, 4])
+print(f"c + d:\n{c + d}")
+
+# 例4: 3次元と2次元
+e = torch.ones(5, 3, 4)
+f = torch.randn(3, 4)
+print(f"e + f の形状: {(e + f).shape}")  # torch.Size([5, 3, 4])
+</code></pre>
+
+        <h3>互換性のない形状の場合</h3>
+
+        <pre><code class="language-python">import torch
+
+x = torch.ones(3, 4)
+y = torch.ones(3)  # 形状(3,) は末尾の次元がxの4と一致しない
+
+try:
+    z = x + y
+except RuntimeError as e:
+    print(f"ブロードキャスティングエラー: {e}")
+</code></pre>
+
+        <h3>実践例：特徴量の正規化</h3>
+
+        <p>ブロードキャスティングは、バッチデータの各特徴量を平均・標準偏差で正規化する処理で非常によく使われます。</p>
+
+        <pre><code class="language-python">import torch
+
+# 5サンプル x 3特徴量のデータ
+data = torch.tensor([
+    [1.0, 100.0, 0.5],
+    [2.0, 150.0, 0.7],
+    [3.0, 200.0, 0.9],
+    [4.0, 250.0, 1.1],
+    [5.0, 300.0, 1.3],
+])
+
+# 各特徴量（列）ごとの平均と標準偏差を計算
+mean = data.mean(dim=0)   # 形状(3,)
+std = data.std(dim=0)     # 形状(3,)
+print(f"平均: {mean}")
+print(f"標準偏差: {std}")
+
+# ブロードキャスティングにより、(5,3)のdataから(3,)のmeanを
+# 各行に対してまとめて引き算・除算できる
+normalized = (data - mean) / std
+print(f"正規化後:\n{normalized}")
+print(f"正規化後の平均: {normalized.mean(dim=0)}")  # ほぼ0
+</code></pre>
+
+        <h2 id="cpu-gpu">6. CPU/GPU間のデータ移動</h2>
+
+        <p>第1章では基本的な<code>.to(device)</code>を紹介しました。ここでは、実務でよく使うパターンと注意点を確認します。</p>
+
+        <h3>デバイスの指定とTensorの生成</h3>
+
+        <pre><code class="language-python">import torch
+
+# 利用可能なデバイスを自動判定
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(f"使用デバイス: {device}")
+
+# 方法1: 作成後に移動する
+x = torch.randn(3, 3)
+x = x.to(device)
+
+# 方法2: 作成時に直接デバイスを指定する（中間コピーが発生せず効率的）
+y = torch.randn(3, 3, device=device)
+
+print(f"x.device: {x.device}, y.device: {y.device}")
+
+# .cuda() / .cpu() でも移動できる（GPUが無い環境では.cuda()はエラーになる）
+if torch.cuda.is_available():
+    z = torch.randn(3, 3).cuda()
+    print(f"z.device: {z.device}")
+    z_back = z.cpu()
+    print(f"z_back.device: {z_back.device}")
+else:
+    print("GPUが利用できないため、.cuda()の例はスキップします")
+</code></pre>
+
+        <h3>デバイスの不一致によるエラー</h3>
+
+        <p>異なるデバイス上にあるTensor同士を演算しようとすると、エラーになります。モデルとデータは必ず同じデバイスに揃える必要があります。</p>
+
+        <pre><code class="language-python">import torch
+
+if torch.cuda.is_available():
+    x_cpu = torch.randn(3, 3)
+    x_gpu = torch.randn(3, 3).to("cuda")
+    try:
+        result = x_cpu + x_gpu
+    except RuntimeError as e:
+        print(f"デバイス不一致エラー: {e}")
+    # 正しい方法: 片方をもう一方に揃える
+    result = x_cpu.to("cuda") + x_gpu
+    print(f"揃えれば成功: {result.device}")
+else:
+    print("この環境にはGPUがないため、デバイス不一致エラーは再現できません。")
+    print("概念としては、CPU上のTensorとGPU上のTensorを直接演算するとRuntimeErrorになります。")
+</code></pre>
+
+        <h3>複数のTensorをまとめて移動する</h3>
+
+        <pre><code class="language-python">import torch
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+tensors = {
+    "weights": torch.randn(10, 10),
+    "bias": torch.randn(10),
+    "input": torch.randn(5, 10),
+}
+
+# 辞書内包表記で一括して同じデバイスに移動
+tensors = {name: t.to(device) for name, t in tensors.items()}
+
+for name, t in tensors.items():
+    print(f"{name}: device={t.device}, shape={t.shape}")
+</code></pre>
+
+        <div class="warning-box">
+            <p><strong>⚠️ .to()の戻り値に注意</strong></p>
+            <p>Tensorの<code>.to()</code>はデバイス変換が必要な場合、新しいTensorを返します（同じデバイス・dtypeなら元のTensorをそのまま返すこともあります）。そのため<code>x = x.to(device)</code>のように必ず戻り値を再代入してください。一方、モデル（<code>nn.Module</code>）の<code>.to()</code>はモデル自身をその場で書き換えるため、<code>model.to(device)</code>だけでも移動しますが、変数への再代入をしておくと挙動が統一され、可読性も上がります。</p>
+        </div>
+
+        <h2 id="exercises">演習問題</h2>
+
+        <details>
+            <summary><strong>演習1：形状操作の組み合わせ</strong></summary>
+            <p>形状<code>(2, 3, 4)</code>のランダムTensorを<code>torch.randn()</code>で作成し、次の手順を実装してください。</p>
+            <ol>
+                <li><code>permute()</code>を使って形状を<code>(4, 2, 3)</code>に並べ替える</li>
+                <li>その結果に対して<code>flatten(start_dim=1)</code>を適用し、形状を<code>(4, 6)</code>にする</li>
+            </ol>
+            <p><strong>解答例：</strong></p>
+            <pre><code class="language-python">import torch
+
+x = torch.randn(2, 3, 4)
+permuted = x.permute(2, 0, 1)   # (4, 2, 3)
+print(f"permute後: {permuted.shape}")
+
+flattened = permuted.flatten(start_dim=1)  # (4, 6)
+print(f"flatten後: {flattened.shape}")
+</code></pre>
+        </details>
+
+        <details>
+            <summary><strong>演習2：インデックスとブロードキャスティング</strong></summary>
+            <p><code>torch.arange(25).reshape(5, 5)</code>で5x5のTensorを作成し、次の操作を行ってください。</p>
+            <ol>
+                <li>対角成分（0行0列〜4行4列）だけを取り出す</li>
+                <li>ブロードキャスティングを使って、各行から「その行の最大値」を引く</li>
+            </ol>
+            <p><strong>解答例：</strong></p>
+            <pre><code class="language-python">import torch
+
+x = torch.arange(25).reshape(5, 5).float()
+
+# 対角成分の取得
+diagonal = torch.diagonal(x)
+print(f"対角成分: {diagonal}")
+# 別解: x[torch.arange(5), torch.arange(5)]
+
+# 各行の最大値を引く（ブロードキャスティング）
+row_max = x.max(dim=1, keepdim=True).values  # 形状(5, 1)
+result = x - row_max
+print(f"各行の最大値を引いた結果:\n{result}")
+</code></pre>
+        </details>
+
+        <details>
+            <summary><strong>演習3：CPU/GPU間のデータ移動</strong></summary>
+            <p>3x3のランダムTensorをCPU上に作成し、利用可能なデバイス（GPUがあればGPU、なければCPU）に移動して、そのTensor自身との行列積（<code>A @ A</code>）を計算し、結果をCPUに戻してください。</p>
+            <p><strong>解答例：</strong></p>
+            <pre><code class="language-python">import torch
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+A = torch.randn(3, 3).to(device)
+result = A @ A
+result_cpu = result.cpu()
+
+print(f"計算デバイス: {A.device}")
+print(f"結果 (CPU上):\n{result_cpu}")
+</code></pre>
+        </details>
+
+        <h2 id="summary">まとめ</h2>
+
+        <p>この章では、PyTorchのTensorを自在に操作するための基礎を学びました。</p>
+
+        <ul>
+            <li>✅ <code>arange</code>・<code>linspace</code>・<code>eye</code>・<code>full</code>・<code>_like</code>系関数など、様々な方法でTensorを作成・初期化できる</li>
+            <li>✅ <code>reshape</code>・<code>view</code>・<code>transpose</code>・<code>permute</code>・<code>flatten</code>でTensorの形状を自在に操作できる</li>
+            <li>✅ 基本インデックス、スライス、ブールマスク、Fancy Indexingでデータを抽出できる</li>
+            <li>✅ 集約演算やバッチ行列積など、実践的な数学演算・行列演算を実行できる</li>
+            <li>✅ ブロードキャスティングの規則を理解し、異なる形状のTensor同士を安全に演算できる</li>
+            <li>✅ <code>.to(device)</code>を使ってCPU/GPU間でTensorを移動できる</li>
+        </ul>
+
+        <div class="success-box">
+            <p><strong>🎉 次のステップ</strong></p>
+            <p>Tensorを自在に操作できるようになったら、次はいよいよニューラルネットワークの構築です。続く第3章では、自動微分（autograd）をさらに深く掘り下げ、<code>nn.Module</code>を使ったモデル定義や、学習ループの実装へと進んでいきます。</p>
+        </div>
+
+        <div class="navigation">
+            <a href="./chapter-1.html" class="nav-button">← 第1章</a>
+            <a href="./index.html" class="nav-button">シリーズ目次</a>
+            <a href="./chapter-3.html" class="nav-button">第3章 →</a>
+        </div>
+
+        <hr style="margin: 2rem 0;">
+
+        <p><strong>参考リソース</strong></p>
+        <ul>
+            <li><a href="https://pytorch.org/docs/stable/tensors.html" target="_blank">PyTorch公式ドキュメント: torch.Tensor</a></li>
+            <li><a href="https://pytorch.org/docs/stable/notes/broadcasting.html" target="_blank">PyTorch公式ドキュメント: Broadcasting semantics</a></li>
+            <li><a href="https://pytorch.org/tutorials/" target="_blank">PyTorch公式チュートリアル</a></li>
+            <li><a href="https://github.com/pytorch/pytorch" target="_blank">PyTorch GitHub</a></li>
+        </ul>
+
+    </main>
+
+    <section class="disclaimer">
+        <h3>免責事項</h3>
+        <ul>
+            <li>本コンテンツは教育・研究・情報提供のみを目的としており、専門的な助言(法律・会計・技術的保証など)を提供するものではありません。</li>
+            <li>本コンテンツおよび付随するコード例は「現状有姿(AS IS)」で提供され、明示または黙示を問わず、商品性、特定目的適合性、権利非侵害、正確性・完全性、動作・安全性等いかなる保証もしません。</li>
+            <li>外部リンク、第三者が提供するデータ・ツール・ライブラリ等の内容・可用性・安全性について、作成者および東北大学は一切の責任を負いません。</li>
+            <li>本コンテンツの利用・実行・解釈により直接的・間接的・付随的・特別・結果的・懲罰的損害が生じた場合でも、適用法で許容される最大限の範囲で、作成者および東北大学は責任を負いません。</li>
+            <li>本コンテンツの内容は、予告なく変更・更新・提供停止されることがあります。</li>
+            <li>本コンテンツの著作権・ライセンスは明記された条件(例: CC BY 4.0)に従います。当該ライセンスは通常、無保証条項を含みます。</li>
+        </ul>
+    </section>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 AI Terakoya - Dr. Yusuke Hashimoto, Tohoku University</p>
+            <p>Licensed under CC BY 4.0</p>
+        </div>
+    </footer>
+</body>
+</html>

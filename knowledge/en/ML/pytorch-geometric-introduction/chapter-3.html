@@ -1,0 +1,1342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chapter 3: Advanced GNN Architectures - PyTorch Geometric Introduction - AI Terakoya</title>
+  <meta name="description" content="Learn Graph Attention Networks (GAT), GraphSAGE, graph pooling, graph classification, link prediction, and how to work with heterogeneous graphs. Understand advanced GNN architectures through practical code examples using GATConv, SAGEConv, and HeteroConv from torch_geometric.nn.">
+
+  <style>
+    :root {
+      --color-primary: #2c3e50;
+      --color-primary-dark: #1a252f;
+      --color-accent: #7b2cbf;
+      --color-accent-light: #9d4edd;
+      --color-text: #2d3748;
+      --color-text-light: #4a5568;
+      --color-bg: #ffffff;
+      --color-bg-alt: #f7fafc;
+      --color-border: #e2e8f0;
+      --color-code-bg: #f8f9fa;
+      --color-link: #3182ce;
+      --color-link-hover: #2c5aa0;
+
+      --spacing-xs: 0.5rem;
+      --spacing-sm: 1rem;
+      --spacing-md: 1.5rem;
+      --spacing-lg: 2rem;
+      --spacing-xl: 3rem;
+
+      --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+      --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+      --border-radius: 8px;
+      --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: var(--font-body);
+      line-height: 1.7;
+      color: var(--color-text);
+      background-color: var(--color-bg);
+      font-size: 16px;
+    }
+
+    header {
+      background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+      color: white;
+      padding: var(--spacing-xl) var(--spacing-md);
+      margin-bottom: var(--spacing-xl);
+      box-shadow: var(--box-shadow);
+    }
+
+    .header-content {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: var(--spacing-sm);
+      line-height: 1.2;
+    }
+
+    .subtitle {
+      font-size: 1.1rem;
+      opacity: 0.95;
+      font-weight: 400;
+      margin-bottom: var(--spacing-md);
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--spacing-md);
+      font-size: 0.9rem;
+      opacity: 0.9;
+    }
+
+    .meta-item {
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 var(--spacing-md) var(--spacing-xl);
+    }
+
+    h2 {
+      font-size: 1.75rem;
+      color: var(--color-primary);
+      margin-top: var(--spacing-xl);
+      margin-bottom: var(--spacing-md);
+      padding-bottom: var(--spacing-xs);
+      border-bottom: 3px solid var(--color-accent);
+    }
+
+    h3 {
+      font-size: 1.4rem;
+      color: var(--color-primary);
+      margin-top: var(--spacing-lg);
+      margin-bottom: var(--spacing-sm);
+    }
+
+    h4 {
+      font-size: 1.1rem;
+      color: var(--color-primary-dark);
+      margin-top: var(--spacing-md);
+      margin-bottom: var(--spacing-sm);
+    }
+
+    p {
+      margin-bottom: var(--spacing-md);
+      color: var(--color-text);
+    }
+
+    a {
+      color: var(--color-link);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    a:hover {
+      color: var(--color-link-hover);
+      text-decoration: underline;
+    }
+
+    ul, ol {
+      margin-left: var(--spacing-lg);
+      margin-bottom: var(--spacing-md);
+    }
+
+    li {
+      margin-bottom: var(--spacing-xs);
+      color: var(--color-text);
+    }
+
+    pre {
+      background-color: var(--color-code-bg);
+      border: 1px solid var(--color-border);
+      border-radius: var(--border-radius);
+      padding: var(--spacing-md);
+      overflow-x: auto;
+      margin-bottom: var(--spacing-md);
+      font-family: var(--font-mono);
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: 0.9em;
+      background-color: var(--color-code-bg);
+      padding: 0.2em 0.4em;
+      border-radius: 3px;
+    }
+
+    pre code {
+      background-color: transparent;
+      padding: 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: var(--spacing-md);
+      font-size: 0.95rem;
+    }
+
+    th, td {
+      border: 1px solid var(--color-border);
+      padding: var(--spacing-sm);
+      text-align: left;
+    }
+
+    th {
+      background-color: var(--color-bg-alt);
+      font-weight: 600;
+      color: var(--color-primary);
+    }
+
+    blockquote {
+      border-left: 4px solid var(--color-accent);
+      padding-left: var(--spacing-md);
+      margin: var(--spacing-md) 0;
+      color: var(--color-text-light);
+      font-style: italic;
+      background-color: var(--color-bg-alt);
+      padding: var(--spacing-md);
+      border-radius: var(--border-radius);
+    }
+
+    .mermaid {
+      text-align: center;
+      margin: var(--spacing-lg) 0;
+      background-color: var(--color-bg-alt);
+      padding: var(--spacing-md);
+      border-radius: var(--border-radius);
+    }
+
+    details {
+      background-color: var(--color-bg-alt);
+      border: 1px solid var(--color-border);
+      border-radius: var(--border-radius);
+      padding: var(--spacing-md);
+      margin-bottom: var(--spacing-md);
+    }
+
+    summary {
+      cursor: pointer;
+      font-weight: 600;
+      color: var(--color-primary);
+      user-select: none;
+      padding: var(--spacing-xs);
+      margin: calc(-1 * var(--spacing-md));
+      padding: var(--spacing-md);
+      border-radius: var(--border-radius);
+    }
+
+    summary:hover {
+      background-color: rgba(123, 44, 191, 0.1);
+    }
+
+    details[open] summary {
+      margin-bottom: var(--spacing-md);
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    .chapter-description {
+      margin: 1.5rem 0;
+      padding: 1rem;
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+      border-left: 4px solid #7b2cbf;
+      border-radius: 8px;
+      font-size: 1.05rem;
+      line-height: 1.8;
+      color: #2d3748;
+    }
+
+    .learning-objectives {
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+      padding: var(--spacing-lg);
+      border-radius: var(--border-radius);
+      border-left: 4px solid var(--color-accent);
+      margin-bottom: var(--spacing-xl);
+    }
+
+    .learning-objectives h2 {
+      margin-top: 0;
+      border-bottom: none;
+    }
+
+    .navigation {
+      display: flex;
+      justify-content: space-between;
+      gap: var(--spacing-md);
+      margin: var(--spacing-xl) 0;
+      padding-top: var(--spacing-lg);
+      border-top: 2px solid var(--color-border);
+    }
+
+    .nav-button {
+      flex: 1;
+      padding: var(--spacing-md);
+      background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+      color: white;
+      border-radius: var(--border-radius);
+      text-align: center;
+      font-weight: 600;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: var(--box-shadow);
+    }
+
+    .nav-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      text-decoration: none;
+    }
+
+    .nav-button.disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      background: #6c757d;
+    }
+
+    .nav-button.disabled:hover {
+      transform: none;
+      box-shadow: var(--box-shadow);
+    }
+
+    footer {
+      margin-top: var(--spacing-xl);
+      padding: var(--spacing-lg) var(--spacing-md);
+      background-color: var(--color-bg-alt);
+      border-top: 1px solid var(--color-border);
+      text-align: center;
+      font-size: 0.9rem;
+      color: var(--color-text-light);
+    }
+
+    .disclaimer {
+      max-width: 900px;
+      margin: 2rem auto;
+      padding: 1.5rem;
+      background: #f8f9fa;
+      border-left: 4px solid #6c757d;
+      border-radius: 4px;
+    }
+
+    .disclaimer h3 {
+      color: #495057;
+      margin-bottom: 1rem;
+      font-size: 1.1rem;
+    }
+
+    .disclaimer ul {
+      list-style: none;
+      padding-left: 0;
+    }
+
+    .disclaimer li {
+      padding: 0.5rem 0;
+      padding-left: 1.5rem;
+      position: relative;
+      font-size: 0.9rem;
+      color: #6c757d;
+      line-height: 1.6;
+    }
+
+    .disclaimer li::before {
+      content: "⚠️";
+      position: absolute;
+      left: 0;
+    }
+
+    /* Breadcrumb styles */
+    .breadcrumb {
+      background: #f7fafc;
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid #e2e8f0;
+      font-size: 0.9rem;
+    }
+
+    .breadcrumb-content {
+      max-width: 900px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .breadcrumb a {
+      color: #667eea;
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .breadcrumb a:hover {
+      color: #764ba2;
+      text-decoration: underline;
+    }
+
+    .breadcrumb-separator {
+      color: #a0aec0;
+      margin: 0 0.25rem;
+    }
+
+    .breadcrumb-current {
+      color: #4a5568;
+      font-weight: 500;
+    }
+
+    .info-box {
+      background: #e3f2fd;
+      border-left: 4px solid #2196f3;
+      padding: var(--spacing-md);
+      margin: var(--spacing-md) 0;
+      border-radius: var(--border-radius);
+    }
+
+    .warning-box {
+      background: #fff3e0;
+      border-left: 4px solid #ff9800;
+      padding: var(--spacing-md);
+      margin: var(--spacing-md) 0;
+      border-radius: var(--border-radius);
+    }
+
+    .success-box {
+      background: #e8f5e9;
+      border-left: 4px solid #4caf50;
+      padding: var(--spacing-md);
+      margin: var(--spacing-md) 0;
+      border-radius: var(--border-radius);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .container {
+        padding: 0 1rem 2rem;
+      }
+
+      h1 {
+        font-size: 1.6rem;
+      }
+
+      h2 {
+        font-size: 1.4rem;
+      }
+
+      .navigation {
+        flex-direction: column;
+      }
+    }
+  </style>
+
+  <!-- Mermaid for diagrams -->
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <!-- Prism.js for syntax highlighting -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+  <!-- MathJax for equations -->
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+  <script>
+    // Mermaid.js initialization
+    document.addEventListener('DOMContentLoaded', function() {
+      if (typeof mermaid !== 'undefined') {
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+      }
+    });
+  </script>
+</head>
+<body>
+  <nav class="breadcrumb">
+    <div class="breadcrumb-content">
+      <a href="../../index.html">AI Terakoya Home</a><span class="breadcrumb-separator">›</span><a href="../index.html">Machine Learning</a><span class="breadcrumb-separator">›</span><a href="./index.html">PyTorch Geometric Introduction</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 3</span>
+    </div>
+  </nav>
+
+  <header>
+    <div class="header-content">
+      <h1>Chapter 3: Advanced GNN Architectures</h1>
+      <p class="subtitle">Implementing Attention Mechanisms, Sampling, and Graph-Level Tasks</p>
+      <div class="meta">
+        <span class="meta-item">📖 Reading Time: 30-35 min</span>
+        <span class="meta-item">📊 Difficulty: Intermediate to Advanced</span>
+        <span class="meta-item">💻 Code Examples: 17</span>
+        <span class="meta-item">📝 Exercises: 3</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="chapter-description">
+      <p>In Chapters 1 and 2, you learned the fundamentals of graph data and how to perform node classification with a Graph Convolutional Network (GCN). In this chapter, we go further into more expressive Graph Neural Network (GNN) architectures. We'll systematically work through Graph Attention Networks (GAT), which learn the importance of relationships between nodes; GraphSAGE, which scales to large graphs; graph pooling, which aggregates an entire graph into a single vector; and application tasks such as graph classification, link prediction, and heterogeneous graphs — all with working code.</p>
+    </div>
+
+    <div class="learning-objectives">
+      <h2>Learning Objectives</h2>
+      <ul>
+        <li>✅ Explain how Graph Attention Networks (GAT) work</li>
+        <li>✅ Understand GraphSAGE's sampling strategy</li>
+        <li>✅ Obtain a whole-graph representation using graph pooling</li>
+        <li>✅ Implement a graph classification task</li>
+        <li>✅ Understand the basics of link prediction tasks</li>
+        <li>✅ Know how to work with heterogeneous graphs</li>
+      </ul>
+    </div>
+
+    <h2 id="gat">1. Graph Attention Networks (GAT)</h2>
+
+    <p><strong>Graph Attention Network (GAT)</strong> is a GNN architecture that, instead of averaging all neighboring nodes with equal weight as GCN does, learns a different weight of importance for each node using an <strong>attention mechanism</strong>. It's easiest to understand as an application to graph structures of the same idea behind Self-Attention, used in Transformers for natural language processing.</p>
+
+    <h3>Basic Principles of GAT</h3>
+
+    <p>In GAT, the <strong>attention coefficient</strong> \(\alpha_{ij}\) between node \(i\) and its neighboring node \(j\) is learned from the feature vectors of both nodes.</p>
+
+    <p>First, an attention score \(e_{ij}\) is computed as follows:</p>
+    <p>$$e_{ij} = \text{LeakyReLU}\left(\mathbf{a}^T [\mathbf{W}\mathbf{h}_i \, \| \, \mathbf{W}\mathbf{h}_j]\right)$$</p>
+
+    <p>Here \(\mathbf{W}\) is a learnable weight matrix, \(\mathbf{a}\) is a learnable attention vector, and \(\|\) denotes vector concatenation. Next, we normalize across all neighboring nodes by applying the softmax function:</p>
+
+    <p>$$\alpha_{ij} = \frac{\exp(e_{ij})}{\sum_{k \in \mathcal{N}(i)} \exp(e_{ik})}$$</p>
+
+    <p>Finally, we compute the weighted sum of neighbor feature vectors, weighted by the attention coefficients, to obtain the new feature vector for node \(i\):</p>
+
+    <p>$$\mathbf{h}_i' = \sigma\left(\sum_{j \in \mathcal{N}(i)} \alpha_{ij} \mathbf{W} \mathbf{h}_j\right)$$</p>
+
+    <div class="mermaid">
+graph LR
+  A[Node A] -->|alpha=0.7| Target[Target Node]
+  B[Node B] -->|alpha=0.2| Target
+  C[Node C] -->|alpha=0.1| Target
+  Target --> Out[Weighted Aggregated Features]
+    </div>
+
+    <div class="info-box">
+      <p><strong>💡 GCN vs. GAT</strong></p>
+      <p>GCN aggregates neighbor features using a fixed weight \(1/\sqrt{d_i d_j}\) determined by node degree (the number of neighbors), whereas GAT learns importance directly from the data. This makes it possible to suppress the influence of noisy neighboring nodes or emphasize important ones, giving GAT greater representational power than GCN on many tasks.</p>
+    </div>
+
+    <h3>Multi-Head Attention</h3>
+
+    <p>Like the Transformer, GAT uses <strong>multi-head attention</strong>: it learns several independent attention mechanisms in parallel and concatenates (or averages) their results, which stabilizes training and increases representational power. In <code>torch_geometric.nn.GATConv</code>, you specify the number of heads with the <code>heads</code> argument.</p>
+
+    <h3>Implementing GATConv</h3>
+
+    <p>Let's implement node classification with GATConv using the Cora dataset (a citation network).</p>
+
+    <pre><code class="language-python">import torch
+import torch.nn.functional as F
+from torch_geometric.nn import GATConv
+from torch_geometric.datasets import Planetoid
+
+dataset = Planetoid(root='/tmp/Cora', name='Cora')
+data = dataset[0]
+
+class GAT(torch.nn.Module):
+    def __init__(self, num_features, num_classes, hidden_channels=8, heads=8):
+        super().__init__()
+        # Layer 1: use 8-head attention and concatenate the outputs (concat=True)
+        self.conv1 = GATConv(num_features, hidden_channels, heads=heads, dropout=0.6)
+        # Layer 2: use a single head so the output dimension matches the number of classes
+        self.conv2 = GATConv(hidden_channels * heads, num_classes, heads=1,
+                              concat=False, dropout=0.6)
+
+    def forward(self, x, edge_index):
+        x = F.dropout(x, p=0.6, training=self.training)
+        x = F.elu(self.conv1(x, edge_index))
+        x = F.dropout(x, p=0.6, training=self.training)
+        x = self.conv2(x, edge_index)
+        return F.log_softmax(x, dim=1)
+
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+model = GAT(dataset.num_features, dataset.num_classes).to(device)
+data = data.to(device)
+optimizer = torch.optim.Adam(model.parameters(), lr=0.005, weight_decay=5e-4)
+
+model.train()
+for epoch in range(100):
+    optimizer.zero_grad()
+    out = model(data.x, data.edge_index)
+    loss = F.nll_loss(out[data.train_mask], data.y[data.train_mask])
+    loss.backward()
+    optimizer.step()
+    if (epoch + 1) % 20 == 0:
+        print(f'Epoch {epoch+1:03d}, Loss: {loss:.4f}')
+
+model.eval()
+with torch.no_grad():
+    pred = model(data.x, data.edge_index).argmax(dim=1)
+    test_acc = (pred[data.test_mask] == data.y[data.test_mask]).float().mean().item()
+print(f'Test Accuracy: {test_acc:.4f}')
+</code></pre>
+
+    <p><strong>Sample Output:</strong></p>
+
+    <pre><code>Epoch 020, Loss: 1.2345
+Epoch 040, Loss: 0.7823
+Epoch 060, Loss: 0.5412
+Epoch 080, Loss: 0.4501
+Epoch 100, Loss: 0.3987
+Test Accuracy: 0.8280
+</code></pre>
+
+    <div class="info-box">
+      <p><strong>💡 Visualizing Attention Weights</strong></p>
+      <p>If you pass <code>return_attention_weights=True</code> when calling <code>GATConv</code>'s <code>forward</code>, you can retrieve the attention coefficient \(\alpha_{ij}\) assigned to each edge. This lets you analyze which nodes the model relied on most for its predictions, improving the model's interpretability.</p>
+    </div>
+
+    <h2 id="graphsage">2. GraphSAGE (Sampling-Based GNN)</h2>
+
+    <p><strong>GraphSAGE (Graph SAmple and aggreGatE)</strong> is a GNN designed to scale to graphs with millions or even billions of nodes. Whereas GCN and GAT assume <strong>full-batch learning</strong>, processing the entire graph at once using every neighboring node, GraphSAGE <strong>samples</strong> a fixed number of neighbors per node and trains in mini-batches, keeping memory usage and computational cost under control.</p>
+
+    <h3>The GraphSAGE Algorithm</h3>
+
+    <p>Each layer of GraphSAGE performs the following two steps.</p>
+
+    <ol>
+      <li><strong>Sampling</strong>: for each node, randomly draw a fixed number (e.g., 10) of neighboring nodes</li>
+      <li><strong>Aggregation</strong>: aggregate the features of the sampled neighbors and combine them with the node's own features to produce an updated representation</li>
+    </ol>
+
+    <p>$$\mathbf{h}_i^{(k)} = \sigma\left(\mathbf{W}^{(k)} \cdot \text{CONCAT}\left(\mathbf{h}_i^{(k-1)}, \; \text{AGG}_k\left(\{\mathbf{h}_j^{(k-1)} : j \in \mathcal{N}_s(i)\}\right)\right)\right)$$</p>
+
+    <p>Here \(\mathcal{N}_s(i)\) is the set of sampled neighbors of node \(i\), and \(\text{AGG}_k\) is the aggregation function.</p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Aggregation Function</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Mean Aggregator</td>
+          <td>Takes the average of neighbor feature vectors. The simplest and least expensive option</td>
+        </tr>
+        <tr>
+          <td>Pooling Aggregator</td>
+          <td>Passes each neighbor feature vector through an MLP, then takes the elementwise maximum</td>
+        </tr>
+        <tr>
+          <td>LSTM Aggregator</td>
+          <td>Feeds neighbors into an LSTM in a random order. Highly expressive, but has an order-dependency issue</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="info-box">
+      <p><strong>💡 Why Sampling Works</strong></p>
+      <p>If you process an entire graph in a single forward pass, as GCN does, the set of nodes you need to reference expands exponentially with every hop you follow (a problem known as neighbor explosion). By fixing the number of samples at each layer, GraphSAGE keeps this explosion in check and enables mini-batch training with memory usage that doesn't depend on the size of the overall graph.</p>
+    </div>
+
+    <h3>Implementing a SAGEConv Model</h3>
+
+    <pre><code class="language-python">import torch
+import torch.nn.functional as F
+from torch_geometric.nn import SAGEConv
+from torch_geometric.datasets import Planetoid
+
+dataset = Planetoid(root='/tmp/Cora', name='Cora')
+data = dataset[0]
+
+class GraphSAGE(torch.nn.Module):
+    def __init__(self, num_features, num_classes, hidden_channels=16):
+        super().__init__()
+        self.conv1 = SAGEConv(num_features, hidden_channels)
+        self.conv2 = SAGEConv(hidden_channels, num_classes)
+
+    def forward(self, x, edge_index):
+        x = F.relu(self.conv1(x, edge_index))
+        x = F.dropout(x, p=0.5, training=self.training)
+        x = self.conv2(x, edge_index)
+        return x
+
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+model = GraphSAGE(dataset.num_features, dataset.num_classes).to(device)
+print(model)
+</code></pre>
+
+    <h3>Mini-Batch Training with NeighborLoader</h3>
+
+    <p>To simulate training on a large graph, we use <code>torch_geometric.loader.NeighborLoader</code> to sample neighboring nodes and generate mini-batches. <code>num_neighbors=[10, 5]</code> means "sample up to 10 neighbors at the first layer, and up to 5 neighbors at the second layer."</p>
+
+    <pre><code class="language-python">from torch_geometric.loader import NeighborLoader
+
+# Generate mini-batches starting from the training nodes, sampling neighbors up to 2 hops away
+train_loader = NeighborLoader(
+    data,
+    num_neighbors=[10, 5],
+    batch_size=128,
+    input_nodes=data.train_mask,
+    shuffle=True,
+)
+
+optimizer = torch.optim.Adam(model.parameters(), lr=0.01, weight_decay=5e-4)
+
+model.train()
+for epoch in range(20):
+    total_loss = 0
+    for batch in train_loader:
+        batch = batch.to(device)
+        optimizer.zero_grad()
+        out = model(batch.x, batch.edge_index)
+        # The first batch_size entries in the batch are the "seed nodes";
+        # the rest were added by sampling and are not used when computing the loss
+        loss = F.cross_entropy(out[:batch.batch_size], batch.y[:batch.batch_size])
+        loss.backward()
+        optimizer.step()
+        total_loss += loss.item()
+    if (epoch + 1) % 5 == 0:
+        print(f'Epoch {epoch+1:03d}, Loss: {total_loss / len(train_loader):.4f}')
+</code></pre>
+
+    <h3>Evaluation</h3>
+
+    <pre><code class="language-python">model.eval()
+data_device = data.to(device)
+with torch.no_grad():
+    out = model(data_device.x, data_device.edge_index)
+    pred = out.argmax(dim=1)
+    test_acc = (pred[data_device.test_mask] == data_device.y[data_device.test_mask]).float().mean().item()
+print(f'Test Accuracy: {test_acc:.4f}')
+</code></pre>
+
+    <p><strong>Sample Output:</strong></p>
+
+    <pre><code>Epoch 005, Loss: 1.5432
+Epoch 010, Loss: 0.9821
+Epoch 015, Loss: 0.6543
+Epoch 020, Loss: 0.4987
+Test Accuracy: 0.7920
+</code></pre>
+
+    <div class="warning-box">
+      <p><strong>⚠️ Impact of Sampling on Accuracy</strong></p>
+      <p>Because mini-batch training doesn't use the entire graph's information at once, accuracy can be slightly lower than with full-batch GCN or GAT. That said, for graphs with millions of nodes, full-batch training is often simply impossible due to memory constraints, making GraphSAGE's sampling strategy indispensable in such settings.</p>
+    </div>
+
+    <h2 id="pooling">3. Graph Pooling Methods</h2>
+
+    <p>The GCN, GAT, and GraphSAGE models we've seen so far all operate at the <strong>node level</strong>, updating each node's feature vector. But for tasks like predicting the toxicity of an entire molecule or classifying a protein's function, where we want a single prediction for the "whole graph," we need to aggregate all the per-node features into one vector representing the entire graph. This aggregation step is called <strong>graph pooling</strong> or <strong>readout</strong>.</p>
+
+    <h3>Global Pooling</h3>
+
+    <p>The most basic form of pooling is <strong>global pooling</strong>, which aggregates the features of all nodes using a simple statistic.</p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Function</th>
+          <th>Aggregation Method</th>
+          <th>Characteristics</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>global_mean_pool</code></td>
+          <td>Average of all node features</td>
+          <td>Robust to graph size; the most widely used option</td>
+        </tr>
+        <tr>
+          <td><code>global_max_pool</code></td>
+          <td>Elementwise maximum across all node features</td>
+          <td>Emphasizes salient features; sensitive to outliers</td>
+        </tr>
+        <tr>
+          <td><code>global_add_pool</code></td>
+          <td>Sum of all node features</td>
+          <td>Preserves information about the number of nodes (graph size)</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <pre><code class="language-python">import torch
+from torch_geometric.nn import global_mean_pool, global_max_pool, global_add_pool
+from torch_geometric.datasets import TUDataset
+from torch_geometric.loader import DataLoader
+
+dataset = TUDataset(root='/tmp/MUTAG', name='MUTAG')
+loader = DataLoader(dataset, batch_size=4, shuffle=True)
+
+batch = next(iter(loader))
+print(f'Batch: {batch.num_graphs} graphs, {batch.num_nodes} nodes total')
+
+# Treat node features directly as the graph representation and compare the output shape of each pooling method
+mean_pooled = global_mean_pool(batch.x, batch.batch)
+max_pooled = global_max_pool(batch.x, batch.batch)
+sum_pooled = global_add_pool(batch.x, batch.batch)
+
+print(f'Mean pooling shape: {mean_pooled.shape}')
+print(f'Max pooling shape: {max_pooled.shape}')
+print(f'Sum pooling shape: {sum_pooled.shape}')
+</code></pre>
+
+    <p><strong>Sample Output:</strong></p>
+
+    <pre><code>Batch: 4 graphs, 71 nodes total
+Mean pooling shape: torch.Size([4, 7])
+Max pooling shape: torch.Size([4, 7])
+Sum pooling shape: torch.Size([4, 7])
+</code></pre>
+
+    <p>Notice that the output shape is <code>[num_graphs, feature_dim]</code>. Using the <code>batch</code> attribute (an index recording which graph each node belongs to), several graphs with different numbers of nodes were combined into a single batch, yet each one is aggregated correctly and separately.</p>
+
+    <h3>Hierarchical Pooling</h3>
+
+    <p>Global pooling aggregates all nodes at once, whereas <strong>hierarchical pooling</strong> progressively reduces the number of nodes between GNN layers, much like the pooling layers of a CNN. <code>TopKPooling</code> is a representative technique that scores each node's importance with a learnable scoring function and keeps only the top \(k\) nodes (specified via a <code>ratio</code>).</p>
+
+    <pre><code class="language-python">import torch
+import torch.nn.functional as F
+from torch_geometric.nn import GraphConv, TopKPooling, global_mean_pool
+
+class HierarchicalPoolNet(torch.nn.Module):
+    def __init__(self, num_features, num_classes, hidden_channels=64):
+        super().__init__()
+        self.conv1 = GraphConv(num_features, hidden_channels)
+        # Keep only the top 80% of nodes by importance score
+        self.pool1 = TopKPooling(hidden_channels, ratio=0.8)
+        self.conv2 = GraphConv(hidden_channels, hidden_channels)
+        self.lin = torch.nn.Linear(hidden_channels, num_classes)
+
+    def forward(self, x, edge_index, batch):
+        x = F.relu(self.conv1(x, edge_index))
+        # Reduce the number of nodes via pooling while updating edge_index and batch to stay consistent
+        x, edge_index, _, batch, _, _ = self.pool1(x, edge_index, None, batch)
+        x = F.relu(self.conv2(x, edge_index))
+        x = global_mean_pool(x, batch)
+        return self.lin(x)
+
+model = HierarchicalPoolNet(num_features=7, num_classes=2)
+print(model)
+</code></pre>
+
+    <div class="info-box">
+      <p><strong>💡 Which Should You Use?</strong></p>
+      <p>Global pooling is simple to implement and computationally cheap, making it the right first choice to try. Hierarchical pooling has greater representational power but adds model complexity and can make training less stable, so it's worth considering when global pooling doesn't give sufficient accuracy, or when you want to reduce computation on large graphs.</p>
+    </div>
+
+    <h2 id="graph-classification">4. Graph Classification Task</h2>
+
+    <p><strong>Graph classification</strong> is the task of predicting a single label for an entire graph. Typical examples include predicting a molecule's toxicity or activity and classifying a protein's function. Here we implement a graph classification model that combines GATConv and SAGEConv from start to finish, using the <strong>MUTAG dataset</strong> (molecular graphs of mutagenic compounds, one of the TUDataset collections).</p>
+
+    <h3>Preparing the Dataset</h3>
+
+    <pre><code class="language-python">import torch
+import torch.nn.functional as F
+from torch_geometric.datasets import TUDataset
+from torch_geometric.loader import DataLoader
+from torch_geometric.nn import GATConv, SAGEConv, global_mean_pool
+
+torch.manual_seed(42)
+
+# MUTAG: 188 molecular graphs, binary classification (mutagenic or not)
+dataset = TUDataset(root='/tmp/MUTAG', name='MUTAG').shuffle()
+
+train_dataset = dataset[:150]
+test_dataset = dataset[150:]
+
+train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+test_loader = DataLoader(test_dataset, batch_size=32)
+
+print(f'Number of training graphs: {len(train_dataset)}')
+print(f'Number of test graphs: {len(test_dataset)}')
+print(f'Number of node features: {dataset.num_node_features}')
+print(f'Number of classes: {dataset.num_classes}')
+</code></pre>
+
+    <p><strong>Sample Output:</strong></p>
+
+    <pre><code>Number of training graphs: 150
+Number of test graphs: 38
+Number of node features: 7
+Number of classes: 2
+</code></pre>
+
+    <h3>Defining the Model</h3>
+
+    <p>This architecture uses GATConv to learn the importance of relationships between nodes, then SAGEConv to aggregate neighborhood information, and finally <code>global_mean_pool</code> to obtain a vector representation of the entire graph.</p>
+
+    <pre><code class="language-python">class GraphClassifier(torch.nn.Module):
+    def __init__(self, num_features, num_classes, hidden_channels=64):
+        super().__init__()
+        # GAT layer: extract features that account for node-to-node importance via multi-head attention
+        self.gat = GATConv(num_features, hidden_channels, heads=4, concat=True, dropout=0.2)
+        # GraphSAGE layer: aggregate neighborhood information to refine the features
+        self.sage = SAGEConv(hidden_channels * 4, hidden_channels)
+        self.lin = torch.nn.Linear(hidden_channels, num_classes)
+
+    def forward(self, x, edge_index, batch):
+        x = F.elu(self.gat(x, edge_index))
+        x = F.dropout(x, p=0.2, training=self.training)
+        x = F.relu(self.sage(x, edge_index))
+        # Aggregate the whole graph into a single vector (readout)
+        x = global_mean_pool(x, batch)
+        x = F.dropout(x, p=0.5, training=self.training)
+        return self.lin(x)
+
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+model = GraphClassifier(dataset.num_node_features, dataset.num_classes).to(device)
+optimizer = torch.optim.Adam(model.parameters(), lr=0.01, weight_decay=5e-4)
+print(model)
+</code></pre>
+
+    <h3>Training and Evaluation</h3>
+
+    <pre><code class="language-python">def train():
+    model.train()
+    total_loss = 0
+    for data in train_loader:
+        data = data.to(device)
+        optimizer.zero_grad()
+        out = model(data.x, data.edge_index, data.batch)
+        loss = F.cross_entropy(out, data.y)
+        loss.backward()
+        optimizer.step()
+        total_loss += loss.item() * data.num_graphs
+    return total_loss / len(train_loader.dataset)
+
+@torch.no_grad()
+def test(loader):
+    model.eval()
+    correct = 0
+    for data in loader:
+        data = data.to(device)
+        out = model(data.x, data.edge_index, data.batch)
+        pred = out.argmax(dim=1)
+        correct += (pred == data.y).sum().item()
+    return correct / len(loader.dataset)
+
+for epoch in range(1, 101):
+    loss = train()
+    if epoch % 20 == 0:
+        train_acc = test(train_loader)
+        test_acc = test(test_loader)
+        print(f'Epoch {epoch:03d}, Loss: {loss:.4f}, '
+              f'Train Acc: {train_acc:.4f}, Test Acc: {test_acc:.4f}')
+</code></pre>
+
+    <p><strong>Sample Output:</strong></p>
+
+    <pre><code>Epoch 020, Loss: 0.5893, Train Acc: 0.7133, Test Acc: 0.6842
+Epoch 040, Loss: 0.4721, Train Acc: 0.7867, Test Acc: 0.7368
+Epoch 060, Loss: 0.4102, Train Acc: 0.8200, Test Acc: 0.7632
+Epoch 080, Loss: 0.3654, Train Acc: 0.8467, Test Acc: 0.7895
+Epoch 100, Loss: 0.3389, Train Acc: 0.8600, Test Acc: 0.8158
+</code></pre>
+
+    <div class="success-box">
+      <p><strong>🎉 Graph Classification Model Complete</strong></p>
+      <p>We achieved roughly 80% test accuracy on the MUTAG dataset. The pattern of using a GAT layer to weight important atoms (nodes), a SAGEConv layer to aggregate local structure, and a final global pooling step to obtain a whole-molecule representation is a typical pipeline for molecular property prediction tasks.</p>
+    </div>
+
+    <h2 id="link-prediction">5. Link Prediction Task</h2>
+
+    <p><strong>Link prediction</strong> is the task of predicting whether an edge (link) exists between two nodes in a graph. It has wide-ranging applications, including friend recommendations in social networks, product recommendations in recommender systems, and completing missing relations in knowledge graphs.</p>
+
+    <h3>Task Design</h3>
+
+    <p>In link prediction, existing edges are sampled as <strong>positive samples</strong> and non-existent node pairs as <strong>negative samples</strong>, and the problem is trained as binary classification. When splitting edges into training, validation, and test sets, the split of the graph structure and the split of labels must be done together to avoid information leakage. PyTorch Geometric's <code>RandomLinkSplit</code> automates this for us.</p>
+
+    <pre><code class="language-python">import torch
+import torch.nn.functional as F
+from torch_geometric.datasets import Planetoid
+from torch_geometric.transforms import RandomLinkSplit, NormalizeFeatures
+from torch_geometric.nn import GCNConv
+from torch_geometric.utils import negative_sampling
+
+dataset = Planetoid(root='/tmp/Cora', name='Cora', transform=NormalizeFeatures())
+data = dataset[0]
+
+# Split edges into train/val/test sets (negative edges are also generated automatically)
+transform = RandomLinkSplit(
+    num_val=0.05,
+    num_test=0.1,
+    is_undirected=True,
+    add_negative_train_samples=False,
+)
+train_data, val_data, test_data = transform(data)
+
+print(f'Train message-passing edges: {train_data.edge_index.shape}')
+print(f'Train supervision edges: {train_data.edge_label_index.shape}')
+print(f'Val supervision edges: {val_data.edge_label_index.shape}')
+print(f'Test supervision edges: {test_data.edge_label_index.shape}')
+</code></pre>
+
+    <div class="info-box">
+      <p><strong>💡 Message-Passing Edges vs. Supervision Edges</strong></p>
+      <p><code>RandomLinkSplit</code> separately manages <code>edge_index</code>, which the GNN uses to propagate features (message passing), and <code>edge_label_index</code>, which is used for computing loss and evaluation (supervision). This prevents the leak in which the model would otherwise get to see the very edge it's supposed to predict.</p>
+    </div>
+
+    <h3>Implementing an Encoder-Decoder Model</h3>
+
+    <p>We build a model consisting of an <strong>encoder</strong> that computes node embeddings with GCNConv, and a <strong>decoder</strong> that computes the probability of an edge's existence from the dot product of two node embeddings.</p>
+
+    <pre><code class="language-python">class LinkPredGCN(torch.nn.Module):
+    def __init__(self, num_features, hidden_channels=128, out_channels=64):
+        super().__init__()
+        self.conv1 = GCNConv(num_features, hidden_channels)
+        self.conv2 = GCNConv(hidden_channels, out_channels)
+
+    def encode(self, x, edge_index):
+        x = F.relu(self.conv1(x, edge_index))
+        return self.conv2(x, edge_index)
+
+    def decode(self, z, edge_label_index):
+        # Use the dot product of the two node embeddings as the score for edge existence
+        src, dst = edge_label_index
+        return (z[src] * z[dst]).sum(dim=-1)
+
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+model = LinkPredGCN(dataset.num_features).to(device)
+optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+
+train_data = train_data.to(device)
+val_data = val_data.to(device)
+test_data = test_data.to(device)
+</code></pre>
+
+    <h3>Training and Evaluation</h3>
+
+    <p>During training, we resample new negative edges every epoch so the model doesn't overfit to a fixed set of negatives. For the evaluation metric we use <strong>ROC-AUC (Receiver Operating Characteristic - Area Under the Curve)</strong>, a common choice for binary classification.</p>
+
+    <pre><code class="language-python">from sklearn.metrics import roc_auc_score
+
+def train():
+    model.train()
+    optimizer.zero_grad()
+    z = model.encode(train_data.x, train_data.edge_index)
+
+    # Randomly resample negative edges (non-existent edges) every epoch
+    neg_edge_index = negative_sampling(
+        edge_index=train_data.edge_index,
+        num_nodes=train_data.num_nodes,
+        num_neg_samples=train_data.edge_label_index.size(1),
+        method='sparse',
+    )
+
+    edge_label_index = torch.cat([train_data.edge_label_index, neg_edge_index], dim=1)
+    edge_label = torch.cat([
+        train_data.edge_label,
+        train_data.edge_label.new_zeros(neg_edge_index.size(1)),
+    ], dim=0)
+
+    out = model.decode(z, edge_label_index).view(-1)
+    loss = F.binary_cross_entropy_with_logits(out, edge_label)
+    loss.backward()
+    optimizer.step()
+    return loss.item()
+
+@torch.no_grad()
+def test(data):
+    model.eval()
+    z = model.encode(data.x, data.edge_index)
+    out = model.decode(z, data.edge_label_index).view(-1).sigmoid()
+    return roc_auc_score(data.edge_label.cpu().numpy(), out.cpu().numpy())
+
+for epoch in range(1, 101):
+    loss = train()
+    if epoch % 20 == 0:
+        val_auc = test(val_data)
+        test_auc = test(test_data)
+        print(f'Epoch {epoch:03d}, Loss: {loss:.4f}, '
+              f'Val AUC: {val_auc:.4f}, Test AUC: {test_auc:.4f}')
+</code></pre>
+
+    <p><strong>Sample Output:</strong></p>
+
+    <pre><code>Epoch 020, Loss: 0.6123, Val AUC: 0.7845, Test AUC: 0.7791
+Epoch 040, Loss: 0.5234, Val AUC: 0.8412, Test AUC: 0.8356
+Epoch 060, Loss: 0.4756, Val AUC: 0.8723, Test AUC: 0.8681
+Epoch 080, Loss: 0.4489, Val AUC: 0.8891, Test AUC: 0.8834
+Epoch 100, Loss: 0.4321, Val AUC: 0.8956, Test AUC: 0.8902
+</code></pre>
+
+    <div class="success-box">
+      <p><strong>🎉 Link Prediction Model Complete</strong></p>
+      <p>We achieved a test AUC of roughly 0.89 on Cora's citation network. Since an AUC of 0.5 is equivalent to random guessing and 1.0 means perfect prediction, a score of 0.89 shows that the model can distinguish "paper pairs that are actually cited" from "pairs that are not" quite accurately.</p>
+    </div>
+
+    <h2 id="heterogeneous-graphs">6. Working with Heterogeneous Graphs</h2>
+
+    <p>All the graphs we've worked with so far consisted of a single type of node (e.g., paper nodes only) — a <strong>homogeneous graph</strong>. In the real world, however, many graphs are <strong>heterogeneous graphs</strong> that contain multiple types of nodes and edges, such as users and products, authors and papers, or atoms and bond types.</p>
+
+    <h3>The HeteroData Object</h3>
+
+    <p>PyTorch Geometric represents heterogeneous graphs with a <code>HeteroData</code> object. Node features are stored per node type, and edges are managed as triples of <code>(source node type, relation name, target node type)</code>. Let's build a bipartite graph as an example, using a recommendation system in which users rate movies.</p>
+
+    <pre><code class="language-python">import torch
+from torch_geometric.data import HeteroData
+
+data = HeteroData()
+
+# Node features (the dimensionality can differ across node types)
+data['user'].x = torch.randn(5, 16)    # 5 users, 16-dimensional features
+data['movie'].x = torch.randn(8, 32)   # 8 movies, 32-dimensional features
+
+# Edges: defined as (source node type, relation name, target node type) triples
+data['user', 'rates', 'movie'].edge_index = torch.tensor([
+    [0, 0, 1, 2, 3, 4],
+    [0, 1, 1, 2, 5, 7],
+], dtype=torch.long)
+
+# Explicitly add the reverse edges too (message passing is treated as directed)
+data['movie', 'rated_by', 'user'].edge_index = \
+    data['user', 'rates', 'movie'].edge_index.flip(0)
+
+print(data)
+print(f'Node types: {data.node_types}')
+print(f'Edge types: {data.edge_types}')
+</code></pre>
+
+    <p><strong>Sample Output:</strong></p>
+
+    <pre><code>HeteroData(
+  user={ x=[5, 16] },
+  movie={ x=[8, 32] },
+  (user, rates, movie)={ edge_index=[2, 6] },
+  (movie, rated_by, user)={ edge_index=[2, 6] }
+)
+Node types: ['user', 'movie']
+Edge types: [('user', 'rates', 'movie'), ('movie', 'rated_by', 'user')]
+</code></pre>
+
+    <div class="mermaid">
+graph LR
+  subgraph Users
+    U0[user 0]
+    U1[user 1]
+  end
+  subgraph Movies
+    M0[movie 0]
+    M1[movie 1]
+    M2[movie 2]
+  end
+  U0 -->|rates| M0
+  U0 -->|rates| M1
+  U1 -->|rates| M1
+  M0 -->|rated_by| U0
+  M1 -->|rated_by| U0
+  M1 -->|rated_by| U1
+    </div>
+
+    <h3>Heterogeneous GNNs with HeteroConv</h3>
+
+    <p>Using <code>torch_geometric.nn.HeteroConv</code>, you can concisely build a model that applies a separate GNN layer (here, <code>SAGEConv</code>) to each edge type and aggregates the results for each node type. When the input dimension differs across node types, specifying <code>-1</code> as in <code>SAGEConv((-1, -1), hidden_channels)</code> lets the input dimension be inferred automatically on the first forward pass.</p>
+
+    <pre><code class="language-python">from torch_geometric.nn import HeteroConv, SAGEConv, Linear
+
+class HeteroGNN(torch.nn.Module):
+    def __init__(self, hidden_channels, out_channels):
+        super().__init__()
+        # Apply a separate SAGEConv for each edge type, then aggregate the results per node type
+        self.conv1 = HeteroConv({
+            ('user', 'rates', 'movie'): SAGEConv((-1, -1), hidden_channels),
+            ('movie', 'rated_by', 'user'): SAGEConv((-1, -1), hidden_channels),
+        }, aggr='sum')
+        self.lin_user = Linear(hidden_channels, out_channels)
+        self.lin_movie = Linear(hidden_channels, out_channels)
+
+    def forward(self, x_dict, edge_index_dict):
+        x_dict = self.conv1(x_dict, edge_index_dict)
+        x_dict = {key: x.relu() for key, x in x_dict.items()}
+        return {
+            'user': self.lin_user(x_dict['user']),
+            'movie': self.lin_movie(x_dict['movie']),
+        }
+
+model = HeteroGNN(hidden_channels=16, out_channels=4)
+out_dict = model(data.x_dict, data.edge_index_dict)
+
+print(f"User embeddings shape: {out_dict['user'].shape}")
+print(f"Movie embeddings shape: {out_dict['movie'].shape}")
+</code></pre>
+
+    <p><strong>Sample Output:</strong></p>
+
+    <pre><code>User embeddings shape: torch.Size([5, 4])
+Movie embeddings shape: torch.Size([8, 4])
+</code></pre>
+
+    <div class="info-box">
+      <p><strong>💡 The Handy to_hetero() Conversion Function</strong></p>
+      <p>If you already have a GNN model built for homogeneous graphs (e.g., GCN, GAT), the <code>torch_geometric.nn.to_hetero()</code> function can automatically convert it into a heterogeneous-graph-compatible version without rewriting the model definition. It's worth knowing both approaches — building from scratch with <code>HeteroConv</code>, and converting an existing model with <code>to_hetero()</code> — so you can pick whichever fits the situation.</p>
+    </div>
+
+    <div class="warning-box">
+      <p><strong>⚠️ A Caution on Heterogeneous Graph Design</strong></p>
+      <p>If you forget to explicitly add the reverse edge type (e.g., <code>rated_by</code>) in a heterogeneous graph, information will only propagate in one direction. In practice, <code>torch_geometric.transforms.ToUndirected()</code> is often used because it automatically adds reverse edges for every edge type.</p>
+    </div>
+
+    <h2 id="exercises">Exercises</h2>
+
+    <details>
+      <summary><strong>Exercise 1: Compare Different Numbers of GAT Heads</strong></summary>
+      <p>Using the GAT model built in "Implementing GATConv," train on the Cora dataset with <code>heads</code> set to 2, 4, and 8, and compare the resulting test accuracy. Discuss how the number of heads affects accuracy and training time.</p>
+
+      <details>
+        <summary>Show Answer</summary>
+        <p><strong>Implementation notes</strong>:</p>
+        <pre><code class="language-python">for heads in [2, 4, 8]:
+    model = GAT(dataset.num_features, dataset.num_classes, heads=heads).to(device)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.005, weight_decay=5e-4)
+
+    model.train()
+    for epoch in range(100):
+        optimizer.zero_grad()
+        out = model(data.x, data.edge_index)
+        loss = F.nll_loss(out[data.train_mask], data.y[data.train_mask])
+        loss.backward()
+        optimizer.step()
+
+    model.eval()
+    with torch.no_grad():
+        pred = model(data.x, data.edge_index).argmax(dim=1)
+        acc = (pred[data.test_mask] == data.y[data.test_mask]).float().mean().item()
+    print(f'heads={heads}: Test Accuracy = {acc:.4f}')
+</code></pre>
+        <p><strong>Discussion</strong>: Increasing the number of heads generally lets the model learn several distinct "attention patterns" in parallel, improving representational power and making accuracy more stable. On the other hand, the parameter count and computational cost grow linearly with the number of heads, so training time per epoch increases as well. On a small dataset like Cora, accuracy typically plateaus around 8 heads, and adding more heads beyond that tends not to yield accuracy gains that justify the extra compute.</p>
+      </details>
+    </details>
+
+    <details>
+      <summary><strong>Exercise 2: Add Multiple Kinds of Global Pooling to the Graph Classifier</strong></summary>
+      <p>Modify the <code>GraphClassifier</code> implemented in "Graph Classification Task" so that it concatenates the outputs of <code>global_mean_pool</code> and <code>global_max_pool</code> before feeding them into the fully connected layer. Check whether this improves accuracy.</p>
+
+      <details>
+        <summary>Show Answer</summary>
+        <p><strong>Example implementation</strong>:</p>
+        <pre><code class="language-python">from torch_geometric.nn import global_mean_pool, global_max_pool
+
+class GraphClassifierV2(torch.nn.Module):
+    def __init__(self, num_features, num_classes, hidden_channels=64):
+        super().__init__()
+        self.gat = GATConv(num_features, hidden_channels, heads=4, concat=True, dropout=0.2)
+        self.sage = SAGEConv(hidden_channels * 4, hidden_channels)
+        # Concatenating mean and max doubles the dimensionality
+        self.lin = torch.nn.Linear(hidden_channels * 2, num_classes)
+
+    def forward(self, x, edge_index, batch):
+        x = F.elu(self.gat(x, edge_index))
+        x = F.dropout(x, p=0.2, training=self.training)
+        x = F.relu(self.sage(x, edge_index))
+
+        x_mean = global_mean_pool(x, batch)
+        x_max = global_max_pool(x, batch)
+        x = torch.cat([x_mean, x_max], dim=1)
+
+        x = F.dropout(x, p=0.5, training=self.training)
+        return self.lin(x)
+</code></pre>
+        <p><strong>Discussion</strong>: <code>global_mean_pool</code> captures the "average characteristics" of the whole graph, while <code>global_max_pool</code> captures its "most salient characteristics," so concatenating both retains more information in the graph representation. On a small dataset like MUTAG the improvement may only be a few percentage points, but on datasets with more complex molecular structures the effect tends to be more pronounced.</p>
+      </details>
+    </details>
+
+    <details>
+      <summary><strong>Exercise 3: Add a New Node Type to the Heterogeneous Graph</strong></summary>
+      <p>Extend the example in "The HeteroData Object" by adding a new node type <code>'genre'</code> (3 movie genres, with 8-dimensional features), and connect movies to genres with an edge type <code>('movie', 'has_genre', 'genre')</code>. Then add a <code>SAGEConv</code> for this new edge type to the <code>HeteroGNN</code> model's <code>HeteroConv</code>.</p>
+
+      <details>
+        <summary>Show Answer</summary>
+        <p><strong>Example implementation</strong>:</p>
+        <pre><code class="language-python">import torch
+from torch_geometric.data import HeteroData
+from torch_geometric.nn import HeteroConv, SAGEConv, Linear
+
+data = HeteroData()
+data['user'].x = torch.randn(5, 16)
+data['movie'].x = torch.randn(8, 32)
+data['genre'].x = torch.randn(3, 8)   # New node type: genre
+
+data['user', 'rates', 'movie'].edge_index = torch.tensor([
+    [0, 0, 1, 2, 3, 4],
+    [0, 1, 1, 2, 5, 7],
+], dtype=torch.long)
+data['movie', 'rated_by', 'user'].edge_index = \
+    data['user', 'rates', 'movie'].edge_index.flip(0)
+
+# Connect each movie (0-7) to its corresponding genre (0-2)
+data['movie', 'has_genre', 'genre'].edge_index = torch.tensor([
+    [0, 1, 2, 3, 4, 5, 6, 7],
+    [0, 0, 1, 1, 2, 2, 0, 1],
+], dtype=torch.long)
+
+class HeteroGNNv2(torch.nn.Module):
+    def __init__(self, hidden_channels, out_channels):
+        super().__init__()
+        self.conv1 = HeteroConv({
+            ('user', 'rates', 'movie'): SAGEConv((-1, -1), hidden_channels),
+            ('movie', 'rated_by', 'user'): SAGEConv((-1, -1), hidden_channels),
+            ('movie', 'has_genre', 'genre'): SAGEConv((-1, -1), hidden_channels),
+        }, aggr='sum')
+        self.lin_user = Linear(hidden_channels, out_channels)
+        self.lin_movie = Linear(hidden_channels, out_channels)
+
+    def forward(self, x_dict, edge_index_dict):
+        x_dict = self.conv1(x_dict, edge_index_dict)
+        x_dict = {key: x.relu() for key, x in x_dict.items()}
+        return {
+            'user': self.lin_user(x_dict['user']),
+            'movie': self.lin_movie(x_dict['movie']),
+        }
+
+model = HeteroGNNv2(hidden_channels=16, out_channels=4)
+out_dict = model(data.x_dict, data.edge_index_dict)
+print(f"User embeddings shape: {out_dict['user'].shape}")
+print(f"Movie embeddings shape: {out_dict['movie'].shape}")
+</code></pre>
+        <p><strong>Discussion</strong>: The <code>genre</code> node type doesn't appear in <code>out_dict</code> because we never defined an output layer such as <code>lin_genre</code> for it, but the key point is that message passing through <code>('movie', 'has_genre', 'genre')</code> lets genre information indirectly influence the <code>movie</code> node representations. In a heterogeneous graph, even node types that aren't used directly for prediction (here, <code>genre</code>) can be incorporated into the graph as an auxiliary source of information.</p>
+      </details>
+    </details>
+
+    <h2 id="summary">Summary</h2>
+
+    <p>In this chapter, we learned about more advanced GNN architectures and graph-level tasks. Let's revisit the learning objectives from the beginning of the chapter.</p>
+
+    <ul>
+      <li>✅ <strong>GAT</strong>: we understood how an attention mechanism lets the model learn a different importance for each node, achieving more flexible feature aggregation than GCN</li>
+      <li>✅ <strong>GraphSAGE</strong>: we learned the sampling strategy — sampling neighbors and training in mini-batches — that makes training feasible even on large graphs</li>
+      <li>✅ <strong>Graph pooling</strong>: we implemented global pooling functions such as <code>global_mean_pool</code>, as well as hierarchical pooling with <code>TopKPooling</code>, to obtain a whole-graph representation</li>
+      <li>✅ <strong>Graph classification</strong>: we built a pipeline that predicts molecular mutagenicity on the MUTAG dataset using a model combining GATConv and SAGEConv</li>
+      <li>✅ <strong>Link prediction</strong>: we understood the basics of predicting the probability that an edge exists, using an encoder-decoder architecture and negative sampling</li>
+      <li>✅ <strong>Heterogeneous graphs</strong>: we learned how to work with graphs containing multiple node and edge types using <code>HeteroData</code> and <code>HeteroConv</code></li>
+    </ul>
+
+    <div class="success-box">
+      <p><strong>🎉 Advanced GNN Architectures Mastered</strong></p>
+      <p>Building on node classification (Chapter 2), you now have the ability to implement the major GNN tasks of graph classification, link prediction, and heterogeneous graphs. GAT, GraphSAGE, and pooling are among the most commonly combined techniques in real-world GNN applications. The next chapter applies these techniques to real-world data and digs deeper into efficiently handling large graphs, as well as model evaluation and tuning.</p>
+    </div>
+
+    <div class="navigation">
+      <a href="./chapter-2.html" class="nav-button">← Chapter 2</a>
+      <a href="./index.html" class="nav-button">Series Index</a>
+      <a href="./chapter-4.html" class="nav-button">Chapter 4 →</a>
+    </div>
+
+    <hr style="margin: 2rem 0;">
+
+    <p><strong>Reference Resources</strong></p>
+    <ul>
+      <li><a href="https://pytorch-geometric.readthedocs.io/" target="_blank">PyTorch Geometric Official Documentation</a></li>
+      <li><a href="https://github.com/pyg-team/pytorch_geometric" target="_blank">PyTorch Geometric GitHub</a></li>
+      <li><a href="https://arxiv.org/abs/1710.10903" target="_blank">GAT Paper: Graph Attention Networks</a></li>
+      <li><a href="https://arxiv.org/abs/1706.02216" target="_blank">GraphSAGE Paper: Inductive Representation Learning on Large Graphs</a></li>
+    </ul>
+
+  </main>
+
+  <section class="disclaimer">
+    <h3>Disclaimer</h3>
+    <ul>
+      <li>This content is provided for educational, research, and informational purposes only, and does not constitute professional advice (legal, accounting, technical guarantees, etc.).</li>
+      <li>This content and accompanying code examples are provided "AS IS" without any warranties, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
+      <li>The creator and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.</li>
+      <li>To the maximum extent permitted by applicable law, the creator and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+      <li>The content of this material is subject to change, update, or discontinuation without notice.</li>
+      <li>The copyright and license of this content follow the specified conditions (e.g., CC BY 4.0). Such licenses typically include warranty disclaimers.</li>
+    </ul>
+  </section>
+
+  <footer>
+    <div class="container">
+      <p>&copy; 2025 AI Terakoya - Dr. Yusuke Hashimoto, Tohoku University</p>
+      <p>Licensed under CC BY 4.0</p>
+    </div>
+  </footer>
+</body>
+</html>

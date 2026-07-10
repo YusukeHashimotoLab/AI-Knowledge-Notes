@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 2: 分子軌道理論と電子構造 - 材料化学入門</title>
+    <meta name="description" content="LCAO法、Hückel理論、タイトバインディング近似、バンド理論の基礎とPython実践。分子軌道から固体のバンド構造・状態密度まで電子状態を階層的に理解する。">
+
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", sans-serif; line-height: 1.8; color: #2c3e50; max-width: 1200px; margin: 0 auto; padding: 20px; background: #f8f9fa; }
+        h1, h2, h3 { color: #2c3e50; margin-top: 2rem; }
+        h1 { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 1.5rem; border-radius: 10px; }
+        h2 { border-left: 5px solid #f5576c; padding-left: 15px; background: linear-gradient(to right, rgba(245,87,108,0.1), transparent); }
+        .code-block { background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 8px; overflow-x: auto; margin: 1rem 0; }
+        .equation { background: #fff3cd; padding: 15px; border-left: 4px solid #ffc107; margin: 1rem 0; border-radius: 5px; }
+        .exercise { background: #e7f3ff; padding: 20px; border-left: 4px solid #2196F3; margin: 1.5rem 0; border-radius: 8px; }
+        .solution { background: #f0f0f0; padding: 15px; margin-top: 10px; border-radius: 5px; }
+        .reference { background: white; padding: 15px; margin: 10px 0; border-left: 3px solid #f5576c; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .mermaid { background: white; padding: 20px; border-radius: 10px; margin: 1.5rem 0; }
+    </style>
+</head>
+<body>
+    <h1>Chapter 2: 分子軌道理論と電子構造</h1>
+
+    <p>第1章では、イオン結合・共有結合・金属結合・分子間力という4つの化学結合の分類と、それぞれを記述する古典的なポテンシャルモデル（Madelung定数、Morseポテンシャル、Drude模型、Lennard-Jonesポテンシャル）を学びました。これらのモデルは結合エネルギーの大きさをよく説明しますが、電子が分子や結晶の中でどのような量子力学的な状態（軌道）を占めているかについては深く立ち入っていません。</p>
+
+    <p>本章では、化学結合を電子の波動関数の観点から捉え直す<strong>分子軌道理論（Molecular Orbital Theory）</strong>を学びます。出発点となるのは、原子軌道を組み合わせて分子軌道を構成する<strong>LCAO法（原子軌道の線形結合、Linear Combination of Atomic Orbitals）</strong>です。LCAO法を共役π電子系に適用した<strong>Hückel理論（Hückel Theory）</strong>により、ベンゼンのような分子の電子状態を具体的に計算します。</p>
+
+    <p>さらに、LCAO法を無限に繰り返す周期的な原子配列（結晶）へ拡張すると、<strong>タイトバインディング近似（Tight-Binding Approximation）</strong>が得られます。これは分子軌道理論と固体の<strong>バンド理論（Band Theory）</strong>を橋渡しする重要な近似法であり、金属・半導体・絶縁体の違いを理解する基礎となります。最後に、電子状態を統計的に扱うための<strong>状態密度（Density of States, DOS）</strong>の計算方法を学び、Pythonで可視化します。</p>
+
+    <p>本章を通じて、孤立した2原子分子から有限の共役分子、そして無限に周期的な結晶へと系のサイズを拡大しながら、電子状態の記述がどのように一貫した枠組みの中でつながっているかを体感していただければと思います。</p>
+
+    <div class="reference" style="text-align: center;">
+        <p><strong>読了時間:</strong> 30-35分　｜　<strong>難易度:</strong> 中級　｜　<strong>コード例:</strong> 9本</p>
+    </div>
+
+    <div class="exercise">
+        <h3>この章の学習目標</h3>
+        <ul>
+            <li>LCAO法の基本的な考え方を理解する</li>
+            <li>Hückel理論でπ電子系を記述できる</li>
+            <li>タイトバインディング近似の仕組みを理解する</li>
+            <li>バンド理論の基礎を説明できる</li>
+            <li>Pythonでバンド構造・状態密度を計算・可視化できる</li>
+        </ul>
+    </div>
+
+    <p style="text-align: center; margin: 1.5rem 0;">
+        <a href="chapter-1.html" style="color: #f5576c; text-decoration: none; font-weight: bold;">← 第1章</a>
+        <span style="color: #adb5bd; margin: 0 0.8rem;">|</span>
+        <a href="index.html" style="color: #f5576c; text-decoration: none; font-weight: bold;">シリーズ目次</a>
+        <span style="color: #adb5bd; margin: 0 0.8rem;">|</span>
+        <a href="chapter-3.html" style="color: #f5576c; text-decoration: none; font-weight: bold;">第3章 →</a>
+    </p>
+
+    <h2>2.1 LCAO法（原子軌道の線形結合）の基礎</h2>
+    <p>分子軌道（Molecular Orbital, MO）は、分子を構成する原子の<strong>原子軌道（Atomic Orbital, AO）</strong>を重ね合わせることで構成できます。この考え方を<strong>LCAO法</strong>と呼び、分子軌道 $\psi$ を原子軌道 $\phi_i$ の線形結合として次のように表します。</p>
+
+    <div class="equation">
+        $$\psi = \sum_i c_i \phi_i$$
+        <p>ここで $c_i$ は各原子軌道の混合係数であり、変分原理によって分子のエネルギーを最小化するように決定されます。</p>
+    </div>
+
+    <p>変分原理を適用すると、係数 $c_i$ とエネルギー $E$ は次の<strong>永年方程式（Secular Equation）</strong>を満たします。</p>
+
+    <div class="equation">
+        $$\mathbf{H} \mathbf{c} = E \mathbf{S} \mathbf{c}$$
+        <p>$H_{ij} = \int \phi_i^* \hat{H} \phi_j \, d\tau$ はハミルトニアン行列要素、$S_{ij} = \int \phi_i^* \phi_j \, d\tau$ は<strong>重なり積分（Overlap Integral）</strong>です。原子軌道を規格化直交系（$S_{ij} = \delta_{ij}$）とみなす近似のもとでは、この式は通常の固有値問題 $\mathbf{H}\mathbf{c} = E\mathbf{c}$ に帰着します。</p>
+    </div>
+
+    <p>対角要素 $H_{ii} = \alpha_i$ は<strong>クーロン積分（Coulomb Integral）</strong>と呼ばれ、電子が孤立した原子軌道 $i$ に存在するときのエネルギーに対応します。非対角要素 $H_{ij} = \beta_{ij}$ は<strong>共鳴積分（Resonance Integral）</strong>（移動積分とも呼ばれます）で、軌道 $i$ と $j$ の間で電子が非局在化することによる安定化を表します。$\beta_{ij}$ は通常負の値を持ち、絶対値が大きいほど軌道間の相互作用が強いことを意味します。</p>
+
+    <p>最も単純な例として、同種の原子軌道 $\phi_1, \phi_2$ が1つの共鳴積分 $\beta$ で結合した2軌道系を考えます。</p>
+
+    <h3>Python実装: 2軌道系のLCAO計算（結合性・反結合性軌道）</h3>
+    <pre class="code-block"><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+def lcao_two_orbital(alpha, beta):
+    """
+    2つの原子軌道からなる最も単純なLCAO系を対角化する
+
+    Parameters:
+    alpha: クーロン積分（原子軌道のエネルギー）
+    beta: 共鳴積分（軌道間相互作用、通常は負の値）
+
+    Returns:
+    eigenvalues, eigenvectors
+    """
+    H = np.array([
+        [alpha, beta],
+        [beta, alpha]
+    ])
+    eigenvalues, eigenvectors = np.linalg.eigh(H)
+    return eigenvalues, eigenvectors
+
+# 規格化されたパラメータ（alpha=0を基準エネルギーとする）
+alpha, beta = 0.0, -1.0
+eigenvalues, eigenvectors = lcao_two_orbital(alpha, beta)
+
+print("固有エネルギー:", eigenvalues)
+print("固有ベクトル:\n", eigenvectors)
+
+E_bonding = alpha + beta       # 結合性軌道（bonding orbital）
+E_antibonding = alpha - beta   # 反結合性軌道（antibonding orbital）
+print(f"\n結合性軌道エネルギー: E = alpha + beta = {E_bonding:.3f}")
+print(f"反結合性軌道エネルギー: E = alpha - beta = {E_antibonding:.3f}")
+
+# エネルギー準位図
+fig, ax = plt.subplots(figsize=(6, 6))
+ax.hlines(alpha, -0.5, 2.5, colors='gray', linestyles='dashed', label='原子軌道 (alpha)')
+ax.hlines(E_bonding, 0.7, 1.3, colors='#f5576c', linewidth=4)
+ax.hlines(E_antibonding, 0.7, 1.3, colors='#f093fb', linewidth=4)
+ax.text(1.0, E_bonding - 0.15, '結合性軌道', ha='center', fontsize=11)
+ax.text(1.0, E_antibonding + 0.08, '反結合性軌道', ha='center', fontsize=11)
+ax.set_xticks([])
+ax.set_ylabel('エネルギー (単位: |beta|)', fontsize=12)
+ax.set_title('2軌道系のLCAO分裂', fontsize=14, fontweight='bold')
+ax.set_xlim(-0.5, 2.5)
+ax.legend(loc='upper right')
+plt.tight_layout()
+plt.savefig('lcao_two_orbital.png', dpi=300)
+plt.show()
+</code></pre>
+    <p><strong>実行結果</strong>: alpha=0, beta=-1のとき、結合性軌道は E = alpha + beta = -1.000、反結合性軌道は E = alpha - beta = 1.000 に分裂する。beta が負であるため、結合性軌道（対称的な組み合わせ $\frac{1}{\sqrt{2}}(\phi_1+\phi_2)$）の方がエネルギーが低く安定である。</p>
+
+    <h2>2.2 Hückel理論による π電子系の記述</h2>
+    <p>LCAO法を、ベンゼンのような<strong>π電子系（pi-electron system）</strong>を持つ共役分子に適用したものが<strong>Hückel理論</strong>です。1931年にErich Hückelによって提案されたこの理論は、いくつかの近似を導入することで、π電子系の電子状態を手計算でも扱えるほど単純化しました。</p>
+
+    <p>Hückel理論の主要な近似は次の3点です。</p>
+    <ul>
+        <li>すべての炭素原子のクーロン積分は等しい: $H_{ii} = \alpha$</li>
+        <li>共鳴積分は隣接する（結合している）原子間でのみ有限の値を持つ: 隣接原子なら $H_{ij} = \beta$、それ以外は0</li>
+        <li>原子軌道は規格化直交系とみなす: $S_{ij} = \delta_{ij}$</li>
+    </ul>
+
+    <p>この近似のもとでは、ハミルトニアン行列は分子の結合構造を表す<strong>隣接行列（Adjacency Matrix）</strong> $\mathbf{A}$ を用いて $\mathbf{H} = \alpha \mathbf{I} + \beta \mathbf{A}$ と書けます。$\mathbf{A}$ の要素 $A_{ij}$ は、原子 $i$ と $j$ が結合していれば1、そうでなければ0です。</p>
+
+    <p>ベンゼン（$\text{C}_6\text{H}_6$）は6個の炭素原子が環状に結合しており、各炭素原子は1つのπ軌道（2p_z軌道）を提供します。隣接行列は6×6の巡回的な構造を持ち、対角化することでπ電子系の分子軌道エネルギーが得られます。</p>
+
+    <h3>Python実装: Hückel理論によるベンゼンのπ電子状態計算</h3>
+    <pre class="code-block"><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+def huckel_matrix_ring(n_atoms, alpha, beta):
+    """
+    環状π電子系（例: ベンゼン）のHückelハミルトニアン行列を構築する
+
+    Parameters:
+    n_atoms: 環を構成する原子数
+    alpha: クーロン積分
+    beta: 共鳴積分（隣接原子間）
+
+    Returns:
+    H: Hückelハミルトニアン行列 (n_atoms x n_atoms)
+    """
+    H = np.full((n_atoms, n_atoms), 0.0)
+    np.fill_diagonal(H, alpha)
+    for i in range(n_atoms):
+        j = (i + 1) % n_atoms  # 環状境界条件（最後の原子は最初の原子と結合）
+        H[i, j] = beta
+        H[j, i] = beta
+    return H
+
+# ベンゼン: alpha=0を基準エネルギー、beta=-1を単位として計算
+alpha, beta = 0.0, -1.0
+H_benzene = huckel_matrix_ring(n_atoms=6, alpha=alpha, beta=beta)
+
+eigenvalues, eigenvectors = np.linalg.eigh(H_benzene)
+print("ベンゼンのπ分子軌道エネルギー (alpha + x*beta の x):")
+print(np.sort(eigenvalues))
+
+# 6個のpi電子を、エネルギーの低い軌道から2個ずつ詰める（Aufbau原理）
+n_pi_electrons = 6
+n_occupied = n_pi_electrons // 2
+E_pi_total = 2 * np.sum(eigenvalues[:n_occupied])
+print(f"\nHOMOまで占有した全π電子エネルギー: {E_pi_total:.4f} (alpha=0, beta=-1の単位)")
+
+# 局在化した3つの孤立二重結合（エチレン様）と比較
+E_localized = n_pi_electrons * (alpha + beta)
+E_delocalization = E_pi_total - E_localized
+print(f"孤立3二重結合と仮定した場合のエネルギー: {E_localized:.4f}")
+print(f"非局在化エネルギー（共鳴エネルギー）: {E_delocalization:.4f}")
+
+# エネルギー準位図（縮退を考慮）
+fig, ax = plt.subplots(figsize=(6, 6))
+unique_levels = sorted(set(np.round(eigenvalues, 6)))
+for level in unique_levels:
+    degeneracy = np.sum(np.isclose(eigenvalues, level))
+    offsets = np.linspace(-0.4, 0.4, degeneracy + 2)[1:-1]
+    for off in offsets:
+        ax.hlines(level, off - 0.15, off + 0.15, colors='#f5576c', linewidth=4)
+
+ax.set_xticks([])
+ax.set_xlim(-0.6, 0.6)
+ax.set_ylabel('エネルギー (alpha + x * beta)', fontsize=12)
+ax.set_title('ベンゼンのHückel π軌道エネルギー準位', fontsize=14, fontweight='bold')
+plt.tight_layout()
+plt.savefig('huckel_benzene_levels.png', dpi=300)
+plt.show()
+</code></pre>
+    <p><strong>実行結果</strong>: 固有値は alpha を基準として x = -2, -1, -1, +1, +1, +2（β単位）となり、$\alpha + 2\beta$（1軌道）、$\alpha + \beta$（2重縮退, Degeneracy）、$\alpha - \beta$（2重縮退）、$\alpha - 2\beta$（1軌道）の4準位に分裂する。6個のπ電子は最も安定な3軌道（$\alpha+2\beta$ と $\alpha+\beta$ の2軌道）を占有し、全π電子エネルギーは $8\beta$ となる。これを孤立した3つの二重結合（各軌道 $\alpha+\beta$ に2電子、合計 $6\beta$）と比較すると、非局在化エネルギー（共鳴エネルギー）は $2\beta$ と求まる。文献によるとπ結合の共鳴積分βはおよそ-1〜-3 eVの範囲で見積もられることが多く（例えばStreitwieser (1961) は $\beta \approx -2.5$ eV を代表値として用いている）、これを用いるとベンゼンの共鳴エネルギーは概算で約5 eV程度と見積もられる。ただし、この値は簡易Hückel理論による理想化された見積もりであり、実験的な共鳴エネルギー（水素化熱の比較から求められる値、約150 kJ/mol ≈ 1.6 eV）とは近似の粗さに起因する差がある。</p>
+
+    <h2>2.3 タイトバインディング近似</h2>
+    <p>Hückel理論は有限個の原子からなる分子を扱いましたが、原子が無限に周期的に配列した結晶（固体）に対しても同様のLCAOの考え方を適用できます。これを<strong>タイトバインディング近似</strong>と呼びます。「タイトバインディング（強結合）」という名前は、電子が各原子軌道に強く束縛されており、隣接原子への飛び移り（ホッピング）を摂動的に扱えるという物理的描像に由来します。</p>
+
+    <p>周期的な結晶では、格子定数 $a$ ごとに同一の原子が並んでいると仮定し、周期境界条件（<strong>Born-von Karman境界条件</strong>）を課します。このとき、結晶運動量 $k$ でラベルされる分子軌道（Bloch状態）は、原子軌道 $\phi_n$（$n$番目の格子点）の線形結合として次のように書けます。</p>
+
+    <div class="equation">
+        $$\psi_k = \frac{1}{\sqrt{N}} \sum_n e^{ikna} \phi_n$$
+        <p>これは<strong>Bloch定理（Bloch's Theorem）</strong>の帰結であり、$N$ は格子点の総数です。</p>
+    </div>
+
+    <p>最近接原子間のみに共鳴積分（<strong>ホッピング積分, Hopping Integral</strong>）$\beta$ を持つ1次元鎖にこの波動関数を代入すると、エネルギーの $k$ 依存性（<strong>分散関係, Dispersion Relation</strong>）が得られます。</p>
+
+    <div class="equation">
+        $$E(k) = \alpha + 2\beta \cos(ka)$$
+        <p>$k$ は第一<strong>ブリルアンゾーン（Brillouin Zone）</strong>、$-\pi/a \lt k \le \pi/a$ の範囲を取ります。この $E(k)$ の集合を<strong>エネルギーバンド（Energy Band）</strong>と呼びます。</p>
+    </div>
+
+    <p>興味深いことに、この分散関係はHückel理論と数学的に同じ起源を持ちます。ベンゼンのような $N$ 員環のHückel理論は、周期境界条件を持つ1次元タイトバインディング鎖を有限サイズ（$N=6$）に量子化したものとみなすことができます。許容される波数は $k_m = 2\pi m / (Na)$（$m = 0, 1, \dots, N-1$）に離散化され、この $k_m$ を分散関係 $E(k)$ に代入すると、ちょうどベンゼンのHückel固有値が再現されます。</p>
+
+    <h3>Python実装: 1次元タイトバインディングモデルのバンド構造</h3>
+    <pre class="code-block"><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+def tight_binding_1d(k, alpha, beta, a=1.0):
+    """1次元タイトバインディング鎖の分散関係 E(k) を計算する"""
+    return alpha + 2 * beta * np.cos(k * a)
+
+alpha, beta, a = 0.0, -1.0, 1.0
+
+# 第一ブリルアンゾーン内の連続的なk点
+k = np.linspace(-np.pi / a, np.pi / a, 400)
+E_k = tight_binding_1d(k, alpha, beta, a)
+
+print(f"バンドの最小値: {E_k.min():.4f} (alpha + 2*beta)")
+print(f"バンドの最大値: {E_k.max():.4f} (alpha - 2*beta)")
+print(f"バンド幅: {E_k.max() - E_k.min():.4f} (= 4|beta|)")
+
+plt.figure(figsize=(8, 6))
+plt.plot(k * a / np.pi, E_k, color='#f5576c', linewidth=2.5)
+plt.axvline(x=0, color='gray', linestyle='--', alpha=0.5)
+plt.xlabel('k a / π', fontsize=12)
+plt.ylabel('E(k)  (alpha + x*beta)', fontsize=12)
+plt.title('1次元タイトバインディング鎖のバンド構造', fontsize=14, fontweight='bold')
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.savefig('tight_binding_band_1d.png', dpi=300)
+plt.show()
+</code></pre>
+
+    <h3>Python実装: Hückel理論とタイトバインディングの整合性の検証</h3>
+    <pre class="code-block"><code class="language-python">import numpy as np
+
+alpha, beta, a = 0.0, -1.0, 1.0
+
+# ベンゼン（N=6環）のHückel固有値を再計算
+n_atoms = 6
+H = np.zeros((n_atoms, n_atoms))
+for i in range(n_atoms):
+    j = (i + 1) % n_atoms
+    H[i, j] = beta
+    H[j, i] = beta
+huckel_eigenvalues = np.sort(np.linalg.eigvalsh(H))
+
+# Born-von Karman境界条件で許容されるk点 (N=6)
+N = n_atoms
+m = np.arange(N)
+k_allowed = 2 * np.pi * m / (N * a)
+E_tb_sampled = np.sort(alpha + 2 * beta * np.cos(k_allowed * a))
+
+print("Hückel固有値        :", huckel_eigenvalues)
+print("タイトバインディング :", E_tb_sampled)
+print("両者は一致するか:", np.allclose(huckel_eigenvalues, E_tb_sampled))
+</code></pre>
+    <p><strong>実行結果</strong>: 両者の値は完全に一致する（<code>np.allclose</code> がTrueを返す）。すなわち、ベンゼンのHückel分子軌道は、無限に長い1次元タイトバインディング鎖のバンドを、環状境界条件によって離散化された6つの $k$ 点でサンプリングしたものに他ならない。有限のπ電子系（分子）と無限に周期的な系（結晶）は、同一の物理的枠組み（LCAO/タイトバインディング）の中で連続的につながっている。</p>
+
+    <h2>2.4 バンド理論とエネルギーバンド構造</h2>
+    <p>前節の1次元鎖は、単位格子あたり1つの原子軌道しか持たない最も単純な場合でした。実際の結晶では単位格子が複数の原子（副格子）を含むことが多く、その場合はエネルギーバンドが複数本に分裂します。ここでは、単位格子あたり2つの原子（A, B）を持ち、ホッピング積分が交互に異なる値 $t_1$（分子内的な結合）と $t_2$（分子間的な結合）を取る<strong>二原子鎖モデル（Diatomic Chain Model）</strong>を考えます。このモデルは、単結合と二重結合が交互に並ぶポリアセチレンのような共役高分子の電子構造とも対応しており、<strong>Su-Schrieffer-Heeger（SSH）模型</strong>として知られています。</p>
+
+    <p>波数 $k$ ごとに、A副格子とB副格子の振幅を成分とする2×2のBlochハミルトニアンを対角化することで、2本のエネルギーバンドが得られます。</p>
+
+    <div class="equation">
+        $$H(k) = \begin{pmatrix} \alpha & -(t_1 + t_2 e^{-ika}) \\ -(t_1 + t_2 e^{ika}) & \alpha \end{pmatrix}$$
+        $$E_{\pm}(k) = \alpha \pm \sqrt{t_1^2 + t_2^2 + 2t_1 t_2 \cos(ka)}$$
+    </div>
+
+    <p>$t_1 = t_2$（結合が等価で、二量化していない）の場合、この2本のバンドはブリルアンゾーンの端で接触し、隙間のない単一のバンドに帰着します（前節の単原子鎖と同じ物理）。一方、$t_1 \neq t_2$ の場合はブリルアンゾーン境界（$k = \pi/a$）でエネルギーギャップが開き、その大きさは $\Delta E = 2|t_1 - t_2|$ となります。下のバンド（<strong>価電子帯, Valence Band</strong>）が電子で完全に満たされ、上のバンド（<strong>伝導帯, Conduction Band</strong>）が空である場合、この系は<strong>バンドギャップ（Band Gap）</strong>を持つ絶縁体または半導体としてふるまいます。逆に、バンドが部分的にしか占有されていない場合はフェルミ準位近傍に空の状態が存在するため電子は自由に動くことができ、系は金属的な性質を示します。</p>
+
+    <h3>Python実装: 二原子鎖モデルのバンド構造とギャップ形成</h3>
+    <pre class="code-block"><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+def diatomic_chain_bands(k, alpha, t1, t2, a=1.0):
+    """交互ホッピングを持つ二原子鎖の2バンド分散関係を計算する"""
+    delta = np.sqrt(t1**2 + t2**2 + 2 * t1 * t2 * np.cos(k * a))
+    return alpha + delta, alpha - delta  # 上のバンド, 下のバンド
+
+alpha, a = 0.0, 1.0
+k = np.linspace(-np.pi / a, np.pi / a, 400)
+
+# ケース1: 均一な鎖（ギャップなし）
+E_upper_uniform, E_lower_uniform = diatomic_chain_bands(k, alpha, t1=1.0, t2=1.0, a=a)
+
+# ケース2: 二量化した鎖（ギャップあり）
+t1, t2 = 1.0, 0.6
+E_upper, E_lower = diatomic_chain_bands(k, alpha, t1, t2, a=a)
+
+gap = E_upper.min() - E_lower.max()
+print(f"t1={t1}, t2={t2} のときのバンドギャップ: {gap:.4f}")
+print(f"解析的なギャップ 2|t1-t2|: {2 * abs(t1 - t2):.4f}")
+
+fig, axes = plt.subplots(1, 2, figsize=(12, 5.5), sharey=True)
+
+axes[0].plot(k * a / np.pi, E_upper_uniform, color='#f5576c', linewidth=2.5)
+axes[0].plot(k * a / np.pi, E_lower_uniform, color='#f093fb', linewidth=2.5)
+axes[0].set_title('均一な鎖 (t1=t2=1.0): ギャップなし', fontsize=12)
+axes[0].set_xlabel('k a / π', fontsize=12)
+axes[0].set_ylabel('E(k)', fontsize=12)
+axes[0].grid(True, alpha=0.3)
+
+axes[1].plot(k * a / np.pi, E_upper, color='#f5576c', linewidth=2.5, label='伝導帯')
+axes[1].plot(k * a / np.pi, E_lower, color='#f093fb', linewidth=2.5, label='価電子帯')
+axes[1].set_title(f'二量化した鎖 (t1={t1}, t2={t2}): ギャップあり', fontsize=12)
+axes[1].set_xlabel('k a / π', fontsize=12)
+axes[1].legend()
+axes[1].grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('diatomic_chain_bands.png', dpi=300)
+plt.show()
+</code></pre>
+    <p><strong>実行結果</strong>: $t_1 = t_2 = 1.0$ のときギャップは0であり、単一のバンドが折りたたまれた形になる。$t_1=1.0, t_2=0.6$ に二量化させると、ブリルアンゾーン境界にギャップ $\Delta E = 2|t_1-t_2| = 0.8$（β単位）が開く。この現象は<strong>Peierls転移（Peierls Transition）</strong>とも呼ばれ、1次元系が格子を歪ませることでエネルギーを安定化する重要な機構である。</p>
+
+    <h2>2.5 状態密度（DOS）の計算と可視化</h2>
+    <p><strong>状態密度（Density of States, DOS）</strong> $g(E)$ は、単位エネルギー幅あたりに存在する電子状態の数を表す関数であり、比熱、電気伝導度、磁化率など、固体の巨視的な物性を電子状態から計算する際の基本量です。有限個の $k$ 点で離散的に定義されたエネルギー準位から、状態密度は次のようにヒストグラムとして構成できます。</p>
+
+    <div class="equation">
+        $$g(E) \approx \frac{1}{N} \sum_{k} \delta(E - E(k))$$
+        <p>実際の数値計算では、デルタ関数の代わりに有限幅のビンでエネルギーをヒストグラム化して近似します。</p>
+    </div>
+
+    <p>1次元タイトバインディングバンド $E(k) = \alpha + 2\beta\cos(ka)$ の場合、状態密度は解析的に次の形で求まります。</p>
+
+    <div class="equation">
+        $$g(E) = \frac{1}{\pi \sqrt{4\beta^2 - (E-\alpha)^2}}$$
+        <p>この式は、バンドの上端・下端（$E = \alpha \pm 2\beta$）で発散する特徴的な形状を持ち、これを<strong>ファンホーブ特異点（van Hove Singularity）</strong>と呼びます。これは1次元系に特有の性質であり、バンドの端で群速度（Group Velocity）$dE/dk$ がゼロになることに起因します。</p>
+    </div>
+
+    <h3>Python実装: タイトバインディングバンドの状態密度（ヒストグラムと解析解の比較）</h3>
+    <pre class="code-block"><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+alpha, beta, a = 0.0, -1.0, 1.0
+
+# 第一ブリルアンゾーンを多数のk点で密にサンプリング
+n_k = 5000
+k_samples = np.linspace(-np.pi / a, np.pi / a, n_k, endpoint=False)
+E_samples = alpha + 2 * beta * np.cos(k_samples * a)
+
+# ヒストグラムによる状態密度の近似
+hist, bin_edges = np.histogram(E_samples, bins=60, density=True)
+bin_centers = 0.5 * (bin_edges[:-1] + bin_edges[1:])
+
+# 解析解（バンド端付近を避けて発散を回避）
+E_dense = np.linspace(2 * beta + 1e-3, -2 * beta - 1e-3, 400)
+g_analytic = 1.0 / (np.pi * np.sqrt(4 * beta**2 - (E_dense - alpha)**2))
+
+plt.figure(figsize=(9, 6))
+plt.bar(bin_centers, hist, width=(bin_edges[1] - bin_edges[0]),
+        color='#f093fb', alpha=0.6, label='ヒストグラム（数値）')
+plt.plot(E_dense, g_analytic, color='#f5576c', linewidth=2.5, label='解析解')
+plt.xlabel('エネルギー E (alpha + x*beta)', fontsize=12)
+plt.ylabel('状態密度 g(E)', fontsize=12)
+plt.title('1次元タイトバインディングバンドの状態密度', fontsize=14, fontweight='bold')
+plt.ylim(0, 2.0)
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.savefig('dos_1d_tight_binding.png', dpi=300)
+plt.show()
+
+print(f"バンド端 E={2*beta:.2f}, {-2*beta:.2f} 付近で状態密度が急増していることを確認")
+print(f"バンド中央 (E=0) 付近のヒストグラム値: {hist[len(hist)//2]:.4f}")
+</code></pre>
+    <p><strong>実行結果</strong>: ヒストグラムと解析解はよく一致し、バンド中央付近（$E \approx \alpha$）では状態密度がほぼ平坦であるのに対し、バンド端（$E = \alpha \pm 2\beta$）に近づくにつれて状態密度が急激に増大する。これは群速度がバンド端でゼロに近づき、単位エネルギー幅あたりに詰め込める $k$ 点の数が増えるためである。</p>
+
+    <div class="mermaid">
+        flowchart TD
+            A[電子状態の階層的記述] --> B[LCAO法]
+            B --> C[Hückel理論]
+            C --> D[タイトバインディング近似]
+            D --> E[バンド理論]
+            E --> F[状態密度 DOS]
+
+            C --> C1[ベンゼン: 6準位に分裂]
+            D --> D1[周期境界条件でk空間へ]
+            E --> E1[ギャップ形成: 金属・半導体・絶縁体]
+            F --> F1[van Hove特異点]
+
+            style A fill:#f093fb,stroke:#f5576c,stroke-width:3px,color:#fff
+            style B fill:#f5576c,stroke:#f093fb,stroke-width:2px,color:#fff
+            style C fill:#f5576c,stroke:#f093fb,stroke-width:2px,color:#fff
+            style D fill:#f5576c,stroke:#f093fb,stroke-width:2px,color:#fff
+            style E fill:#f5576c,stroke:#f093fb,stroke-width:2px,color:#fff
+            style F fill:#f5576c,stroke:#f093fb,stroke-width:2px,color:#fff
+    </div>
+
+    <h2>演習問題</h2>
+
+    <div class="exercise">
+        <h3>問題1（Easy）: アリル系のHückel計算</h3>
+        <p>アリル系（allyl, $\text{C}_3\text{H}_5$、直鎖状π電子系で環ではない）のHückel行列を構築し、固有値を求めよ。得られた3つの軌道エネルギーから、アリルカチオン（π電子2個）、アリルラジカル（π電子3個）、アリルアニオン（π電子4個）の全π電子エネルギーを計算し、比較せよ。</p>
+        <div class="solution">
+            <h4>解答</h4>
+<pre class="code-block"><code class="language-python">import numpy as np
+
+alpha, beta = 0.0, -1.0
+
+# アリル系（直鎖状, N=3, 環ではない）のHückel行列
+H_allyl = np.array([
+    [alpha, beta, 0.0],
+    [beta, alpha, beta],
+    [0.0, beta, alpha]
+])
+
+eigenvalues = np.sort(np.linalg.eigvalsh(H_allyl))
+print("アリル系の軌道エネルギー (alpha + x*beta):", eigenvalues)
+
+def fill_orbitals(eigenvalues, n_electrons):
+    """基底状態配置でエネルギーの低い軌道から電子を詰める（Aufbau原理）"""
+    occupations = np.zeros(len(eigenvalues))
+    remaining = n_electrons
+    for i in range(len(eigenvalues)):
+        add = min(2, remaining)
+        occupations[i] = add
+        remaining -= add
+    return occupations
+
+for n_electrons, species in [(2, "アリルカチオン"), (3, "アリルラジカル"), (4, "アリルアニオン")]:
+    occ = fill_orbitals(eigenvalues, n_electrons)
+    E_total = np.sum(occ * eigenvalues)
+    print(f"{species} (π電子{n_electrons}個): 占有数={occ}, 全π電子エネルギー={E_total:.4f}")
+</code></pre>
+            <p><strong>結果</strong>: 3つの軌道エネルギーは $\alpha+\sqrt{2}\beta$（結合性、約-1.414）、$\alpha$（非結合性、約0）、$\alpha-\sqrt{2}\beta$（反結合性、約+1.414）の順に並ぶ。中央の軌道は非結合性軌道（non-bonding orbital）であり、そのエネルギーは $\alpha$ に等しく、電子を詰めても系全体のπ電子エネルギーには寄与しない。そのため、簡易Hückel理論の範囲では、アリルカチオン・ラジカル・アニオンはいずれも全π電子エネルギーが $2\sqrt{2}\beta$（≈-2.828、β単位）で等しくなる。ただし、これは全エネルギーが等しいという意味であり、電荷分布や反応性（求核剤・求電子剤としての振る舞い）は種によって大きく異なる。</p>
+        </div>
+    </div>
+
+    <div class="exercise">
+        <h3>問題2（Medium）: バンド底における有効質量の見積もり</h3>
+        <p>1次元タイトバインディングバンド $E(k) = \alpha + 2\beta\cos(ka)$（$\alpha=0$、$\beta=-1$、$a=1$）のバンド下端（$k=0$）における有効質量 $m^*$ を、$E(k)$ の2階微分から解析的に導出し、数値微分（<code>np.gradient</code>）で検証せよ。また、$|\beta|$（ホッピング積分の大きさ）が大きくなると有効質量はどう変化するか、物理的に説明せよ。</p>
+        <div class="solution">
+            <h4>解答</h4>
+<pre class="code-block"><code class="language-python">import numpy as np
+
+alpha, beta, a = 0.0, -1.0, 1.0
+
+def E_k(k):
+    return alpha + 2 * beta * np.cos(k * a)
+
+# 解析解: バンド底(k=0)近傍で E(k) ≈ alpha + 2*beta - beta*(a*k)^2 + ...
+# よって d2E/dk2|_(k=0) = -2*beta*a^2 、有効質量 m* = hbar^2 / (d2E/dk2)
+m_eff_analytic = 1.0 / (-2 * beta * a**2)  # hbar=1の自然単位系
+print(f"解析的な有効質量: m* = {m_eff_analytic:.4f}")
+
+# 数値微分による検証
+k_fine = np.linspace(-0.01, 0.01, 5)
+E_fine = E_k(k_fine)
+d2E_dk2 = np.gradient(np.gradient(E_fine, k_fine), k_fine)[2]
+m_eff_numeric = 1.0 / d2E_dk2
+print(f"数値微分による有効質量: m* = {m_eff_numeric:.4f}")
+
+# betaの大きさを変えた場合の比較
+for beta_test in [-0.5, -1.0, -2.0]:
+    m_test = 1.0 / (-2 * beta_test * a**2)
+    print(f"beta = {beta_test}: m* = {m_test:.4f}")
+</code></pre>
+            <p><strong>結果</strong>: 解析解 $m^* = \hbar^2/(-2\beta a^2)$ は $\beta=-1$ のとき $m^*=0.5$ となり、数値微分の結果と一致する。$|\beta|$（ホッピング積分の大きさ）を大きくすると、バンド幅 $4|\beta|$ が広がりバンドがより大きく湾曲するため、有効質量は反比例して小さくなる（$\beta=-0.5$ で $m^*=1.0$、$\beta=-2.0$ で $m^*=0.25$）。物理的には、隣接原子間の軌道の重なりが大きいほど電子は隣の原子へ移動しやすくなり、見かけの質量（有効質量）が軽くなることに対応する。</p>
+        </div>
+    </div>
+
+    <div class="exercise">
+        <h3>問題3（Hard）: 二量化した鎖の状態密度とバンドギャップ</h3>
+        <p>二原子鎖モデル（$t_1=1.0$、$t_2=0.6$、$\alpha=0$）のバンド構造から状態密度をヒストグラムで計算し、バンドギャップ領域に電子状態が存在しないことを数値的に確認せよ。また、数値的なギャップ幅を解析的なギャップ幅 $2|t_1-t_2|$ と比較せよ。</p>
+        <div class="solution">
+            <h4>解答</h4>
+<pre class="code-block"><code class="language-python">import numpy as np
+
+alpha = 0.0
+t1, t2 = 1.0, 0.6
+a = 1.0
+
+n_k = 4000
+k = np.linspace(-np.pi / a, np.pi / a, n_k, endpoint=False)
+delta = np.sqrt(t1**2 + t2**2 + 2 * t1 * t2 * np.cos(k * a))
+E_upper = alpha + delta
+E_lower = alpha - delta
+E_all = np.concatenate([E_upper, E_lower])
+
+hist, bin_edges = np.histogram(E_all, bins=100, density=True)
+bin_centers = 0.5 * (bin_edges[:-1] + bin_edges[1:])
+
+gap_lower_edge = E_lower.max()
+gap_upper_edge = E_upper.min()
+gap_width = gap_upper_edge - gap_lower_edge
+print(f"数値的なギャップ幅: {gap_width:.4f}")
+print(f"解析的なギャップ幅 2|t1-t2|: {2 * abs(t1 - t2):.4f}")
+
+in_gap = (bin_centers &gt; gap_lower_edge) &amp; (bin_centers &lt; gap_upper_edge)
+print(f"ギャップ領域内のヒストグラム値（すべて0であるはず）: {hist[in_gap]}")
+</code></pre>
+            <p><strong>結果</strong>: 数値的なギャップ幅（約0.7999...）は解析解 $2|t_1-t_2|=0.8$ とよく一致する。さらに、ギャップ領域（価電子帯の上端から伝導帯の下端までの範囲）に含まれるヒストグラムのビンはすべて0であり、この区間には電子が占有できる状態が存在しないことが数値的に確認できる。これは、二量化した鎖が絶縁体（あるいは半導体）としてふるまうことの直接的な根拠となる。</p>
+        </div>
+    </div>
+
+    <h2>参考文献</h2>
+    <div class="reference">
+        <p>1. Hückel, E. (1931). "Quantentheoretische Beiträge zum Benzolproblem". <em>Zeitschrift für Physik</em>, 70(3-4), 204-286.</p>
+    </div>
+    <div class="reference">
+        <p>2. Streitwieser, A. (1961). <em>Molecular Orbital Theory for Organic Chemists</em>. John Wiley &amp; Sons.</p>
+    </div>
+    <div class="reference">
+        <p>3. Ashcroft, N.W., Mermin, N.D. (1976). <em>Solid State Physics</em>. Brooks Cole, pp. 176-190.</p>
+    </div>
+    <div class="reference">
+        <p>4. Kittel, C. (2005). <em>Introduction to Solid State Physics</em>, 8th Edition. Wiley, pp. 179-200.</p>
+    </div>
+    <div class="reference">
+        <p>5. Su, W.P., Schrieffer, J.R., Heeger, A.J. (1979). "Solitons in Polyacetylene". <em>Physical Review Letters</em>, 42(25), 1698-1701.</p>
+    </div>
+    <div class="reference">
+        <p>6. Hoffmann, R. (1963). "An Extended Hückel Theory". <em>Journal of Chemical Physics</em>, 39(6), 1397-1412.</p>
+    </div>
+    <div class="reference">
+        <p>7. Atkins, P., de Paula, J. (2010). <em>Physical Chemistry</em>, 9th Edition. Oxford University Press, pp. 380-420.</p>
+    </div>
+    <div class="reference">
+        <p>8. NumPy Developers. "numpy.linalg.eigh — NumPy Documentation". https://numpy.org/doc/stable/reference/generated/numpy.linalg.eigh.html</p>
+    </div>
+
+    <h2>学習目標確認</h2>
+    <div class="exercise">
+        <h3>レベル1（基本理解）</h3>
+        <ul>
+            <li>LCAO法における永年方程式、クーロン積分、共鳴積分の意味を説明できる</li>
+            <li>Hückel理論の3つの近似（等しいクーロン積分、隣接原子間のみの共鳴積分、規格化直交系）を理解している</li>
+            <li>タイトバインディング近似がLCAO法を周期系に拡張したものであることを説明できる</li>
+            <li>エネルギーバンド、ブリルアンゾーン、バンドギャップの基本概念を理解している</li>
+        </ul>
+
+        <h3>レベル2（実践スキル）</h3>
+        <ul>
+            <li>Pythonでnumpy.linalg.eighを用いてHückel行列を対角化し、分子軌道エネルギーを求められる</li>
+            <li>1次元タイトバインディングモデルのバンド構造を計算・プロットできる</li>
+            <li>ヒストグラムを用いて状態密度を数値的に計算し、解析解と比較できる</li>
+        </ul>
+
+        <h3>レベル3（応用力）</h3>
+        <ul>
+            <li>有限のπ電子系（Hückel理論）と無限に周期的な系（タイトバインディング理論）の数学的な連続性を説明できる</li>
+            <li>二原子鎖モデルにおけるバンドギャップの形成機構（Peierls転移）を理解し、金属・半導体・絶縁体の違いを説明できる</li>
+            <li>状態密度のファンホーブ特異点の物理的起源を、群速度の観点から説明できる</li>
+        </ul>
+    </div>
+
+    <p style="text-align: center; margin-top: 3rem;">
+        <a href="chapter-1.html" style="color: #f5576c; text-decoration: none; font-weight: bold;">← 第1章</a>
+        <span style="color: #adb5bd; margin: 0 0.8rem;">|</span>
+        <a href="index.html" style="color: #f5576c; text-decoration: none; font-weight: bold;">シリーズ目次</a>
+        <span style="color: #adb5bd; margin: 0 0.8rem;">|</span>
+        <a href="chapter-3.html" style="color: #f5576c; text-decoration: none; font-weight: bold;">第3章 →</a>
+    </p>
+<section class="disclaimer">
+<h3>免責事項</h3>
+<ul>
+<li>本コンテンツは教育・研究・情報提供のみを目的としており、専門的な助言(法律・会計・技術的保証など)を提供するものではありません。</li>
+<li>本コンテンツおよび付随するCode examplesは「現状有姿(AS IS)」で提供され、明示または黙示を問わず、商品性、特定目的適合性、権利非侵害、正確性・完全性、動作・安全性等いかなる保証もしません。</li>
+<li>外部リンク、第三者が提供するデータ・ツール・ライブラリ等の内容・可用性・安全性について、作成者および東北大学は一切の責任を負いません。</li>
+<li>本コンテンツの利用・実行・解釈により直接的・間接的・付随的・特別・結果的・懲罰的損害が生じた場合でも、適用法で許容される最大限の範囲で、作成者および東北大学は責任を負いません。</li>
+<li>本コンテンツの内容は、予告なく変更・更新・提供停止されることがあります。</li>
+<li>本コンテンツの著作権・ライセンスは明記された条件(例: CC BY 4.0)に従います。当該ライセンスは通常、無保証条項を含みます。</li>
+</ul>
+</section>
+
+</body>
+</html>

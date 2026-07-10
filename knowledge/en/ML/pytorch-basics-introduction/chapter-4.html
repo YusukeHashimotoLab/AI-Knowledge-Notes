@@ -1,0 +1,1225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 4: Building Neural Networks - PyTorch Basics Introduction - AI Terakoya</title>
+    <meta name="description" content="Learn how to build neural networks using PyTorch's nn.Module. Understand layer definitions, loss functions and optimizers, implementing training loops, using DataLoader, and saving/loading models through practical code examples.">
+
+    <style>
+        :root {
+            --color-primary: #2c3e50;
+            --color-primary-dark: #1a252f;
+            --color-accent: #7b2cbf;
+            --color-accent-light: #9d4edd;
+            --color-text: #2d3748;
+            --color-text-light: #4a5568;
+            --color-bg: #ffffff;
+            --color-bg-alt: #f7fafc;
+            --color-border: #e2e8f0;
+            --color-code-bg: #f8f9fa;
+            --color-link: #3182ce;
+            --color-link-hover: #2c5aa0;
+
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+
+            --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+            --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+            --border-radius: 8px;
+            --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-body);
+            line-height: 1.7;
+            color: var(--color-text);
+            background-color: var(--color-bg);
+            font-size: 16px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            padding: var(--spacing-xl) var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+            box-shadow: var(--box-shadow);
+        }
+
+        .header-content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: var(--spacing-sm);
+            line-height: 1.2;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            font-weight: 400;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-md);
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-md) var(--spacing-xl);
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-xl);
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-xs);
+            border-bottom: 3px solid var(--color-accent);
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-lg);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        h4 {
+            font-size: 1.1rem;
+            color: var(--color-primary-dark);
+            margin-top: var(--spacing-md);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        p {
+            margin-bottom: var(--spacing-md);
+            color: var(--color-text);
+        }
+
+        a {
+            color: var(--color-link);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        a:hover {
+            color: var(--color-link-hover);
+            text-decoration: underline;
+        }
+
+        ul, ol {
+            margin-left: var(--spacing-lg);
+            margin-bottom: var(--spacing-md);
+        }
+
+        li {
+            margin-bottom: var(--spacing-xs);
+            color: var(--color-text);
+        }
+
+        pre {
+            background-color: var(--color-code-bg);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            overflow-x: auto;
+            margin-bottom: var(--spacing-md);
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        code {
+            font-family: var(--font-mono);
+            font-size: 0.9em;
+            background-color: var(--color-code-bg);
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+        }
+
+        pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: var(--spacing-md);
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            border: 1px solid var(--color-border);
+            padding: var(--spacing-sm);
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--color-bg-alt);
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        blockquote {
+            border-left: 4px solid var(--color-accent);
+            padding-left: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            color: var(--color-text-light);
+            font-style: italic;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        .mermaid {
+            text-align: center;
+            margin: var(--spacing-lg) 0;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        details {
+            background-color: var(--color-bg-alt);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+        }
+
+        summary {
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--color-primary);
+            user-select: none;
+            padding: var(--spacing-xs);
+            margin: calc(-1 * var(--spacing-md));
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        summary:hover {
+            background-color: rgba(123, 44, 191, 0.1);
+        }
+
+        details[open] summary {
+            margin-bottom: var(--spacing-md);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .chapter-description {
+            margin: 1.5rem 0;
+            padding: 1rem;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-left: 4px solid #7b2cbf;
+            border-radius: 8px;
+            font-size: 1.05rem;
+            line-height: 1.8;
+            color: #2d3748;
+        }
+
+        .learning-objectives {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: var(--spacing-lg);
+            border-radius: var(--border-radius);
+            border-left: 4px solid var(--color-accent);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .learning-objectives h2 {
+            margin-top: 0;
+            border-bottom: none;
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            gap: var(--spacing-md);
+            margin: var(--spacing-xl) 0;
+            padding-top: var(--spacing-lg);
+            border-top: 2px solid var(--color-border);
+        }
+
+        .nav-button {
+            flex: 1;
+            padding: var(--spacing-md);
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            border-radius: var(--border-radius);
+            text-align: center;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: var(--box-shadow);
+        }
+
+        .nav-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            text-decoration: none;
+        }
+
+        .nav-button.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: #6c757d;
+        }
+
+        .nav-button.disabled:hover {
+            transform: none;
+            box-shadow: var(--box-shadow);
+        }
+
+        footer {
+            margin-top: var(--spacing-xl);
+            padding: var(--spacing-lg) var(--spacing-md);
+            background-color: var(--color-bg-alt);
+            border-top: 1px solid var(--color-border);
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--color-text-light);
+        }
+        .disclaimer {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 1.5rem;
+            background: #f8f9fa;
+            border-left: 4px solid #6c757d;
+            border-radius: 4px;
+        }
+
+        .disclaimer h3 {
+            color: #495057;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .disclaimer ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .disclaimer li {
+            padding: 0.5rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+            font-size: 0.9rem;
+            color: #6c757d;
+            line-height: 1.6;
+        }
+
+        .disclaimer li::before {
+            content: "⚠️";
+            position: absolute;
+            left: 0;
+        }
+
+        /* Breadcrumb styles */
+        .breadcrumb {
+            background: #f7fafc;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+        }
+
+        .breadcrumb-content {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .breadcrumb a {
+            color: #667eea;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .breadcrumb a:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+
+        .breadcrumb-separator {
+            color: #a0aec0;
+            margin: 0 0.25rem;
+        }
+
+        .breadcrumb-current {
+            color: #4a5568;
+            font-weight: 500;
+        }
+
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            border-radius: var(--border-radius);
+        }
+
+        .warning-box {
+            background: #fff3e0;
+            border-left: 4px solid #ff9800;
+            padding: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            border-radius: var(--border-radius);
+        }
+
+        .success-box {
+            background: #e8f5e9;
+            border-left: 4px solid #4caf50;
+            padding: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            border-radius: var(--border-radius);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 1rem 2rem;
+            }
+
+            h1 {
+                font-size: 1.6rem;
+            }
+
+            h2 {
+                font-size: 1.4rem;
+            }
+
+            .navigation {
+                flex-direction: column;
+            }
+        }
+    </style>
+
+    <!-- Mermaid for diagrams -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <!-- Prism.js for syntax highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <!-- MathJax for equations -->
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <script>
+        // Mermaid.js initialization
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof mermaid !== 'undefined') {
+                mermaid.initialize({ startOnLoad: true, theme: 'default' });
+            }
+        });
+    </script>
+</head>
+<body>
+    <nav class="breadcrumb">
+        <div class="breadcrumb-content">
+            <a href="../../index.html">AI Terakoya Home</a><span class="breadcrumb-separator">›</span><a href="../index.html">Machine Learning</a><span class="breadcrumb-separator">›</span><a href="./index.html">PyTorch Basics Introduction</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 4</span>
+        </div>
+    </nav>
+
+    <header>
+        <div class="header-content">
+            <h1>Chapter 4: Building Neural Networks</h1>
+            <p class="subtitle">Design models with nn.Module and implement training loops</p>
+            <div class="meta">
+                <span class="meta-item">📖 Reading time: 25-30 min</span>
+                <span class="meta-item">📊 Difficulty: Intermediate</span>
+                <span class="meta-item">💻 Code examples: 14</span>
+                <span class="meta-item">📝 Exercises: 3</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="chapter-description">
+            <p>In the previous chapters, you learned how to manipulate Tensors and how automatic differentiation (autograd) works. In this chapter, we'll build on that foundation and finally construct a <strong>Neural Network</strong>. From defining models with <code>nn.Module</code>, to choosing loss functions and optimizers, implementing training loops, mini-batch processing with <code>DataLoader</code>, and saving/loading trained models — let's work through the entire workflow by actually running code.</p>
+        </div>
+
+        <div class="learning-objectives">
+            <h2>Learning Objectives</h2>
+            <ul>
+                <li>✅ Define models using nn.Module</li>
+                <li>✅ Select appropriate loss functions and optimizers</li>
+                <li>✅ Implement training loops</li>
+                <li>✅ Perform batch processing with DataLoader</li>
+                <li>✅ Save and load models</li>
+            </ul>
+        </div>
+
+        <h2 id="nn-module-basics">1. nn.Module Basics</h2>
+
+        <p>The basic building block for constructing a neural network in PyTorch is <code>torch.nn.Module</code>. <strong>nn.Module</strong> is a class that bundles together the functionality needed for neural networks — managing parameters (weights and biases), transferring to GPU, saving and loading models, and more. When you define your own model, you build it by inheriting from this class.</p>
+
+        <h3>How to Create a Class that Inherits from nn.Module</h3>
+
+        <p>To define your own model, you implement the following two methods.</p>
+
+        <ul>
+            <li><code>__init__()</code>: Defines the layers used in the model</li>
+            <li><code>forward()</code>: Defines the order in which input data passes through the layers (forward propagation)</li>
+        </ul>
+
+        <pre><code class="language-python">import torch
+import torch.nn as nn
+
+class SimpleNet(nn.Module):
+    def __init__(self, input_size, hidden_size, output_size):
+        super().__init__()
+        self.fc1 = nn.Linear(input_size, hidden_size)
+        self.relu = nn.ReLU()
+        self.fc2 = nn.Linear(hidden_size, output_size)
+
+    def forward(self, x):
+        x = self.fc1(x)
+        x = self.relu(x)
+        x = self.fc2(x)
+        return x
+
+# Instantiate the model: input 10 dims → hidden layer 32 dims → output 3 dims
+model = SimpleNet(input_size=10, hidden_size=32, output_size=3)
+print(model)
+</code></pre>
+
+        <p><strong>Output:</strong></p>
+
+        <pre><code>SimpleNet(
+  (fc1): Linear(in_features=10, out_features=32, bias=True)
+  (relu): ReLU()
+  (fc2): Linear(in_features=32, out_features=3, bias=True)
+)
+</code></pre>
+
+        <div class="info-box">
+            <p><strong>💡 Don't Forget super().__init__()</strong></p>
+            <p>You must call <code>super().__init__()</code> first inside <code>__init__()</code>. This initializes <code>nn.Module</code>'s internal parameter-management mechanism, so that attributes like <code>self.fc1</code> and <code>self.fc2</code> are automatically registered as the model's parameters.</p>
+        </div>
+
+        <h3>Running the Model and Checking Its Parameters</h3>
+
+        <p>Once defined, the model can be called like a function to run forward propagation. Internally, <code>model(x)</code> calls <code>model.forward(x)</code>.</p>
+
+        <pre><code class="language-python">import torch
+
+# Dummy data with batch size 5, input dimension 10
+x = torch.randn(5, 10)
+
+# Run forward propagation
+output = model(x)
+print(f"Input shape: {x.shape}")
+print(f"Output shape: {output.shape}")
+
+# Check the parameters held by the model
+for name, param in model.named_parameters():
+    print(f"{name}: {param.shape}")
+</code></pre>
+
+        <p><strong>Output:</strong></p>
+
+        <pre><code>Input shape: torch.Size([5, 10])
+Output shape: torch.Size([5, 3])
+fc1.weight: torch.Size([32, 10])
+fc1.bias: torch.Size([32])
+fc2.weight: torch.Size([3, 32])
+fc2.bias: torch.Size([3])
+</code></pre>
+
+        <p>As you can see from <code>named_parameters()</code>, when you assign a subclass of <code>nn.Module</code> (such as <code>nn.Linear</code>) to an attribute — as in <code>self.fc1 = nn.Linear(...)</code> — its parameters are automatically registered as trainable parameters of the parent model. This is one of the major benefits of using <code>nn.Module</code>.</p>
+
+        <h2 id="defining-layers">2. Defining and Combining Layers</h2>
+
+        <p><code>nn.Linear</code> and <code>nn.ReLU</code>, used in the model above, represent a <strong>Fully Connected Layer</strong> and an <strong>Activation Function</strong>, respectively. PyTorch provides many other layers to suit various purposes.</p>
+
+        <h3>Commonly Used Layers and Activation Functions</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Class</th>
+                    <th>Role</th>
+                    <th>Typical Use</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>nn.Linear(in, out)</code></td>
+                    <td>Fully connected layer. Performs the linear transformation $y = xW^T + b$</td>
+                    <td>MLPs, classifier output layers, etc.</td>
+                </tr>
+                <tr>
+                    <td><code>nn.ReLU()</code></td>
+                    <td>Activation function. Sets negative values to 0</td>
+                    <td>The most common choice for hidden layers</td>
+                </tr>
+                <tr>
+                    <td><code>nn.Sigmoid()</code></td>
+                    <td>Activation function that squashes output to 0–1</td>
+                    <td>Output layer for binary classification</td>
+                </tr>
+                <tr>
+                    <td><code>nn.Softmax(dim=-1)</code></td>
+                    <td>Converts output into a probability distribution that sums to 1</td>
+                    <td>Multi-class classification output (usually built into the loss function instead)</td>
+                </tr>
+                <tr>
+                    <td><code>nn.Dropout(p)</code></td>
+                    <td>Disables neurons with probability p during training</td>
+                    <td>Suppressing overfitting (regularization)</td>
+                </tr>
+                <tr>
+                    <td><code>nn.BatchNorm1d(num_features)</code></td>
+                    <td>Normalizes per mini-batch</td>
+                    <td>Stabilizing and speeding up training</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <p>Layers designed for image and sequence data, such as convolutional layers (<code>nn.Conv2d</code>) and recurrent layers (<code>nn.LSTM</code>, etc.), will be covered in detail in their own dedicated series. For this chapter, let's focus on building models centered around fully connected layers.</p>
+
+        <h3>Building Quickly with nn.Sequential</h3>
+
+        <p>For simple models that just apply layers in sequence inside <code>forward()</code>, you can write more concisely using <code>nn.Sequential</code>.</p>
+
+        <pre><code class="language-python">import torch.nn as nn
+
+model_seq = nn.Sequential(
+    nn.Linear(10, 32),
+    nn.ReLU(),
+    nn.Linear(32, 16),
+    nn.ReLU(),
+    nn.Linear(16, 3)
+)
+print(model_seq)
+</code></pre>
+
+        <p><strong>Output:</strong></p>
+
+        <pre><code>Sequential(
+  (0): Linear(in_features=10, out_features=32, bias=True)
+  (1): ReLU()
+  (2): Linear(in_features=32, out_features=16, bias=True)
+  (3): ReLU()
+  (4): Linear(in_features=16, out_features=3, bias=True)
+)
+</code></pre>
+
+        <h3>An MLP Class that Supports a Flexible Number of Layers</h3>
+
+        <p>In practice, you'll often want to define a model whose number and size of hidden layers can be freely changed via arguments. By combining <code>nn.Module</code> and <code>nn.Sequential</code>, you can build a general-purpose Multi-Layer Perceptron (MLP) class like the one below.</p>
+
+        <pre><code class="language-python">import torch.nn as nn
+
+class MLP(nn.Module):
+    def __init__(self, input_size, hidden_sizes, output_size):
+        super().__init__()
+        layers = []
+        prev_size = input_size
+        for hidden_size in hidden_sizes:
+            layers.append(nn.Linear(prev_size, hidden_size))
+            layers.append(nn.ReLU())
+            prev_size = hidden_size
+        layers.append(nn.Linear(prev_size, output_size))
+        self.network = nn.Sequential(*layers)
+
+    def forward(self, x):
+        return self.network(x)
+
+# Input 20 dims → hidden layers [64, 32] → output 4 dims
+mlp = MLP(input_size=20, hidden_sizes=[64, 32], output_size=4)
+print(mlp)
+</code></pre>
+
+        <p><strong>Output:</strong></p>
+
+        <pre><code>MLP(
+  (network): Sequential(
+    (0): Linear(in_features=20, out_features=64, bias=True)
+    (1): ReLU()
+    (2): Linear(in_features=64, out_features=32, bias=True)
+    (3): ReLU()
+    (4): Linear(in_features=32, out_features=4, bias=True)
+  )
+)
+</code></pre>
+
+        <p>By designing the class this way, so that it dynamically assembles layers from a list, you no longer need to rewrite the model class itself when experimenting with different hidden-layer configurations. In the second half of this chapter, we'll use this MLP class to actually train a model.</p>
+
+        <h2 id="loss-and-optimizer">3. Loss Functions and Optimizers</h2>
+
+        <p>Simply defining a model doesn't train anything yet. Training requires two things: a <strong>Loss Function</strong> that quantifies how wrong the model's predictions are, and an <strong>Optimizer</strong> that updates the parameters in the direction that reduces that loss.</p>
+
+        <h3>Common Loss Functions</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Class</th>
+                    <th>Use Case</th>
+                    <th>Notes</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>nn.CrossEntropyLoss()</code></td>
+                    <td>Multi-class classification</td>
+                    <td>Applies Softmax internally, so you must not add a Softmax to the model's output layer</td>
+                </tr>
+                <tr>
+                    <td><code>nn.BCEWithLogitsLoss()</code></td>
+                    <td>Binary classification</td>
+                    <td>Applies Sigmoid internally. Numerically stable</td>
+                </tr>
+                <tr>
+                    <td><code>nn.MSELoss()</code></td>
+                    <td>Regression</td>
+                    <td>Mean Squared Error</td>
+                </tr>
+                <tr>
+                    <td><code>nn.L1Loss()</code></td>
+                    <td>Regression</td>
+                    <td>Mean Absolute Error. Robust to outliers</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="warning-box">
+            <p><strong>⚠️ Watch the Input Format for CrossEntropyLoss</strong></p>
+            <p>Pass <strong>logits</strong> — the raw output before applying Softmax — directly to <code>nn.CrossEntropyLoss()</code>. Also note that the correct labels should be passed not as one-hot vectors but as a Tensor of integers (<code>dtype=torch.long</code>) representing the class number.</p>
+        </div>
+
+        <h3>Common Optimizers</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Class</th>
+                    <th>Characteristics</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>optim.SGD(params, lr=0.01)</code></td>
+                    <td>Stochastic Gradient Descent. Simple and theoretically easy to reason about</td>
+                </tr>
+                <tr>
+                    <td><code>optim.SGD(params, lr=0.01, momentum=0.9)</code></td>
+                    <td>SGD with momentum. Dampens oscillation and speeds up convergence</td>
+                </tr>
+                <tr>
+                    <td><code>optim.Adam(params, lr=0.001)</code></td>
+                    <td>An adaptive method that automatically adjusts the learning rate based on gradient statistics. The default choice in many situations</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <p>When in doubt, a good starting point is <code>nn.CrossEntropyLoss()</code> (classification) or <code>nn.MSELoss()</code> (regression) combined with <code>optim.Adam(model.parameters(), lr=0.001)</code>. If training isn't stable, the common approach is to adjust the learning rate or try a different optimizer.</p>
+
+        <pre><code class="language-python">import torch
+import torch.nn as nn
+import torch.optim as optim
+
+# Prepare a loss function and an optimizer
+criterion = nn.CrossEntropyLoss()
+optimizer = optim.Adam(mlp.parameters(), lr=0.001)
+
+# Compute the loss once with dummy data
+x = torch.randn(8, 20)              # Batch size 8, input dimension 20
+y = torch.randint(0, 4, (8,))       # Class labels 0-3 (integers)
+
+logits = mlp(x)                     # Logits (before Softmax)
+loss = criterion(logits, y)
+print(f"Output shape: {logits.shape}")
+print(f"Loss: {loss.item():.4f}")
+</code></pre>
+
+        <p><strong>Example output:</strong></p>
+
+        <pre><code>Output shape: torch.Size([8, 4])
+Loss: 1.4290
+</code></pre>
+
+        <p>As in <code>optim.Adam(mlp.parameters(), lr=0.001)</code>, you pass the optimizer the model's full set of parameters (<code>model.parameters()</code>) and the learning rate. This is all that's needed so that, in the training loop we implement in the next section, simply calling <code>optimizer.step()</code> will automatically update these parameters.</p>
+
+        <h2 id="training-loop">4. Implementing the Training Loop</h2>
+
+        <p>With the model, loss function, and optimizer all in place, it's finally time for the <strong>Training Loop</strong>. In PyTorch, the training loop for essentially any model repeats the following five steps.</p>
+
+        <div class="mermaid">
+graph LR
+    A[1: optimizer.zero_grad] --> B[2: forward propagation]
+    B --> C[3: compute loss]
+    C --> D[4: backward propagation loss.backward]
+    D --> E[5: update parameters optimizer.step]
+    E --> A
+        </div>
+
+        <ol>
+            <li><strong>optimizer.zero_grad()</strong>: Resets the gradients accumulated from the previous iteration</li>
+            <li><strong>Forward propagation</strong>: Passes the input to the model to obtain predictions</li>
+            <li><strong>Compute loss</strong>: Computes the loss from the predictions and the correct labels</li>
+            <li><strong>Backward propagation (loss.backward())</strong>: Uses automatic differentiation to compute the gradient of each parameter with respect to the loss</li>
+            <li><strong>optimizer.step()</strong>: Updates the parameters using the computed gradients</li>
+        </ol>
+
+        <p>Let's first look at a minimal training loop that treats the entire dataset as a single batch. We'll use a synthetic dataset generated with <code>make_classification</code>, which will appear again in the next section.</p>
+
+        <pre><code class="language-python">import torch
+import torch.nn as nn
+import torch.optim as optim
+from sklearn.datasets import make_classification
+
+torch.manual_seed(42)
+
+# Synthetic data: 4-class classification, 20 feature dimensions, 1000 samples
+X, y = make_classification(
+    n_samples=1000,
+    n_features=20,
+    n_informative=15,
+    n_redundant=5,
+    n_classes=4,
+    random_state=42,
+)
+X_train = torch.tensor(X, dtype=torch.float32)
+y_train = torch.tensor(y, dtype=torch.long)
+
+model = MLP(input_size=20, hidden_sizes=[64, 32], output_size=4)
+criterion = nn.CrossEntropyLoss()
+optimizer = optim.Adam(model.parameters(), lr=0.001)
+
+# Minimal training loop (uses the entire dataset every time)
+for epoch in range(5):
+    optimizer.zero_grad()               # 1. Reset gradients
+    outputs = model(X_train)            # 2. Forward propagation
+    loss = criterion(outputs, y_train)  # 3. Compute loss
+    loss.backward()                     # 4. Backward propagation
+    optimizer.step()                    # 5. Update parameters
+
+    print(f"Epoch {epoch+1}: loss = {loss.item():.4f}")
+</code></pre>
+
+        <p><strong>Example output:</strong></p>
+
+        <pre><code>Epoch 1: loss = 1.3877
+Epoch 2: loss = 1.3762
+Epoch 3: loss = 1.3651
+Epoch 4: loss = 1.3542
+Epoch 5: loss = 1.3435
+</code></pre>
+
+        <p>This approach works, but it requires loading the entire dataset into GPU/CPU memory as one giant batch every time, which becomes impractical as the data grows. That's where <strong>Mini-batch Learning</strong> using <code>DataLoader</code>, covered in the next section, comes in.</p>
+
+        <h2 id="dataloader">5. Using DataLoader</h2>
+
+        <p>In practice, it's common to split the dataset into small chunks (mini-batches) and run the training loop one batch at a time. In PyTorch, two classes handle this role: <code>torch.utils.data.Dataset</code> and <code>torch.utils.data.DataLoader</code>.</p>
+
+        <ul>
+            <li><strong>Dataset</strong>: An object that, given "which sample number (index)," returns the corresponding single sample</li>
+            <li><strong>DataLoader</strong>: An iterator that pulls samples from a Dataset, groups them into the specified batch size, shuffles them if needed, and supplies them in order</li>
+        </ul>
+
+        <h3>Building Quickly with TensorDataset</h3>
+
+        <p>If the inputs and labels are already available as Tensors, the easiest option is <code>TensorDataset</code>.</p>
+
+        <pre><code class="language-python">import torch
+from torch.utils.data import TensorDataset, DataLoader
+
+# Split into training and test data
+from sklearn.model_selection import train_test_split
+
+X_train_np, X_test_np, y_train_np, y_test_np = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+X_train = torch.tensor(X_train_np, dtype=torch.float32)
+y_train = torch.tensor(y_train_np, dtype=torch.long)
+X_test = torch.tensor(X_test_np, dtype=torch.float32)
+y_test = torch.tensor(y_test_np, dtype=torch.long)
+
+train_dataset = TensorDataset(X_train, y_train)
+train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+
+# Pull out a single batch and check its shape
+batch_X, batch_y = next(iter(train_loader))
+print(f"Input shape in batch: {batch_X.shape}")
+print(f"Label shape in batch: {batch_y.shape}")
+print(f"Dataset size: {len(train_dataset)} samples, number of batches: {len(train_loader)}")
+</code></pre>
+
+        <p><strong>Output:</strong></p>
+
+        <pre><code>Input shape in batch: torch.Size([32, 20])
+Label shape in batch: torch.Size([32])
+Dataset size: 800 samples, number of batches: 25
+</code></pre>
+
+        <p>Setting <code>shuffle=True</code> shuffles the sample order at every epoch. To prevent the model from depending on the ordering of the training data, you should generally set <code>shuffle=True</code> for the training DataLoader (for evaluation/testing, <code>shuffle=False</code> is usually fine).</p>
+
+        <h3>Creating a Custom Dataset Class</h3>
+
+        <p>When you need more than a simple slice of a Tensor — for example, loading and preprocessing image files — you define a custom class by inheriting from <code>Dataset</code>. At minimum, you implement the following three methods.</p>
+
+        <pre><code class="language-python">import torch
+from torch.utils.data import Dataset, DataLoader
+
+class MyDataset(Dataset):
+    def __init__(self, X, y):
+        self.X = X
+        self.y = y
+
+    def __len__(self):
+        # Return the total number of samples in the dataset
+        return len(self.X)
+
+    def __getitem__(self, idx):
+        # Return the sample at index idx as an (input, label) pair
+        return self.X[idx], self.y[idx]
+
+custom_dataset = MyDataset(X_train, y_train)
+custom_loader = DataLoader(custom_dataset, batch_size=16, shuffle=True)
+
+batch_X, batch_y = next(iter(custom_loader))
+print(f"Custom Dataset batch shape: {batch_X.shape}, {batch_y.shape}")
+</code></pre>
+
+        <p><strong>Output:</strong></p>
+
+        <pre><code>Custom Dataset batch shape: torch.Size([16, 20]), torch.Size([16])
+</code></pre>
+
+        <h3>A Full Training Loop Using DataLoader</h3>
+
+        <p>Now let's implement a more practical training loop that trains in mini-batches using <code>DataLoader</code>. It runs through the entire training set once per epoch and also records accuracy.</p>
+
+        <pre><code class="language-python">import torch.nn as nn
+import torch.optim as optim
+
+model = MLP(input_size=20, hidden_sizes=[64, 32], output_size=4)
+criterion = nn.CrossEntropyLoss()
+optimizer = optim.Adam(model.parameters(), lr=0.001)
+
+n_epochs = 30
+for epoch in range(n_epochs):
+    model.train()  # Set to training mode (enables Dropout, etc.)
+    total_loss = 0.0
+    correct = 0
+    total = 0
+
+    for batch_X, batch_y in train_loader:
+        optimizer.zero_grad()
+        outputs = model(batch_X)
+        loss = criterion(outputs, batch_y)
+        loss.backward()
+        optimizer.step()
+
+        total_loss += loss.item() * batch_X.size(0)
+        preds = outputs.argmax(dim=1)
+        correct += (preds == batch_y).sum().item()
+        total += batch_y.size(0)
+
+    if (epoch + 1) % 5 == 0:
+        avg_loss = total_loss / total
+        train_acc = correct / total
+        print(f"Epoch {epoch+1:3d}/{n_epochs}: loss={avg_loss:.4f}, train_acc={train_acc:.4f}")
+
+# Evaluate on the test data
+model.eval()  # Set to evaluation mode
+with torch.no_grad():
+    test_outputs = model(X_test)
+    test_preds = test_outputs.argmax(dim=1)
+    test_acc = (test_preds == y_test).float().mean().item()
+print(f"Test accuracy: {test_acc:.4f}")
+</code></pre>
+
+        <p><strong>Example output (execution result):</strong></p>
+
+        <pre><code>Epoch   5/30: loss=0.7789, train_acc=0.7113
+Epoch  10/30: loss=0.4871, train_acc=0.8287
+Epoch  15/30: loss=0.3546, train_acc=0.8788
+Epoch  20/30: loss=0.2659, train_acc=0.9187
+Epoch  25/30: loss=0.1975, train_acc=0.9475
+Epoch  30/30: loss=0.1468, train_acc=0.9650
+Test accuracy: 0.7350
+</code></pre>
+
+        <div class="info-box">
+            <p><strong>💡 The Difference Between train() and eval()</strong></p>
+            <p><code>model.train()</code> and <code>model.eval()</code> are switches that toggle the behavior of layers such as <code>Dropout</code> and <code>BatchNorm</code>, which behave differently during training and inference. Our current model doesn't include any of these, but it's a good habit to always call <code>model.eval()</code> before evaluation, since you'll frequently work with models that do include them. It also helps to disable gradient computation with <code>torch.no_grad()</code> during evaluation, which reduces memory usage.</p>
+        </div>
+
+        <p>While training accuracy (train_acc) has climbed to 96.5%, test accuracy remains at 73.5%. This is a classic sign of <strong>Overfitting</strong>, where the model learns the fine details of the training data too well. We'll cover countermeasures for overfitting (Dropout, regularization, early stopping, and so on) in a future series, but keep in mind that "observing both training and test accuracy" is itself an essential habit when implementing a training loop.</p>
+
+        <h2 id="save-load">6. Saving and Loading Models</h2>
+
+        <p>A model that took time to train needs to be saved so it can be reused even after the process ends. In PyTorch, the standard approach is to combine <code>torch.save()</code> with <code>load_state_dict()</code>.</p>
+
+        <h3>What is state_dict?</h3>
+
+        <p><strong>state_dict</strong> is a dictionary (<code>OrderedDict</code>) that maps the names of all parameters (weights and biases) the model holds to their values. Its key feature is that it saves and restores only the trained numerical values, not the model's structure itself.</p>
+
+        <pre><code class="language-python">import torch
+
+# Save only the model's weights
+torch.save(model.state_dict(), "mlp_model.pth")
+print("Model saved: mlp_model.pth")
+
+# Create a new model with the same structure and load the saved weights
+loaded_model = MLP(input_size=20, hidden_sizes=[64, 32], output_size=4)
+loaded_model.load_state_dict(torch.load("mlp_model.pth"))
+loaded_model.eval()
+
+# Verify that the original model and the loaded model produce the same output
+with torch.no_grad():
+    original_output = model(X_test)
+    loaded_output = loaded_model(X_test)
+    print("Outputs match:", torch.allclose(original_output, loaded_output))
+</code></pre>
+
+        <p><strong>Output:</strong></p>
+
+        <pre><code>Model saved: mlp_model.pth
+Outputs match: True
+</code></pre>
+
+        <div class="warning-box">
+            <p><strong>⚠️ You Must Reconstruct the Model Structure Yourself</strong></p>
+            <p><code>state_dict</code> contains only the weight values. On the loading side, you must first create a model with the <strong>same structure</strong> (the same <code>hidden_sizes</code>, etc.) as when it was saved, and only then call <code>load_state_dict()</code>. If the structures don't match, you'll get an error or unintended results.</p>
+        </div>
+
+        <h3>Saving Checkpoints to Resume Training</h3>
+
+        <p>If you want to resume training partway through, it's useful to save not just the model's weights but also the <strong>optimizer's state (optimizer state_dict)</strong>, the epoch number, the loss, and so on. This kind of save is called a <strong>Checkpoint</strong>.</p>
+
+        <pre><code class="language-python">import torch
+import torch.optim as optim
+
+# Save multiple pieces of information together as a checkpoint
+checkpoint = {
+    'epoch': n_epochs,
+    'model_state_dict': model.state_dict(),
+    'optimizer_state_dict': optimizer.state_dict(),
+    'loss': avg_loss,
+}
+torch.save(checkpoint, "checkpoint.pth")
+print(f"Checkpoint saved (epoch={n_epochs}, loss={avg_loss:.4f})")
+
+# Prepare to resume training from the checkpoint
+checkpoint_loaded = torch.load("checkpoint.pth")
+
+resumed_model = MLP(input_size=20, hidden_sizes=[64, 32], output_size=4)
+resumed_model.load_state_dict(checkpoint_loaded['model_state_dict'])
+
+resumed_optimizer = optim.Adam(resumed_model.parameters(), lr=0.001)
+resumed_optimizer.load_state_dict(checkpoint_loaded['optimizer_state_dict'])
+
+start_epoch = checkpoint_loaded['epoch']
+print(f"You can resume training from epoch {start_epoch} (previous loss: {checkpoint_loaded['loss']:.4f})")
+</code></pre>
+
+        <p><strong>Example output:</strong></p>
+
+        <pre><code>Checkpoint saved (epoch=30, loss=0.1468)
+You can resume training from epoch 30 (previous loss: 0.1468)
+</code></pre>
+
+        <p>Restoring the optimizer's state also carries over statistics such as Adam's internal "moving averages of the gradients," letting you resume training seamlessly from where it left off. If you're only distributing a model for inference, saving the <code>state_dict</code> alone is sufficient — but for real-world work involving long training runs, it's worth getting comfortable with the checkpoint approach.</p>
+
+        <h2 id="exercises">Exercises</h2>
+
+        <details>
+            <summary><strong>Exercise 1: Define a 3-Layer MLP</strong></summary>
+            <p>Define a class <code>ThreeLayerNet</code> that inherits from <code>nn.Module</code>. The input dimension should be 8, with two hidden layers (16 and 8 dimensions, respectively) each using <code>ReLU</code> as the activation function, and an output dimension of 2. After defining it, pass a dummy input with batch size 4 and check the shape of the output.</p>
+            <p><strong>Sample solution:</strong></p>
+            <pre><code class="language-python">import torch
+import torch.nn as nn
+
+class ThreeLayerNet(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.fc1 = nn.Linear(8, 16)
+        self.relu1 = nn.ReLU()
+        self.fc2 = nn.Linear(16, 8)
+        self.relu2 = nn.ReLU()
+        self.fc3 = nn.Linear(8, 2)
+
+    def forward(self, x):
+        x = self.relu1(self.fc1(x))
+        x = self.relu2(self.fc2(x))
+        x = self.fc3(x)
+        return x
+
+model = ThreeLayerNet()
+x = torch.randn(4, 8)
+output = model(x)
+print(f"Output shape: {output.shape}")  # torch.Size([4, 2])
+</code></pre>
+        </details>
+
+        <details>
+            <summary><strong>Exercise 2: Choosing a Loss Function and Optimizer</strong></summary>
+            <p>For each of the following two problem settings, show in code an appropriate combination of loss function and optimizer.</p>
+            <ol>
+                <li>A regression problem predicting house prices</li>
+                <li>A problem classifying handwritten digits (10 classes, 0-9)</li>
+            </ol>
+            <p><strong>Sample solution:</strong></p>
+            <pre><code class="language-python">import torch.nn as nn
+import torch.optim as optim
+
+# 1. Regression: output is a continuous value, so MSELoss is appropriate
+regression_model = nn.Linear(13, 1)
+regression_criterion = nn.MSELoss()
+regression_optimizer = optim.Adam(regression_model.parameters(), lr=0.001)
+
+# 2. 10-class classification: CrossEntropyLoss is appropriate (no Softmax on the output layer)
+classification_model = nn.Linear(784, 10)
+classification_criterion = nn.CrossEntropyLoss()
+classification_optimizer = optim.Adam(classification_model.parameters(), lr=0.001)
+
+print("Regression: MSELoss + Adam")
+print("Classification: CrossEntropyLoss + Adam")
+</code></pre>
+        </details>
+
+        <details>
+            <summary><strong>Exercise 3: Training and Evaluating with DataLoader</strong></summary>
+            <p>Create synthetic data for binary classification (300 samples, 5 feature dimensions) with <code>sklearn.datasets.make_classification</code>, and using <code>TensorDataset</code> and <code>DataLoader</code> (<code>batch_size=16</code>), train an MLP with input dimension 5, hidden layer [16], and output dimension 2 for 10 epochs. Finally, display the accuracy on the test data.</p>
+            <p><strong>Sample solution:</strong></p>
+            <pre><code class="language-python">import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import TensorDataset, DataLoader
+from sklearn.datasets import make_classification
+from sklearn.model_selection import train_test_split
+
+torch.manual_seed(0)
+
+X, y = make_classification(n_samples=300, n_features=5, n_classes=2, random_state=0)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=0)
+
+X_train = torch.tensor(X_train, dtype=torch.float32)
+y_train = torch.tensor(y_train, dtype=torch.long)
+X_test = torch.tensor(X_test, dtype=torch.float32)
+y_test = torch.tensor(y_test, dtype=torch.long)
+
+train_loader = DataLoader(TensorDataset(X_train, y_train), batch_size=16, shuffle=True)
+
+class MLP(nn.Module):
+    def __init__(self, input_size, hidden_sizes, output_size):
+        super().__init__()
+        layers = []
+        prev_size = input_size
+        for h in hidden_sizes:
+            layers += [nn.Linear(prev_size, h), nn.ReLU()]
+            prev_size = h
+        layers.append(nn.Linear(prev_size, output_size))
+        self.network = nn.Sequential(*layers)
+
+    def forward(self, x):
+        return self.network(x)
+
+model = MLP(5, [16], 2)
+criterion = nn.CrossEntropyLoss()
+optimizer = optim.Adam(model.parameters(), lr=0.01)
+
+for epoch in range(10):
+    model.train()
+    for batch_X, batch_y in train_loader:
+        optimizer.zero_grad()
+        loss = criterion(model(batch_X), batch_y)
+        loss.backward()
+        optimizer.step()
+
+model.eval()
+with torch.no_grad():
+    test_acc = (model(X_test).argmax(dim=1) == y_test).float().mean().item()
+print(f"Test accuracy: {test_acc:.4f}")
+</code></pre>
+        </details>
+
+        <h2 id="summary">Summary</h2>
+
+        <p>In this chapter, you learned the full workflow for building and training a neural network in PyTorch.</p>
+
+        <ul>
+            <li>✅ You can build a model by inheriting from <code>nn.Module</code>, defining layers in <code>__init__()</code>, and defining the flow of forward propagation in <code>forward()</code></li>
+            <li>✅ You can combine layers such as <code>nn.Linear</code> and <code>nn.ReLU</code> with <code>nn.Sequential</code> to build a flexible MLP</li>
+            <li>✅ You can choose a loss function such as <code>nn.CrossEntropyLoss</code> or <code>nn.MSELoss</code>, and an optimizer such as <code>optim.Adam</code>, appropriate to the type of problem (classification or regression)</li>
+            <li>✅ You can implement a training loop consisting of the five steps: zero_grad → forward → loss → backward → step</li>
+            <li>✅ You can use <code>Dataset</code> and <code>DataLoader</code> to supply data in mini-batches and train efficiently</li>
+            <li>✅ You understand how to save and load models via <code>state_dict</code>, and how to handle checkpoints that include optimizer state</li>
+        </ul>
+
+        <div class="success-box">
+            <p><strong>🎉 Next Steps</strong></p>
+            <p>You've now experienced the full workflow of building a neural network from scratch, training it, saving it, and reusing it. In the upcoming Chapter 5, we'll move on to more practical model development techniques, including using GPUs, visualizing training, and countering overfitting.</p>
+        </div>
+
+        <div class="navigation">
+            <a href="./chapter-3.html" class="nav-button">← Chapter 3</a>
+            <a href="./index.html" class="nav-button">Series Index</a>
+            <a href="./chapter-5.html" class="nav-button">Chapter 5 →</a>
+        </div>
+
+        <hr style="margin: 2rem 0;">
+
+        <p><strong>Reference Resources</strong></p>
+        <ul>
+            <li><a href="https://pytorch.org/docs/stable/nn.html" target="_blank">PyTorch Official Documentation: torch.nn</a></li>
+            <li><a href="https://pytorch.org/docs/stable/optim.html" target="_blank">PyTorch Official Documentation: torch.optim</a></li>
+            <li><a href="https://pytorch.org/docs/stable/data.html" target="_blank">PyTorch Official Documentation: torch.utils.data</a></li>
+            <li><a href="https://pytorch.org/tutorials/beginner/basics/optimization_tutorial.html" target="_blank">PyTorch Official Tutorial: Optimizing Model Parameters</a></li>
+        </ul>
+
+    </main>
+
+    <section class="disclaimer">
+        <h3>Disclaimer</h3>
+        <ul>
+            <li>This content is intended solely for educational, research, and informational purposes and does not provide professional advice (legal, accounting, technical guarantees, etc.).</li>
+            <li>This content and accompanying code examples are provided "AS IS" without warranty of any kind, either express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
+            <li>The authors and Tohoku University assume no responsibility for the content, availability, or security of external links, third-party data, tools, libraries, etc.</li>
+            <li>To the maximum extent permitted by applicable law, the authors and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+            <li>The content of this material may be changed, updated, or discontinued without notice.</li>
+            <li>The copyright and license of this content are subject to the specified conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.</li>
+        </ul>
+    </section>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 AI Terakoya - Dr. Yusuke Hashimoto, Tohoku University</p>
+            <p>Licensed under CC BY 4.0</p>
+        </div>
+    </footer>
+</body>
+</html>

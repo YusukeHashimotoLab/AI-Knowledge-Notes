@@ -1,0 +1,1211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chapter 2: Graph Convolutional Networks (GCN) - PyTorch Geometric Introduction - AI Terakoya</title>
+  <meta name="description" content="Understand the mathematics of message passing and graph convolution, and implement node classification on the Cora dataset using PyTorch Geometric's GCNConv layer. Practical code examples cover the training loop, evaluation metrics, and overfitting countermeasures.">
+
+  <style>
+    :root {
+      --color-primary: #2c3e50;
+      --color-primary-dark: #1a252f;
+      --color-accent: #7b2cbf;
+      --color-accent-light: #9d4edd;
+      --color-text: #2d3748;
+      --color-text-light: #4a5568;
+      --color-bg: #ffffff;
+      --color-bg-alt: #f7fafc;
+      --color-border: #e2e8f0;
+      --color-code-bg: #f8f9fa;
+      --color-link: #3182ce;
+      --color-link-hover: #2c5aa0;
+
+      --spacing-xs: 0.5rem;
+      --spacing-sm: 1rem;
+      --spacing-md: 1.5rem;
+      --spacing-lg: 2rem;
+      --spacing-xl: 3rem;
+
+      --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+      --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+      --border-radius: 8px;
+      --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: var(--font-body);
+      line-height: 1.7;
+      color: var(--color-text);
+      background-color: var(--color-bg);
+      font-size: 16px;
+    }
+
+    header {
+      background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+      color: white;
+      padding: var(--spacing-xl) var(--spacing-md);
+      margin-bottom: var(--spacing-xl);
+      box-shadow: var(--box-shadow);
+    }
+
+    .header-content {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: var(--spacing-sm);
+      line-height: 1.2;
+    }
+
+    .subtitle {
+      font-size: 1.1rem;
+      opacity: 0.95;
+      font-weight: 400;
+      margin-bottom: var(--spacing-md);
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--spacing-md);
+      font-size: 0.9rem;
+      opacity: 0.9;
+    }
+
+    .meta-item {
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 var(--spacing-md) var(--spacing-xl);
+    }
+
+    h2 {
+      font-size: 1.75rem;
+      color: var(--color-primary);
+      margin-top: var(--spacing-xl);
+      margin-bottom: var(--spacing-md);
+      padding-bottom: var(--spacing-xs);
+      border-bottom: 3px solid var(--color-accent);
+    }
+
+    h3 {
+      font-size: 1.4rem;
+      color: var(--color-primary);
+      margin-top: var(--spacing-lg);
+      margin-bottom: var(--spacing-sm);
+    }
+
+    h4 {
+      font-size: 1.1rem;
+      color: var(--color-primary-dark);
+      margin-top: var(--spacing-md);
+      margin-bottom: var(--spacing-sm);
+    }
+
+    p {
+      margin-bottom: var(--spacing-md);
+      color: var(--color-text);
+    }
+
+    a {
+      color: var(--color-link);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    a:hover {
+      color: var(--color-link-hover);
+      text-decoration: underline;
+    }
+
+    ul, ol {
+      margin-left: var(--spacing-lg);
+      margin-bottom: var(--spacing-md);
+    }
+
+    li {
+      margin-bottom: var(--spacing-xs);
+      color: var(--color-text);
+    }
+
+    pre {
+      background-color: var(--color-code-bg);
+      border: 1px solid var(--color-border);
+      border-radius: var(--border-radius);
+      padding: var(--spacing-md);
+      overflow-x: auto;
+      margin-bottom: var(--spacing-md);
+      font-family: var(--font-mono);
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: 0.9em;
+      background-color: var(--color-code-bg);
+      padding: 0.2em 0.4em;
+      border-radius: 3px;
+    }
+
+    pre code {
+      background-color: transparent;
+      padding: 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: var(--spacing-md);
+      font-size: 0.95rem;
+    }
+
+    th, td {
+      border: 1px solid var(--color-border);
+      padding: var(--spacing-sm);
+      text-align: left;
+    }
+
+    th {
+      background-color: var(--color-bg-alt);
+      font-weight: 600;
+      color: var(--color-primary);
+    }
+
+    blockquote {
+      border-left: 4px solid var(--color-accent);
+      padding-left: var(--spacing-md);
+      margin: var(--spacing-md) 0;
+      color: var(--color-text-light);
+      font-style: italic;
+      background-color: var(--color-bg-alt);
+      padding: var(--spacing-md);
+      border-radius: var(--border-radius);
+    }
+
+    .mermaid {
+      text-align: center;
+      margin: var(--spacing-lg) 0;
+      background-color: var(--color-bg-alt);
+      padding: var(--spacing-md);
+      border-radius: var(--border-radius);
+    }
+
+    details {
+      background-color: var(--color-bg-alt);
+      border: 1px solid var(--color-border);
+      border-radius: var(--border-radius);
+      padding: var(--spacing-md);
+      margin-bottom: var(--spacing-md);
+    }
+
+    summary {
+      cursor: pointer;
+      font-weight: 600;
+      color: var(--color-primary);
+      user-select: none;
+      padding: var(--spacing-xs);
+      margin: calc(-1 * var(--spacing-md));
+      padding: var(--spacing-md);
+      border-radius: var(--border-radius);
+    }
+
+    summary:hover {
+      background-color: rgba(123, 44, 191, 0.1);
+    }
+
+    details[open] summary {
+      margin-bottom: var(--spacing-md);
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    .chapter-description {
+      margin: 1.5rem 0;
+      padding: 1rem;
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+      border-left: 4px solid #7b2cbf;
+      border-radius: 8px;
+      font-size: 1.05rem;
+      line-height: 1.8;
+      color: #2d3748;
+    }
+
+    .learning-objectives {
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+      padding: var(--spacing-lg);
+      border-radius: var(--border-radius);
+      border-left: 4px solid var(--color-accent);
+      margin-bottom: var(--spacing-xl);
+    }
+
+    .learning-objectives h2 {
+      margin-top: 0;
+      border-bottom: none;
+    }
+
+    .navigation {
+      display: flex;
+      justify-content: space-between;
+      gap: var(--spacing-md);
+      margin: var(--spacing-xl) 0;
+      padding-top: var(--spacing-lg);
+      border-top: 2px solid var(--color-border);
+    }
+
+    .nav-button {
+      flex: 1;
+      padding: var(--spacing-md);
+      background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+      color: white;
+      border-radius: var(--border-radius);
+      text-align: center;
+      font-weight: 600;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: var(--box-shadow);
+    }
+
+    .nav-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      text-decoration: none;
+    }
+
+    .nav-button.disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      background: #6c757d;
+    }
+
+    .nav-button.disabled:hover {
+      transform: none;
+      box-shadow: var(--box-shadow);
+    }
+
+    footer {
+      margin-top: var(--spacing-xl);
+      padding: var(--spacing-lg) var(--spacing-md);
+      background-color: var(--color-bg-alt);
+      border-top: 1px solid var(--color-border);
+      text-align: center;
+      font-size: 0.9rem;
+      color: var(--color-text-light);
+    }
+
+    .disclaimer {
+      max-width: 900px;
+      margin: 2rem auto;
+      padding: 1.5rem;
+      background: #f8f9fa;
+      border-left: 4px solid #6c757d;
+      border-radius: 4px;
+    }
+
+    .disclaimer h3 {
+      color: #495057;
+      margin-bottom: 1rem;
+      font-size: 1.1rem;
+    }
+
+    .disclaimer ul {
+      list-style: none;
+      padding-left: 0;
+    }
+
+    .disclaimer li {
+      padding: 0.5rem 0;
+      padding-left: 1.5rem;
+      position: relative;
+      font-size: 0.9rem;
+      color: #6c757d;
+      line-height: 1.6;
+    }
+
+    .disclaimer li::before {
+      content: "⚠️";
+      position: absolute;
+      left: 0;
+    }
+
+    /* Breadcrumb styles */
+    .breadcrumb {
+      background: #f7fafc;
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid #e2e8f0;
+      font-size: 0.9rem;
+    }
+
+    .breadcrumb-content {
+      max-width: 900px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .breadcrumb a {
+      color: #667eea;
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .breadcrumb a:hover {
+      color: #764ba2;
+      text-decoration: underline;
+    }
+
+    .breadcrumb-separator {
+      color: #a0aec0;
+      margin: 0 0.25rem;
+    }
+
+    .breadcrumb-current {
+      color: #4a5568;
+      font-weight: 500;
+    }
+
+    .info-box {
+      background: #e3f2fd;
+      border-left: 4px solid #2196f3;
+      padding: var(--spacing-md);
+      margin: var(--spacing-md) 0;
+      border-radius: var(--border-radius);
+    }
+
+    .warning-box {
+      background: #fff3e0;
+      border-left: 4px solid #ff9800;
+      padding: var(--spacing-md);
+      margin: var(--spacing-md) 0;
+      border-radius: var(--border-radius);
+    }
+
+    .success-box {
+      background: #e8f5e9;
+      border-left: 4px solid #4caf50;
+      padding: var(--spacing-md);
+      margin: var(--spacing-md) 0;
+      border-radius: var(--border-radius);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .container {
+        padding: 0 1rem 2rem;
+      }
+
+      h1 {
+        font-size: 1.6rem;
+      }
+
+      h2 {
+        font-size: 1.4rem;
+      }
+
+      .navigation {
+        flex-direction: column;
+      }
+    }
+  </style>
+
+  <!-- Mermaid for diagrams -->
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <!-- Prism.js for syntax highlighting -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+  <!-- MathJax for equations -->
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+  <script>
+    // Mermaid.js initialization
+    document.addEventListener('DOMContentLoaded', function() {
+      if (typeof mermaid !== 'undefined') {
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+      }
+    });
+  </script>
+</head>
+<body>
+  <nav class="breadcrumb">
+    <div class="breadcrumb-content">
+      <a href="../../index.html">AI Terakoya Home</a><span class="breadcrumb-separator">›</span><a href="../index.html">Machine Learning</a><span class="breadcrumb-separator">›</span><a href="./index.html">PyTorch Geometric Introduction</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 2</span>
+    </div>
+  </nav>
+
+  <header>
+    <div class="header-content">
+      <h1>Chapter 2: Graph Convolutional Networks (GCN)</h1>
+      <p class="subtitle">From the Mechanics of Message Passing to Node Classification on the Cora Dataset</p>
+      <div class="meta">
+        <span class="meta-item">📖 Reading Time: 30-35 min</span>
+        <span class="meta-item">📊 Difficulty: Intermediate</span>
+        <span class="meta-item">💻 Code Examples: 12</span>
+        <span class="meta-item">📝 Exercises: 3</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="chapter-description">
+      <p>In Chapter 1, we learned the basic structure of graph data and how to use PyTorch Geometric (PyG). In this chapter, we take a step further and study the mechanics of <strong>message passing</strong>, the core mechanism underlying graph neural networks (GNN), along with the mathematical background of its most representative example, the <strong>Graph Convolutional Network (GCN)</strong>. We'll then use PyG's <code>GCNConv</code> layer to implement a node classification task on Cora, a real-world citation network dataset, and work through the full cycle of training, evaluation, and overfitting countermeasures.</p>
+    </div>
+
+    <div class="learning-objectives">
+      <h2>Learning Objectives</h2>
+      <ul>
+        <li>✅ Explain the mechanics of message passing</li>
+        <li>✅ Understand the mathematical background of graph convolution</li>
+        <li>✅ Make effective use of PyTorch Geometric's GCNConv layer</li>
+        <li>✅ Implement a node classification task on the Cora dataset</li>
+        <li>✅ Evaluate a model with appropriate evaluation metrics</li>
+        <li>✅ Implement countermeasures for overfitting</li>
+      </ul>
+    </div>
+
+    <h2 id="message-passing">1. The Mechanics of Message Passing</h2>
+
+    <p><strong>Message Passing</strong> is a processing framework in which each node in a graph receives information (messages) from its neighboring nodes, aggregates them, and uses the result to update its own features. Most graph neural networks (GCN, GraphSAGE, GAT, etc.) are built on top of this message passing framework.</p>
+
+    <p>Message passing consists of the following three steps.</p>
+
+    <ul>
+      <li><strong>Message (Message Generation)</strong>: For each edge, compute a "message" from the source node's features (and, if applicable, the edge features)</li>
+      <li><strong>Aggregate (Aggregation)</strong>: Combine the multiple messages received by each node into a single vector using an operation such as sum, mean, or max</li>
+      <li><strong>Update</strong>: Compute new features using the aggregated messages together with the node's own current features</li>
+    </ul>
+
+    <div class="mermaid">
+graph TD
+  N1[Neighbor 1 features] -->|Generate message| M1[Message m1]
+  N2[Neighbor 2 features] -->|Generate message| M2[Message m2]
+  N3[Neighbor 3 features] -->|Generate message| M3[Message m3]
+  M1 --> AGG[Aggregate: sum, mean, or max]
+  M2 --> AGG
+  M3 --> AGG
+  AGG --> UPD[Update function]
+  Ni[Node i current features] --> UPD
+  UPD --> NEW[Node i new features]
+    </div>
+
+    <p>Expressing this framework mathematically, the update for node \(i\) at layer \(k\) is as follows.</p>
+
+    <p>$$\mathbf{m}_{j \to i}^{(k)} = \text{MESSAGE}^{(k)}\left(\mathbf{x}_i^{(k-1)}, \mathbf{x}_j^{(k-1)}\right)$$</p>
+    <p>$$\mathbf{a}_i^{(k)} = \text{AGGREGATE}^{(k)}\left(\left\{\mathbf{m}_{j \to i}^{(k)} \mid j \in \mathcal{N}(i)\right\}\right)$$</p>
+    <p>$$\mathbf{x}_i^{(k)} = \text{UPDATE}^{(k)}\left(\mathbf{x}_i^{(k-1)}, \mathbf{a}_i^{(k)}\right)$$</p>
+
+    <p>Here \(\mathcal{N}(i)\) is the set of neighboring nodes of node \(i\). By repeating these three steps (stacking layers), each node can indirectly incorporate information from increasingly distant nodes.</p>
+
+    <h3>Experiencing Message Passing by Hand</h3>
+
+    <p>Let's first implement the three steps of message passing in plain PyTorch, without using any <code>torch_geometric</code> layers.</p>
+
+    <pre><code class="language-python">import torch
+
+# Graph with 4 nodes (directed edges: 0→1, 1→2, 0→2, 2→3, 1→3)
+edge_index = torch.tensor([
+    [0, 1, 0, 2, 1],  # source
+    [1, 2, 2, 3, 3]   # destination
+], dtype=torch.long)
+
+# Initial features for each node (2-dimensional)
+x = torch.tensor([
+    [1.0, 0.0],
+    [0.0, 1.0],
+    [1.0, 1.0],
+    [0.5, 0.5]
+], dtype=torch.float)
+
+num_nodes = x.size(0)
+src, dst = edge_index[0], edge_index[1]
+
+# Step 1: Message (here, the source node's features are used as the message as-is)
+messages = x[src]  # Shape: [num_edges, num_features]
+
+# Step 2: Aggregate (sum the messages received by each destination node)
+aggregated = torch.zeros(num_nodes, x.size(1))
+aggregated.index_add_(0, dst, messages)
+
+# Step 3: Update (for simplicity, use the aggregated result directly as the new features)
+x_new = aggregated
+
+print("Features before aggregation:\n", x)
+print("\nFeatures after aggregation (having received neighbor information):\n", x_new)
+</code></pre>
+
+    <p>This code uses <code>index_add_</code> to sum the messages for each edge's destination node. In an actual GCN, Step 1 (message generation) incorporates a linear transformation and normalization coefficients, while Step 3 (update) incorporates an activation function.</p>
+
+    <h3>Implementation Using the MessagePassing Base Class</h3>
+
+    <p>PyTorch Geometric provides this 3-step framework as a base class called <code>torch_geometric.nn.MessagePassing</code>. By simply defining a <code>message()</code> method and (if needed) an <code>update()</code> method, the <code>propagate()</code> method automatically handles the aggregation process for you.</p>
+
+    <pre><code class="language-python">import torch
+from torch_geometric.nn import MessagePassing
+from torch_geometric.utils import add_self_loops, degree
+
+class SimpleGCNLayer(MessagePassing):
+    def __init__(self, in_channels, out_channels):
+        super().__init__(aggr='add')  # Aggregation method: sum
+        self.lin = torch.nn.Linear(in_channels, out_channels, bias=False)
+
+    def forward(self, x, edge_index):
+        # Add self-loops (include each node's own information in the aggregation)
+        edge_index, _ = add_self_loops(edge_index, num_nodes=x.size(0))
+
+        # Linear transformation
+        x = self.lin(x)
+
+        # Compute normalization coefficients (inverse square root of degree)
+        row, col = edge_index
+        deg = degree(col, x.size(0), dtype=x.dtype)
+        deg_inv_sqrt = deg.pow(-0.5)
+        deg_inv_sqrt[deg_inv_sqrt == float('inf')] = 0
+        norm = deg_inv_sqrt[row] * deg_inv_sqrt[col]
+
+        # propagate() automatically calls message → aggregate → update in order
+        return self.propagate(edge_index, x=x, norm=norm)
+
+    def message(self, x_j, norm):
+        # x_j: features of the source (neighbor) node. PyG collects these automatically
+        return norm.view(-1, 1) * x_j
+
+# Verify behavior
+edge_index = torch.tensor([[0, 1, 1, 2],
+                           [1, 0, 2, 1]], dtype=torch.long)
+x = torch.tensor([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]], dtype=torch.float)
+
+layer = SimpleGCNLayer(in_channels=2, out_channels=4)
+out = layer(x, edge_index)
+print("Output shape:", out.shape)
+print("Output:\n", out)
+</code></pre>
+
+    <div class="info-box">
+      <p><strong>💡 The x_i and x_j Naming Convention</strong></p>
+      <p>In <code>MessagePassing</code>'s <code>message()</code> method, <code>x_i</code> automatically resolves to the feature variable for the aggregation target (the node itself), while <code>x_j</code> resolves to the feature variable for the aggregation source (the neighbor node). Knowing this naming convention makes it easier to read PyG's official implementations and custom layers written by others.</p>
+    </div>
+
+    <p>This code closely reproduces what the GCNConv layer (introduced later) does internally. The actual GCNConv layer adds further caching and numerical stability enhancements, but the basic principle is the same.</p>
+
+    <h2 id="math-background">2. Mathematical Background of Graph Convolution</h2>
+
+    <p>GCN is a method proposed by Kipf &amp; Welling (2017) that formulates a computationally efficient, practical layer by taking a first-order approximation of spectral graph convolution from graph signal processing. Here, we focus on the concept of "symmetric normalization," which is essential for implementation.</p>
+
+    <h3>Self-Loops and the Normalized Adjacency Matrix</h3>
+
+    <p>Let \(N\) be the number of nodes and \(A \in \mathbb{R}^{N \times N}\) be the graph's adjacency matrix. Since GCN includes each node's own features in the aggregation, it uses an <strong>adjacency matrix with self-loops (Adjacency Matrix with Self-loops)</strong>, obtained by adding the identity matrix \(I_N\).</p>
+
+    <p>$$\tilde{A} = A + I_N$$</p>
+
+    <p>Next, define the degree matrix \(\tilde{D}\) as a diagonal matrix.</p>
+
+    <p>$$\tilde{D}_{ii} = \sum_{j} \tilde{A}_{ij}$$</p>
+
+    <p>Then, to prevent nodes with large degree from having an excessive influence, symmetric normalization (Symmetric Normalization) is applied.</p>
+
+    <p>$$\hat{A} = \tilde{D}^{-\frac{1}{2}} \tilde{A} \tilde{D}^{-\frac{1}{2}}$$</p>
+
+    <p>Using this \(\hat{A}\), the layer-wise propagation rule for GCN can be written as follows.</p>
+
+    <p>$$H^{(l+1)} = \sigma\left(\hat{A} H^{(l)} W^{(l)}\right)$$</p>
+
+    <p>Where:</p>
+    <ul>
+      <li>\(H^{(l)} \in \mathbb{R}^{N \times d_l}\): The feature matrix of all nodes at layer \(l\)</li>
+      <li>\(W^{(l)}\): The learnable weight matrix at layer \(l\)</li>
+      <li>\(\sigma\): Activation function (e.g., ReLU)</li>
+    </ul>
+
+    <p>The \(\hat{A} H^{(l)}\) part of this equation corresponds precisely to the "Aggregate" step in the message passing framework from the previous section. With a simple sum that doesn't use symmetric normalization, nodes with large degree would produce excessively large values, destabilizing training; normalization by \(\tilde{D}^{-1/2} \tilde{A} \tilde{D}^{-1/2}\) mitigates this.</p>
+
+    <pre><code class="language-python">import numpy as np
+
+# 4-node undirected graph (no self-loops)
+A = np.array([
+    [0, 1, 1, 0],
+    [1, 0, 1, 1],
+    [1, 1, 0, 1],
+    [0, 1, 1, 0]
+], dtype=float)
+
+# Add self-loops: A_tilde = A + I
+I = np.eye(4)
+A_tilde = A + I
+
+# Degree matrix D_tilde
+D_tilde = np.diag(A_tilde.sum(axis=1))
+
+# Symmetric normalization: D_tilde^(-1/2) A_tilde D_tilde^(-1/2)
+D_inv_sqrt = np.diag(1.0 / np.sqrt(np.diag(D_tilde)))
+A_norm = D_inv_sqrt @ A_tilde @ D_inv_sqrt
+
+print("Adjacency matrix with self-loops A_tilde:\n", A_tilde)
+print("\nDegree matrix D_tilde:\n", D_tilde)
+print("\nNormalized adjacency matrix A_norm:\n", np.round(A_norm, 3))
+</code></pre>
+
+    <p>Each element of the output <code>A_norm</code> has the same value as the normalization coefficients used internally by GCNConv. The GCNConv layer we'll look at in the next section performs this sparse normalization computation efficiently (without explicitly constructing the adjacency matrix, working directly with edge indices).</p>
+
+    <div class="info-box">
+      <p><strong>💡 What Happens When You Stack Layers (Receptive Field)</strong></p>
+      <p>With a single GCN layer, each node only obtains information from 1-hop (directly adjacent) neighbors, but stacking additional layers expands the range of nodes that can be reached indirectly (the <strong>Receptive Field</strong>). However, stacking too many layers makes it easy to encounter a problem called <strong>Over-smoothing</strong>, in which the features of all nodes become similar to each other, so typical GCNs are often limited to around 2 to 4 layers.</p>
+    </div>
+
+    <div class="mermaid">
+graph LR
+  L0[Input features<br/>0-hop] --> L1[GCN layer 1 output<br/>Aggregates 1-hop neighborhood]
+  L1 --> L2[GCN layer 2 output<br/>Propagates to 2-hop neighborhood]
+  L2 --> L3[GCN layer 3 output<br/>Propagates to 3-hop neighborhood]
+    </div>
+
+    <h2 id="gcnconv-layer">3. Details of the GCNConv Layer</h2>
+
+    <p>PyTorch Geometric provides the <code>torch_geometric.nn.GCNConv</code> layer, which directly implements the formulas from the previous section. Since it internally handles adding self-loops, symmetric normalization, and the linear transformation, we can build a GCN simply by stacking these layers.</p>
+
+    <h3>Main Parameters</h3>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Parameter</th>
+          <th>Default Value</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>in_channels</code></td>
+          <td>Required</td>
+          <td>Dimensionality of the input features</td>
+        </tr>
+        <tr>
+          <td><code>out_channels</code></td>
+          <td>Required</td>
+          <td>Dimensionality of the output features</td>
+        </tr>
+        <tr>
+          <td><code>improved</code></td>
+          <td><code>False</code></td>
+          <td>If set to <code>True</code>, doubles the weight of self-loops (\(\tilde{A} = A + 2I\))</td>
+        </tr>
+        <tr>
+          <td><code>add_self_loops</code></td>
+          <td><code>True</code></td>
+          <td>Whether to automatically add self-loops</td>
+        </tr>
+        <tr>
+          <td><code>normalize</code></td>
+          <td><code>True</code></td>
+          <td>Whether to apply symmetric normalization</td>
+        </tr>
+        <tr>
+          <td><code>cached</code></td>
+          <td><code>False</code></td>
+          <td>Whether to cache the normalization coefficients (can speed things up when reusing the same graph repeatedly)</td>
+        </tr>
+        <tr>
+          <td><code>bias</code></td>
+          <td><code>True</code></td>
+          <td>Whether to add a bias term</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <pre><code class="language-python">import torch
+from torch_geometric.nn import GCNConv
+
+conv = GCNConv(in_channels=16, out_channels=8)
+
+print("Weight matrix shape:", conv.lin.weight.shape)
+print("Bias shape:", conv.bias.shape)
+print("Number of learnable parameters:", sum(p.numel() for p in conv.parameters()))
+
+# Verify behavior on a simple graph
+x = torch.randn(5, 16)  # 5 nodes, 16-dimensional features
+edge_index = torch.tensor([[0, 1, 2, 3, 4, 0],
+                           [1, 2, 3, 4, 0, 2]], dtype=torch.long)
+
+out = conv(x, edge_index)
+print("\nOutput shape:", out.shape)  # [5, 8]
+</code></pre>
+
+    <h3>Checking the Effect of the <code>improved</code> Parameter</h3>
+
+    <p>Setting <code>improved=True</code> uses \(\tilde{A} = A + 2I\), which doubles the weight of self-loops. This is an effective setting when you want to more strongly retain a node's own information.</p>
+
+    <pre><code class="language-python">import torch
+from torch_geometric.nn import GCNConv
+
+x = torch.tensor([[1.0], [2.0], [3.0]], dtype=torch.float)
+edge_index = torch.tensor([[0, 1, 1, 2],
+                           [1, 0, 2, 1]], dtype=torch.long)
+
+torch.manual_seed(42)
+conv_normal = GCNConv(1, 1, improved=False, add_self_loops=True)
+torch.manual_seed(42)
+conv_improved = GCNConv(1, 1, improved=True, add_self_loops=True)
+
+out_normal = conv_normal(x, edge_index)
+out_improved = conv_improved(x, edge_index)
+
+print("Output of standard GCNConv (improved=False):\n", out_normal)
+print("\nOutput with improved=True (self-loop weight doubled):\n", out_improved)
+</code></pre>
+
+    <div class="warning-box">
+      <p><strong>⚠️ Caution with cached=True</strong></p>
+      <p><code>cached=True</code> is convenient in settings like Cora, where the graph structure doesn't change during training (transductive settings), but it should not be used when passing a different subgraph each time in mini-batch processing. This is because the normalization coefficients for the old graph continue to be cached, leading to incorrect results.</p>
+    </div>
+
+    <h2 id="node-classification">4. Implementing the Node Classification Task (Cora Dataset)</h2>
+
+    <p>From here on, we'll use the <strong>Cora</strong> dataset, introduced in Chapter 1, to implement node classification with GCN. Cora is a citation network with 2,708 papers as nodes and citation relationships as edges; each paper has a 1,433-dimensional Bag-of-Words feature vector and is classified into one of 7 research fields.</p>
+
+    <h3>Defining a 3-Layer GCN Model</h3>
+
+    <p>In Chapter 1, we implemented a simple 2-layer GCN, but here we'll implement a 3-layer GCN with two hidden layers, inserting <strong>Dropout</strong> (explained later) between each layer. Note that the final layer does not pass through an activation function and outputs raw logits directly. This is because <code>CrossEntropyLoss</code> (explained later) performs a softmax-equivalent computation internally, so there is no need for the model itself to produce probabilities.</p>
+
+    <pre><code class="language-python">import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from torch_geometric.datasets import Planetoid
+from torch_geometric.nn import GCNConv
+
+# Load the Cora dataset
+dataset = Planetoid(root='/tmp/Cora', name='Cora')
+data = dataset[0]
+
+class GCN(nn.Module):
+    def __init__(self, num_features, hidden_channels, num_classes, dropout=0.5):
+        super().__init__()
+        self.conv1 = GCNConv(num_features, hidden_channels[0])
+        self.conv2 = GCNConv(hidden_channels[0], hidden_channels[1])
+        self.conv3 = GCNConv(hidden_channels[1], num_classes)
+        self.dropout = dropout
+
+    def forward(self, x, edge_index):
+        x = self.conv1(x, edge_index)
+        x = F.relu(x)
+        x = F.dropout(x, p=self.dropout, training=self.training)
+
+        x = self.conv2(x, edge_index)
+        x = F.relu(x)
+        x = F.dropout(x, p=self.dropout, training=self.training)
+
+        x = self.conv3(x, edge_index)  # The final layer outputs raw logits
+        return x
+
+model = GCN(num_features=dataset.num_features,
+            hidden_channels=[32, 16],
+            num_classes=dataset.num_classes)
+
+print(model)
+print(f"\nNumber of learnable parameters: {sum(p.numel() for p in model.parameters()):,}")
+</code></pre>
+
+    <p>This model progressively compresses the features in the flow 1,433 dimensions → 32 dimensions → 16 dimensions → 7 classes. With each additional layer, the receptive field described in the previous section expands from 1-hop to 2-hop to 3-hop.</p>
+
+    <h2 id="training-evaluation">5. The Training Loop and Evaluation Metrics</h2>
+
+    <h3>Training with the Adam Optimizer and CrossEntropyLoss</h3>
+
+    <p>For training, we use the <strong>Adam</strong> optimizer and <code>torch.nn.CrossEntropyLoss</code>. Since <code>CrossEntropyLoss</code> internally combines softmax with negative log-likelihood loss in its computation, it's fine for the model's output to remain as unnormalized logits.</p>
+
+    <pre><code class="language-python">import torch
+import torch.nn as nn
+from torch_geometric.datasets import Planetoid
+
+# Prepare the data and model (using the GCN class defined earlier)
+dataset = Planetoid(root='/tmp/Cora', name='Cora')
+data = dataset[0]
+
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+model = GCN(num_features=dataset.num_features,
+            hidden_channels=[32, 16],
+            num_classes=dataset.num_classes,
+            dropout=0.5).to(device)
+data = data.to(device)
+
+optimizer = torch.optim.Adam(model.parameters(), lr=0.01, weight_decay=5e-4)
+criterion = nn.CrossEntropyLoss()
+
+def train():
+    model.train()
+    optimizer.zero_grad()
+    out = model(data.x, data.edge_index)
+    loss = criterion(out[data.train_mask], data.y[data.train_mask])
+    loss.backward()
+    optimizer.step()
+    return loss.item()
+
+@torch.no_grad()
+def evaluate(mask):
+    model.eval()
+    out = model(data.x, data.edge_index)
+    pred = out.argmax(dim=1)
+    correct = (pred[mask] == data.y[mask]).sum().item()
+    return correct / mask.sum().item()
+
+for epoch in range(1, 201):
+    loss = train()
+    if epoch % 20 == 0:
+        train_acc = evaluate(data.train_mask)
+        val_acc = evaluate(data.val_mask)
+        print(f"Epoch {epoch:03d} | Loss: {loss:.4f} | Train Acc: {train_acc:.4f} | Val Acc: {val_acc:.4f}")
+
+test_acc = evaluate(data.test_mask)
+print(f"\nTest Accuracy: {test_acc:.4f}")
+</code></pre>
+
+    <p><strong>Sample Output:</strong></p>
+
+    <pre><code>Epoch 020 | Loss: 1.5893 | Train Acc: 0.7357 | Val Acc: 0.6660
+Epoch 040 | Loss: 0.9142 | Train Acc: 0.9214 | Val Acc: 0.7580
+Epoch 060 | Loss: 0.5271 | Train Acc: 0.9714 | Val Acc: 0.7740
+Epoch 080 | Loss: 0.3520 | Train Acc: 0.9857 | Val Acc: 0.7780
+Epoch 100 | Loss: 0.2647 | Train Acc: 0.9929 | Val Acc: 0.7820
+Epoch 120 | Loss: 0.2103 | Train Acc: 1.0000 | Val Acc: 0.7800
+Epoch 140 | Loss: 0.1782 | Train Acc: 1.0000 | Val Acc: 0.7760
+Epoch 160 | Loss: 0.1549 | Train Acc: 1.0000 | Val Acc: 0.7740
+Epoch 180 | Loss: 0.1401 | Train Acc: 1.0000 | Val Acc: 0.7720
+Epoch 200 | Loss: 0.1298 | Train Acc: 1.0000 | Val Acc: 0.7700
+
+Test Accuracy: 0.7930
+</code></pre>
+
+    <p>While training accuracy (Train Acc) reaches 100%, validation accuracy (Val Acc) peaks around epoch 100 and then begins to gradually decline. This is a typical sign of <strong>overfitting</strong>, which we'll address in the next section.</p>
+
+    <h3>What Accuracy Alone Doesn't Show</h3>
+
+    <p>Accuracy is a basic metric for model evaluation, but it can hide differences in performance across classes. In particular, when the number of samples is imbalanced across classes, the overall accuracy can appear high even if the model gets almost none of the minority-class predictions correct. Therefore, we'll also check <strong>precision</strong>, <strong>recall</strong>, and <strong>F1 score</strong>, which let us evaluate performance on a per-class basis.</p>
+
+    <ul>
+      <li><strong>Precision</strong>: The proportion of predictions for a class that were actually correct</li>
+      <li><strong>Recall</strong>: The proportion of actual members of a class that were correctly predicted</li>
+      <li><strong>F1 Score</strong>: The harmonic mean of precision and recall</li>
+    </ul>
+
+    <pre><code class="language-python">from sklearn.metrics import classification_report, confusion_matrix
+
+@torch.no_grad()
+def detailed_evaluation(mask, mask_name):
+    model.eval()
+    out = model(data.x, data.edge_index)
+    pred = out.argmax(dim=1)
+
+    y_true = data.y[mask].cpu().numpy()
+    y_pred = pred[mask].cpu().numpy()
+
+    print(f"=== Evaluation metrics for {mask_name} ===")
+    print(classification_report(y_true, y_pred, digits=3, zero_division=0))
+    print("Confusion Matrix:\n", confusion_matrix(y_true, y_pred))
+
+detailed_evaluation(data.test_mask, "test data")
+</code></pre>
+
+    <div class="info-box">
+      <p><strong>💡 Macro Average and Weighted Average</strong></p>
+      <p>The <code>macro avg</code> output by <code>classification_report</code> is a simple average of the metrics for each class, so it equally reflects performance degradation in minority classes. <code>weighted avg</code>, on the other hand, is an average weighted by the number of samples in each class. When comparing models on a class-imbalanced dataset, make it a habit to check the <code>macro avg</code> F1 score in addition to accuracy.</p>
+    </div>
+
+    <h2 id="regularization">6. Countermeasures for Overfitting (Dropout, Regularization)</h2>
+
+    <p>As we saw in the learning curve in the previous section, the phenomenon where validation accuracy plateaus (or declines) even as training accuracy reaches 100% is called <strong>overfitting</strong>. In Cora's standard split, only 140 labeled nodes (about 5% of the total) are available for training, making GCN relatively prone to overfitting in this setting. Here, we'll examine two representative countermeasures.</p>
+
+    <h3>Dropout and Weight Decay</h3>
+
+    <p><strong>Dropout</strong> is a technique that randomly sets some units' outputs to zero during training, preventing the model from becoming overly dependent on specific combinations of nodes or features. We've already incorporated this into this chapter's GCN model as <code>F.dropout</code>.</p>
+
+    <p>Another representative countermeasure is <strong>weight decay</strong>, also known as <strong>L2 regularization</strong>. By adding the sum of squared weights to the loss function, this penalizes overly large weights and keeps the model smooth. In PyTorch, this can easily be specified via the <code>weight_decay</code> argument of the <code>Adam</code> optimizer.</p>
+
+    <p>Let's run an experiment to see how the gap between training accuracy and test accuracy (the <strong>generalization gap</strong>) changes with and without these two settings.</p>
+
+    <pre><code class="language-python">import torch
+import torch.nn as nn
+from torch_geometric.datasets import Planetoid
+
+def run_experiment(dropout_rate, weight_decay, epochs=200, seed=0):
+    torch.manual_seed(seed)
+    dataset = Planetoid(root='/tmp/Cora', name='Cora')
+    data = dataset[0]
+
+    # Uses the GCN class defined in "4. Implementing the Node Classification Task"
+    model = GCN(num_features=dataset.num_features,
+                hidden_channels=[32, 16],
+                num_classes=dataset.num_classes,
+                dropout=dropout_rate)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.01, weight_decay=weight_decay)
+    criterion = nn.CrossEntropyLoss()
+
+    for epoch in range(epochs):
+        model.train()
+        optimizer.zero_grad()
+        out = model(data.x, data.edge_index)
+        loss = criterion(out[data.train_mask], data.y[data.train_mask])
+        loss.backward()
+        optimizer.step()
+
+    model.eval()
+    with torch.no_grad():
+        out = model(data.x, data.edge_index)
+        pred = out.argmax(dim=1)
+        train_acc = (pred[data.train_mask] == data.y[data.train_mask]).float().mean().item()
+        test_acc = (pred[data.test_mask] == data.y[data.test_mask]).float().mean().item()
+
+    return train_acc, test_acc
+
+# Case 1: No regularization (prone to overfitting)
+train_acc_no_reg, test_acc_no_reg = run_experiment(dropout_rate=0.0, weight_decay=0.0)
+
+# Case 2: With Dropout + weight_decay
+train_acc_reg, test_acc_reg = run_experiment(dropout_rate=0.5, weight_decay=5e-4)
+
+print("Setting                  | Train Acc | Test Acc | Generalization Gap")
+print("-" * 62)
+print(f"No regularization        | {train_acc_no_reg:.4f}    | {test_acc_no_reg:.4f}   | {train_acc_no_reg - test_acc_no_reg:.4f}")
+print(f"Dropout + weight_decay    | {train_acc_reg:.4f}    | {test_acc_reg:.4f}   | {train_acc_reg - test_acc_reg:.4f}")
+</code></pre>
+
+    <p><strong>Sample Output:</strong></p>
+
+    <pre><code>Setting                  | Train Acc | Test Acc | Generalization Gap
+--------------------------------------------------------------
+No regularization        | 1.0000    | 0.7460   | 0.2540
+Dropout + weight_decay    | 1.0000    | 0.7930   | 0.2070
+
+</code></pre>
+
+    <p>We can see that in the no-regularization setting, training accuracy reaches 100% while test accuracy stagnates, resulting in a larger generalization gap. Combining Dropout and L2 regularization narrows this gap to some extent.</p>
+
+    <h3>Early Stopping</h3>
+
+    <p>Another practical countermeasure is <strong>early stopping</strong>. This monitors the validation loss every epoch, and if it fails to improve for a certain number of consecutive epochs (patience), training is stopped and the model from the point with the lowest validation loss so far is adopted.</p>
+
+    <pre><code class="language-python">import copy
+import torch
+import torch.nn as nn
+from torch_geometric.datasets import Planetoid
+
+dataset = Planetoid(root='/tmp/Cora', name='Cora')
+data = dataset[0]
+
+model = GCN(num_features=dataset.num_features,
+            hidden_channels=[32, 16],
+            num_classes=dataset.num_classes,
+            dropout=0.5)
+optimizer = torch.optim.Adam(model.parameters(), lr=0.01, weight_decay=5e-4)
+criterion = nn.CrossEntropyLoss()
+
+best_val_loss = float('inf')
+patience = 20
+patience_counter = 0
+best_model_state = None
+
+for epoch in range(1, 301):
+    model.train()
+    optimizer.zero_grad()
+    out = model(data.x, data.edge_index)
+    loss = criterion(out[data.train_mask], data.y[data.train_mask])
+    loss.backward()
+    optimizer.step()
+
+    model.eval()
+    with torch.no_grad():
+        out = model(data.x, data.edge_index)
+        val_loss = criterion(out[data.val_mask], data.y[data.val_mask]).item()
+
+    if val_loss &lt; best_val_loss:
+        best_val_loss = val_loss
+        best_model_state = copy.deepcopy(model.state_dict())
+        patience_counter = 0
+    else:
+        patience_counter += 1
+
+    if patience_counter &gt;= patience:
+        print(f"Epoch {epoch}: Stopping training because validation loss did not improve for {patience} epochs")
+        break
+
+# Restore the model from the point with the lowest validation loss
+model.load_state_dict(best_model_state)
+
+model.eval()
+with torch.no_grad():
+    out = model(data.x, data.edge_index)
+    pred = out.argmax(dim=1)
+    test_acc = (pred[data.test_mask] == data.y[data.test_mask]).float().mean().item()
+
+print(f"Final test accuracy with Early Stopping: {test_acc:.4f}")
+</code></pre>
+
+    <div class="success-box">
+      <p><strong>🎉 Combining Overfitting Countermeasures</strong></p>
+      <p>Dropout, weight_decay (L2 regularization), and early stopping each suppress overfitting from a different angle. In practice, it's common to combine all three. By tuning while individually checking how much each technique contributes, you can build a model with high generalization performance even from limited labeled data.</p>
+    </div>
+
+    <h2 id="exercises">Exercises</h2>
+
+    <details>
+      <summary><strong>Exercise 1: Correspondence Between the 3 Steps of Message Passing and GCN</strong></summary>
+      <p>Explain the 3 steps of message passing (Message, Aggregate, Update) in your own words, and then describe where each step corresponds within this chapter's equation \(H^{(l+1)} = \sigma\left(\hat{A} H^{(l)} W^{(l)}\right)\).</p>
+      <details>
+        <summary>Show Answer</summary>
+        <p><strong>Message</strong>: The part that linearly transforms each node's features \(H^{(l)}\) by multiplying with the weight matrix \(W^{(l)}\) (\(H^{(l)} W^{(l)}\)) corresponds to generating the message sent to neighboring nodes.</p>
+        <p><strong>Aggregate</strong>: The part that multiplies by the normalized adjacency matrix \(\hat{A}\) (\(\hat{A} (H^{(l)} W^{(l)})\)) corresponds to the process where each node aggregates messages from its neighbors (and itself) via a weighted sum.</p>
+        <p><strong>Update</strong>: The part that applies the activation function \(\sigma\) to the aggregated result corresponds to the update process that computes new features from the aggregated messages.</p>
+      </details>
+    </details>
+
+    <details>
+      <summary><strong>Exercise 2: Implementing a 2-Layer GCN on Synthetic Data</strong></summary>
+      <p>Without using the Cora dataset, implement, train, and evaluate a 2-layer GCN using synthetic data that satisfies the following conditions.</p>
+      <ol>
+        <li>A 5-node ring graph (undirected, each node connected to both neighbors by an edge)</li>
+        <li>Each node has 8-dimensional features</li>
+        <li>Treat this as a 2-class classification task</li>
+        <li>Train for 100 epochs using CrossEntropyLoss and the Adam optimizer</li>
+      </ol>
+      <details>
+        <summary>Show Answer</summary>
+        <pre><code class="language-python">import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from torch_geometric.data import Data
+from torch_geometric.nn import GCNConv
+
+# 5-node synthetic graph (undirected, ring structure)
+edge_index = torch.tensor([
+    [0, 1, 1, 2, 2, 3, 3, 4, 4, 0],
+    [1, 0, 2, 1, 3, 2, 4, 3, 0, 4]
+], dtype=torch.long)
+
+torch.manual_seed(0)
+x = torch.randn(5, 8)  # 5 nodes, 8-dimensional features
+y = torch.tensor([0, 1, 0, 1, 0], dtype=torch.long)  # 2-class classification
+
+data = Data(x=x, edge_index=edge_index, y=y)
+
+class SmallGCN(nn.Module):
+    def __init__(self, in_channels, hidden_channels, num_classes):
+        super().__init__()
+        self.conv1 = GCNConv(in_channels, hidden_channels)
+        self.conv2 = GCNConv(hidden_channels, num_classes)
+
+    def forward(self, x, edge_index):
+        x = F.relu(self.conv1(x, edge_index))
+        x = F.dropout(x, p=0.3, training=self.training)
+        x = self.conv2(x, edge_index)
+        return x
+
+model = SmallGCN(in_channels=8, hidden_channels=4, num_classes=2)
+optimizer = torch.optim.Adam(model.parameters(), lr=0.05, weight_decay=1e-4)
+criterion = nn.CrossEntropyLoss()
+
+for epoch in range(100):
+    model.train()
+    optimizer.zero_grad()
+    out = model(data.x, data.edge_index)
+    loss = criterion(out, data.y)
+    loss.backward()
+    optimizer.step()
+
+model.eval()
+with torch.no_grad():
+    pred = model(data.x, data.edge_index).argmax(dim=1)
+    acc = (pred == data.y).float().mean().item()
+
+print(f"Final Loss: {loss.item():.4f}")
+print(f"Accuracy: {acc:.4f}")
+</code></pre>
+        <p>Since the number of nodes is extremely small at 5, this example uses the training data itself for evaluation as well. In practice, always split your data into training, validation, and test sets.</p>
+      </details>
+    </details>
+
+    <details>
+      <summary><strong>Exercise 3: Comparing Dropout Rates</strong></summary>
+      <p>Using the <code>run_experiment</code> function defined in this chapter's "Countermeasures for Overfitting" section, try Dropout rates of 0.0, 0.3, 0.5, and 0.7, and compare how test accuracy changes. You may fix weight_decay at 5e-4. Write 1-2 sentences on your observations about the trend.</p>
+      <details>
+        <summary>Show Answer</summary>
+        <pre><code class="language-python">dropout_rates = [0.0, 0.3, 0.5, 0.7]
+results = {}
+
+for rate in dropout_rates:
+    train_acc, test_acc = run_experiment(dropout_rate=rate, weight_decay=5e-4)
+    results[rate] = (train_acc, test_acc)
+    print(f"dropout={rate}: Train Acc={train_acc:.4f}, Test Acc={test_acc:.4f}")
+</code></pre>
+        <p><strong>Example observation</strong>: When the Dropout rate is close to 0, training accuracy becomes very high while test accuracy tends to stagnate; the best test accuracy tends to be obtained around 0.5. If the Dropout rate is raised too high, to 0.7, even information necessary for learning is lost, and both training and test accuracy can decline. There's no fixed correct Dropout rate — it's a hyperparameter that should be tuned according to the dataset and model size.</p>
+      </details>
+    </details>
+
+    <h2 id="summary">Summary</h2>
+
+    <p>In this chapter, we learned about the mechanics of message passing, the mathematical background of GCN, and the actual implementation of a node classification task. Let's review the learning objectives set out at the beginning.</p>
+
+    <ul>
+      <li>✅ <strong>Explain the mechanics of message passing</strong>: We learned the 3 steps — Message, Aggregate, Update — and how to implement them using the <code>MessagePassing</code> base class</li>
+      <li>✅ <strong>Understand the mathematical background of graph convolution</strong>: We confirmed the adjacency matrix with self-loops, symmetric normalization, and the layer-wise propagation rule \(H^{(l+1)} = \sigma(\hat{A} H^{(l)} W^{(l)})\) that uses them</li>
+      <li>✅ <strong>Make effective use of PyTorch Geometric's GCNConv layer</strong>: We understood the meaning and appropriate use of its main parameters (<code>improved</code>, <code>cached</code>, <code>normalize</code>, etc.)</li>
+      <li>✅ <strong>Implement a node classification task on the Cora dataset</strong>: We defined a 3-layer GCN model and actually trained it on the Cora dataset</li>
+      <li>✅ <strong>Evaluate a model with appropriate evaluation metrics</strong>: In addition to accuracy, we learned a multifaceted evaluation approach using precision, recall, F1 score, and the confusion matrix</li>
+      <li>✅ <strong>Implement countermeasures for overfitting</strong>: We implemented three representative countermeasures — Dropout, weight_decay (L2 regularization), and early stopping — and compared their effects</li>
+    </ul>
+
+    <div class="success-box">
+      <p><strong>🎉 Next Steps</strong></p>
+      <p>Great work. You've now experienced the full mechanics and implementation of GCN. In the next chapter, we plan to cover more advanced architectures, including graph neural networks that incorporate an <strong>attention mechanism</strong> to learn weights for the importance of neighboring nodes.</p>
+    </div>
+
+    <div class="navigation">
+      <a href="./chapter-1.html" class="nav-button">← Chapter 1</a>
+      <a href="./index.html" class="nav-button">Series Index</a>
+      <a href="./chapter-3.html" class="nav-button">Chapter 3 →</a>
+    </div>
+
+    <hr style="margin: 2rem 0;">
+
+    <p><strong>Reference Resources</strong></p>
+    <ul>
+      <li><a href="https://pytorch-geometric.readthedocs.io/" target="_blank">PyTorch Geometric Official Documentation</a></li>
+      <li><a href="https://pytorch-geometric.readthedocs.io/en/latest/notes/create_gnn.html" target="_blank">PyTorch Geometric Official Tutorial: Creating Message Passing Networks</a></li>
+      <li><a href="https://github.com/pyg-team/pytorch_geometric" target="_blank">PyTorch Geometric GitHub</a></li>
+      <li><a href="https://arxiv.org/abs/1609.02907" target="_blank">GCN Paper: Semi-Supervised Classification with Graph Convolutional Networks (Kipf &amp; Welling, 2017)</a></li>
+    </ul>
+
+  </main>
+
+  <section class="disclaimer">
+    <h3>Disclaimer</h3>
+    <ul>
+      <li>This content is provided for educational, research, and informational purposes only, and does not constitute professional advice (legal, accounting, technical guarantees, etc.).</li>
+      <li>This content and accompanying code examples are provided "AS IS" without any warranties, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
+      <li>The creator and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.</li>
+      <li>To the maximum extent permitted by applicable law, the creator and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+      <li>The content of this material is subject to change, update, or discontinuation without notice.</li>
+      <li>The copyright and license of this content follow the specified conditions (e.g., CC BY 4.0). Such licenses typically include warranty disclaimers.</li>
+    </ul>
+  </section>
+
+  <footer>
+    <div class="container">
+      <p>&copy; 2025 AI Terakoya - Dr. Yusuke Hashimoto, Tohoku University</p>
+      <p>Licensed under CC BY 4.0</p>
+    </div>
+  </footer>
+</body>
+</html>

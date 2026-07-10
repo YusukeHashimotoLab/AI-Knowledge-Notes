@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 4: Thermodynamics of Materials and Phase Equilibrium - Introduction to Materials Chemistry</title>
+    <meta name="description" content="Fundamentals of Gibbs free energy, chemical potential, binary phase diagrams, Ellingham diagrams, and the CALPHAD method, with Python practice. Learn phase diagram calculation and activity coefficient calculation using the regular solution model.">
+
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", sans-serif; line-height: 1.8; color: #2c3e50; max-width: 1200px; margin: 0 auto; padding: 20px; background: #f8f9fa; }
+        h1, h2, h3 { color: #2c3e50; margin-top: 2rem; }
+        h1 { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 1.5rem; border-radius: 10px; }
+        h2 { border-left: 5px solid #f5576c; padding-left: 15px; background: linear-gradient(to right, rgba(245,87,108,0.1), transparent); }
+        .code-block { background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 8px; overflow-x: auto; margin: 1rem 0; }
+        .equation { background: #fff3cd; padding: 15px; border-left: 4px solid #ffc107; margin: 1rem 0; border-radius: 5px; }
+        .exercise { background: #e7f3ff; padding: 20px; border-left: 4px solid #2196F3; margin: 1.5rem 0; border-radius: 8px; }
+        .solution { background: #f0f0f0; padding: 15px; margin-top: 10px; border-radius: 5px; }
+        .reference { background: white; padding: 15px; margin: 10px 0; border-left: 3px solid #f5576c; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .mermaid { background: white; padding: 20px; border-radius: 10px; margin: 1.5rem 0; }
+    </style>
+</head>
+<body>
+    <h1>Chapter 4: Thermodynamics of Materials and Phase Equilibrium</h1>
+
+    <p>Chapter 1 covered classical models of chemical bonding, Chapter 2 introduced molecular orbital theory and band theory, and Chapter 3 examined d-orbital splitting in transition metal compounds. All of these were understood from a microscopic viewpoint: what electronic states a single set of atoms, molecules, or crystals adopt. In this chapter we shift perspective and study <strong>thermodynamics</strong>, which determines which <strong>phase</strong> is most stable for a macroscopic system composed of a huge number of atoms and molecules at a given temperature, pressure, and composition.</p>
+
+    <p>Our starting point is the <strong>Gibbs Free Energy</strong>. The Gibbs free energy is the indicator that determines the direction in which a system spontaneously changes at constant temperature and pressure, and it is the common language running through the entire materials process — from alloy phase separation to the progress of oxidation reactions to the shape of phase diagrams. When dealing with multicomponent systems, the <strong>Chemical Potential</strong>, which describes how the Gibbs free energy responds to a change in the concentration of each component, plays an essential role.</p>
+
+    <p>We will first organize the relationship between the Gibbs free energy and the chemical potential, and then use the <strong>Regular Solution Model</strong> to compute the free energy curves of a binary alloy. By constructing a <strong>Common Tangent</strong> to the free energy curves of the solid and liquid phases, we determine the phase boundaries and build a simplified binary phase diagram of our own. Next, we construct an <strong>Ellingham Diagram</strong>, which visually judges the spontaneity of metal oxidation-reduction reactions, to understand the thermodynamic background of smelting processes. Finally, we introduce the ideas behind the <strong>CALPHAD Method (CALculation of PHAse Diagrams)</strong>, widely used in practical alloy design, and put it into practice by computing activity coefficients in Python.</p>
+
+    <div class="reference" style="text-align: center;">
+        <p><strong>Reading time:</strong> 30-35 minutes　｜　<strong>Difficulty:</strong> Intermediate to Advanced　｜　<strong>Code examples:</strong> 9</p>
+    </div>
+
+    <div class="exercise">
+        <h3>Learning Objectives for This Chapter</h3>
+        <ul>
+            <li>Understand the relationship between the Gibbs free energy and the chemical potential</li>
+            <li>Be able to read a binary phase diagram</li>
+            <li>Be able to judge the spontaneity of a reaction from an Ellingham diagram</li>
+            <li>Understand the ideas behind the CALPHAD method</li>
+            <li>Be able to perform simple phase equilibrium calculations in Python</li>
+        </ul>
+    </div>
+
+    <p style="text-align: center; margin: 1.5rem 0;">
+        <a href="chapter-3.html" style="color: #f5576c; text-decoration: none; font-weight: bold;">← Chapter 3</a>
+        <span style="color: #adb5bd; margin: 0 0.8rem;">|</span>
+        <a href="index.html" style="color: #f5576c; text-decoration: none; font-weight: bold;">Series Index</a>
+        <span style="color: #adb5bd; margin: 0 0.8rem;">|</span>
+        <a href="chapter-5.html" style="color: #f5576c; text-decoration: none; font-weight: bold;">Chapter 5 →</a>
+    </p>
+
+    <h2>4.1 Gibbs Free Energy and Chemical Potential</h2>
+    <p>The <strong>Gibbs free energy</strong> $G$ is defined from the enthalpy $H$ and the entropy $S$ by the following equation.</p>
+
+    <div class="equation">
+        $$G = H - TS$$
+        <p>$T$ is the absolute temperature. A change proceeding at constant temperature and pressure occurs spontaneously in the direction in which $G$ decreases, i.e., $\Delta G \lt 0$. When $\Delta G = 0$, the system is at equilibrium, and a change with $\Delta G \gt 0$ does not occur spontaneously.</p>
+    </div>
+
+    <p>Whether a reaction or phase transition is spontaneous is determined by the competition between the enthalpy change $\Delta H$ (exothermic or endothermic) and the entropy change $\Delta S$ (increase or decrease in disorder).</p>
+
+    <div class="equation">
+        $$\Delta G = \Delta H - T \Delta S$$
+        <p>If $\Delta H \lt 0$ (exothermic) and $\Delta S \gt 0$ (increasing disorder), then $\Delta G \lt 0$ at every temperature and the change proceeds spontaneously. Conversely, a change with $\Delta H \gt 0$ and $\Delta S \lt 0$ never proceeds spontaneously at any temperature. When $\Delta H$ and $\Delta S$ have the same sign, the sign of the spontaneity flips at the <strong>Transition Temperature</strong> $T_{eq} = \Delta H / \Delta S$, where $\Delta G = 0$. Melting (solid → liquid) is a typical example: since $\Delta H_{fus} \gt 0$ (endothermic) and $\Delta S_{fus} \gt 0$ (the liquid is more disordered), the liquid phase is stable above the melting point $T_m = \Delta H_{fus} / \Delta S_{fus}$, and the solid phase is stable below it.</p>
+    </div>
+
+    <p>When dealing with multicomponent systems (alloys or solutions), we introduce the <strong>chemical potential</strong> $\mu_i$, defined as the change in the Gibbs free energy when the amount of component $i$, $n_i$, is increased by one mole.</p>
+
+    <div class="equation">
+        $$\mu_i = \left(\frac{\partial G}{\partial n_i}\right)_{T, p, n_{j \neq i}}$$
+        <p>The Gibbs free energy of the whole system can be expressed as the sum of the products of the chemical potential and the amount of each component, $G = \sum_i \mu_i n_i$. When two phases are in equilibrium, the chemical potential of each component is equal across all coexisting phases ($\mu_i^{\alpha} = \mu_i^{\beta}$). This is the most fundamental condition for determining phase equilibrium.</p>
+    </div>
+
+    <h3>Python Implementation: Spontaneity of Melting and the Temperature Dependence of the Gibbs Free Energy</h3>
+    <pre class="code-block"><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+def gibbs_energy_fusion(T, dH_fus, dS_fus):
+    """
+    Compute the Gibbs free energy change of fusion dG_fus(T), relative to the solid phase.
+    dG_fus &gt; 0: the solid phase is stable  /  dG_fus &lt; 0: the liquid phase is stable
+
+    Parameters:
+    T: array of temperatures (K)
+    dH_fus: enthalpy of fusion (J/mol)
+    dS_fus: entropy of fusion (J/mol/K)
+    """
+    return dH_fus - T * dS_fus
+
+# Fusion data for pure Cu (copper)
+dH_fus_Cu = 13050.0  # J/mol
+Tm_Cu = 1358.0        # K (melting point)
+dS_fus_Cu = dH_fus_Cu / Tm_Cu  # entropy of fusion (back-calculated from the condition dG=0 at the melting point)
+
+T = np.linspace(1000, 1700, 400)
+dG_fus = gibbs_energy_fusion(T, dH_fus_Cu, dS_fus_Cu)
+
+print(f"Entropy of fusion of Cu: {dS_fus_Cu:.3f} J/mol/K")
+print(f"dG_fus at T=1200K: {gibbs_energy_fusion(1200, dH_fus_Cu, dS_fus_Cu):.1f} J/mol (positive if the solid phase is stable)")
+print(f"dG_fus at T=1400K: {gibbs_energy_fusion(1400, dH_fus_Cu, dS_fus_Cu):.1f} J/mol (negative if the liquid phase is stable)")
+
+plt.figure(figsize=(9, 6))
+plt.plot(T, dG_fus / 1000, color='#f5576c', linewidth=2.5)
+plt.axhline(y=0, color='gray', linestyle='--', alpha=0.6)
+plt.axvline(x=Tm_Cu, color='#2c3e50', linestyle='--', label=f'Melting point Tm = {Tm_Cu} K')
+plt.fill_between(T, dG_fus / 1000, 0, where=(dG_fus &gt; 0), color='#2196F3', alpha=0.15, label='Solid phase stable')
+plt.fill_between(T, dG_fus / 1000, 0, where=(dG_fus &lt; 0), color='#f093fb', alpha=0.15, label='Liquid phase stable')
+plt.xlabel('Temperature T (K)', fontsize=12)
+plt.ylabel(r'$\Delta G_{fus}$ (kJ/mol)', fontsize=12)
+plt.title('Temperature Dependence of the Gibbs Free Energy of Fusion of Cu', fontsize=14, fontweight='bold')
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.savefig('gibbs_fusion_Cu.png', dpi=300)
+plt.show()
+</code></pre>
+    <p><strong>Result</strong>: The entropy of fusion works out to $\Delta S_{fus} = \Delta H_{fus}/T_m \approx 9.61$ J/mol/K. At T=1200K (below the melting point), $\Delta G_{fus} \approx +1516$ J/mol, which is positive, confirming that the solid phase is stable; at T=1400K (above the melting point), $\Delta G_{fus} \approx -403$ J/mol, which is negative, confirming that the liquid phase is stable. The melting point $T_m$ is precisely the temperature at which the chemical potentials of the solid and liquid phases become equal ($\Delta G_{fus}=0$).</p>
+
+    <h2>4.2 Reading a Binary Phase Diagram</h2>
+    <p>When two or more components are mixed, as in an alloy, the Gibbs free energy acquires, in addition to the composition-weighted average of the energies of the pure components, a <strong>Gibbs Free Energy of Mixing</strong> term $\Delta G_{mix}$. In an ideal solution, mixing arises solely from entropy, but in real alloys, differences in interatomic interactions give rise to an additional enthalpy term. The simplest model for handling this is the <strong>regular solution model</strong>.</p>
+
+    <div class="equation">
+        $$\Delta G_{mix} = RT\left[x_1 \ln x_1 + x_2 \ln x_2\right] + \Omega x_1 x_2$$
+        <p>The first term is the <strong>ideal entropy of mixing term</strong> (always negative, stabilizing the mixture), and the second term is the <strong>regular solution interaction term</strong>, where $\Omega$ (the interaction parameter) represents how much the bond energy between components 1 and 2 deviates from the average of the bond energies between like atoms. $\Omega \gt 0$ means a positive deviation (a tendency toward immiscibility, avoiding unlike-atom pairs), while $\Omega \lt 0$ means a negative deviation (favoring unlike-atom pairs). When $\Omega = 0$, the model reduces to an ideal solution.</p>
+    </div>
+
+    <p>In a system where different phases such as solid and liquid coexist, each phase has its own $G(x)$ curve. At a given temperature $T$, it is not enough merely to compare which of the solid or liquid phases has the lower Gibbs free energy across the full composition range $x$. In practice, there is a composition range in which the overall Gibbs free energy of the system is lower when it separates into two phases rather than remaining as a single phase. The boundary of this two-phase coexistence region — that is, which solid composition coexists with which liquid composition — is determined by drawing a <strong>common tangent</strong> to the two $G(x)$ curves. The compositions at which the common tangent touches the solid-phase curve and the liquid-phase curve are, at that temperature, the compositions of the <strong>Solidus</strong> and the <strong>Liquidus</strong>.</p>
+
+    <h3>Python Implementation: Free Energy Curves of the Solid and Liquid Phases and the Common Tangent in the Regular Solution Model</h3>
+    <pre class="code-block"><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+from scipy.optimize import fsolve
+
+R = 8.314  # gas constant, J/mol/K
+
+# Cu(A)-Ni(B) binary system (approximate parameters close to experimental values)
+Tm_A, dHfus_A = 1358.0, 13050.0   # melting point and enthalpy of fusion of Cu
+Tm_B, dHfus_B = 1728.0, 17470.0   # melting point and enthalpy of fusion of Ni
+
+Omega_solid = 2000.0    # interaction parameter of the solid phase (J/mol)
+Omega_liquid = -2000.0  # interaction parameter of the liquid phase (J/mol)
+
+def dG_fus_A(T):
+    """Gibbs free energy of fusion of component A (relative to the solid phase)"""
+    return dHfus_A * (1 - T / Tm_A)
+
+def dG_fus_B(T):
+    """Gibbs free energy of fusion of component B (relative to the solid phase)"""
+    return dHfus_B * (1 - T / Tm_B)
+
+def G_solid(x, T):
+    """Gibbs free energy of the solid phase (x: mole fraction of component A)"""
+    x = np.clip(x, 1e-9, 1 - 1e-9)
+    return R * T * (x * np.log(x) + (1 - x) * np.log(1 - x)) + Omega_solid * x * (1 - x)
+
+def G_liquid(x, T):
+    """Gibbs free energy of the liquid phase (relative to the solid phase)"""
+    x = np.clip(x, 1e-9, 1 - 1e-9)
+    mix = R * T * (x * np.log(x) + (1 - x) * np.log(1 - x)) + Omega_liquid * x * (1 - x)
+    return mix + x * dG_fus_A(T) + (1 - x) * dG_fus_B(T)
+
+# Visualize the free energy curves of the solid and liquid phases at T=1500K
+T_demo = 1500.0
+x_range = np.linspace(0.001, 0.999, 300)
+G_s = G_solid(x_range, T_demo)
+G_l = G_liquid(x_range, T_demo)
+
+plt.figure(figsize=(9, 6))
+plt.plot(x_range, G_s / 1000, color='#2196F3', linewidth=2.5, label='Solid phase G(x)')
+plt.plot(x_range, G_l / 1000, color='#f5576c', linewidth=2.5, label='Liquid phase G(x)')
+plt.xlabel('Mole fraction of component A (Cu), x', fontsize=12)
+plt.ylabel('Gibbs free energy (kJ/mol)', fontsize=12)
+plt.title(f'Free Energy Curves of the Solid and Liquid Phases at T = {T_demo} K', fontsize=14, fontweight='bold')
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.savefig('gibbs_curves_solid_liquid.png', dpi=300)
+plt.show()
+
+print(f"T={T_demo}K: G_solid(x=0.5) = {G_solid(0.5, T_demo):.1f} J/mol")
+print(f"T={T_demo}K: G_liquid(x=0.5) = {G_liquid(0.5, T_demo):.1f} J/mol")
+</code></pre>
+    <p><strong>Result</strong>: At T=1500K, which of the solid-phase and liquid-phase curves lies lower switches depending on composition. The region near where the two curves cross is a rough guide to where the common tangent should be drawn.</p>
+
+    <h3>Python Implementation: Numerically Solving for the Common Tangent and Constructing a Binary Phase Diagram</h3>
+    <pre class="code-block"><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+from scipy.optimize import fsolve
+
+def slope_solid(x, T):
+    """Slope of the solid-phase G(x), dG_solid/dx"""
+    x = np.clip(x, 1e-9, 1 - 1e-9)
+    return R * T * (np.log(x) - np.log(1 - x)) + Omega_solid * (1 - 2 * x)
+
+def slope_liquid(x, T):
+    """Slope of the liquid-phase G(x), dG_liquid/dx"""
+    x = np.clip(x, 1e-9, 1 - 1e-9)
+    return R * T * (np.log(x) - np.log(1 - x)) + Omega_liquid * (1 - 2 * x) \
+        + (dG_fus_A(T) - dG_fus_B(T))
+
+def common_tangent_equations(vars, T):
+    """
+    Common tangent conditions: (1) the tangent slopes of both curves are equal,
+    (2) the tangent y-intercepts are equal.
+    vars = [x_solid, x_liquid]
+    """
+    xs, xl = vars
+    m_s = slope_solid(xs, T)
+    m_l = slope_liquid(xl, T)
+    b_s = G_solid(xs, T) - m_s * xs   # y-intercept of the tangent line (value at x=0)
+    b_l = G_liquid(xl, T) - m_l * xl
+    return [m_s - m_l, b_s - b_l]
+
+# Sweep the temperature from just below Tm_B to just above Tm_A, solving for the common tangent at each step
+T_sweep = np.linspace(Tm_B - 2, Tm_A + 2, 80)
+guess = [0.02, 0.03]  # initial guess (starting from a B-rich composition on the low-temperature side)
+
+solidus_x, liquidus_x, T_valid = [], [], []
+for T in T_sweep:
+    solution = fsolve(common_tangent_equations, guess, args=(T,), full_output=True)
+    (xs, xl), info, ier, msg = solution
+    if ier == 1 and 0.0 &lt; xs &lt; 1.0 and 0.0 &lt; xl &lt; 1.0:
+        solidus_x.append(xs)
+        liquidus_x.append(xl)
+        T_valid.append(T)
+        guess = [xs, xl]  # continuation method: use the previous solution as the next initial guess
+
+solidus_x = np.array(solidus_x)
+liquidus_x = np.array(liquidus_x)
+T_valid = np.array(T_valid)
+
+print(f"Number of temperature points at which the common tangent was found: {len(T_valid)} / {len(T_sweep)}")
+print(f"Near T={T_valid[0]:.1f}K: solid composition x_s={solidus_x[0]:.4f}, liquid composition x_l={liquidus_x[0]:.4f}")
+print(f"Near T={T_valid[-1]:.1f}K: solid composition x_s={solidus_x[-1]:.4f}, liquid composition x_l={liquidus_x[-1]:.4f}")
+
+# Construct the phase diagram
+plt.figure(figsize=(9, 7))
+plt.plot(liquidus_x, T_valid, color='#f5576c', linewidth=2.5, label='Liquidus')
+plt.plot(solidus_x, T_valid, color='#2196F3', linewidth=2.5, label='Solidus')
+plt.fill_betweenx(T_valid, solidus_x, liquidus_x, color='#adb5bd', alpha=0.3, label='Solid + liquid coexistence region')
+plt.scatter([0], [Tm_B], color='#2c3e50', zorder=5)
+plt.scatter([1], [Tm_A], color='#2c3e50', zorder=5)
+plt.text(0.02, Tm_B + 8, f'Ni: Tm={Tm_B:.0f}K', fontsize=10)
+plt.text(0.75, Tm_A + 8, f'Cu: Tm={Tm_A:.0f}K', fontsize=10)
+plt.xlabel('Mole fraction of component A (Cu), x', fontsize=12)
+plt.ylabel('Temperature T (K)', fontsize=12)
+plt.title('Cu-Ni Binary Phase Diagram from the Regular Solution Model (Simplified Calculation)', fontsize=14, fontweight='bold')
+plt.xlim(0, 1)
+plt.legend(loc='lower left')
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.savefig('binary_phase_diagram_CuNi.png', dpi=300)
+plt.show()
+
+# Confirming the Lever Rule: phase fractions at T=1500K
+T_check = 1500.0
+idx = np.argmin(np.abs(T_valid - T_check))
+xs_check, xl_check = solidus_x[idx], liquidus_x[idx]
+x_overall = 0.35  # overall composition of the alloy
+f_liquid = (x_overall - xs_check) / (xl_check - xs_check)
+f_solid = 1 - f_liquid
+print(f"\nAt T≈{T_valid[idx]:.0f}K, overall composition x={x_overall} (lever rule):")
+print(f"  Solid composition x_s={xs_check:.4f}, liquid composition x_l={xl_check:.4f}")
+print(f"  Liquid fraction={f_liquid:.3f}, solid fraction={f_solid:.3f}")
+</code></pre>
+    <p><strong>Result</strong>: Using the continuation method (using the previous solution as the initial guess for the next temperature), the common tangent was found stably at all 80 temperature points. The solidus and liquidus form a lens-shaped two-phase region connecting the melting point of Ni (1728K) and the melting point of Cu (1358K), reproducing the phase-diagram shape typical of an <strong>Isomorphous System</strong> such as Cu-Ni. Using the <strong>Lever Rule</strong>, the phase fraction of the solid and liquid phases at any overall composition within the two-phase region can be computed as the "ratio of distances" from the solidus and liquidus compositions.</p>
+
+    <h2>4.3 Ellingham Diagrams and the Spontaneity of Reactions</h2>
+    <p>Indispensable for understanding the smelting (reduction) and corrosion (oxidation) of metals is the <strong>Ellingham diagram</strong>. This is a single diagram that plots the Gibbs free energy change $\Delta G^\circ$ of the metal oxidation reaction</p>
+
+    <div class="equation">
+        $$\frac{2x}{y}\text{M} + \text{O}_2 \rightarrow \frac{2}{y}\text{M}_x\text{O}_y$$
+        <p>(normalized per mole of oxygen) as a function of temperature $T$.</p>
+    </div>
+
+    <p>If we approximate $\Delta H^\circ$ and $\Delta S^\circ$ as constant with temperature, then $\Delta G^\circ(T) = \Delta H^\circ - T\Delta S^\circ$ is nearly a straight line in $T$. In most metal oxidation reactions, gaseous $\text{O}_2$ is converted into a solid oxide, so the disorder of the system decreases and $\Delta S^\circ \lt 0$ (hence the line has a positive slope). On the other hand, for reactions in which the number of moles of gas does not change before and after the reaction (e.g., $\text{C} + \text{O}_2 \rightarrow \text{CO}_2$), the slope is nearly zero, and for reactions in which the number of moles of gas increases (e.g., $2\text{C} + \text{O}_2 \rightarrow 2\text{CO}$), the slope is negative. This difference is the key to designing smelting processes using the Ellingham diagram.</p>
+
+    <p>There are two key points to reading an Ellingham diagram.</p>
+    <ul>
+        <li><strong>The lower the line, the more stable the oxide</strong>: at a given temperature, the reaction with a more negative $\Delta G^\circ$ has a thermodynamically more favorable oxide formation.</li>
+        <li><strong>Whether one metal's oxide can be reduced by another metal</strong>: if the line for the oxidation reaction of the reducing metal lies below the line for the metal oxide to be reduced, the reducing agent can strip that metal away from its oxide (as in a thermite reaction).</li>
+    </ul>
+
+    <h3>Python Implementation: Constructing an Ellingham Diagram for Major Oxidation Reactions</h3>
+    <pre class="code-block"><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+R = 8.314
+
+# Standard enthalpies and entropies of formation (per mole of oxygen) for major oxidation reactions
+# Values are approximate, based on the literature (for constructing a linear-approximation Ellingham diagram)
+reactions = {
+    '4/3 Al + O2 -> 2/3 Al2O3': (-1117000, -211.0, '#f5576c'),
+    '2 Mg + O2 -> 2 MgO':       (-1203000, -216.0, '#f093fb'),
+    'Si + O2 -> SiO2':          (-910000,  -182.0, '#2c3e50'),
+    '2 Fe + O2 -> 2 FeO':       (-544000,  -138.0, '#2196F3'),
+    '2 C + O2 -> 2 CO':         (-221000,   179.0, '#28a745'),
+    'C + O2 -> CO2':            (-393500,    -0.8, '#ffc107'),
+}
+
+T = np.linspace(300, 2000, 400)
+
+plt.figure(figsize=(10, 7))
+for name, (dH, dS, color) in reactions.items():
+    dG = dH - T * dS
+    plt.plot(T, dG / 1000, label=name, color=color, linewidth=2.2)
+
+plt.xlabel('Temperature T (K)', fontsize=12)
+plt.ylabel(r'$\Delta G^\circ$ (kJ / mol $O_2$)', fontsize=12)
+plt.title('Ellingham Diagram of Major Oxidation Reactions (Linear Approximation)', fontsize=14, fontweight='bold')
+plt.legend(fontsize=9, loc='upper right')
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.savefig('ellingham_diagram.png', dpi=300)
+plt.show()
+
+# Find the crossover point (the Boudouard transition temperature) of 2C+O2->2CO and C+O2->CO2
+dH_CO2, dS_CO2 = -393500, -0.8
+dH_2CO, dS_2CO = -221000, 179.0
+T_cross = (dH_CO2 - dH_2CO) / (dS_CO2 - dS_2CO)
+print(f"Crossover of the CO2-forming and 2CO-forming lines (Boudouard transition temperature): T = {T_cross:.1f} K = {T_cross - 273.15:.1f} degC")
+
+# dG of each reaction at 1500K (comparing oxide stability)
+print("\nDeltaG of each reaction at T = 1500 K:")
+for name, (dH, dS, _) in reactions.items():
+    dG_1500 = dH - 1500 * dS
+    print(f"  {name}: {dG_1500/1000:.1f} kJ/mol O2")
+</code></pre>
+    <p><strong>Result</strong>: The line for $2\text{C} + \text{O}_2 \rightarrow 2\text{CO}$ slopes downward (negative slope), so $\Delta G^\circ$ keeps decreasing as temperature rises, whereas the line for $\text{C} + \text{O}_2 \rightarrow \text{CO}_2$ is nearly horizontal. The two cross at T ≈ 959 K (about 686°C), above which the formation of 2CO becomes more favorable (the <strong>Boudouard reaction</strong>). Comparing $\Delta G^\circ$ at 1500K, the oxide-formation lines for Al, Mg, and Si lie below those for Fe and C, showing that Al or Mg can reduce Fe's oxide (the thermodynamic basis of the <strong>thermite reaction</strong>). We can also see that, above the temperature at which the Fe-oxide line crosses the 2CO-forming line, reduction of the Fe oxide by carbon (coke) — that is, <strong>blast-furnace reduction of iron ore</strong> — becomes thermodynamically possible.</p>
+
+    <h2>4.4 Fundamentals of the CALPHAD Method</h2>
+    <p>The sections so far dealt with a simplified system consisting of only two components and two phases. Real alloys are usually complex systems involving three or more components and multiple phases (a liquid phase, several solid-solution phases, intermetallic compound phases, and so on). The method developed to systematically handle the phase equilibria of such multicomponent, multiphase systems is the <strong>CALPHAD method</strong>.</p>
+
+    <p>The basic idea of the CALPHAD method is to model the Gibbs free energy of each phase as a function of composition and temperature, and to build a <strong>thermodynamic database</strong> by fitting parameters to experimental data or first-principles (DFT) calculation results. The Gibbs free energy of a given phase $\phi$ is generally modeled in a form such as the following.</p>
+
+    <div class="equation">
+        $$G^\phi(x, T) = \sum_i x_i \, {}^{0}G_i^\phi(T) + RT\sum_i x_i \ln x_i + {}^{xs}G^\phi(x, T)$$
+        <p>The first term is the composition-weighted average of the Gibbs free energy of pure component $i$ in phase $\phi$ (the <strong>lattice stability</strong> parameter), the second term is the ideal entropy of mixing term, and the third term is the <strong>excess Gibbs energy</strong>, representing non-ideal interactions between components. The $\Omega x_1 x_2$ term of the regular solution model used in this chapter corresponds to the simplest form of this excess term (the zeroth-order term of the <strong>Redlich-Kister polynomial</strong>).</p>
+    </div>
+
+    <p>In practical CALPHAD calculations, the excess term is expressed using higher-order Redlich-Kister polynomials, and for systems with three or more components, ternary interaction parameters are introduced in addition to pairwise interaction parameters. Using a database built in this way, the phase equilibrium state of any multicomponent system can be computed by simultaneously minimizing the Gibbs free energy of all phases (<strong>Gibbs energy minimization</strong>) at a given temperature, pressure, and composition. This is precisely a generalization, to multiple phases and components, of the common-tangent construction we carried out by hand for two phases and two components in Section 4.2.</p>
+
+    <p>In the Python ecosystem, the <code>pycalphad</code> library is a leading open-source implementation for CALPHAD calculations; it can read thermodynamic databases in the TDB (Thermodynamic DataBase) format and perform phase equilibrium calculations and phase-diagram construction. To avoid environment dependencies, this chapter mainly proceeds with our own regular-solution-model calculations, as shown in Sections 4.2 and 4.5, but the underlying idea — modeling the Gibbs free energy of each phase and determining phase equilibrium through minimization — is shared with the CALPHAD method.</p>
+
+    <h3>Python Implementation: A Simplified CALPHAD-Style Approach (Gibbs Free Energy Minimization for a Three-Phase System)</h3>
+    <pre class="code-block"><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+R = 8.314
+
+def G_phase(x, T, dG_ref, Omega):
+    """
+    Gibbs free energy of a given phase (a simplified CALPHAD-style model)
+    dG_ref: the relative Gibbs free energy of pure component A relative to pure component B (the stability of this phase)
+    Omega: regular solution interaction parameter
+    """
+    x = np.clip(x, 1e-9, 1 - 1e-9)
+    ideal_mix = R * T * (x * np.log(x) + (1 - x) * np.log(1 - x))
+    excess = Omega * x * (1 - x)
+    reference = x * dG_ref
+    return reference + ideal_mix + excess
+
+# A simplified CALPHAD-style evaluation assuming three phases (solid alpha, solid beta, liquid)
+T_eval = 1000.0
+x_range = np.linspace(0.001, 0.999, 300)
+
+# Parameters for each phase (mimicking different stability and non-ideality per phase)
+phases = {
+    'alpha (A-based solid solution)': (0.0,     3000.0, '#2196F3'),
+    'beta (B-based solid solution)':  (8000.0,  3000.0, '#28a745'),
+    'liquid':                          (5000.0, -1000.0, '#f5576c'),
+}
+
+plt.figure(figsize=(9, 6))
+G_all = {}
+for name, (dG_ref, Omega, color) in phases.items():
+    G_vals = G_phase(x_range, T_eval, dG_ref, Omega)
+    G_all[name] = G_vals
+    plt.plot(x_range, G_vals / 1000, label=name, color=color, linewidth=2.2)
+
+plt.xlabel('Mole fraction of component B, x', fontsize=12)
+plt.ylabel('Gibbs free energy (kJ/mol)', fontsize=12)
+plt.title(f'Gibbs Free Energy of Three Phases at T = {T_eval} K (CALPHAD-style Comparison)', fontsize=14, fontweight='bold')
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.savefig('calphad_three_phase.png', dpi=300)
+plt.show()
+
+# Determine which phase is most stable (has the minimum G) at each composition
+G_matrix = np.array([G_all[name] for name in phases])
+phase_names = list(phases.keys())
+stable_idx = np.argmin(G_matrix, axis=0)
+
+print("Most stable phase at each composition (lower envelope):")
+for x_check in [0.1, 0.3, 0.5, 0.7, 0.9]:
+    idx = np.argmin(np.abs(x_range - x_check))
+    stable_phase = phase_names[stable_idx[idx]]
+    print(f"  x = {x_check}: most stable phase = {stable_phase}")
+</code></pre>
+    <p><strong>Result</strong>: For compositions close to component A (x=0), the alpha phase has the lowest Gibbs free energy, while for compositions close to component B (x=1), the liquid phase has the lowest Gibbs free energy (with this particular choice of parameters). Tracking the <strong>lower envelope</strong> of the group of Gibbs free energy curves for each phase across composition, and determining two-phase coexistence regions with a common tangent (as in Section 4.2) whenever multiple phases are involved, is the essential idea behind CALPHAD calculations. Actual CALPHAD software performs this minimization numerically and robustly for multicomponent, multiphase systems with multiple sublattice models.</p>
+
+    <h2>4.5 Computing Phase Diagrams and Activity Coefficients in Python</h2>
+    <p>Another important application of the regular solution model is the calculation of <strong>activity</strong> and the <strong>activity coefficient</strong>. The activity $a_i$ of component $i$ is a dimensionless quantity used to express the chemical potential as a deviation from a standard state, and the deviation from an ideal solution is defined through the <strong>activity coefficient</strong> $\gamma_i$ as follows.</p>
+
+    <div class="equation">
+        $$a_i = \gamma_i x_i, \qquad \mu_i = \mu_i^{\circ} + RT \ln a_i$$
+        <p>In an ideal solution ($\Omega=0$), $\gamma_i = 1$ and $a_i = x_i$ holds (Raoult's Law). In the regular solution model, the activity coefficient of component 1 is given by the following expression.</p>
+        $$RT \ln \gamma_1 = \Omega x_2^2$$
+    </div>
+
+    <p>This expression can be derived from the Gibbs free energy of mixing of the regular solution model, $\Delta G_{mix} = RT(x_1\ln x_1 + x_2\ln x_2) + \Omega x_1 x_2$, using the partial molar relation $\ln \gamma_1 = \partial(\Delta G_{mix}^{xs}/RT)/\partial n_1$ (starting from the excess Gibbs free energy $\Delta G_{mix}^{xs} = \Omega x_1 x_2$).</p>
+
+    <h3>Python Implementation: Computing and Visualizing the Activity Coefficient in the Regular Solution Model</h3>
+    <pre class="code-block"><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+R = 8.314
+
+def activity_coefficient_regular(x1, T, Omega):
+    """Activity coefficient gamma_1 of component 1 in the regular solution model"""
+    x2 = 1 - x1
+    ln_gamma1 = Omega * x2**2 / (R * T)
+    return np.exp(ln_gamma1)
+
+T = 1300.0  # K
+x1 = np.linspace(0.001, 0.999, 200)
+
+# Compare a positive deviation (immiscibility tendency) and a negative deviation (affinity)
+Omega_positive = 8000.0   # J/mol (positive deviation, e.g., a poorly miscible pair)
+Omega_negative = -8000.0  # J/mol (negative deviation, e.g., a compound-forming tendency)
+
+gamma_pos = activity_coefficient_regular(x1, T, Omega_positive)
+gamma_neg = activity_coefficient_regular(x1, T, Omega_negative)
+
+a_ideal = x1
+a_pos = gamma_pos * x1
+a_neg = gamma_neg * x1
+
+fig, axes = plt.subplots(1, 2, figsize=(13, 5.5))
+
+axes[0].plot(x1, gamma_pos, color='#f5576c', linewidth=2.2, label=f'Ω = +{Omega_positive/1000:.0f} kJ/mol (positive deviation)')
+axes[0].plot(x1, gamma_neg, color='#2196F3', linewidth=2.2, label=f'Ω = {Omega_negative/1000:.0f} kJ/mol (negative deviation)')
+axes[0].axhline(y=1.0, color='gray', linestyle='--', alpha=0.6, label='Ideal solution (gamma=1)')
+axes[0].set_xlabel('Mole fraction of component 1, x1', fontsize=12)
+axes[0].set_ylabel('Activity coefficient γ1', fontsize=12)
+axes[0].set_title(f'Composition Dependence of the Activity Coefficient (T={T}K)', fontsize=12, fontweight='bold')
+axes[0].legend(fontsize=9)
+axes[0].grid(True, alpha=0.3)
+
+axes[1].plot(x1, a_ideal, color='gray', linestyle='--', linewidth=2, label="Ideal solution (Raoult's law)")
+axes[1].plot(x1, a_pos, color='#f5576c', linewidth=2.2, label='Positive deviation')
+axes[1].plot(x1, a_neg, color='#2196F3', linewidth=2.2, label='Negative deviation')
+axes[1].set_xlabel('Mole fraction of component 1, x1', fontsize=12)
+axes[1].set_ylabel('Activity a1', fontsize=12)
+axes[1].set_title(f'Composition Dependence of the Activity (T={T}K)', fontsize=12, fontweight='bold')
+axes[1].legend(fontsize=9)
+axes[1].grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('activity_coefficient_regular_solution.png', dpi=300)
+plt.show()
+
+# Activity coefficient at infinite dilution (x1 -> 0)
+gamma_inf_pos = activity_coefficient_regular(1e-6, T, Omega_positive)
+gamma_inf_neg = activity_coefficient_regular(1e-6, T, Omega_negative)
+print(f"Infinite-dilution activity coefficient (Omega=+8000 J/mol): γ1(x1->0) = {gamma_inf_pos:.4f}")
+print(f"Infinite-dilution activity coefficient (Omega=-8000 J/mol): γ1(x1->0) = {gamma_inf_neg:.4f}")
+print(f"Theoretical value exp(Omega/RT): {np.exp(Omega_positive/(R*T)):.4f}, {np.exp(Omega_negative/(R*T)):.4f}")
+</code></pre>
+    <p><strong>Result</strong>: For $\Omega \gt 0$ (positive deviation), $\gamma_1 \gt 1$, and the activity deviates upward (convex) from the ideal solution (the straight line of Raoult's law). This means that, because unlike-atom pairs are avoided, component 1 "escapes more readily than it would in a nearly pure state." Conversely, for $\Omega \lt 0$ (negative deviation), $\gamma_1 \lt 1$, and the activity deviates downward (concave) from the ideal solution. The activity coefficient at infinite dilution ($x_1 \to 0$) agrees well between the analytical solution $\gamma_1^\infty = \exp(\Omega/RT)$ and the numerical calculation: for $\Omega=+8000$ J/mol, $\gamma_1^\infty \approx 2.093$, and for $\Omega=-8000$ J/mol, $\gamma_1^\infty \approx 0.478$.</p>
+
+    <div class="mermaid">
+        flowchart TD
+            A[Thermodynamics of Materials] --> B[Gibbs Free Energy]
+            B --> C[Chemical Potential]
+            C --> D[Regular Solution Model]
+            D --> E[Common Tangent Construction]
+            E --> F[Binary Phase Diagram]
+
+            B --> G[Ellingham Diagram]
+            G --> G1[Spontaneity of Oxidation Reactions]
+
+            D --> H[CALPHAD Method]
+            H --> H1[Excess Gibbs Free Energy]
+            H --> H2[Multiphase, Multicomponent Minimization]
+
+            D --> I[Activity Coefficient]
+            I --> I1[Deviation from Raoult's Law]
+
+            style A fill:#f093fb,stroke:#f5576c,stroke-width:3px,color:#fff
+            style B fill:#f5576c,stroke:#f093fb,stroke-width:2px,color:#fff
+            style D fill:#f5576c,stroke:#f093fb,stroke-width:2px,color:#fff
+            style E fill:#f5576c,stroke:#f093fb,stroke-width:2px,color:#fff
+            style F fill:#f5576c,stroke:#f093fb,stroke-width:2px,color:#fff
+            style G fill:#f5576c,stroke:#f093fb,stroke-width:2px,color:#fff
+            style H fill:#f5576c,stroke:#f093fb,stroke-width:2px,color:#fff
+            style I fill:#f5576c,stroke:#f093fb,stroke-width:2px,color:#fff
+    </div>
+
+    <h2>Exercises</h2>
+
+    <div class="exercise">
+        <h3>Problem 1 (Easy): Spontaneity of Melting and Entropy</h3>
+        <p>Al (aluminum) has a melting point of 933 K and an enthalpy of fusion of 10700 J/mol. Find the entropy of fusion $\Delta S_{fus}$, compute $\Delta G_{fus}$ at T=800K and T=1000K, and determine which phase is stable in each case.</p>
+        <div class="solution">
+            <h4>Solution</h4>
+<pre class="code-block"><code class="language-python">Tm_Al = 933.0     # K
+dH_fus_Al = 10700.0  # J/mol
+
+dS_fus_Al = dH_fus_Al / Tm_Al
+print(f"Entropy of fusion of Al: {dS_fus_Al:.3f} J/mol/K")
+
+for T in [800, 1000]:
+    dG = dH_fus_Al - T * dS_fus_Al
+    phase = "solid phase is stable" if dG &gt; 0 else "liquid phase is stable"
+    print(f"T={T}K: dG_fus = {dG:.1f} J/mol -> {phase}")
+</code></pre>
+            <p><strong>Result</strong>: $\Delta S_{fus} \approx 11.47$ J/mol/K. At T=800K (below the melting point), $\Delta G_{fus} \approx +1424$ J/mol and the solid phase is stable; at T=1000K (above the melting point), $\Delta G_{fus} \approx -770$ J/mol and the liquid phase is stable. We confirm that the stable phase switches at the melting point of 933K.</p>
+        </div>
+    </div>
+
+    <div class="exercise">
+        <h3>Problem 2 (Medium): Convexity of the Gibbs Free Energy of Mixing Curve in the Regular Solution Model</h3>
+        <p>For the regular solution model $\Delta G_{mix}(x) = RT[x\ln x + (1-x)\ln(1-x)] + \Omega x(1-x)$, plot the curve at T=800K for $\Omega=15000$ J/mol and $\Omega=5000$ J/mol, and confirm that the former develops an upwardly convex (unstable) region near the middle of the composition range. Also compute the critical interaction parameter $\Omega_c = 2RT$ at which this phenomenon occurs, and compare it against the two cases.</p>
+        <div class="solution">
+            <h4>Solution</h4>
+<pre class="code-block"><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+R = 8.314
+T = 800.0
+
+def dG_mix(x, Omega, T):
+    x = np.clip(x, 1e-9, 1 - 1e-9)
+    return R * T * (x * np.log(x) + (1 - x) * np.log(1 - x)) + Omega * x * (1 - x)
+
+x = np.linspace(0.001, 0.999, 300)
+
+Omega_c = 2 * R * T
+print(f"Critical interaction parameter Omega_c = 2RT = {Omega_c:.1f} J/mol at T={T}K")
+
+plt.figure(figsize=(9, 6))
+for Omega, color in [(15000, '#f5576c'), (5000, '#2196F3')]:
+    G = dG_mix(x, Omega, T)
+    label = f'Ω={Omega} J/mol' + ('(Ω&gt;Ωc, has an unstable region)' if Omega &gt; Omega_c else '(Ω&lt;Ωc, always convex downward)')
+    plt.plot(x, G / 1000, color=color, linewidth=2.2, label=label)
+
+plt.axhline(y=0, color='gray', linestyle='--', alpha=0.5)
+plt.xlabel('Mole fraction x', fontsize=12)
+plt.ylabel(r'$\Delta G_{mix}$ (kJ/mol)', fontsize=12)
+plt.title(f'Gibbs Free Energy of Mixing Curves in the Regular Solution Model (T={T}K)', fontsize=13, fontweight='bold')
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.savefig('regular_solution_convexity.png', dpi=300)
+plt.show()
+
+# Determine the unstable region using the second derivative (curvature)
+def d2G_dx2(x, Omega, T):
+    x = np.clip(x, 1e-9, 1 - 1e-9)
+    return R * T * (1 / x + 1 / (1 - x)) - 2 * Omega
+
+for Omega in [15000, 5000]:
+    curvature = d2G_dx2(x, Omega, T)
+    unstable = x[curvature &lt; 0]
+    if len(unstable) &gt; 0:
+        print(f"Omega={Omega}: unstable (upwardly convex) region is x = {unstable.min():.3f} to {unstable.max():.3f}")
+    else:
+        print(f"Omega={Omega}: no unstable region (convex downward everywhere)")
+</code></pre>
+            <p><strong>Result</strong>: The critical value is $\Omega_c = 2RT = 13302.4$ J/mol (at T=800K). For $\Omega=15000$ J/mol (above $\Omega_c$), the second derivative is negative near the middle of the composition range (roughly x=0.33 to 0.67), producing an upwardly convex, unstable region; within this composition range, the alloy spontaneously separates into two phases via <strong>Spinodal Decomposition</strong>. For $\Omega=5000$ J/mol (below $\Omega_c$), the curve is convex downward everywhere, and the alloy can exist stably as a single solid solution.</p>
+        </div>
+    </div>
+
+    <div class="exercise">
+        <h3>Problem 3 (Hard): Choosing a Reducing Agent from an Ellingham Diagram</h3>
+        <p>Using the data from this chapter's Ellingham diagram, determine whether the reaction reducing SiO2 with Al (a thermite-like reaction: $\frac{4}{3}\text{Al} + \text{SiO}_2 \rightarrow \frac{2}{3}\text{Al}_2\text{O}_3 + \text{Si}$) proceeds thermodynamically spontaneously at T=1200K, by evaluating the difference between the $\Delta G^\circ$ values of the respective oxidation reactions.</p>
+        <div class="solution">
+            <h4>Solution</h4>
+<pre class="code-block"><code class="language-python">T_check = 1200.0
+
+# dG of each oxidation reaction (per mole of oxygen)
+dH_Al, dS_Al = -1117000, -211.0   # 4/3 Al + O2 -> 2/3 Al2O3
+dH_Si, dS_Si = -910000,  -182.0   # Si + O2 -> SiO2
+
+dG_Al = dH_Al - T_check * dS_Al
+dG_Si = dH_Si - T_check * dS_Si
+
+print(f"T={T_check}K:")
+print(f"  4/3 Al + O2 -> 2/3 Al2O3:  dG_deg = {dG_Al/1000:.1f} kJ/mol O2")
+print(f"  Si + O2 -> SiO2:            dG_deg = {dG_Si/1000:.1f} kJ/mol O2")
+
+# Target reaction = (Al oxidation reaction) - (Si oxidation reaction)
+# 4/3 Al + O2 -> 2/3 Al2O3   ... (i)
+# Si + O2 -> SiO2            ... (ii)
+# (i) - (ii): 4/3 Al + SiO2 -> 2/3 Al2O3 + Si
+dG_reaction = dG_Al - dG_Si
+print(f"\nTarget reaction 4/3 Al + SiO2 -> 2/3 Al2O3 + Si:")
+print(f"  dG_deg = dG_deg(Al oxidation) - dG_deg(Si oxidation) = {dG_reaction/1000:.1f} kJ/mol")
+
+if dG_reaction &lt; 0:
+    print("  -> Since dG_deg &lt; 0, the reduction of SiO2 by Al proceeds thermodynamically spontaneously")
+else:
+    print("  -> Since dG_deg &gt; 0, this reaction does not proceed thermodynamically")
+</code></pre>
+            <p><strong>Result</strong>: At T=1200K, the $\Delta G^\circ$ of the Al oxidation reaction (about -855.8 kJ/mol) is more negative than that of the Si oxidation reaction (about -691.6 kJ/mol), meaning the Al Ellingham line lies below the Si Ellingham line. The $\Delta G^\circ$ of the target reaction, the difference between the two, comes out to about -164.2 kJ/mol, which is negative, confirming that the reduction of SiO2 by Al proceeds thermodynamically spontaneously. This is a concrete example of the Ellingham-diagram reading rule that "the metal with the lower line can reduce the oxide of the metal with the higher line," and it provides the thermodynamic basis for metallothermic reduction methods.</p>
+        </div>
+    </div>
+
+    <h2>References</h2>
+    <div class="reference">
+        <p>1. Gaskell, D.R., Laughlin, D.E. (2017). <em>Introduction to the Thermodynamics of Materials</em>, 6th Edition. CRC Press.</p>
+    </div>
+    <div class="reference">
+        <p>2. Porter, D.A., Easterling, K.E., Sherif, M.Y. (2009). <em>Phase Transformations in Metals and Alloys</em>, 3rd Edition. CRC Press, pp. 15-45.</p>
+    </div>
+    <div class="reference">
+        <p>3. Ellingham, H.J.T. (1944). "Reducibility of oxides and sulphides in metallurgical processes". <em>Journal of the Society of Chemical Industry</em>, 63(5), 125-160.</p>
+    </div>
+    <div class="reference">
+        <p>4. Lukas, H.L., Fries, S.G., Sundman, B. (2007). <em>Computational Thermodynamics: The Calphad Method</em>. Cambridge University Press.</p>
+    </div>
+    <div class="reference">
+        <p>5. Saunders, N., Miodownik, A.P. (1998). <em>CALPHAD (Calculation of Phase Diagrams): A Comprehensive Guide</em>. Pergamon.</p>
+    </div>
+    <div class="reference">
+        <p>6. DeHoff, R.T. (2006). <em>Thermodynamics in Materials Science</em>, 2nd Edition. CRC Press, pp. 200-260.</p>
+    </div>
+    <div class="reference">
+        <p>7. pycalphad Documentation. https://pycalphad.org/</p>
+    </div>
+    <div class="reference">
+        <p>8. Otis, R., Liu, Z.-K. (2017). "pycalphad: CALPHAD-based Computational Thermodynamics in Python". <em>Journal of Open Research Software</em>, 5(1), 1.</p>
+    </div>
+
+    <h2>Checking Your Learning Objectives</h2>
+    <div class="exercise">
+        <h3>Level 1 (Basic Understanding)</h3>
+        <ul>
+            <li>Explain the definitions of the Gibbs free energy and the chemical potential, and how they are used to judge the spontaneity of reactions and phase transitions</li>
+            <li>Understand the meaning of the two terms in the regular solution model (the ideal entropy of mixing term and the interaction term)</li>
+            <li>Explain how constructing a common tangent determines the solidus and liquidus</li>
+            <li>Understand how the slope of an Ellingham diagram relates to the change in the number of moles of gas in a reaction</li>
+        </ul>
+
+        <h3>Level 2 (Practical Skills)</h3>
+        <ul>
+            <li>Compute and plot the free energy curve of the regular solution model in Python</li>
+            <li>Formulate the common tangent condition as a system of simultaneous equations and solve it numerically</li>
+            <li>Use the lever rule to compute phase fractions in a two-phase coexistence region</li>
+            <li>Judge the spontaneity and reducibility of a reaction from an Ellingham diagram</li>
+        </ul>
+
+        <h3>Level 3 (Applied Skills)</h3>
+        <ul>
+            <li>Combine temperature sweeping with a continuation method to numerically construct an entire binary phase diagram</li>
+            <li>Judge the possibility of spinodal decomposition from the relationship between the interaction parameter of the regular solution model and its critical value</li>
+            <li>Reproduce the ideas behind the CALPHAD method (modeling and minimizing the Gibbs free energy of each phase) with a simple model of your own</li>
+            <li>Quantitatively evaluate the deviation of a real solution from an ideal solution through activity coefficient calculations</li>
+        </ul>
+    </div>
+
+    <p style="text-align: center; margin-top: 3rem;">
+        <a href="chapter-3.html" style="color: #f5576c; text-decoration: none; font-weight: bold;">← Chapter 3</a>
+        <span style="color: #adb5bd; margin: 0 0.8rem;">|</span>
+        <a href="index.html" style="color: #f5576c; text-decoration: none; font-weight: bold;">Series Index</a>
+        <span style="color: #adb5bd; margin: 0 0.8rem;">|</span>
+        <a href="chapter-5.html" style="color: #f5576c; text-decoration: none; font-weight: bold;">Chapter 5 →</a>
+    </p>
+<section class="disclaimer">
+<h3>Disclaimer</h3>
+<ul>
+<li>This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical warranty, etc.).</li>
+<li>This content and accompanying code examples are provided "AS IS" without any warranty, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
+<li>The author and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.</li>
+<li>To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+<li>The content may be changed, updated, or discontinued without notice.</li>
+<li>The copyright and license of this content are subject to the stated conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.</li>
+</ul>
+</section>
+
+</body>
+</html>

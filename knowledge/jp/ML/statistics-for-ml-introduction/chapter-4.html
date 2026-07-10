@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta content="第4章：ベイズ統計入門 - AI Terakoya" name="description"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第4章：ベイズ統計入門 - AI Terakoya</title>
+
+  <style>
+    :root {
+      --color-primary: #2c3e50;
+      --color-primary-dark: #1a252f;
+      --color-accent: #7b2cbf;
+      --color-accent-light: #9d4edd;
+      --color-text: #2d3748;
+      --color-text-light: #4a5568;
+      --color-bg: #ffffff;
+      --color-bg-alt: #f7fafc;
+      --color-border: #e2e8f0;
+      --color-code-bg: #f8f9fa;
+      --color-link: #3182ce;
+      --color-link-hover: #2c5aa0;
+
+      --spacing-xs: 0.5rem;
+      --spacing-sm: 1rem;
+      --spacing-md: 1.5rem;
+      --spacing-lg: 2rem;
+      --spacing-xl: 3rem;
+
+      --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+      --border-radius: 8px;
+      --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: var(--font-body);
+      line-height: 1.7;
+      color: var(--color-text);
+      background-color: var(--color-bg);
+      font-size: 16px;
+    }
+
+    header {
+      background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+      color: white;
+      padding: var(--spacing-xl) var(--spacing-md);
+      margin-bottom: var(--spacing-xl);
+      box-shadow: var(--box-shadow);
+    }
+
+    .header-content {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: var(--spacing-sm);
+      line-height: 1.2;
+    }
+
+    .subtitle {
+      font-size: 1.1rem;
+      opacity: 0.95;
+      font-weight: 400;
+      margin-bottom: var(--spacing-md);
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--spacing-md);
+      font-size: 0.9rem;
+      opacity: 0.9;
+    }
+
+    .meta-item {
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 var(--spacing-md) var(--spacing-xl);
+    }
+
+    h2 {
+      font-size: 1.75rem;
+      color: var(--color-primary);
+      margin-top: var(--spacing-xl);
+      margin-bottom: var(--spacing-md);
+      padding-bottom: var(--spacing-xs);
+      border-bottom: 3px solid var(--color-accent);
+    }
+
+    h3 {
+      font-size: 1.4rem;
+      color: var(--color-primary);
+      margin-top: var(--spacing-lg);
+      margin-bottom: var(--spacing-sm);
+    }
+
+    h4 {
+      font-size: 1.1rem;
+      color: var(--color-primary-dark);
+      margin-top: var(--spacing-md);
+      margin-bottom: var(--spacing-sm);
+    }
+
+    p {
+      margin-bottom: var(--spacing-md);
+      color: var(--color-text);
+    }
+
+    a {
+      color: var(--color-link);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    a:hover {
+      color: var(--color-link-hover);
+      text-decoration: underline;
+    }
+
+    ul, ol {
+      margin-left: var(--spacing-lg);
+      margin-bottom: var(--spacing-md);
+    }
+
+    li {
+      margin-bottom: var(--spacing-xs);
+      color: var(--color-text);
+    }
+
+    pre {
+      background-color: var(--color-code-bg);
+      border: 1px solid var(--color-border);
+      border-radius: var(--border-radius);
+      padding: var(--spacing-md);
+      overflow-x: auto;
+      margin-bottom: var(--spacing-md);
+    }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: 0.9em;
+    }
+
+    pre code {
+      background: none;
+      padding: 0;
+    }
+
+    p code {
+      background-color: var(--color-code-bg);
+      padding: 0.2em 0.4em;
+      border-radius: 3px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: var(--spacing-md);
+    }
+
+    th, td {
+      padding: var(--spacing-sm);
+      text-align: left;
+      border: 1px solid var(--color-border);
+    }
+
+    th {
+      background-color: var(--color-primary);
+      color: white;
+      font-weight: 600;
+    }
+
+    tr:nth-child(even) {
+      background-color: var(--color-bg-alt);
+    }
+
+    blockquote {
+      border-left: 4px solid var(--color-accent);
+      padding-left: var(--spacing-md);
+      margin: var(--spacing-md) 0;
+      font-style: italic;
+      color: var(--color-text-light);
+    }
+
+    .info-box {
+      background-color: #e3f2fd;
+      border-left: 4px solid #2196f3;
+      padding: var(--spacing-md);
+      margin-bottom: var(--spacing-md);
+      border-radius: var(--border-radius);
+    }
+
+    .warning-box {
+      background-color: #fff3cd;
+      border-left: 4px solid #ffc107;
+      padding: var(--spacing-md);
+      margin-bottom: var(--spacing-md);
+      border-radius: var(--border-radius);
+    }
+
+    .example-box {
+      background-color: #f3e5f5;
+      border-left: 4px solid #9c27b0;
+      padding: var(--spacing-md);
+      margin-bottom: var(--spacing-md);
+      border-radius: var(--border-radius);
+    }
+
+    .nav-buttons {
+      display: flex;
+      justify-content: space-between;
+      margin-top: var(--spacing-xl);
+      gap: var(--spacing-sm);
+    }
+
+    .nav-button {
+      padding: var(--spacing-sm) var(--spacing-md);
+      background-color: var(--color-accent);
+      color: white;
+      border-radius: var(--border-radius);
+      text-decoration: none;
+      transition: all 0.3s;
+      font-weight: 600;
+    }
+
+    .nav-button:hover {
+      background-color: var(--color-accent-light);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(123, 44, 191, 0.3);
+    }
+
+    .breadcrumb {
+      background: #f7fafc;
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid #e2e8f0;
+      font-size: 0.9rem;
+    }
+
+    .breadcrumb-content {
+      max-width: 900px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .breadcrumb a {
+      color: #667eea;
+      text-decoration: none;
+    }
+
+    .breadcrumb a:hover {
+      color: #764ba2;
+      text-decoration: underline;
+    }
+
+    .breadcrumb-separator {
+      color: #a0aec0;
+    }
+
+    .breadcrumb-current {
+      color: #4a5568;
+      font-weight: 500;
+    }
+
+    .locale-switcher {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+      border-radius: 6px;
+      font-size: 0.9rem;
+      margin-bottom: 1rem;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .current-locale {
+      font-weight: 600;
+      color: #7b2cbf;
+    }
+
+    .locale-separator {
+      color: #adb5bd;
+    }
+
+    .locale-link {
+      color: #f093fb;
+      text-decoration: none;
+      font-weight: 500;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+    }
+
+    .locale-link:hover {
+      background: rgba(240, 147, 251, 0.1);
+      color: #d07be8;
+    }
+
+    footer {
+      margin-top: var(--spacing-xl);
+      padding: var(--spacing-lg) 0;
+      border-top: 2px solid var(--color-border);
+      text-align: center;
+      color: var(--color-text-light);
+    }
+
+    @media (max-width: 768px) {
+      h1 {
+        font-size: 1.6rem;
+      }
+
+      h2 {
+        font-size: 1.4rem;
+      }
+
+      .container {
+        padding: 0 var(--spacing-sm) var(--spacing-lg);
+      }
+
+      pre {
+        padding: var(--spacing-sm);
+        font-size: 0.85rem;
+      }
+    }
+  </style>
+
+  <!-- MathJax for mathematical formulas -->
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <script>
+    MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']],
+        processEscapes: true
+      }
+    };
+  </script>
+</head>
+<body>
+  <div class="locale-switcher">
+    <span class="current-locale">🌐 JP</span>
+    <span class="locale-separator">|</span>
+    <a href="../../../en/ML/statistics-for-ml-introduction/chapter-4.html" class="locale-link">🇬🇧 EN</a>
+  </div>
+
+  <nav class="breadcrumb">
+    <div class="breadcrumb-content">
+      <a href="../../index.html">AI寺子屋トップ</a><span class="breadcrumb-separator">›</span>
+      <a href="../index.html">機械学習</a><span class="breadcrumb-separator">›</span>
+      <a href="./index.html">統計学入門</a><span class="breadcrumb-separator">›</span>
+      <span class="breadcrumb-current">第4章</span>
+    </div>
+  </nav>
+
+  <header>
+    <div class="header-content">
+      <h1>第4章：ベイズ統計入門</h1>
+      <p class="subtitle">事前分布から事後分布へ——データから知識を更新する考え方を学ぶ</p>
+      <div class="meta">
+        <span class="meta-item">📖 読了時間: 25-30分</span>
+        <span class="meta-item">📊 難易度: 中級</span>
+        <span class="meta-item">💻 コード例: 10個</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <h2>イントロダクション</h2>
+
+    <p>前章までで、記述統計と確率の基礎を学びました。本章では、その応用として近年ますます重要性を増している<strong>ベイズ統計</strong>（Bayesian Statistics）を扱います。ベイズ統計は、観測データが得られるたびに知識を更新していくという、人間の学習プロセスに近い考え方を数学的に定式化した枠組みです。</p>
+
+    <p>これまで前提としてきた<strong>頻度論統計</strong>（Frequentist Statistics）では、母集団のパラメータ（例えばコインの表が出る確率）は未知だが固定された値であるとみなし、観測データからその値を推定します。一方、ベイズ統計では、パラメータ自体を確率分布として扱い、データを観測するたびにその分布を更新していきます。この違いは単なる数学的な形式の違いにとどまらず、不確実性の捉え方そのものに関わる重要な視点の転換です。</p>
+
+    <div class="info-box">
+      <strong>💡 この章で学ぶこと</strong>
+      <ul>
+        <li>ベイズ統計の考え方を理解する</li>
+        <li>事前分布・尤度・事後分布の関係を説明できる</li>
+        <li>共役事前分布を用いたベイズ推定を実装できる</li>
+        <li>MCMCの基本的な考え方を理解する</li>
+        <li>ベイズ統計と頻度論統計の違いを説明できる</li>
+      </ul>
+    </div>
+
+    <h2>1. ベイズの定理の深い理解</h2>
+
+    <p>第1章では、ベイズの定理を事象（陽性/陰性、病気/健康など）の間の確率関係として学びました。本章では、これをパラメータ推定という視点から捉え直します。</p>
+
+    <p>データ$D$が与えられたときに、未知のパラメータ$\theta$についての信念を更新するというのが、ベイズ推定の基本的な考え方です。ベイズの定理をパラメータ推定の文脈で書くと、次のようになります。</p>
+
+    <p>$$P(\theta|D) = \frac{P(D|\theta)P(\theta)}{P(D)}$$</p>
+
+    <p>各項の名称と役割は次の通りです。</p>
+    <ul>
+      <li>$P(\theta)$: <strong>事前分布</strong>（Prior Distribution）— データを観測する前に持っていた、パラメータ$\theta$についての信念</li>
+      <li>$P(D|\theta)$: <strong>尤度</strong>（Likelihood）— パラメータが$\theta$であるという仮定のもとで、実際に観測されたデータ$D$が得られる確率（密度）</li>
+      <li>$P(\theta|D)$: <strong>事後分布</strong>（Posterior Distribution）— データ$D$を観測した後に更新された、パラメータ$\theta$についての信念</li>
+      <li>$P(D)$: <strong>周辺尤度</strong>（Marginal Likelihood）または<strong>エビデンス</strong>（Evidence）— あらゆる$\theta$の値にわたってデータ$D$が観測される確率（密度）。正規化定数として働く</li>
+    </ul>
+
+    <p>$\theta$が連続値をとる場合、周辺尤度は次の積分で与えられます。</p>
+
+    <p>$$P(D) = \int P(D|\theta)P(\theta)\,d\theta$$</p>
+
+    <p>この積分は多くの場合解析的に解けないため、ベイズ統計の実践では大きな課題となります。本章の後半で扱うMCMCは、この課題を回避するための手法の一つです。</p>
+
+    <div class="info-box">
+      <strong>💡 パラメータを確率変数として扱うということ</strong>
+      <p>頻度論統計では、パラメータ$\theta$は「未知だが固定された値」として扱われ、確率はデータの側にのみ付与されます。一方、ベイズ統計では$\theta$自体に確率分布を割り当て、「$\theta$がある値である確からしさ」を表現します。この視点の転換により、事前知識の組み込みや、推定結果の不確実性を確率分布として直接表現することが可能になります。</p>
+    </div>
+
+    <h2>2. 事前分布、尤度、事後分布の関係</h2>
+
+    <p>ベイズ推定の全体像を整理すると、次の3つの要素の相互作用として理解できます。</p>
+
+    <h3>2.1 事前分布：観測前の知識</h3>
+
+    <p>事前分布はデータを見る前の知識や仮定を表現します。過去の研究、専門家の意見、あるいは「何も分からない」という状態さえも、事前分布として定式化できます。</p>
+    <ul>
+      <li><strong>無情報事前分布</strong>（Uninformative Prior）: どの値も同程度にありうるとする、事前知識をほとんど入れない事前分布</li>
+      <li><strong>弱情報事前分布</strong>（Weakly Informative Prior）: おおまかな範囲だけを制約する事前分布</li>
+      <li><strong>情報事前分布</strong>（Informative Prior）: 過去のデータや専門知識に基づく、強い制約を持つ事前分布</li>
+    </ul>
+
+    <h3>2.2 尤度：データが語ること</h3>
+
+    <p>尤度関数はデータの生成過程をモデル化したものです。例えば、コインを$n$回投げて$k$回表が出たという観測は、パラメータ$\theta$（表が出る確率）を使って二項分布でモデル化できます。</p>
+
+    <p>$$P(D|\theta) = \binom{n}{k}\theta^k(1-\theta)^{n-k}$$</p>
+
+    <h3>2.3 事後分布：更新された知識</h3>
+
+    <p>事後分布は事前分布と尤度を掛け合わせ（て正規化し）たものです。データが多くなるほど尤度の影響が相対的に大きくなり、事前分布の影響は薄れていきます。逆にデータが少ないうちは、事前分布が事後分布の形を強く左右します。</p>
+
+    <div class="example-box">
+      <strong>📝 直感的な例：事前分布の影響力</strong>
+      <p>あるコインについて「ほぼ公平だろう」という強い事前分布 Beta(50, 50)（中心0.5に強く集中）を持っていたとします。10回投げて8回表が出たとしても、事後分布は0.5から大きくは動きません。一方、「何も知らない」という事前分布 Beta(1, 1)（一様分布）から出発すれば、同じデータに対して事後分布は0.8付近に大きく動きます。事前分布の「強さ」は、あたかも仮想的な観測回数のように働きます。</p>
+    </div>
+
+    <h2>3. 共役事前分布の利用</h2>
+
+    <p>ベイズ推定の計算を解析的に行うために便利な概念が<strong>共役事前分布</strong>（Conjugate Prior）です。</p>
+
+    <div class="info-box">
+      <strong>💡 共役事前分布とは</strong>
+      <p>ある尤度関数に対して、事前分布と事後分布が同じ確率分布族に属するとき、その事前分布を尤度に対する共役事前分布と呼びます。共役性を利用すると、積分計算をせずに事後分布のパラメータを解析的に求められます。</p>
+    </div>
+
+    <p>代表的な共役事前分布の組み合わせを以下に示します。</p>
+
+    <table>
+      <thead>
+        <tr><th>尤度（データの分布）</th><th>共役事前分布</th><th>事後分布</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>ベルヌーイ分布 / 二項分布</td><td>ベータ分布 Beta($\alpha$, $\beta$)</td><td>Beta($\alpha+k$, $\beta+n-k$)</td></tr>
+        <tr><td>正規分布（分散既知、平均未知）</td><td>正規分布</td><td>正規分布</td></tr>
+        <tr><td>ポアソン分布</td><td>ガンマ分布</td><td>ガンマ分布</td></tr>
+      </tbody>
+    </table>
+
+    <h3>3.1 ベータ分布とベルヌーイ試行の共役性</h3>
+
+    <p><strong>ベータ分布</strong>（Beta Distribution）は、$[0,1]$区間の値をとる確率変数のための確率分布で、確率$\theta$そのものの不確実性を表現するのに適しています。確率密度関数は次の通りです。</p>
+
+    <p>$$f(\theta;\alpha,\beta) = \frac{\theta^{\alpha-1}(1-\theta)^{\beta-1}}{B(\alpha,\beta)}$$</p>
+
+    <p>ここで$B(\alpha,\beta)$はベータ関数で、正規化定数として働きます。</p>
+
+    <p>事前分布をBeta($\alpha$, $\beta$)とし、$n$回の<strong>ベルヌーイ試行</strong>（Bernoulli Trial、成功/失敗の2値をとる試行）で$k$回成功したというデータを観測すると、事後分布は次のように解析的に求まります。</p>
+
+    <p>$$\theta \sim \text{Beta}(\alpha, \beta) \quad \Rightarrow \quad \theta|D \sim \text{Beta}(\alpha+k, \beta+n-k)$$</p>
+
+    <p>この更新式が示す通り、パラメータ$\alpha$は「成功の仮想回数」、$\beta$は「失敗の仮想回数」として解釈でき、観測データの成功・失敗回数をそれぞれに単純に加算するだけで事後分布が得られます。</p>
+
+    <h3>3.2 Pythonでの実装：ベータ-ベルヌーイ更新</h3>
+
+    <p>コインを繰り返し投げ、観測データが増えるにつれて事後分布がどのように変化するかを実装してみましょう。</p>
+
+    <pre><code>import numpy as np
+from scipy import stats
+
+# 真の確率(未知としてシミュレーション用に設定)でコイン投げを生成
+np.random.seed(42)
+true_p = 0.7
+n_flips = 50
+flips = np.random.binomial(1, true_p, size=n_flips)  # 1=表, 0=裏
+
+# 事前分布 Beta(2, 2): やや公平寄りだが弱い事前知識
+alpha_prior, beta_prior = 2, 2
+
+# 観測数を増やしながら事後分布のパラメータを更新
+checkpoints = [0, 5, 20, 50]
+
+print("=== ベータ-ベルヌーイ更新の推移 ===")
+for n in checkpoints:
+    successes = flips[:n].sum()
+    failures = n - successes
+    alpha_post = alpha_prior + successes
+    beta_post = beta_prior + failures
+    posterior_mean = alpha_post / (alpha_post + beta_post)
+    print(f"n={n:2d}回観測後: 成功{successes}回, "
+          f"Beta({alpha_post}, {beta_post}), 事後平均={posterior_mean:.3f}")</code></pre>
+
+    <p><strong>実行結果:</strong></p>
+    <pre><code>=== ベータ-ベルヌーイ更新の推移 ===
+n= 0回観測後: 成功0回, Beta(2, 2), 事後平均=0.500
+n= 5回観測後: 成功3回, Beta(5, 4), 事後平均=0.556
+n=20回観測後: 成功14回, Beta(16, 8), 事後平均=0.667
+n=50回観測後: 成功39回, Beta(41, 13), 事後平均=0.759</code></pre>
+
+    <p>事前分布から観測データが増えるにつれて事後分布がどのように鋭くなっていくかを可視化してみましょう。</p>
+
+    <pre><code>import numpy as np
+from scipy import stats
+import matplotlib.pyplot as plt
+
+np.random.seed(42)
+true_p = 0.7
+n_flips = 50
+flips = np.random.binomial(1, true_p, size=n_flips)
+
+alpha_prior, beta_prior = 2, 2
+checkpoints = [0, 5, 20, 50]
+theta = np.linspace(0.001, 0.999, 200)
+
+plt.figure(figsize=(10, 6))
+for n in checkpoints:
+    successes = flips[:n].sum()
+    failures = n - successes
+    alpha_post = alpha_prior + successes
+    beta_post = beta_prior + failures
+    pdf = stats.beta.pdf(theta, alpha_post, beta_post)
+    plt.plot(theta, pdf, label=f'n={n} (成功{successes}回)', linewidth=2)
+
+plt.axvline(true_p, color='black', linestyle=':', label=f'真の確率={true_p}')
+plt.xlabel('θ（表が出る確率）', fontsize=12)
+plt.ylabel('確率密度', fontsize=12)
+plt.title('観測データの増加に伴う事後分布の変化', fontsize=14)
+plt.legend()
+plt.grid(alpha=0.3)
+plt.show()</code></pre>
+
+    <div class="info-box">
+      <strong>💡 グラフから読み取れること</strong>
+      <ul>
+        <li>$n=0$（事前分布のみ）では、分布は0.5を中心とした緩やかな山形になる</li>
+        <li>観測データが増えるにつれて分布の山は真の確率0.7に近づき、かつ鋭く（分散が小さく）なる</li>
+        <li>データが十分に多くなると、事前分布の影響はほとんど消え、尤度がほぼ支配的になる</li>
+      </ul>
+    </div>
+
+    <h2>4. ベイズ推定の実装</h2>
+
+    <p>事後分布が得られたら、そこから具体的な推定値や不確実性の指標を取り出す必要があります。</p>
+
+    <h3>4.1 点推定：事後平均とMAP推定</h3>
+
+    <ul>
+      <li><strong>事後平均</strong>（Posterior Mean）: 事後分布の期待値$E[\theta|D]$。最も一般的な点推定量</li>
+      <li><strong>MAP推定</strong>（Maximum A Posteriori estimation）: 事後分布の密度が最大となる$\theta$の値、すなわち事後分布の最頻値</li>
+    </ul>
+
+    <p>Beta($\alpha$, $\beta$)分布については、それぞれ次の式で解析的に求められます。</p>
+
+    <p>$$E[\theta|D] = \frac{\alpha}{\alpha+\beta} \qquad \theta_{\text{MAP}} = \frac{\alpha-1}{\alpha+\beta-2}$$</p>
+
+    <p>（ただしMAP推定の式は$\alpha &gt; 1$かつ$\beta &gt; 1$のときに成り立ちます）</p>
+
+    <h3>4.2 区間推定：信用区間</h3>
+
+    <p><strong>信用区間</strong>（Credible Interval）は、事後分布において特定の確率質量（例えば95%）を含む区間です。頻度論統計の<strong>信頼区間</strong>（Confidence Interval）とよく似た役割を果たしますが、解釈は根本的に異なります（この違いは第6節で詳しく扱います）。</p>
+
+    <h3>4.3 Pythonでの実装：点推定と区間推定</h3>
+
+    <pre><code>import numpy as np
+from scipy import stats
+
+def posterior_summary(alpha_post, beta_post, cred_mass=0.95):
+    """
+    ベータ事後分布から点推定と信用区間を計算する
+
+    Parameters:
+    -----------
+    alpha_post, beta_post : float
+        事後分布 Beta(alpha_post, beta_post) のパラメータ
+    cred_mass : float
+        信用区間の確率質量（デフォルト95%）
+
+    Returns:
+    --------
+    mean, map_estimate, (lower, upper)
+    """
+    mean = alpha_post / (alpha_post + beta_post)
+    if alpha_post &gt; 1 and beta_post &gt; 1:
+        map_estimate = (alpha_post - 1) / (alpha_post + beta_post - 2)
+    else:
+        map_estimate = None
+    lower = stats.beta.ppf((1 - cred_mass) / 2, alpha_post, beta_post)
+    upper = stats.beta.ppf(1 - (1 - cred_mass) / 2, alpha_post, beta_post)
+    return mean, map_estimate, (lower, upper)
+
+# 前節のコイン投げデータ(50回中39回成功、事前分布 Beta(2,2))
+alpha_post, beta_post = 41, 13
+mean, map_est, (lower, upper) = posterior_summary(alpha_post, beta_post)
+
+print(f"事後平均: {mean:.4f}")
+print(f"MAP推定値: {map_est:.4f}")
+print(f"95%信用区間: [{lower:.4f}, {upper:.4f}]")</code></pre>
+
+    <p><strong>実行結果:</strong></p>
+    <pre><code>事後平均: 0.7593
+MAP推定値: 0.7692
+95%信用区間: [0.6379, 0.8624]</code></pre>
+
+    <h3>4.4 実践例：A/Bテストのベイズ的比較</h3>
+
+    <p>ウェブサイトの2つのデザイン案（A案とB案）のクリック率を比較するA/Bテストを例に、ベイズ推定を実践してみましょう。</p>
+
+    <pre><code>import numpy as np
+from scipy import stats
+
+# A案: 500人中48人がクリック、B案: 480人中63人がクリック
+alpha_prior, beta_prior = 1, 1  # 無情報事前分布 Beta(1,1) = 一様分布
+
+n_a, success_a = 500, 48
+n_b, success_b = 480, 63
+
+alpha_a = alpha_prior + success_a
+beta_a = beta_prior + (n_a - success_a)
+alpha_b = alpha_prior + success_b
+beta_b = beta_prior + (n_b - success_b)
+
+def posterior_summary(alpha_post, beta_post, cred_mass=0.95):
+    mean = alpha_post / (alpha_post + beta_post)
+    map_estimate = (alpha_post - 1) / (alpha_post + beta_post - 2)
+    lower = stats.beta.ppf((1 - cred_mass) / 2, alpha_post, beta_post)
+    upper = stats.beta.ppf(1 - (1 - cred_mass) / 2, alpha_post, beta_post)
+    return mean, map_estimate, (lower, upper)
+
+mean_a, map_a, ci_a = posterior_summary(alpha_a, beta_a)
+mean_b, map_b, ci_b = posterior_summary(alpha_b, beta_b)
+
+print(f"A案: 事後平均={mean_a:.4f}, 95%信用区間=[{ci_a[0]:.4f}, {ci_a[1]:.4f}]")
+print(f"B案: 事後平均={mean_b:.4f}, 95%信用区間=[{ci_b[0]:.4f}, {ci_b[1]:.4f}]")
+
+# モンテカルロ法でP(B案の方が優れている)を推定
+np.random.seed(0)
+n_mc = 200000
+samples_a = np.random.beta(alpha_a, beta_a, n_mc)
+samples_b = np.random.beta(alpha_b, beta_b, n_mc)
+prob_b_better = np.mean(samples_b &gt; samples_a)
+
+print(f"\nP(B案のクリック率 &gt; A案のクリック率) = {prob_b_better:.4f}")</code></pre>
+
+    <p><strong>実行結果:</strong></p>
+    <pre><code>A案: 事後平均=0.0976, 95%信用区間=[0.0732, 0.1250]
+B案: 事後平均=0.1328, 95%信用区間=[0.1040, 0.1644]
+
+P(B案のクリック率 &gt; A案のクリック率) = 0.9582</code></pre>
+
+    <div class="example-box">
+      <strong>📝 ベイズ的A/Bテストの利点</strong>
+      <p>この方法の強みは、「B案が優れている確率は95.8%である」という、意思決定に直結する形で結果を表現できる点です。頻度論のp値のように「帰無仮説が正しいと仮定した場合にこのデータが観測される確率」という迂遠な解釈を経由する必要がなく、事業判断にそのまま使いやすい確率として提示できます。</p>
+    </div>
+
+    <h2>5. マルコフ連鎖モンテカルロ法（MCMC）入門</h2>
+
+    <p>ベータ分布とベルヌーイ試行のように共役事前分布が使える場合は、事後分布を解析的に求められます。しかし現実の多くのベイズモデルでは、尤度と事前分布の組み合わせが共役にならず、事後分布の式を閉じた形で書き下すことができません。このような場合に威力を発揮するのが<strong>マルコフ連鎖モンテカルロ法</strong>（Markov Chain Monte Carlo, MCMC）です。</p>
+
+    <p>MCMCは、事後分布の正規化定数$P(D)$を計算せずに、事後分布に従うサンプル列を生成する手法群の総称です。得られたサンプルの集合を使えば、事後平均や信用区間などの統計量をヒストグラムや標本平均から近似的に求められます。</p>
+
+    <h3>5.1 マルコフ連鎖とモンテカルロ法</h3>
+
+    <p><strong>モンテカルロ法</strong>（Monte Carlo Method）は、乱数を用いた試行を繰り返すことで、解析的に求めるのが難しい量（積分値や期待値など）を近似的に計算する手法の総称です。</p>
+
+    <p><strong>マルコフ連鎖</strong>（Markov Chain）は、次の状態が現在の状態のみに依存し、それ以前の履歴には依存しないという性質（マルコフ性）を持つ確率過程です。MCMCは、目的の事後分布を<strong>定常分布</strong>（Stationary Distribution）として持つようなマルコフ連鎖を構築し、それに沿ってランダムウォークすることでサンプルを生成します。</p>
+
+    <h3>5.2 メトロポリス法</h3>
+
+    <p>MCMCの中でも直感的に理解しやすいアルゴリズムが<strong>メトロポリス法</strong>（Metropolis Algorithm）です。手順は次の通りです。</p>
+    <ol>
+      <li>初期値$\theta_0$を適当に設定する</li>
+      <li>現在の状態$\theta_t$から、<strong>提案分布</strong>（Proposal Distribution、多くの場合は正規分布などの対称な分布）を使って新しい候補$\theta^*$を生成する</li>
+      <li><strong>受理確率</strong>（Acceptance Probability）$a = \min\left(1, \dfrac{P(\theta^*|D)}{P(\theta_t|D)}\right)$を計算する</li>
+      <li>確率$a$で候補を受理し$\theta_{t+1}=\theta^*$とする。そうでなければ棄却し$\theta_{t+1}=\theta_t$とする</li>
+      <li>手順2〜4を必要な回数だけ繰り返す</li>
+    </ol>
+
+    <div class="info-box">
+      <strong>💡 なぜ正規化定数が不要なのか</strong>
+      <p>受理確率の計算では$P(\theta^*|D)/P(\theta_t|D)$という比を使います。ベイズの定理の分母$P(D)$は$\theta$に依存しない定数なので、この比を取る際に分子・分母で打ち消し合い、消えてしまいます。そのため、尤度と事前分布の積（正規化されていない事後分布）さえ計算できれば、メトロポリス法を実行できます。</p>
+    </div>
+
+    <p>生成されたサンプル列の初期部分は、初期値$\theta_0$の影響を強く受けており、まだ定常分布に収束していない可能性があります。この初期部分を<strong>バーンイン</strong>（Burn-in）期間として捨て、残りのサンプルだけを事後分布の近似として使うのが一般的です。</p>
+
+    <h3>5.3 Pythonでの実装：手書きメトロポリスサンプラー</h3>
+
+    <p>ベータ-ベルヌーイモデルは解析的に事後分布が求まるため、MCMCで得られた結果を解析解と比較検証できます。これはMCMC実装が正しく動作しているかを確認する良い練習になります。</p>
+
+    <pre><code>import numpy as np
+from scipy import stats
+
+def log_posterior(theta_val, successes, failures, alpha_prior, beta_prior):
+    """正規化されていない事後分布の対数を計算(0&lt;theta&lt;1の範囲外は-infとする)"""
+    if theta_val &lt;= 0 or theta_val &gt;= 1:
+        return -np.inf
+    log_lik = successes * np.log(theta_val) + failures * np.log(1 - theta_val)
+    log_prior = (alpha_prior - 1) * np.log(theta_val) + (beta_prior - 1) * np.log(1 - theta_val)
+    return log_lik + log_prior
+
+def metropolis_sampler(log_post_fn, n_samples, init, proposal_std, seed=42):
+    """
+    メトロポリス法によるMCMCサンプラー
+
+    Parameters:
+    -----------
+    log_post_fn : callable
+        対数事後分布(正規化不要)を返す関数
+    n_samples : int
+        生成するサンプル数
+    init : float
+        初期値
+    proposal_std : float
+        提案分布(正規分布)の標準偏差
+
+    Returns:
+    --------
+    samples : ndarray
+        生成されたサンプル列
+    acceptance_rate : float
+        受理率
+    """
+    rng = np.random.default_rng(seed)
+    samples = np.zeros(n_samples)
+    current = init
+    current_log_p = log_post_fn(current)
+    n_accepted = 0
+
+    for i in range(n_samples):
+        proposal = current + rng.normal(0, proposal_std)
+        proposal_log_p = log_post_fn(proposal)
+        log_accept_ratio = proposal_log_p - current_log_p
+
+        if np.log(rng.uniform()) &lt; log_accept_ratio:
+            current = proposal
+            current_log_p = proposal_log_p
+            n_accepted += 1
+        samples[i] = current
+
+    acceptance_rate = n_accepted / n_samples
+    return samples, acceptance_rate
+
+# 3節と同じコイン投げデータ(50回中39回成功)を使い、Beta(2,2)を事前分布とする
+successes_total, failures_total = 39, 11
+alpha_prior, beta_prior = 2, 2
+target = lambda th: log_posterior(th, successes_total, failures_total, alpha_prior, beta_prior)
+
+n_samples = 20000
+samples, acc_rate = metropolis_sampler(target, n_samples, init=0.5, proposal_std=0.1)
+
+burn_in = 2000
+post_burn = samples[burn_in:]
+
+analytic_mean = (alpha_prior + successes_total) / (alpha_prior + beta_prior + successes_total + failures_total)
+
+print(f"受理率: {acc_rate:.3f}")
+print(f"MCMCによる事後平均: {post_burn.mean():.4f}")
+print(f"解析解(Beta分布)による事後平均: {analytic_mean:.4f}")
+print(f"MCMCによる事後標準偏差: {post_burn.std():.4f}")</code></pre>
+
+    <p><strong>実行結果:</strong></p>
+    <pre><code>受理率: 0.548
+MCMCによる事後平均: 0.7601
+解析解(Beta分布)による事後平均: 0.7593
+MCMCによる事後標準偏差: 0.0575</code></pre>
+
+    <p>MCMCサンプルの挙動を可視化し、解析解と比較してみましょう。</p>
+
+    <pre><code>import numpy as np
+from scipy import stats
+import matplotlib.pyplot as plt
+
+def log_posterior(theta_val, successes, failures, alpha_prior, beta_prior):
+    if theta_val &lt;= 0 or theta_val &gt;= 1:
+        return -np.inf
+    log_lik = successes * np.log(theta_val) + failures * np.log(1 - theta_val)
+    log_prior = (alpha_prior - 1) * np.log(theta_val) + (beta_prior - 1) * np.log(1 - theta_val)
+    return log_lik + log_prior
+
+def metropolis_sampler(log_post_fn, n_samples, init, proposal_std, seed=42):
+    rng = np.random.default_rng(seed)
+    samples = np.zeros(n_samples)
+    current = init
+    current_log_p = log_post_fn(current)
+    n_accepted = 0
+    for i in range(n_samples):
+        proposal = current + rng.normal(0, proposal_std)
+        proposal_log_p = log_post_fn(proposal)
+        if np.log(rng.uniform()) &lt; proposal_log_p - current_log_p:
+            current = proposal
+            current_log_p = proposal_log_p
+            n_accepted += 1
+        samples[i] = current
+    return samples, n_accepted / n_samples
+
+successes_total, failures_total = 39, 11
+alpha_prior, beta_prior = 2, 2
+target = lambda th: log_posterior(th, successes_total, failures_total, alpha_prior, beta_prior)
+samples, acc_rate = metropolis_sampler(target, 20000, init=0.5, proposal_std=0.1)
+burn_in = 2000
+post_burn = samples[burn_in:]
+
+fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+# トレースプロット: サンプルが反復とともにどう推移したか
+axes[0].plot(samples, linewidth=0.5, alpha=0.7)
+axes[0].axvline(burn_in, color='red', linestyle='--', label='バーンイン境界')
+axes[0].set_xlabel('反復回数')
+axes[0].set_ylabel('θ')
+axes[0].set_title('トレースプロット')
+axes[0].legend()
+
+# ヒストグラム vs 解析解
+theta_grid = np.linspace(0.001, 0.999, 200)
+analytic_pdf = stats.beta.pdf(theta_grid, alpha_prior + successes_total, beta_prior + failures_total)
+axes[1].hist(post_burn, bins=50, density=True, alpha=0.6, label='MCMCサンプル')
+axes[1].plot(theta_grid, analytic_pdf, 'r-', linewidth=2, label='解析解 Beta(41, 13)')
+axes[1].set_xlabel('θ')
+axes[1].set_ylabel('確率密度')
+axes[1].set_title('MCMCサンプルと解析解の比較')
+axes[1].legend()
+
+plt.tight_layout()
+plt.show()</code></pre>
+
+    <div class="info-box">
+      <strong>💡 このグラフから確認できること</strong>
+      <ul>
+        <li>トレースプロットは、バーンイン後は特定の値に留まらずθ=0.6〜0.9付近を安定して行き来しており、これは連鎖が定常分布に到達しているサインである</li>
+        <li>MCMCサンプルのヒストグラムは、解析的に求めたBeta(41, 13)の密度曲線とほぼ重なっており、手書きのメトロポリスサンプラーが正しく機能していることが確認できる</li>
+      </ul>
+    </div>
+
+    <div class="warning-box">
+      <strong>⚠️ 提案分布の調整の重要性</strong>
+      <p>提案分布の標準偏差（<code>proposal_std</code>）が小さすぎると、受理率は高くなりますが1ステップごとの移動量が小さいため、事後分布全体を探索するのに非常に多くの反復が必要になります。逆に大きすぎると、多くの候補が事後分布の裾で棄却され、受理率が低下し効率が落ちます。一般に、受理率がおよそ20〜50%程度になるように提案分布を調整すると効率的な探索が行えると言われています。</p>
+    </div>
+
+    <h2>6. ベイズ統計と頻度論統計の比較</h2>
+
+    <p>ここまで学んだベイズ統計と、これまで前提としてきた頻度論統計の違いを整理します。両者は同じデータから異なる哲学で推論を行うため、それぞれの長所と限界を理解しておくことが重要です。</p>
+
+    <table>
+      <thead>
+        <tr><th>観点</th><th>頻度論統計</th><th>ベイズ統計</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>パラメータの扱い</td><td>未知だが固定された値</td><td>確率分布に従う確率変数</td></tr>
+        <tr><td>確率の解釈</td><td>長期的な試行の相対頻度</td><td>信念の度合い(主観的/客観的双方の立場がある)</td></tr>
+        <tr><td>事前知識の利用</td><td>明示的には利用しない</td><td>事前分布として明示的に組み込む</td></tr>
+        <tr><td>推定結果</td><td>点推定値と信頼区間</td><td>事後分布全体(要約として点推定・信用区間)</td></tr>
+        <tr><td>区間の解釈</td><td>「同じ手続きを繰り返せば95%の頻度で真の値を含む」区間</td><td>「データが与えられた条件下でパラメータが95%の確率でこの区間に入る」区間</td></tr>
+        <tr><td>計算コスト</td><td>比較的軽量な場合が多い</td><td>MCMCなど反復計算が必要になることが多い</td></tr>
+      </tbody>
+    </table>
+
+    <h3>6.1 信頼区間と信用区間の解釈の違い</h3>
+
+    <p>特に混同されやすいのが、頻度論の<strong>信頼区間</strong>と、ベイズの<strong>信用区間</strong>の解釈の違いです。</p>
+    <ul>
+      <li><strong>95%信頼区間</strong>: 「同じ手続きでデータ収集と区間計算を100回繰り返したとき、そのうち平均して95回は真のパラメータ値を含む区間になる」という、手続き全体についての性質。個々の区間が真の値を含むかどうかは0か1であり、確率的な言明はできない</li>
+      <li><strong>95%信用区間</strong>: 「観測されたこのデータのもとで、パラメータがこの区間に入る確率は95%である」という、パラメータそのものについての直接的な確率的言明</li>
+    </ul>
+
+    <h3>6.2 小標本での挙動の違い：実装比較</h3>
+
+    <p>標本サイズが小さい場合、両者の違いがより顕著になることがあります。10回中8回成功したという少ないデータで、頻度論のWald信頼区間とベイズの信用区間を比較してみましょう。</p>
+
+    <pre><code>import numpy as np
+from scipy import stats
+
+n = 10
+k = 8
+
+# 頻度論: 最尤推定値とWald信頼区間
+p_hat = k / n  # 最尤推定量(Maximum Likelihood Estimate, MLE)
+se = np.sqrt(p_hat * (1 - p_hat) / n)
+z = 1.96
+freq_ci = (p_hat - z * se, p_hat + z * se)
+
+# ベイズ: 無情報事前分布 Beta(1,1) を用いた事後分布
+alpha_prior, beta_prior = 1, 1
+alpha_post = alpha_prior + k
+beta_post = beta_prior + (n - k)
+bayes_mean = alpha_post / (alpha_post + beta_post)
+bayes_ci = stats.beta.ppf([0.025, 0.975], alpha_post, beta_post)
+
+print(f"最尤推定値: {p_hat:.4f}")
+print(f"頻度論 95%信頼区間(Wald法): [{freq_ci[0]:.4f}, {freq_ci[1]:.4f}]")
+print(f"\nベイズ事後平均: {bayes_mean:.4f}")
+print(f"ベイズ 95%信用区間: [{bayes_ci[0]:.4f}, {bayes_ci[1]:.4f}]")</code></pre>
+
+    <p><strong>実行結果:</strong></p>
+    <pre><code>最尤推定値: 0.8000
+頻度論 95%信頼区間(Wald法): [0.5521, 1.0479]
+
+ベイズ事後平均: 0.7500
+ベイズ 95%信用区間: [0.4822, 0.9398]</code></pre>
+
+    <div class="warning-box">
+      <strong>⚠️ Wald信頼区間の落とし穴</strong>
+      <p>上の結果をよく見ると、頻度論のWald信頼区間の上限が1.0479となっており、確率であるはずの値が1を超えてしまっています。これはWald法が正規分布近似に基づいており、標本サイズが小さく成功確率が0または1に近いときに近似の精度が悪化するために起こる、よく知られた問題です(この問題を緩和するWilson信頼区間などの改良手法も存在します)。一方、ベイズの信用区間はベータ分布という$[0,1]$に台を持つ分布そのものから導出されるため、区間が確率の定義域をはみ出すことはありません。</p>
+    </div>
+
+    <p>この例は、「どちらの手法が絶対的に正しいか」という話ではなく、それぞれの手法が異なる仮定と近似のもとで動いていることを示しています。標本サイズが大きくなり、弱い事前分布を用いる限り、頻度論とベイズの結果は多くの場合近い値に収束していきます。状況に応じてどちらの枠組みが適切かを判断する視点を持つことが重要です。</p>
+
+    <h2>7. まとめと次のステップ</h2>
+
+    <p>この章では、ベイズ統計の考え方を、理論からPythonでの実装まで一貫して学びました。</p>
+
+    <div class="info-box">
+      <strong>✅ この章で学んだこと</strong>
+      <ul>
+        <li>ベイズの定理をパラメータ推定の枠組みとして捉え、事前分布・尤度・事後分布・周辺尤度の役割を理解した</li>
+        <li>事前分布が事後分布に与える影響と、データが増えるにつれてその影響が相対的に小さくなる様子を確認した</li>
+        <li>共役事前分布(特にベータ分布とベルヌーイ試行の組み合わせ)を用いて、事後分布を解析的に計算する方法を実装した</li>
+        <li>事後平均、MAP推定、信用区間といったベイズ推定の要約統計量を計算し、A/Bテストへの応用を試みた</li>
+        <li>マルコフ連鎖モンテカルロ法(MCMC)、特にメトロポリス法の仕組みを理解し、手書きのサンプラーを実装して解析解と照合した</li>
+        <li>ベイズ統計と頻度論統計の哲学的な違いと、信頼区間・信用区間の解釈の違いを、具体例を通じて確認した</li>
+      </ul>
+    </div>
+
+    <div class="warning-box">
+      <strong>🔑 重要ポイント</strong>
+      <ul>
+        <li>事前分布は「仮想的な観測データ」のように働き、実際のデータが少ないうちほど強い影響を持つ</li>
+        <li>共役事前分布を使えば、積分計算をせずに事後分布のパラメータを更新できる</li>
+        <li>MCMCは正規化定数(周辺尤度)を計算せずに事後分布からサンプリングできる強力な手法だが、収束の確認や提案分布の調整には注意が必要</li>
+        <li>信頼区間と信用区間は数値が似ていても解釈がまったく異なるため、混同しないよう注意する</li>
+      </ul>
+    </div>
+
+    <h3>学習目標の振り返り</h3>
+
+    <p>この章の冒頭で示した学習目標を振り返ってみましょう。</p>
+    <ul>
+      <li>✅ ベイズ統計の考え方を理解する — 事前分布・尤度・事後分布の関係として整理した</li>
+      <li>✅ 事前分布・尤度・事後分布の関係を説明できる — 第1節・第2節で数式と具体例を通じて学んだ</li>
+      <li>✅ 共役事前分布を用いたベイズ推定を実装できる — 第3節・第4節でベータ-ベルヌーイモデルを実装した</li>
+      <li>✅ MCMCの基本的な考え方を理解する — 第5節で手書きのメトロポリスサンプラーを実装し、解析解と照合した</li>
+      <li>✅ ベイズ統計と頻度論統計の違いを説明できる — 第6節で信頼区間と信用区間の解釈の違いを具体例で確認した</li>
+    </ul>
+
+    <h3>次のステップ</h3>
+
+    <p>次章では、本章で扱った推定の枠組みを踏まえ、仮説検定など統計的推論のさらなるトピックへと進みます。ベイズ統計の考え方は、今後機械学習で頻繁に登場するベイズ最適化やベイズニューラルネットワークなど、より高度な手法の土台にもなります。</p>
+
+    <div class="nav-buttons">
+      <a href="./chapter-3.html" class="nav-button">← 第3章</a>
+      <a href="./index.html" class="nav-button">シリーズ目次</a>
+      <a href="./chapter-5.html" class="nav-button">第5章 →</a>
+    </div>
+
+    <h2>練習問題</h2>
+
+    <details>
+      <summary><strong>問題1：ベータ事後分布の計算</strong></summary>
+      <p>あるコインを10回投げたところ、7回表が出ました。事前分布をBeta(2, 2)としたとき、事後分布のパラメータ、事後平均、MAP推定値をそれぞれ求めてください。</p>
+      <pre><code>from scipy import stats
+
+alpha_prior, beta_prior = 2, 2
+n, k = 10, 7
+
+alpha_post = alpha_prior + k
+beta_post = beta_prior + (n - k)
+
+mean = alpha_post / (alpha_post + beta_post)
+map_estimate = (alpha_post - 1) / (alpha_post + beta_post - 2)
+
+print(f"事後分布: Beta({alpha_post}, {beta_post})")
+print(f"事後平均: {mean:.4f}")
+print(f"MAP推定値: {map_estimate:.4f}")
+
+# 出力:
+# 事後分布: Beta(9, 5)
+# 事後平均: 0.6429
+# MAP推定値: 0.6667</code></pre>
+    </details>
+
+    <details>
+      <summary><strong>問題2：信用区間と信頼区間の比較</strong></summary>
+      <p>問題1で得られた事後分布について95%信用区間を求め、同じデータ(10回中7回成功)に対する頻度論のWald法による95%信頼区間と比較してください。両者の違いから何が言えるでしょうか。</p>
+      <pre><code>import numpy as np
+from scipy import stats
+
+n, k = 10, 7
+alpha_post, beta_post = 9, 5
+
+# ベイズ信用区間
+bayes_ci = stats.beta.ppf([0.025, 0.975], alpha_post, beta_post)
+
+# 頻度論Wald信頼区間
+p_hat = k / n
+se = np.sqrt(p_hat * (1 - p_hat) / n)
+freq_ci = (p_hat - 1.96 * se, p_hat + 1.96 * se)
+
+print(f"ベイズ95%信用区間: [{bayes_ci[0]:.4f}, {bayes_ci[1]:.4f}]")
+print(f"頻度論95%信頼区間(Wald法): [{freq_ci[0]:.4f}, {freq_ci[1]:.4f}]")
+
+# 出力:
+# ベイズ95%信用区間: [0.3857, 0.8614]
+# 頻度論95%信頼区間(Wald法): [0.4160, 0.9840]</code></pre>
+      <p>両者は近い範囲を示しますが、区間の解釈は異なります。信用区間は「このデータのもとで$\theta$が区間内にある確率が95%」という直接的な言明であるのに対し、信頼区間は「手続きを繰り返したときに95%の頻度で真の値を含む」という手続き全体の性質です。また、事前分布Beta(2,2)の影響でベイズの点推定はやや0.5寄りになっている点にも注目してください。</p>
+    </details>
+
+    <details>
+      <summary><strong>問題3：提案分布の標準偏差とMCMCの効率</strong></summary>
+      <p>本文のmetropolis_samplerを使い、提案分布の標準偏差(proposal_std)を0.01と1.0に変更してそれぞれサンプリングを実行し、受理率がどう変化するかを確認してください。それぞれの設定の問題点を説明してください。</p>
+      <pre><code>import numpy as np
+
+def log_posterior(theta_val, successes, failures, alpha_prior, beta_prior):
+    if theta_val &lt;= 0 or theta_val &gt;= 1:
+        return -np.inf
+    log_lik = successes * np.log(theta_val) + failures * np.log(1 - theta_val)
+    log_prior = (alpha_prior - 1) * np.log(theta_val) + (beta_prior - 1) * np.log(1 - theta_val)
+    return log_lik + log_prior
+
+def metropolis_sampler(log_post_fn, n_samples, init, proposal_std, seed=42):
+    rng = np.random.default_rng(seed)
+    samples = np.zeros(n_samples)
+    current = init
+    current_log_p = log_post_fn(current)
+    n_accepted = 0
+    for i in range(n_samples):
+        proposal = current + rng.normal(0, proposal_std)
+        proposal_log_p = log_post_fn(proposal)
+        if np.log(rng.uniform()) &lt; proposal_log_p - current_log_p:
+            current = proposal
+            current_log_p = proposal_log_p
+            n_accepted += 1
+        samples[i] = current
+    return samples, n_accepted / n_samples
+
+target = lambda th: log_posterior(th, successes=7, failures=3, alpha_prior=2, beta_prior=2)
+
+for std in [0.01, 1.0]:
+    samples, acc_rate = metropolis_sampler(target, 5000, init=0.5, proposal_std=std)
+    print(f"proposal_std={std}: 受理率={acc_rate:.3f}, サンプル標準偏差={samples[500:].std():.4f}")
+
+# 出力:
+# proposal_std=0.01: 受理率=0.975, サンプル標準偏差=0.1299
+# proposal_std=1.0: 受理率=0.156, サンプル標準偏差=0.1208</code></pre>
+      <p>proposal_std=0.01では受理率が非常に高くなりますが(約97.5%)、1ステップの移動量が小さいため連鎖がゆっくりとしか空間を探索できず、少ない反復回数では事後分布全体を十分にカバーできません。proposal_std=1.0では逆に多くの候補が棄却され(受理率約15.6%)、有効なサンプル数が実質的に減ってしまいます。効率的な探索のためには、受理率がおよそ20〜50%程度になるよう提案分布の幅を調整することが望ましいとされています。</p>
+    </details>
+
+  </main>
+
+  <footer>
+    <div class="container">
+      <p>&copy; 2025 AI Terakoya - Dr. Yusuke Hashimoto, Tohoku University</p>
+      <p>Licensed under CC BY 4.0</p>
+    </div>
+  </footer>
+</body>
+</html>

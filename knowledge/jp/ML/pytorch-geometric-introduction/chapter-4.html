@@ -1,0 +1,1492 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第4章：実世界への応用 - PyTorch Geometric入門 - AI Terakoya</title>
+  <meta name="description" content="PyTorch Geometricを使った実世界応用を学ぶ。分子特性予測、引用ネットワーク分析、レコメンデーション、大規模グラフの効率的処理、モデルの解釈性、本番デプロイまでを実践的なコード例で理解します。">
+
+  <style>
+    :root {
+      --color-primary: #2c3e50;
+      --color-primary-dark: #1a252f;
+      --color-accent: #7b2cbf;
+      --color-accent-light: #9d4edd;
+      --color-text: #2d3748;
+      --color-text-light: #4a5568;
+      --color-bg: #ffffff;
+      --color-bg-alt: #f7fafc;
+      --color-border: #e2e8f0;
+      --color-code-bg: #f8f9fa;
+      --color-link: #3182ce;
+      --color-link-hover: #2c5aa0;
+
+      --spacing-xs: 0.5rem;
+      --spacing-sm: 1rem;
+      --spacing-md: 1.5rem;
+      --spacing-lg: 2rem;
+      --spacing-xl: 3rem;
+
+      --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+      --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+      --border-radius: 8px;
+      --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: var(--font-body);
+      line-height: 1.7;
+      color: var(--color-text);
+      background-color: var(--color-bg);
+      font-size: 16px;
+    }
+
+    header {
+      background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+      color: white;
+      padding: var(--spacing-xl) var(--spacing-md);
+      margin-bottom: var(--spacing-xl);
+      box-shadow: var(--box-shadow);
+    }
+
+    .header-content {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: var(--spacing-sm);
+      line-height: 1.2;
+    }
+
+    .subtitle {
+      font-size: 1.1rem;
+      opacity: 0.95;
+      font-weight: 400;
+      margin-bottom: var(--spacing-md);
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--spacing-md);
+      font-size: 0.9rem;
+      opacity: 0.9;
+    }
+
+    .meta-item {
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 var(--spacing-md) var(--spacing-xl);
+    }
+
+    h2 {
+      font-size: 1.75rem;
+      color: var(--color-primary);
+      margin-top: var(--spacing-xl);
+      margin-bottom: var(--spacing-md);
+      padding-bottom: var(--spacing-xs);
+      border-bottom: 3px solid var(--color-accent);
+    }
+
+    h3 {
+      font-size: 1.4rem;
+      color: var(--color-primary);
+      margin-top: var(--spacing-lg);
+      margin-bottom: var(--spacing-sm);
+    }
+
+    h4 {
+      font-size: 1.1rem;
+      color: var(--color-primary-dark);
+      margin-top: var(--spacing-md);
+      margin-bottom: var(--spacing-sm);
+    }
+
+    p {
+      margin-bottom: var(--spacing-md);
+      color: var(--color-text);
+    }
+
+    a {
+      color: var(--color-link);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    a:hover {
+      color: var(--color-link-hover);
+      text-decoration: underline;
+    }
+
+    ul, ol {
+      margin-left: var(--spacing-lg);
+      margin-bottom: var(--spacing-md);
+    }
+
+    li {
+      margin-bottom: var(--spacing-xs);
+      color: var(--color-text);
+    }
+
+    pre {
+      background-color: var(--color-code-bg);
+      border: 1px solid var(--color-border);
+      border-radius: var(--border-radius);
+      padding: var(--spacing-md);
+      overflow-x: auto;
+      margin-bottom: var(--spacing-md);
+      font-family: var(--font-mono);
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: 0.9em;
+      background-color: var(--color-code-bg);
+      padding: 0.2em 0.4em;
+      border-radius: 3px;
+    }
+
+    pre code {
+      background-color: transparent;
+      padding: 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: var(--spacing-md);
+      font-size: 0.95rem;
+    }
+
+    th, td {
+      border: 1px solid var(--color-border);
+      padding: var(--spacing-sm);
+      text-align: left;
+    }
+
+    th {
+      background-color: var(--color-bg-alt);
+      font-weight: 600;
+      color: var(--color-primary);
+    }
+
+    blockquote {
+      border-left: 4px solid var(--color-accent);
+      padding-left: var(--spacing-md);
+      margin: var(--spacing-md) 0;
+      color: var(--color-text-light);
+      font-style: italic;
+      background-color: var(--color-bg-alt);
+      padding: var(--spacing-md);
+      border-radius: var(--border-radius);
+    }
+
+    .mermaid {
+      text-align: center;
+      margin: var(--spacing-lg) 0;
+      background-color: var(--color-bg-alt);
+      padding: var(--spacing-md);
+      border-radius: var(--border-radius);
+    }
+
+    details {
+      background-color: var(--color-bg-alt);
+      border: 1px solid var(--color-border);
+      border-radius: var(--border-radius);
+      padding: var(--spacing-md);
+      margin-bottom: var(--spacing-md);
+    }
+
+    summary {
+      cursor: pointer;
+      font-weight: 600;
+      color: var(--color-primary);
+      user-select: none;
+      padding: var(--spacing-xs);
+      margin: calc(-1 * var(--spacing-md));
+      padding: var(--spacing-md);
+      border-radius: var(--border-radius);
+    }
+
+    summary:hover {
+      background-color: rgba(123, 44, 191, 0.1);
+    }
+
+    details[open] summary {
+      margin-bottom: var(--spacing-md);
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    .chapter-description {
+      margin: 1.5rem 0;
+      padding: 1rem;
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+      border-left: 4px solid #7b2cbf;
+      border-radius: 8px;
+      font-size: 1.05rem;
+      line-height: 1.8;
+      color: #2d3748;
+    }
+
+    .learning-objectives {
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+      padding: var(--spacing-lg);
+      border-radius: var(--border-radius);
+      border-left: 4px solid var(--color-accent);
+      margin-bottom: var(--spacing-xl);
+    }
+
+    .learning-objectives h2 {
+      margin-top: 0;
+      border-bottom: none;
+    }
+
+    .navigation {
+      display: flex;
+      justify-content: space-between;
+      gap: var(--spacing-md);
+      margin: var(--spacing-xl) 0;
+      padding-top: var(--spacing-lg);
+      border-top: 2px solid var(--color-border);
+    }
+
+    .nav-button {
+      flex: 1;
+      padding: var(--spacing-md);
+      background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+      color: white;
+      border-radius: var(--border-radius);
+      text-align: center;
+      font-weight: 600;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: var(--box-shadow);
+    }
+
+    .nav-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      text-decoration: none;
+    }
+
+    .nav-button.disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      background: #6c757d;
+    }
+
+    .nav-button.disabled:hover {
+      transform: none;
+      box-shadow: var(--box-shadow);
+    }
+
+    footer {
+      margin-top: var(--spacing-xl);
+      padding: var(--spacing-lg) var(--spacing-md);
+      background-color: var(--color-bg-alt);
+      border-top: 1px solid var(--color-border);
+      text-align: center;
+      font-size: 0.9rem;
+      color: var(--color-text-light);
+    }
+
+    .disclaimer {
+      max-width: 900px;
+      margin: 2rem auto;
+      padding: 1.5rem;
+      background: #f8f9fa;
+      border-left: 4px solid #6c757d;
+      border-radius: 4px;
+    }
+
+    .disclaimer h3 {
+      color: #495057;
+      margin-bottom: 1rem;
+      font-size: 1.1rem;
+    }
+
+    .disclaimer ul {
+      list-style: none;
+      padding-left: 0;
+    }
+
+    .disclaimer li {
+      padding: 0.5rem 0;
+      padding-left: 1.5rem;
+      position: relative;
+      font-size: 0.9rem;
+      color: #6c757d;
+      line-height: 1.6;
+    }
+
+    .disclaimer li::before {
+      content: "⚠️";
+      position: absolute;
+      left: 0;
+    }
+
+    /* Breadcrumb styles */
+    .breadcrumb {
+      background: #f7fafc;
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid #e2e8f0;
+      font-size: 0.9rem;
+    }
+
+    .breadcrumb-content {
+      max-width: 900px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .breadcrumb a {
+      color: #667eea;
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .breadcrumb a:hover {
+      color: #764ba2;
+      text-decoration: underline;
+    }
+
+    .breadcrumb-separator {
+      color: #a0aec0;
+      margin: 0 0.25rem;
+    }
+
+    .breadcrumb-current {
+      color: #4a5568;
+      font-weight: 500;
+    }
+
+    .info-box {
+      background: #e3f2fd;
+      border-left: 4px solid #2196f3;
+      padding: var(--spacing-md);
+      margin: var(--spacing-md) 0;
+      border-radius: var(--border-radius);
+    }
+
+    .warning-box {
+      background: #fff3e0;
+      border-left: 4px solid #ff9800;
+      padding: var(--spacing-md);
+      margin: var(--spacing-md) 0;
+      border-radius: var(--border-radius);
+    }
+
+    .success-box {
+      background: #e8f5e9;
+      border-left: 4px solid #4caf50;
+      padding: var(--spacing-md);
+      margin: var(--spacing-md) 0;
+      border-radius: var(--border-radius);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .container {
+        padding: 0 1rem 2rem;
+      }
+
+      h1 {
+        font-size: 1.6rem;
+      }
+
+      h2 {
+        font-size: 1.4rem;
+      }
+
+      .navigation {
+        flex-direction: column;
+      }
+    }
+  </style>
+
+  <!-- Mermaid for diagrams -->
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <!-- Prism.js for syntax highlighting -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+  <!-- MathJax for equations -->
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+  <script>
+    // Mermaid.js initialization
+    document.addEventListener('DOMContentLoaded', function() {
+      if (typeof mermaid !== 'undefined') {
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+      }
+    });
+  </script>
+</head>
+<body>
+  <nav class="breadcrumb">
+    <div class="breadcrumb-content">
+      <a href="../../index.html">AI寺子屋トップ</a><span class="breadcrumb-separator">›</span><a href="../index.html">機械学習</a><span class="breadcrumb-separator">›</span><a href="./index.html">PyTorch Geometric入門</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">第4章</span>
+    </div>
+  </nav>
+
+  <header>
+    <div class="header-content">
+      <h1>第4章：実世界への応用</h1>
+      <p class="subtitle">分子特性予測から本番デプロイまで — GNNを実践に活かす</p>
+      <div class="meta">
+        <span class="meta-item">📖 読了時間: 30-35分</span>
+        <span class="meta-item">📊 難易度: 上級</span>
+        <span class="meta-item">💻 コード例: 19個</span>
+        <span class="meta-item">📝 演習: 3問</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="chapter-description">
+      <p>この最終章では、これまで学んできたグラフニューラルネットワーク（Graph Neural Network、GNN）の知識を実世界の問題に応用します。創薬分野で重要な分子特性予測、引用ネットワーク分析、レコメンデーションシステム、大規模グラフの効率的な処理手法、モデルの解釈性向上、そして本番環境へのデプロイまで、実践的なコード例を通じて一気通貫で学びます。本シリーズの集大成として、GNNを実務で使いこなすための土台を固めましょう。</p>
+    </div>
+
+    <div class="learning-objectives">
+      <h2>学習目標</h2>
+      <ul>
+        <li>✅ GNNによる分子特性予測の考え方を理解する</li>
+        <li>✅ 引用ネットワーク分析の実践手法を知る</li>
+        <li>✅ グラフベースのレコメンデーションの基本を理解する</li>
+        <li>✅ 大規模グラフを扱う際の効率化手法（ミニバッチ、NeighborLoader等）を知る</li>
+        <li>✅ GNNモデルの解釈性向上手法を理解する</li>
+        <li>✅ 本番デプロイに向けた実践的な注意点を把握する</li>
+      </ul>
+    </div>
+
+    <h2 id="molecular-property">1. 分子特性予測（創薬への応用）</h2>
+
+    <p>創薬（Drug Discovery）分野では、候補化合物の物性（溶解度、毒性、生体膜透過性など）を実験前に予測できると、開発コストと時間を大幅に削減できます。分子は原子をノード、化学結合をエッジとする自然なグラフ構造を持つため、GNNは<strong>分子特性予測（Molecular Property Prediction）</strong>と非常に相性が良いタスクです。</p>
+
+    <h3>分子グラフの表現</h3>
+
+    <p>分子をグラフとして扱う場合、典型的には以下のように対応付けます。</p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>グラフ要素</th>
+          <th>分子の対応物</th>
+          <th>特徴量の例</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>ノード</td>
+          <td>原子</td>
+          <td>原子番号、価電子数、形式電荷、混成軌道</td>
+        </tr>
+        <tr>
+          <td>エッジ</td>
+          <td>化学結合</td>
+          <td>結合次数（単結合/二重結合/三重結合）、芳香族性</td>
+        </tr>
+        <tr>
+          <td>グラフ全体のラベル</td>
+          <td>分子物性</td>
+          <td>水溶解度、毒性、生体活性など</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="mermaid">
+graph LR
+  subgraph 分子グラフ
+    C1[炭素] -- 単結合 --> C2[炭素]
+    C2 -- 二重結合 --> O1[酸素]
+    C2 -- 単結合 --> C3[炭素]
+  end
+  分子グラフ --> POOL[グラフ全体を集約]
+  POOL --> PRED[物性値を予測]
+    </div>
+
+    <p>本節では、<strong>MoleculeNet</strong>ベンチマークに含まれる<strong>ESOL</strong>データセットを使い、分子の水溶解度（対数溶解度）を回帰予測するGNNモデルを実装します。ESOLは1,128個の小分子から構成され、SMILES記法（分子構造を文字列で表す記法）から原子・結合特徴量が自動生成されます。</p>
+
+    <div class="info-box">
+      <p><strong>💡 事前準備</strong></p>
+      <p>MoleculeNetデータセットは初回読み込み時にSMILES文字列を分子グラフへ変換するため、<code>rdkit</code>ライブラリとインターネット接続が必要です。以下のコマンドで事前にインストールしておきましょう。</p>
+    </div>
+
+    <pre><code class="language-bash">pip install rdkit
+</code></pre>
+
+    <h3>ESOLデータセットの読み込み</h3>
+
+    <pre><code class="language-python">import torch
+from torch_geometric.datasets import MoleculeNet
+
+dataset = MoleculeNet(root='/tmp/ESOL', name='ESOL')
+
+print(f"Dataset: {dataset}")
+print(f"Number of molecules: {len(dataset)}")
+print(f"Number of node features: {dataset.num_node_features}")
+print(f"Number of edge features: {dataset.num_edge_features}")
+
+sample = dataset[0]
+print(f"\nSample molecule: {sample}")
+print(f"SMILES: {sample.smiles}")
+print(f"Target (log solubility): {sample.y.item():.4f}")
+</code></pre>
+
+    <p><strong>出力例：</strong></p>
+
+    <pre><code>Dataset: ESOL(1128)
+Number of molecules: 1128
+Number of node features: 9
+Number of edge features: 3
+
+Sample molecule: Data(x=[32, 9], edge_index=[2, 68], edge_attr=[68, 3], y=[1, 1], smiles='OCC3OC(OCC2OC(OC(C#N)c1ccccc1)C(O)C(O)C2O)C(O)C(O)C3O')
+SMILES: OCC3OC(OCC2OC(OC(C#N)c1ccccc1)C(O)C(O)C2O)C(O)C(O)C3O
+Target (log solubility): -0.7700
+</code></pre>
+
+    <h3>GINを使った分子特性予測モデル</h3>
+
+    <p>分子特性予測では、<strong>GIN（Graph Isomorphism Network）</strong>という層がよく使われます。GINは理論的にWeisfeiler-Lehmanグラフ同型性テストと同等の識別力を持つように設計されており、分子のような小さく密な構造の違いを捉えるのに適しています。</p>
+
+    <p>$$\mathbf{x}_i^{(k+1)} = \text{MLP}^{(k)}\left((1 + \epsilon^{(k)}) \cdot \mathbf{x}_i^{(k)} + \sum_{j \in \mathcal{N}(i)} \mathbf{x}_j^{(k)}\right)$$</p>
+
+    <pre><code class="language-python">import torch
+import torch.nn.functional as F
+from torch.nn import Linear, Sequential, ReLU, BatchNorm1d
+from torch_geometric.nn import GINConv, global_mean_pool
+
+class MolecularGIN(torch.nn.Module):
+    def __init__(self, num_features, hidden_channels):
+        super().__init__()
+        nn1 = Sequential(Linear(num_features, hidden_channels), ReLU(),
+                          Linear(hidden_channels, hidden_channels), BatchNorm1d(hidden_channels))
+        self.conv1 = GINConv(nn1)
+
+        nn2 = Sequential(Linear(hidden_channels, hidden_channels), ReLU(),
+                          Linear(hidden_channels, hidden_channels), BatchNorm1d(hidden_channels))
+        self.conv2 = GINConv(nn2)
+
+        self.lin1 = Linear(hidden_channels, hidden_channels)
+        self.lin2 = Linear(hidden_channels, 1)  # 回帰タスクなので出力は1次元
+
+    def forward(self, x, edge_index, batch):
+        x = self.conv1(x, edge_index).relu()
+        x = self.conv2(x, edge_index).relu()
+
+        # グラフ全体を1つのベクトルに集約(グラフレベルのプーリング)
+        x = global_mean_pool(x, batch)
+
+        x = self.lin1(x).relu()
+        x = F.dropout(x, p=0.2, training=self.training)
+        x = self.lin2(x)
+        return x
+</code></pre>
+
+    <h3>学習と評価</h3>
+
+    <pre><code class="language-python">import torch
+from torch_geometric.datasets import MoleculeNet
+from torch_geometric.loader import DataLoader
+
+dataset = MoleculeNet(root='/tmp/ESOL', name='ESOL')
+dataset = dataset.shuffle()
+
+# 特徴量をfloatに統一(データセットにより整数型で格納されている場合があるため)
+for data in dataset:
+    data.x = data.x.float()
+
+train_size = int(len(dataset) * 0.8)
+train_dataset = dataset[:train_size]
+test_dataset = dataset[train_size:]
+
+train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+test_loader = DataLoader(test_dataset, batch_size=32)
+
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+model = MolecularGIN(num_features=dataset.num_node_features, hidden_channels=64).to(device)
+optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+criterion = torch.nn.MSELoss()
+
+def train():
+    model.train()
+    total_loss = 0
+    for batch in train_loader:
+        batch = batch.to(device)
+        optimizer.zero_grad()
+        out = model(batch.x, batch.edge_index, batch.batch)
+        loss = criterion(out.view(-1), batch.y.view(-1))
+        loss.backward()
+        optimizer.step()
+        total_loss += loss.item() * batch.num_graphs
+    return total_loss / len(train_loader.dataset)
+
+@torch.no_grad()
+def evaluate(loader):
+    model.eval()
+    total_mae = 0
+    for batch in loader:
+        batch = batch.to(device)
+        out = model(batch.x, batch.edge_index, batch.batch)
+        total_mae += (out.view(-1) - batch.y.view(-1)).abs().sum().item()
+    return total_mae / len(loader.dataset)
+
+for epoch in range(1, 101):
+    train_loss = train()
+    if epoch % 20 == 0:
+        test_mae = evaluate(test_loader)
+        print(f'Epoch {epoch:03d}, Train MSE: {train_loss:.4f}, Test MAE: {test_mae:.4f}')
+</code></pre>
+
+    <p><strong>出力例：</strong></p>
+
+    <pre><code>Epoch 020, Train MSE: 1.1832, Test MAE: 0.8214
+Epoch 040, Train MSE: 0.7145, Test MAE: 0.6839
+Epoch 060, Train MSE: 0.5203, Test MAE: 0.6215
+Epoch 080, Train MSE: 0.4109, Test MAE: 0.5981
+Epoch 100, Train MSE: 0.3542, Test MAE: 0.5820
+</code></pre>
+
+    <div class="info-box">
+      <p><strong>💡 実務での注意点</strong></p>
+      <p>実際の創薬プロジェクトでは、ESOLのような公開ベンチマークだけでなく、社内実験データとの統合、スキャフォールド分割（同じ骨格を持つ分子を訓練/テストに分けない検証手法）による汎化性能の厳密な評価が重要になります。ランダム分割は楽観的な精度になりやすいため注意してください。</p>
+    </div>
+
+    <h2 id="citation-network">2. 引用ネットワーク分析</h2>
+
+    <p>第1章ではCoraデータセットを使ってノード分類を行いました。本節では引用ネットワーク分析をさらに一歩進め、（1）ノード埋め込みの可視化による定性的な分析と、（2）まだ存在しない引用関係を予測する<strong>リンク予測（Link Prediction）</strong>を実装します。リンク予測は「この論文とあの論文は将来引用関係を持つ可能性が高い」といった関連論文推薦にそのまま応用できます。</p>
+
+    <h3>リンク予測タスクの設計</h3>
+
+    <p>リンク予測では、既知のエッジの一部を隠し、ノード埋め込みからエッジの存在確率を予測できるようにモデルを学習します。PyGの<code>RandomLinkSplit</code>を使うと、訓練・検証・テスト用にエッジを分割し、負例（存在しないエッジ）も自動生成できます。</p>
+
+    <pre><code class="language-python">import torch
+import torch.nn.functional as F
+from sklearn.metrics import roc_auc_score
+from torch_geometric.datasets import Planetoid
+from torch_geometric.transforms import RandomLinkSplit, NormalizeFeatures
+from torch_geometric.nn import GCNConv
+from torch_geometric.utils import negative_sampling
+
+dataset = Planetoid(root='/tmp/Cora', name='Cora', transform=NormalizeFeatures())
+data = dataset[0]
+
+split = RandomLinkSplit(num_val=0.05, num_test=0.1, is_undirected=True,
+                         add_negative_train_samples=False)
+train_data, val_data, test_data = split(data)
+
+print(f"Train edges: {train_data.edge_label_index.size(1)}")
+print(f"Val edges (pos+neg): {val_data.edge_label_index.size(1)}")
+print(f"Test edges (pos+neg): {test_data.edge_label_index.size(1)}")
+</code></pre>
+
+    <h3>エンコーダーとリンク予測モデル</h3>
+
+    <pre><code class="language-python">class LinkPredictionGCN(torch.nn.Module):
+    def __init__(self, in_channels, hidden_channels, out_channels):
+        super().__init__()
+        self.conv1 = GCNConv(in_channels, hidden_channels)
+        self.conv2 = GCNConv(hidden_channels, out_channels)
+
+    def encode(self, x, edge_index):
+        x = self.conv1(x, edge_index).relu()
+        x = self.conv2(x, edge_index)
+        return x
+
+    def decode(self, z, edge_label_index):
+        src, dst = edge_label_index
+        return (z[src] * z[dst]).sum(dim=-1)  # 内積でエッジスコアを計算
+
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+model = LinkPredictionGCN(dataset.num_features, 64, 32).to(device)
+optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+
+train_data = train_data.to(device)
+val_data = val_data.to(device)
+test_data = test_data.to(device)
+
+def train_step():
+    model.train()
+    optimizer.zero_grad()
+    z = model.encode(train_data.x, train_data.edge_index)
+
+    # 訓練エッジと同数の負例(存在しないエッジ)をサンプリング
+    neg_edge_index = negative_sampling(
+        edge_index=train_data.edge_index,
+        num_nodes=train_data.num_nodes,
+        num_neg_samples=train_data.edge_label_index.size(1),
+        method='sparse')
+
+    edge_label_index = torch.cat([train_data.edge_label_index, neg_edge_index], dim=-1)
+    edge_label = torch.cat([
+        train_data.edge_label,
+        train_data.edge_label.new_zeros(neg_edge_index.size(1))
+    ], dim=0)
+
+    out = model.decode(z, edge_label_index)
+    loss = F.binary_cross_entropy_with_logits(out, edge_label)
+    loss.backward()
+    optimizer.step()
+    return loss.item()
+
+@torch.no_grad()
+def eval_step(eval_data):
+    model.eval()
+    z = model.encode(eval_data.x, eval_data.edge_index)
+    out = model.decode(z, eval_data.edge_label_index).sigmoid()
+    return roc_auc_score(eval_data.edge_label.cpu().numpy(), out.cpu().numpy())
+
+for epoch in range(1, 101):
+    loss = train_step()
+    if epoch % 20 == 0:
+        val_auc = eval_step(val_data)
+        print(f'Epoch {epoch:03d}, Loss: {loss:.4f}, Val AUC: {val_auc:.4f}')
+
+test_auc = eval_step(test_data)
+print(f'\nTest AUC: {test_auc:.4f}')
+</code></pre>
+
+    <p><strong>出力例：</strong></p>
+
+    <pre><code>Epoch 020, Loss: 0.5842, Val AUC: 0.8215
+Epoch 040, Loss: 0.4931, Val AUC: 0.8603
+Epoch 060, Loss: 0.4520, Val AUC: 0.8791
+Epoch 080, Loss: 0.4288, Val AUC: 0.8874
+Epoch 100, Loss: 0.4109, Val AUC: 0.8902
+
+Test AUC: 0.8856
+</code></pre>
+
+    <p>AUC(Area Under the Curve、ROC曲線下の面積)が0.89前後であれば、モデルは正例(実在する引用)と負例(存在しない引用)をかなり良く区別できていると言えます。この仕組みは「この論文を読んでいる人へのおすすめ論文」のような機能にそのまま活用できます。</p>
+
+    <h3>ノード埋め込みの可視化</h3>
+
+    <p>学習済みモデルが獲得した埋め込み空間を2次元に圧縮して可視化すると、同じ分野の論文が近くに集まっているかを定性的に確認できます。</p>
+
+    <pre><code class="language-python">import matplotlib
+matplotlib.use('Agg')  # 画面表示なしでファイル保存するためのバックエンド
+import matplotlib.pyplot as plt
+from sklearn.decomposition import PCA
+
+model.eval()
+with torch.no_grad():
+    z = model.encode(data.x.to(device), data.edge_index.to(device)).cpu().numpy()
+
+pca = PCA(n_components=2)
+z_2d = pca.fit_transform(z)
+
+plt.figure(figsize=(8, 6))
+scatter = plt.scatter(z_2d[:, 0], z_2d[:, 1], c=data.y.numpy(), cmap='tab10', s=15)
+plt.legend(*scatter.legend_elements(), title="クラス", loc='best')
+plt.title('Coraノード埋め込みのPCA可視化')
+plt.xlabel('主成分1')
+plt.ylabel('主成分2')
+plt.tight_layout()
+plt.savefig('cora_embeddings.png', dpi=150)
+print("埋め込み可視化を cora_embeddings.png に保存しました")
+</code></pre>
+
+    <div class="success-box">
+      <p><strong>🎉 分析結果の読み方</strong></p>
+      <p>PCAプロットで同じ色(同じ研究分野)のノードがまとまったクラスタを形成していれば、GNNが引用関係から分野構造をうまく学習できている証拠です。クラスタが混ざり合っている場合は、層数やハイパーパラメータの見直しが必要かもしれません。</p>
+    </div>
+
+    <h2 id="recommendation">3. レコメンデーションシステム</h2>
+
+    <p>レコメンデーションシステム（Recommendation System）は、ユーザーとアイテムの相互作用（購入、視聴、評価など）を<strong>二部グラフ（Bipartite Graph）</strong>として表現することで、GNNの得意分野になります。ユーザーノードとアイテムノードの間にメッセージパッシングを行うことで、「似た嗜好を持つユーザーが好んだアイテム」の情報を自然に伝播できます。</p>
+
+    <h3>二部グラフの構築</h3>
+
+    <p>ここでは学習用に、ユーザーとアイテムの相互作用を模した合成データを作成します。ユーザーノードとアイテムノードを同じインデックス空間に配置し(アイテムのインデックスはユーザー数だけオフセット)、1つの同種グラフとして扱います。</p>
+
+    <pre><code class="language-python">import torch
+
+torch.manual_seed(0)
+
+num_users = 300
+num_items = 150
+num_raw_interactions = 3000
+
+user_ids = torch.randint(0, num_users, (num_raw_interactions,))
+item_ids = torch.randint(0, num_items, (num_raw_interactions,))
+
+# 重複する(user, item)ペアを除去
+interactions = torch.unique(torch.stack([user_ids, item_ids], dim=1), dim=0)
+num_interactions = interactions.size(0)
+print(f"ユニークな相互作用数: {num_interactions}")
+
+item_node_offset = num_users
+edge_user = interactions[:, 0]
+edge_item = interactions[:, 1] + item_node_offset
+num_nodes = num_users + num_items
+
+# 訓練/テストに8:2で分割
+perm = torch.randperm(num_interactions)
+train_size = int(num_interactions * 0.8)
+train_idx, test_idx = perm[:train_size], perm[train_size:]
+
+train_user, train_item = edge_user[train_idx], edge_item[train_idx]
+test_user, test_item = edge_user[test_idx], edge_item[test_idx]
+
+# メッセージパッシング用グラフは訓練用相互作用のみから構築(双方向)
+train_edge_index = torch.cat([
+    torch.stack([train_user, train_item], dim=0),
+    torch.stack([train_item, train_user], dim=0),
+], dim=1)
+
+print(f"訓練エッジ数(双方向込み): {train_edge_index.size(1)}")
+</code></pre>
+
+    <h3>グラフベースレコメンダーの実装</h3>
+
+    <p>ユーザー・アイテムそれぞれに学習可能な初期埋め込み(Embedding)を持たせ、GraphSAGE層で近傍情報を集約したのち、内積でスコアを計算します。学習には<strong>BPR損失（Bayesian Personalized Ranking Loss）</strong>を使い、「実際に相互作用したアイテム」のスコアが「ランダムに選んだ未相互作用アイテム」より高くなるように最適化します。</p>
+
+    <p>$$\mathcal{L}_{\text{BPR}} = -\sum_{(u, i, j)} \log \sigma(\hat{y}_{ui} - \hat{y}_{uj})$$</p>
+
+    <pre><code class="language-python">import torch.nn.functional as F
+from torch_geometric.nn import SAGEConv
+
+class GraphRecommender(torch.nn.Module):
+    def __init__(self, num_nodes, embedding_dim, hidden_dim):
+        super().__init__()
+        self.embedding = torch.nn.Embedding(num_nodes, embedding_dim)
+        self.conv1 = SAGEConv(embedding_dim, hidden_dim)
+        self.conv2 = SAGEConv(hidden_dim, hidden_dim)
+
+    def forward(self, edge_index):
+        x = self.embedding.weight
+        x = self.conv1(x, edge_index).relu()
+        x = self.conv2(x, edge_index)
+        return x
+
+    def score(self, z, users, items):
+        return (z[users] * z[items]).sum(dim=-1)
+
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+model = GraphRecommender(num_nodes, embedding_dim=32, hidden_dim=32).to(device)
+optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+
+train_edge_index_d = train_edge_index.to(device)
+train_user_d = train_user.to(device)
+train_item_d = train_item.to(device)
+
+def sample_negative_items(users):
+    # ユーザー数分、ランダムなアイテムを負例としてサンプリング
+    return torch.randint(0, num_items, (users.size(0),), device=users.device) + item_node_offset
+
+model.train()
+for epoch in range(1, 51):
+    optimizer.zero_grad()
+    z = model(train_edge_index_d)
+
+    pos_scores = model.score(z, train_user_d, train_item_d)
+    neg_items = sample_negative_items(train_user_d)
+    neg_scores = model.score(z, train_user_d, neg_items)
+
+    loss = -F.logsigmoid(pos_scores - neg_scores).mean()
+    loss.backward()
+    optimizer.step()
+
+    if epoch % 10 == 0:
+        print(f'Epoch {epoch:02d}, BPR Loss: {loss.item():.4f}')
+</code></pre>
+
+    <h3>Recall@Kによる評価</h3>
+
+    <pre><code class="language-python">@torch.no_grad()
+def recall_at_k(z, test_user, test_item, train_user, train_item, k=10, num_eval_users=50):
+    unique_test_users = torch.unique(test_user)[:num_eval_users]
+    hits, total = 0, 0
+
+    for u in unique_test_users:
+        true_items = test_item[test_user == u]
+        if true_items.numel() == 0:
+            continue
+
+        known_items = train_item[train_user == u] - item_node_offset
+        item_embeddings = z[item_node_offset: item_node_offset + num_items]
+        scores = (z[u] * item_embeddings).sum(dim=-1)
+        scores[known_items] = -1e9  # 既知の相互作用は推薦候補から除外
+
+        topk_items = torch.topk(scores, k).indices + item_node_offset
+        hit = any(t.item() in topk_items.tolist() for t in true_items)
+        hits += int(hit)
+        total += 1
+
+    return hits / total if total > 0 else 0.0
+
+model.eval()
+z = model(train_edge_index_d)
+recall = recall_at_k(z, test_user.to(device), test_item.to(device),
+                      train_user_d, train_item_d, k=10)
+print(f'Recall@10: {recall:.4f}')
+</code></pre>
+
+    <div class="warning-box">
+      <p><strong>⚠️ 合成データである点に注意</strong></p>
+      <p>ここで使用したユーザー・アイテムの相互作用は完全にランダムな合成データのため、Recall@10の絶対値自体には意味がありません。重要なのは、二部グラフの構築方法、GraphSAGEによるユーザー・アイテム埋め込みの学習、BPR損失によるランキング学習、Recall@Kでの評価という一連のコードパターンです。実データ(例: MovieLensの評価履歴)に適用する際も同じ構造をそのまま利用できます。</p>
+    </div>
+
+    <h2 id="large-graph">4. 大規模グラフの効率的処理</h2>
+
+    <p>Coraのような数千ノードのグラフであれば全ノードを一度にGPUメモリへ載せて学習する<strong>フルバッチ学習（Full-batch Training）</strong>が可能です。しかし、実務で扱うグラフはノード数が数百万〜数億に達することも珍しくありません。このような<strong>大規模グラフ（Large-scale Graph）</strong>では、全ノードとその特徴量をメモリに載せることが物理的に不可能になります。</p>
+
+    <h3>ミニバッチ学習と近傍サンプリング</h3>
+
+    <p>この問題を解決するのが<strong>近傍サンプリング（Neighbor Sampling）</strong>に基づくミニバッチ学習です。各ミニバッチでは、対象ノード（シードノード）を選び、そこから一定数の近傍ノードだけを層ごとにサンプリングして、必要な部分グラフのみを計算に使います。PyGでは<code>NeighborLoader</code>がこれを実現します。</p>
+
+    <div class="mermaid">
+graph TD
+  A[グラフ全体<br/>数百万ノード] --> B[シードノードを選択]
+  B --> C["1ホップ近傍を<br/>k1個サンプリング"]
+  C --> D["2ホップ近傍を<br/>k2個サンプリング"]
+  D --> E[必要な部分グラフのみで<br/>順伝播・逆伝播]
+    </div>
+
+    <p>ここでは大規模グラフの雰囲気をつかむため、5,000ノードの合成グラフを生成し、<code>NeighborLoader</code>によるミニバッチ学習を実装します。同じコードパターンは、ノード数が数百万に達する実際の大規模グラフ(例: ogbn-productsやReddit)にもそのまま適用できます。</p>
+
+    <pre><code class="language-python">import torch
+import torch.nn.functional as F
+from torch_geometric.data import Data
+from torch_geometric.utils import erdos_renyi_graph
+from torch_geometric.loader import NeighborLoader
+from torch_geometric.nn import SAGEConv
+
+torch.manual_seed(42)
+
+num_nodes = 5000
+num_features = 32
+num_classes = 5
+
+edge_index = erdos_renyi_graph(num_nodes, edge_prob=0.002, directed=False)
+x = torch.randn(num_nodes, num_features)
+y = torch.randint(0, num_classes, (num_nodes,))
+
+perm = torch.randperm(num_nodes)
+train_mask = torch.zeros(num_nodes, dtype=torch.bool)
+val_mask = torch.zeros(num_nodes, dtype=torch.bool)
+test_mask = torch.zeros(num_nodes, dtype=torch.bool)
+train_mask[perm[:3000]] = True
+val_mask[perm[3000:4000]] = True
+test_mask[perm[4000:]] = True
+
+data = Data(x=x, edge_index=edge_index, y=y,
+            train_mask=train_mask, val_mask=val_mask, test_mask=test_mask)
+
+print(data)
+print(f"平均次数: {data.num_edges / data.num_nodes:.2f}")
+</code></pre>
+
+    <h3>NeighborLoaderによるミニバッチ学習</h3>
+
+    <pre><code class="language-python">train_loader = NeighborLoader(
+    data,
+    num_neighbors=[10, 10],  # 各層でサンプリングする近傍数(1層目10個、2層目10個)
+    batch_size=256,
+    input_nodes=data.train_mask,
+    shuffle=True,
+)
+
+class SAGE(torch.nn.Module):
+    def __init__(self, in_channels, hidden_channels, out_channels):
+        super().__init__()
+        self.conv1 = SAGEConv(in_channels, hidden_channels)
+        self.conv2 = SAGEConv(hidden_channels, out_channels)
+
+    def forward(self, x, edge_index):
+        x = self.conv1(x, edge_index).relu()
+        x = F.dropout(x, p=0.5, training=self.training)
+        x = self.conv2(x, edge_index)
+        return x
+
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+model = SAGE(num_features, hidden_channels=64, out_channels=num_classes).to(device)
+optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+
+model.train()
+for epoch in range(1, 6):
+    total_loss = 0
+    for batch in train_loader:
+        batch = batch.to(device)
+        optimizer.zero_grad()
+        out = model(batch.x, batch.edge_index)
+
+        # NeighborLoaderのバッチでは、先頭batch.batch_size個がシードノード
+        loss = F.cross_entropy(out[:batch.batch_size], batch.y[:batch.batch_size])
+        loss.backward()
+        optimizer.step()
+        total_loss += loss.item() * batch.batch_size
+
+    avg_loss = total_loss / int(data.train_mask.sum())
+    print(f'Epoch {epoch:02d}, Loss: {avg_loss:.4f}')
+</code></pre>
+
+    <p><strong>出力例：</strong></p>
+
+    <pre><code>Epoch 01, Loss: 1.6132
+Epoch 02, Loss: 1.5890
+Epoch 03, Loss: 1.5701
+Epoch 04, Loss: 1.5523
+Epoch 05, Loss: 1.5388
+</code></pre>
+
+    <div class="info-box">
+      <p><strong>💡 なぜシードノードが先頭に来るのか</strong></p>
+      <p><code>NeighborLoader</code>が生成するミニバッチでは、サンプリング元となったシードノードが常に<code>batch.x</code>の先頭<code>batch.batch_size</code>個に配置される設計になっています。これにより、損失計算時にシードノードだけを簡単に取り出せます。近傍ノードはメッセージパッシングのためだけに含まれており、それ自体の予測損失は計算しません。</p>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>手法</th>
+          <th>メモリ使用量</th>
+          <th>適したグラフ規模</th>
+          <th>PyGでの実装</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>フルバッチ学習</td>
+          <td>グラフ全体を保持</td>
+          <td>〜数万ノード</td>
+          <td>通常の<code>Data</code>を直接<code>model()</code>に渡す</td>
+        </tr>
+        <tr>
+          <td>近傍サンプリング</td>
+          <td>サンプリングした部分グラフのみ</td>
+          <td>数百万〜数億ノード</td>
+          <td><code>NeighborLoader</code></td>
+        </tr>
+        <tr>
+          <td>クラスタリングベース</td>
+          <td>クラスタ単位のサブグラフ</td>
+          <td>非常に密なグラフ</td>
+          <td><code>ClusterGCNLoader</code></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2 id="interpretability">5. モデルの解釈性と可視化</h2>
+
+    <p>GNNは高い予測精度を達成できる一方で、「なぜその予測をしたのか」を説明することが難しいブラックボックスモデルになりがちです。特に創薬や医療などの意思決定に関わる領域では、<strong>モデルの解釈性（Interpretability）</strong>が実用上の必須要件になります。PyGは<code>torch_geometric.explain</code>モジュールで、代表的な説明手法である<strong>GNNExplainer</strong>を提供しています。</p>
+
+    <h3>GNNExplainerによる予測根拠の可視化</h3>
+
+    <p>GNNExplainerは、特定ノードの予測に対して「どのエッジ」と「どの特徴量」が重要だったかを、小さなマスク(重み)を学習することで明らかにします。</p>
+
+    <pre><code class="language-python">import torch
+import torch.nn.functional as F
+from torch_geometric.datasets import Planetoid
+from torch_geometric.nn import GCNConv
+from torch_geometric.explain import Explainer, GNNExplainer
+
+dataset = Planetoid(root='/tmp/Cora', name='Cora')
+data = dataset[0]
+
+class GCN(torch.nn.Module):
+    def __init__(self, num_features, num_classes):
+        super().__init__()
+        self.conv1 = GCNConv(num_features, 16)
+        self.conv2 = GCNConv(16, num_classes)
+
+    def forward(self, x, edge_index):
+        x = self.conv1(x, edge_index).relu()
+        x = F.dropout(x, p=0.5, training=self.training)
+        x = self.conv2(x, edge_index)
+        return x
+
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+model = GCN(dataset.num_features, dataset.num_classes).to(device)
+data = data.to(device)
+optimizer = torch.optim.Adam(model.parameters(), lr=0.01, weight_decay=5e-4)
+
+# 簡易学習(解釈性デモのため短めのエポック数)
+model.train()
+for epoch in range(100):
+    optimizer.zero_grad()
+    out = model(data.x, data.edge_index)
+    loss = F.cross_entropy(out[data.train_mask], data.y[data.train_mask])
+    loss.backward()
+    optimizer.step()
+
+print(f"Final train loss: {loss.item():.4f}")
+</code></pre>
+
+    <pre><code class="language-python">explainer = Explainer(
+    model=model,
+    algorithm=GNNExplainer(epochs=200),
+    explanation_type='model',
+    node_mask_type='attributes',
+    edge_mask_type='object',
+    model_config=dict(
+        mode='multiclass_classification',
+        task_level='node',
+        return_type='raw',
+    ),
+)
+
+# ノード10番の予測根拠を説明
+node_index = 10
+explanation = explainer(data.x, data.edge_index, index=node_index)
+
+print(f"説明対象ノード: {node_index}")
+print(f"重要な特徴量マスクの形状: {explanation.node_mask.shape}")
+print(f"重要なエッジマスクの形状: {explanation.edge_mask.shape}")
+
+# 重要度の高い特徴量トップ5
+top_features = explanation.node_mask[node_index].topk(5)
+print(f"\n重要度の高い特徴量インデックス: {top_features.indices.tolist()}")
+print(f"重要度スコア: {[round(v, 4) for v in top_features.values.tolist()]}")
+
+# 重要度の高いエッジトップ5
+top_edges = explanation.edge_mask.topk(5)
+print(f"\n重要度の高いエッジのインデックス: {top_edges.indices.tolist()}")
+</code></pre>
+
+    <p><strong>出力例：</strong></p>
+
+    <pre><code>説明対象ノード: 10
+重要な特徴量マスクの形状: torch.Size([2708, 1433])
+重要なエッジマスクの形状: torch.Size([10556])
+
+重要度の高い特徴量インデックス: [19, 142, 501, 88, 973]
+重要度スコア: [0.8123, 0.7654, 0.7211, 0.6987, 0.6544]
+
+重要度の高いエッジのインデックス: [3421, 128, 5502, 891, 2077]
+</code></pre>
+
+    <h3>説明サブグラフの可視化</h3>
+
+    <pre><code class="language-python">import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import networkx as nx
+from torch_geometric.utils import to_networkx
+
+# 重要度上位のエッジだけを抜き出したサブグラフを可視化
+threshold = explanation.edge_mask.topk(15).values.min()
+important_edge_mask = explanation.edge_mask >= threshold
+important_edges = data.edge_index[:, important_edge_mask].cpu()
+
+involved_nodes = torch.unique(important_edges).tolist()
+if node_index not in involved_nodes:
+    involved_nodes.append(node_index)
+
+subgraph = nx.Graph()
+subgraph.add_nodes_from(involved_nodes)
+for src, dst in important_edges.t().tolist():
+    subgraph.add_edge(src, dst)
+
+colors = ['#e74c3c' if n == node_index else '#3498db' for n in subgraph.nodes()]
+
+plt.figure(figsize=(7, 6))
+nx.draw(subgraph, node_color=colors, with_labels=True, node_size=400,
+        font_size=8, font_color='white')
+plt.title(f'ノード{node_index}の予測に重要なサブグラフ')
+plt.savefig('gnn_explanation.png', dpi=150, bbox_inches='tight')
+print("説明サブグラフを gnn_explanation.png に保存しました")
+</code></pre>
+
+    <div class="success-box">
+      <p><strong>🎉 解釈性がもたらす価値</strong></p>
+      <p>このように「予測に効いた近傍論文」を可視化できると、モデルの判断が妥当かをドメイン専門家がレビューできるようになります。分子特性予測であれば「毒性に寄与した部分構造」、レコメンデーションであれば「推薦の決め手になった類似ユーザーの行動」を示すことができ、モデルへの信頼性向上につながります。</p>
+    </div>
+
+    <h2 id="deployment">6. 本番環境へのデプロイ</h2>
+
+    <p>研究・実験段階で高精度なGNNモデルが完成しても、それを本番環境(Production Environment)で安定的に稼働させるには、学習時とは異なる考慮事項が数多くあります。ここでは分子特性予測モデル(第1節のESOLモデル)を例に、実務でのデプロイパターンを解説します。</p>
+
+    <h3>推論用モデルの保存とロード</h3>
+
+    <pre><code class="language-python">import torch
+
+# モデルの重みだけを保存(推奨される保存方法)
+torch.save(model.state_dict(), 'molecular_gin_esol.pt')
+
+# ロード時はモデル構造を再定義してから重みを読み込む
+loaded_model = MolecularGIN(num_features=9, hidden_channels=64)
+loaded_model.load_state_dict(torch.load('molecular_gin_esol.pt', map_location='cpu'))
+loaded_model.eval()
+
+print("モデルのロードが完了しました")
+</code></pre>
+
+    <h3>SMILESから予測までの推論パイプライン</h3>
+
+    <p>本番環境では、学習時と同じ前処理(SMILES文字列から分子グラフへの変換)を推論時にも再現する必要があります。前処理と後処理を1つの関数にまとめておくと、デプロイ時の事故を防げます。</p>
+
+    <pre><code class="language-python">import torch
+from torch_geometric.datasets import MoleculeNet
+from torch_geometric.loader import DataLoader
+
+# MoleculeNetの特徴量抽出ロジックを再利用して、
+# 学習時と全く同じ前処理を1分子だけに適用する例
+def predict_solubility(model, molecule_data, device='cpu'):
+    """1分子分の推論を行うヘルパー関数
+
+    Args:
+        model: 学習済みのMolecularGINモデル(eval済み)
+        molecule_data: torch_geometric.data.Data (x, edge_index を含む)
+        device: 推論に使うデバイス
+
+    Returns:
+        float: 予測された対数溶解度
+    """
+    model = model.to(device)
+    molecule_data = molecule_data.to(device)
+
+    with torch.no_grad():
+        x = molecule_data.x.float()
+        # 単一グラフの場合、全ノードが同じグラフIDに属することを示すバッチベクトルが必要
+        batch = torch.zeros(x.size(0), dtype=torch.long, device=device)
+        pred = model(x, molecule_data.edge_index, batch)
+
+    return pred.item()
+
+# 検証用データセットの分子で推論パイプラインを確認
+dataset = MoleculeNet(root='/tmp/ESOL', name='ESOL')
+sample_molecule = dataset[0]
+
+prediction = predict_solubility(loaded_model, sample_molecule)
+print(f"SMILES: {sample_molecule.smiles}")
+print(f"予測された対数溶解度: {prediction:.4f}")
+print(f"実測値: {sample_molecule.y.item():.4f}")
+</code></pre>
+
+    <h3>本番デプロイのチェックリスト</h3>
+
+    <table>
+      <thead>
+        <tr>
+          <th>観点</th>
+          <th>注意点</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>前処理の再現性</td>
+          <td>学習時と推論時で特徴量抽出ロジック(原子・結合特徴量の定義、正規化パラメータ)を完全に一致させる。バージョン管理下に置く。</td>
+        </tr>
+        <tr>
+          <td>可変サイズ入力への対応</td>
+          <td>グラフはノード数・エッジ数が入力ごとに異なるため、固定形状を前提とするTorchScriptのトレース(<code>torch.jit.trace</code>)は形状依存のバグを起こしやすい。可能であれば<code>torch.jit.script</code>を使うか、動的形状に対応したサービング基盤を選ぶ。</td>
+        </tr>
+        <tr>
+          <td>バッチ推論</td>
+          <td>リクエストをまとめて<code>DataLoader</code>相当のバッチ化を行うことで、GPU利用効率を高められる。ただしレイテンシ要件とのトレードオフに注意。</td>
+        </tr>
+        <tr>
+          <td>コールドスタート・孤立ノード</td>
+          <td>近傍情報がない新規ノード(新規ユーザーや新規分子の未知部分構造)への対応方針をあらかじめ決めておく(デフォルト埋め込み、平均予測値へのフォールバックなど)。</td>
+        </tr>
+        <tr>
+          <td>モニタリング</td>
+          <td>入力分布のドリフト(訓練時と異なる分子骨格・グラフ規模の増加など)を監視し、精度劣化の兆候を早期に検知する。</td>
+        </tr>
+        <tr>
+          <td>バージョニング</td>
+          <td>モデルの重みだけでなく、特徴量抽出コードやハイパーパラメータもセットでバージョン管理し、ロールバック可能な状態を保つ。</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="warning-box">
+      <p><strong>⚠️ ONNXエクスポートに関する注意</strong></p>
+      <p>GNN特有のメッセージパッシング処理(散布・集約演算)は、標準的なONNX(Open Neural Network Exchange)オペレータに直接対応していない場合があります。ONNX化を検討する際は、使用するGNN層がエクスポート可能か事前に小規模なグラフで検証し、非対応の演算があればカスタムオペレータの実装やTorchScriptベースのサービングへの切り替えを検討してください。</p>
+    </div>
+
+    <h2 id="exercises">演習問題</h2>
+
+    <details>
+      <summary><strong>演習1：分子特性予測モデルの改良</strong></summary>
+      <p>本章で実装した<code>MolecularGIN</code>モデルに、エッジ特徴量(<code>edge_attr</code>、結合次数や芳香族性)を活用するステップを追加してください。ヒント: <code>torch_geometric.nn.GINEConv</code>はエッジ特徴量を扱えるGINの拡張版です。</p>
+
+      <details>
+        <summary>解答を見る</summary>
+        <pre><code class="language-python">import torch
+from torch.nn import Linear, Sequential, ReLU
+from torch_geometric.nn import GINEConv, global_mean_pool
+
+class MolecularGINE(torch.nn.Module):
+    def __init__(self, num_features, num_edge_features, hidden_channels):
+        super().__init__()
+        nn1 = Sequential(Linear(hidden_channels, hidden_channels), ReLU(),
+                          Linear(hidden_channels, hidden_channels))
+        # GINEConvは入力特徴量とエッジ特徴量の次元を揃える必要があるため、
+        # 事前に線形層で次元をそろえる
+        self.node_proj = Linear(num_features, hidden_channels)
+        self.edge_proj = Linear(num_edge_features, hidden_channels)
+        self.conv1 = GINEConv(nn1)
+
+        self.lin1 = Linear(hidden_channels, hidden_channels)
+        self.lin2 = Linear(hidden_channels, 1)
+
+    def forward(self, x, edge_index, edge_attr, batch):
+        x = self.node_proj(x)
+        edge_attr = self.edge_proj(edge_attr)
+        x = self.conv1(x, edge_index, edge_attr).relu()
+        x = global_mean_pool(x, batch)
+        x = self.lin1(x).relu()
+        x = self.lin2(x)
+        return x
+
+# 使用例:
+# model = MolecularGINE(num_features=9, num_edge_features=3, hidden_channels=64)
+# out = model(batch.x.float(), batch.edge_index, batch.edge_attr.float(), batch.batch)
+</code></pre>
+        <p>エッジ特徴量(結合の種類)を明示的に使うことで、単結合・二重結合・芳香環などの違いをモデルが区別しやすくなり、一般に予測精度の向上が期待できます。</p>
+      </details>
+    </details>
+
+    <details>
+      <summary><strong>演習2：NeighborLoaderのサンプリング数を変えた比較</strong></summary>
+      <p>第4節の合成大規模グラフの実験で、<code>num_neighbors=[10, 10]</code>を<code>num_neighbors=[5, 5]</code>と<code>num_neighbors=[25, 25]</code>に変更してそれぞれ学習し、1エポックあたりの学習時間と最終的な訓練損失を比較してください。近傍サンプリング数が精度と計算コストにどう影響するか、考察を加えてください。</p>
+
+      <details>
+        <summary>解答を見る</summary>
+        <pre><code class="language-python">import time
+import torch.nn.functional as F
+from torch_geometric.loader import NeighborLoader
+
+def run_experiment(data, num_neighbors, num_features, num_classes, device):
+    loader = NeighborLoader(
+        data, num_neighbors=num_neighbors, batch_size=256,
+        input_nodes=data.train_mask, shuffle=True,
+    )
+    model = SAGE(num_features, 64, num_classes).to(device)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+
+    start = time.time()
+    model.train()
+    total_loss = 0
+    for batch in loader:
+        batch = batch.to(device)
+        optimizer.zero_grad()
+        out = model(batch.x, batch.edge_index)
+        loss = F.cross_entropy(out[:batch.batch_size], batch.y[:batch.batch_size])
+        loss.backward()
+        optimizer.step()
+        total_loss += loss.item() * batch.batch_size
+    elapsed = time.time() - start
+    avg_loss = total_loss / int(data.train_mask.sum())
+    return elapsed, avg_loss
+
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+for neighbors in ([5, 5], [10, 10], [25, 25]):
+    elapsed, avg_loss = run_experiment(data, neighbors, num_features, num_classes, device)
+    print(f"num_neighbors={neighbors}: time={elapsed:.2f}s, loss={avg_loss:.4f}")
+</code></pre>
+        <p>一般に、近傍サンプリング数を増やすほど各バッチが参照する情報量が増えて訓練が安定しやすくなりますが、計算グラフが指数的に大きくなるため学習時間とメモリ使用量も増加します。実務ではこの精度と計算コストのトレードオフを見ながらサンプリング数を調整します。</p>
+      </details>
+    </details>
+
+    <details>
+      <summary><strong>演習3：GNNExplainerで別ノードの予測根拠を比較</strong></summary>
+      <p>第5節のコードを使い、正しく分類されたノードと誤分類されたノードをそれぞれ1つ選び、GNNExplainerで重要エッジ・特徴量を比較してください。誤分類されたノードでは、重要とされたエッジや特徴量にどのような違いが見られるか考察してください。</p>
+
+      <details>
+        <summary>解答を見る</summary>
+        <pre><code class="language-python">import torch
+
+model.eval()
+with torch.no_grad():
+    pred = model(data.x, data.edge_index).argmax(dim=1)
+
+correct_mask = (pred == data.y) &amp; data.test_mask
+incorrect_mask = (pred != data.y) &amp; data.test_mask
+
+correct_node = correct_mask.nonzero(as_tuple=True)[0][0].item()
+incorrect_candidates = incorrect_mask.nonzero(as_tuple=True)[0]
+
+if incorrect_candidates.numel() > 0:
+    incorrect_node = incorrect_candidates[0].item()
+
+    for label, node_idx in [("正しく分類", correct_node), ("誤分類", incorrect_node)]:
+        explanation = explainer(data.x, data.edge_index, index=node_idx)
+        top_edges = explanation.edge_mask.topk(5)
+        print(f"\n[{label}] ノード{node_idx}")
+        print(f"  真のラベル: {data.y[node_idx].item()}, 予測: {pred[node_idx].item()}")
+        print(f"  重要エッジのインデックス: {top_edges.indices.tolist()}")
+else:
+    print("テストセット中に誤分類ノードが見つかりませんでした(モデル精度が非常に高い場合に発生)")
+</code></pre>
+        <p>誤分類されたノードでは、重要とされたエッジが本来のクラスと異なるコミュニティのノードを指していたり、重要特徴量のスコアが全体的に低く(明確な根拠が乏しく)なっている傾向が観察されることがあります。これはモデルが近傍情報から十分な手がかりを得られなかったことを示唆しており、追加の特徴量エンジニアリングやグラフ構造の見直しのヒントになります。</p>
+      </details>
+    </details>
+
+    <h2 id="summary">まとめ</h2>
+
+    <p>この章では、GNNを実世界の問題に応用するための実践的な手法を学びました。</p>
+
+    <ul>
+      <li>✅ MoleculeNet(ESOL)とGINConvを使った分子特性予測(回帰タスク)</li>
+      <li>✅ RandomLinkSplitとGCNエンコーダーによる引用ネットワークのリンク予測、およびPCAによる埋め込み可視化</li>
+      <li>✅ 二部グラフとGraphSAGE、BPR損失を用いたグラフベースレコメンデーション</li>
+      <li>✅ NeighborLoaderによる近傍サンプリングを使った大規模グラフのミニバッチ学習</li>
+      <li>✅ GNNExplainerによる予測根拠の可視化とモデル解釈性の向上</li>
+      <li>✅ モデル保存・推論パイプライン構築、本番デプロイ時の実践的な注意点</li>
+    </ul>
+
+    <div class="success-box">
+      <p><strong>🎉 シリーズ全体の総括</strong></p>
+      <p>本シリーズでは、第1章でグラフデータの基礎概念とPyTorch Geometricの使い方を学ぶところから始まり、グラフ畳み込みの仕組み、多様なGNNアーキテクチャの実装を経て、この第4章で創薬・引用ネットワーク分析・レコメンデーション・大規模処理・解釈性・本番運用という実務に直結するテーマまでを一気通貫でカバーしました。グラフ構造データは分子、ソーシャルネットワーク、知識グラフ、交通網など私たちの身の回りに溢れています。ここで身につけた知識と実装パターンを土台に、ぜひ自分自身の課題にGNNを適用してみてください。</p>
+    </div>
+
+    <div class="navigation">
+      <a href="./chapter-3.html" class="nav-button">← 第3章</a>
+      <a href="./index.html" class="nav-button">シリーズ目次に戻る</a>
+    </div>
+
+    <hr style="margin: 2rem 0;">
+
+    <p><strong>参考リソース</strong></p>
+    <ul>
+      <li><a href="https://pytorch-geometric.readthedocs.io/" target="_blank">PyTorch Geometric公式ドキュメント</a></li>
+      <li><a href="https://pytorch-geometric.readthedocs.io/en/latest/tutorial/explain.html" target="_blank">PyG Explainability公式チュートリアル</a></li>
+      <li><a href="https://moleculenet.org/" target="_blank">MoleculeNet: ベンチマークデータセット</a></li>
+      <li><a href="https://arxiv.org/abs/1810.00826" target="_blank">GIN論文: How Powerful are Graph Neural Networks?</a></li>
+      <li><a href="https://arxiv.org/abs/1706.02216" target="_blank">GraphSAGE論文: Inductive Representation Learning on Large Graphs</a></li>
+    </ul>
+
+  </main>
+
+  <section class="disclaimer">
+    <h3>免責事項</h3>
+    <ul>
+      <li>本コンテンツは教育・研究・情報提供のみを目的としており、専門的な助言(法律・会計・技術的保証など)を提供するものではありません。</li>
+      <li>本コンテンツおよび付随するコード例は「現状有姿(AS IS)」で提供され、明示または黙示を問わず、商品性、特定目的適合性、権利非侵害、正確性・完全性、動作・安全性等いかなる保証もしません。</li>
+      <li>外部リンク、第三者が提供するデータ・ツール・ライブラリ等の内容・可用性・安全性について、作成者および東北大学は一切の責任を負いません。</li>
+      <li>本コンテンツの利用・実行・解釈により直接的・間接的・付随的・特別・結果的・懲罰的損害が生じた場合でも、適用法で許容される最大限の範囲で、作成者および東北大学は責任を負いません。</li>
+      <li>本コンテンツの内容は、予告なく変更・更新・提供停止されることがあります。</li>
+      <li>本コンテンツの著作権・ライセンスは明記された条件(例: CC BY 4.0)に従います。当該ライセンスは通常、無保証条項を含みます。</li>
+    </ul>
+  </section>
+
+  <footer>
+    <div class="container">
+      <p>&copy; 2025 AI Terakoya - Dr. Yusuke Hashimoto, Tohoku University</p>
+      <p>Licensed under CC BY 4.0</p>
+    </div>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,1211 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第2章：グラフ畳み込みネットワーク（GCN） - PyTorch Geometric入門 - AI Terakoya</title>
+  <meta name="description" content="メッセージパッシングとグラフ畳み込みの数理を理解し、PyTorch GeometricのGCNConvレイヤーでCoraデータセットのノード分類を実装する。学習ループ、評価指標、過学習対策までを実践的なコード例で解説します。">
+
+  <style>
+    :root {
+      --color-primary: #2c3e50;
+      --color-primary-dark: #1a252f;
+      --color-accent: #7b2cbf;
+      --color-accent-light: #9d4edd;
+      --color-text: #2d3748;
+      --color-text-light: #4a5568;
+      --color-bg: #ffffff;
+      --color-bg-alt: #f7fafc;
+      --color-border: #e2e8f0;
+      --color-code-bg: #f8f9fa;
+      --color-link: #3182ce;
+      --color-link-hover: #2c5aa0;
+
+      --spacing-xs: 0.5rem;
+      --spacing-sm: 1rem;
+      --spacing-md: 1.5rem;
+      --spacing-lg: 2rem;
+      --spacing-xl: 3rem;
+
+      --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+      --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+      --border-radius: 8px;
+      --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: var(--font-body);
+      line-height: 1.7;
+      color: var(--color-text);
+      background-color: var(--color-bg);
+      font-size: 16px;
+    }
+
+    header {
+      background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+      color: white;
+      padding: var(--spacing-xl) var(--spacing-md);
+      margin-bottom: var(--spacing-xl);
+      box-shadow: var(--box-shadow);
+    }
+
+    .header-content {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: var(--spacing-sm);
+      line-height: 1.2;
+    }
+
+    .subtitle {
+      font-size: 1.1rem;
+      opacity: 0.95;
+      font-weight: 400;
+      margin-bottom: var(--spacing-md);
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--spacing-md);
+      font-size: 0.9rem;
+      opacity: 0.9;
+    }
+
+    .meta-item {
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 var(--spacing-md) var(--spacing-xl);
+    }
+
+    h2 {
+      font-size: 1.75rem;
+      color: var(--color-primary);
+      margin-top: var(--spacing-xl);
+      margin-bottom: var(--spacing-md);
+      padding-bottom: var(--spacing-xs);
+      border-bottom: 3px solid var(--color-accent);
+    }
+
+    h3 {
+      font-size: 1.4rem;
+      color: var(--color-primary);
+      margin-top: var(--spacing-lg);
+      margin-bottom: var(--spacing-sm);
+    }
+
+    h4 {
+      font-size: 1.1rem;
+      color: var(--color-primary-dark);
+      margin-top: var(--spacing-md);
+      margin-bottom: var(--spacing-sm);
+    }
+
+    p {
+      margin-bottom: var(--spacing-md);
+      color: var(--color-text);
+    }
+
+    a {
+      color: var(--color-link);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    a:hover {
+      color: var(--color-link-hover);
+      text-decoration: underline;
+    }
+
+    ul, ol {
+      margin-left: var(--spacing-lg);
+      margin-bottom: var(--spacing-md);
+    }
+
+    li {
+      margin-bottom: var(--spacing-xs);
+      color: var(--color-text);
+    }
+
+    pre {
+      background-color: var(--color-code-bg);
+      border: 1px solid var(--color-border);
+      border-radius: var(--border-radius);
+      padding: var(--spacing-md);
+      overflow-x: auto;
+      margin-bottom: var(--spacing-md);
+      font-family: var(--font-mono);
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: 0.9em;
+      background-color: var(--color-code-bg);
+      padding: 0.2em 0.4em;
+      border-radius: 3px;
+    }
+
+    pre code {
+      background-color: transparent;
+      padding: 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: var(--spacing-md);
+      font-size: 0.95rem;
+    }
+
+    th, td {
+      border: 1px solid var(--color-border);
+      padding: var(--spacing-sm);
+      text-align: left;
+    }
+
+    th {
+      background-color: var(--color-bg-alt);
+      font-weight: 600;
+      color: var(--color-primary);
+    }
+
+    blockquote {
+      border-left: 4px solid var(--color-accent);
+      padding-left: var(--spacing-md);
+      margin: var(--spacing-md) 0;
+      color: var(--color-text-light);
+      font-style: italic;
+      background-color: var(--color-bg-alt);
+      padding: var(--spacing-md);
+      border-radius: var(--border-radius);
+    }
+
+    .mermaid {
+      text-align: center;
+      margin: var(--spacing-lg) 0;
+      background-color: var(--color-bg-alt);
+      padding: var(--spacing-md);
+      border-radius: var(--border-radius);
+    }
+
+    details {
+      background-color: var(--color-bg-alt);
+      border: 1px solid var(--color-border);
+      border-radius: var(--border-radius);
+      padding: var(--spacing-md);
+      margin-bottom: var(--spacing-md);
+    }
+
+    summary {
+      cursor: pointer;
+      font-weight: 600;
+      color: var(--color-primary);
+      user-select: none;
+      padding: var(--spacing-xs);
+      margin: calc(-1 * var(--spacing-md));
+      padding: var(--spacing-md);
+      border-radius: var(--border-radius);
+    }
+
+    summary:hover {
+      background-color: rgba(123, 44, 191, 0.1);
+    }
+
+    details[open] summary {
+      margin-bottom: var(--spacing-md);
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    .chapter-description {
+      margin: 1.5rem 0;
+      padding: 1rem;
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+      border-left: 4px solid #7b2cbf;
+      border-radius: 8px;
+      font-size: 1.05rem;
+      line-height: 1.8;
+      color: #2d3748;
+    }
+
+    .learning-objectives {
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+      padding: var(--spacing-lg);
+      border-radius: var(--border-radius);
+      border-left: 4px solid var(--color-accent);
+      margin-bottom: var(--spacing-xl);
+    }
+
+    .learning-objectives h2 {
+      margin-top: 0;
+      border-bottom: none;
+    }
+
+    .navigation {
+      display: flex;
+      justify-content: space-between;
+      gap: var(--spacing-md);
+      margin: var(--spacing-xl) 0;
+      padding-top: var(--spacing-lg);
+      border-top: 2px solid var(--color-border);
+    }
+
+    .nav-button {
+      flex: 1;
+      padding: var(--spacing-md);
+      background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+      color: white;
+      border-radius: var(--border-radius);
+      text-align: center;
+      font-weight: 600;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: var(--box-shadow);
+    }
+
+    .nav-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      text-decoration: none;
+    }
+
+    .nav-button.disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      background: #6c757d;
+    }
+
+    .nav-button.disabled:hover {
+      transform: none;
+      box-shadow: var(--box-shadow);
+    }
+
+    footer {
+      margin-top: var(--spacing-xl);
+      padding: var(--spacing-lg) var(--spacing-md);
+      background-color: var(--color-bg-alt);
+      border-top: 1px solid var(--color-border);
+      text-align: center;
+      font-size: 0.9rem;
+      color: var(--color-text-light);
+    }
+
+    .disclaimer {
+      max-width: 900px;
+      margin: 2rem auto;
+      padding: 1.5rem;
+      background: #f8f9fa;
+      border-left: 4px solid #6c757d;
+      border-radius: 4px;
+    }
+
+    .disclaimer h3 {
+      color: #495057;
+      margin-bottom: 1rem;
+      font-size: 1.1rem;
+    }
+
+    .disclaimer ul {
+      list-style: none;
+      padding-left: 0;
+    }
+
+    .disclaimer li {
+      padding: 0.5rem 0;
+      padding-left: 1.5rem;
+      position: relative;
+      font-size: 0.9rem;
+      color: #6c757d;
+      line-height: 1.6;
+    }
+
+    .disclaimer li::before {
+      content: "⚠️";
+      position: absolute;
+      left: 0;
+    }
+
+    /* Breadcrumb styles */
+    .breadcrumb {
+      background: #f7fafc;
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid #e2e8f0;
+      font-size: 0.9rem;
+    }
+
+    .breadcrumb-content {
+      max-width: 900px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .breadcrumb a {
+      color: #667eea;
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .breadcrumb a:hover {
+      color: #764ba2;
+      text-decoration: underline;
+    }
+
+    .breadcrumb-separator {
+      color: #a0aec0;
+      margin: 0 0.25rem;
+    }
+
+    .breadcrumb-current {
+      color: #4a5568;
+      font-weight: 500;
+    }
+
+    .info-box {
+      background: #e3f2fd;
+      border-left: 4px solid #2196f3;
+      padding: var(--spacing-md);
+      margin: var(--spacing-md) 0;
+      border-radius: var(--border-radius);
+    }
+
+    .warning-box {
+      background: #fff3e0;
+      border-left: 4px solid #ff9800;
+      padding: var(--spacing-md);
+      margin: var(--spacing-md) 0;
+      border-radius: var(--border-radius);
+    }
+
+    .success-box {
+      background: #e8f5e9;
+      border-left: 4px solid #4caf50;
+      padding: var(--spacing-md);
+      margin: var(--spacing-md) 0;
+      border-radius: var(--border-radius);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .container {
+        padding: 0 1rem 2rem;
+      }
+
+      h1 {
+        font-size: 1.6rem;
+      }
+
+      h2 {
+        font-size: 1.4rem;
+      }
+
+      .navigation {
+        flex-direction: column;
+      }
+    }
+  </style>
+
+  <!-- Mermaid for diagrams -->
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <!-- Prism.js for syntax highlighting -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+  <!-- MathJax for equations -->
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+  <script>
+    // Mermaid.js initialization
+    document.addEventListener('DOMContentLoaded', function() {
+      if (typeof mermaid !== 'undefined') {
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+      }
+    });
+  </script>
+</head>
+<body>
+  <nav class="breadcrumb">
+    <div class="breadcrumb-content">
+      <a href="../../index.html">AI寺子屋トップ</a><span class="breadcrumb-separator">›</span><a href="../index.html">機械学習</a><span class="breadcrumb-separator">›</span><a href="./index.html">PyTorch Geometric入門</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">第2章</span>
+    </div>
+  </nav>
+
+  <header>
+    <div class="header-content">
+      <h1>第2章：グラフ畳み込みネットワーク（GCN）</h1>
+      <p class="subtitle">メッセージパッシングの仕組みからCoraデータセットでのノード分類まで</p>
+      <div class="meta">
+        <span class="meta-item">📖 読了時間: 30-35分</span>
+        <span class="meta-item">📊 難易度: 中級</span>
+        <span class="meta-item">💻 コード例: 12個</span>
+        <span class="meta-item">📝 演習: 3問</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="chapter-description">
+      <p>第1章では、グラフデータの基本構造とPyTorch Geometric（PyG）の使い方を学びました。この章では一歩踏み込み、グラフニューラルネットワーク（GNN）の中核をなす<strong>メッセージパッシング（Message Passing）</strong>の仕組みと、その代表例である<strong>グラフ畳み込みネットワーク（Graph Convolutional Network、GCN）</strong>の数理的背景を学びます。そのうえで、PyGの<code>GCNConv</code>レイヤーを使い、実際の引用ネットワークデータセットであるCoraでノード分類タスクを実装し、学習・評価・過学習対策までを一通り体験します。</p>
+    </div>
+
+    <div class="learning-objectives">
+      <h2>学習目標</h2>
+      <ul>
+        <li>✅ メッセージパッシングの仕組みを説明できる</li>
+        <li>✅ グラフ畳み込みの数理的背景を理解する</li>
+        <li>✅ PyTorch GeometricのGCNConvレイヤーを使いこなせる</li>
+        <li>✅ Coraデータセットでノード分類タスクを実装できる</li>
+        <li>✅ 適切な評価指標でモデルを評価できる</li>
+        <li>✅ 過学習対策を実装できる</li>
+      </ul>
+    </div>
+
+    <h2 id="message-passing">1. メッセージパッシングの仕組み</h2>
+
+    <p><strong>メッセージパッシング（Message Passing）</strong>とは、グラフ上の各ノードが隣接ノードから情報（メッセージ）を受け取り、それらを集約して自分自身の特徴量を更新していく処理の枠組みです。ほとんどのグラフニューラルネットワーク（GCN、GraphSAGE、GAT等）はこのメッセージパッシングの枠組みの上に構築されています。</p>
+
+    <p>メッセージパッシングは、次の3つのステップから構成されます。</p>
+
+    <ul>
+      <li><strong>Message（メッセージ生成）</strong>: 各エッジについて、送信元ノードの特徴量（と必要に応じてエッジ特徴量）から「メッセージ」を計算する</li>
+      <li><strong>Aggregate（集約）</strong>: 各ノードが受け取った複数のメッセージを、総和・平均・最大値などの操作で1つのベクトルにまとめる</li>
+      <li><strong>Update（更新）</strong>: 集約されたメッセージと、ノード自身の現在の特徴量を使って、新しい特徴量を計算する</li>
+    </ul>
+
+    <div class="mermaid">
+graph TD
+  N1[隣接ノード1の特徴量] -->|メッセージ生成| M1[メッセージ m1]
+  N2[隣接ノード2の特徴量] -->|メッセージ生成| M2[メッセージ m2]
+  N3[隣接ノード3の特徴量] -->|メッセージ生成| M3[メッセージ m3]
+  M1 --> AGG[集約: 総和・平均・最大値]
+  M2 --> AGG
+  M3 --> AGG
+  AGG --> UPD[更新関数]
+  Ni[ノードiの現在の特徴量] --> UPD
+  UPD --> NEW[ノードiの新しい特徴量]
+    </div>
+
+    <p>この枠組みを数式で表すと、層 \(k\) におけるノード \(i\) の更新は次のようになります。</p>
+
+    <p>$$\mathbf{m}_{j \to i}^{(k)} = \text{MESSAGE}^{(k)}\left(\mathbf{x}_i^{(k-1)}, \mathbf{x}_j^{(k-1)}\right)$$</p>
+    <p>$$\mathbf{a}_i^{(k)} = \text{AGGREGATE}^{(k)}\left(\left\{\mathbf{m}_{j \to i}^{(k)} \mid j \in \mathcal{N}(i)\right\}\right)$$</p>
+    <p>$$\mathbf{x}_i^{(k)} = \text{UPDATE}^{(k)}\left(\mathbf{x}_i^{(k-1)}, \mathbf{a}_i^{(k)}\right)$$</p>
+
+    <p>ここで \(\mathcal{N}(i)\) はノード \(i\) の隣接ノード集合です。この3ステップを何度も繰り返す（層を重ねる）ことで、各ノードはより遠くのノードの情報まで間接的に取り込めるようになります。</p>
+
+    <h3>手作業でメッセージパッシングを体験する</h3>
+
+    <p>まずは<code>torch_geometric</code>のレイヤーを使わずに、素のPyTorchでメッセージパッシングの3ステップを実装してみましょう。</p>
+
+    <pre><code class="language-python">import torch
+
+# 4ノードのグラフ（有向エッジ: 0→1, 1→2, 0→2, 2→3, 1→3）
+edge_index = torch.tensor([
+    [0, 1, 0, 2, 1],  # 送信元（source）
+    [1, 2, 2, 3, 3]   # 送信先（destination）
+], dtype=torch.long)
+
+# 各ノードの初期特徴量（2次元）
+x = torch.tensor([
+    [1.0, 0.0],
+    [0.0, 1.0],
+    [1.0, 1.0],
+    [0.5, 0.5]
+], dtype=torch.float)
+
+num_nodes = x.size(0)
+src, dst = edge_index[0], edge_index[1]
+
+# Step 1: Message（ここでは送信元ノードの特徴量をそのままメッセージとする）
+messages = x[src]  # 形状: [num_edges, num_features]
+
+# Step 2: Aggregate（各終点ノードごとにメッセージを総和で集約）
+aggregated = torch.zeros(num_nodes, x.size(1))
+aggregated.index_add_(0, dst, messages)
+
+# Step 3: Update（今回は単純化のため、集約結果をそのまま新しい特徴量とする）
+x_new = aggregated
+
+print("集約前の特徴量:\n", x)
+print("\n集約後の特徴量（隣接ノードの情報を受け取った状態）:\n", x_new)
+</code></pre>
+
+    <p>このコードでは、<code>index_add_</code>を使ってエッジの終点ノードごとにメッセージを合計しています。実際のGCNでは、Step 1のメッセージ生成に線形変換と正規化係数を、Step 3の更新に活性化関数を組み込みます。</p>
+
+    <h3>MessagePassing基底クラスによる実装</h3>
+
+    <p>PyTorch Geometricは、この3ステップの枠組みを<code>torch_geometric.nn.MessagePassing</code>という基底クラスとして提供しています。<code>message()</code>と（必要なら）<code>update()</code>メソッドを定義するだけで、集約処理は<code>propagate()</code>が自動的に行ってくれます。</p>
+
+    <pre><code class="language-python">import torch
+from torch_geometric.nn import MessagePassing
+from torch_geometric.utils import add_self_loops, degree
+
+class SimpleGCNLayer(MessagePassing):
+    def __init__(self, in_channels, out_channels):
+        super().__init__(aggr='add')  # 集約方法: 総和
+        self.lin = torch.nn.Linear(in_channels, out_channels, bias=False)
+
+    def forward(self, x, edge_index):
+        # 自己ループを追加（自分自身の情報も集約に含める）
+        edge_index, _ = add_self_loops(edge_index, num_nodes=x.size(0))
+
+        # 線形変換
+        x = self.lin(x)
+
+        # 正規化係数の計算（次数の平方根の逆数）
+        row, col = edge_index
+        deg = degree(col, x.size(0), dtype=x.dtype)
+        deg_inv_sqrt = deg.pow(-0.5)
+        deg_inv_sqrt[deg_inv_sqrt == float('inf')] = 0
+        norm = deg_inv_sqrt[row] * deg_inv_sqrt[col]
+
+        # propagate()がmessage → aggregate → updateの順に自動的に呼び出す
+        return self.propagate(edge_index, x=x, norm=norm)
+
+    def message(self, x_j, norm):
+        # x_j: 送信元ノード（隣接ノード）の特徴量。PyGが自動的に集めてくれる
+        return norm.view(-1, 1) * x_j
+
+# 動作確認
+edge_index = torch.tensor([[0, 1, 1, 2],
+                           [1, 0, 2, 1]], dtype=torch.long)
+x = torch.tensor([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]], dtype=torch.float)
+
+layer = SimpleGCNLayer(in_channels=2, out_channels=4)
+out = layer(x, edge_index)
+print("出力形状:", out.shape)
+print("出力:\n", out)
+</code></pre>
+
+    <div class="info-box">
+      <p><strong>💡 x_iとx_jの命名規則</strong></p>
+      <p><code>MessagePassing</code>の<code>message()</code>メソッドでは、<code>x_i</code>が集約先（自分自身）のノード特徴量、<code>x_j</code>が集約元（隣接ノード）の特徴量を指す変数名として自動的に解決されます。この命名規則を知っておくと、PyGの公式実装や他の人が書いたカスタムレイヤーを読み解きやすくなります。</p>
+    </div>
+
+    <p>このコードは、後述するGCNConvレイヤーが内部で行っている処理をほぼそのまま再現したものです。実際のGCNConvはさらにキャッシュや数値安定性の工夫が加えられていますが、基本原理は同じです。</p>
+
+    <h2 id="math-background">2. グラフ畳み込みの数理的背景</h2>
+
+    <p>GCNは、Kipf &amp; Welling（2017）が提案した手法で、グラフ信号処理におけるスペクトルグラフ畳み込み（Spectral Graph Convolution）を1次近似することで、計算コストの低い実用的なレイヤーとして定式化されています。ここでは、実装上重要な「対称正規化」の考え方に絞って解説します。</p>
+
+    <h3>自己ループと正規化隣接行列</h3>
+
+    <p>ノード数を \(N\) とし、グラフの隣接行列を \(A \in \mathbb{R}^{N \times N}\) とします。GCNでは、各ノード自身の特徴量も集約に含めるため、単位行列 \(I_N\) を加えた<strong>自己ループ付き隣接行列（Adjacency Matrix with Self-loops）</strong>を使います。</p>
+
+    <p>$$\tilde{A} = A + I_N$$</p>
+
+    <p>次に、次数行列 \(\tilde{D}\) を対角行列として定義します。</p>
+
+    <p>$$\tilde{D}_{ii} = \sum_{j} \tilde{A}_{ij}$$</p>
+
+    <p>そして、次数の大きいノードの影響が過大にならないよう、対称正規化（Symmetric Normalization）を施します。</p>
+
+    <p>$$\hat{A} = \tilde{D}^{-\frac{1}{2}} \tilde{A} \tilde{D}^{-\frac{1}{2}}$$</p>
+
+    <p>この \(\hat{A}\) を使うと、GCNの層ごとの伝播規則は次のように書けます。</p>
+
+    <p>$$H^{(l+1)} = \sigma\left(\hat{A} H^{(l)} W^{(l)}\right)$$</p>
+
+    <p>ここで：</p>
+    <ul>
+      <li>\(H^{(l)} \in \mathbb{R}^{N \times d_l}\): 層 \(l\) におけるすべてのノードの特徴量行列</li>
+      <li>\(W^{(l)}\): 層 \(l\) の学習可能な重み行列</li>
+      <li>\(\sigma\): 活性化関数（ReLU等）</li>
+    </ul>
+
+    <p>この式の \(\hat{A} H^{(l)}\) の部分が、まさに前節のメッセージパッシングにおける「Aggregate」に対応します。対称正規化を使わない単純な総和では、次数の大きいノードほど値が大きくなりすぎて学習が不安定になりますが、\(\tilde{D}^{-1/2} \tilde{A} \tilde{D}^{-1/2}\) による正規化によってこれが緩和されます。</p>
+
+    <pre><code class="language-python">import numpy as np
+
+# 4ノードの無向グラフ（自己ループなし）
+A = np.array([
+    [0, 1, 1, 0],
+    [1, 0, 1, 1],
+    [1, 1, 0, 1],
+    [0, 1, 1, 0]
+], dtype=float)
+
+# 自己ループを追加: A_tilde = A + I
+I = np.eye(4)
+A_tilde = A + I
+
+# 次数行列 D_tilde
+D_tilde = np.diag(A_tilde.sum(axis=1))
+
+# 対称正規化: D_tilde^(-1/2) A_tilde D_tilde^(-1/2)
+D_inv_sqrt = np.diag(1.0 / np.sqrt(np.diag(D_tilde)))
+A_norm = D_inv_sqrt @ A_tilde @ D_inv_sqrt
+
+print("自己ループ付き隣接行列 A_tilde:\n", A_tilde)
+print("\n次数行列 D_tilde:\n", D_tilde)
+print("\n正規化された隣接行列 A_norm:\n", np.round(A_norm, 3))
+</code></pre>
+
+    <p>出力される<code>A_norm</code>の各要素は、GCNConvが内部で使う正規化係数と同じ値になります。次節で見るGCNConvレイヤーは、このスパースな正規化計算を効率的に（隣接行列を明示的に作らずエッジインデックスのまま）実行しています。</p>
+
+    <div class="info-box">
+      <p><strong>💡 層を重ねると何が起きるか（受容野）</strong></p>
+      <p>1層のGCNでは各ノードは1-hop（直接の隣接ノード）の情報しか得られませんが、層を重ねるごとに間接的に到達できるノードの範囲（<strong>受容野（Receptive Field）</strong>）が広がります。ただし層を重ねすぎると、すべてのノードの特徴量が似通ってしまう<strong>過平滑化（Over-smoothing）</strong>という問題が起きやすくなるため、一般的なGCNは2〜4層程度に留めることが多くなっています。</p>
+    </div>
+
+    <div class="mermaid">
+graph LR
+  L0[入力特徴量<br/>0-hop] --> L1[GCN層1の出力<br/>1-hop近傍を集約]
+  L1 --> L2[GCN層2の出力<br/>2-hop近傍まで伝播]
+  L2 --> L3[GCN層3の出力<br/>3-hop近傍まで伝播]
+    </div>
+
+    <h2 id="gcnconv-layer">3. GCNConvレイヤーの詳細</h2>
+
+    <p>PyTorch Geometricは、前節の数式をそのまま実装した<code>torch_geometric.nn.GCNConv</code>レイヤーを提供しています。自己ループの追加、対称正規化、線形変換をすべて内部で処理してくれるため、私たちはレイヤーを積み重ねるだけでGCNを構築できます。</p>
+
+    <h3>主なパラメータ</h3>
+
+    <table>
+      <thead>
+        <tr>
+          <th>パラメータ</th>
+          <th>デフォルト値</th>
+          <th>説明</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>in_channels</code></td>
+          <td>必須</td>
+          <td>入力特徴量の次元数</td>
+        </tr>
+        <tr>
+          <td><code>out_channels</code></td>
+          <td>必須</td>
+          <td>出力特徴量の次元数</td>
+        </tr>
+        <tr>
+          <td><code>improved</code></td>
+          <td><code>False</code></td>
+          <td><code>True</code>にすると自己ループの重みを2倍にする（\(\tilde{A} = A + 2I\)）</td>
+        </tr>
+        <tr>
+          <td><code>add_self_loops</code></td>
+          <td><code>True</code></td>
+          <td>自己ループを自動的に追加するかどうか</td>
+        </tr>
+        <tr>
+          <td><code>normalize</code></td>
+          <td><code>True</code></td>
+          <td>対称正規化を適用するかどうか</td>
+        </tr>
+        <tr>
+          <td><code>cached</code></td>
+          <td><code>False</code></td>
+          <td>正規化係数をキャッシュするかどうか（同一グラフを繰り返し使う場合に高速化できる）</td>
+        </tr>
+        <tr>
+          <td><code>bias</code></td>
+          <td><code>True</code></td>
+          <td>バイアス項を追加するかどうか</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <pre><code class="language-python">import torch
+from torch_geometric.nn import GCNConv
+
+conv = GCNConv(in_channels=16, out_channels=8)
+
+print("重み行列の形状:", conv.lin.weight.shape)
+print("バイアスの形状:", conv.bias.shape)
+print("学習可能パラメータ数:", sum(p.numel() for p in conv.parameters()))
+
+# 簡単なグラフでの動作確認
+x = torch.randn(5, 16)  # 5ノード、16次元特徴量
+edge_index = torch.tensor([[0, 1, 2, 3, 4, 0],
+                           [1, 2, 3, 4, 0, 2]], dtype=torch.long)
+
+out = conv(x, edge_index)
+print("\n出力形状:", out.shape)  # [5, 8]
+</code></pre>
+
+    <h3><code>improved</code>パラメータの効果を確認する</h3>
+
+    <p><code>improved=True</code>にすると、自己ループの重みを2倍にした \(\tilde{A} = A + 2I\) が使われます。これは自分自身の情報をより強く保持したい場合に有効な設定です。</p>
+
+    <pre><code class="language-python">import torch
+from torch_geometric.nn import GCNConv
+
+x = torch.tensor([[1.0], [2.0], [3.0]], dtype=torch.float)
+edge_index = torch.tensor([[0, 1, 1, 2],
+                           [1, 0, 2, 1]], dtype=torch.long)
+
+torch.manual_seed(42)
+conv_normal = GCNConv(1, 1, improved=False, add_self_loops=True)
+torch.manual_seed(42)
+conv_improved = GCNConv(1, 1, improved=True, add_self_loops=True)
+
+out_normal = conv_normal(x, edge_index)
+out_improved = conv_improved(x, edge_index)
+
+print("通常のGCNConv（improved=False）の出力:\n", out_normal)
+print("\nimproved=True の出力（自己ループの重みを2倍にした場合）:\n", out_improved)
+</code></pre>
+
+    <div class="warning-box">
+      <p><strong>⚠️ cached=Trueの注意点</strong></p>
+      <p><code>cached=True</code>は、Coraのように学習中グラフ構造が変化しない（トランスダクティブな）設定では便利ですが、ミニバッチ処理で毎回異なるサブグラフを渡すような場合には使うべきではありません。古いグラフに対する正規化係数がキャッシュされ続け、誤った結果を招くためです。</p>
+    </div>
+
+    <h2 id="node-classification">4. ノード分類タスクの実装（Coraデータセット）</h2>
+
+    <p>ここからは、第1章でも紹介した<strong>Cora</strong>データセットを使い、実際にGCNでノード分類（Node Classification）を実装します。Coraは2,708本の論文をノード、引用関係をエッジとする引用ネットワークで、各論文は1,433次元のBag-of-Words特徴量を持ち、7つの研究分野のいずれかに分類されます。</p>
+
+    <h3>3層GCNモデルの定義</h3>
+
+    <p>第1章では2層のシンプルなGCNを実装しましたが、ここでは中間層を2つ持つ3層のGCNを実装し、各層の間に<strong>Dropout</strong>（後述）を挿入します。最終層は活性化関数を通さず、生のロジット（Logit）をそのまま出力する点に注意してください。これは、後述する<code>CrossEntropyLoss</code>が内部でソフトマックス相当の処理を行うため、モデル側で確率化する必要がないからです。</p>
+
+    <pre><code class="language-python">import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from torch_geometric.datasets import Planetoid
+from torch_geometric.nn import GCNConv
+
+# Coraデータセットの読み込み
+dataset = Planetoid(root='/tmp/Cora', name='Cora')
+data = dataset[0]
+
+class GCN(nn.Module):
+    def __init__(self, num_features, hidden_channels, num_classes, dropout=0.5):
+        super().__init__()
+        self.conv1 = GCNConv(num_features, hidden_channels[0])
+        self.conv2 = GCNConv(hidden_channels[0], hidden_channels[1])
+        self.conv3 = GCNConv(hidden_channels[1], num_classes)
+        self.dropout = dropout
+
+    def forward(self, x, edge_index):
+        x = self.conv1(x, edge_index)
+        x = F.relu(x)
+        x = F.dropout(x, p=self.dropout, training=self.training)
+
+        x = self.conv2(x, edge_index)
+        x = F.relu(x)
+        x = F.dropout(x, p=self.dropout, training=self.training)
+
+        x = self.conv3(x, edge_index)  # 最終層はロジットをそのまま出力
+        return x
+
+model = GCN(num_features=dataset.num_features,
+            hidden_channels=[32, 16],
+            num_classes=dataset.num_classes)
+
+print(model)
+print(f"\n学習可能パラメータ数: {sum(p.numel() for p in model.parameters()):,}")
+</code></pre>
+
+    <p>このモデルは、1,433次元 → 32次元 → 16次元 → 7クラスという流れで特徴量を段階的に圧縮していきます。層を重ねるごとに、前節で説明した受容野が1-hop、2-hop、3-hopと広がっていきます。</p>
+
+    <h2 id="training-evaluation">5. 学習ループと評価指標</h2>
+
+    <h3>Adam最適化とCrossEntropyLossによる学習</h3>
+
+    <p>学習には<strong>Adam</strong>オプティマイザと<code>torch.nn.CrossEntropyLoss</code>を使います。<code>CrossEntropyLoss</code>は内部でソフトマックスと負の対数尤度損失を組み合わせて計算するため、モデルの出力は正規化前のロジットのままで問題ありません。</p>
+
+    <pre><code class="language-python">import torch
+import torch.nn as nn
+from torch_geometric.datasets import Planetoid
+
+# データとモデルの準備（前項で定義したGCNクラスを使用します）
+dataset = Planetoid(root='/tmp/Cora', name='Cora')
+data = dataset[0]
+
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+model = GCN(num_features=dataset.num_features,
+            hidden_channels=[32, 16],
+            num_classes=dataset.num_classes,
+            dropout=0.5).to(device)
+data = data.to(device)
+
+optimizer = torch.optim.Adam(model.parameters(), lr=0.01, weight_decay=5e-4)
+criterion = nn.CrossEntropyLoss()
+
+def train():
+    model.train()
+    optimizer.zero_grad()
+    out = model(data.x, data.edge_index)
+    loss = criterion(out[data.train_mask], data.y[data.train_mask])
+    loss.backward()
+    optimizer.step()
+    return loss.item()
+
+@torch.no_grad()
+def evaluate(mask):
+    model.eval()
+    out = model(data.x, data.edge_index)
+    pred = out.argmax(dim=1)
+    correct = (pred[mask] == data.y[mask]).sum().item()
+    return correct / mask.sum().item()
+
+for epoch in range(1, 201):
+    loss = train()
+    if epoch % 20 == 0:
+        train_acc = evaluate(data.train_mask)
+        val_acc = evaluate(data.val_mask)
+        print(f"Epoch {epoch:03d} | Loss: {loss:.4f} | Train Acc: {train_acc:.4f} | Val Acc: {val_acc:.4f}")
+
+test_acc = evaluate(data.test_mask)
+print(f"\nTest Accuracy: {test_acc:.4f}")
+</code></pre>
+
+    <p><strong>出力例：</strong></p>
+
+    <pre><code>Epoch 020 | Loss: 1.5893 | Train Acc: 0.7357 | Val Acc: 0.6660
+Epoch 040 | Loss: 0.9142 | Train Acc: 0.9214 | Val Acc: 0.7580
+Epoch 060 | Loss: 0.5271 | Train Acc: 0.9714 | Val Acc: 0.7740
+Epoch 080 | Loss: 0.3520 | Train Acc: 0.9857 | Val Acc: 0.7780
+Epoch 100 | Loss: 0.2647 | Train Acc: 0.9929 | Val Acc: 0.7820
+Epoch 120 | Loss: 0.2103 | Train Acc: 1.0000 | Val Acc: 0.7800
+Epoch 140 | Loss: 0.1782 | Train Acc: 1.0000 | Val Acc: 0.7760
+Epoch 160 | Loss: 0.1549 | Train Acc: 1.0000 | Val Acc: 0.7740
+Epoch 180 | Loss: 0.1401 | Train Acc: 1.0000 | Val Acc: 0.7720
+Epoch 200 | Loss: 0.1298 | Train Acc: 1.0000 | Val Acc: 0.7700
+
+Test Accuracy: 0.7930
+</code></pre>
+
+    <p>訓練精度（Train Acc）が100%に達している一方で、検証精度（Val Acc）はエポック100付近をピークに緩やかに下がり始めています。これは次節で扱う<strong>過学習（Overfitting）</strong>の典型的な兆候です。</p>
+
+    <h3>正解率だけでは見えないもの</h3>
+
+    <p>正解率（Accuracy）はモデル評価の基本指標ですが、クラスごとの性能差を隠してしまうことがあります。特にクラス間でサンプル数に偏りがある場合、少数派クラスをほとんど正解できていなくても全体の正解率は高く見えることがあります。そこで、クラスごとの性能を評価できる<strong>適合率（Precision）</strong>、<strong>再現率（Recall）</strong>、<strong>F1スコア（F1 Score）</strong>も併せて確認します。</p>
+
+    <ul>
+      <li><strong>適合率（Precision）</strong>: そのクラスと予測したもののうち、実際に正しかった割合</li>
+      <li><strong>再現率（Recall）</strong>: 実際にそのクラスであるもののうち、正しく予測できた割合</li>
+      <li><strong>F1スコア（F1 Score）</strong>: 適合率と再現率の調和平均</li>
+    </ul>
+
+    <pre><code class="language-python">from sklearn.metrics import classification_report, confusion_matrix
+
+@torch.no_grad()
+def detailed_evaluation(mask, mask_name):
+    model.eval()
+    out = model(data.x, data.edge_index)
+    pred = out.argmax(dim=1)
+
+    y_true = data.y[mask].cpu().numpy()
+    y_pred = pred[mask].cpu().numpy()
+
+    print(f"=== {mask_name}の評価指標 ===")
+    print(classification_report(y_true, y_pred, digits=3, zero_division=0))
+    print("混同行列（Confusion Matrix）:\n", confusion_matrix(y_true, y_pred))
+
+detailed_evaluation(data.test_mask, "テストデータ")
+</code></pre>
+
+    <div class="info-box">
+      <p><strong>💡 マクロ平均とマイクロ平均</strong></p>
+      <p><code>classification_report</code>が出力する<code>macro avg</code>は各クラスの指標を単純平均したもので、少数派クラスの性能低下も等しく反映されます。一方<code>weighted avg</code>はクラスごとのサンプル数で重み付けした平均です。クラス不均衡なデータセットでモデルを比較するときは、正解率だけでなく<code>macro avg</code>のF1スコアも確認する習慣をつけましょう。</p>
+    </div>
+
+    <h2 id="regularization">6. 過学習対策（Dropout、正則化）</h2>
+
+    <p>前節の学習曲線で見たように、訓練精度が100%に達しても検証精度が頭打ちになる（あるいは低下する）現象は<strong>過学習（Overfitting）</strong>と呼ばれます。Coraの標準的な分割では、訓練に使えるラベル付きノードはわずか140個（全体の約5%）しかないため、GCNは比較的過学習しやすい設定だといえます。ここでは代表的な2つの対策を確認します。</p>
+
+    <h3>Dropoutと重み減衰（weight_decay）</h3>
+
+    <p><strong>Dropout</strong>は、学習時にランダムに一部のユニットの出力を0にすることで、モデルが特定のノードや特徴量の組み合わせに過度に依存するのを防ぐ手法です。すでにこの章のGCNモデルにも<code>F.dropout</code>として組み込んでいます。</p>
+
+    <p>もう1つの代表的な対策が<strong>重み減衰（Weight Decay）</strong>、いわゆる<strong>L2正則化（L2 Regularization）</strong>です。損失関数に重みの二乗和を加えることで、大きすぎる重みにペナルティを与え、モデルを滑らかに保ちます。PyTorchでは<code>Adam</code>オプティマイザの<code>weight_decay</code>引数として簡単に指定できます。</p>
+
+    <p>これら2つの設定がある場合とない場合で、訓練精度とテスト精度の差（<strong>汎化ギャップ（Generalization Gap）</strong>）がどう変わるかを実験してみましょう。</p>
+
+    <pre><code class="language-python">import torch
+import torch.nn as nn
+from torch_geometric.datasets import Planetoid
+
+def run_experiment(dropout_rate, weight_decay, epochs=200, seed=0):
+    torch.manual_seed(seed)
+    dataset = Planetoid(root='/tmp/Cora', name='Cora')
+    data = dataset[0]
+
+    # GCNクラスは「4. ノード分類タスクの実装」で定義したものを使用します
+    model = GCN(num_features=dataset.num_features,
+                hidden_channels=[32, 16],
+                num_classes=dataset.num_classes,
+                dropout=dropout_rate)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.01, weight_decay=weight_decay)
+    criterion = nn.CrossEntropyLoss()
+
+    for epoch in range(epochs):
+        model.train()
+        optimizer.zero_grad()
+        out = model(data.x, data.edge_index)
+        loss = criterion(out[data.train_mask], data.y[data.train_mask])
+        loss.backward()
+        optimizer.step()
+
+    model.eval()
+    with torch.no_grad():
+        out = model(data.x, data.edge_index)
+        pred = out.argmax(dim=1)
+        train_acc = (pred[data.train_mask] == data.y[data.train_mask]).float().mean().item()
+        test_acc = (pred[data.test_mask] == data.y[data.test_mask]).float().mean().item()
+
+    return train_acc, test_acc
+
+# ケース1: 正則化なし（過学習しやすい設定）
+train_acc_no_reg, test_acc_no_reg = run_experiment(dropout_rate=0.0, weight_decay=0.0)
+
+# ケース2: Dropout + weight_decayあり
+train_acc_reg, test_acc_reg = run_experiment(dropout_rate=0.5, weight_decay=5e-4)
+
+print("設定                    | Train Acc | Test Acc | 汎化ギャップ")
+print("-" * 62)
+print(f"正則化なし               | {train_acc_no_reg:.4f}    | {test_acc_no_reg:.4f}   | {train_acc_no_reg - test_acc_no_reg:.4f}")
+print(f"Dropout + weight_decay   | {train_acc_reg:.4f}    | {test_acc_reg:.4f}   | {train_acc_reg - test_acc_reg:.4f}")
+</code></pre>
+
+    <p><strong>出力例：</strong></p>
+
+    <pre><code>設定                    | Train Acc | Test Acc | 汎化ギャップ
+--------------------------------------------------------------
+正則化なし               | 1.0000    | 0.7460   | 0.2540
+Dropout + weight_decay   | 1.0000    | 0.7930   | 0.2070
+
+</code></pre>
+
+    <p>正則化なしの設定では訓練精度が100%になる一方でテスト精度が伸び悩み、汎化ギャップが大きくなる傾向が確認できます。DropoutとL2正則化を併用すると、このギャップがある程度縮小します。</p>
+
+    <h3>早期終了（Early Stopping）</h3>
+
+    <p>もう1つの実用的な対策が<strong>早期終了（Early Stopping）</strong>です。検証データに対する損失（Validation Loss）を毎エポック監視し、一定エポック数（Patience）連続で改善しなければ学習を打ち切り、それまでで最も検証損失が低かった時点のモデルを採用します。</p>
+
+    <pre><code class="language-python">import copy
+import torch
+import torch.nn as nn
+from torch_geometric.datasets import Planetoid
+
+dataset = Planetoid(root='/tmp/Cora', name='Cora')
+data = dataset[0]
+
+model = GCN(num_features=dataset.num_features,
+            hidden_channels=[32, 16],
+            num_classes=dataset.num_classes,
+            dropout=0.5)
+optimizer = torch.optim.Adam(model.parameters(), lr=0.01, weight_decay=5e-4)
+criterion = nn.CrossEntropyLoss()
+
+best_val_loss = float('inf')
+patience = 20
+patience_counter = 0
+best_model_state = None
+
+for epoch in range(1, 301):
+    model.train()
+    optimizer.zero_grad()
+    out = model(data.x, data.edge_index)
+    loss = criterion(out[data.train_mask], data.y[data.train_mask])
+    loss.backward()
+    optimizer.step()
+
+    model.eval()
+    with torch.no_grad():
+        out = model(data.x, data.edge_index)
+        val_loss = criterion(out[data.val_mask], data.y[data.val_mask]).item()
+
+    if val_loss &lt; best_val_loss:
+        best_val_loss = val_loss
+        best_model_state = copy.deepcopy(model.state_dict())
+        patience_counter = 0
+    else:
+        patience_counter += 1
+
+    if patience_counter &gt;= patience:
+        print(f"Epoch {epoch}: 検証損失が{patience}エポック改善しなかったため学習を停止します")
+        break
+
+# 最も検証損失が低かった時点のモデルを復元
+model.load_state_dict(best_model_state)
+
+model.eval()
+with torch.no_grad():
+    out = model(data.x, data.edge_index)
+    pred = out.argmax(dim=1)
+    test_acc = (pred[data.test_mask] == data.y[data.test_mask]).float().mean().item()
+
+print(f"Early Stoppingによる最終テスト精度: {test_acc:.4f}")
+</code></pre>
+
+    <div class="success-box">
+      <p><strong>🎉 過学習対策の組み合わせ</strong></p>
+      <p>Dropout、weight_decay（L2正則化）、Early Stoppingは、それぞれ異なる角度から過学習を抑制します。実務では、この3つを組み合わせて使うことが一般的です。どの手法がどれだけ効いているかを個別に確認しながらチューニングすることで、限られたラベル付きデータからでも汎化性能の高いモデルを構築できます。</p>
+    </div>
+
+    <h2 id="exercises">演習問題</h2>
+
+    <details>
+      <summary><strong>演習1：メッセージパッシングの3ステップとGCNの対応関係</strong></summary>
+      <p>メッセージパッシングの3ステップ（Message、Aggregate、Update）を自分の言葉で説明したうえで、この章の数式 \(H^{(l+1)} = \sigma\left(\hat{A} H^{(l)} W^{(l)}\right)\) の中で、それぞれのステップがどこに対応するかを述べてください。</p>
+      <details>
+        <summary>解答を見る</summary>
+        <p><strong>Message</strong>: 各ノードの特徴量 \(H^{(l)}\) に重み行列 \(W^{(l)}\) を掛けて線形変換する部分（\(H^{(l)} W^{(l)}\)）が、隣接ノードに送るメッセージの生成に相当します。</p>
+        <p><strong>Aggregate</strong>: 正規化隣接行列 \(\hat{A}\) を掛ける部分（\(\hat{A} (H^{(l)} W^{(l)})\)）が、各ノードが隣接ノード（および自分自身）からのメッセージを重み付き総和で集約する処理に相当します。</p>
+        <p><strong>Update</strong>: 集約結果に活性化関数 \(\sigma\) を適用する部分が、集約されたメッセージから新しい特徴量を計算する更新処理に相当します。</p>
+      </details>
+    </details>
+
+    <details>
+      <summary><strong>演習2：合成データでの2層GCN実装</strong></summary>
+      <p>Coraデータセットを使わず、以下の条件を満たす合成データで2層のGCNを実装し、学習・評価してください。</p>
+      <ol>
+        <li>5ノードの環状グラフ（無向、各ノードが両隣とエッジで結ばれる）</li>
+        <li>各ノードは8次元の特徴量を持つ</li>
+        <li>2クラス分類タスクとする</li>
+        <li>CrossEntropyLossとAdamオプティマイザを使って100エポック学習する</li>
+      </ol>
+      <details>
+        <summary>解答を見る</summary>
+        <pre><code class="language-python">import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from torch_geometric.data import Data
+from torch_geometric.nn import GCNConv
+
+# 5ノードの合成グラフ（無向、環状構造）
+edge_index = torch.tensor([
+    [0, 1, 1, 2, 2, 3, 3, 4, 4, 0],
+    [1, 0, 2, 1, 3, 2, 4, 3, 0, 4]
+], dtype=torch.long)
+
+torch.manual_seed(0)
+x = torch.randn(5, 8)  # 5ノード、8次元特徴量
+y = torch.tensor([0, 1, 0, 1, 0], dtype=torch.long)  # 2クラス分類
+
+data = Data(x=x, edge_index=edge_index, y=y)
+
+class SmallGCN(nn.Module):
+    def __init__(self, in_channels, hidden_channels, num_classes):
+        super().__init__()
+        self.conv1 = GCNConv(in_channels, hidden_channels)
+        self.conv2 = GCNConv(hidden_channels, num_classes)
+
+    def forward(self, x, edge_index):
+        x = F.relu(self.conv1(x, edge_index))
+        x = F.dropout(x, p=0.3, training=self.training)
+        x = self.conv2(x, edge_index)
+        return x
+
+model = SmallGCN(in_channels=8, hidden_channels=4, num_classes=2)
+optimizer = torch.optim.Adam(model.parameters(), lr=0.05, weight_decay=1e-4)
+criterion = nn.CrossEntropyLoss()
+
+for epoch in range(100):
+    model.train()
+    optimizer.zero_grad()
+    out = model(data.x, data.edge_index)
+    loss = criterion(out, data.y)
+    loss.backward()
+    optimizer.step()
+
+model.eval()
+with torch.no_grad():
+    pred = model(data.x, data.edge_index).argmax(dim=1)
+    acc = (pred == data.y).float().mean().item()
+
+print(f"最終Loss: {loss.item():.4f}")
+print(f"精度: {acc:.4f}")
+</code></pre>
+        <p>ノード数が5と極端に少ないため、この例では訓練データそのものを評価にも使っています。実務では必ず訓練・検証・テストを分割してください。</p>
+      </details>
+    </details>
+
+    <details>
+      <summary><strong>演習3：Dropout率の比較実験</strong></summary>
+      <p>この章の「過学習対策」で定義した<code>run_experiment</code>関数を使い、Dropout率を0.0、0.3、0.5、0.7の4パターンで試して、テスト精度がどう変化するか比較してください。weight_decayは5e-4に固定してよいものとします。傾向について、あなたの考察を1〜2文で書いてください。</p>
+      <details>
+        <summary>解答を見る</summary>
+        <pre><code class="language-python">dropout_rates = [0.0, 0.3, 0.5, 0.7]
+results = {}
+
+for rate in dropout_rates:
+    train_acc, test_acc = run_experiment(dropout_rate=rate, weight_decay=5e-4)
+    results[rate] = (train_acc, test_acc)
+    print(f"dropout={rate}: Train Acc={train_acc:.4f}, Test Acc={test_acc:.4f}")
+</code></pre>
+        <p><strong>考察例</strong>: Dropout率が0に近いと訓練精度は非常に高くなる一方でテスト精度は伸び悩みやすく、0.5前後で最も良いテスト精度が得られる傾向があります。Dropout率を0.7まで上げすぎると、学習に必要な情報まで失われ、訓練・テストの両方の精度が下がることがあります。Dropout率は固定の正解があるわけではなく、データセットとモデルの規模に応じて調整すべきハイパーパラメータです。</p>
+      </details>
+    </details>
+
+    <h2 id="summary">まとめ</h2>
+
+    <p>この章では、メッセージパッシングの仕組みからGCNの数理的背景、そして実際のノード分類タスクの実装までを学びました。冒頭に掲げた学習目標を振り返ってみましょう。</p>
+
+    <ul>
+      <li>✅ <strong>メッセージパッシングの仕組みを説明できる</strong>: Message・Aggregate・Updateの3ステップと、<code>MessagePassing</code>基底クラスによる実装方法を学びました</li>
+      <li>✅ <strong>グラフ畳み込みの数理的背景を理解する</strong>: 自己ループ付き隣接行列と対称正規化、それらを用いた層ごとの伝播規則 \(H^{(l+1)} = \sigma(\hat{A} H^{(l)} W^{(l)})\) を確認しました</li>
+      <li>✅ <strong>PyTorch GeometricのGCNConvレイヤーを使いこなせる</strong>: 主要パラメータ（<code>improved</code>、<code>cached</code>、<code>normalize</code>等）の意味と使い分けを理解しました</li>
+      <li>✅ <strong>Coraデータセットでノード分類タスクを実装できる</strong>: 3層GCNモデルを定義し、Coraデータセットで実際に学習を行いました</li>
+      <li>✅ <strong>適切な評価指標でモデルを評価できる</strong>: 正解率に加えて、適合率・再現率・F1スコア・混同行列を用いた多角的な評価方法を学びました</li>
+      <li>✅ <strong>過学習対策を実装できる</strong>: Dropout、weight_decay（L2正則化）、Early Stoppingという3つの代表的な対策を実装し、その効果を比較しました</li>
+    </ul>
+
+    <div class="success-box">
+      <p><strong>🎉 次のステップ</strong></p>
+      <p>お疲れさまでした。GCNの仕組みと実装を一通り体験できました。次章では、隣接ノードの重要度を学習によって重み付けする<strong>注意機構（Attention Mechanism）</strong>を取り入れたグラフニューラルネットワークなど、より高度なアーキテクチャを扱う予定です。</p>
+    </div>
+
+    <div class="navigation">
+      <a href="./chapter-1.html" class="nav-button">← 第1章</a>
+      <a href="./index.html" class="nav-button">シリーズ目次</a>
+      <a href="./chapter-3.html" class="nav-button">第3章 →</a>
+    </div>
+
+    <hr style="margin: 2rem 0;">
+
+    <p><strong>参考リソース</strong></p>
+    <ul>
+      <li><a href="https://pytorch-geometric.readthedocs.io/" target="_blank">PyTorch Geometric公式ドキュメント</a></li>
+      <li><a href="https://pytorch-geometric.readthedocs.io/en/latest/notes/create_gnn.html" target="_blank">PyTorch Geometric公式チュートリアル: Creating Message Passing Networks</a></li>
+      <li><a href="https://github.com/pyg-team/pytorch_geometric" target="_blank">PyTorch Geometric GitHub</a></li>
+      <li><a href="https://arxiv.org/abs/1609.02907" target="_blank">GCN論文: Semi-Supervised Classification with Graph Convolutional Networks（Kipf &amp; Welling, 2017）</a></li>
+    </ul>
+
+  </main>
+
+  <section class="disclaimer">
+    <h3>免責事項</h3>
+    <ul>
+      <li>本コンテンツは教育・研究・情報提供のみを目的としており、専門的な助言(法律・会計・技術的保証など)を提供するものではありません。</li>
+      <li>本コンテンツおよび付随するコード例は「現状有姿(AS IS)」で提供され、明示または黙示を問わず、商品性、特定目的適合性、権利非侵害、正確性・完全性、動作・安全性等いかなる保証もしません。</li>
+      <li>外部リンク、第三者が提供するデータ・ツール・ライブラリ等の内容・可用性・安全性について、作成者および東北大学は一切の責任を負いません。</li>
+      <li>本コンテンツの利用・実行・解釈により直接的・間接的・付随的・特別・結果的・懲罰的損害が生じた場合でも、適用法で許容される最大限の範囲で、作成者および東北大学は責任を負いません。</li>
+      <li>本コンテンツの内容は、予告なく変更・更新・提供停止されることがあります。</li>
+      <li>本コンテンツの著作権・ライセンスは明記された条件(例: CC BY 4.0)に従います。当該ライセンスは通常、無保証条項を含みます。</li>
+    </ul>
+  </section>
+
+  <footer>
+    <div class="container">
+      <p>&copy; 2025 AI Terakoya - Dr. Yusuke Hashimoto, Tohoku University</p>
+      <p>Licensed under CC BY 4.0</p>
+    </div>
+  </footer>
+</body>
+</html>

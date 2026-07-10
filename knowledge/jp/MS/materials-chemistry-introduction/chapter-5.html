@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 5: Python実践：電子構造計算 - 材料化学入門</title>
+    <meta name="description" content="DFT（密度汎関数理論）の基礎、ASEによる結晶構造構築と構造最適化、Materials Project APIを用いたデータ駆動型材料探索、機械学習との統合まで。材料化学入門シリーズの集大成となる電子構造計算の実践。">
+
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", sans-serif; line-height: 1.8; color: #2c3e50; max-width: 1200px; margin: 0 auto; padding: 20px; background: #f8f9fa; }
+        h1, h2, h3 { color: #2c3e50; margin-top: 2rem; }
+        h1 { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 1.5rem; border-radius: 10px; }
+        h2 { border-left: 5px solid #f5576c; padding-left: 15px; background: linear-gradient(to right, rgba(245,87,108,0.1), transparent); }
+        .code-block { background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 8px; overflow-x: auto; margin: 1rem 0; }
+        .equation { background: #fff3cd; padding: 15px; border-left: 4px solid #ffc107; margin: 1rem 0; border-radius: 5px; }
+        .exercise { background: #e7f3ff; padding: 20px; border-left: 4px solid #2196F3; margin: 1.5rem 0; border-radius: 8px; }
+        .solution { background: #f0f0f0; padding: 15px; margin-top: 10px; border-radius: 5px; }
+        .reference { background: white; padding: 15px; margin: 10px 0; border-left: 3px solid #f5576c; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .mermaid { background: white; padding: 20px; border-radius: 10px; margin: 1.5rem 0; }
+        .note { background: #fff0f0; padding: 15px; border-left: 4px solid #f5576c; margin: 1rem 0; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Chapter 5: Python実践：電子構造計算</h1>
+
+    <p>第1章では化学結合を古典的なポテンシャルモデル（Madelung定数、Morseポテンシャル等）で、第2章ではLCAO法とタイトバインディング近似によりバンド構造を、第3章では結晶場理論により遷移金属錯体のd軌道分裂を、第4章ではGibbs自由エネルギーと正則溶体モデルにより相平衡を、それぞれ理解してきました。これらの理論はいずれも、電子や原子の振る舞いを何らかの近似・モデル化によって扱いやすくしたものでした。</p>
+
+    <p>しかし、実在する固体・分子の性質を定量的に予測するには、多数の電子が相互作用しながら運動する<strong>多体問題（Many-Body Problem）</strong>を、何らかの形で解く必要があります。この問題に対する最も成功した実用的解法が<strong>密度汎関数理論（Density Functional Theory, DFT）</strong>です。DFTは、複雑な多電子波動関数の代わりに、はるかに扱いやすい電子密度 $n(\mathbf{r})$ を基本変数として用いることで、経験的パラメータに頼らない<strong>第一原理計算（Ab Initio Calculation）</strong>として、材料の全エネルギー・電子構造・原子に働く力を計算することを可能にします。</p>
+
+    <p>本章はこのシリーズの最終章として、まずDFTの基礎概念を学びます。続いて<strong>ASE（Atomic Simulation Environment）</strong>というPythonライブラリを用いて結晶構造を構築・操作し、構造最適化と電子構造計算の一般的なワークフローを実際に手を動かして体験します。さらに、Materials Projectのような材料データベースを用いた<strong>データ駆動型材料探索（Data-Driven Materials Discovery）</strong>の考え方を学び、最後に第1章〜第4章で積み上げてきた知識が、機械学習を活用した現代の計算材料化学の中でどのようにつながっているかを総括します。</p>
+
+    <div class="reference" style="text-align: center;">
+        <p><strong>読了時間:</strong> 30-35分　｜　<strong>難易度:</strong> 上級　｜　<strong>コード例:</strong> 11本</p>
+    </div>
+
+    <div class="exercise">
+        <h3>この章の学習目標</h3>
+        <ul>
+            <li>DFTの基本的な考え方を理解する</li>
+            <li>ASEで結晶構造を構築・操作できる</li>
+            <li>電子構造計算の一般的なワークフローを理解する</li>
+            <li>データ駆動型材料探索の考え方を理解する</li>
+            <li>このシリーズで学んだ内容の全体像を統合的に理解する</li>
+        </ul>
+    </div>
+
+    <p style="text-align: center; margin: 1.5rem 0;">
+        <a href="chapter-4.html" style="color: #f5576c; text-decoration: none; font-weight: bold;">← 第4章</a>
+        <span style="color: #adb5bd; margin: 0 0.8rem;">|</span>
+        <a href="index.html" style="color: #f5576c; text-decoration: none; font-weight: bold;">シリーズ目次</a>
+    </p>
+
+    <h2>5.1 DFT（密度汎関数理論）の基礎概念</h2>
+    <p>N個の電子を含む系の基底状態を厳密に求めるには、$3N$次元の配置空間で定義された多体波動関数 $\Psi(\mathbf{r}_1, \ldots, \mathbf{r}_N)$ に関するSchrödinger方程式を解く必要があります。</p>
+
+    <div class="equation">
+        $$\hat{H}\Psi = \left[-\sum_i \frac{\hbar^2}{2m}\nabla_i^2 + \sum_i V_{ext}(\mathbf{r}_i) + \sum_{i \lt j}\frac{e^2}{|\mathbf{r}_i-\mathbf{r}_j|}\right]\Psi = E\Psi$$
+        <p>電子数 $N$ が数十を超えると、波動関数を直接扱う厳密解法は計算量が指数関数的に増大し、現実的な時間では解けなくなります。</p>
+    </div>
+
+    <p>この困難を回避する画期的な発想が、1964年にHohenbergとKohnによって示された2つの定理、<strong>Hohenberg-Kohn定理（Hohenberg-Kohn Theorems）</strong>です。</p>
+
+    <ul>
+        <li><strong>第一定理</strong>: 系の基底状態の電子密度 $n(\mathbf{r})$ は、外部ポテンシャル $V_{ext}(\mathbf{r})$（定数の違いを除いて）を一意に決定する。したがって、基底状態のすべての物理量は密度 $n(\mathbf{r})$ の汎関数として表せる。</li>
+        <li><strong>第二定理</strong>: 密度の汎関数として全エネルギー $E[n]$ を与える普遍的な汎関数が存在し、真の基底状態密度がこの汎関数を最小化する（変分原理）。</li>
+    </ul>
+
+    <p>これにより、$3N$次元の波動関数の代わりに、たった3次元の関数である電子密度 $n(\mathbf{r})$ を基本変数として扱えるようになりました。ただし、Hohenberg-Kohn定理はエネルギー汎関数の「存在」を保証するのみで、その具体形は与えません。1965年、KohnとShamは、相互作用する電子系のエネルギーを、相互作用しない補助的な電子系（<strong>Kohn-Sham系, Kohn-Sham System</strong>）が同じ密度を再現するように構成することで、実用的な計算スキームを与えました。これが<strong>Kohn-Sham方程式（Kohn-Sham Equations）</strong>です。</p>
+
+    <div class="equation">
+        $$\left[-\frac{\hbar^2}{2m}\nabla^2 + V_{eff}(\mathbf{r})\right]\psi_i(\mathbf{r}) = \epsilon_i \psi_i(\mathbf{r})$$
+        $$V_{eff}(\mathbf{r}) = V_{ext}(\mathbf{r}) + V_H(\mathbf{r}) + V_{xc}(\mathbf{r})$$
+        <p>$\psi_i$ はKohn-Sham軌道、$\epsilon_i$ はKohn-Sham固有値です。有効ポテンシャル $V_{eff}$ は、原子核による外部ポテンシャル $V_{ext}$、電子密度同士の古典的な静電反発を表す<strong>Hartreeポテンシャル</strong> $V_H(\mathbf{r}) = e^2\int n(\mathbf{r}')/|\mathbf{r}-\mathbf{r}'|\,d\mathbf{r}'$、そして量子力学的な交換・相関効果をすべて詰め込んだ<strong>交換相関ポテンシャル（Exchange-Correlation Potential）</strong> $V_{xc}(\mathbf{r}) = \delta E_{xc}[n]/\delta n(\mathbf{r})$ の和として表されます。</p>
+    </div>
+
+    <p>電子密度は占有されたKohn-Sham軌道から $n(\mathbf{r}) = \sum_i^{occ}|\psi_i(\mathbf{r})|^2$ として計算されますが、この密度は有効ポテンシャル $V_{eff}$（特に $V_H$ と $V_{xc}$）を決定するために必要であり、一方で $V_{eff}$ を解いて初めて $\psi_i$、ひいては $n(\mathbf{r})$ が求まります。この循環を解決するために、適当な初期密度から出発し、(1) 有効ポテンシャルを計算する、(2) Kohn-Sham方程式を対角化する、(3) 新しい密度を計算する、(4) 収束するまで(1)に戻る、というサイクルを繰り返します。これを<strong>自己無撞着場計算（Self-Consistent Field calculation, SCF）</strong>と呼びます。真の交換相関汎関数 $E_{xc}[n]$ は厳密には未知であり、実用計算では<strong>局所密度近似（Local Density Approximation, LDA）</strong>や<strong>一般化勾配近似（Generalized Gradient Approximation, GGA）</strong>（PBE汎関数がその代表例）といった近似汎関数が用いられます。</p>
+
+    <p>以下では、本物のDFT計算の代わりに、SCFサイクルの仕組みそのものを直感的に理解するための単純化されたトイモデル（教育目的の簡易模型）をPythonで実装します。1次元の調和ポテンシャル中に束縛された2電子系を考え、電子密度に依存する簡略化されたHartree的な平均場ポテンシャルのもとで、有限差分法によりSchrödinger方程式を反復的に解きます。ここでのHartree項は本物の積分ではなく局所密度に比例する模擬項である点に注意してください。それでも、密度→有効ポテンシャル→軌道→新しい密度、というSCFループの構造そのものは実際のDFT計算と同じです。</p>
+
+    <h3>Python実装: 自己無撞着場（SCF）計算のトイモデル</h3>
+    <pre class="code-block"><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+def solve_1d_schrodinger(V, x):
+    """1次元シュレーディンガー方程式を有限差分法で解く（原子単位系、hbar=m=1）"""
+    N = len(x)
+    dx = x[1] - x[0]
+    kinetic = np.zeros((N, N))
+    for i in range(N):
+        kinetic[i, i] = 2.0
+        if i &gt; 0:
+            kinetic[i, i - 1] = -1.0
+        if i &lt; N - 1:
+            kinetic[i, i + 1] = -1.0
+    kinetic /= (2 * dx**2)
+
+    H = kinetic + np.diag(V)
+    eigenvalues, eigenvectors = np.linalg.eigh(H)
+    eigenvectors = eigenvectors / np.sqrt(dx)  # 規格化: integral |psi|^2 dx = 1
+    return eigenvalues, eigenvectors
+
+
+def self_consistent_field(x, V_ext, U_hartree=0.3, n_electrons=2, max_iter=80, tol=1e-8, mix=0.3):
+    """
+    簡易的な自己無撞着場（SCF）計算のトイモデル。
+
+    実際のKohn-Sham DFTと同様に、電子密度に依存する有効ポテンシャルの下で
+    1電子方程式を解き、得られた密度で有効ポテンシャルを更新するサイクルを
+    収束するまで繰り返す。ここでのHartree項は本物の積分ではなく、
+    局所密度に比例する簡略化された模擬項である点に注意。
+    """
+    N = len(x)
+    dx = x[1] - x[0]
+    n = np.zeros(N)
+    energies_history = []
+
+    for iteration in range(max_iter):
+        V_eff = V_ext + U_hartree * n
+        eigenvalues, eigenvectors = solve_1d_schrodinger(V_eff, x)
+
+        n_new = np.zeros(N)
+        remaining = n_electrons
+        idx = 0
+        while remaining &gt; 0:
+            occ = min(2, remaining)
+            n_new += occ * eigenvectors[:, idx]**2
+            remaining -= occ
+            idx += 1
+
+        n_next = mix * n_new + (1 - mix) * n  # 単純混合でSCFの振動を抑制
+
+        E_band = _occupied_energy_sum(eigenvalues, n_electrons)
+        E_hartree_dc = 0.5 * U_hartree * np.sum(n_new**2) * dx  # 二重カウント補正
+        energies_history.append(E_band - E_hartree_dc)
+
+        if np.max(np.abs(n_next - n)) &lt; tol:
+            n = n_next
+            break
+        n = n_next
+
+    return n, eigenvalues, energies_history
+
+
+def _occupied_energy_sum(eigenvalues, n_electrons):
+    total, remaining, idx = 0.0, n_electrons, 0
+    while remaining &gt; 0:
+        occ = min(2, remaining)
+        total += occ * eigenvalues[idx]
+        remaining -= occ
+        idx += 1
+    return total
+
+
+# 計算格子: 1次元調和ポテンシャル中の2電子系（原子核による束縛を模擬）
+L, N = 6.0, 300
+x = np.linspace(-L, L, N)
+V_ext = 0.5 * x**2
+
+n_final, eigenvalues, energies_history = self_consistent_field(x, V_ext, U_hartree=0.3, n_electrons=2)
+n_noninteracting, ev0, _ = self_consistent_field(x, V_ext, U_hartree=0.0, n_electrons=2, max_iter=1)
+
+print(f"SCF収束までの反復回数: {len(energies_history)}")
+print(f"収束後の全エネルギー: {energies_history[-1]:.6f} (原子単位)")
+print(f"最低3軌道のKohn-Sham固有値: {np.round(eigenvalues[:3], 6)}")
+print(f"電子密度の規格化確認: integral n(x) dx = {np.trapezoid(n_final, x):.4f} (2電子系なので2に近いはず)")
+print(f"\n参考: 電子間相互作用なし(U=0)の最低軌道エネルギー = {ev0[0]:.6f}")
+print("調和振動子の厳密解（基底状態、m=omega=hbar=1）: E_0 = 0.5")
+print(f"→ 相互作用(U=0.3)により最低軌道エネルギーが {eigenvalues[0]-ev0[0]:.4f} だけ押し上げられている")
+print("  （電子間のCoulomb反発を模した項により、電子はより広がった状態を取る）")
+
+fig, axes = plt.subplots(1, 2, figsize=(13, 5.5))
+axes[0].plot(range(1, len(energies_history) + 1), energies_history, 'o-', color='#f5576c')
+axes[0].set_xlabel('SCF反復回数', fontsize=12)
+axes[0].set_ylabel('全エネルギー (原子単位)', fontsize=12)
+axes[0].set_title('SCFサイクルにおける全エネルギーの収束', fontsize=13, fontweight='bold')
+axes[0].grid(True, alpha=0.3)
+
+axes[1].plot(x, n_final, color='#f5576c', linewidth=2.5, label='自己無撞着密度 (U=0.3)')
+axes[1].plot(x, n_noninteracting, '--', color='#2c3e50', linewidth=2, label='相互作用なし (U=0)')
+axes[1].set_xlabel('位置 x (原子単位)', fontsize=12)
+axes[1].set_ylabel('電子密度 n(x)', fontsize=12)
+axes[1].set_title('収束後の電子密度分布', fontsize=13, fontweight='bold')
+axes[1].legend()
+axes[1].grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('scf_toy_model.png', dpi=300)
+plt.show()
+</code></pre>
+    <p><strong>実行結果</strong>: SCFサイクルは48回の反復で収束し（混合パラメータ0.3での単純混合を用いた場合）、電子密度は2電子分（積分値2.0000）に正しく規格化される。相互作用なし（$U=0$）の場合の最低軌道エネルギーは0.499950であり、調和振動子の厳密解 $E_0=0.5$ とよく一致する。電子間のCoulomb反発を模した項（$U=0.3$）を導入すると、最低軌道エネルギーは0.2284だけ押し上げられ、電子密度分布もより広がる。これは、実際のDFT計算においてHartree項・交換相関項が軌道エネルギーと密度分布に与える影響と定性的に対応している。</p>
+
+    <h2>5.2 ASE（Atomic Simulation Environment）の使い方</h2>
+    <p><strong>ASE（Atomic Simulation Environment）</strong>は、原子・分子・結晶構造の構築、操作、および様々な計算エンジン（EMT・GPAW・VASPなど）との連携を統一的なPython APIで扱うためのオープンソースライブラリです。ASEの中心となるのが<code>Atoms</code>オブジェクトで、原子の種類、位置座標、周期境界条件の有無、単位胞（<strong>格子ベクトル, Lattice Vectors</strong>）といった構造情報を一括して保持します。</p>
+
+    <p>単位胞から結晶構造を手作業で構築するには対称操作の知識が必要ですが、ASEの<code>ase.build.bulk()</code>関数を使うと、元素記号と結晶構造の名前（<code>'fcc'</code>、<code>'bcc'</code>、<code>'diamond'</code>、<code>'rocksalt'</code>など）を指定するだけで、代表的な結晶構造を1行で構築できます。</p>
+
+    <h3>Python実装: ASEによる各種結晶構造の構築</h3>
+    <pre class="code-block"><code class="language-python">import numpy as np
+from ase import Atoms
+from ase.build import bulk
+
+# 銅（FCC構造）のバルク結晶を構築
+cu = bulk('Cu', 'fcc', a=3.615)
+print("=== 銅(FCC)の単位胞 ===")
+print(f"化学式: {cu.get_chemical_formula()}")
+print(f"格子定数: {cu.cell.cellpar()}")
+print(f"原子数: {len(cu)}")
+print(f"体積: {cu.get_volume():.4f} A^3")
+
+# シリコン（ダイヤモンド構造）
+si = bulk('Si', 'diamond', a=5.431)
+print("\n=== シリコン(ダイヤモンド構造)の単位胞 ===")
+print(f"化学式: {si.get_chemical_formula()}")
+print(f"格子定数: {si.cell.cellpar()}")
+print(f"原子数: {len(si)}")
+
+# NaCl構造（岩塩型、2種類の原子を含む）
+nacl = bulk('NaCl', 'rocksalt', a=5.64)
+print("\n=== NaCl(岩塩構造)の単位胞 ===")
+print(f"化学式: {nacl.get_chemical_formula()}")
+print(f"原子位置(分率座標):\n{nacl.get_scaled_positions()}")
+</code></pre>
+    <p><strong>実行結果</strong>: 銅のFCC単位胞（<code>bulk()</code>のデフォルトは原子1個を含む原始格子）は体積11.8104 Å³、格子ベクトル間の角度は60°（菱面体晶系の記述）となる。シリコンのダイヤモンド構造は原子2個（<code>Si2</code>）を含む単位胞として構築され、NaCl構造はNaとClがそれぞれ (0, 0, 0) と (0.5, 0.5, 0.5) に配置された岩塩構造となる。第1章で学んだイオン結晶（NaCl型）と第2章で学んだ共有結合性の高いダイヤモンド構造を、同じ<code>bulk()</code>関数で統一的に扱えることが分かる。</p>
+
+    <p>実際の計算では、単位胞を繰り返して大きな<strong>スーパーセル（Supercell）</strong>を作ったり、原子位置を直接操作して格子欠陥や表面構造を模擬したりする必要があります。<code>Atoms</code>オブジェクトの<code>repeat()</code>メソッドと<code>positions</code>属性を使うと、これらの操作をNumPy配列と同じ感覚で行えます。</p>
+
+    <h3>Python実装: スーパーセルの作成と原子位置の操作</h3>
+    <pre class="code-block"><code class="language-python">import numpy as np
+from ase.build import bulk
+
+cu = bulk('Cu', 'fcc', a=3.615)
+
+# 2x2x2 スーパーセルの作成
+cu_super = cu.repeat((2, 2, 2))
+print("=== 銅の2x2x2スーパーセル ===")
+print(f"原子数: {len(cu_super)} (単位胞の{len(cu_super)//len(cu)}倍)")
+
+# 原子位置の直接操作：Cu原子を1つ変位させて格子欠陥を模擬
+cu_defect = cu_super.copy()
+displacement = np.array([0.1, 0.0, 0.0])
+cu_defect.positions[0] += displacement
+disp_check = np.linalg.norm(cu_defect.positions[0] - cu_super.positions[0])
+print(f"変位させた原子の移動量: {disp_check:.4f} A")
+
+# 原子番号・化学記号によるフィルタリング（NaCl構造でNaだけを抽出する例）
+nacl_super = bulk('NaCl', 'rocksalt', a=5.64).repeat((2, 2, 2))
+na_indices = [atom.index for atom in nacl_super if atom.symbol == 'Na']
+print(f"\nNaCl 2x2x2スーパーセル中のNa原子数: {len(na_indices)} / 全原子数: {len(nacl_super)}")
+</code></pre>
+    <p><strong>実行結果</strong>: <code>repeat((2, 2, 2))</code>により原子数が8倍（1原子から8原子）になったスーパーセルが得られる。<code>positions</code>属性はNumPy配列そのものなので、特定の原子を選んで座標を加算するだけで容易に構造を変形できる。<code>Atoms</code>オブジェクトはPythonのforループでも1原子ずつ走査でき、化学記号によるフィルタリングも直感的に書ける。このように構築した構造オブジェクトに、次節で計算エンジン（<strong>Calculator</strong>）を取り付けることで、エネルギー・力・構造最適化といった実際の計算が可能になる。</p>
+
+    <h2>5.3 結晶構造の最適化と電子構造計算のワークフロー</h2>
+    <p>ASEでの電子構造計算・構造最適化の典型的なワークフローは、次の3ステップに整理できます。</p>
+
+    <ol>
+        <li><code>Atoms</code>オブジェクトを構築する（前節の方法）</li>
+        <li><code>atoms.calc = Calculator()</code>として計算エンジン（Calculator）を取り付ける</li>
+        <li>最適化アルゴリズム（<code>BFGS</code>など）で原子位置・格子形状を緩和し、<code>get_potential_energy()</code>や<code>get_forces()</code>で物理量を取得する</li>
+    </ol>
+
+    <p>ここで鍵となるのが2番目のCalculatorの選択です。ASEはEMT（<strong>Effective Medium Theory, 有効媒質理論</strong>）のような高速な経験的ポテンシャルから、GPAW・VASP・Quantum ESPRESSOのような本格的なDFTコードまで、共通のインターフェースで切り替えて使えるように設計されています。EMTはNi・Cu・Pd・Ag・Pt・Al等の一部の金属に対してパラメータ化された非常に高速な経験的ポテンシャルであり、ワークフロー自体の学習や大まかな傾向の把握には有用ですが、DFTのような量子力学的精度は持ちません。以下ではまずEMTを用いて、格子定数の最適化と原子位置の構造緩和という2種類の最適化を実際に実行します。</p>
+
+    <h3>Python実装: 状態方程式(EOS)フィッティングとBFGS構造最適化</h3>
+    <pre class="code-block"><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+from ase.build import bulk
+from ase.calculators.emt import EMT
+from ase.optimize import BFGS
+from ase.eos import EquationOfState
+
+a0 = 3.615  # 銅の実験格子定数 (A)
+
+# 格子定数を掃引しながらEMT計算機でエネルギーを評価し、状態方程式(EOS)フィッティングで
+# 最安定な体積・格子定数・体積弾性率を求める
+volumes, energies = [], []
+for s in np.linspace(0.94, 1.06, 9):
+    atoms = bulk('Cu', 'fcc', a=a0 * s)
+    atoms.calc = EMT()
+    volumes.append(atoms.get_volume())
+    energies.append(atoms.get_potential_energy())
+
+eos = EquationOfState(volumes, energies, eos='birchmurnaghan')
+v0, E0, B = eos.fit()
+a_opt = (4 * v0) ** (1 / 3)          # FCC(原子1個/単位胞): V = a^3/4
+B_GPa = B * 160.2176634              # eV/A^3 -&gt; GPa の換算係数
+
+print("=== 状態方程式(EOS)フィッティングによる構造最適化 ===")
+print(f"EMTによる最適格子定数: {a_opt:.4f} A (実験値: {a0} A)")
+print(f"EMTによる体積弾性率: {B_GPa:.2f} GPa (実験値: 約140 GPa)")
+print(f"最安定体積での全エネルギー: {E0:.6f} eV/atom")
+
+# BFGS法(準ニュートン法)による原子位置の直接最適化
+# 2x2x2スーパーセルの1原子を人為的にずらし、力がゼロになるまで緩和する
+cu = bulk('Cu', 'fcc', a=a_opt).repeat((2, 2, 2))
+cu.calc = EMT()
+cu.positions[0] += [0.15, 0.10, 0.05]  # 格子欠陥を模した人為的な変位
+
+print(f"\n=== BFGS構造最適化 ===")
+print(f"最適化前の最大残留力: {np.max(np.abs(cu.get_forces())):.4f} eV/A")
+
+opt = BFGS(cu, logfile=None)
+opt.run(fmax=0.01)
+
+print(f"最適化後の最大残留力: {np.max(np.abs(cu.get_forces())):.6f} eV/A")
+print(f"最適化に要したステップ数: {opt.get_number_of_steps()}")
+
+# E-V曲線の可視化
+plt.figure(figsize=(9, 6))
+plt.plot(volumes, energies, 'o', color='#f093fb', markersize=9, label='EMT計算点')
+plt.axvline(v0, color='#f5576c', linestyle='--', label=f'最適体積 V0 = {v0:.3f} A^3/atom')
+plt.xlabel('体積 (A^3/atom)', fontsize=12)
+plt.ylabel('全エネルギー (eV/atom)', fontsize=12)
+plt.title('銅(FCC)の状態方程式(EOS)フィッティング', fontsize=14, fontweight='bold')
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.savefig('eos_cu_final.png', dpi=300)
+plt.show()
+</code></pre>
+    <p><strong>実行結果</strong>: EMTによる銅の最適格子定数は3.5900 Å（実験値3.615 Åとの誤差0.7%）、体積弾性率は133.01 GPa（実験値約140 GPaとの誤差5%程度）と、簡易的な経験的ポテンシャルとしては良好な一致を示す。一方、BFGS構造最適化では、人為的にずらした原子の残留力が1.28 eV/Åから0.0038 eV/Åまで12ステップで収束し、<strong>BFGS法（準ニュートン法, Quasi-Newton Method）</strong>が力の情報からヘシアン行列を逐次的に近似しながら効率よくエネルギー極小点を探索できることが確認できる。</p>
+
+    <div class="note">
+        <p><strong>注意（EMTの精度限界）</strong>: EMTはCu・Ni・Al等の少数の金属についてのみパラメータ化された経験的ポテンシャルであり、元素・結晶構造によっては精度が大きく低下する（本章末の演習問題2で、Alの体積弾性率がEMTでは実験値から50%以上ずれる例を確認します）。定量的な信頼性が必要な研究では、次に述べる本格的なDFT計算が不可欠です。</p>
+    </div>
+
+    <p>実際の材料科学研究で定量的な予測を行うには、EMTのような経験的ポテンシャルではなく、本格的なDFTコードが必要です。ASEは<strong>GPAW</strong>（<strong>PAW法, Projector Augmented-Wave method</strong>に基づくDFTコード）をはじめ、多数のDFTコードと連携できます。GPAWは平面波・実空間格子・LCAO基底のいずれでも計算できる柔軟なコードで、周期境界条件下の結晶に対するバンド構造・状態密度計算に適しています。以下は、GPAWを用いて銅のバンド構造と状態密度を計算する実装例です。<strong>この節のコードの実行にはGPAWの別途インストールが必要です</strong>（<code>conda install -c conda-forge gpaw</code> または <code>pip install gpaw</code> の後、擬ポテンシャル/PAWデータセットのセットアップが必要）。GPAW自体を導入すればこのコードはそのまま実行可能です。</p>
+
+    <h3>Python実装（要GPAWインストール）: 銅のバンド構造・状態密度計算</h3>
+    <pre class="code-block"><code class="language-python"># このコードの実行には GPAW のインストールが別途必要です:
+#   conda install -c conda-forge gpaw   (推奨)
+#   または pip install gpaw の後、`gpaw install-data` でPAWデータセットを取得
+# GPAWはmpi4py・libxc等の外部ライブラリに依存するため、Anaconda環境を推奨します。
+
+from ase.build import bulk
+from gpaw import GPAW, PW, FermiDirac
+
+# 銅(FCC)のバルク構造で自己無撞着(SCF)基底状態計算
+atoms = bulk('Cu', 'fcc', a=3.615)
+calc = GPAW(
+    mode=PW(400),                  # 平面波基底、カットオフエネルギー400 eV
+    kpts={'size': (8, 8, 8), 'gamma': True},  # k点サンプリング（ブリルアンゾーンの離散化）
+    xc='PBE',                      # 交換相関汎関数: GGA(PBE)
+    occupations=FermiDirac(0.05),  # 金属の有限温度フェルミ分布によるスメアリング
+    txt='cu_scf.txt'
+)
+atoms.calc = calc
+E_total = atoms.get_potential_energy()  # SCF計算を実行
+print(f"銅の全エネルギー: {E_total:.4f} eV")
+calc.write('cu_gs.gpw')  # 基底状態の波動関数を保存
+
+# バンド構造計算: 高対称点に沿った非自己無撞着(non-SCF)計算
+from ase.dft.kpoints import bandpath
+
+path = bandpath('GXWLGK', atoms.cell, npoints=100)  # 第一ブリルアンゾーンの高対称経路
+calc_bands = GPAW('cu_gs.gpw').fixed_density(
+    kpts=path, symmetry='off', txt='cu_bands.txt'
+)
+bs = calc_bands.band_structure()
+bs.write('cu_bandstructure.json')
+# bs.plot(emin=-10, emax=10, filename='cu_bands.png')  # バンド構造図の描画
+
+# 状態密度(DOS)の計算
+energies, dos = calc.get_dos(spin=0, npts=500, width=0.1)
+print(f"フェルミ準位: {calc.get_fermi_level():.4f} eV")
+</code></pre>
+    <p>このコードは、第2章のタイトバインディング模型で扱った1次元の簡易バンド構造・状態密度を、実在する3次元結晶（銅）に対して第一原理から計算するものです。<code>kpts</code>で指定するk点サンプリングの密度、<code>mode=PW(400)</code>で指定する平面波カットオフエネルギーは、計算精度と計算コストを左右する重要な収束パラメータであり、実務では複数の値で計算を行って結果が変化しなくなることを確認する<strong>収束テスト（Convergence Test）</strong>が欠かせません。</p>
+
+    <h2>5.4 Materials Project APIを用いたデータ駆動型材料探索</h2>
+    <p><strong>Materials Project</strong>は、DFT計算によって得られた15万件以上の無機材料の結晶構造・エネルギー・バンドギャップ・弾性定数などをオープンに公開している世界最大級の材料データベースです。<code>mp-api</code>（Pythonクライアントライブラリ）を用いると、条件を指定して該当する材料を検索し、そのDFT計算結果を取得できます。これにより、実験や高コストなDFT計算を行う前に、既存の計算データから有望な候補材料を絞り込む<strong>データ駆動型材料探索</strong>が可能になります。</p>
+
+    <p>Materials Project APIの利用には無料のAPIキー登録とインターネット接続が必要なため、まずは同様の考え方をローカルの小規模データセットで体験します。太陽電池の光吸収層として利用可能なバンドギャップは、<strong>Shockley-Queisser限界（Shockley-Queisser Limit）</strong>の理論に基づき、単接合の場合はおよそ1.0～1.6 eVが最適とされています。以下では、代表的な半導体・絶縁体のバンドギャップ実測値を使い、この条件でのスクリーニング（絞り込み）を行います。</p>
+
+    <h3>Python実装: バンドギャップによる材料スクリーニング（ローカルデータセット）</h3>
+    <pre class="code-block"><code class="language-python">import numpy as np
+import pandas as pd
+
+# 代表的な半導体・絶縁体のバンドギャップ実験値（eV）
+# 出典: Kittel "Introduction to Solid State Physics" 8th Ed. 等の代表値
+materials = pd.DataFrame({
+    'formula':      ['Ge', 'Si', 'InP', 'GaAs', 'CdTe', 'CdS', 'SiC', 'ZnO', 'GaN', 'Diamond'],
+    'band_gap_eV':  [0.67, 1.11, 1.34, 1.42, 1.50, 2.42, 2.36, 3.37, 3.40, 5.47],
+    # Paulingの電気陰性度差 |chi_A - chi_B|（第1章で導入した電気陰性度の考え方を再利用）
+    'delta_chi':    [0.00, 0.00, 0.42, 0.10, 0.54, 0.79, 0.65, 1.79, 1.23, 0.00],
+})
+
+# Shockley-Queisser限界に基づき、単接合太陽電池に適したバンドギャップ範囲(約1.0-1.6 eV)でスクリーニング
+target_min, target_max = 1.0, 1.6
+candidates = materials[(materials['band_gap_eV'] &gt;= target_min) &amp; (materials['band_gap_eV'] &lt;= target_max)]
+
+print("=== 太陽電池用途に適したバンドギャップ(1.0-1.6 eV)を持つ候補材料 ===")
+print(candidates[['formula', 'band_gap_eV']].to_string(index=False))
+print(f"\n全{len(materials)}物質中 {len(candidates)}物質が候補として抽出された")
+</code></pre>
+    <p><strong>実行結果</strong>: 10物質中、Si（1.11 eV）、InP（1.34 eV）、GaAs（1.42 eV）、CdTe（1.50 eV）の4物質がShockley-Queisser限界の最適範囲内に入る。実際、GaAsとCdTeは高効率太陽電池材料として、Siは最も普及した太陽電池材料として実用化されている。このように、単純な条件によるフィルタリングだけでも、材料探索の第一段階として有効な絞り込みができることが分かる。</p>
+
+    <p>この考え方をMaterials Projectのような大規模データベースに適用すると、数十万件の候補から瞬時にスクリーニングを行えます。<code>mp-api</code>を使った実際の検索コードは以下のようになります（<strong>このコードの実行には無料のAPIキー登録とインターネット接続が必要です</strong>。<a href="https://materialsproject.org/api" target="_blank">https://materialsproject.org/api</a> から登録可能です）。</p>
+
+    <h3>Python実装（要APIキー）: Materials Project APIによる材料検索</h3>
+    <pre class="code-block"><code class="language-python"># このコードの実行には無料のAPIキー登録が必要です:
+#   1. https://materialsproject.org/api でアカウント登録しAPIキーを取得
+#   2. pip install mp-api
+#   3. 環境変数 MP_API_KEY にキーを設定、またはコード中に直接指定
+
+from mp_api.client import MPRester
+
+with MPRester("YOUR_API_KEY") as mpr:
+    # バンドギャップ1.0-1.6 eV、かつ生成エネルギーが負（熱力学的に安定）な
+    # 酸化物を含まない材料を検索する例
+    docs = mpr.materials.summary.search(
+        band_gap=(1.0, 1.6),
+        formation_energy=(None, 0.0),
+        fields=["material_id", "formula_pretty", "band_gap",
+                "formation_energy_per_atom", "is_stable"]
+    )
+
+    print(f"条件に合致した材料数: {len(docs)}")
+    for doc in docs[:10]:
+        print(f"{doc.material_id}: {doc.formula_pretty}, "
+              f"Eg={doc.band_gap:.3f} eV, "
+              f"Ef={doc.formation_energy_per_atom:.3f} eV/atom, "
+              f"安定相={doc.is_stable}")
+</code></pre>
+    <p>ローカルのミニデータセットで行ったのと全く同じ絞り込みロジック（バンドギャップによる範囲指定）が、Materials Projectでは<code>formation_energy</code>（第4章で学んだGibbs自由エネルギーと関連する熱力学的安定性の指標）や<code>is_stable</code>（凸包解析による相安定性の判定結果）といった、より豊富な条件と組み合わせて実行できることが分かります。</p>
+
+    <h2>5.5 計算材料化学と機械学習の統合</h2>
+    <p>ここまでの4節を振り返ると、材料化学における計算アプローチは次のように積み重なっています。DFT（5.1節）が個々の材料の電子状態・全エネルギーを第一原理から与え、ASE（5.2〜5.3節）がその計算を実行するための構造構築・ワークフローの基盤を提供し、Materials Project（5.4節）は世界中で行われたDFT計算の結果を蓄積した巨大なデータベースとして機能します。<strong>機械学習（Machine Learning）</strong>は、この蓄積されたデータから統計的なパターンを学習し、新しいDFT計算を行うことなく物性を高速に予測するための最後のピースです。</p>
+
+    <p>機械学習モデルの性能は、入力として与える<strong>記述子（Descriptor）</strong>（特徴量、Feature とも呼ばれる）の質に大きく左右されます。第1章で学んだPaulingの電気陰性度差は、結合のイオン性を特徴づける記述子として使えますが、それだけでバンドギャップの大きさを十分に説明できるとは限りません。以下では、電気陰性度差に加えて、構成元素の原子サイズ（周期表の行、周期番号）を表す記述子を組み合わせることで、予測性能がどう変化するかを比較します。</p>
+
+    <h3>Python実装: 記述子を用いたバンドギャップ予測モデルの構築と評価</h3>
+    <pre class="code-block"><code class="language-python">import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import LeaveOneOut
+from sklearn.metrics import mean_absolute_error, r2_score
+
+# 代表的な半導体・絶縁体のバンドギャップ実測値（eV）と記述子
+materials = pd.DataFrame({
+    'formula':      ['Ge', 'Si', 'InP', 'GaAs', 'CdTe', 'CdS', 'SiC', 'ZnO', 'GaN', 'Diamond'],
+    'band_gap_eV':  [0.67, 1.11, 1.34, 1.42, 1.50, 2.42, 2.36, 3.37, 3.40, 5.47],
+    'delta_chi':    [0.00, 0.00, 0.42, 0.10, 0.54, 0.79, 0.65, 1.79, 1.23, 0.00],
+    # 構成元素の平均周期番号（原子番号が大きい元素ほど原子半径が大きく軌道の重なりが増し、
+    # 一般にバンドギャップが小さくなる傾向を捉える記述子）
+    'avg_period':   [4.0, 3.0, 4.0, 4.0, 5.0, 4.0, 2.5, 3.0, 3.0, 2.0],
+})
+
+def evaluate_model(feature_cols, label):
+    X = materials[feature_cols].values
+    y = materials['band_gap_eV'].values
+    model = LinearRegression().fit(X, y)
+    r2_train = r2_score(y, model.predict(X))
+
+    # データ数が少ないため、Leave-One-Out交差検証で汎化性能を厳密に評価する
+    loo = LeaveOneOut()
+    y_pred_loo = np.zeros_like(y)
+    for train_idx, test_idx in loo.split(X):
+        m = LinearRegression().fit(X[train_idx], y[train_idx])
+        y_pred_loo[test_idx] = m.predict(X[test_idx])
+    mae_loo = mean_absolute_error(y, y_pred_loo)
+    r2_loo = r2_score(y, y_pred_loo)
+    print(f"{label:28s}: R^2(train)={r2_train:.3f}  MAE(LOO)={mae_loo:.3f} eV  R^2(LOO)={r2_loo:.3f}")
+    return y, y_pred_loo, model
+
+print("=== 記述子(特徴量)による予測性能の比較 ===")
+evaluate_model(['delta_chi'], 'delta_chiのみ(第1章の指標)')
+evaluate_model(['avg_period'], 'avg_periodのみ')
+y, y_pred_loo, model = evaluate_model(['delta_chi', 'avg_period'], 'delta_chi + avg_period')
+
+print(f"\n最終モデルの係数: delta_chi={model.coef_[0]:.3f}, avg_period={model.coef_[1]:.3f}, 切片={model.intercept_:.3f}")
+print("\n注意: このデータセットはわずか10物質のみであり、本モデルは特徴量エンジニアリングの")
+print("考え方を示す教育的な例に過ぎない。単一の電気陰性度差だけでは説明力が乏しいが、")
+print("原子サイズ(周期番号)を追加すると訓練データへの当てはまりは改善する。ただしLOO交差検証の")
+print("結果が示す通り、10物質という少数データでは汎化性能は限定的であり、実際の材料探索では")
+print("Materials Projectのような大規模データベースと、より豊富な記述子が必要となる。")
+
+plt.figure(figsize=(7, 7))
+plt.scatter(y, y_pred_loo, s=90, color='#f5576c', zorder=3)
+lims = [0, 6]
+plt.plot(lims, lims, '--', color='gray', zorder=1)
+for f, yt, yp in zip(materials['formula'], y, y_pred_loo):
+    plt.annotate(f, (yt, yp), textcoords="offset points", xytext=(6, 4), fontsize=9)
+plt.xlabel('実測バンドギャップ (eV)', fontsize=12)
+plt.ylabel('LOO予測バンドギャップ (eV)', fontsize=12)
+plt.title('delta_chi + avg_period によるバンドギャップ予測(LOO交差検証)', fontsize=13, fontweight='bold')
+plt.xlim(lims); plt.ylim(lims)
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.savefig('ml_bandgap_final.png', dpi=300)
+plt.show()
+</code></pre>
+    <p><strong>実行結果</strong>: 電気陰性度差 delta_chi のみを説明変数とした場合、決定係数（<strong>Coefficient of Determination, R²</strong>）はわずか0.099と低い（Diamondのように delta_chi=0 でもバンドギャップが5.47 eVと非常に大きい例があるため）。原子サイズを表す avg_period を単独で使うと R²=0.491 まで改善し、両方を組み合わせると訓練データへの当てはまりは R²=0.557 まで向上する。ただし<strong>Leave-One-Out交差検証（Leave-One-Out Cross-Validation, LOO-CV）</strong>で汎化性能を厳密に評価すると、平均絶対誤差は1 eV程度、決定係数もマイナスになる場合があり、10物質という少数のデータでは統計的に信頼できる予測モデルとは言えない。この結果は誠実に受け止めるべきであり、実際の材料探索でMaterials Projectのような数万件規模のデータと、matminerのような専用ライブラリによる豊富な記述子群が必要とされる理由を裏付けている。</p>
+
+    <p>ここで、この章、そしてこのシリーズ全体で学んだ内容のつながりを整理しておきます。第1章の化学結合論は、なぜ原子同士が結びつくのかという「エネルギーの起源」を古典的なモデルで説明しました。第2章の分子軌道理論・バンド理論は、その結合を担う電子が量子力学的にどのような状態を取るかを、LCAO法という共通の枠組みで記述しました。第3章の結晶場理論は、遷移金属化合物という特殊だが重要な系に焦点を当て、d軌道の分裂という電子状態の詳細が磁性・色・反応性を支配することを見ました。第4章の熱力学は、個々の結合や電子状態ではなく、多数の原子からなる巨視的な系がどの相として安定かという、より大きなスケールでの振る舞いを扱いました。そして本章のDFTは、これらすべての現象論的なモデル（結合エネルギー、軌道エネルギー、d軌道分裂、生成エネルギー）の背後にある、電子の量子力学的な基底状態を第一原理から計算する統一的な土台を提供します。CALPHAD法の熱力学データベースを構築する際の生成エネルギーは、実験データに加えてDFT計算からも得られており、機械学習モデルの訓練データもまたDFT計算の蓄積（Materials Project）に由来します。このように、5つの章は独立した話題の寄せ集めではなく、「なぜ結合するか」から「どう安定な構造・相が決まるか」、そして「それを第一原理からどう計算し、大規模に探索するか」までを貫く、ひとつながりの物語を形作っています。</p>
+
+    <div class="mermaid">
+        flowchart TD
+            A[計算材料化学のワークフロー] --> B[DFT基礎理論]
+            B --> C[ASEによる構造構築]
+            C --> D[構造最適化]
+            D --> E[電子構造計算]
+            E --> F[Materials Projectデータベース]
+            F --> G[機械学習モデル]
+            G --> H[新規材料の予測・探索]
+
+            B --> B1[Hohenberg-Kohn定理]
+            B --> B2[Kohn-Sham方程式]
+            D --> D1[EOSフィッティング]
+            D --> D2[BFGS最適化]
+            E --> E1[バンド構造]
+            E --> E2[状態密度]
+            G --> G1[記述子エンジニアリング]
+            G --> G2[交差検証]
+
+            I[第1章: 化学結合] -.基礎となる結合エネルギー.-> B
+            J[第2章: 分子軌道/バンド理論] -.電子状態の記述法.-> E
+            K[第3章: 結晶場理論] -.d軌道分裂の定量化.-> B
+            L[第4章: 熱力学/CALPHAD] -.生成エネルギーの供給.-> F
+
+            style A fill:#f093fb,stroke:#f5576c,stroke-width:3px,color:#fff
+            style B fill:#f5576c,stroke:#f093fb,stroke-width:2px,color:#fff
+            style C fill:#f5576c,stroke:#f093fb,stroke-width:2px,color:#fff
+            style D fill:#f5576c,stroke:#f093fb,stroke-width:2px,color:#fff
+            style E fill:#f5576c,stroke:#f093fb,stroke-width:2px,color:#fff
+            style F fill:#f5576c,stroke:#f093fb,stroke-width:2px,color:#fff
+            style G fill:#f5576c,stroke:#f093fb,stroke-width:2px,color:#fff
+            style H fill:#f5576c,stroke:#f093fb,stroke-width:2px,color:#fff
+    </div>
+
+    <h2>演習問題</h2>
+
+    <div class="exercise">
+        <h3>問題1（Easy）: FCC構造とBCC構造の原子充填率</h3>
+        <p>ASEの<code>bulk()</code>関数でAl（FCC、格子定数4.05 Å）とFe（BCC、格子定数2.87 Å）の単位胞を構築し、それぞれの単位胞体積と剛体球模型による原子充填率（Packing Fraction）を計算せよ。FCCの理論値0.7405、BCCの理論値0.6802とそれぞれ比較せよ。</p>
+        <div class="solution">
+            <h4>解答</h4>
+<pre class="code-block"><code class="language-python">import numpy as np
+from ase.build import bulk
+
+al = bulk('Al', 'fcc', a=4.05)
+fe = bulk('Fe', 'bcc', a=2.87)
+
+print("=== Al (FCC) ===")
+print(f"化学式: {al.get_chemical_formula()}, 原子数(単位胞): {len(al)}")
+print(f"体積(単位胞): {al.get_volume():.4f} A^3")
+
+print("\n=== Fe (BCC) ===")
+print(f"化学式: {fe.get_chemical_formula()}, 原子数(単位胞): {len(fe)}")
+print(f"体積(単位胞): {fe.get_volume():.4f} A^3")
+
+# 原子充填率(packing fraction): 剛体球模型でどれだけ空間を充填できるかを表す指標
+# FCCの理論値は0.7405、BCCの理論値は0.6802
+r_al = 4.05 * np.sqrt(2) / 4  # FCCの最近接原子間距離の半分 = a*sqrt(2)/4
+r_fe = 2.87 * np.sqrt(3) / 4  # BCCの最近接原子間距離の半分 = a*sqrt(3)/4
+
+packing_fcc = (len(al) * (4/3) * np.pi * r_al**3) / al.get_volume()
+packing_bcc = (len(fe) * (4/3) * np.pi * r_fe**3) / fe.get_volume()
+print(f"\nAl(FCC)の原子充填率: {packing_fcc:.4f} (理論値 0.7405)")
+print(f"Fe(BCC)の原子充填率: {packing_bcc:.4f} (理論値 0.6802)")
+print("\nFCCの方がBCCより充填率が高く、これはFCC金属(Al, Cu, Ni等)が")
+print("一般に展性に優れる一因ともなっている。")
+</code></pre>
+            <p><strong>結果</strong>: <code>bulk()</code>のデフォルトは原始格子（Al、Feともに原子1個/単位胞）を返す。剛体球模型による充填率は、Al(FCC)が0.7405、Fe(BCC)が0.6802となり、理論値と完全に一致する（<code>bulk()</code>が返す格子定数と原子位置が正しく物理的な結晶構造を再現していることの確認にもなる）。FCC構造の方が空間充填率が高く、これは第1章で学んだ金属結合における自由電子モデルとあわせて、FCC金属が展性・延性に富む理由の一つとして知られている。</p>
+        </div>
+    </div>
+
+    <div class="exercise">
+        <h3>問題2（Medium）: EMTによるAlの状態方程式計算とその精度限界</h3>
+        <p>本文の銅の例にならい、EMT計算機でAl（実験格子定数4.05 Å、実験体積弾性率約76 GPa）の状態方程式（EOS）フィッティングを行い、最適格子定数と体積弾性率を求めよ。実験値との誤差を評価し、EMTの精度限界について考察せよ。</p>
+        <div class="solution">
+            <h4>解答</h4>
+<pre class="code-block"><code class="language-python">import numpy as np
+from ase.build import bulk
+from ase.calculators.emt import EMT
+from ase.eos import EquationOfState
+
+a0 = 4.05  # Alの実験格子定数
+volumes, energies = [], []
+for s in np.linspace(0.94, 1.06, 9):
+    atoms = bulk('Al', 'fcc', a=a0 * s)
+    atoms.calc = EMT()
+    volumes.append(atoms.get_volume())
+    energies.append(atoms.get_potential_energy())
+
+eos = EquationOfState(volumes, energies, eos='birchmurnaghan')
+v0, E0, B = eos.fit()
+a_opt = (4 * v0) ** (1 / 3)
+B_GPa = B * 160.2176634
+
+print(f"EMTによるAlの最適格子定数: {a_opt:.4f} A (実験値: 4.05 A)")
+print(f"EMTによる体積弾性率: {B_GPa:.2f} GPa (実験値: 約76 GPa)")
+error_a = abs(a_opt - 4.05) / 4.05 * 100
+error_B = abs(B_GPa - 76) / 76 * 100
+print(f"格子定数の誤差: {error_a:.2f}%")
+print(f"体積弾性率の誤差: {error_B:.1f}%")
+</code></pre>
+            <p><strong>結果</strong>: EMTによるAlの最適格子定数は3.9957 Å（実験値との誤差1.34%）と良好な一致を示す一方、体積弾性率は35.31 GPa（実験値76 GPaとの誤差53.5%）と大きく乖離する。これは、EMTがCuなど特定の元素の実験データにフィットしたパラメータを用いる経験的ポテンシャルであり、平衡格子定数のような「1階微分に近い量」はよく再現できても、体積弾性率のような「2階微分（曲率）に依存する量」の再現性は元素によって大きくばらつくためである。この結果は、経験的ポテンシャルによる構造最適化がワークフローの学習や概略の把握には有用であっても、定量的な物性予測には本文で述べたGPAWのような本格的なDFT計算が必要であることを裏付けている。</p>
+        </div>
+    </div>
+
+    <div class="exercise">
+        <h3>問題3（Hard）: 記述子の相関分析と広バンドギャップ材料の探索</h3>
+        <p>5.4節・5.5節のデータセットを用い、バンドギャップが3.0 eVを超える広バンドギャップ材料（UV-LED等への応用が期待される）を抽出せよ。また、<code>delta_chi</code>と<code>avg_period</code>それぞれとバンドギャップとの相関係数を計算し、どちらの記述子がより強い相関を持つか考察せよ。</p>
+        <div class="solution">
+            <h4>解答</h4>
+<pre class="code-block"><code class="language-python">import numpy as np
+import pandas as pd
+
+materials = pd.DataFrame({
+    'formula':      ['Ge', 'Si', 'InP', 'GaAs', 'CdTe', 'CdS', 'SiC', 'ZnO', 'GaN', 'Diamond'],
+    'band_gap_eV':  [0.67, 1.11, 1.34, 1.42, 1.50, 2.42, 2.36, 3.37, 3.40, 5.47],
+    'delta_chi':    [0.00, 0.00, 0.42, 0.10, 0.54, 0.79, 0.65, 1.79, 1.23, 0.00],
+    'avg_period':   [4.0, 3.0, 4.0, 4.0, 5.0, 4.0, 2.5, 3.0, 3.0, 2.0],
+})
+
+# UV-LED等に応用可能な広バンドギャップ材料(band_gap &gt; 3.0 eV)をスクリーニング
+wide_gap = materials[materials['band_gap_eV'] &gt; 3.0].sort_values('band_gap_eV', ascending=False)
+print("=== 広バンドギャップ材料(band_gap &gt; 3.0 eV)候補 ===")
+print(wide_gap[['formula', 'band_gap_eV']].to_string(index=False))
+
+# 各記述子とバンドギャップの相関係数を確認する
+corr_chi = np.corrcoef(materials['delta_chi'], materials['band_gap_eV'])[0, 1]
+corr_period = np.corrcoef(materials['avg_period'], materials['band_gap_eV'])[0, 1]
+print(f"\ndelta_chi とバンドギャップの相関係数: {corr_chi:.3f}")
+print(f"avg_period とバンドギャップの相関係数: {corr_period:.3f}")
+print("\navg_periodの方が相関が強く、原子サイズ(軌道の重なり)がバンドギャップの")
+print("大きさをより強く支配する記述子であることが示唆される。ただし10物質のみの")
+print("データでは統計的に確定的な結論は出せず、Materials Project等の大規模データベースでの")
+print("検証が望ましい。")
+</code></pre>
+            <p><strong>結果</strong>: 広バンドギャップ材料としてDiamond（5.47 eV）、GaN（3.40 eV）、ZnO（3.37 eV）の3物質が抽出される。相関係数は <code>delta_chi</code> が0.315と弱い正の相関にとどまるのに対し、<code>avg_period</code> は-0.701と比較的強い負の相関を示す。これは、原子番号が大きい（周期表の下の行にある）元素ほど原子軌道の広がりが大きく軌道の重なりが強くなり、第2章で学んだタイトバインディング模型の言葉で言えばホッピング積分 $|\beta|$ が大きくなってバンド幅が広がり、結果としてバンドギャップが小さくなる、という物理的傾向を裏付けている。ただし10物質という少数サンプルでの相関係数であり、確定的な結論には至らない。</p>
+        </div>
+    </div>
+
+    <h2>参考文献</h2>
+    <div class="reference">
+        <p>1. Hohenberg, P., Kohn, W. (1964). "Inhomogeneous Electron Gas". <em>Physical Review</em>, 136(3B), B864-B871.</p>
+    </div>
+    <div class="reference">
+        <p>2. Kohn, W., Sham, L.J. (1965). "Self-Consistent Equations Including Exchange and Correlation Effects". <em>Physical Review</em>, 140(4A), A1133-A1138.</p>
+    </div>
+    <div class="reference">
+        <p>3. Larsen, A.H., et al. (2017). "The atomic simulation environment—a Python library for working with atoms". <em>Journal of Physics: Condensed Matter</em>, 29(27), 273002.</p>
+    </div>
+    <div class="reference">
+        <p>4. Enkovaara, J., et al. (2010). "Electronic structure calculations with GPAW: a real-space implementation of the projector augmented-wave method". <em>Journal of Physics: Condensed Matter</em>, 22(25), 253202.</p>
+    </div>
+    <div class="reference">
+        <p>5. Jain, A., et al. (2013). "Commentary: The Materials Project: A materials genome approach to accelerating materials innovation". <em>APL Materials</em>, 1(1), 011002.</p>
+    </div>
+    <div class="reference">
+        <p>6. Martin, R.M. (2004). <em>Electronic Structure: Basic Theory and Practical Methods</em>. Cambridge University Press, pp. 120-180.</p>
+    </div>
+    <div class="reference">
+        <p>7. Perdew, J.P., Burke, K., Ernzerhof, M. (1996). "Generalized Gradient Approximation Made Simple". <em>Physical Review Letters</em>, 77(18), 3865-3868.</p>
+    </div>
+    <div class="reference">
+        <p>8. Pedregosa, F., et al. (2011). "Scikit-learn: Machine Learning in Python". <em>Journal of Machine Learning Research</em>, 12, 2825-2830.</p>
+    </div>
+    <div class="reference">
+        <p>9. Ward, L., et al. (2016). "A general-purpose machine learning framework for predicting properties of inorganic materials". <em>npj Computational Materials</em>, 2, 16028.</p>
+    </div>
+    <div class="reference">
+        <p>10. Kittel, C. (2005). <em>Introduction to Solid State Physics</em>, 8th Edition. Wiley, pp. 185-220.</p>
+    </div>
+
+    <h2>学習目標確認</h2>
+    <div class="exercise">
+        <h3>レベル1（基本理解）</h3>
+        <ul>
+            <li>Hohenberg-Kohn定理とKohn-Sham方程式の基本的な考え方を説明できる</li>
+            <li>自己無撞着場計算（SCF）のサイクルがどのように収束するかを理解している</li>
+            <li>ASEの<code>Atoms</code>オブジェクトと<code>bulk()</code>関数による結晶構造構築の仕組みを理解している</li>
+            <li>データ駆動型材料探索の基本的な考え方（データベースからの条件検索）を説明できる</li>
+        </ul>
+
+        <h3>レベル2（実践スキル）</h3>
+        <ul>
+            <li>Pythonで簡易的なSCFループを実装し、収束の挙動を確認できる</li>
+            <li>ASEで様々な結晶構造（FCC、ダイヤモンド、岩塩構造）を構築し、スーパーセルや原子位置を操作できる</li>
+            <li>EMT計算機を用いてEOSフィッティングとBFGS構造最適化を実行できる</li>
+            <li>pandasを用いて条件付きの材料スクリーニングを実行できる</li>
+        </ul>
+
+        <h3>レベル3（応用力）</h3>
+        <ul>
+            <li>経験的ポテンシャル（EMT）と本格的なDFT計算（GPAW）の使い分けと精度限界を理解している</li>
+            <li>記述子エンジニアリングと交差検証を通じて、機械学習モデルの予測性能と限界を定量的に評価できる</li>
+            <li>DFT・ASE・Materials Project・機械学習が、実際の材料探索パイプラインの中でどのように連携するかを説明できる</li>
+            <li>本シリーズ第1章〜第5章で学んだ化学結合・分子軌道・結晶場理論・熱力学・電子構造計算が、材料科学における一貫した理論体系としてつながっていることを理解している</li>
+        </ul>
+    </div>
+
+    <div class="note">
+        <p><strong>シリーズ総括</strong>: 「材料化学入門」シリーズは、化学結合（第1章）という最も基礎的な「なぜ原子は結びつくのか」という問いから出発し、分子軌道理論とバンド理論（第2章）でその結合を担う電子の量子状態を記述し、結晶場理論（第3章）で遷移金属化合物という重要な系の電子状態の詳細に踏み込み、熱力学（第4章）で多数の原子からなる巨視的な系の相安定性を扱い、そして電子構造計算（第5章）でこれらすべての現象論的理解の基礎にある第一原理計算とデータ駆動科学の枠組みへとたどり着きました。ミクロな電子状態からマクロな相平衡まで、そして理論的理解から計算・データ科学的実践までを貫いて学んだ本シリーズが、皆さんの材料科学研究の確かな土台となることを願っています。</p>
+    </div>
+
+    <p style="text-align: center; margin-top: 3rem;">
+        <a href="chapter-4.html" style="color: #f5576c; text-decoration: none; font-weight: bold;">← 第4章</a>
+        <span style="color: #adb5bd; margin: 0 0.8rem;">|</span>
+        <a href="index.html" style="color: #f5576c; text-decoration: none; font-weight: bold;">シリーズ目次</a>
+    </p>
+<section class="disclaimer">
+<h3>免責事項</h3>
+<ul>
+<li>本コンテンツは教育・研究・情報提供のみを目的としており、専門的な助言(法律・会計・技術的保証など)を提供するものではありません。</li>
+<li>本コンテンツおよび付随するCode examplesは「現状有姿(AS IS)」で提供され、明示または黙示を問わず、商品性、特定目的適合性、権利非侵害、正確性・完全性、動作・安全性等いかなる保証もしません。</li>
+<li>外部リンク、第三者が提供するデータ・ツール・ライブラリ等の内容・可用性・安全性について、作成者および東北大学は一切の責任を負いません。</li>
+<li>本コンテンツの利用・実行・解釈により直接的・間接的・付随的・特別・結果的・懲罰的損害が生じた場合でも、適用法で許容される最大限の範囲で、作成者および東北大学は責任を負いません。</li>
+<li>本コンテンツの内容は、予告なく変更・更新・提供停止されることがあります。</li>
+<li>本コンテンツの著作権・ライセンスは明記された条件(例: CC BY 4.0)に従います。当該ライセンスは通常、無保証条項を含みます。</li>
+</ul>
+</section>
+
+</body>
+</html>

@@ -1,0 +1,1133 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第5章：実践プロジェクト - PyTorch基礎入門 - AI Terakoya</title>
+    <meta name="description" content="PyTorchで画像分類の実践プロジェクトに取り組む。CNNモデルの構築、データ拡張、バッチ正規化、学習の可視化、ハイパーパラメータチューニング、モデルのデプロイと推論までをエンドツーエンドで学びます。">
+
+    <style>
+        :root {
+            --color-primary: #2c3e50;
+            --color-primary-dark: #1a252f;
+            --color-accent: #7b2cbf;
+            --color-accent-light: #9d4edd;
+            --color-text: #2d3748;
+            --color-text-light: #4a5568;
+            --color-bg: #ffffff;
+            --color-bg-alt: #f7fafc;
+            --color-border: #e2e8f0;
+            --color-code-bg: #f8f9fa;
+            --color-link: #3182ce;
+            --color-link-hover: #2c5aa0;
+
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+
+            --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+            --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+            --border-radius: 8px;
+            --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-body);
+            line-height: 1.7;
+            color: var(--color-text);
+            background-color: var(--color-bg);
+            font-size: 16px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            padding: var(--spacing-xl) var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+            box-shadow: var(--box-shadow);
+        }
+
+        .header-content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: var(--spacing-sm);
+            line-height: 1.2;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            font-weight: 400;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-md);
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-md) var(--spacing-xl);
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-xl);
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-xs);
+            border-bottom: 3px solid var(--color-accent);
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-lg);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        h4 {
+            font-size: 1.1rem;
+            color: var(--color-primary-dark);
+            margin-top: var(--spacing-md);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        p {
+            margin-bottom: var(--spacing-md);
+            color: var(--color-text);
+        }
+
+        a {
+            color: var(--color-link);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        a:hover {
+            color: var(--color-link-hover);
+            text-decoration: underline;
+        }
+
+        ul, ol {
+            margin-left: var(--spacing-lg);
+            margin-bottom: var(--spacing-md);
+        }
+
+        li {
+            margin-bottom: var(--spacing-xs);
+            color: var(--color-text);
+        }
+
+        pre {
+            background-color: var(--color-code-bg);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            overflow-x: auto;
+            margin-bottom: var(--spacing-md);
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        code {
+            font-family: var(--font-mono);
+            font-size: 0.9em;
+            background-color: var(--color-code-bg);
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+        }
+
+        pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: var(--spacing-md);
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            border: 1px solid var(--color-border);
+            padding: var(--spacing-sm);
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--color-bg-alt);
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        blockquote {
+            border-left: 4px solid var(--color-accent);
+            padding-left: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            color: var(--color-text-light);
+            font-style: italic;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        .mermaid {
+            text-align: center;
+            margin: var(--spacing-lg) 0;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        details {
+            background-color: var(--color-bg-alt);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+        }
+
+        summary {
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--color-primary);
+            user-select: none;
+            padding: var(--spacing-xs);
+            margin: calc(-1 * var(--spacing-md));
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        summary:hover {
+            background-color: rgba(123, 44, 191, 0.1);
+        }
+
+        details[open] summary {
+            margin-bottom: var(--spacing-md);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .chapter-description {
+            margin: 1.5rem 0;
+            padding: 1rem;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-left: 4px solid #7b2cbf;
+            border-radius: 8px;
+            font-size: 1.05rem;
+            line-height: 1.8;
+            color: #2d3748;
+        }
+
+        .learning-objectives {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: var(--spacing-lg);
+            border-radius: var(--border-radius);
+            border-left: 4px solid var(--color-accent);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .learning-objectives h2 {
+            margin-top: 0;
+            border-bottom: none;
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            gap: var(--spacing-md);
+            margin: var(--spacing-xl) 0;
+            padding-top: var(--spacing-lg);
+            border-top: 2px solid var(--color-border);
+        }
+
+        .nav-button {
+            flex: 1;
+            padding: var(--spacing-md);
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            border-radius: var(--border-radius);
+            text-align: center;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: var(--box-shadow);
+        }
+
+        .nav-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            text-decoration: none;
+        }
+
+        .nav-button.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: #6c757d;
+        }
+
+        .nav-button.disabled:hover {
+            transform: none;
+            box-shadow: var(--box-shadow);
+        }
+
+        footer {
+            margin-top: var(--spacing-xl);
+            padding: var(--spacing-lg) var(--spacing-md);
+            background-color: var(--color-bg-alt);
+            border-top: 1px solid var(--color-border);
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--color-text-light);
+        }
+        .disclaimer {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 1.5rem;
+            background: #f8f9fa;
+            border-left: 4px solid #6c757d;
+            border-radius: 4px;
+        }
+
+        .disclaimer h3 {
+            color: #495057;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .disclaimer ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .disclaimer li {
+            padding: 0.5rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+            font-size: 0.9rem;
+            color: #6c757d;
+            line-height: 1.6;
+        }
+
+        .disclaimer li::before {
+            content: "⚠️";
+            position: absolute;
+            left: 0;
+        }
+
+        /* Breadcrumb styles */
+        .breadcrumb {
+            background: #f7fafc;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+        }
+
+        .breadcrumb-content {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .breadcrumb a {
+            color: #667eea;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .breadcrumb a:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+
+        .breadcrumb-separator {
+            color: #a0aec0;
+            margin: 0 0.25rem;
+        }
+
+        .breadcrumb-current {
+            color: #4a5568;
+            font-weight: 500;
+        }
+
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            border-radius: var(--border-radius);
+        }
+
+        .warning-box {
+            background: #fff3e0;
+            border-left: 4px solid #ff9800;
+            padding: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            border-radius: var(--border-radius);
+        }
+
+        .success-box {
+            background: #e8f5e9;
+            border-left: 4px solid #4caf50;
+            padding: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            border-radius: var(--border-radius);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 1rem 2rem;
+            }
+
+            h1 {
+                font-size: 1.6rem;
+            }
+
+            h2 {
+                font-size: 1.4rem;
+            }
+
+            .navigation {
+                flex-direction: column;
+            }
+        }
+    </style>
+
+    <!-- Mermaid for diagrams -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <!-- Prism.js for syntax highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <!-- MathJax for equations -->
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <script>
+        // Mermaid.js initialization
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof mermaid !== 'undefined') {
+                mermaid.initialize({ startOnLoad: true, theme: 'default' });
+            }
+        });
+    </script>
+</head>
+<body>
+    <nav class="breadcrumb">
+        <div class="breadcrumb-content">
+            <a href="../../index.html">AI寺子屋トップ</a><span class="breadcrumb-separator">›</span><a href="../index.html">機械学習</a><span class="breadcrumb-separator">›</span><a href="./index.html">PyTorch基礎入門</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">第5章</span>
+        </div>
+    </nav>
+
+    <header>
+        <div class="header-content">
+            <h1>第5章：実践プロジェクト</h1>
+            <p class="subtitle">画像分類パイプラインをゼロからエンドツーエンドで組み立てる</p>
+            <div class="meta">
+                <span class="meta-item">📖 読了時間: 30-35分</span>
+                <span class="meta-item">📊 難易度: 中級</span>
+                <span class="meta-item">💻 コード例: 15個</span>
+                <span class="meta-item">📝 演習: 3問</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="chapter-description">
+            <p>この章はPyTorch基礎入門シリーズの最終章です。第1章で学んだTensorとautograd、第2章のTensor操作、第3章の自動微分の仕組み、そして続く章で学んだニューラルネットワーク構築の知識を総動員し、<strong>画像分類（Image Classification）</strong>タスクをゼロから最後まで実装します。データの用意からCNNモデルの構築、データ拡張、学習の可視化、ハイパーパラメータチューニング、そして学習済みモデルでの推論まで、実務でも通用する一連の流れを手を動かしながら身につけましょう。</p>
+        </div>
+
+        <div class="learning-objectives">
+            <h2>学習目標</h2>
+            <ul>
+                <li>✅ 画像分類タスクをエンドツーエンドで実装できる</li>
+                <li>✅ CNNモデルを構築できる</li>
+                <li>✅ データ拡張とバッチ正規化を適用できる</li>
+                <li>✅ 学習過程を可視化・モニタリングできる</li>
+                <li>✅ 基本的なハイパーパラメータチューニングができる</li>
+                <li>✅ 学習済みモデルで推論を実行できる</li>
+            </ul>
+        </div>
+
+        <div class="info-box">
+            <p><strong>💡 この章で使うデータについて</strong></p>
+            <p>実務ではMNISTやFashion-MNIST、CIFAR-10といった公開データセットを<code>torchvision.datasets</code>経由でダウンロードして使うことが多いですが、ネットワーク環境によってはダウンロードが難しい場合があります。この章では、どの環境でも再現できるように<strong>合成画像データ（Synthetic Image Data）</strong>——numpyで生成した縞模様やクロス模様の画像——を使います。学んだコードはそのまま<code>torchvision.datasets.MNIST(...)</code>などに差し替えて実データにも応用できます。</p>
+        </div>
+
+        <h2 id="image-classification">1. 画像分類タスクの実装</h2>
+
+        <p><strong>画像分類（Image Classification）</strong>とは、入力画像がどのクラス（カテゴリ）に属するかを予測するタスクです。本章では、3種類の模様（横縞・縦縞・斜めクロス）を持つグレースケール画像を3クラスに分類するモデルを作ります。全体のワークフローは次の通りです。</p>
+
+        <div class="mermaid">
+graph LR
+    A[合成画像データ生成] --> B[Dataset/DataLoader作成]
+    B --> C[CNNモデル構築]
+    C --> D[学習ループ + 可視化]
+    D --> E[ハイパーパラメータ探索]
+    E --> F[モデル保存 + 推論]
+        </div>
+
+        <h3>1.1 合成画像データの生成</h3>
+
+        <p>まず、<code>numpy</code>を使って3クラスの合成画像を生成する関数を書きます。各クラスにはノイズの中に弱いパターン（横縞・縦縞・斜めのクロス）を埋め込みます。</p>
+
+        <pre><code class="language-python">import numpy as np
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import Dataset, DataLoader, random_split
+from torchvision import transforms
+
+torch.manual_seed(42)
+np.random.seed(42)
+
+def generate_synthetic_images(num_samples_per_class=150, image_size=28,
+                               num_classes=3, seed=42):
+    """3クラスの合成グレースケール画像を生成する。
+
+    label=0: 横縞模様, label=1: 縦縞模様, label=2: 斜めクロス模様
+    """
+    rng = np.random.default_rng(seed)
+    images = []
+    labels = []
+    for label in range(num_classes):
+        for _ in range(num_samples_per_class):
+            img = rng.normal(loc=0.15, scale=0.20,
+                              size=(image_size, image_size)).astype(np.float32)
+            if label == 0:  # 横縞模様
+                img[8:12, :] += 0.35
+                img[16:20, :] += 0.35
+            elif label == 1:  # 縦縞模様
+                img[:, 8:12] += 0.35
+                img[:, 16:20] += 0.35
+            else:  # 斜めのクロス模様
+                idx = np.arange(image_size)
+                img[idx, idx] += 0.35
+                img[idx, image_size - 1 - idx] += 0.35
+            img = np.clip(img, 0.0, 1.0)
+            images.append(img)
+            labels.append(label)
+
+    images = np.stack(images).astype(np.float32)[:, np.newaxis, :, :]  # (N, 1, H, W)
+    labels = np.array(labels, dtype=np.int64)
+
+    # シャッフル
+    perm = rng.permutation(len(labels))
+    return torch.from_numpy(images[perm]), torch.from_numpy(labels[perm])
+
+all_images, all_labels = generate_synthetic_images()
+print(f"images: {all_images.shape}, labels: {all_labels.shape}")
+</code></pre>
+
+        <p><strong>出力例：</strong></p>
+
+        <pre><code>images: torch.Size([450, 1, 28, 28]), labels: torch.Size([450])
+</code></pre>
+
+        <p>各画像は<code>(チャンネル数, 高さ, 幅) = (1, 28, 28)</code>の形状を持つグレースケール画像です。これはMNISTなど実際の画像データセットと同じ形式であり、以降のコードはそのまま実データにも使えます。</p>
+
+        <h3>1.2 カスタムDatasetとDataLoaderの作成</h3>
+
+        <p>データ拡張（次節で説明）をサンプルごとに適用できるように、<code>torch.utils.data.Dataset</code>を継承したカスタムクラスを定義します。</p>
+
+        <pre><code class="language-python">class SyntheticImageDataset(Dataset):
+    def __init__(self, images, labels, transform=None):
+        self.images = images
+        self.labels = labels
+        self.transform = transform
+
+    def __len__(self):
+        return len(self.labels)
+
+    def __getitem__(self, idx):
+        image = self.images[idx]
+        label = self.labels[idx]
+        if self.transform:
+            image = self.transform(image)
+        return image, label
+
+# 学習・検証・テストに分割（70% / 15% / 15%）
+base_dataset = SyntheticImageDataset(all_images, all_labels, transform=None)
+n_total = len(base_dataset)
+n_train = int(n_total * 0.7)
+n_val = int(n_total * 0.15)
+n_test = n_total - n_train - n_val
+
+train_subset, val_subset, test_subset = random_split(
+    base_dataset, [n_train, n_val, n_test],
+    generator=torch.Generator().manual_seed(42)
+)
+print(f"train: {n_train}, val: {n_val}, test: {n_test}")
+</code></pre>
+
+        <p><strong>出力例：</strong></p>
+
+        <pre><code>train: 315, val: 67, test: 68
+</code></pre>
+
+        <p><code>random_split</code>は<code>Dataset</code>をインデックスベースで分割するため、学習・検証・テストの各サブセットに含まれるサンプルが重複しないことが保証されます。分割後にDataLoaderを作成し、バッチ単位でデータを取り出せるようにします。</p>
+
+        <pre><code class="language-python">train_loader = DataLoader(train_subset, batch_size=32, shuffle=True)
+val_loader = DataLoader(val_subset, batch_size=32, shuffle=False)
+test_loader = DataLoader(test_subset, batch_size=32, shuffle=False)
+
+images_batch, labels_batch = next(iter(train_loader))
+print(f"batch images: {images_batch.shape}, batch labels: {labels_batch.shape}")
+</code></pre>
+
+        <p><strong>出力例：</strong></p>
+
+        <pre><code>batch images: torch.Size([32, 1, 28, 28]), batch labels: torch.Size([32])
+</code></pre>
+
+        <h2 id="cnn-model">2. CNNモデルの構築</h2>
+
+        <p><strong>畳み込みニューラルネットワーク（CNN: Convolutional Neural Network）</strong>は、画像のような格子状データに対して優れた性能を発揮するニューラルネットワークです。主に以下の3種類の層を組み合わせて構築します。</p>
+
+        <ul>
+            <li><strong>畳み込み層（Convolutional Layer, <code>nn.Conv2d</code>）</strong>: 小さなフィルタ（カーネル）を画像上でスライドさせながら、エッジや模様などの局所的な特徴を検出する</li>
+            <li><strong>プーリング層（Pooling Layer, <code>nn.MaxPool2d</code>）</strong>: 特徴マップの空間サイズを縮小し、計算量を抑えつつ位置のズレに対する頑健性を高める</li>
+            <li><strong>全結合層（Fully Connected Layer, <code>nn.Linear</code>）</strong>: 畳み込みで抽出された特徴を平坦化し、最終的なクラス分類を行う</li>
+        </ul>
+
+        <p>まずはシンプルな構成でCNNを定義してみましょう。</p>
+
+        <pre><code class="language-python">class SimpleCNN(nn.Module):
+    def __init__(self, num_classes=3):
+        super().__init__()
+        # 畳み込み層: 1チャンネル(グレースケール) -&gt; 16チャンネル -&gt; 32チャンネル
+        self.conv1 = nn.Conv2d(1, 16, kernel_size=3, padding=1)
+        self.conv2 = nn.Conv2d(16, 32, kernel_size=3, padding=1)
+        self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
+        self.relu = nn.ReLU()
+
+        # 28x28 -&gt; pool -&gt; 14x14 -&gt; pool -&gt; 7x7 なので 32*7*7 が全結合層への入力次元
+        self.fc1 = nn.Linear(32 * 7 * 7, 64)
+        self.fc2 = nn.Linear(64, num_classes)
+
+    def forward(self, x):
+        x = self.pool(self.relu(self.conv1(x)))  # (B, 16, 14, 14)
+        x = self.pool(self.relu(self.conv2(x)))  # (B, 32, 7, 7)
+        x = x.view(x.size(0), -1)                 # 平坦化: (B, 32*7*7)
+        x = self.relu(self.fc1(x))
+        x = self.fc2(x)
+        return x
+
+model = SimpleCNN(num_classes=3)
+sample_output = model(images_batch)
+print(f"output shape: {sample_output.shape}")
+</code></pre>
+
+        <p><strong>出力例：</strong></p>
+
+        <pre><code>output shape: torch.Size([32, 3])
+</code></pre>
+
+        <p>入力画像は28×28ですが、2回のプーリングによって空間サイズが28→14→7と縮小されていきます。この形状変化を追跡することが、CNN設計で最もつまずきやすいポイントです。<code>fc1</code>の入力次元は必ず最後の畳み込み層の出力形状（チャンネル数×高さ×幅）と一致させる必要があります。</p>
+
+        <div class="warning-box">
+            <p><strong>⚠️ よくあるエラー</strong></p>
+            <p><code>mat1 and mat2 shapes cannot be multiplied</code>というエラーが出た場合、多くは全結合層の入力次元と直前の特徴マップの形状が一致していないことが原因です。<code>x.view(x.size(0), -1)</code>の直前に<code>print(x.shape)</code>を挟んで確認する習慣をつけましょう。</p>
+        </div>
+
+        <h2 id="data-augmentation-batchnorm">3. データ拡張とバッチ正規化</h2>
+
+        <h3>3.1 データ拡張（Data Augmentation）</h3>
+
+        <p><strong>データ拡張（Data Augmentation）</strong>は、学習データに対してランダムな変換（反転・回転・平行移動など）を適用し、見かけ上のデータ量とバリエーションを増やす手法です。これにより、モデルが訓練データの細部を丸暗記してしまう<strong>過学習（Overfitting）</strong>を抑制し、未知のデータに対する汎化性能を高めることができます。</p>
+
+        <p><code>torchvision.transforms</code>を使うと、Tensor画像に対して簡単にデータ拡張を適用できます。</p>
+
+        <pre><code class="language-python">train_transform = transforms.Compose([
+    transforms.RandomHorizontalFlip(p=0.5),   # 50%の確率で左右反転
+    transforms.RandomRotation(degrees=10),    # ±10度の範囲でランダム回転
+    transforms.Normalize(mean=[0.2], std=[0.3]),  # 画素値の正規化
+])
+
+# 検証・テストデータには正規化のみ適用し、ランダム性は入れない
+eval_transform = transforms.Compose([
+    transforms.Normalize(mean=[0.2], std=[0.3]),
+])
+</code></pre>
+
+        <div class="info-box">
+            <p><strong>💡 なぜ検証・テストデータには拡張を適用しないのか</strong></p>
+            <p>データ拡張は学習データのバリエーションを増やすための手法であり、モデルの評価は常に「実際に近い」データで行う必要があります。検証・テストデータにまでランダムな反転や回転を適用すると、評価結果が安定せず、モデルの本当の性能を正しく測れなくなります。</p>
+        </div>
+
+        <h3>3.2 バッチ正規化（Batch Normalization）</h3>
+
+        <p><strong>バッチ正規化（Batch Normalization）</strong>は、各層の出力をミニバッチ単位で平均0・分散1に正規化する手法です。学習を安定させ、収束を速め、より高い学習率を使えるようにする効果があります。画像データに対しては<code>nn.BatchNorm2d</code>を畳み込み層の直後に挿入するのが一般的です。</p>
+
+        <pre><code class="language-python">class SimpleCNN(nn.Module):
+    def __init__(self, num_classes=3):
+        super().__init__()
+        self.conv1 = nn.Conv2d(1, 16, kernel_size=3, padding=1)
+        self.bn1 = nn.BatchNorm2d(16)
+        self.conv2 = nn.Conv2d(16, 32, kernel_size=3, padding=1)
+        self.bn2 = nn.BatchNorm2d(32)
+        self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
+        self.relu = nn.ReLU()
+        self.dropout = nn.Dropout(0.3)
+        self.fc1 = nn.Linear(32 * 7 * 7, 64)
+        self.fc2 = nn.Linear(64, num_classes)
+
+    def forward(self, x):
+        x = self.pool(self.relu(self.bn1(self.conv1(x))))  # (B, 16, 14, 14)
+        x = self.pool(self.relu(self.bn2(self.conv2(x))))  # (B, 32, 7, 7)
+        x = x.view(x.size(0), -1)
+        x = self.relu(self.fc1(x))
+        x = self.dropout(x)  # 全結合層の過学習をさらに抑制
+        x = self.fc2(x)
+        return x
+</code></pre>
+
+        <p>畳み込み層の並び順は「<code>Conv2d</code> → <code>BatchNorm2d</code> → 活性化関数 → <code>MaxPool2d</code>」が定番のパターンです。加えて、全結合層の手前に<strong>ドロップアウト（Dropout）</strong>を挟むことで、特定のニューロンへの依存を減らし、汎化性能をさらに高めています。</p>
+
+        <p>最後に、学習用サブセットにはデータ拡張ありの<code>train_transform</code>、検証・テスト用サブセットには<code>eval_transform</code>を適用したDatasetを作り直します。</p>
+
+        <pre><code class="language-python">def attach_transform(subset, transform):
+    """random_splitで得たSubsetに、指定のtransformを持つDatasetを再アタッチする"""
+    subset.dataset = SyntheticImageDataset(all_images, all_labels, transform=transform)
+    return subset
+
+train_subset = attach_transform(train_subset, train_transform)
+val_subset = attach_transform(val_subset, eval_transform)
+test_subset = attach_transform(test_subset, eval_transform)
+
+train_loader = DataLoader(train_subset, batch_size=32, shuffle=True)
+val_loader = DataLoader(val_subset, batch_size=32, shuffle=False)
+test_loader = DataLoader(test_subset, batch_size=32, shuffle=False)
+</code></pre>
+
+        <h2 id="training-visualization">4. 学習の可視化とモニタリング</h2>
+
+        <p>学習が正しく進んでいるかを確認するには、エポックごとの<strong>損失（Loss）</strong>と<strong>正解率（Accuracy）</strong>を記録し、可視化することが欠かせません。まず、1エポック分の学習と評価を行う関数を定義します。</p>
+
+        <pre><code class="language-python">def train_one_epoch(model, loader, criterion, optimizer, device):
+    model.train()
+    total_loss, correct, total = 0.0, 0, 0
+    for images, labels in loader:
+        images, labels = images.to(device), labels.to(device)
+        optimizer.zero_grad()
+        outputs = model(images)
+        loss = criterion(outputs, labels)
+        loss.backward()
+        optimizer.step()
+
+        total_loss += loss.item() * images.size(0)
+        preds = outputs.argmax(dim=1)
+        correct += (preds == labels).sum().item()
+        total += labels.size(0)
+    return total_loss / total, correct / total
+
+@torch.no_grad()
+def evaluate(model, loader, criterion, device):
+    model.eval()
+    total_loss, correct, total = 0.0, 0, 0
+    for images, labels in loader:
+        images, labels = images.to(device), labels.to(device)
+        outputs = model(images)
+        loss = criterion(outputs, labels)
+        total_loss += loss.item() * images.size(0)
+        preds = outputs.argmax(dim=1)
+        correct += (preds == labels).sum().item()
+        total += labels.size(0)
+    return total_loss / total, correct / total
+</code></pre>
+
+        <p><code>model.train()</code>と<code>model.eval()</code>の切り替えは重要です。<code>BatchNorm2d</code>や<code>Dropout</code>は学習時と評価時で異なる振る舞いをするため、評価前には必ず<code>model.eval()</code>を呼び出す必要があります。また、評価時は勾配計算が不要なので<code>@torch.no_grad()</code>で無駄な計算とメモリ消費を防いでいます。</p>
+
+        <p>次に、学習ループ全体を実行し、履歴を<code>history</code>辞書に記録します。</p>
+
+        <pre><code class="language-python">device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+model = SimpleCNN(num_classes=3).to(device)
+criterion = nn.CrossEntropyLoss()
+optimizer = optim.Adam(model.parameters(), lr=0.001)
+
+history = {"train_loss": [], "train_acc": [], "val_loss": [], "val_acc": []}
+num_epochs = 8
+
+for epoch in range(num_epochs):
+    train_loss, train_acc = train_one_epoch(model, train_loader, criterion, optimizer, device)
+    val_loss, val_acc = evaluate(model, val_loader, criterion, device)
+
+    history["train_loss"].append(train_loss)
+    history["train_acc"].append(train_acc)
+    history["val_loss"].append(val_loss)
+    history["val_acc"].append(val_acc)
+
+    print(f"Epoch {epoch+1}/{num_epochs}: "
+          f"train_loss={train_loss:.4f} train_acc={train_acc:.4f} "
+          f"val_loss={val_loss:.4f} val_acc={val_acc:.4f}")
+</code></pre>
+
+        <p><strong>出力例：</strong></p>
+
+        <pre><code>Epoch 1/8: train_loss=0.4813 train_acc=0.8190 val_loss=0.1782 val_acc=1.0000
+Epoch 2/8: train_loss=0.0172 train_acc=1.0000 val_loss=0.0076 val_acc=1.0000
+Epoch 3/8: train_loss=0.0040 train_acc=1.0000 val_loss=0.0008 val_acc=1.0000
+Epoch 4/8: train_loss=0.0014 train_acc=1.0000 val_loss=0.0002 val_acc=1.0000
+Epoch 5/8: train_loss=0.0017 train_acc=1.0000 val_loss=0.0001 val_acc=1.0000
+Epoch 6/8: train_loss=0.0013 train_acc=1.0000 val_loss=0.0001 val_acc=1.0000
+Epoch 7/8: train_loss=0.0009 train_acc=1.0000 val_loss=0.0001 val_acc=1.0000
+Epoch 8/8: train_loss=0.0021 train_acc=1.0000 val_loss=0.0000 val_acc=1.0000
+</code></pre>
+
+        <p>1エポック目で正解率が急速に立ち上がり、2エポック目以降はほぼ収束しています。今回の合成データはパターンが比較的単純なため早く収束していますが、実データではもっと緩やかに、時には検証損失が途中で上昇に転じる（過学習の兆候）こともあります。そうした変化をいち早く発見するために、数値だけでなくグラフでの可視化が役立ちます。</p>
+
+        <pre><code class="language-python">import matplotlib.pyplot as plt
+
+epochs_range = range(1, num_epochs + 1)
+fig, axes = plt.subplots(1, 2, figsize=(10, 4))
+
+axes[0].plot(epochs_range, history["train_loss"], label="Train Loss")
+axes[0].plot(epochs_range, history["val_loss"], label="Val Loss")
+axes[0].set_xlabel("Epoch")
+axes[0].set_ylabel("Loss")
+axes[0].set_title("Loss Curve")
+axes[0].legend()
+
+axes[1].plot(epochs_range, history["train_acc"], label="Train Acc")
+axes[1].plot(epochs_range, history["val_acc"], label="Val Acc")
+axes[1].set_xlabel("Epoch")
+axes[1].set_ylabel("Accuracy")
+axes[1].set_title("Accuracy Curve")
+axes[1].legend()
+
+plt.tight_layout()
+plt.savefig("training_curves.png")
+print("学習曲線を training_curves.png に保存しました")
+</code></pre>
+
+        <p>実行すると、損失曲線が急激に下がって0付近に収束し、正解率曲線が右肩上がりで1.0に近づいていくグラフが<code>training_curves.png</code>として保存されます。学習曲線・正解率曲線がともに滑らかに改善していれば学習は順調です。逆に検証損失だけが途中から上昇に転じたら過学習のサインなので、データ拡張を強めたり、エポック数を減らす（早期終了）などの対策を検討します。</p>
+
+        <div class="info-box">
+            <p><strong>💡 より本格的なモニタリング</strong></p>
+            <p>実務では<code>matplotlib</code>での事後可視化に加え、<strong>TensorBoard</strong>や<strong>Weights &amp; Biases</strong>といったツールを使い、学習中にリアルタイムで損失・正解率・学習率などを追跡することがよくあります。本章では基礎となる「履歴を記録してグラフ化する」考え方に絞って扱っています。</p>
+        </div>
+
+        <h2 id="hyperparameter-tuning">5. ハイパーパラメータチューニング</h2>
+
+        <p><strong>ハイパーパラメータ（Hyperparameter）</strong>とは、学習率やバッチサイズ、層の数など、学習によって自動的には決まらず、事前に人間が設定する値のことです（学習によって決まる重みなどの「パラメータ」とは区別されます）。適切なハイパーパラメータを選ぶことで、モデルの性能や学習の安定性が大きく変わります。</p>
+
+        <p>最もシンプルなチューニング手法である<strong>グリッドサーチ（Grid Search）</strong>——候補となる値の組み合わせをすべて試す方法——を実装してみましょう。時間を抑えるため、各組み合わせのエポック数は少なめに設定しています。</p>
+
+        <pre><code class="language-python">def build_and_train(lr, batch_size, num_epochs=2):
+    tr_loader = DataLoader(train_subset, batch_size=batch_size, shuffle=True)
+    va_loader = DataLoader(val_subset, batch_size=batch_size, shuffle=False)
+
+    m = SimpleCNN(num_classes=3).to(device)
+    opt = optim.Adam(m.parameters(), lr=lr)
+    crit = nn.CrossEntropyLoss()
+
+    for _ in range(num_epochs):
+        train_one_epoch(m, tr_loader, crit, opt, device)
+
+    _, val_acc = evaluate(m, va_loader, crit, device)
+    return val_acc
+
+results = {}
+for lr in [0.1, 0.01, 0.001, 0.0001]:
+    for batch_size in [16, 64]:
+        acc = build_and_train(lr, batch_size, num_epochs=2)
+        results[(lr, batch_size)] = acc
+        print(f"lr={lr}, batch_size={batch_size} -&gt; val_acc={acc:.4f}")
+
+best_params = max(results, key=results.get)
+print(f"\n最良の組み合わせ: lr={best_params[0]}, batch_size={best_params[1]} "
+      f"(val_acc={results[best_params]:.4f})")
+</code></pre>
+
+        <p><strong>出力例：</strong></p>
+
+        <pre><code>lr=0.1, batch_size=16 -&gt; val_acc=1.0000
+lr=0.1, batch_size=64 -&gt; val_acc=1.0000
+lr=0.01, batch_size=16 -&gt; val_acc=1.0000
+lr=0.01, batch_size=64 -&gt; val_acc=1.0000
+lr=0.001, batch_size=16 -&gt; val_acc=1.0000
+lr=0.001, batch_size=64 -&gt; val_acc=1.0000
+lr=0.0001, batch_size=16 -&gt; val_acc=1.0000
+lr=0.0001, batch_size=64 -&gt; val_acc=0.9701
+
+最良の組み合わせ: lr=0.1, batch_size=16 (val_acc=1.0000)
+</code></pre>
+
+        <p>学習率0.0001・バッチサイズ64の組み合わせだけ検証正解率がわずかに低いことが分かります。学習率が小さいままバッチサイズを大きくすると、1エポックあたりの重み更新回数がさらに減り、たった2エポックでは重みが十分に収束しきらないためです。他の組み合わせはこの合成データセットでは早期に収束していますが、実データではもっと明確な差——例えば学習率が高すぎて損失が発散する、逆に低すぎて収束が遅いといった傾向——が見られることが多く、こうした「危険な組み合わせ」をあぶり出せるのがグリッドサーチの価値です。</p>
+
+        <div class="warning-box">
+            <p><strong>⚠️ グリッドサーチの限界</strong></p>
+            <p>グリッドサーチは候補数が増えると組み合わせ数が指数的に増加し、計算コストが膨大になります（例: 5パラメータ×5候補なら5⁵=3,125通り）。実務では、ランダムに候補を選ぶ<strong>ランダムサーチ（Random Search）</strong>や、過去の探索結果を使って次に試す値を賢く選ぶ<strong>ベイズ最適化（Bayesian Optimization）</strong>を実装した<code>Optuna</code>や<code>Ray Tune</code>といったライブラリがよく使われます。</p>
+        </div>
+
+        <h2 id="model-deployment-inference">6. モデルのデプロイと推論</h2>
+
+        <p>学習が完了したモデルは、そのままでは実行を終えるとメモリから消えてしまいます。再利用するには、パラメータをファイルに保存し、後で読み込めるようにする必要があります。PyTorchでは、モデル全体ではなく<strong>状態辞書（state_dict）</strong>——各層の名前と重みTensorを対応付けた辞書——を保存するのが推奨される方法です。</p>
+
+        <pre><code class="language-python">import os
+
+save_path = "cnn_model.pth"
+torch.save(model.state_dict(), save_path)
+print(f"モデルを {save_path} に保存しました "
+      f"({os.path.getsize(save_path) / 1024:.1f} KB)")
+</code></pre>
+
+        <p><strong>出力例：</strong></p>
+
+        <pre><code>モデルを cnn_model.pth に保存しました (418.7 KB)
+</code></pre>
+
+        <p>読み込む際は、まず同じ構造の<code>SimpleCNN</code>インスタンスを作成し、そこに保存済みの重みを読み込みます。<code>weights_only=True</code>を指定すると、実行可能なコードを含まない安全な読み込みが行われます。</p>
+
+        <pre><code class="language-python">loaded_model = SimpleCNN(num_classes=3).to(device)
+loaded_model.load_state_dict(torch.load(save_path, map_location=device, weights_only=True))
+loaded_model.eval()  # 推論モードに切り替え（Dropout/BatchNormを無効化）
+
+# テストデータの一部で推論を実行
+sample_images, sample_labels = next(iter(test_loader))
+sample_images = sample_images.to(device)
+
+with torch.no_grad():
+    logits = loaded_model(sample_images)
+    probs = torch.softmax(logits, dim=1)
+    preds = probs.argmax(dim=1)
+
+print(f"予測クラス: {preds[:8].cpu().tolist()}")
+print(f"正解クラス: {sample_labels[:8].tolist()}")
+print(f"予測確信度: {probs.max(dim=1).values[:8].cpu().tolist()}")
+</code></pre>
+
+        <p><strong>出力例：</strong></p>
+
+        <pre><code>予測クラス: [2, 0, 1, 0, 2, 0, 0, 0]
+正解クラス: [2, 0, 1, 0, 2, 0, 0, 0]
+予測確信度: [0.9999..., 0.9999..., 0.9999..., 0.9999..., 0.9998..., 0.9999..., 0.9999..., 0.9999...]
+</code></pre>
+
+        <p>推論時のポイントは3つです。</p>
+
+        <ul>
+            <li><strong><code>model.eval()</code>を必ず呼ぶ</strong>: <code>Dropout</code>を無効化し、<code>BatchNorm2d</code>が学習時ではなく蓄積済みの統計量を使うようにする</li>
+            <li><strong><code>torch.no_grad()</code>で勾配計算を止める</strong>: 推論では逆伝播が不要なため、メモリと計算時間を節約できる</li>
+            <li><strong>Softmaxで確率に変換する</strong>: モデルの生の出力（ロジット）はそのままでは解釈しづらいため、<code>torch.softmax</code>でクラスごとの確信度に変換すると結果を説明しやすい</li>
+        </ul>
+
+        <div class="success-box">
+            <p><strong>🎉 ここまでで完成したパイプライン</strong></p>
+            <p>合成画像データの生成 → カスタムDatasetとDataLoader → データ拡張とBatchNorm付きCNN → 学習ループと可視化 → グリッドサーチによるハイパーパラメータ探索 → 保存したモデルでの推論、という一連の流れを実装しました。この流れは、データを実際のtorchvisionデータセットに差し替えるだけで、そのまま実務の画像分類プロジェクトに応用できます。</p>
+        </div>
+
+        <div class="info-box">
+            <p><strong>💡 さらに先へ進むには</strong></p>
+            <p>本章では扱いませんが、モデルを実サービスに組み込む際は<strong>TorchScript</strong>（<code>torch.jit.script</code>）や<strong>ONNX</strong>形式へのエクスポートによって、Pythonに依存しない環境（C++やモバイル、ブラウザなど）での推論を高速化する手法もよく使われます。まずは本章で身につけた「保存・読み込み・<code>eval()</code>・<code>no_grad()</code>」の基本を確実に押さえておきましょう。</p>
+        </div>
+
+        <h2 id="review">学習目標の振り返り</h2>
+
+        <ul>
+            <li>✅ <strong>画像分類タスクをエンドツーエンドで実装できる</strong>: 合成データの生成からモデルの保存・推論まで一連の流れをコードで実装しました</li>
+            <li>✅ <strong>CNNモデルを構築できる</strong>: <code>Conv2d</code>・<code>MaxPool2d</code>・<code>Linear</code>を組み合わせた<code>SimpleCNN</code>を定義し、特徴マップの形状変化を追跡しました</li>
+            <li>✅ <strong>データ拡張とバッチ正規化を適用できる</strong>: <code>transforms.Compose</code>によるランダム反転・回転と、<code>nn.BatchNorm2d</code>による学習安定化を組み合わせました</li>
+            <li>✅ <strong>学習過程を可視化・モニタリングできる</strong>: エポックごとの損失・正解率を記録し、<code>matplotlib</code>で学習曲線を描画しました</li>
+            <li>✅ <strong>基本的なハイパーパラメータチューニングができる</strong>: 学習率とバッチサイズの組み合わせをグリッドサーチで比較し、最良の組み合わせを選びました</li>
+            <li>✅ <strong>学習済みモデルで推論を実行できる</strong>: <code>state_dict</code>の保存・読み込みと、<code>model.eval()</code> + <code>torch.no_grad()</code>による安全な推論を実装しました</li>
+        </ul>
+
+        <h2 id="exercises">演習問題</h2>
+
+        <details>
+            <summary><strong>演習1：チャンネル数を増やしたCNNの実験</strong></summary>
+            <p><code>SimpleCNN</code>の<code>conv1</code>の出力チャンネル数を16から32に、<code>conv2</code>の出力チャンネル数を32から64に変更し、<code>fc1</code>の入力次元を正しく計算し直した上でモデルを再定義してください。パラメータ数が増えたことを<code>sum(p.numel() for p in model.parameters())</code>で確認しましょう。</p>
+            <details>
+                <summary>解答例</summary>
+                <pre><code class="language-python">class WiderCNN(nn.Module):
+    def __init__(self, num_classes=3):
+        super().__init__()
+        self.conv1 = nn.Conv2d(1, 32, kernel_size=3, padding=1)
+        self.bn1 = nn.BatchNorm2d(32)
+        self.conv2 = nn.Conv2d(32, 64, kernel_size=3, padding=1)
+        self.bn2 = nn.BatchNorm2d(64)
+        self.pool = nn.MaxPool2d(2, 2)
+        self.relu = nn.ReLU()
+        self.dropout = nn.Dropout(0.3)
+        # 28 -&gt; 14 -&gt; 7 なので、チャンネル数64 x 7 x 7 が入力次元
+        self.fc1 = nn.Linear(64 * 7 * 7, 64)
+        self.fc2 = nn.Linear(64, num_classes)
+
+    def forward(self, x):
+        x = self.pool(self.relu(self.bn1(self.conv1(x))))
+        x = self.pool(self.relu(self.bn2(self.conv2(x))))
+        x = x.view(x.size(0), -1)
+        x = self.relu(self.fc1(x))
+        x = self.dropout(x)
+        x = self.fc2(x)
+        return x
+
+wider_model = WiderCNN(num_classes=3)
+num_params = sum(p.numel() for p in wider_model.parameters())
+print(f"パラメータ数: {num_params:,}")
+# 出力例: パラメータ数: 219,971（SimpleCNNより大幅に増加）
+</code></pre>
+            </details>
+        </details>
+
+        <details>
+            <summary><strong>演習2：データ拡張の効果を比較する</strong></summary>
+            <p>データ拡張（<code>train_transform</code>）ありとなし（<code>eval_transform</code>のみ）で、同じ条件（エポック数・学習率・バッチサイズ）で学習し、テスト正解率を比較してください。データ拡張が今回の合成データセットでどう影響するかを1〜2文で考察してください。</p>
+            <details>
+                <summary>解答例</summary>
+                <pre><code class="language-python">def run_experiment(train_transform_to_use, num_epochs=5):
+    train_ds = SyntheticImageDataset(all_images, all_labels, transform=train_transform_to_use)
+    train_ds_subset = torch.utils.data.Subset(train_ds, train_subset.indices)
+    loader = DataLoader(train_ds_subset, batch_size=32, shuffle=True)
+
+    m = SimpleCNN(num_classes=3).to(device)
+    opt = optim.Adam(m.parameters(), lr=0.001)
+    crit = nn.CrossEntropyLoss()
+    for _ in range(num_epochs):
+        train_one_epoch(m, loader, crit, opt, device)
+    _, test_acc = evaluate(m, test_loader, crit, device)
+    return test_acc
+
+acc_with_aug = run_experiment(train_transform)
+acc_without_aug = run_experiment(eval_transform)
+print(f"拡張あり: {acc_with_aug:.4f}, 拡張なし: {acc_without_aug:.4f}")
+# 考察例: 今回のようにクラスごとの模様が明確に分離できる単純なデータでは、
+# 拡張ありなしの差は小さくなりやすい。一方、クラス間の模様が似ている、
+# ノイズが多い、データ数が少ないといった条件では拡張の効果がより顕著になる。
+</code></pre>
+            </details>
+        </details>
+
+        <details>
+            <summary><strong>演習3：新しいクラスを追加した推論</strong></summary>
+            <p><code>generate_synthetic_images</code>に4つ目のクラス（例: 格子模様、<code>img[::4, :] += 0.35</code>のような周期的パターン）を追加し、<code>num_classes=4</code>でモデルを学習させてください。学習後、<code>model.eval()</code>と<code>torch.no_grad()</code>を使ってテストデータ1バッチ分の推論を行い、各クラスの予測確信度（softmax後の最大値）の平均を計算してください。</p>
+            <details>
+                <summary>解答例</summary>
+                <pre><code class="language-python">def generate_synthetic_images_v2(num_samples_per_class=150, image_size=28,
+                                   num_classes=4, seed=42):
+    rng = np.random.default_rng(seed)
+    images, labels = [], []
+    for label in range(num_classes):
+        for _ in range(num_samples_per_class):
+            img = rng.normal(loc=0.15, scale=0.20,
+                              size=(image_size, image_size)).astype(np.float32)
+            if label == 0:
+                img[8:12, :] += 0.35
+                img[16:20, :] += 0.35
+            elif label == 1:
+                img[:, 8:12] += 0.35
+                img[:, 16:20] += 0.35
+            elif label == 2:
+                idx = np.arange(image_size)
+                img[idx, idx] += 0.35
+                img[idx, image_size - 1 - idx] += 0.35
+            else:  # 格子模様（4つ目のクラス）
+                img[::4, :] += 0.35
+                img[:, ::4] += 0.35
+            img = np.clip(img, 0.0, 1.0)
+            images.append(img)
+            labels.append(label)
+    images = np.stack(images).astype(np.float32)[:, np.newaxis, :, :]
+    labels = np.array(labels, dtype=np.int64)
+    perm = rng.permutation(len(labels))
+    return torch.from_numpy(images[perm]), torch.from_numpy(labels[perm])
+
+images4, labels4 = generate_synthetic_images_v2(num_classes=4)
+model4 = SimpleCNN(num_classes=4).to(device)
+# 以降は本文と同様に Dataset/DataLoader を作り、学習ループを回す
+
+model4.eval()
+with torch.no_grad():
+    logits = model4(images4[:32].to(device))
+    probs = torch.softmax(logits, dim=1)
+    avg_confidence = probs.max(dim=1).values.mean().item()
+print(f"平均予測確信度: {avg_confidence:.4f}")
+</code></pre>
+            </details>
+        </details>
+
+        <h2 id="summary">まとめ</h2>
+
+        <p>この章では、PyTorch基礎入門シリーズの集大成として、画像分類の実践プロジェクトに取り組みました。</p>
+
+        <ul>
+            <li>✅ 合成画像データを生成し、カスタム<code>Dataset</code>と<code>DataLoader</code>で学習・検証・テストに分割した</li>
+            <li>✅ <code>Conv2d</code>・<code>MaxPool2d</code>・<code>Linear</code>を組み合わせたCNNモデルを構築した</li>
+            <li>✅ <code>transforms</code>によるデータ拡張と、<code>BatchNorm2d</code>による学習安定化を組み合わせた</li>
+            <li>✅ 損失と正解率の履歴を記録し、学習曲線として可視化した</li>
+            <li>✅ グリッドサーチでハイパーパラメータの組み合わせを比較し、最良の設定を選んだ</li>
+            <li>✅ 学習済みモデルを保存・読み込みし、<code>model.eval()</code>と<code>torch.no_grad()</code>で安全に推論を実行した</li>
+        </ul>
+
+        <div class="success-box">
+            <p><strong>🎓 シリーズ全体の総括</strong></p>
+            <p>第1章のTensorと自動微分の基礎から始まり、第2章のTensor操作、第3章の自動微分の仕組みを経て、この第5章でCNNによる画像分類プロジェクトを完成させました。「PyTorchとは何か」を学ぶところから、「実際にモデルを学習させ、保存し、推論する」ところまでを一通り体験したことで、他のアーキテクチャ（RNN、Transformerなど)や他のタスク(自然言語処理、時系列予測など)に取り組む際にも応用できる土台が身についたはずです。ここで学んだ「データ準備 → モデル構築 → 学習と可視化 → チューニング → デプロイ」という流れは、扱うデータやモデルが変わってもほぼそのまま通用します。ぜひ自分の興味のあるデータセットで、このパイプラインを試してみてください。</p>
+        </div>
+
+        <div class="navigation">
+            <a href="./chapter-4.html" class="nav-button">← 第4章</a>
+            <a href="./index.html" class="nav-button">シリーズ目次に戻る</a>
+        </div>
+
+        <hr style="margin: 2rem 0;">
+
+        <p><strong>参考リソース</strong></p>
+        <ul>
+            <li><a href="https://pytorch.org/docs/stable/index.html" target="_blank">PyTorch公式ドキュメント</a></li>
+            <li><a href="https://pytorch.org/vision/stable/index.html" target="_blank">torchvision公式ドキュメント</a></li>
+            <li><a href="https://pytorch.org/tutorials/" target="_blank">PyTorch公式チュートリアル</a></li>
+            <li><a href="https://github.com/pytorch/pytorch" target="_blank">PyTorch GitHub</a></li>
+        </ul>
+
+    </main>
+
+    <section class="disclaimer">
+        <h3>免責事項</h3>
+        <ul>
+            <li>本コンテンツは教育・研究・情報提供のみを目的としており、専門的な助言(法律・会計・技術的保証など)を提供するものではありません。</li>
+            <li>本コンテンツおよび付随するコード例は「現状有姿(AS IS)」で提供され、明示または黙示を問わず、商品性、特定目的適合性、権利非侵害、正確性・完全性、動作・安全性等いかなる保証もしません。</li>
+            <li>外部リンク、第三者が提供するデータ・ツール・ライブラリ等の内容・可用性・安全性について、作成者および東北大学は一切の責任を負いません。</li>
+            <li>本コンテンツの利用・実行・解釈により直接的・間接的・付随的・特別・結果的・懲罰的損害が生じた場合でも、適用法で許容される最大限の範囲で、作成者および東北大学は責任を負いません。</li>
+            <li>本コンテンツの内容は、予告なく変更・更新・提供停止されることがあります。</li>
+            <li>本コンテンツの著作権・ライセンスは明記された条件(例: CC BY 4.0)に従います。当該ライセンスは通常、無保証条項を含みます。</li>
+        </ul>
+    </section>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 AI Terakoya - Dr. Yusuke Hashimoto, Tohoku University</p>
+            <p>Licensed under CC BY 4.0</p>
+        </div>
+    </footer>
+</body>
+</html>

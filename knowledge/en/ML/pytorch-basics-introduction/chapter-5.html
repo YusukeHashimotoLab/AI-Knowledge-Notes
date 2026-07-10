@@ -1,0 +1,1134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 5: Practical Project - PyTorch Basics Introduction - AI Terakoya</title>
+    <meta name="description" content="Work through a hands-on image classification project in PyTorch. Learn everything end-to-end: building a CNN model, data augmentation, batch normalization, visualizing training, hyperparameter tuning, and model deployment and inference.">
+
+    <style>
+        :root {
+            --color-primary: #2c3e50;
+            --color-primary-dark: #1a252f;
+            --color-accent: #7b2cbf;
+            --color-accent-light: #9d4edd;
+            --color-text: #2d3748;
+            --color-text-light: #4a5568;
+            --color-bg: #ffffff;
+            --color-bg-alt: #f7fafc;
+            --color-border: #e2e8f0;
+            --color-code-bg: #f8f9fa;
+            --color-link: #3182ce;
+            --color-link-hover: #2c5aa0;
+
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+
+            --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+            --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+            --border-radius: 8px;
+            --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-body);
+            line-height: 1.7;
+            color: var(--color-text);
+            background-color: var(--color-bg);
+            font-size: 16px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            padding: var(--spacing-xl) var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+            box-shadow: var(--box-shadow);
+        }
+
+        .header-content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: var(--spacing-sm);
+            line-height: 1.2;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            font-weight: 400;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-md);
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-md) var(--spacing-xl);
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-xl);
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-xs);
+            border-bottom: 3px solid var(--color-accent);
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-lg);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        h4 {
+            font-size: 1.1rem;
+            color: var(--color-primary-dark);
+            margin-top: var(--spacing-md);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        p {
+            margin-bottom: var(--spacing-md);
+            color: var(--color-text);
+        }
+
+        a {
+            color: var(--color-link);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        a:hover {
+            color: var(--color-link-hover);
+            text-decoration: underline;
+        }
+
+        ul, ol {
+            margin-left: var(--spacing-lg);
+            margin-bottom: var(--spacing-md);
+        }
+
+        li {
+            margin-bottom: var(--spacing-xs);
+            color: var(--color-text);
+        }
+
+        pre {
+            background-color: var(--color-code-bg);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            overflow-x: auto;
+            margin-bottom: var(--spacing-md);
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        code {
+            font-family: var(--font-mono);
+            font-size: 0.9em;
+            background-color: var(--color-code-bg);
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+        }
+
+        pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: var(--spacing-md);
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            border: 1px solid var(--color-border);
+            padding: var(--spacing-sm);
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--color-bg-alt);
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        blockquote {
+            border-left: 4px solid var(--color-accent);
+            padding-left: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            color: var(--color-text-light);
+            font-style: italic;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        .mermaid {
+            text-align: center;
+            margin: var(--spacing-lg) 0;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        details {
+            background-color: var(--color-bg-alt);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+        }
+
+        summary {
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--color-primary);
+            user-select: none;
+            padding: var(--spacing-xs);
+            margin: calc(-1 * var(--spacing-md));
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        summary:hover {
+            background-color: rgba(123, 44, 191, 0.1);
+        }
+
+        details[open] summary {
+            margin-bottom: var(--spacing-md);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .chapter-description {
+            margin: 1.5rem 0;
+            padding: 1rem;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-left: 4px solid #7b2cbf;
+            border-radius: 8px;
+            font-size: 1.05rem;
+            line-height: 1.8;
+            color: #2d3748;
+        }
+
+        .learning-objectives {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: var(--spacing-lg);
+            border-radius: var(--border-radius);
+            border-left: 4px solid var(--color-accent);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .learning-objectives h2 {
+            margin-top: 0;
+            border-bottom: none;
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            gap: var(--spacing-md);
+            margin: var(--spacing-xl) 0;
+            padding-top: var(--spacing-lg);
+            border-top: 2px solid var(--color-border);
+        }
+
+        .nav-button {
+            flex: 1;
+            padding: var(--spacing-md);
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            border-radius: var(--border-radius);
+            text-align: center;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: var(--box-shadow);
+        }
+
+        .nav-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            text-decoration: none;
+        }
+
+        .nav-button.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: #6c757d;
+        }
+
+        .nav-button.disabled:hover {
+            transform: none;
+            box-shadow: var(--box-shadow);
+        }
+
+        footer {
+            margin-top: var(--spacing-xl);
+            padding: var(--spacing-lg) var(--spacing-md);
+            background-color: var(--color-bg-alt);
+            border-top: 1px solid var(--color-border);
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--color-text-light);
+        }
+        .disclaimer {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 1.5rem;
+            background: #f8f9fa;
+            border-left: 4px solid #6c757d;
+            border-radius: 4px;
+        }
+
+        .disclaimer h3 {
+            color: #495057;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .disclaimer ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .disclaimer li {
+            padding: 0.5rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+            font-size: 0.9rem;
+            color: #6c757d;
+            line-height: 1.6;
+        }
+
+        .disclaimer li::before {
+            content: "⚠️";
+            position: absolute;
+            left: 0;
+        }
+
+        /* Breadcrumb styles */
+        .breadcrumb {
+            background: #f7fafc;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+        }
+
+        .breadcrumb-content {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .breadcrumb a {
+            color: #667eea;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .breadcrumb a:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+
+        .breadcrumb-separator {
+            color: #a0aec0;
+            margin: 0 0.25rem;
+        }
+
+        .breadcrumb-current {
+            color: #4a5568;
+            font-weight: 500;
+        }
+
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            border-radius: var(--border-radius);
+        }
+
+        .warning-box {
+            background: #fff3e0;
+            border-left: 4px solid #ff9800;
+            padding: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            border-radius: var(--border-radius);
+        }
+
+        .success-box {
+            background: #e8f5e9;
+            border-left: 4px solid #4caf50;
+            padding: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            border-radius: var(--border-radius);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 1rem 2rem;
+            }
+
+            h1 {
+                font-size: 1.6rem;
+            }
+
+            h2 {
+                font-size: 1.4rem;
+            }
+
+            .navigation {
+                flex-direction: column;
+            }
+        }
+    </style>
+
+    <!-- Mermaid for diagrams -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <!-- Prism.js for syntax highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <!-- MathJax for equations -->
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <script>
+        // Mermaid.js initialization
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof mermaid !== 'undefined') {
+                mermaid.initialize({ startOnLoad: true, theme: 'default' });
+            }
+        });
+    </script>
+</head>
+<body>
+    <nav class="breadcrumb">
+        <div class="breadcrumb-content">
+            <a href="../../index.html">AI Terakoya Home</a><span class="breadcrumb-separator">›</span><a href="../index.html">Machine Learning</a><span class="breadcrumb-separator">›</span><a href="./index.html">PyTorch Basics Introduction</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 5</span>
+        </div>
+    </nav>
+
+    <header>
+        <div class="header-content">
+            <h1>Chapter 5: Practical Project</h1>
+            <p class="subtitle">Building an image classification pipeline end-to-end, from scratch</p>
+            <div class="meta">
+                <span class="meta-item">📖 Reading time: 30-35 min</span>
+                <span class="meta-item">📊 Difficulty: Intermediate</span>
+                <span class="meta-item">💻 Code examples: 15</span>
+                <span class="meta-item">📝 Exercises: 3</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="chapter-description">
+            <p>This chapter is the final installment of the PyTorch Basics Introduction series. Drawing on everything you've learned so far — Tensors and autograd from Chapter 1, Tensor operations from Chapter 2, how automatic differentiation works from Chapter 3, and neural network construction from the chapters that followed — you'll implement an <strong>Image Classification</strong> task from start to finish. From preparing the data to building a CNN model, applying data augmentation, visualizing training, tuning hyperparameters, and finally running inference with a trained model, let's work through a complete, practice-ready workflow hands-on.</p>
+        </div>
+
+        <div class="learning-objectives">
+            <h2>Learning Objectives</h2>
+            <ul>
+                <li>✅ Implement an image classification task end-to-end</li>
+                <li>✅ Build a CNN model</li>
+                <li>✅ Apply data augmentation and batch normalization</li>
+                <li>✅ Visualize and monitor the training process</li>
+                <li>✅ Perform basic hyperparameter tuning</li>
+                <li>✅ Run inference with a trained model</li>
+            </ul>
+        </div>
+
+        <div class="info-box">
+            <p><strong>💡 About the Data Used in This Chapter</strong></p>
+            <p>In practice, you'll often download public datasets such as MNIST, Fashion-MNIST, or CIFAR-10 via <code>torchvision.datasets</code>, but downloading may be difficult depending on your network environment. To ensure this chapter works reproducibly in any environment, we'll use <strong>Synthetic Image Data</strong> — striped and cross-patterned images generated with numpy. The code you learn here can be applied directly to real data simply by swapping in <code>torchvision.datasets.MNIST(...)</code> or similar.</p>
+        </div>
+
+        <h2 id="image-classification">1. Implementing an Image Classification Task</h2>
+
+        <p><strong>Image Classification</strong> is the task of predicting which class (category) an input image belongs to. In this chapter, we'll build a model that classifies grayscale images containing three types of patterns (horizontal stripes, vertical stripes, and a diagonal cross) into three classes. The overall workflow is as follows.</p>
+
+        <div class="mermaid">
+graph LR
+    A[Generate synthetic image data] --> B[Create Dataset/DataLoader]
+    B --> C[Build CNN model]
+    C --> D[Training loop + visualization]
+    D --> E[Hyperparameter search]
+    E --> F[Save model + inference]
+        </div>
+
+        <h3>1.1 Generating Synthetic Image Data</h3>
+
+        <p>First, let's write a function that uses <code>numpy</code> to generate synthetic images for 3 classes. Each class embeds a faint pattern (horizontal stripes, vertical stripes, or a diagonal cross) within noise.</p>
+
+        <pre><code class="language-python">import numpy as np
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import Dataset, DataLoader, random_split
+from torchvision import transforms
+
+torch.manual_seed(42)
+np.random.seed(42)
+
+def generate_synthetic_images(num_samples_per_class=150, image_size=28,
+                               num_classes=3, seed=42):
+    """Generate synthetic grayscale images for 3 classes.
+
+    label=0: horizontal stripes, label=1: vertical stripes, label=2: diagonal cross
+    """
+    rng = np.random.default_rng(seed)
+    images = []
+    labels = []
+    for label in range(num_classes):
+        for _ in range(num_samples_per_class):
+            img = rng.normal(loc=0.15, scale=0.20,
+                              size=(image_size, image_size)).astype(np.float32)
+            if label == 0:  # horizontal stripes
+                img[8:12, :] += 0.35
+                img[16:20, :] += 0.35
+            elif label == 1:  # vertical stripes
+                img[:, 8:12] += 0.35
+                img[:, 16:20] += 0.35
+            else:  # diagonal cross
+                idx = np.arange(image_size)
+                img[idx, idx] += 0.35
+                img[idx, image_size - 1 - idx] += 0.35
+            img = np.clip(img, 0.0, 1.0)
+            images.append(img)
+            labels.append(label)
+
+    images = np.stack(images).astype(np.float32)[:, np.newaxis, :, :]  # (N, 1, H, W)
+    labels = np.array(labels, dtype=np.int64)
+
+    # shuffle
+    perm = rng.permutation(len(labels))
+    return torch.from_numpy(images[perm]), torch.from_numpy(labels[perm])
+
+all_images, all_labels = generate_synthetic_images()
+print(f"images: {all_images.shape}, labels: {all_labels.shape}")
+</code></pre>
+
+        <p><strong>Example output:</strong></p>
+
+        <pre><code>images: torch.Size([450, 1, 28, 28]), labels: torch.Size([450])
+</code></pre>
+
+        <p>Each image has the shape <code>(channels, height, width) = (1, 28, 28)</code>, a grayscale image. This is the same format used by real image datasets such as MNIST, so the code that follows can be applied to real data as-is.</p>
+
+        <h3>1.2 Creating a Custom Dataset and DataLoader</h3>
+
+        <p>So we can apply data augmentation (explained in the next section) on a per-sample basis, let's define a custom class that inherits from <code>torch.utils.data.Dataset</code>.</p>
+
+        <pre><code class="language-python">class SyntheticImageDataset(Dataset):
+    def __init__(self, images, labels, transform=None):
+        self.images = images
+        self.labels = labels
+        self.transform = transform
+
+    def __len__(self):
+        return len(self.labels)
+
+    def __getitem__(self, idx):
+        image = self.images[idx]
+        label = self.labels[idx]
+        if self.transform:
+            image = self.transform(image)
+        return image, label
+
+# Split into training, validation, and test sets (70% / 15% / 15%)
+base_dataset = SyntheticImageDataset(all_images, all_labels, transform=None)
+n_total = len(base_dataset)
+n_train = int(n_total * 0.7)
+n_val = int(n_total * 0.15)
+n_test = n_total - n_train - n_val
+
+train_subset, val_subset, test_subset = random_split(
+    base_dataset, [n_train, n_val, n_test],
+    generator=torch.Generator().manual_seed(42)
+)
+print(f"train: {n_train}, val: {n_val}, test: {n_test}")
+</code></pre>
+
+        <p><strong>Example output:</strong></p>
+
+        <pre><code>train: 315, val: 67, test: 68
+</code></pre>
+
+        <p>Because <code>random_split</code> splits the <code>Dataset</code> by index, the samples in the training, validation, and test subsets are guaranteed not to overlap. After splitting, let's create DataLoaders so we can retrieve data in batches.</p>
+
+        <pre><code class="language-python">train_loader = DataLoader(train_subset, batch_size=32, shuffle=True)
+val_loader = DataLoader(val_subset, batch_size=32, shuffle=False)
+test_loader = DataLoader(test_subset, batch_size=32, shuffle=False)
+
+images_batch, labels_batch = next(iter(train_loader))
+print(f"batch images: {images_batch.shape}, batch labels: {labels_batch.shape}")
+</code></pre>
+
+        <p><strong>Example output:</strong></p>
+
+        <pre><code>batch images: torch.Size([32, 1, 28, 28]), batch labels: torch.Size([32])
+</code></pre>
+
+        <h2 id="cnn-model">2. Building a CNN Model</h2>
+
+        <p>A <strong>Convolutional Neural Network (CNN)</strong> is a neural network architecture that excels at handling grid-like data such as images. It's typically built by combining the following three types of layers.</p>
+
+        <ul>
+            <li><strong>Convolutional Layer (<code>nn.Conv2d</code>)</strong>: slides a small filter (kernel) across the image to detect local features such as edges and patterns</li>
+            <li><strong>Pooling Layer (<code>nn.MaxPool2d</code>)</strong>: reduces the spatial size of feature maps, lowering computational cost while increasing robustness to positional shifts</li>
+            <li><strong>Fully Connected Layer (<code>nn.Linear</code>)</strong>: flattens the features extracted by the convolutions and performs the final class prediction</li>
+        </ul>
+
+        <p>Let's start by defining a simple CNN.</p>
+
+        <pre><code class="language-python">class SimpleCNN(nn.Module):
+    def __init__(self, num_classes=3):
+        super().__init__()
+        # Convolutional layers: 1 channel (grayscale) -&gt; 16 channels -&gt; 32 channels
+        self.conv1 = nn.Conv2d(1, 16, kernel_size=3, padding=1)
+        self.conv2 = nn.Conv2d(16, 32, kernel_size=3, padding=1)
+        self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
+        self.relu = nn.ReLU()
+
+        # 28x28 -&gt; pool -&gt; 14x14 -&gt; pool -&gt; 7x7, so 32*7*7 is the input dimension to the fully connected layer
+        self.fc1 = nn.Linear(32 * 7 * 7, 64)
+        self.fc2 = nn.Linear(64, num_classes)
+
+    def forward(self, x):
+        x = self.pool(self.relu(self.conv1(x)))  # (B, 16, 14, 14)
+        x = self.pool(self.relu(self.conv2(x)))  # (B, 32, 7, 7)
+        x = x.view(x.size(0), -1)                 # flatten: (B, 32*7*7)
+        x = self.relu(self.fc1(x))
+        x = self.fc2(x)
+        return x
+
+model = SimpleCNN(num_classes=3)
+sample_output = model(images_batch)
+print(f"output shape: {sample_output.shape}")
+</code></pre>
+
+        <p><strong>Example output:</strong></p>
+
+        <pre><code>output shape: torch.Size([32, 3])
+</code></pre>
+
+        <p>The input images are 28×28, but two rounds of pooling shrink the spatial size from 28 to 14 to 7. Tracking this shape transformation is one of the trickiest parts of CNN design. The input dimension of <code>fc1</code> must always match the output shape of the final convolutional layer (channels × height × width).</p>
+
+        <div class="warning-box">
+            <p><strong>⚠️ A Common Error</strong></p>
+            <p>If you see an error like <code>mat1 and mat2 shapes cannot be multiplied</code>, in most cases the input dimension of the fully connected layer doesn't match the shape of the preceding feature map. Get in the habit of inserting <code>print(x.shape)</code> right before <code>x.view(x.size(0), -1)</code> to check.</p>
+        </div>
+
+        <h2 id="data-augmentation-batchnorm">3. Data Augmentation and Batch Normalization</h2>
+
+        <h3>3.1 Data Augmentation</h3>
+
+        <p><strong>Data Augmentation</strong> applies random transformations (flips, rotations, translations, etc.) to the training data, effectively increasing the apparent quantity and variety of data. This suppresses <strong>Overfitting</strong> — where the model memorizes the fine details of the training data — and improves generalization performance on unseen data.</p>
+
+        <p>Using <code>torchvision.transforms</code>, you can easily apply data augmentation to Tensor images.</p>
+
+        <pre><code class="language-python">train_transform = transforms.Compose([
+    transforms.RandomHorizontalFlip(p=0.5),   # flip horizontally with 50% probability
+    transforms.RandomRotation(degrees=10),    # rotate randomly within ±10 degrees
+    transforms.Normalize(mean=[0.2], std=[0.3]),  # normalize pixel values
+])
+
+# For validation/test data, apply normalization only — no randomness
+eval_transform = transforms.Compose([
+    transforms.Normalize(mean=[0.2], std=[0.3]),
+])
+</code></pre>
+
+        <div class="info-box">
+            <p><strong>💡 Why Not Apply Augmentation to Validation/Test Data</strong></p>
+            <p>Data augmentation is a technique for increasing the variety of training data, and model evaluation must always be performed on data that is "close to real." If you apply random flips or rotations to validation/test data as well, the evaluation results become unstable and you can no longer accurately measure the model's true performance.</p>
+        </div>
+
+        <h3>3.2 Batch Normalization</h3>
+
+        <p><strong>Batch Normalization</strong> normalizes the output of each layer to have a mean of 0 and a variance of 1, computed per mini-batch. It stabilizes training, speeds up convergence, and enables the use of higher learning rates. For image data, it's common to insert <code>nn.BatchNorm2d</code> right after a convolutional layer.</p>
+
+        <pre><code class="language-python">class SimpleCNN(nn.Module):
+    def __init__(self, num_classes=3):
+        super().__init__()
+        self.conv1 = nn.Conv2d(1, 16, kernel_size=3, padding=1)
+        self.bn1 = nn.BatchNorm2d(16)
+        self.conv2 = nn.Conv2d(16, 32, kernel_size=3, padding=1)
+        self.bn2 = nn.BatchNorm2d(32)
+        self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
+        self.relu = nn.ReLU()
+        self.dropout = nn.Dropout(0.3)
+        self.fc1 = nn.Linear(32 * 7 * 7, 64)
+        self.fc2 = nn.Linear(64, num_classes)
+
+    def forward(self, x):
+        x = self.pool(self.relu(self.bn1(self.conv1(x))))  # (B, 16, 14, 14)
+        x = self.pool(self.relu(self.bn2(self.conv2(x))))  # (B, 32, 7, 7)
+        x = x.view(x.size(0), -1)
+        x = self.relu(self.fc1(x))
+        x = self.dropout(x)  # further suppresses overfitting in the fully connected layer
+        x = self.fc2(x)
+        return x
+</code></pre>
+
+        <p>The standard pattern for ordering convolutional layers is "<code>Conv2d</code> → <code>BatchNorm2d</code> → activation function → <code>MaxPool2d</code>." In addition, inserting <strong>Dropout</strong> right before the fully connected layer reduces reliance on specific neurons, further improving generalization.</p>
+
+        <p>Finally, let's recreate the Datasets, applying <code>train_transform</code> (with augmentation) to the training subset and <code>eval_transform</code> to the validation/test subsets.</p>
+
+        <pre><code class="language-python">def attach_transform(subset, transform):
+    """Reattach a Dataset with the specified transform to a Subset obtained from random_split."""
+    subset.dataset = SyntheticImageDataset(all_images, all_labels, transform=transform)
+    return subset
+
+train_subset = attach_transform(train_subset, train_transform)
+val_subset = attach_transform(val_subset, eval_transform)
+test_subset = attach_transform(test_subset, eval_transform)
+
+train_loader = DataLoader(train_subset, batch_size=32, shuffle=True)
+val_loader = DataLoader(val_subset, batch_size=32, shuffle=False)
+test_loader = DataLoader(test_subset, batch_size=32, shuffle=False)
+</code></pre>
+
+        <h2 id="training-visualization">4. Visualizing and Monitoring Training</h2>
+
+        <p>To confirm that training is progressing correctly, it's essential to record and visualize the <strong>Loss</strong> and <strong>Accuracy</strong> for each epoch. First, let's define functions that perform one epoch of training and evaluation.</p>
+
+        <pre><code class="language-python">def train_one_epoch(model, loader, criterion, optimizer, device):
+    model.train()
+    total_loss, correct, total = 0.0, 0, 0
+    for images, labels in loader:
+        images, labels = images.to(device), labels.to(device)
+        optimizer.zero_grad()
+        outputs = model(images)
+        loss = criterion(outputs, labels)
+        loss.backward()
+        optimizer.step()
+
+        total_loss += loss.item() * images.size(0)
+        preds = outputs.argmax(dim=1)
+        correct += (preds == labels).sum().item()
+        total += labels.size(0)
+    return total_loss / total, correct / total
+
+@torch.no_grad()
+def evaluate(model, loader, criterion, device):
+    model.eval()
+    total_loss, correct, total = 0.0, 0, 0
+    for images, labels in loader:
+        images, labels = images.to(device), labels.to(device)
+        outputs = model(images)
+        loss = criterion(outputs, labels)
+        total_loss += loss.item() * images.size(0)
+        preds = outputs.argmax(dim=1)
+        correct += (preds == labels).sum().item()
+        total += labels.size(0)
+    return total_loss / total, correct / total
+</code></pre>
+
+        <p>Switching between <code>model.train()</code> and <code>model.eval()</code> matters a great deal. <code>BatchNorm2d</code> and <code>Dropout</code> behave differently during training and evaluation, so you must always call <code>model.eval()</code> before evaluating. Also, since gradient computation isn't needed during evaluation, we wrap it in <code>@torch.no_grad()</code> to avoid wasted computation and memory usage.</p>
+
+        <p>Next, let's run the full training loop and record the history in a <code>history</code> dictionary.</p>
+
+        <pre><code class="language-python">device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+model = SimpleCNN(num_classes=3).to(device)
+criterion = nn.CrossEntropyLoss()
+optimizer = optim.Adam(model.parameters(), lr=0.001)
+
+history = {"train_loss": [], "train_acc": [], "val_loss": [], "val_acc": []}
+num_epochs = 8
+
+for epoch in range(num_epochs):
+    train_loss, train_acc = train_one_epoch(model, train_loader, criterion, optimizer, device)
+    val_loss, val_acc = evaluate(model, val_loader, criterion, device)
+
+    history["train_loss"].append(train_loss)
+    history["train_acc"].append(train_acc)
+    history["val_loss"].append(val_loss)
+    history["val_acc"].append(val_acc)
+
+    print(f"Epoch {epoch+1}/{num_epochs}: "
+          f"train_loss={train_loss:.4f} train_acc={train_acc:.4f} "
+          f"val_loss={val_loss:.4f} val_acc={val_acc:.4f}")
+</code></pre>
+
+        <p><strong>Example output:</strong></p>
+
+        <pre><code>Epoch 1/8: train_loss=0.4813 train_acc=0.8190 val_loss=0.1782 val_acc=1.0000
+Epoch 2/8: train_loss=0.0172 train_acc=1.0000 val_loss=0.0076 val_acc=1.0000
+Epoch 3/8: train_loss=0.0040 train_acc=1.0000 val_loss=0.0008 val_acc=1.0000
+Epoch 4/8: train_loss=0.0014 train_acc=1.0000 val_loss=0.0002 val_acc=1.0000
+Epoch 5/8: train_loss=0.0017 train_acc=1.0000 val_loss=0.0001 val_acc=1.0000
+Epoch 6/8: train_loss=0.0013 train_acc=1.0000 val_loss=0.0001 val_acc=1.0000
+Epoch 7/8: train_loss=0.0009 train_acc=1.0000 val_loss=0.0001 val_acc=1.0000
+Epoch 8/8: train_loss=0.0021 train_acc=1.0000 val_loss=0.0000 val_acc=1.0000
+</code></pre>
+
+        <p>Accuracy shoots up quickly in the first epoch and has essentially converged from the second epoch onward. Because this synthetic dataset has a relatively simple pattern, it converges quickly; with real data, convergence is often more gradual, and validation loss sometimes even turns upward partway through (a sign of overfitting). Visualizing these changes as a graph, rather than relying on numbers alone, helps you spot such shifts early.</p>
+
+        <pre><code class="language-python">import matplotlib.pyplot as plt
+
+epochs_range = range(1, num_epochs + 1)
+fig, axes = plt.subplots(1, 2, figsize=(10, 4))
+
+axes[0].plot(epochs_range, history["train_loss"], label="Train Loss")
+axes[0].plot(epochs_range, history["val_loss"], label="Val Loss")
+axes[0].set_xlabel("Epoch")
+axes[0].set_ylabel("Loss")
+axes[0].set_title("Loss Curve")
+axes[0].legend()
+
+axes[1].plot(epochs_range, history["train_acc"], label="Train Acc")
+axes[1].plot(epochs_range, history["val_acc"], label="Val Acc")
+axes[1].set_xlabel("Epoch")
+axes[1].set_ylabel("Accuracy")
+axes[1].set_title("Accuracy Curve")
+axes[1].legend()
+
+plt.tight_layout()
+plt.savefig("training_curves.png")
+print("Saved the training curves to training_curves.png")
+</code></pre>
+
+        <p>Running this saves a graph to <code>training_curves.png</code> showing the loss curve dropping sharply toward zero and the accuracy curve climbing toward 1.0. If both the loss and accuracy curves improve smoothly, training is proceeding well. Conversely, if only the validation loss starts rising partway through, that's a sign of overfitting, and you should consider countermeasures such as strengthening data augmentation or reducing the number of epochs (early stopping).</p>
+
+        <div class="info-box">
+            <p><strong>💡 More Serious Monitoring</strong></p>
+            <p>In practice, in addition to post-hoc visualization with <code>matplotlib</code>, it's common to use tools like <strong>TensorBoard</strong> or <strong>Weights &amp; Biases</strong> to track loss, accuracy, learning rate, and more in real time during training. This chapter focuses on the foundational idea of "recording history and plotting it as a graph."</p>
+        </div>
+
+        <h2 id="hyperparameter-tuning">5. Hyperparameter Tuning</h2>
+
+        <p>A <strong>Hyperparameter</strong> is a value — such as the learning rate, batch size, or number of layers — that isn't determined automatically through training and must be set by a person beforehand (this is distinct from "parameters" such as weights, which are determined through training). Choosing appropriate hyperparameters can significantly change a model's performance and training stability.</p>
+
+        <p>Let's implement <strong>Grid Search</strong> — the simplest tuning method, which tries every combination of candidate values. To keep runtime manageable, we'll use a small number of epochs for each combination.</p>
+
+        <pre><code class="language-python">def build_and_train(lr, batch_size, num_epochs=2):
+    tr_loader = DataLoader(train_subset, batch_size=batch_size, shuffle=True)
+    va_loader = DataLoader(val_subset, batch_size=batch_size, shuffle=False)
+
+    m = SimpleCNN(num_classes=3).to(device)
+    opt = optim.Adam(m.parameters(), lr=lr)
+    crit = nn.CrossEntropyLoss()
+
+    for _ in range(num_epochs):
+        train_one_epoch(m, tr_loader, crit, opt, device)
+
+    _, val_acc = evaluate(m, va_loader, crit, device)
+    return val_acc
+
+results = {}
+for lr in [0.1, 0.01, 0.001, 0.0001]:
+    for batch_size in [16, 64]:
+        acc = build_and_train(lr, batch_size, num_epochs=2)
+        results[(lr, batch_size)] = acc
+        print(f"lr={lr}, batch_size={batch_size} -&gt; val_acc={acc:.4f}")
+
+best_params = max(results, key=results.get)
+print(f"\nBest combination: lr={best_params[0]}, batch_size={best_params[1]} "
+      f"(val_acc={results[best_params]:.4f})")
+</code></pre>
+
+        <p><strong>Example output:</strong></p>
+
+        <pre><code>lr=0.1, batch_size=16 -&gt; val_acc=1.0000
+lr=0.1, batch_size=64 -&gt; val_acc=1.0000
+lr=0.01, batch_size=16 -&gt; val_acc=1.0000
+lr=0.01, batch_size=64 -&gt; val_acc=1.0000
+lr=0.001, batch_size=16 -&gt; val_acc=1.0000
+lr=0.001, batch_size=64 -&gt; val_acc=1.0000
+lr=0.0001, batch_size=16 -&gt; val_acc=1.0000
+lr=0.0001, batch_size=64 -&gt; val_acc=0.9701
+
+Best combination: lr=0.1, batch_size=16 (val_acc=1.0000)
+</code></pre>
+
+        <p>You can see that only the combination of learning rate 0.0001 and batch size 64 has a slightly lower validation accuracy. When the learning rate stays small while the batch size grows, the number of weight updates per epoch decreases further, so with just 2 epochs the weights don't have enough time to fully converge. The other combinations converge quickly on this synthetic dataset, but with real data you'll typically see much clearer differences — for example, a learning rate that's too high causing the loss to diverge, or one that's too low causing slow convergence. Grid search's value lies precisely in surfacing these "dangerous combinations."</p>
+
+        <div class="warning-box">
+            <p><strong>⚠️ The Limits of Grid Search</strong></p>
+            <p>As the number of candidates grows, grid search's combination count increases exponentially, making the computational cost enormous (e.g., 5 parameters × 5 candidates each gives 5⁵ = 3,125 combinations). In practice, libraries such as <code>Optuna</code> or <code>Ray Tune</code> are commonly used, implementing <strong>Random Search</strong> (which samples candidates randomly) or <strong>Bayesian Optimization</strong> (which intelligently chooses the next value to try based on past search results).</p>
+        </div>
+
+        <h2 id="model-deployment-inference">6. Model Deployment and Inference</h2>
+
+        <p>Once training is complete, the model disappears from memory as soon as the process ends unless you save it. To reuse it, you need to save the parameters to a file so they can be loaded later. In PyTorch, the recommended approach is to save the <strong>state dictionary (state_dict)</strong> — a dictionary mapping each layer's name to its weight Tensor — rather than the entire model.</p>
+
+        <pre><code class="language-python">import os
+
+save_path = "cnn_model.pth"
+torch.save(model.state_dict(), save_path)
+print(f"Saved the model to {save_path} "
+      f"({os.path.getsize(save_path) / 1024:.1f} KB)")
+</code></pre>
+
+        <p><strong>Example output:</strong></p>
+
+        <pre><code>Saved the model to cnn_model.pth (418.7 KB)
+</code></pre>
+
+        <p>To load it, first create a new <code>SimpleCNN</code> instance with the same structure, then load the saved weights into it. Specifying <code>weights_only=True</code> performs a safe load that doesn't include executable code.</p>
+
+        <pre><code class="language-python">loaded_model = SimpleCNN(num_classes=3).to(device)
+loaded_model.load_state_dict(torch.load(save_path, map_location=device, weights_only=True))
+loaded_model.eval()  # switch to inference mode (disables Dropout/BatchNorm)
+
+# Run inference on a portion of the test data
+sample_images, sample_labels = next(iter(test_loader))
+sample_images = sample_images.to(device)
+
+with torch.no_grad():
+    logits = loaded_model(sample_images)
+    probs = torch.softmax(logits, dim=1)
+    preds = probs.argmax(dim=1)
+
+print(f"Predicted classes: {preds[:8].cpu().tolist()}")
+print(f"True classes: {sample_labels[:8].tolist()}")
+print(f"Prediction confidence: {probs.max(dim=1).values[:8].cpu().tolist()}")
+</code></pre>
+
+        <p><strong>Example output:</strong></p>
+
+        <pre><code>Predicted classes: [2, 0, 1, 0, 2, 0, 0, 0]
+True classes: [2, 0, 1, 0, 2, 0, 0, 0]
+Prediction confidence: [0.9999..., 0.9999..., 0.9999..., 0.9999..., 0.9998..., 0.9999..., 0.9999..., 0.9999...]
+</code></pre>
+
+        <p>There are three key points during inference.</p>
+
+        <ul>
+            <li><strong>Always call <code>model.eval()</code></strong>: disables <code>Dropout</code> and makes <code>BatchNorm2d</code> use its accumulated statistics instead of training-time behavior</li>
+            <li><strong>Stop gradient computation with <code>torch.no_grad()</code></strong>: since backpropagation isn't needed during inference, this saves memory and computation time</li>
+            <li><strong>Convert to probabilities with Softmax</strong>: the model's raw output (logits) is hard to interpret directly, so converting it to per-class confidence with <code>torch.softmax</code> makes the results easier to explain</li>
+        </ul>
+
+        <div class="success-box">
+            <p><strong>🎉 The Pipeline We've Built</strong></p>
+            <p>We've implemented the full sequence: generating synthetic image data → a custom Dataset and DataLoader → a CNN with data augmentation and BatchNorm → a training loop with visualization → hyperparameter search via grid search → inference with a saved model. This flow can be applied directly to real-world image classification projects simply by swapping in an actual torchvision dataset.</p>
+        </div>
+
+        <div class="info-box">
+            <p><strong>💡 Going Further</strong></p>
+            <p>Although not covered in this chapter, when embedding a model into a real service, techniques such as exporting to <strong>TorchScript</strong> (<code>torch.jit.script</code>) or the <strong>ONNX</strong> format are also commonly used to speed up inference in environments that don't depend on Python (C++, mobile, browsers, etc.). For now, make sure you have a solid grasp of the fundamentals you learned in this chapter: "save, load, <code>eval()</code>, <code>no_grad()</code>."</p>
+        </div>
+
+        <h2 id="review">Revisiting the Learning Objectives</h2>
+
+        <ul>
+            <li>✅ <strong>Implement an image classification task end-to-end</strong>: implemented the full flow in code, from generating synthetic data to saving the model and running inference</li>
+            <li>✅ <strong>Build a CNN model</strong>: defined <code>SimpleCNN</code>, combining <code>Conv2d</code>, <code>MaxPool2d</code>, and <code>Linear</code>, and tracked how the feature map shape changes</li>
+            <li>✅ <strong>Apply data augmentation and batch normalization</strong>: combined random flips and rotations via <code>transforms.Compose</code> with training stabilization via <code>nn.BatchNorm2d</code></li>
+            <li>✅ <strong>Visualize and monitor the training process</strong>: recorded per-epoch loss and accuracy and plotted training curves with <code>matplotlib</code></li>
+            <li>✅ <strong>Perform basic hyperparameter tuning</strong>: compared combinations of learning rate and batch size via grid search and selected the best combination</li>
+            <li>✅ <strong>Run inference with a trained model</strong>: implemented saving and loading a <code>state_dict</code> and safe inference with <code>model.eval()</code> + <code>torch.no_grad()</code></li>
+        </ul>
+
+        <h2 id="exercises">Exercises</h2>
+
+        <details>
+            <summary><strong>Exercise 1: Experimenting with a Wider CNN</strong></summary>
+            <p>Change <code>conv1</code>'s output channel count in <code>SimpleCNN</code> from 16 to 32, and <code>conv2</code>'s output channel count from 32 to 64, correctly recalculate <code>fc1</code>'s input dimension, and redefine the model. Confirm that the number of parameters has increased using <code>sum(p.numel() for p in model.parameters())</code>.</p>
+            <details>
+                <summary>Sample Answer</summary>
+                <pre><code class="language-python">class WiderCNN(nn.Module):
+    def __init__(self, num_classes=3):
+        super().__init__()
+        self.conv1 = nn.Conv2d(1, 32, kernel_size=3, padding=1)
+        self.bn1 = nn.BatchNorm2d(32)
+        self.conv2 = nn.Conv2d(32, 64, kernel_size=3, padding=1)
+        self.bn2 = nn.BatchNorm2d(64)
+        self.pool = nn.MaxPool2d(2, 2)
+        self.relu = nn.ReLU()
+        self.dropout = nn.Dropout(0.3)
+        # 28 -&gt; 14 -&gt; 7, so the input dimension is 64 channels x 7 x 7
+        self.fc1 = nn.Linear(64 * 7 * 7, 64)
+        self.fc2 = nn.Linear(64, num_classes)
+
+    def forward(self, x):
+        x = self.pool(self.relu(self.bn1(self.conv1(x))))
+        x = self.pool(self.relu(self.bn2(self.conv2(x))))
+        x = x.view(x.size(0), -1)
+        x = self.relu(self.fc1(x))
+        x = self.dropout(x)
+        x = self.fc2(x)
+        return x
+
+wider_model = WiderCNN(num_classes=3)
+num_params = sum(p.numel() for p in wider_model.parameters())
+print(f"Number of parameters: {num_params:,}")
+# Example output: Number of parameters: 219,971 (a substantial increase over SimpleCNN)
+</code></pre>
+            </details>
+        </details>
+
+        <details>
+            <summary><strong>Exercise 2: Comparing the Effect of Data Augmentation</strong></summary>
+            <p>Train under the same conditions (number of epochs, learning rate, batch size) with and without data augmentation (<code>train_transform</code> vs. <code>eval_transform</code> only), and compare test accuracy. Write 1-2 sentences discussing how data augmentation affects this synthetic dataset.</p>
+            <details>
+                <summary>Sample Answer</summary>
+                <pre><code class="language-python">def run_experiment(train_transform_to_use, num_epochs=5):
+    train_ds = SyntheticImageDataset(all_images, all_labels, transform=train_transform_to_use)
+    train_ds_subset = torch.utils.data.Subset(train_ds, train_subset.indices)
+    loader = DataLoader(train_ds_subset, batch_size=32, shuffle=True)
+
+    m = SimpleCNN(num_classes=3).to(device)
+    opt = optim.Adam(m.parameters(), lr=0.001)
+    crit = nn.CrossEntropyLoss()
+    for _ in range(num_epochs):
+        train_one_epoch(m, loader, crit, opt, device)
+    _, test_acc = evaluate(m, test_loader, crit, device)
+    return test_acc
+
+acc_with_aug = run_experiment(train_transform)
+acc_without_aug = run_experiment(eval_transform)
+print(f"With augmentation: {acc_with_aug:.4f}, without augmentation: {acc_without_aug:.4f}")
+# Example discussion: For simple data like this, where the pattern for each class is clearly
+# separable, the difference between with and without augmentation tends to be small. On the
+# other hand, the effect of augmentation becomes more pronounced under conditions such as
+# similar patterns between classes, high noise, or a small amount of data.
+</code></pre>
+            </details>
+        </details>
+
+        <details>
+            <summary><strong>Exercise 3: Inference with an Added Class</strong></summary>
+            <p>Add a fourth class to <code>generate_synthetic_images</code> (e.g., a grid pattern with a periodic structure like <code>img[::4, :] += 0.35</code>), and train the model with <code>num_classes=4</code>. After training, use <code>model.eval()</code> and <code>torch.no_grad()</code> to run inference on one batch of test data, and compute the average prediction confidence (the maximum value after softmax) across classes.</p>
+            <details>
+                <summary>Sample Answer</summary>
+                <pre><code class="language-python">def generate_synthetic_images_v2(num_samples_per_class=150, image_size=28,
+                                   num_classes=4, seed=42):
+    rng = np.random.default_rng(seed)
+    images, labels = [], []
+    for label in range(num_classes):
+        for _ in range(num_samples_per_class):
+            img = rng.normal(loc=0.15, scale=0.20,
+                              size=(image_size, image_size)).astype(np.float32)
+            if label == 0:
+                img[8:12, :] += 0.35
+                img[16:20, :] += 0.35
+            elif label == 1:
+                img[:, 8:12] += 0.35
+                img[:, 16:20] += 0.35
+            elif label == 2:
+                idx = np.arange(image_size)
+                img[idx, idx] += 0.35
+                img[idx, image_size - 1 - idx] += 0.35
+            else:  # grid pattern (4th class)
+                img[::4, :] += 0.35
+                img[:, ::4] += 0.35
+            img = np.clip(img, 0.0, 1.0)
+            images.append(img)
+            labels.append(label)
+    images = np.stack(images).astype(np.float32)[:, np.newaxis, :, :]
+    labels = np.array(labels, dtype=np.int64)
+    perm = rng.permutation(len(labels))
+    return torch.from_numpy(images[perm]), torch.from_numpy(labels[perm])
+
+images4, labels4 = generate_synthetic_images_v2(num_classes=4)
+model4 = SimpleCNN(num_classes=4).to(device)
+# From here, build the Dataset/DataLoader and run the training loop as in the main text
+
+model4.eval()
+with torch.no_grad():
+    logits = model4(images4[:32].to(device))
+    probs = torch.softmax(logits, dim=1)
+    avg_confidence = probs.max(dim=1).values.mean().item()
+print(f"Average prediction confidence: {avg_confidence:.4f}")
+</code></pre>
+            </details>
+        </details>
+
+        <h2 id="summary">Summary</h2>
+
+        <p>In this chapter, as the capstone of the PyTorch Basics Introduction series, we worked through a hands-on image classification project.</p>
+
+        <ul>
+            <li>✅ Generated synthetic image data and split it into training, validation, and test sets using a custom <code>Dataset</code> and <code>DataLoader</code></li>
+            <li>✅ Built a CNN model combining <code>Conv2d</code>, <code>MaxPool2d</code>, and <code>Linear</code></li>
+            <li>✅ Combined data augmentation via <code>transforms</code> with training stabilization via <code>BatchNorm2d</code></li>
+            <li>✅ Recorded the history of loss and accuracy and visualized it as training curves</li>
+            <li>✅ Compared hyperparameter combinations via grid search and selected the best configuration</li>
+            <li>✅ Saved and loaded a trained model and safely ran inference with <code>model.eval()</code> and <code>torch.no_grad()</code></li>
+        </ul>
+
+        <div class="success-box">
+            <p><strong>🎓 Series Recap</strong></p>
+            <p>Starting from the fundamentals of Tensors and automatic differentiation in Chapter 1, through Tensor operations in Chapter 2 and the mechanics of automatic differentiation in Chapter 3, we've now completed a CNN-based image classification project in this fifth chapter. Having gone all the way from learning "what is PyTorch" to "actually training, saving, and running inference with a model," you should now have a foundation that applies to other architectures (RNNs, Transformers, and so on) and other tasks (natural language processing, time series forecasting, and so on). The flow you learned here — "prepare data → build the model → train and visualize → tune → deploy" — carries over almost as-is even when the data or model changes. We encourage you to try this pipeline on a dataset you're interested in.</p>
+        </div>
+
+        <div class="navigation">
+            <a href="./chapter-4.html" class="nav-button">← Chapter 4</a>
+            <a href="./index.html" class="nav-button">Series Index</a>
+        </div>
+
+        <hr style="margin: 2rem 0;">
+
+        <p><strong>Reference Resources</strong></p>
+        <ul>
+            <li><a href="https://pytorch.org/docs/stable/index.html" target="_blank">PyTorch Official Documentation</a></li>
+            <li><a href="https://pytorch.org/vision/stable/index.html" target="_blank">torchvision Official Documentation</a></li>
+            <li><a href="https://pytorch.org/tutorials/" target="_blank">PyTorch Official Tutorials</a></li>
+            <li><a href="https://github.com/pytorch/pytorch" target="_blank">PyTorch GitHub</a></li>
+        </ul>
+
+    </main>
+
+    <section class="disclaimer">
+        <h3>Disclaimer</h3>
+        <ul>
+            <li>This content is intended solely for educational, research, and informational purposes and does not provide professional advice (legal, accounting, technical guarantees, etc.).</li>
+            <li>This content and accompanying code examples are provided "AS IS" without warranty of any kind, either express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
+            <li>The authors and Tohoku University assume no responsibility for the content, availability, or security of external links, third-party data, tools, libraries, etc.</li>
+            <li>To the maximum extent permitted by applicable law, the authors and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+            <li>The content of this material may be changed, updated, or discontinued without notice.</li>
+            <li>The copyright and license of this content are subject to the specified conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.</li>
+        </ul>
+    </section>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 AI Terakoya - Dr. Yusuke Hashimoto, Tohoku University</p>
+            <p>Licensed under CC BY 4.0</p>
+        </div>
+    </footer>
+</body>
+</html>
