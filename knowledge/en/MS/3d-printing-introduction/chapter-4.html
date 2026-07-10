@@ -457,12 +457,14 @@
 
         <header>
         <div class="header-content">
-            <h1>Chapter 4: Fundamentals of Additive Manufacturing</h1>
-            <p class="subtitle">Principles and Classification of AM Technologies - The Technical Framework of 3D Printing</p>
+            <h1>Chapter 4: Material Jetting, Binder Jetting, and Other AM Technologies</h1>
+            <p class="subtitle">Droplet deposition, powder binding, large-scale deposition, emerging methods, and how to select a process</p>
             <div class="meta">
                 <span class="meta-item">📚 3D Printing Introduction Series</span>
-                <span class="meta-item">⏱️ Reading time: 35-40 minutes</span>
-                <span class="meta-item">🎓 Difficulty: Beginner to Intermediate</span>
+                <span class="meta-item">⏱️ Reading time: 40-45 minutes</span>
+                <span class="meta-item">🎓 Difficulty: Intermediate to Advanced</span>
+                <span class="meta-item">💻 Code examples: 3</span>
+                <span class="meta-item">📝 Exercises: 5</span>
             </div>
         </div>
     </header>
@@ -473,2292 +475,444 @@
 
         <h3>Basic Understanding (Level 1)</h3>
         <ul>
-            <li>The definition of additive manufacturing (AM) and the basic concepts of the ISO/ASTM 52900 standard</li>
-            <li>The characteristics of the seven AM process categories (MEX, VPP, PBF, MJ, BJ, SL, DED)</li>
-            <li>The structure of the STL file format (triangle mesh, normal vectors, vertex order)</li>
-            <li>The history of AM (from stereolithography in 1986 to modern systems)</li>
+            <li>The droplet-deposition principle of material jetting (MJ/PolyJet) and how multi-material and full-color builds work</li>
+            <li>The post-processing chain of binder jetting (BJ), from the green part (the unsintered formed body) through sintering and infiltration</li>
+            <li>The role of directed energy deposition (DED/LENS) and sheet lamination (LOM/UAM)</li>
+            <li>An overview of hybrid manufacturing (integrating additive and subtractive machining) and emerging technologies (bioprinting, 4D printing)</li>
         </ul>
 
         <h3>Practical Skills (Level 2)</h3>
         <ul>
-            <li>Read STL files in Python and calculate volume and surface area</li>
-            <li>Perform mesh validation and repair using numpy-stl and trimesh</li>
-            <li>Understand the basic principles of slicing (layer height, shells, infill)</li>
-            <li>Read the basic structure of G-code (G0/G1/G28/M104, etc.)</li>
+            <li>Compute the dimensionless numbers of an inkjet droplet (Ohnesorge number, Weber number, Z number) and judge printability</li>
+            <li>Estimate sintering shrinkage from relative density and determine the scaling factor for green-part compensation</li>
+            <li>Compare and select AM processes quantitatively using weighted scoring</li>
         </ul>
 
         <h3>Applied Skills (Level 3)</h3>
         <ul>
-            <li>Select the optimal AM process based on application requirements</li>
-            <li>Detect and fix mesh problems (non-manifold geometry, inverted normals)</li>
-            <li>Optimize build parameters (layer height, print speed, temperature)</li>
-            <li>Evaluate STL file quality and printability</li>
-        </ul>
-
-        <h2>1.1 What is Additive Manufacturing (AM)?</h2>
-
-        <h3>1.1.1 Definition of Additive Manufacturing</h3>
-        <p>Additive manufacturing (AM) is <strong>defined by the ISO/ASTM 52900:2021 standard as "a process of joining materials to make objects from 3D model data, usually layer upon layer"</strong>. In contrast to conventional subtractive machining (material removal), AM adds material only where it is needed, giving it the following innovative characteristics:</p>
-
-        <ul>
-            <li><strong>Design freedom</strong>: Enables manufacturing of complex geometries impossible with conventional methods (hollow structures, lattice structures, topology-optimized shapes)</li>
-            <li><strong>Material efficiency</strong>: Since material is used only where needed, material waste is 5-10% (versus 30-90% waste with conventional machining)</li>
-            <li><strong>On-demand manufacturing</strong>: Enables low-volume, high-mix production of customized products without tooling</li>
-            <li><strong>Part consolidation</strong>: Structures that previously required assembling multiple components can be built as a single piece, reducing assembly steps</li>
+            <li>Choose the optimal process for an application from the trade-offs among accuracy, surface quality, speed, material range, cost, and strength</li>
+            <li>Build a realistic manufacturing plan that accounts for each method's post-processing cost and yield risk</li>
+            <li>Assess the applicability and technical maturity of emerging technologies without overstatement</li>
         </ul>
 
         <div class="info-box">
-            <strong>💡 Industrial Significance</strong>
-            <p>The AM market is growing rapidly. According to the Wohlers Report 2023:</p>
-            <ul>
-                <li>Global AM market size: $18.3B (2023) → projected $83.9B (2030, 23.5% CAGR)</li>
-                <li>Application breakdown: prototyping (38%), tooling (27%), end-use parts (35%)</li>
-                <li>Key industries: aerospace (26%), medical (21%), automotive (18%), consumer goods (15%)</li>
-                <li>Material share: polymers (55%), metals (35%), ceramics (7%), other (3%)</li>
-            </ul>
+            <strong>💡 Where this chapter fits</strong>
+            <p>Chapter 1 covered material extrusion (MEX), and Chapters 2 and 3 covered vat photopolymerization (VPP) and powder bed fusion (PBF). This chapter takes a cross-cutting look at the remaining major processes: <strong>material jetting, binder jetting, directed energy deposition, and sheet lamination</strong>, and finishes by addressing the question of "which method to choose, and when." The goal is less about operating specific machines and more about acquiring the <strong>axes for comparing processes</strong>.</p>
         </div>
 
-        <h3>1.1.2 History and Development of AM</h3>
-        <p>Additive manufacturing has approximately 40 years of history, having reached its current state through the following milestones:</p>
+        <h2>4.1 Material Jetting (MJ)</h2>
 
-        <pre class="mermaid">
-flowchart LR
-    A[1986<br/>SLA invented<br/>Chuck Hull] --> B[1988<br/>SLS emerges<br/>Carl Deckard]
-    B --> C[1992<br/>FDM patent<br/>Stratasys]
-    C --> D[2005<br/>RepRap<br/>open-sourced]
-    D --> E[2012<br/>Metal AM spreads<br/>EBM/SLM]
-    E --> F[2023<br/>Industrialization accelerates<br/>larger and faster]
-
-    style A fill:#e3f2fd
-    style B fill:#fff3e0
-    style C fill:#e8f5e9
-    style D fill:#f3e5f5
-    style E fill:#fce4ec
-    style F fill:#fff9c4
-        </pre>
-
-        <ol>
-            <li><strong>1986: Stereolithography (SLA) invented</strong> - Dr. Chuck Hull (founder of 3D Systems) invented the first AM technology, curing photopolymer resin layer by layer (US Patent 4,575,330). The term "3D printing" was also coined around this time.</li>
-            <li><strong>1988: Selective Laser Sintering (SLS) emerges</strong> - Dr. Carl Deckard (University of Texas) developed a technology to sinter powdered material with a laser, opening the door to applications with metals and ceramics.</li>
-            <li><strong>1992: Fused Deposition Modeling (FDM) patented</strong> - Stratasys commercialized FDM technology, establishing the foundation for what is now the most widely used 3D printing method.</li>
-            <li><strong>2005: RepRap project</strong> - Professor Adrian Bowyer released the open-source 3D printer "RepRap." Combined with expiring patents, this drove price reduction and democratization of the technology.</li>
-            <li><strong>2012 onward: Industrial adoption of metal AM</strong> - Electron Beam Melting (EBM) and Selective Laser Melting (SLM) became practical in aerospace and medical fields. GE Aviation began mass-producing fuel injection nozzles.</li>
-            <li><strong>2023 and beyond: The era of scale-up and speed</strong> - New technologies such as binder jetting, continuous fiber composite AM, and multi-material AM are entering industrial implementation.</li>
-        </ol>
-
-        <h3>1.1.3 Key Application Areas of AM</h3>
-
-        <h4>Application 1: Rapid Prototyping</h4>
-        <p>The first major use of AM, producing prototypes rapidly for design verification, functional testing, and market evaluation:</p>
-
-        <ul>
-            <li><strong>Shortened lead time</strong>: Conventional prototyping (weeks to months) → AM reduces this to hours or days</li>
-            <li><strong>Accelerated design iteration</strong>: Multiple versions can be prototyped at low cost to optimize the design</li>
-            <li><strong>Improved communication</strong>: Visual and tactile physical models help align stakeholders' understanding</li>
-            <li><strong>Typical examples</strong>: Automotive design models, appliance housing prototypes, pre-surgical simulation models for medical devices</li>
-        </ul>
-
-        <h4>Application 2: Tooling & Fixtures</h4>
-        <p>Using AM to manufacture jigs, tools, and molds used on the shop floor:</p>
-
-        <ul>
-            <li><strong>Custom jigs</strong>: Rapid production of assembly and inspection jigs tailored to specific production lines</li>
-            <li><strong>Conformal cooling molds</strong>: Injection molds with 3D cooling channels that follow the product shape, rather than conventional straight channels (reducing cooling time by 30-70%)</li>
-            <li><strong>Lightweight tooling</strong>: Lightweight end-effectors using lattice structures to reduce operator burden</li>
-            <li><strong>Typical examples</strong>: BMW assembly line jigs (over 100,000 units manufactured annually via AM), TaylorMade golf driver molds</li>
-        </ul>
-
-        <h4>Application 3: End-Use Parts</h4>
-        <p>Directly manufacturing final products with AM has surged in recent years:</p>
-
-        <ul>
-            <li><strong>Aerospace components</strong>: GE Aviation LEAP fuel injection nozzles (previously 20 parts, consolidated into one via AM, 25% weight reduction, over 100,000 units produced annually)</li>
-            <li><strong>Medical implants</strong>: Titanium hip implants and dental implants (optimized to patient-specific anatomy, porous structures that promote osseointegration)</li>
-            <li><strong>Custom products</strong>: Hearing aids (over 10 million units manufactured annually via AM), athletic shoe midsoles (Adidas 4D, Carbon's DLS technology)</li>
-            <li><strong>Spare parts</strong>: On-demand manufacturing of discontinued or rare parts (automotive, aerospace, industrial machinery)</li>
-        </ul>
-
-        <div class="warning-box">
-            <strong>⚠️ Constraints and Challenges of AM</strong>
-            <p>AM is not a universal solution and has the following constraints:</p>
-            <ul>
-                <li><strong>Build speed</strong>: Not suited for mass production (injection molding: 1 part/few seconds vs. AM: hours). The economic break-even point is typically under 1,000 units</li>
-                <li><strong>Build volume limits</strong>: Parts larger than the build volume (typically around 200×200×200mm on many machines) must be manufactured in sections</li>
-                <li><strong>Surface quality</strong>: Layer lines remain visible, so post-processing (polishing, machining) is required when high-precision surfaces are needed</li>
-                <li><strong>Material property anisotropy</strong>: Mechanical properties can differ between the build direction (Z-axis) and the in-plane direction (XY plane), especially with FDM</li>
-                <li><strong>Material cost</strong>: AM-grade materials are 2-10 times more expensive than general-purpose materials (though this can be offset by material efficiency and design optimization)</li>
-            </ul>
-        </div>
-
-        <h2>1.2 The Seven AM Process Categories per ISO/ASTM 52900</h2>
-
-        <h3>1.2.1 Overview of AM Process Classification</h3>
-        <p>The ISO/ASTM 52900:2021 standard classifies all AM technologies into <strong>seven process categories based on energy source and material feed method</strong>. Each process has its own strengths and weaknesses, and the optimal technology must be selected according to the application.</p>
-
-        <pre class="mermaid">
-flowchart TD
-    AM[Additive Manufacturing<br/>7 Processes] --> MEX[Material Extrusion<br/>MEX]
-    AM --> VPP[Vat Photopolymerization<br/>VPP]
-    AM --> PBF[Powder Bed Fusion<br/>PBF]
-    AM --> MJ[Material Jetting<br/>MJ]
-    AM --> BJ[Binder Jetting<br/>BJ]
-    AM --> SL[Sheet Lamination<br/>SL]
-    AM --> DED[Directed Energy Deposition<br/>DED]
-
-    MEX --> MEX_EX[FDM/FFF<br/>Low cost, widespread]
-    VPP --> VPP_EX[SLA/DLP<br/>High precision, high surface quality]
-    PBF --> PBF_EX[SLS/SLM/EBM<br/>High strength, metal-capable]
-
-    style AM fill:#f093fb
-    style MEX fill:#e3f2fd
-    style VPP fill:#fff3e0
-    style PBF fill:#e8f5e9
-    style MJ fill:#f3e5f5
-    style BJ fill:#fce4ec
-    style SL fill:#fff9c4
-    style DED fill:#fce4ec
-        </pre>
-
-        <h3>1.2.2 Material Extrusion (MEX)</h3>
-        <p><strong>Principle</strong>: A thermoplastic filament is heated, melted, and extruded through a nozzle, then deposited layer by layer. This is the most widely used AM technology (also called FDM/FFF).</p>
+        <h3>4.1.1 Principle: "printing" droplets to build layers</h3>
+        <p>Material jetting (MJ) <strong>jets liquid material as tiny droplets using the same principle as an inkjet printer, then cures them in place with ultraviolet (UV) light to build up layers</strong>. It is also called <strong>PolyJet</strong>, after the Stratasys trademark. The print head carries hundreds to thousands of nozzles that deposit droplets of photocurable resin (photopolymer) exactly where needed on each layer, and a UV lamp immediately behind the head solidifies them at once.</p>
 
         <div class="equation">
-            Process: filament → heated nozzle (190-260°C) → melt extrusion → cooling and solidification → next layer deposition
+            Process: atomize resin into droplets → jet from head → impact and leveling → UV curing → next layer
         </div>
 
-        <p><strong>Characteristics:</strong></p>
+        <p>Because MJ handles an entire area with a nozzle array at once, it is faster than point-scanning SLA while remaining high-resolution thanks to the small droplet size. On the other hand, its essential constraints are that <strong>usable materials are limited to photocurable resins</strong> and that mechanical properties (strength, heat resistance) remain moderate.</p>
+
+        <h3>4.1.2 Droplet physics: the dimensionless numbers that govern printability</h3>
+        <p>Whether a droplet forms "cleanly as a single drop" is decided by the balance among viscosity, surface tension, and inertia. The following dimensionless numbers express this. Each term is defined on first use.</p>
         <ul>
-            <li><strong>Low cost</strong>: Equipment price $200-$5,000 (desktop), $10,000-$100,000 (industrial)</li>
-            <li><strong>Material diversity</strong>: PLA, ABS, PETG, nylon, PC, carbon fiber composites, PEEK (high-performance)</li>
-            <li><strong>Build speed</strong>: 20-150 mm³/s (moderate), layer height 0.1-0.4mm</li>
-            <li><strong>Precision</strong>: ±0.2-0.5 mm (desktop), ±0.1 mm (industrial)</li>
-            <li><strong>Surface quality</strong>: Layer lines clearly visible (can be improved with post-processing)</li>
-            <li><strong>Material anisotropy</strong>: Z-axis (build direction) strength is 20-80% lower (weak inter-layer bonding)</li>
+            <li><strong>Ohnesorge number (Oh)</strong>: the ratio of viscous force to inertial and surface-tension forces. Oh = μ / √(ρ σ D), where μ is viscosity, ρ is density, σ is surface tension, and D is nozzle diameter.</li>
+            <li><strong>Z number</strong>: the reciprocal of Oh (Z = 1/Oh). It is widely used in inkjet research as an index of printability.</li>
+            <li><strong>Weber number (We)</strong>: the ratio of inertial force to surface-tension force. We = ρ v² D / σ, where v is droplet velocity. It indicates whether there is enough energy to eject a droplet.</li>
+            <li><strong>Reynolds number (Re)</strong>: the ratio of inertial force to viscous force. Re = ρ v D / μ.</li>
+        </ul>
+        <p>Empirically, the window for stable droplet formation is <strong>roughly 1 &lt; Z &lt; 10</strong> (up to about 14 depending on the source). If Z is too small (too viscous), the droplet does not detach; if it is too large, it trails a tail and produces <strong>satellite droplets</strong>. In addition, a sufficient We is needed for ejection.</p>
+
+        <div class="warning-box">
+            <strong>⚠️ Dimensionless numbers are a guide, not a guarantee</strong>
+            <p>The 1 &lt; Z &lt; 10 window is an empirical rule derived from many experiments; the actual window shifts with the resin's non-Newtonian behavior (shear-dependent viscosity), the drive waveform, and nozzle geometry. It is useful for early-stage screening, but the honest approach is to leave the final judgment to droplet observation on the real machine (a drop watcher).</p>
+        </div>
+
+        <h3>4.1.3 Multi-material and full-color builds</h3>
+        <p>MJ's greatest strength is that it can <strong>assign different materials to different nozzle groups and switch materials or colors freely within a single build</strong>. It can create "digital materials" that blend rigid and soft resins in a gradient to produce intermediate hardnesses from rubbery to rigid, and full-color builds of more than 10 million colors by combining CMYK plus white and clear resins. In medical anatomical models, bone (hard), soft tissue (soft), and blood vessels (clear) can be built into a single piece, which is valuable for surgical planning.</p>
+
+        <h3>4.1.4 Support strategy</h3>
+        <p>In MJ, a separate <strong>support material</strong> (often gel-like or wax-like) is jetted at the same time as the build material to support overhangs and hollows. Removal is mainly of two kinds:</p>
+        <ul>
+            <li><strong>Water-soluble / water-disintegrable support</strong>: dissolved with a water jet or alkaline solution. It can flush out complex internal channels, but residue tends to remain in fine features.</li>
+            <li><strong>Mechanically removed support</strong>: peeled off by hand or with a water jet. Fast, but risks damaging fine features.</li>
+        </ul>
+        <p>The cost of support material and the labor of removal directly affect the effective cost and yield of MJ. Even though the build itself is high-precision, it is important to evaluate it by <strong>total cost including post-processing</strong>.</p>
+
+        <h2>4.2 Binder Jetting (BJ)</h2>
+
+        <h3>4.2.1 Principle: "gluing" powder into shape</h3>
+        <p>Binder jetting (BJ) <strong>jets a liquid binder onto a thin powder bed with an inkjet head, gluing the powder particles together to form each layer</strong>. Because it uses no laser or heat source to melt the material, the build itself proceeds quickly at room temperature. The formed body straight off the build is called the <strong>green part (an unsintered, fragile state)</strong>.</p>
+
+        <div class="equation">
+            Process: spread powder → jet binder (per layer) → cure → remove green part → debind → sinter / infiltrate
+        </div>
+
+        <h3>4.2.2 The green part and post-processing</h3>
+        <p>The green part lacks strength on its own, so it is densified in post-processing. For metals and ceramics, the main routes are:</p>
+        <ul>
+            <li><strong>Debinding</strong>: removing the binder by heat or solvent. Done too rapidly it cracks, so careful heating is required.</li>
+            <li><strong>Sintering</strong>: at high temperature below the melting point (around 1200-1400°C for metals), particles diffusion-bond and densify. <strong>Large shrinkage</strong> occurs during this step.</li>
+            <li><strong>Infiltration</strong>: instead of sintering, a low-melting-point metal (such as bronze) is drawn into the porous green/brown part by capillary action to fill the voids. Shrinkage is small and dimensional stability is excellent, but the material becomes a composite.</li>
         </ul>
 
-        <p><strong>Application examples:</strong></p>
-        <ul>
-            <li>Prototyping (the most common use, low cost and fast)</li>
-            <li>Jigs and tools (used on the shop floor, lightweight and easily customized)</li>
-            <li>Educational models (widely used in schools and universities, safe and low cost)</li>
-            <li>End-use parts (custom hearing aids, prosthetics and orthotics, architectural models)</li>
-        </ul>
+        <h3>4.2.3 Estimating sintering shrinkage and compensating dimensions</h3>
+        <p>During sintering, as the relative density (the fraction of theoretical density) increases, the volume decreases and the part shrinks. Assuming isotropic shrinkage, the linear shrinkage can be expressed as the cube root of the density ratio.</p>
+        <div class="equation">
+            linear shrinkage = (1 − (ρ_green / ρ_sinter)^(1/3)) × 100 [%]
+        </div>
+        <p>Here ρ_green is the green relative density and ρ_sinter is the sintered relative density. To obtain the target dimension, you <strong>design the green part larger</strong> to anticipate this shrinkage; the scale factor is (ρ_sinter / ρ_green)^(1/3). It is not unusual for linear shrinkage in metal BJ to reach 15-20%, and without compensating for it the part is unusable. This calculation is carried out in Code Example 2 below.</p>
 
         <div class="info-box">
-            <strong>💡 Representative FDM Machines</strong>
+            <strong>💡 Where BJ excels</strong>
             <ul>
-                <li><strong>Ultimaker S5</strong>: Dual head, 330×240×300mm build volume, $6,000</li>
-                <li><strong>Prusa i3 MK4</strong>: Open-source based, highly reliable, $1,200</li>
-                <li><strong>Stratasys Fortus 450mc</strong>: Industrial grade, supports ULTEM 9085, $250,000</li>
-                <li><strong>Markforged X7</strong>: Supports continuous carbon fiber composites, $100,000</li>
+                <li><strong>Sand molds and cores for casting</strong>: complex cooling and gating channels are formed in one piece with no sintering required. Already in production use for large castings such as engine blocks.</li>
+                <li><strong>Metal mass-production parts</strong>: systems such as Desktop Metal and HP Metal Jet aim for unit costs close to injection molding.</li>
+                <li><strong>Full-color gypsum models</strong>: for memorabilia and educational models. Low in strength but inexpensive and colorful.</li>
             </ul>
         </div>
 
-        <h3>1.2.3 Vat Photopolymerization (VPP)</h3>
-        <p><strong>Principle</strong>: A liquid photocurable resin (photopolymer) is selectively cured layer by layer using a UV laser or projector.</p>
-
-        <div class="equation">
-            Process: UV exposure → photopolymerization reaction → solidification → build platform rises → next layer exposure
-        </div>
-
-        <p><strong>The two main VPP methods:</strong></p>
-        <ol>
-            <li><strong>SLA (Stereolithography)</strong>: A UV laser (355 nm) is scanned by galvo mirrors, curing the resin point by point. High precision but slow.</li>
-            <li><strong>DLP (Digital Light Processing)</strong>: A projector exposes an entire layer at once. Fast, but resolution depends on the projector's pixel count (Full HD: 1920×1080).</li>
-            <li><strong>LCD-MSLA (Masked SLA)</strong>: Uses an LCD mask, similar to DLP but lower cost (many desktop machines in the $200-$1,000 range).</li>
-        </ol>
-
-        <p><strong>Characteristics:</strong></p>
+        <h2>4.3 Directed Energy Deposition (DED)</h2>
+        <p>Directed energy deposition (DED) <strong>feeds metal powder or wire while melting it with a laser, electron beam, or arc, building up material on a substrate</strong>. Because the nozzle and energy source move together, mounting them on a multi-axis robotic arm imposes few limits on build size and can handle large parts. LENS (Laser Engineered Net Shaping) is a representative trademark for the laser-powder variant.</p>
         <ul>
-            <li><strong>High precision</strong>: XY resolution 25-100 μm, Z resolution 10-50 μm (among the highest of all AM technologies)</li>
-            <li><strong>Surface quality</strong>: Smooth surface (Ra < 5 μm), layer lines nearly invisible</li>
-            <li><strong>Build speed</strong>: SLA (10-50 mm³/s), DLP/LCD (100-500 mm³/s, area-dependent)</li>
-            <li><strong>Material constraints</strong>: Photocurable resins only (mechanical properties are often inferior to FDM)</li>
-            <li><strong>Post-processing required</strong>: washing (IPA, etc.) → post-curing (UV exposure) → support removal</li>
+            <li><strong>High deposition rate</strong>: 1-5 kg/h, 10-50 times that of PBF. But precision is coarse (±0.5-2 mm).</li>
+            <li><strong>Repair and cladding</strong>: worn turbine blades and damaged mold sections can be regenerated by depositing directly onto the existing part. This is DED's greatest practical value.</li>
+            <li><strong>Functionally graded materials</strong>: by continuously varying the ratio of the fed powders, composition can vary with position (e.g., a tough base and a wear-resistant surface).</li>
+        </ul>
+        <p>Rather than "creating a precise shape from scratch," DED shows its real strength in <strong>"depositing large and fast" and "repairing what is broken."</strong> Because finishing presupposes machining, it is closely tied to the hybrid manufacturing discussed in the next section.</p>
+
+        <h2>4.4 Sheet Lamination and Hybrid Manufacturing</h2>
+
+        <h3>4.4.1 Sheet Lamination (SL)</h3>
+        <p>Sheet lamination (SL) <strong>stacks sheet materials such as paper, metal foil, or plastic film, bonds or welds them, and cuts the contour of each layer</strong>. The two representative technologies are:</p>
+        <ul>
+            <li><strong>LOM (Laminated Object Manufacturing)</strong>: adhesive-backed paper or film is stacked and the contour cut with a laser or blade. Large and low-cost, but the interior is solid and the use is mainly visual models.</li>
+            <li><strong>UAM (Ultrasonic Additive Manufacturing)</strong>: metal foils are solid-state joined by ultrasound and shaped by CNC machining. Because the bonding is low-temperature, it has a feature no other method offers: <strong>sensors and optical fibers can be embedded inside the build</strong>.</li>
         </ul>
 
-        <p><strong>Application examples:</strong></p>
-        <ul>
-            <li>Dental applications (orthodontic models, surgical guides, dentures; millions of units produced annually)</li>
-            <li>Wax models for jewelry casting (high precision, complex geometry)</li>
-            <li>Medical models (surgical planning, anatomical models, patient education)</li>
-            <li>Master models (for silicone molding, design verification)</li>
-        </ul>
+        <h3>4.4.2 Hybrid Manufacturing (integrating additive and subtractive)</h3>
+        <p>Hybrid manufacturing is an approach that <strong>performs additive processing (AM) and subtractive processing (machining) alternately within a single machine</strong>. By depositing a preform with DED, milling the surface to a finish while it is still accessible, and then depositing again, it combines AM's geometric freedom with the surface and dimensional precision of CNC. The ability to perform deposition repair on an existing part plus finishing in one continuous process is another reason industrial adoption is growing.</p>
 
-        <h3>1.2.4 Powder Bed Fusion (PBF)</h3>
-        <p><strong>Principle</strong>: A thin layer of powder material is spread, then selectively melted or sintered with a laser or electron beam and solidified layer by layer. Applicable to metals, polymers, and ceramics.</p>
-
-        <div class="equation">
-            Process: powder spreading → laser/electron beam scanning → melting/sintering → solidification → next layer of powder spreading
-        </div>
-
-        <p><strong>The three main PBF methods:</strong></p>
-        <ol>
-            <li><strong>SLS (Selective Laser Sintering)</strong>: Sinters polymer powder (e.g., PA12 nylon) with a laser. No support needed (surrounding powder provides support).</li>
-            <li><strong>SLM (Selective Laser Melting)</strong>: Fully melts metal powder (Ti-6Al-4V, AlSi10Mg, Inconel 718, etc.). Capable of producing high-density parts (relative density &gt;99%).</li>
-            <li><strong>EBM (Electron Beam Melting)</strong>: Melts metal powder with an electron beam. High-temperature preheating (650-1000°C) results in low residual stress and faster build speed.</li>
-        </ol>
-
-        <p><strong>Characteristics:</strong></p>
-        <ul>
-            <li><strong>High strength</strong>: Melting and re-solidification produces mechanical properties comparable to forged material (tensile strength 500-1200 MPa)</li>
-            <li><strong>Complex geometry capability</strong>: No support needed (powder provides support), enabling overhang builds</li>
-            <li><strong>Material diversity</strong>: Ti alloys, Al alloys, stainless steel, Ni superalloys, Co-Cr alloys, nylon</li>
-            <li><strong>High cost</strong>: Equipment price $200,000-$1,500,000, material cost $50-$500/kg</li>
-            <li><strong>Post-processing</strong>: support removal, heat treatment (stress relief), surface finishing (blasting, polishing)</li>
-        </ul>
-
-        <p><strong>Application examples:</strong></p>
-        <ul>
-            <li>Aerospace components (weight reduction, part consolidation, e.g., GE LEAP fuel nozzles)</li>
-            <li>Medical implants (patient-specific geometry, porous structures, Ti-6Al-4V)</li>
-            <li>Molds (conformal cooling, complex geometry, H13 tool steel)</li>
-            <li>Automotive parts (lightweight brackets, custom engine components)</li>
-        </ul>
-
-        <h3>1.2.5 Material Jetting (MJ)</h3>
-        <p><strong>Principle</strong>: Similar to inkjet printing, droplets of material (photocurable resin or wax) are jetted from a print head and instantly cured with UV light, layer by layer.</p>
-
-        <p><strong>Characteristics:</strong></p>
-        <ul>
-            <li><strong>Ultra-high precision</strong>: XY resolution 42-85 μm, Z resolution 16-32 μm</li>
-            <li><strong>Multi-material</strong>: Multiple materials and colors can be combined within a single build</li>
-            <li><strong>Full-color builds</strong>: Combining CMYK resins allows for more than 10 million colors</li>
-            <li><strong>Surface quality</strong>: Extremely smooth (almost no visible layer lines)</li>
-            <li><strong>High cost</strong>: Equipment $50,000-$300,000, material cost $200-$600/kg</li>
-            <li><strong>Material constraints</strong>: Photocurable resins only, moderate mechanical properties</li>
-        </ul>
-
-        <p><strong>Application examples:</strong>: Medical anatomical models (soft and hard tissue reproduced with different materials), full-color architectural models, design verification models</p>
-
-        <h3>1.2.6 Binder Jetting (BJ)</h3>
-        <p><strong>Principle</strong>: A liquid binder (adhesive) is jetted onto a powder bed using an inkjet method to bond powder particles together. Strength is increased after the build via sintering or infiltration.</p>
-
-        <p><strong>Characteristics:</strong></p>
-        <ul>
-            <li><strong>High-speed build</strong>: No laser scanning required, entire layers processed at once, build speed 100-500 mm³/s</li>
-            <li><strong>Material diversity</strong>: Metal powders, ceramics, sand molds (for casting), full-color (gypsum)</li>
-            <li><strong>No support needed</strong>: Surrounding powder provides support and can be recycled after removal</li>
-            <li><strong>Low-density issue</strong>: Fragile before sintering (green density 50-60%), relative density of 90-98% even after sintering</li>
-            <li><strong>Post-processing required</strong>: debinding → sintering (metals: 1200-1400°C) → infiltration (copper/bronze)</li>
-        </ul>
-
-        <p><strong>Application examples:</strong>: Sand molds for casting (large castings such as engine blocks), metal parts (Desktop Metal, HP Metal Jet), full-color figures (memorabilia, educational models)</p>
-
-        <h3>1.2.7 Sheet Lamination (SL)</h3>
-        <p><strong>Principle</strong>: Sheet materials (paper, metal foil, plastic film) are stacked and bonded or welded together, with each layer cut to contour by laser or blade.</p>
-
-        <p><strong>Representative technologies:</strong></p>
-        <ul>
-            <li><strong>LOM (Laminated Object Manufacturing)</strong>: Paper or plastic sheets bonded with adhesive and laser-cut</li>
-            <li><strong>UAM (Ultrasonic Additive Manufacturing)</strong>: Metal foils joined by ultrasonic welding, contoured with CNC machining</li>
-        </ul>
-
-        <p><strong>Characteristics:</strong> Capable of large builds, low material cost, moderate precision, limited applications (mainly visual models; embedded sensors for metal variants)</p>
-
-        <h3>1.2.8 Directed Energy Deposition (DED)</h3>
-        <p><strong>Principle</strong>: Metal powder or wire is fed while being melted by a laser, electron beam, or arc, and deposited onto a substrate. Used for large parts and repair of existing components.</p>
-
-        <p><strong>Characteristics:</strong></p>
-        <ul>
-            <li><strong>High deposition rate</strong>: 1-5 kg/h (10-50 times that of PBF)</li>
-            <li><strong>Large-scale capability</strong>: Fewer build volume constraints (multi-axis robotic arms are used)</li>
-            <li><strong>Repair and coating</strong>: Repairs worn areas of existing parts, forms hardened surface layers</li>
-            <li><strong>Lower precision</strong>: Precision ±0.5-2 mm, post-processing (machining) required</li>
-        </ul>
-
-        <p><strong>Application examples:</strong>: Turbine blade repair, large aerospace components, wear-resistant tool coatings</p>
-
-        <div class="warning-box">
-            <strong>⚠️ Guidance for Process Selection</strong>
-            <p>The optimal AM process depends on application requirements:</p>
-            <ul>
-                <li><strong>Precision is the top priority</strong> → VPP (SLA/DLP) or MJ</li>
-                <li><strong>Low cost, widespread adoption</strong> → MEX (FDM/FFF)</li>
-                <li><strong>High-strength metal parts</strong> → PBF (SLM/EBM)</li>
-                <li><strong>Mass production (sand molds)</strong> → BJ</li>
-                <li><strong>Large scale, high-speed deposition</strong> → DED</li>
-            </ul>
-        </div>
-        </div>
-
-        <h2>1.3 The STL File Format and Data Processing</h2>
-
-        <h3>1.3.1 Structure of the STL File</h3>
-        <p>STL (STereoLithography) is <strong>the most widely used 3D model file format in AM</strong>, developed by 3D Systems in 1987. STL files represent the surface of an object as <strong>a collection of triangular meshes</strong>.</p>
-
-        <h4>Basic Structure of an STL File</h4>
-        <div class="equation">
-            STL file = normal vector (n) + 3 vertex coordinates (v1, v2, v3) × number of triangles
-        </div>
-
-        <p><strong>Example of ASCII STL format:</strong></p>
-        <pre><code class="language-plaintext">solid cube
-  facet normal 0 0 1
-    outer loop
-      vertex 0 0 10
-      vertex 10 0 10
-      vertex 10 10 10
-    endloop
-  endfacet
-  facet normal 0 0 1
-    outer loop
-      vertex 0 0 10
-      vertex 10 10 10
-      vertex 0 10 10
-    endloop
-  endfacet
-  ...
-endsolid cube
-</code></pre>
-
-        <p><strong>The two types of STL format:</strong></p>
-        <ol>
-            <li><strong>ASCII STL</strong>: A human-readable text format. Large file size (10-20 times larger than binary for the same model). Useful for debugging and verification.</li>
-            <li><strong>Binary STL</strong>: A binary format, small file size, fast processing. The industry standard. Structure: 80-byte header + 4-byte triangle count + 50 bytes per triangle (12B normal + 36B vertices + 2B attribute).</li>
-        </ol>
-
-        <h3>1.3.2 Key Concepts in STL Files</h3>
-
-        <h4>1. Normal Vector</h4>
-        <p>Each triangular face has a defined <strong>normal vector (outward direction)</strong> that distinguishes the "inside" from the "outside" of the object. The normal direction is determined by the <strong>right-hand rule</strong>:</p>
-
-        <div class="equation">
-            normal n = (v2 - v1) × (v3 - v1) / |(v2 - v1) × (v3 - v1)|
-        </div>
-
-        <p><strong>Vertex order rule:</strong> Vertices v1, v2, v3 are arranged counter-clockwise (CCW), and when viewed from outside in counter-clockwise order, the normal points outward.</p>
-
-        <h4>2. Manifold Conditions</h4>
-        <p>For an STL mesh to be printable, it must be <strong>manifold</strong>:</p>
-
-        <ul>
-            <li><strong>Edge sharing</strong>: Every edge is shared by exactly two triangles</li>
-            <li><strong>Vertex sharing</strong>: Every vertex belongs to a continuous triangle fan</li>
-            <li><strong>Closed surface</strong>: No holes or openings; the surface forms a fully closed shape</li>
-            <li><strong>No self-intersection</strong>: Triangles do not intersect or penetrate each other</li>
-        </ul>
-
-        <div class="warning-box">
-            <strong>⚠️ Problems with Non-Manifold Meshes</strong>
-            <p>Non-manifold meshes cannot be 3D printed. Typical problems include:</p>
-            <ul>
-                <li><strong>Holes</strong>: Unclosed surfaces where an edge belongs to only one triangle</li>
-                <li><strong>T-junctions</strong>: An edge shared by three or more triangles</li>
-                <li><strong>Inverted normals</strong>: A mix of triangles whose normals point inward</li>
-                <li><strong>Duplicate vertices</strong>: Multiple vertices existing at the same location</li>
-                <li><strong>Degenerate triangles</strong>: Triangles with zero or near-zero area</li>
-            </ul>
-            <p>These problems cause errors in slicing software and result in failed builds.</p>
-        </div>
-
-        <h3>1.3.3 STL File Quality Metrics</h3>
-
-        <p>The quality of an STL mesh is evaluated using the following metrics:</p>
-
-        <ol>
-            <li><strong>Triangle count</strong>: Typically 10,000-500,000. Avoid too few (coarse model) or too many (large file size, slow processing).</li>
-            <li><strong>Edge length uniformity</strong>: A mix of extremely large and small triangles degrades build quality. Ideally in the range of 0.1-1.0 mm.</li>
-            <li><strong>Aspect ratio</strong>: Long, thin triangles (high aspect ratio) cause numerical errors. Ideally aspect ratio &lt; 10.</li>
-            <li><strong>Normal consistency</strong>: All normals should be consistently outward-facing. Mixed inverted normals cause inside/outside determination errors.</li>
-        </ol>
-
-        <div class="info-box">
-            <strong>💡 STL File Resolution Trade-off</strong>
-            <p>STL mesh resolution (triangle count) is a trade-off between accuracy and file size:</p>
-            <ul>
-                <li><strong>Low resolution (1,000-10,000 triangles)</strong>: Fast processing, small file, but curved surfaces appear faceted</li>
-                <li><strong>Medium resolution (10,000-100,000 triangles)</strong>: Appropriate for most applications, good balance</li>
-                <li><strong>High resolution (100,000-1,000,000 triangles)</strong>: Smooth curved surfaces, but large file size (tens of MB) and slower processing</li>
-            </ul>
-            <p>When exporting STL from CAD software, resolution is controlled via <strong>chordal tolerance</strong> or <strong>angle tolerance</strong>. Recommended values: chordal tolerance 0.01-0.1 mm, angle tolerance 5-15 degrees.</p>
-        </div>
-
-        <h3>1.3.4 STL Processing with Python Libraries</h3>
-
-        <p>Key Python libraries for working with STL files:</p>
-
-        <ol>
-            <li><strong>numpy-stl</strong>: Fast STL reading/writing, volume and surface area calculation, normal vector manipulation. Simple and lightweight.</li>
-            <li><strong>trimesh</strong>: A comprehensive 3D mesh processing library. Mesh repair, boolean operations, ray casting, collision detection. Feature-rich but with many dependencies.</li>
-            <li><strong>PyMesh</strong>: Advanced mesh processing (remeshing, subdivision, feature extraction). Somewhat complex to install.</li>
-        </ol>
-
-        <p><strong>Basic usage of numpy-stl:</strong></p>
-        <pre><code class="language-python">from stl import mesh
-import numpy as np
-
-# Load an STL file
-your_mesh = mesh.Mesh.from_file('model.stl')
-
-# Basic geometric information
-volume, cog, inertia = your_mesh.get_mass_properties()
-print(f"Volume: {volume:.2f} mm³")
-print(f"Center of Gravity: {cog}")
-print(f"Surface Area: {your_mesh.areas.sum():.2f} mm²")
-
-# Triangle count
-print(f"Number of Triangles: {len(your_mesh.vectors)}")
-</code></pre>
-
-        <h2>1.4 Slicing and Toolpath Generation</h2>
-
-        <p>The process of converting an STL file into instructions (G-code) that a 3D printer can understand is called <strong>slicing</strong>. In this section, we will learn the basic principles of slicing, toolpath strategies, and the fundamentals of G-code.</p>
-
-        <h3>1.4.1 Basic Principles of Slicing</h3>
-
-        <p>Slicing is the process of horizontally cutting a 3D model at a fixed height (the layer height) and extracting the contour of each layer:</p>
-
-        <pre class="mermaid">
-flowchart TD
-    A[3D model<br/>STL file] --> B[Slice into layers<br/>along the Z-axis]
-    B --> C[Extract layer contours<br/>Contour Detection]
-    C --> D[Generate shell<br/>Perimeter Path]
-    D --> E[Generate infill<br/>Infill Path]
-    E --> F[Add support<br/>Support Structure]
-    F --> G[Optimize toolpath<br/>Retraction/Travel]
-    G --> H[Output G-code]
-
-    style A fill:#e3f2fd
-    style H fill:#e8f5e9
-        </pre>
-
-        <h4>Choosing Layer Height</h4>
-        <p>Layer height is the most important parameter determining the trade-off between build quality and build time:</p>
+        <h2>4.5 How to Select a Process</h2>
+        <p>None of the methods above is "universal." Selection is an <strong>evaluation of trade-offs against the application requirements</strong>. The main comparison axes are summarized below.</p>
 
         <table>
             <tr>
-                <th>Layer Height</th>
-                <th>Build Quality</th>
-                <th>Build Time</th>
-                <th>Typical Applications</th>
-            </tr>
-            <tr>
-                <td>0.1 mm (very fine)</td>
-                <td>Very high (layer lines nearly invisible)</td>
-                <td>Very long (×2-3)</td>
-                <td>Figurines, medical models, end-use parts</td>
-            </tr>
-            <tr>
-                <td>0.2 mm (standard)</td>
-                <td>Good (layer lines visible but acceptable)</td>
-                <td>Standard</td>
-                <td>General prototypes, functional parts</td>
-            </tr>
-            <tr>
-                <td>0.3 mm (coarse)</td>
-                <td>Low (layer lines pronounced)</td>
-                <td>Short (×0.5)</td>
-                <td>Early-stage prototypes, internal structural parts</td>
-            </tr>
-        </table>
-
-        <div class="warning-box">
-            <strong>⚠️ Layer Height Constraints</strong>
-            <p>Layer height must be set to <strong>25-80%</strong> of the nozzle diameter. For example, with a 0.4mm nozzle, the recommended layer height range is 0.1-0.32mm. Exceeding this can cause insufficient extrusion or the nozzle dragging on the previous layer.</p>
-        </div>
-
-        <h3>1.4.2 Shell and Infill Strategies</h3>
-
-        <h4>Generating the Shell</h4>
-        <p><strong>The shell (shell/perimeter)</strong> is the path that forms the outer boundary of each layer:</p>
-
-        <ul>
-            <li><strong>Shell count (perimeter count)</strong>: Typically 2-4. Affects external quality and strength.
-                <ul>
-                    <li>1 shell: Very weak, high transparency, decorative use only</li>
-                    <li>2 shells: Standard (good balance)</li>
-                    <li>3-4 shells: High strength, improved surface quality, improved airtightness</li>
-                </ul>
-            </li>
-            <li><strong>Shell order</strong>: Inside-out is common. Outside-in is used when surface quality is the priority.</li>
-        </ul>
-
-        <h4>Infill Patterns</h4>
-        <p><strong>Infill</strong> forms the internal structure and controls strength and material usage:</p>
-
-        <table>
-            <tr>
-                <th>Pattern</th>
+                <th>Process</th>
+                <th>Accuracy / surface</th>
+                <th>Speed</th>
+                <th>Main materials</th>
                 <th>Strength</th>
-                <th>Print Speed</th>
-                <th>Material Usage</th>
-                <th>Characteristics</th>
+                <th>Best-suited use</th>
             </tr>
             <tr>
-                <td>Grid</td>
+                <td>Material Jetting (MJ)</td>
+                <td>Very high</td>
                 <td>Medium</td>
-                <td>Fast</td>
-                <td>Medium</td>
-                <td>Simple, isotropic, standard choice</td>
+                <td>Photocurable resin (multi-material, full-color)</td>
+                <td>Low to medium</td>
+                <td>Appearance models, medical anatomical models</td>
             </tr>
             <tr>
-                <td>Honeycomb</td>
+                <td>Binder Jetting (BJ)</td>
+                <td>Medium</td>
                 <td>High</td>
-                <td>Slow</td>
-                <td>Medium</td>
-                <td>High strength, excellent strength-to-weight ratio, aerospace use</td>
+                <td>Metals, ceramics, sand, gypsum</td>
+                <td>Medium (after sintering)</td>
+                <td>Sand molds, metal mass production, full-color figures</td>
             </tr>
             <tr>
-                <td>Gyroid</td>
-                <td>Very High</td>
-                <td>Medium</td>
-                <td>Medium</td>
-                <td>3D isotropic, curved geometry, latest recommendation</td>
+                <td>DED / LENS</td>
+                <td>Low (needs post-machining)</td>
+                <td>Very high (deposition)</td>
+                <td>Metal (powder / wire)</td>
+                <td>High</td>
+                <td>Repair, large parts, graded materials</td>
             </tr>
             <tr>
-                <td>Concentric</td>
-                <td>Low</td>
-                <td>Fast</td>
-                <td>Low</td>
-                <td>Flexibility-focused, follows the shell contour</td>
-            </tr>
-            <tr>
-                <td>Lines</td>
-                <td>Low (anisotropic)</td>
-                <td>Very fast</td>
-                <td>Low</td>
-                <td>High-speed printing, directional strength</td>
+                <td>Sheet Lamination (LOM / UAM)</td>
+                <td>Medium</td>
+                <td>High</td>
+                <td>Paper, metal foil</td>
+                <td>Low to medium</td>
+                <td>Visual models, embedded sensors</td>
             </tr>
         </table>
 
-        <div class="info-box">
-            <strong>💡 Guideline for Infill Density</strong>
-            <ul>
-                <li><strong>0-10%</strong>: Decorative items, non-load-bearing parts (prioritizing material savings)</li>
-                <li><strong>20%</strong>: Standard prototypes (good balance)</li>
-                <li><strong>40-60%</strong>: Functional parts, high-strength requirements</li>
-                <li><strong>100%</strong>: End-use parts, watertightness requirements, maximum strength (build time ×3-5)</li>
-            </ul>
+        <div class="warning-box">
+            <strong>⚠️ "Higher accuracy" does not mean "better"</strong>
+            <p>A common mistake in selection is deciding on a method by a single metric (e.g., accuracy) alone. Making a single sand mold does not need MJ's ultra-high precision, and BJ cannot be used for repair. The practical principle is to <strong>choose the minimally sufficient method that meets the requirement, judged by total cost (material + post-processing + yield)</strong>. Code Example 3 quantifies this idea as weighted scoring.</p>
         </div>
 
-        <h3>1.4.3 Generating Support Structures</h3>
-
-        <p>Areas with an overhang angle exceeding 45 degrees require <strong>support structures</strong>:</p>
-
-        <h4>Types of Supports</h4>
-        <ul>
-            <li><strong>Linear support</strong>: Vertical, column-like supports. Simple and easy to remove but uses more material.</li>
-            <li><strong>Tree support</strong>: Branching, tree-like supports. Reduces material usage by 30-50% and is easier to remove. The default support type in Cura and PrusaSlicer.</li>
-            <li><strong>Interface layers</strong>: A thin bonding layer placed on top of the support. Easier to remove and improves surface quality. Typically 2-4 layers.</li>
-        </ul>
-
-        <h4>Key Support Settings</h4>
-        <table>
-            <tr>
-                <th>Parameter</th>
-                <th>Recommended Value</th>
-                <th>Effect</th>
-            </tr>
-            <tr>
-                <td>Overhang Angle</td>
-                <td>45-60°</td>
-                <td>Supports are generated beyond this angle</td>
-            </tr>
-            <tr>
-                <td>Support Density</td>
-                <td>10-20%</td>
-                <td>Higher density is more stable but harder to remove</td>
-            </tr>
-            <tr>
-                <td>Support Z Distance</td>
-                <td>0.2-0.3 mm</td>
-                <td>Gap between the support and the model (affects ease of removal)</td>
-            </tr>
-            <tr>
-                <td>Interface Layers</td>
-                <td>2-4 layers</td>
-                <td>Number of bonding layers (balances surface quality and removability)</td>
-            </tr>
-        </table>
-
-        <h3>1.4.4 G-code Basics</h3>
-
-        <p><strong>G-code</strong> is the standard numerical control language used to control 3D printers and CNC machines. Each line represents one command:</p>
-
-        <h4>Key G-code Commands</h4>
-
-        <table>
-            <tr>
-                <th>Command</th>
-                <th>Category</th>
-                <th>Function</th>
-                <th>Example</th>
-            </tr>
-            <tr>
-                <td>G0</td>
-                <td>Movement</td>
-                <td>Rapid move (no extrusion)</td>
-                <td>G0 X100 Y50 Z10 F6000</td>
-            </tr>
-            <tr>
-                <td>G1</td>
-                <td>Movement</td>
-                <td>Linear move (with extrusion)</td>
-                <td>G1 X120 Y60 E0.5 F1200</td>
-            </tr>
-            <tr>
-                <td>G28</td>
-                <td>Initialization</td>
-                <td>Return to home position</td>
-                <td>G28 (all axes), G28 Z (Z-axis only)</td>
-            </tr>
-            <tr>
-                <td>M104</td>
-                <td>Temperature</td>
-                <td>Set nozzle temperature (non-blocking)</td>
-                <td>M104 S200</td>
-            </tr>
-            <tr>
-                <td>M109</td>
-                <td>Temperature</td>
-                <td>Set nozzle temperature (blocking)</td>
-                <td>M109 S210</td>
-            </tr>
-            <tr>
-                <td>M140</td>
-                <td>Temperature</td>
-                <td>Set bed temperature (non-blocking)</td>
-                <td>M140 S60</td>
-            </tr>
-            <tr>
-                <td>M190</td>
-                <td>Temperature</td>
-                <td>Set bed temperature (blocking)</td>
-                <td>M190 S60</td>
-            </tr>
-        </table>
-
-        <h4>Example G-code (start section)</h4>
-        <pre><code class="language-gcode">; === Start G-code ===
-M140 S60       ; Begin heating bed to 60°C (non-blocking)
-M104 S210      ; Begin heating nozzle to 210°C (non-blocking)
-G28            ; Home all axes
-G29            ; Auto bed leveling (bed mesh measurement)
-M190 S60       ; Wait for bed temperature
-M109 S210      ; Wait for nozzle temperature
-G92 E0         ; Reset extrusion to zero
-G1 Z2.0 F3000  ; Raise Z by 2mm (safety clearance)
-G1 X10 Y10 F5000  ; Move to prime position
-G1 Z0.3 F3000  ; Lower Z to 0.3mm (first layer height)
-G1 X100 E10 F1500 ; Draw prime line (clear nozzle clogs)
-G92 E0         ; Reset extrusion to zero again
-; === Build start ===
-</code></pre>
-
-        <h3>1.4.5 Major Slicing Software</h3>
-
-        <table>
-            <tr>
-                <th>Software</th>
-                <th>License</th>
-                <th>Characteristics</th>
-                <th>Recommended Use</th>
-            </tr>
-            <tr>
-                <td>Cura</td>
-                <td>Open source</td>
-                <td>Easy to use, extensive presets, built-in Tree Support</td>
-                <td>Beginners to intermediate users, general FDM</td>
-            </tr>
-            <tr>
-                <td>PrusaSlicer</td>
-                <td>Open source</td>
-                <td>Advanced settings, variable layer height, custom supports</td>
-                <td>Intermediate to advanced users, optimization-focused</td>
-            </tr>
-            <tr>
-                <td>Slic3r</td>
-                <td>Open source</td>
-                <td>The origin of PrusaSlicer, lightweight</td>
-                <td>Legacy systems, research use</td>
-            </tr>
-            <tr>
-                <td>Simplify3D</td>
-                <td>Commercial ($150)</td>
-                <td>Fast slicing, multi-process, detailed control</td>
-                <td>Professional, industrial use</td></tr>
-            <tr>
-                <td>IdeaMaker</td>
-                <td>Free</td>
-                <td>Built for Raise3D but versatile, intuitive UI</td>
-                <td>Raise3D users, beginners</td>
-            </tr>
-        </table>
-
-        <h3>1.4.6 Toolpath Optimization Strategies</h3>
-
-        <p>Efficient toolpaths improve build time, quality, and material usage:</p>
-
-        <ul>
-            <li><strong>Retraction</strong>: Pulls the filament back during travel moves to prevent stringing.
-                <ul>
-                    <li>Distance: 1-6mm (Bowden-style: 4-6mm, direct-drive: 1-2mm)</li>
-                    <li>Speed: 25-45 mm/s</li>
-                    <li>Excessive retraction can cause nozzle clogs</li>
-                </ul>
-            </li>
-            <li><strong>Z-hop</strong>: Raises the nozzle during travel moves to avoid collisions with the model. 0.2-0.5mm rise. Slightly increases build time but improves surface quality.</li>
-            <li><strong>Combing</strong>: Restricts travel paths to stay above infill, reducing travel marks on the surface. Effective when appearance matters.</li>
-            <li><strong>Seam position</strong>: A strategy for aligning the start/end point of each layer.
-                <ul>
-                    <li>Random: random placement (less noticeable)</li>
-                    <li>Aligned: placed in a straight line (easier to remove the seam via post-processing)</li>
-                    <li>Sharpest corner: placed at the sharpest corner (less noticeable)</li>
-                </ul>
-            </li>
-        </ul>
-
-        <h3>Example 1: Reading an STL File and Getting Basic Information</h3>
-        <pre><code class="language-python"># ===================================
-# Example 1: Reading an STL file and getting basic information
-# ===================================
-
-import numpy as np
-from stl import mesh
-
-# Load an STL file
-your_mesh = mesh.Mesh.from_file('model.stl')
-
-# Get basic geometric information
-volume, cog, inertia = your_mesh.get_mass_properties()
-
-print("=== STL File Basic Information ===")
-print(f"Volume: {volume:.2f} mm³")
-print(f"Surface Area: {your_mesh.areas.sum():.2f} mm²")
-print(f"Center of Gravity: [{cog[0]:.2f}, {cog[1]:.2f}, {cog[2]:.2f}] mm")
-print(f"Number of Triangles: {len(your_mesh.vectors)}")
-
-# Calculate the bounding box (minimum enclosing box)
-min_coords = your_mesh.vectors.min(axis=(0, 1))
-max_coords = your_mesh.vectors.max(axis=(0, 1))
-dimensions = max_coords - min_coords
-
-print(f"\n=== Bounding Box ===")
-print(f"X: {min_coords[0]:.2f} to {max_coords[0]:.2f} mm (width: {dimensions[0]:.2f} mm)")
-print(f"Y: {min_coords[1]:.2f} to {max_coords[1]:.2f} mm (depth: {dimensions[1]:.2f} mm)")
-print(f"Z: {min_coords[2]:.2f} to {max_coords[2]:.2f} mm (height: {dimensions[2]:.2f} mm)")
-
-# Simple build-time estimate (assuming a 0.2mm layer height and 50mm/s print speed)
-layer_height = 0.2  # mm
-print_speed = 50    # mm/s
-num_layers = int(dimensions[2] / layer_height)
-# Simple calculation based on surface area
-estimated_path_length = your_mesh.areas.sum() / layer_height  # mm
-estimated_time_seconds = estimated_path_length / print_speed
-estimated_time_minutes = estimated_time_seconds / 60
-
-print(f"\n=== Build Estimate ===")
-print(f"Number of layers (0.2mm/layer): {num_layers} layers")
-print(f"Estimated build time: {estimated_time_minutes:.1f} min ({estimated_time_minutes/60:.2f} hours)")
-
-# Example output:
-# === STL File Basic Information ===
-# Volume: 12450.75 mm³
-# Surface Area: 5832.42 mm²
-# Center of Gravity: [25.34, 18.92, 15.67] mm
-# Number of Triangles: 2456
-#
-# === Bounding Box ===
-# X: 0.00 to 50.00 mm (width: 50.00 mm)
-# Y: 0.00 to 40.00 mm (depth: 40.00 mm)
-# Z: 0.00 to 30.00 mm (height: 30.00 mm)
-#
-# === Build Estimate ===
-# Number of layers (0.2mm/layer): 150 layers
-# Estimated build time: 97.2 min (1.62 hours)
-</code></pre>
-
-        <h3>Example 2: Validating Mesh Normal Vectors</h3>
-        <pre><code class="language-python"># ===================================
-# Example 2: Validating mesh normal vectors
-# ===================================
-
-import numpy as np
-from stl import mesh
-
-def check_normals(mesh_data):
-    """Check the consistency of an STL mesh's normal vectors
-
-    Args:
-        mesh_data: a numpy-stl Mesh object
-
-    Returns:
-        tuple: (flipped_count, total_count, percentage)
-    """
-    # Verify normal direction using the right-hand rule
-    flipped_count = 0
-    total_count = len(mesh_data.vectors)
-
-    for i, facet in enumerate(mesh_data.vectors):
-        v0, v1, v2 = facet
-
-        # Compute edge vectors
-        edge1 = v1 - v0
-        edge2 = v2 - v0
-
-        # Compute the normal via cross product (right-handed)
-        calculated_normal = np.cross(edge1, edge2)
-
-        # Normalize
-        norm = np.linalg.norm(calculated_normal)
-        if norm > 1e-10:  # confirm it's not a zero vector
-            calculated_normal = calculated_normal / norm
-        else:
-            continue  # skip degenerate triangles
-
-        # Compare against the normal stored in the file
-        stored_normal = mesh_data.normals[i]
-        stored_norm = np.linalg.norm(stored_normal)
-
-        if stored_norm > 1e-10:
-            stored_normal = stored_normal / stored_norm
-
-        # Check direction agreement via dot product
-        dot_product = np.dot(calculated_normal, stored_normal)
-
-        # A negative dot product means the normal is reversed
-        if dot_product < 0:
-            flipped_count += 1
-
-    percentage = (flipped_count / total_count) * 100 if total_count > 0 else 0
-
-    return flipped_count, total_count, percentage
-
-# Load the STL file
-your_mesh = mesh.Mesh.from_file('model.stl')
-
-# Run the normal check
-flipped, total, percent = check_normals(your_mesh)
-
-print("=== Normal Vector Validation Results ===")
-print(f"Total triangles: {total}")
-print(f"Flipped normals: {flipped}")
-print(f"Flip rate: {percent:.2f}%")
-
-if flipped == 0:
-    print("\n✅ All normals point in the correct direction")
-    print("   This mesh is printable")
-elif percent < 5:
-    print("\n⚠️ Some normals are flipped (minor)")
-    print("   The slicer is likely to auto-correct this")
-else:
-    print("\n❌ Many normals are flipped (significant)")
-    print("   Repair with a dedicated mesh tool (Meshmixer, Netfabb) is recommended")
-
-# Example output:
-# === Normal Vector Validation Results ===
-# Total triangles: 2456
-# Flipped normals: 0
-# Flip rate: 0.00%
-#
-# ✅ All normals point in the correct direction
-#    This mesh is printable
-</code></pre>
-
-        <h3>Example 3: Checking Manifold Integrity</h3>
-        <pre><code class="language-python"># ===================================
-# Example 3: Checking manifold (watertight) integrity
-# ===================================
-
-import trimesh
-
-# Load an STL file (trimesh automatically attempts repair)
-mesh = trimesh.load('model.stl')
-
-print("=== Mesh Quality Diagnosis ===")
-
-# Basic information
-print(f"Vertex count: {len(mesh.vertices)}")
-print(f"Face count: {len(mesh.faces)}")
-print(f"Volume: {mesh.volume:.2f} mm³")
-
-# Check manifold integrity
-print(f"\n=== Printability Check ===")
-print(f"Is watertight: {mesh.is_watertight}")
-print(f"Is winding consistent (normal consistency): {mesh.is_winding_consistent}")
-print(f"Is valid (geometric validity): {mesh.is_valid}")
-
-# Diagnose issues in detail
-if not mesh.is_watertight:
-    # Detect the number of holes
-    try:
-        edges = mesh.edges_unique
-        edges_sorted = mesh.edges_sorted
-        duplicate_edges = len(edges_sorted) - len(edges)
-        print(f"\n⚠️ Issues detected:")
-        print(f"   - The mesh has holes")
-        print(f"   - Duplicate edge count: {duplicate_edges}")
-    except:
-        print(f"\n⚠️ There is a problem with the mesh structure")
-
-# Attempt repair
-if not mesh.is_watertight or not mesh.is_winding_consistent:
-    print(f"\n🔧 Running automatic repair...")
-
-    # Fix normals
-    trimesh.repair.fix_normals(mesh)
-    print("   ✓ Fixed normal vectors")
-
-    # Fill holes
-    trimesh.repair.fill_holes(mesh)
-    print("   ✓ Filled holes")
-
-    # Remove degenerate triangles
-    mesh.remove_degenerate_faces()
-    print("   ✓ Removed degenerate faces")
-
-    # Merge duplicate vertices
-    mesh.merge_vertices()
-    print("   ✓ Merged duplicate vertices")
-
-    # Check status after repair
-    print(f"\n=== Status After Repair ===")
-    print(f"Is watertight: {mesh.is_watertight}")
-    print(f"Is winding consistent: {mesh.is_winding_consistent}")
-
-    # Save the repaired mesh
-    if mesh.is_watertight:
-        mesh.export('model_repaired.stl')
-        print(f"\n✅ Repair complete! Saved as model_repaired.stl")
-    else:
-        print(f"\n❌ Automatic repair failed. A dedicated tool such as Meshmixer is recommended")
-else:
-    print(f"\n✅ This mesh is printable")
-
-# Example output:
-# === Mesh Quality Diagnosis ===
-# Vertex count: 1534
-# Face count: 2456
-# Volume: 12450.75 mm³
-#
-# === Printability Check ===
-# Is watertight: True
-# Is winding consistent (normal consistency): True
-# Is valid (geometric validity): True
-#
-# ✅ This mesh is printable
-</code></pre>
-
-        <h3>Example 4: A Basic Slicing Algorithm</h3>
-        <pre><code class="language-python"># ===================================
-# Example 4: A basic slicing algorithm
-# ===================================
-
-import numpy as np
-from stl import mesh
-
-def slice_mesh_at_height(mesh_data, z_height):
-    """Generate a temperature profile
-
-    Args:
-        t (array): time array [min]
-        T_target (float): hold temperature [°C]
-        heating_rate (float): heating rate [°C/min]
-        hold_time (float): hold time [min]
-        cooling_rate (float): cooling rate [°C/min]
-
-    Returns:
-        array: temperature profile [°C]
-    """
-    T_room = 25  # room temperature
-    T = np.zeros_like(t)
-
-    # Heating duration
-    t_heat = (T_target - T_room) / heating_rate
-
-    # Cooling start time
-    t_cool_start = t_heat + hold_time
-
-    for i, time in enumerate(t):
-        if time &lt;= t_heat:
-            # Heating phase
-            T[i] = T_room + heating_rate * time
-        elif time &lt;= t_cool_start:
-            # Hold phase
-            T[i] = T_target
-        else:
-            # Cooling phase
-            T[i] = T_target - cooling_rate * (time - t_cool_start)
-            T[i] = max(T[i], T_room)  # never drops below room temperature
-
-    return T
-
-def simulate_reaction_progress(T, t, Ea, D0, r0):
-    """Calculate reaction progress based on a temperature profile
-
-    Args:
-        T (array): temperature profile [°C]
-        t (array): time array [min]
-        Ea (float): activation energy [J/mol]
-        D0 (float): pre-exponential factor [m²/s]
-        r0 (float): particle radius [m]
-
-    Returns:
-        array: conversion fraction
-    """
-    R = 8.314
-    C0 = 10000
-    alpha = np.zeros_like(t)
-
-    for i in range(1, len(t)):
-        T_k = T[i] + 273.15
-        D = D0 * np.exp(-Ea / (R * T_k))
-        k = D * C0 / r0**2
-
-        dt = (t[i] - t[i-1]) * 60  # min → s
-
-        # Simple integration (reaction progress over a small time step)
-        if alpha[i-1] < 0.99:
-            dalpha = k * dt / (2 * (1 - (1-alpha[i-1])**(1/3)))
-            alpha[i] = min(alpha[i-1] + dalpha, 1.0)
-        else:
-            alpha[i] = alpha[i-1]
-
-    return alpha
-
-# Parameter settings
-T_target = 1200  # °C
-hold_time = 240  # min (4 hours)
-Ea = 300e3  # J/mol
-D0 = 5e-4  # m²/s
-r0 = 5e-6  # m
-
-# Comparison across different heating rates
-heating_rates = [2, 5, 10, 20]  # °C/min
-cooling_rate = 3  # °C/min
-
-# Time array
-t_max = 800  # min
-t = np.linspace(0, t_max, 2000)
-
-# Plotting
-fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 10))
-
-# Temperature profile
-for hr in heating_rates:
-    T_profile = temperature_profile(t, T_target, hr, hold_time, cooling_rate)
-    ax1.plot(t/60, T_profile, linewidth=2, label=f'{hr}°C/min')
-
-ax1.set_xlabel('Time (hours)', fontsize=12)
-ax1.set_ylabel('Temperature (°C)', fontsize=12)
-ax1.set_title('Temperature Profiles', fontsize=14, fontweight='bold')
-ax1.legend(fontsize=10)
-ax1.grid(True, alpha=0.3)
-ax1.set_xlim([0, t_max/60])
-
-# Reaction progress
-for hr in heating_rates:
-    T_profile = temperature_profile(t, T_target, hr, hold_time, cooling_rate)
-    alpha = simulate_reaction_progress(T_profile, t, Ea, D0, r0)
-    ax2.plot(t/60, alpha, linewidth=2, label=f'{hr}°C/min')
-
-ax2.axhline(y=0.95, color='red', linestyle='--', linewidth=1, label='Target (95%)')
-ax2.set_xlabel('Time (hours)', fontsize=12)
-ax2.set_ylabel('Conversion', fontsize=12)
-ax2.set_title('Reaction Progress', fontsize=14, fontweight='bold')
-ax2.legend(fontsize=10)
-ax2.grid(True, alpha=0.3)
-ax2.set_xlim([0, t_max/60])
-ax2.set_ylim([0, 1])
-
-plt.tight_layout()
-plt.savefig('temperature_profile_optimization.png', dpi=300, bbox_inches='tight')
-plt.show()
-
-# Compute the time to reach 95% conversion for each heating rate
-print("\nComparison of Time to Reach 95% Conversion:")
-print("=" * 60)
-for hr in heating_rates:
-    T_profile = temperature_profile(t, T_target, hr, hold_time, cooling_rate)
-    alpha = simulate_reaction_progress(T_profile, t, Ea, D0, r0)
-
-    # Time to reach 95%
-    idx_95 = np.where(alpha >= 0.95)[0]
-    if len(idx_95) > 0:
-        t_95 = t[idx_95[0]] / 60
-        print(f"Heating rate {hr:2d}°C/min: t₉₅ = {t_95:.1f} hours")
-    else:
-        print(f"Heating rate {hr:2d}°C/min: reaction incomplete")
-
-# Example output:
-# Comparison of Time to Reach 95% Conversion:
-# ============================================================
-# Heating rate  2°C/min: t₉₅ = 7.8 hours
-# Heating rate  5°C/min: t₉₅ = 7.2 hours
-# Heating rate 10°C/min: t₉₅ = 6.9 hours
-# Heating rate 20°C/min: t₉₅ = 6.7 hours
-</code></pre>
+        <h2>4.6 Emerging Trends</h2>
+
+        <h3>4.6.1 Bioprinting (overview)</h3>
+        <p>Bioprinting <strong>dispenses a "bio-ink" (living cells plus a hydrogel carrier) to construct tissue and organ models</strong>. To keep cells viable, low-pressure, low-viscosity conditions that limit shear stress during jetting are required, so the droplet-physics knowledge covered in this chapter applies directly. At present the focus is on <strong>tissue chips for drug screening and small pieces of skin or cartilage</strong>; transplantable organs are still at the research stage. It is important to avoid overhyping and to assess maturity honestly.</p>
+
+        <h3>4.6.2 4D Printing (overview)</h3>
+        <p>4D printing designs parts so that <strong>their shape changes after the build in response to stimuli such as temperature, humidity, or light</strong>. The "fourth dimension" is time, that is, <strong>the shape changing over time</strong>. Shape-memory polymers or materials that swell with moisture are placed with directionality to create structures that self-fold from flat to three-dimensional. Deployable antennas, self-assembling parts, and soft robots are candidate applications, but here too practical use remains limited to a few cases.</p>
+
+        <h2>Code Examples</h2>
+        <p>Let us confirm the key points of this chapter with runnable Python code. All outputs below are actual results executed with <code>python3</code> (using NumPy).</p>
+
+        <h3>Code Example 1: Droplet printability map (Oh / Z / We / Re)</h3>
+        <p>For representative jetting fluids, we compute the dimensionless numbers and judge whether they fall inside the printable window (1 &lt; Z &lt; 10 and We &gt; 4).</p>
+        <pre><code class="language-python">import numpy as np
+
+# Material Jetting droplet printability: Ohnesorge / Reynolds / Weber / Z number
+# Z = 1/Oh ; printable window commonly cited as 1 &lt; Z &lt; 10 (some report up to 14)
+# Oh = mu / sqrt(rho * sigma * D)
+
+def dimensionless(rho, mu, sigma, D, v):
+    Oh = mu / np.sqrt(rho * sigma * D)
+    Z = 1.0 / Oh
+    Re = rho * v * D / mu
+    We = rho * v**2 * D / sigma
+    return Oh, Z, Re, We
+
+# Representative jetting fluids (SI units)
+# rho [kg/m3], mu [Pa.s], sigma [N/m], D nozzle [m], v drop [m/s]
+fluids = [
+    (&quot;UV acrylate resin (PolyJet)&quot;, 1100, 0.012, 0.030, 30e-6, 8.0),
+    (&quot;Molten wax (support)&quot;,         900, 0.020, 0.025, 30e-6, 6.0),
+    (&quot;Water-thin binder (BJ)&quot;,      1000, 0.001, 0.072, 40e-6, 9.0),
+    (&quot;Nanoparticle metal ink&quot;,      1500, 0.015, 0.035, 20e-6, 7.0),
+    (&quot;Over-viscous resin (fail)&quot;,   1150, 0.080, 0.030, 30e-6, 8.0),
+]
+
+print(f&quot;{&#x27;Fluid&#x27;:32s}{&#x27;Oh&#x27;:&gt;8s}{&#x27;Z=1/Oh&#x27;:&gt;9s}{&#x27;Re&#x27;:&gt;8s}{&#x27;We&#x27;:&gt;8s}  Printable(1&lt;Z&lt;10)&quot;)
+print(&quot;-&quot;*80)
+for name, rho, mu, sigma, D, v in fluids:
+    Oh, Z, Re, We = dimensionless(rho, mu, sigma, D, v)
+    ok = &quot;YES&quot; if (1.0 &lt; Z &lt; 10.0 and We &gt; 4.0) else &quot;NO&quot;
+    print(f&quot;{name:32s}{Oh:8.3f}{Z:9.2f}{Re:8.1f}{We:8.1f}   {ok}&quot;)
+
+print()
+print(&quot;Interpretation:&quot;)
+print(&quot; - Z &lt; 1  : too viscous, droplet won&#x27;t form cleanly&quot;)
+print(&quot; - Z &gt; 10 : satellite droplets / instability&quot;)
+print(&quot; - We &lt; 4 : insufficient energy to eject a droplet&quot;)</code></pre>
+        <p><strong>Execution result:</strong></p>
+        <pre><code class="language-text">Fluid                                 Oh   Z=1/Oh      Re      We  Printable(1&lt;Z&lt;10)
+--------------------------------------------------------------------------------
+UV acrylate resin (PolyJet)        0.381     2.62    22.0    70.4   YES
+Molten wax (support)               0.770     1.30     8.1    38.9   YES
+Water-thin binder (BJ)             0.019    53.67   360.0    45.0   NO
+Nanoparticle metal ink             0.463     2.16    14.0    42.0   YES
+Over-viscous resin (fail)          2.487     0.40     3.5    73.6   NO
+
+Interpretation:
+ - Z &lt; 1  : too viscous, droplet won&#x27;t form cleanly
+ - Z &gt; 10 : satellite droplets / instability
+ - We &lt; 4 : insufficient energy to eject a droplet</code></pre>
+        <p>The numbers confirm that an overly viscous resin (Z = 0.40) will not detach into droplets, while a low-viscosity binder like water (Z = 53.7) is prone to satellite droplets. The PolyJet resin and the nanoparticle ink fall inside the window.</p>
+
+        <h3>Code Example 2: Sintering shrinkage and dimensional compensation for binder jetting</h3>
+        <p>From relative density we compute linear and volumetric shrinkage, and the green-design scale factor needed to obtain the target dimension.</p>
+        <pre><code class="language-python">import numpy as np
+
+# Binder Jetting: green part -&gt; sintered part shrinkage from densification.
+# Isotropic linear shrinkage from relative density change:
+#   L_sinter / L_green = (rho_green / rho_sinter)^(1/3)
+# Linear shrinkage (%) = (1 - (rho_g/rho_s)^(1/3)) * 100
+
+def linear_shrinkage(rho_green, rho_sinter):
+    ratio = (rho_green / rho_sinter) ** (1.0/3.0)
+    lin = (1.0 - ratio) * 100.0
+    vol = (1.0 - rho_green / rho_sinter) * 100.0
+    return lin, vol
+
+# rho values are RELATIVE density (fraction of theoretical)
+cases = [
+    (&quot;316L stainless (metal BJ)&quot;, 0.55, 0.98),
+    (&quot;Ti-6Al-4V (metal BJ)&quot;,      0.50, 0.96),
+    (&quot;Alumina ceramic&quot;,           0.45, 0.95),
+    (&quot;Bronze-infiltrated steel&quot;,  0.60, 0.90),
+]
+
+print(f&quot;{&#x27;System&#x27;:30s}{&#x27;rho_green&#x27;:&gt;10s}{&#x27;rho_sint&#x27;:&gt;9s}{&#x27;Lin.shr%&#x27;:&gt;10s}{&#x27;Vol.shr%&#x27;:&gt;10s}&quot;)
+print(&quot;-&quot;*70)
+for name, rg, rs in cases:
+    lin, vol = linear_shrinkage(rg, rs)
+    print(f&quot;{name:30s}{rg:10.2f}{rs:9.2f}{lin:10.2f}{vol:10.2f}&quot;)
+
+# Compensation: to hit a 50.00 mm target after sintering, scale the green CAD.
+target = 50.00  # mm final dimension
+rg, rs = 0.55, 0.98
+scale = (rs / rg) ** (1.0/3.0)   # green must be LARGER by this factor
+green_dim = target * scale
+print()
+print(f&quot;Design compensation (316L, rho_g=0.55 -&gt; rho_s=0.98):&quot;)
+print(f&quot;  required green scale factor = {scale:.4f}&quot;)
+print(f&quot;  to obtain {target:.2f} mm final, model green part at {green_dim:.3f} mm&quot;)</code></pre>
+        <p><strong>Execution result:</strong></p>
+        <pre><code class="language-text">System                         rho_green rho_sint  Lin.shr%  Vol.shr%
+----------------------------------------------------------------------
+316L stainless (metal BJ)           0.55     0.98     17.51     43.88
+Ti-6Al-4V (metal BJ)                0.50     0.96     19.54     47.92
+Alumina ceramic                     0.45     0.95     22.05     52.63
+Bronze-infiltrated steel            0.60     0.90     12.64     33.33
+
+Design compensation (316L, rho_g=0.55 -&gt; rho_s=0.98):
+  required green scale factor = 1.2123
+  to obtain 50.00 mm final, model green part at 60.617 mm</code></pre>
+        <p>For 316L stainless steel, linear shrinkage reaches about 17.5% and volumetric shrinkage about 44%. To obtain a final dimension of 50.00 mm, the green part must be designed at 60.6 mm, showing how essential shrinkage compensation is.</p>
+
+        <h3>Code Example 3: Weighted scoring of AM processes</h3>
+        <p>We assign weights to six evaluation axes (accuracy, surface, speed, material range, cost efficiency, strength) and compare processes quantitatively per use case. We also show that changing the weights changes the recommendation (sensitivity).</p>
+        <pre><code class="language-python">import numpy as np
+
+# AM process selection by weighted scoring.
+# Criteria scored 1-5 (5 = best for that criterion).
+criteria = [&quot;accuracy&quot;, &quot;surface&quot;, &quot;speed&quot;, &quot;material_range&quot;, &quot;cost_eff&quot;, &quot;strength&quot;]
+weights  = np.array([0.25, 0.15, 0.15, 0.15, 0.15, 0.15])  # sums to 1.0
+
+# rows = processes, cols = criteria (expert-assigned 1-5)
+processes = {
+    &quot;Material Jetting (MJ)&quot;:   [5, 5, 3, 2, 2, 2],
+    &quot;Binder Jetting (BJ)&quot;:     [3, 3, 5, 4, 4, 3],
+    &quot;DED / LENS&quot;:              [2, 1, 4, 4, 3, 5],
+    &quot;Sheet Lamination (LOM)&quot;:  [2, 2, 4, 2, 5, 2],
+    &quot;PBF (SLM/SLS)&quot;:           [4, 3, 2, 4, 2, 5],
+    &quot;Material Extrusion (FDM)&quot;:[2, 2, 3, 3, 5, 3],
+}
+
+print(f&quot;weights: {dict(zip(criteria, weights))}&quot;)
+print()
+print(f&quot;{&#x27;Process&#x27;:28s}{&#x27;Score&#x27;:&gt;7s}   Ranked criteria contribution&quot;)
+print(&quot;-&quot;*70)
+results = []
+for name, sc in processes.items():
+    sc = np.array(sc, dtype=float)
+    total = float(np.dot(weights, sc))
+    results.append((name, total))
+for name, total in sorted(results, key=lambda x: -x[1]):
+    bar = &quot;#&quot; * int(round(total*6))
+    print(f&quot;{name:28s}{total:7.3f}   {bar}&quot;)
+
+best = max(results, key=lambda x: x[1])
+print()
+print(f&quot;Recommended (accuracy-weighted use case): {best[0]}  (score {best[1]:.3f})&quot;)
+
+# Re-run with a &quot;cheap large metal part&quot; weighting to show sensitivity
+w2 = np.array([0.05, 0.05, 0.25, 0.15, 0.30, 0.20])
+print()
+print(&quot;Re-weighted for &#x27;low-cost large metal part&#x27; (cost &amp; speed heavy):&quot;)
+r2 = [(n, float(np.dot(w2, np.array(s, dtype=float)))) for n, s in processes.items()]
+for name, total in sorted(r2, key=lambda x: -x[1])[:3]:
+    print(f&quot;  {name:28s}{total:7.3f}&quot;)</code></pre>
+        <p><strong>Execution result:</strong></p>
+        <pre><code class="language-text">weights: {&#x27;accuracy&#x27;: np.float64(0.25), &#x27;surface&#x27;: np.float64(0.15), &#x27;speed&#x27;: np.float64(0.15), &#x27;material_range&#x27;: np.float64(0.15), &#x27;cost_eff&#x27;: np.float64(0.15), &#x27;strength&#x27;: np.float64(0.15)}
+
+Process                       Score   Ranked criteria contribution
+----------------------------------------------------------------------
+Binder Jetting (BJ)           3.600   ######################
+PBF (SLM/SLS)                 3.400   ####################
+Material Jetting (MJ)         3.350   ####################
+DED / LENS                    3.050   ##################
+Material Extrusion (FDM)      2.900   #################
+Sheet Lamination (LOM)        2.750   ################
+
+Recommended (accuracy-weighted use case): Binder Jetting (BJ)  (score 3.600)
+
+Re-weighted for &#x27;low-cost large metal part&#x27; (cost &amp; speed heavy):
+  Binder Jetting (BJ)           3.950
+  DED / LENS                    3.650
+  Material Extrusion (FDM)      3.500</code></pre>
+        <p>Under accuracy-weighted weights, binder jetting, PBF, and material jetting are close; but reweighting for a "low-cost, large metal part" by emphasizing cost and speed swaps the ranking. This sensitivity analysis plainly shows that <strong>selection changes with the weights (that is, the requirements).</strong></p>
 
         <h2>Exercises</h2>
+        <p>These exercises check your understanding. Think it through yourself before opening the answers.</p>
 
-        <h3>1.5.1 What is pycalphad?</h3>
-        <p><strong>pycalphad</strong> is a Python library for phase diagram calculations based on the CALPHAD (CALculation of PHAse Diagrams) method. It calculates equilibrium phases from thermodynamic databases and is useful for designing reaction pathways.</p>
-
-        <div class="info-box">
-            <strong>💡 Advantages of the CALPHAD Method</strong>
-            <ul>
-                <li>Can calculate complex phase diagrams for multi-component systems (three or more components)</li>
-                <li>Can make predictions even for systems with limited experimental data</li>
-                <li>Comprehensively handles temperature, composition, and pressure dependence</li>
-            </ul>
+        <div class="exercise">
+            <p class="exercise-title">Exercise 1 (Basics): Matching processes</p>
+            <p>For each use below, choose the most suitable AM method from MJ / BJ / DED / SL, and add a one-line reason.<br>
+            (a) Repairing a worn turbine blade　(b) A sand mold for an engine block　(c) A medical anatomical model with distinct hard and soft regions　(d) A structure with sensors embedded inside metal foil</p>
+            <details>
+                <summary>Show answer</summary>
+                <p>(a) <strong>DED</strong>: deposition repair onto an existing part is the only practical option.<br>
+                (b) <strong>BJ</strong>: forms sand molds fast and large with no sintering.<br>
+                (c) <strong>MJ</strong>: can build multiple hardnesses and clear material in a single build.<br>
+                (d) <strong>SL (UAM)</strong>: its low-temperature solid-state joining allows sensors to be embedded inside.</p>
+            </details>
         </div>
 
-        <h3>1.5.2 Example: Calculating a Binary Phase Diagram</h3>
-        <pre><code class="language-python"># ===================================
-# Example 5: Phase diagram calculation with pycalphad
-# ===================================
+        <div class="exercise">
+            <p class="exercise-title">Exercise 2 (Calculation): Ohnesorge number and Z number</p>
+            <p>For a resin with density ρ = 1100 kg/m³, viscosity μ = 0.010 Pa·s, surface tension σ = 0.030 N/m, and nozzle diameter D = 30 μm, find the Ohnesorge number and Z number, and judge whether it falls in the printable window (1 &lt; Z &lt; 10).</p>
+            <details>
+                <summary>Show answer</summary>
+                <p>Oh = μ / √(ρ σ D) = 0.010 / √(1100 × 0.030 × 30e-6) = 0.010 / √(9.9e-4) = 0.010 / 0.03146 ≈ <strong>0.318</strong>.<br>
+                Z = 1/Oh ≈ <strong>3.15</strong>. Since 1 &lt; 3.15 &lt; 10, it is <strong>inside the printable window</strong>. You can check this by passing the same values to the <code>dimensionless</code> function in Code Example 1.</p>
+            </details>
+        </div>
 
-# Note: pycalphad must be installed
-# pip install pycalphad
+        <div class="exercise">
+            <p class="exercise-title">Exercise 3 (Calculation): Dimensional compensation for sintering shrinkage</p>
+            <p>For a material with green relative density 0.52 and sintered relative density 0.97, you want a final dimension of 40.0 mm. At what size should the green part be designed? Also find the linear shrinkage.</p>
+            <details>
+                <summary>Show answer</summary>
+                <p>Scale factor = (0.97/0.52)^(1/3) = (1.865)^(1/3) ≈ <strong>1.231</strong>. Green dimension = 40.0 × 1.231 ≈ <strong>49.2 mm</strong>.<br>
+                Linear shrinkage = (1 − (0.52/0.97)^(1/3)) × 100 = (1 − 0.812) × 100 ≈ <strong>18.8%</strong>.</p>
+            </details>
+        </div>
 
-from pycalphad import Database, equilibrium, variables as v
-import matplotlib.pyplot as plt
-import numpy as np
+        <div class="exercise">
+            <p class="exercise-title">Exercise 4 (Discussion): Satellite droplets</p>
+            <p>You warmed a resin to lower its viscosity, and the Z number rose to 12. What print-quality problem would you expect, and how could you address it?</p>
+            <details>
+                <summary>Show answer</summary>
+                <p>When Z exceeds the upper bound of the window (about 10), the droplet trails a tail and breaks up, making <strong>satellite droplets</strong> more likely. This leads to landing-position errors and mist contamination. Remedies include: (1) heat less to raise the viscosity slightly and bring Z back within the window, (2) tune the drive waveform for cleaner tail break-off, and (3) optimize the droplet velocity (We). However, the final check requires direct observation with a drop watcher.</p>
+            </details>
+        </div>
 
-# Load a TDB database (a simplified example here)
-# In practice, an appropriate TDB file is required
-# Example: the BaO-TiO2 system
+        <div class="exercise">
+            <p class="exercise-title">Exercise 5 (Application): Designing selection weights</p>
+            <p>For the requirement "produce high-precision full-color dental models in low-volume, high-mix," how would you set the weights for the six axes in Code Example 3 (accuracy, surface, speed, material range, cost efficiency, strength), and which method do you expect to be chosen?</p>
+            <details>
+                <summary>Show answer</summary>
+                <p>Weight accuracy, surface, and material range (full color) heavily, and speed, strength, and cost lightly (e.g., accuracy 0.30 / surface 0.25 / material 0.20 / speed 0.10 / cost 0.05 / strength 0.10). Under these weights, <strong>material jetting (MJ)</strong>, which combines full color and high precision, is expected to rank at the top. Rewriting <code>weights</code> in Code Example 3 lets you feel how weight design drives the conclusion.</p>
+            </details>
+        </div>
 
-# A simplified TDB string (the real one is more complex)
-tdb_string = """
-$ BaO-TiO2 system (simplified)
-ELEMENT BA   BCC_A2  137.327   !
-ELEMENT TI   HCP_A3   47.867   !
-ELEMENT O    GAS      15.999   !
-
-FUNCTION GBCCBA   298.15  +GHSERBA;   6000 N !
-FUNCTION GHCPTI   298.15  +GHSERTI;   6000 N !
-FUNCTION GGASO    298.15  +GHSERO;    6000 N !
-
-PHASE LIQUID:L %  1  1.0  !
-PHASE BAO_CUBIC %  2  1 1  !
-PHASE TIO2_RUTILE %  2  1 2  !
-PHASE BATIO3 %  3  1 1 3  !
-"""
-
-# Note: an actual calculation requires a formal TDB file
-# Here we limit ourselves to a conceptual description
-
-print("Concept of phase diagram calculation with pycalphad:")
-print("=" * 60)
-print("1. Load a TDB database (thermodynamic data)")
-print("2. Set the temperature and composition range")
-print("3. Run the equilibrium calculation")
-print("4. Visualize the stable phases")
-print()
-print("Real-world applications:")
-print("- BaO-TiO2 system: formation temperature and composition range of BaTiO3")
-print("- Si-N system: stability region of Si3N4")
-print("- Phase relationships in multi-component ceramics")
-
-# Conceptual plot (illustrative, based on real data)
-fig, ax = plt.subplots(figsize=(10, 7))
-
-# Temperature range
-T = np.linspace(800, 1600, 100)
-
-# Stability region of each phase (conceptual diagram)
-# BaO + TiO2 → BaTiO3 reaction
-BaO_region = np.ones_like(T) * 0.3
-TiO2_region = np.ones_like(T) * 0.7
-BaTiO3_region = np.where((T > 1100) & (T < 1400), 0.5, np.nan)
-
-ax.fill_between(T, 0, BaO_region, alpha=0.3, color='blue', label='BaO + TiO2')
-ax.fill_between(T, BaO_region, TiO2_region, alpha=0.3, color='green',
-                label='BaTiO3 stable')
-ax.fill_between(T, TiO2_region, 1, alpha=0.3, color='red', label='Liquid')
-
-ax.axhline(y=0.5, color='black', linestyle='--', linewidth=2,
-           label='BaTiO3 composition')
-ax.axvline(x=1100, color='gray', linestyle=':', linewidth=1, alpha=0.5)
-ax.axvline(x=1400, color='gray', linestyle=':', linewidth=1, alpha=0.5)
-
-ax.set_xlabel('Temperature (°C)', fontsize=12)
-ax.set_ylabel('Composition (BaO mole fraction)', fontsize=12)
-ax.set_title('Conceptual Phase Diagram: BaO-TiO2', fontsize=14, fontweight='bold')
-ax.legend(fontsize=10, loc='upper right')
-ax.grid(True, alpha=0.3)
-ax.set_xlim([800, 1600])
-ax.set_ylim([0, 1])
-
-# Text annotation
-ax.text(1250, 0.5, 'BaTiO₃\nformation\nregion',
-        fontsize=11, ha='center', va='center',
-        bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.7))
-
-plt.tight_layout()
-plt.savefig('phase_diagram_concept.png', dpi=300, bbox_inches='tight')
-plt.show()
-
-# Real usage example (commented out)
-"""
-# Real pycalphad usage example
-db = Database('BaO-TiO2.tdb')  # Load the TDB file
-
-# Equilibrium calculation
-eq = equilibrium(db, ['BA', 'TI', 'O'], ['LIQUID', 'BATIO3'],
-                 {v.X('BA'): (0, 1, 0.01),
-                  v.T: (1000, 1600, 50),
-                  v.P: 101325})
-
-# Plot the results
-eq.plot()
-"""
-</code></pre>
-
-        <h2>1.6 Optimizing Conditions with Design of Experiments (DOE)</h2>
-
-        <h3>1.6.1 What is DOE?</h3>
-        <p>Design of Experiments (DOE) is a statistical method for finding optimal conditions with a minimal number of experiments in systems where multiple parameters interact.</p>
-
-        <p><strong>Key parameters to optimize in solid-state reactions:</strong></p>
+        <h2>Summary</h2>
+        <p>In this chapter we learned the remaining major AM processes, following material extrusion, vat photopolymerization, and powder bed fusion, along with how to select among them. The key points are:</p>
         <ul>
-            <li>Reaction temperature (T)</li>
-            <li>Hold time (t)</li>
-            <li>Particle size (r)</li>
-            <li>Raw material ratio (molar ratio)</li>
-            <li>Atmosphere (air, nitrogen, vacuum, etc.)</li>
+            <li><strong>Material jetting (MJ)</strong>: builds by printing droplets. Multi-material and full-color are its greatest strengths. Printability can be estimated from Oh / Z / We, but the final judgment rests on direct observation.</li>
+            <li><strong>Binder jetting (BJ)</strong>: forms a green part fast by gluing powder, then densifies it by sintering or infiltration. Dimensional compensation for sintering shrinkage is essential.</li>
+            <li><strong>DED / LENS</strong>: a method for depositing large and fast and repairing broken parts. Precision is coarse, and use with machining is a prerequisite.</li>
+            <li><strong>Sheet lamination and hybrid manufacturing</strong>: unique value in large builds, embedded sensors, and the integration of additive and subtractive processing.</li>
+            <li><strong>Selection</strong>: choose not by a single metric but by total cost and trade-offs against the requirement. Weighted scoring is an effective decision aid.</li>
+            <li><strong>Emerging technologies</strong>: bioprinting and 4D printing are promising, but their maturity must be assessed honestly, without overstatement.</li>
         </ul>
-
-        <h3>1.6.2 Response Surface Methodology</h3>
-        <pre><code class="language-python"># ===================================
-# Example 6: Condition optimization with DOE
-# ===================================
-
-import numpy as np
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-from scipy.optimize import minimize
-
-# A hypothetical reaction-yield model (function of temperature and time)
-def reaction_yield(T, t, noise=0):
-    """Calculate the reaction yield from temperature and time (hypothetical model)
-
-    Args:
-        T (float): temperature [°C]
-        t (float): time [hours]
-        noise (float): noise level
-
-    Returns:
-        float: reaction yield [%]
-    """
-    # Optimum: T=1200°C, t=6 hours
-    T_opt = 1200
-    t_opt = 6
-
-    # Quadratic (Gaussian) model
-    yield_val = 100 * np.exp(-((T-T_opt)/150)**2 - ((t-t_opt)/3)**2)
-
-    # Add noise
-    if noise > 0:
-        yield_val += np.random.normal(0, noise)
-
-    return np.clip(yield_val, 0, 100)
-
-# Placement of experimental points (central composite design)
-T_levels = [1000, 1100, 1200, 1300, 1400]  # °C
-t_levels = [2, 4, 6, 8, 10]  # hours
-
-# Arrange experimental points in a grid
-T_grid, t_grid = np.meshgrid(T_levels, t_levels)
-yield_grid = np.zeros_like(T_grid, dtype=float)
-
-# Measure the reaction yield at each experimental point (simulated)
-for i in range(len(t_levels)):
-    for j in range(len(T_levels)):
-        yield_grid[i, j] = reaction_yield(T_grid[i, j], t_grid[i, j], noise=2)
-
-# Display the results
-print("Reaction Condition Optimization via Design of Experiments")
-print("=" * 70)
-print(f"{'Temperature (°C)':&lt;20} {'Time (hours)':&lt;20} {'Yield (%)':&lt;20}")
-print("-" * 70)
-for i in range(len(t_levels)):
-    for j in range(len(T_levels)):
-        print(f"{T_grid[i, j]:&lt;20} {t_grid[i, j]:&lt;20} {yield_grid[i, j]:&lt;20.1f}")
-
-# Find the condition with the maximum reaction yield
-max_idx = np.unravel_index(np.argmax(yield_grid), yield_grid.shape)
-T_best = T_grid[max_idx]
-t_best = t_grid[max_idx]
-yield_best = yield_grid[max_idx]
-
-print("-" * 70)
-print(f"Optimal condition: T = {T_best}°C, t = {t_best} hours")
-print(f"Maximum yield: {yield_best:.1f}%")
-
-# 3D plot
-fig = plt.figure(figsize=(14, 6))
-
-# 3D surface plot
-ax1 = fig.add_subplot(121, projection='3d')
-T_fine = np.linspace(1000, 1400, 50)
-t_fine = np.linspace(2, 10, 50)
-T_mesh, t_mesh = np.meshgrid(T_fine, t_fine)
-yield_mesh = np.zeros_like(T_mesh)
-
-for i in range(len(t_fine)):
-    for j in range(len(T_fine)):
-        yield_mesh[i, j] = reaction_yield(T_mesh[i, j], t_mesh[i, j])
-
-surf = ax1.plot_surface(T_mesh, t_mesh, yield_mesh, cmap='viridis',
-                        alpha=0.8, edgecolor='none')
-ax1.scatter(T_grid, t_grid, yield_grid, color='red', s=50,
-            label='Experimental points')
-
-ax1.set_xlabel('Temperature (°C)', fontsize=10)
-ax1.set_ylabel('Time (hours)', fontsize=10)
-ax1.set_zlabel('Yield (%)', fontsize=10)
-ax1.set_title('Response Surface', fontsize=12, fontweight='bold')
-ax1.view_init(elev=25, azim=45)
-fig.colorbar(surf, ax=ax1, shrink=0.5, aspect=5)
-
-# Contour plot
-ax2 = fig.add_subplot(122)
-contour = ax2.contourf(T_mesh, t_mesh, yield_mesh, levels=20, cmap='viridis')
-ax2.contour(T_mesh, t_mesh, yield_mesh, levels=10, colors='black',
-            alpha=0.3, linewidths=0.5)
-ax2.scatter(T_grid, t_grid, c=yield_grid, s=100, edgecolors='red',
-            linewidths=2, cmap='viridis')
-ax2.scatter(T_best, t_best, color='red', s=300, marker='*',
-            edgecolors='white', linewidths=2, label='Optimum')
-
-ax2.set_xlabel('Temperature (°C)', fontsize=11)
-ax2.set_ylabel('Time (hours)', fontsize=11)
-ax2.set_title('Contour Map', fontsize=12, fontweight='bold')
-ax2.legend(fontsize=10)
-fig.colorbar(contour, ax=ax2, label='Yield (%)')
-
-plt.tight_layout()
-plt.savefig('doe_optimization.png', dpi=300, bbox_inches='tight')
-plt.show()
-</code></pre>
-
-        <h3>1.6.3 A Practical Approach to Experimental Design</h3>
-        <p>In actual solid-state reactions, DOE is applied through the following steps:</p>
-
-        <ol>
-            <li><strong>Screening experiments</strong> (two-level factorial design): identify the parameters with the largest effects</li>
-            <li><strong>Response surface methodology</strong> (central composite design): search for the optimal condition</li>
-            <li><strong>Confirmation experiments</strong>: run experiments at the predicted optimal condition to validate the model</li>
-        </ol>
 
         <div class="success-box">
-            <strong>✅ Case Study: Optimizing the Synthesis of Li-ion Battery Cathode Material LiCoO₂</strong>
-            <p>A research group used DOE to optimize the synthesis conditions for LiCoO₂, with the following results:</p>
-            <ul>
-                <li>Number of experiments: 100 runs with the conventional method → 25 runs with DOE (75% reduction)</li>
-                <li>Optimal temperature: 900°C (higher than the conventional 850°C)</li>
-                <li>Optimal hold time: 12 hours (halved from the conventional 24 hours)</li>
-                <li>Battery capacity: 140 mAh/g → 155 mAh/g (11% improvement)</li>
-            </ul>
-        </div>
-
-        <h2>1.7 Fitting Reaction Kinetics Curves</h2>
-
-        <h3>1.7.1 Determining Rate Constants from Experimental Data</h3>
-        <pre><code class="language-python"># ===================================
-# Example 7: Fitting a reaction rate curve
-# ===================================
-
-import numpy as np
-import matplotlib.pyplot as plt
-from scipy.optimize import curve_fit
-
-# Experimental data (time vs. conversion)
-# Example: BaTiO3 synthesis @ 1200°C
-time_exp = np.array([0, 1, 2, 3, 4, 6, 8, 10, 12, 15, 20])  # hours
-conversion_exp = np.array([0, 0.15, 0.28, 0.38, 0.47, 0.60,
-                          0.70, 0.78, 0.84, 0.90, 0.95])
-
-# Jander model
-def jander_model(t, k):
-    """Calculate conversion using the Jander equation
-
-    Args:
-        t (array): time [hours]
-        k (float): rate constant
-
-    Returns:
-        array: conversion
-    """
-    # Solve [1 - (1-α)^(1/3)]² = kt for α
-    kt = k * t
-    alpha = 1 - (1 - np.sqrt(kt))**3
-    alpha = np.clip(alpha, 0, 1)  # constrain to the 0-1 range
-    return alpha
-
-# Ginstling-Brounshtein model (an alternative diffusion model)
-def gb_model(t, k):
-    """Ginstling-Brounshtein equation
-
-    Args:
-        t (array): time
-        k (float): rate constant
-
-    Returns:
-        array: conversion
-    """
-    # 1 - 2α/3 - (1-α)^(2/3) = kt
-    # This should be solved numerically, but an approximation is used here
-    kt = k * t
-    alpha = 1 - (1 - kt/2)**(3/2)
-    alpha = np.clip(alpha, 0, 1)
-    return alpha
-
-# Power law (empirical model)
-def power_law_model(t, k, n):
-    """Power law model
-
-    Args:
-        t (array): time
-        k (float): rate constant
-        n (float): exponent
-
-    Returns:
-        array: conversion
-    """
-    alpha = k * t**n
-    alpha = np.clip(alpha, 0, 1)
-    return alpha
-
-# Fit each model
-# Jander equation
-popt_jander, _ = curve_fit(jander_model, time_exp, conversion_exp, p0=[0.01])
-k_jander = popt_jander[0]
-
-# Ginstling-Brounshtein equation
-popt_gb, _ = curve_fit(gb_model, time_exp, conversion_exp, p0=[0.01])
-k_gb = popt_gb[0]
-
-# Power law
-popt_power, _ = curve_fit(power_law_model, time_exp, conversion_exp, p0=[0.1, 0.5])
-k_power, n_power = popt_power
-
-# Generate prediction curves
-t_fit = np.linspace(0, 20, 200)
-alpha_jander = jander_model(t_fit, k_jander)
-alpha_gb = gb_model(t_fit, k_gb)
-alpha_power = power_law_model(t_fit, k_power, n_power)
-
-# Compute residuals
-residuals_jander = conversion_exp - jander_model(time_exp, k_jander)
-residuals_gb = conversion_exp - gb_model(time_exp, k_gb)
-residuals_power = conversion_exp - power_law_model(time_exp, k_power, n_power)
-
-# Compute R²
-def r_squared(y_true, y_pred):
-    ss_res = np.sum((y_true - y_pred)**2)
-    ss_tot = np.sum((y_true - np.mean(y_true))**2)
-    return 1 - (ss_res / ss_tot)
-
-r2_jander = r_squared(conversion_exp, jander_model(time_exp, k_jander))
-r2_gb = r_squared(conversion_exp, gb_model(time_exp, k_gb))
-r2_power = r_squared(conversion_exp, power_law_model(time_exp, k_power, n_power))
-
-# Plotting
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
-
-# Fitting results
-ax1.plot(time_exp, conversion_exp, 'ko', markersize=8, label='Experimental data')
-ax1.plot(t_fit, alpha_jander, 'b-', linewidth=2,
-         label=f'Jander (R²={r2_jander:.4f})')
-ax1.plot(t_fit, alpha_gb, 'r-', linewidth=2,
-         label=f'Ginstling-Brounshtein (R²={r2_gb:.4f})')
-ax1.plot(t_fit, alpha_power, 'g-', linewidth=2,
-         label=f'Power law (R²={r2_power:.4f})')
-
-ax1.set_xlabel('Time (hours)', fontsize=12)
-ax1.set_ylabel('Conversion', fontsize=12)
-ax1.set_title('Kinetic Model Fitting', fontsize=14, fontweight='bold')
-ax1.legend(fontsize=10)
-ax1.grid(True, alpha=0.3)
-ax1.set_xlim([0, 20])
-ax1.set_ylim([0, 1])
-
-# Residual plot
-ax2.plot(time_exp, residuals_jander, 'bo-', label='Jander')
-ax2.plot(time_exp, residuals_gb, 'ro-', label='Ginstling-Brounshtein')
-ax2.plot(time_exp, residuals_power, 'go-', label='Power law')
-ax2.axhline(y=0, color='black', linestyle='--', linewidth=1)
-
-ax2.set_xlabel('Time (hours)', fontsize=12)
-ax2.set_ylabel('Residuals', fontsize=12)
-ax2.set_title('Residual Plot', fontsize=14, fontweight='bold')
-ax2.legend(fontsize=10)
-ax2.grid(True, alpha=0.3)
-
-plt.tight_layout()
-plt.savefig('kinetic_fitting.png', dpi=300, bbox_inches='tight')
-plt.show()
-
-# Summary of results
-print("\nReaction Kinetics Model Fitting Results:")
-print("=" * 70)
-print(f"{'Model':&lt;25} {'Parameter':&lt;30} {'R²':&lt;10}")
-print("-" * 70)
-print(f"{'Jander':&lt;25} {'k = ' + f'{k_jander:.4f} h⁻¹':&lt;30} {r2_jander:.4f}")
-print(f"{'Ginstling-Brounshtein':&lt;25} {'k = ' + f'{k_gb:.4f} h⁻¹':&lt;30} {r2_gb:.4f}")
-print(f"{'Power law':&lt;25} {'k = ' + f'{k_power:.4f}, n = {n_power:.4f}':&lt;30} {r2_power:.4f}")
-print("=" * 70)
-print(f"\nBest model: {'Jander' if r2_jander == max(r2_jander, r2_gb, r2_power) else 'GB' if r2_gb == max(r2_jander, r2_gb, r2_power) else 'Power law'}")
-
-# Example output:
-# Reaction Kinetics Model Fitting Results:
-# ======================================================================
-# Model                     Parameter                      R²
-# ----------------------------------------------------------------------
-# Jander                    k = 0.0289 h⁻¹                 0.9953
-# Ginstling-Brounshtein     k = 0.0412 h⁻¹                 0.9867
-# Power law                 k = 0.2156, n = 0.5234         0.9982
-# ======================================================================
-#
-# Best model: Power law
-</code></pre>
-
-        <h2>1.8 Advanced Topic: Microstructure Control</h2>
-
-        <h3>1.8.1 Suppressing Grain Growth</h3>
-        <p>In solid-state reactions, undesirable grain growth occurs due to high-temperature, long-duration holds. Strategies to suppress this include:</p>
-
-        <ul>
-            <li><strong>Two-step sintering</strong>: a short hold at high temperature followed by a long hold at low temperature</li>
-            <li><strong>Use of additives</strong>: adding trace amounts of grain-growth inhibitors (e.g., MgO, Al₂O₃)</li>
-            <li><strong>Spark Plasma Sintering (SPS)</strong>: rapid heating and short-duration sintering</li>
-        </ul>
-
-        <h3>1.8.2 Mechanochemical Activation of Reactions</h3>
-        <p>Mechanochemical methods (high-energy ball milling) can also drive solid-state reactions forward near room temperature:</p>
-
-        <pre><code class="language-python"># ===================================
-# Example 8: Grain growth simulation
-# ===================================
-
-import numpy as np
-import matplotlib.pyplot as plt
-
-def grain_growth(t, T, D0, Ea, G0, n):
-    """Time evolution of grain growth
-
-    Burke-Turnbull equation: G^n - G0^n = k*t
-
-    Args:
-        t (array): time [hours]
-        T (float): temperature [K]
-        D0 (float): pre-exponential factor
-        Ea (float): activation energy [J/mol]
-        G0 (float): initial grain size [μm]
-        n (float): grain growth exponent (typically 2-4)
-
-    Returns:
-        array: grain size [μm]
-    """
-    R = 8.314
-    k = D0 * np.exp(-Ea / (R * T))
-    G = (G0**n + k * t * 3600)**(1/n)  # hours → seconds
-    return G
-
-# Parameter settings
-D0_grain = 1e8  # μm^n/s
-Ea_grain = 400e3  # J/mol
-G0 = 0.5  # μm
-n = 3
-
-# Effect of temperature
-temps_celsius = [1100, 1200, 1300]
-t_range = np.linspace(0, 12, 100)  # 0-12 hours
-
-plt.figure(figsize=(12, 5))
-
-# Temperature dependence
-plt.subplot(1, 2, 1)
-for T_c in temps_celsius:
-    T_k = T_c + 273.15
-    G = grain_growth(t_range, T_k, D0_grain, Ea_grain, G0, n)
-    plt.plot(t_range, G, linewidth=2, label=f'{T_c}°C')
-
-plt.axhline(y=1.0, color='red', linestyle='--', linewidth=1,
-            label='Target grain size')
-plt.xlabel('Time (hours)', fontsize=12)
-plt.ylabel('Grain Size (μm)', fontsize=12)
-plt.title('Grain Growth at Different Temperatures', fontsize=14, fontweight='bold')
-plt.legend(fontsize=10)
-plt.grid(True, alpha=0.3)
-plt.ylim([0, 5])
-
-# Effect of two-step sintering
-plt.subplot(1, 2, 2)
-
-# Conventional sintering: 1300°C, 6 hours
-t_conv = np.linspace(0, 6, 100)
-T_conv = 1300 + 273.15
-G_conv = grain_growth(t_conv, T_conv, D0_grain, Ea_grain, G0, n)
-
-# Two-step: 1300°C 1h → 1200°C 5h
-t1 = np.linspace(0, 1, 20)
-G1 = grain_growth(t1, 1300+273.15, D0_grain, Ea_grain, G0, n)
-G_intermediate = G1[-1]
-
-t2 = np.linspace(0, 5, 80)
-G2 = grain_growth(t2, 1200+273.15, D0_grain, Ea_grain, G_intermediate, n)
-
-t_two_step = np.concatenate([t1, t2 + 1])
-G_two_step = np.concatenate([G1, G2])
-
-plt.plot(t_conv, G_conv, 'r-', linewidth=2, label='Conventional (1300°C)')
-plt.plot(t_two_step, G_two_step, 'b-', linewidth=2, label='Two-step (1300°C→1200°C)')
-plt.axvline(x=1, color='gray', linestyle=':', linewidth=1, alpha=0.5)
-
-plt.xlabel('Time (hours)', fontsize=12)
-plt.ylabel('Grain Size (μm)', fontsize=12)
-plt.title('Two-Step Sintering Strategy', fontsize=14, fontweight='bold')
-plt.legend(fontsize=10)
-plt.grid(True, alpha=0.3)
-plt.ylim([0, 5])
-
-plt.tight_layout()
-plt.savefig('grain_growth_control.png', dpi=300, bbox_inches='tight')
-plt.show()
-
-# Compare final grain size
-G_final_conv = grain_growth(6, 1300+273.15, D0_grain, Ea_grain, G0, n)
-G_final_two_step = G_two_step[-1]
-
-print("\nComparison of Grain Growth:")
-print("=" * 50)
-print(f"Conventional (1300°C, 6h): {G_final_conv:.2f} μm")
-print(f"Two-step (1300°C 1h + 1200°C 5h): {G_final_two_step:.2f} μm")
-print(f"Grain size suppression: {(1 - G_final_two_step/G_final_conv)*100:.1f}%")
-
-# Example output:
-# Comparison of Grain Growth:
-# ==================================================
-# Conventional (1300°C, 6h): 4.23 μm
-# Two-step (1300°C 1h + 1200°C 5h): 2.87 μm
-# Grain size suppression: 32.2%
-</code></pre>
-
-        <h2>Learning Objectives Checklist</h2>
-        <p>By completing this chapter, you will be able to explain the following:</p>
-
-        <h3>Basic Understanding</h3>
-        <ul>
-            <li>✅ Can explain the three rate-limiting steps of solid-state reactions (nucleation, interfacial reaction, diffusion)</li>
-            <li>✅ Understands the physical meaning of the Arrhenius equation and temperature dependence</li>
-            <li>✅ Can explain the difference between the Jander and Ginstling-Brounshtein equations</li>
-            <li>✅ Understands the importance of the three elements of a temperature profile (heating rate, hold time, cooling rate)</li>
-        </ul>
-
-        <h3>Practical Skills</h3>
-        <ul>
-            <li>✅ Can simulate the temperature dependence of the diffusion coefficient in Python</li>
-            <li>✅ Can predict reaction progress using the Jander equation</li>
-            <li>✅ Can calculate activation energy from DSC/TG data using the Kissinger method</li>
-            <li>✅ Can optimize reaction conditions using DOE (design of experiments)</li>
-            <li>✅ Understands the basics of phase diagram calculation using pycalphad</li>
-        </ul>
-
-        <h3>Applied Skills</h3>
-        <ul>
-            <li>✅ Can design synthesis processes for novel ceramic materials</li>
-            <li>✅ Can infer reaction mechanisms from experimental data and select the appropriate rate equation</li>
-            <li>✅ Can formulate condition-optimization strategies for industrial processes</li>
-            <li>✅ Can propose grain-growth control strategies (e.g., two-step sintering)</li>
-        </ul>
-
-        <h2>Exercises</h2>
-
-        <h3>Easy (Basic Review)</h3>
-
-        <div class="exercise">
-            <div class="exercise-title">Q1: Understanding the STL File Format</div>
-            <p>Which of the following statements about the ASCII and Binary STL formats is correct?</p>
-            <p>a) The ASCII format has a smaller file size<br>
-            b) The Binary format is a human-readable text format<br>
-            c) The Binary format is typically 5-10 times smaller than the ASCII format<br>
-            d) The Binary format has lower precision than the ASCII format</p>
-
-            <details>
-                <summary>Show Answer</summary>
-                <p><strong>Correct answer: c) The Binary format is typically 5-10 times smaller than the ASCII format</strong></p>
-                <p><strong>Explanation:</strong></p>
-                <ul>
-                    <li><strong>ASCII STL</strong>: A human-readable text format. Each triangle is described in 7 lines (facet, normal, 3 vertices, endfacet). Large file size (tens to hundreds of MB).</li>
-                    <li><strong>Binary STL</strong>: A compact binary format. 80-byte header + 4-byte triangle count + 50 bytes per triangle. 1/5 to 1/10 the size of ASCII for the same shape.</li>
-                    <li>Precision is identical in both formats (32-bit floating point)</li>
-                    <li>Modern 3D printing software supports both formats, but Binary is recommended</li>
-                </ul>
-                <p><strong>Example:</strong> A model with 10,000 triangles → ASCII: approximately 7MB, Binary: approximately 0.5MB</p>
-            </details>
-        </div>
-
-        <div class="exercise">
-            <div class="exercise-title">Q2: Simple Build Time Calculation</div>
-            <p>An object with a volume of 12,000 mm³ and a height of 30 mm is printed with a layer height of 0.2 mm and a print speed of 50 mm/s. What is the approximate build time? (Assume 20% infill and 2 wall layers.)</p>
-            <p>a) 30 minutes<br>
-            b) 60 minutes<br>
-            c) 90 minutes<br>
-            d) 120 minutes</p>
-
-            <details>
-                <summary>Show Answer</summary>
-                <p><strong>Correct answer: c) 90 minutes (approximately 1.5 hours)</strong></p>
-                <p><strong>Calculation steps:</strong></p>
-                <ol>
-                    <li><strong>Number of layers</strong>: height 30mm ÷ layer height 0.2mm = 150 layers</li>
-                    <li><strong>Estimating path length per layer</strong>:
-                        <ul>
-                            <li>Volume 12,000mm³ → average 80mm³ per layer</li>
-                            <li>Walls (shell): approximately 200mm/layer (assuming 0.4mm nozzle)</li>
-                            <li>20% infill: approximately 100mm/layer</li>
-                            <li>Total: approximately 300mm/layer</li>
-                        </ul>
-                    </li>
-                    <li><strong>Total path length</strong>: 300mm/layer × 150 layers = 45,000mm = 45m</li>
-                    <li><strong>Print time</strong>: 45,000mm ÷ 50mm/s = 900 seconds = 15 minutes</li>
-                    <li><strong>Actual time</strong>: Accounting for travel moves, retraction, and acceleration/deceleration (roughly 5-6×) → 75-90 minutes</li>
-                </ol>
-                <p><strong>Key point:</strong> The estimated time provided by slicer software includes acceleration/deceleration, travel, and temperature stabilization, making it roughly 4-6 times the simple calculation.</p>
-            </details>
-        </div>
-
-        <div class="exercise">
-            <div class="exercise-title">Q3: Selecting an AM Process</div>
-            <p>Select the most suitable AM process for the following application: "A titanium alloy fuel injection nozzle for an aircraft engine, with complex internal flow channels, requiring high strength and high heat resistance."</p>
-            <p>a) FDM (Fused Deposition Modeling)<br>
-            b) SLA (Stereolithography)<br>
-            c) SLM (Selective Laser Melting)<br>
-            d) Binder Jetting</p>
-
-            <details>
-                <summary>Show Answer</summary>
-                <p><strong>Correct answer: c) SLM (Selective Laser Melting / Powder Bed Fusion for Metal)</strong></p>
-                <p><strong>Reasoning:</strong></p>
-                <ul>
-                    <li><strong>SLM characteristics</strong>: Fully melts metal powder (titanium, Inconel, stainless steel) with a laser. High density (99.9%), high strength, high heat resistance.</li>
-                    <li><strong>Fit for the application</strong>:
-                        <ul>
-                            <li>✓ Compatible with titanium alloys (Ti-6Al-4V)</li>
-                            <li>✓ Can manufacture complex internal flow channels (after support removal)</li>
-                            <li>✓ Aerospace-grade mechanical properties</li>
-                            <li>✓ GE Aviation actually mass-produces FUEL injection nozzles via SLM</li>
-                        </ul>
-                    </li>
-                    <li><strong>Why the other options are unsuitable</strong>:
-                        <ul>
-                            <li>FDM: plastic only, insufficient strength and heat resistance</li>
-                            <li>SLA: resin only, unsuitable for functional parts</li>
-                            <li>Binder Jetting: metal is possible, but post-sintering density of 90-95% falls short of aerospace standards</li>
-                        </ul>
-                    </li>
-                </ul>
-                <p><strong>Example:</strong> GE Aviation's SLM-manufactured LEAP fuel nozzle consolidated what was previously 20 welded parts into a single piece, achieving a 25% weight reduction and 5× improvement in durability.</p>
-            </details>
-        </div>
-
-        <h3>Medium (Applied)</h3>
-
-        <div class="exercise">
-            <div class="exercise-title">Q4: Validating an STL Mesh in Python</div>
-            <p>Complete the following Python code to validate the manifold (watertight) integrity of an STL file.</p>
-            <pre><code class="language-python">import trimesh
-
-mesh = trimesh.load('model.stl')
-
-# Add code here: check the manifold integrity,
-# automatically repair any issues found, and save the
-# repaired mesh as 'model_fixed.stl'
-</code></pre>
-
-            <details>
-                <summary>Show Answer</summary>
-                <p><strong>Example solution:</strong></p>
-                <pre><code class="language-python">import trimesh
-
-mesh = trimesh.load('model.stl')
-
-# Check manifold integrity
-print(f"Is watertight: {mesh.is_watertight}")
-print(f"Is winding consistent: {mesh.is_winding_consistent}")
-
-# Repair if there are issues
-if not mesh.is_watertight or not mesh.is_winding_consistent:
-    print("Running mesh repair...")
-
-    # Fix normals
-    trimesh.repair.fix_normals(mesh)
-
-    # Fill holes
-    trimesh.repair.fill_holes(mesh)
-
-    # Remove degenerate triangles
-    mesh.remove_degenerate_faces()
-
-    # Merge duplicate vertices
-    mesh.merge_vertices()
-
-    # Check the repair result
-    print(f"Watertight after repair: {mesh.is_watertight}")
-
-    # Save the repaired mesh
-    if mesh.is_watertight:
-        mesh.export('model_fixed.stl')
-        print("Repair complete: saved as model_fixed.stl")
-    else:
-        print("⚠️ Automatic repair failed. Please use a tool such as Meshmixer")
-else:
-    print("✓ The mesh is printable")
-</code></pre>
-                <p><strong>Explanation:</strong></p>
-                <ul>
-                    <li><code>trimesh.repair.fix_normals()</code>: unifies the direction of normal vectors</li>
-                    <li><code>trimesh.repair.fill_holes()</code>: fills holes in the mesh</li>
-                    <li><code>remove_degenerate_faces()</code>: removes degenerate triangles with zero area</li>
-                    <li><code>merge_vertices()</code>: merges duplicate vertices</li>
-                </ul>
-                <p><strong>Practical note:</strong> Complex issues that trimesh cannot repair require dedicated tools such as Meshmixer, Netfabb, or MeshLab.</p>
-            </details>
-        </div>
-
-        <div class="exercise">
-            <div class="exercise-title">Q5: Calculating Support Material Volume</div>
-            <p>A cylinder with a diameter of 40mm and a height of 30mm is printed tilted at a 45-degree angle from the base. Assuming a support density of 15% and a layer height of 0.2mm, estimate the approximate volume of support material.</p>
-
-            <details>
-                <summary>Show Answer</summary>
-                <p><strong>Solution process:</strong></p>
-                <ol>
-                    <li><strong>Identifying the region requiring support</strong>:
-                        <ul>
-                            <li>At a 45-degree tilt → roughly half of the cylinder's base becomes an overhang (45 degrees or more)</li>
-                            <li>Tilting the cylinder 45 degrees leaves one side suspended</li>
-                        </ul>
-                    </li>
-                    <li><strong>Geometric calculation of the support region</strong>:
-                        <ul>
-                            <li>Cylinder projected area: π × (20mm)² ≈ 1,257 mm²</li>
-                            <li>Support area needed at 45-degree tilt: approximately 1,257mm² × 0.5 = 629 mm²</li>
-                            <li>Support height: at most approximately 30mm × sin(45°) ≈ 21mm</li>
-                            <li>Support volume (assuming 100% density): 629mm² × 21mm ÷ 2 (triangular shape) ≈ 6,600 mm³</li>
-                        </ul>
-                    </li>
-                    <li><strong>Accounting for 15% support density</strong>:
-                        <ul>
-                            <li>Actual support material: 6,600mm³ × 0.15 = <strong>approximately 990 mm³</strong></li>
-                        </ul>
-                    </li>
-                    <li><strong>Verification</strong>:
-                        <ul>
-                            <li>Cylinder body volume: π × 20² × 30 ≈ 37,700 mm³</li>
-                            <li>Support-to-body ratio: 990 / 37,700 ≈ 2.6% (a reasonable range)</li>
-                        </ul>
-                    </li>
-                </ol>
-                <p><strong>Answer: approximately 1,000 mm³ (990 mm³)</strong></p>
-                <p><strong>Practical considerations:</strong></p>
-                <ul>
-                    <li>Optimizing build orientation can significantly reduce support (in this example, printing the cylinder upright would eliminate the need for support)</li>
-                    <li>Using Tree Support can reduce material usage by a further 30-50%</li>
-                    <li>Water-soluble support materials (PVA, HIPS) make removal easier</li>
-                </ul>
-            </details>
-        </div>
-
-        <div class="exercise">
-            <div class="exercise-title">Q6: Optimizing Layer Height</div>
-            <p>An object with a height of 60mm is to be printed while balancing quality and time. Given three layer height options - 0.1mm, 0.2mm, and 0.3mm - explain the build time ratio and recommended use case for each.</p>
-
-            <details>
-                <summary>Show Answer</summary>
-                <p><strong>Answer:</strong></p>
-                <table>
-                    <tr>
-                        <th>Layer Height</th>
-                        <th>Number of Layers</th>
-                        <th>Time Ratio</th>
-                        <th>Quality</th>
-                        <th>Recommended Use</th>
-                    </tr>
-                    <tr>
-                        <td>0.1 mm</td>
-                        <td>600 layers</td>
-                        <td>×3.0</td>
-                        <td>Very high</td>
-                        <td>Display figurines, medical models, end-use parts</td>
-                    </tr>
-                    <tr>
-                        <td>0.2 mm</td>
-                        <td>300 layers</td>
-                        <td>×1.0 (baseline)</td>
-                        <td>Good</td>
-                        <td>General prototypes, functional parts</td>
-                    </tr>
-                    <tr>
-                        <td>0.3 mm</td>
-                        <td>200 layers</td>
-                        <td>×0.67</td>
-                        <td>Low</td>
-                        <td>Early-stage prototypes, strength-prioritized internal parts</td>
-                    </tr>
-                </table>
-
-                <p><strong>Basis for the time ratio calculation:</strong></p>
-                <ul>
-                    <li>Halving the number of layers also halves the number of Z-axis moves</li>
-                    <li>BUT: the print time per layer increases slightly (since the volume per layer increases)</li>
-                    <li>Overall, build time is "roughly inversely proportional" to layer height (with a correction factor of 0.9-1.1 in practice)</li>
-                </ul>
-
-                <p><strong>Practical selection criteria:</strong></p>
-                <ol>
-                    <li><strong>When 0.1mm is recommended</strong>:
-                        <ul>
-                            <li>Surface quality is the top priority (customer presentations, exhibitions)</li>
-                            <li>Smoothness of curved surfaces matters (faces, curved shapes)</li>
-                            <li>Layer lines should be nearly invisible</li>
-                        </ul>
-                    </li>
-                    <li><strong>When 0.2mm is recommended</strong>:
-                        <ul>
-                            <li>Balancing quality and time is the priority (the most common case)</li>
-                            <li>Prototypes for functional testing</li>
-                            <li>A moderate surface finish is sufficient</li>
-                        </ul>
-                    </li>
-                    <li><strong>When 0.3mm is recommended</strong>:
-                        <ul>
-                            <li>Speed is the priority (shape verification only)</li>
-                            <li>Internal structural parts (appearance doesn't matter)</li>
-                            <li>Large builds (significant time savings)</li>
-                        </ul>
-                    </li>
-                </ol>
-
-                <p><strong>Variable layer height (advanced):</strong><br>
-                Using the variable layer height feature in PrusaSlicer or Cura, flat sections can use 0.3mm while curved sections use 0.1mm, achieving both quality and speed.</p>
-            </details>
-        </div>
-
-        <div class="exercise">
-            <div class="exercise-title">Q7: Comprehensive AM Process Selection Problem</div>
-            <p>Select the most suitable AM process for manufacturing an aerospace lightweight bracket (aluminum alloy, topology-optimized complex geometry, requiring high strength and low weight), and give three reasons for your choice. Also list two post-processing steps that should be considered.</p>
-
-            <details>
-                <summary>Show Answer</summary>
-                <p><strong>Optimal process: LPBF (Laser Powder Bed Fusion) - SLM for Aluminum</strong></p>
-                <p><strong>Reasons for selection (three):</strong></p>
-                <ol>
-                    <li><strong>High density and high strength</strong>:
-                        <ul>
-                            <li>Full laser melting achieves a relative density of 99.5% or higher</li>
-                            <li>Mechanical properties (tensile strength, fatigue properties) comparable to forged material</li>
-                            <li>Can achieve aerospace certification (AS9100, Nadcap)</li>
-                        </ul>
-                    </li>
-                    <li><strong>Capability to manufacture topology-optimized geometry</strong>:
-                        <ul>
-                            <li>Builds complex lattice structures (0.5mm thickness or less) with high precision</li>
-                            <li>Handles hollow structures and bionic shapes impossible with conventional machining</li>
-                            <li>Internal structures remain accessible after support removal</li>
-                        </ul>
-                    </li>
-                    <li><strong>Material efficiency and weight reduction</strong>:
-                        <ul>
-                            <li>Buy-to-fly ratio (material input / final part weight) is 1/10 to 1/20 that of machining</li>
-                            <li>Topology optimization achieves 40-60% weight reduction versus conventional design</li>
-                            <li>Aluminum alloys (AlSi10Mg, Scalmalloy) maximize specific strength</li>
-                        </ul>
-                    </li>
-                </ol>
-
-                <p><strong>Required post-processing (two):</strong></p>
-                <ol>
-                    <li><strong>Heat treatment</strong>:
-                        <ul>
-                            <li>Stress relief annealing: 300°C, 2-4 hours</li>
-                            <li>Purpose: removes residual stress from the build, improves dimensional stability</li>
-                            <li>Effect: 30-50% improvement in fatigue life, prevents warping</li>
-                        </ul>
-                    </li>
-                    <li><strong>Surface finishing</strong>:
-                        <ul>
-                            <li>Machining (CNC): high-precision machining of mounting surfaces and bolt holes (Ra &lt; 3.2μm)</li>
-                            <li>Electropolishing: reduces surface roughness (Ra 10μm → 2μm)</li>
-                            <li>Shot peening: introduces compressive residual stress in the surface layer, improving fatigue properties</li>
-                            <li>Anodizing: improves corrosion resistance, adds insulation (aerospace standard)</li>
-                        </ul>
-                    </li>
-                </ol>
-
-                <p><strong>Additional considerations:</strong></p>
-                <ul>
-                    <li><strong>Build orientation</strong>: consider the load direction relative to the build direction (Z-direction strength is 10-15% lower)</li>
-                    <li><strong>Support design</strong>: use easily removable Tree Support, minimize contact area</li>
-                    <li><strong>Quality control</strong>: CT scanning for internal defect inspection, X-ray inspection</li>
-                    <li><strong>Traceability</strong>: powder lot management, recording of build parameters</li>
-                </ul>
-
-                <p><strong>Example: Airbus A350 titanium bracket</strong><br>
-                A bracket previously assembled from 32 parts was consolidated into a single piece, achieving a 55% weight reduction, 65% shorter lead time, and 35% cost reduction.</p>
-            </details>
-        </div>
-                3 levels × 3 levels = <strong>9 runs</strong> (full factorial design)</p>
-
-                <p><strong>Advantages of DOE (compared to conventional methods):</strong></p>
-                <ol>
-                    <li><strong>Interaction effects can be detected</strong>
-                        <ul>
-                            <li>Conventional method: evaluates the effect of temperature and the effect of time separately</li>
-                            <li>DOE: quantifies interactions such as "at higher temperatures, the hold time can be shortened"</li>
-                            <li>Example: 4 hours is sufficient at 1300°C, but 8 hours are needed at 1100°C, etc.</li>
-                        </ul>
-                    </li>
-                    <li><strong>Reduced number of experiments</strong>
-                        <ul>
-                            <li>Conventional method (OFAT: One Factor At a Time):
-                                <ul>
-                                    <li>Temperature study: 3 runs (time fixed)</li>
-                                    <li>Time study: 3 runs (temperature fixed)</li>
-                                    <li>Confirmation experiments: multiple runs</li>
-                                    <li>Total: 10+ runs</li>
-                                </ul>
-                            </li>
-                            <li>DOE: completed in 9 runs (full coverage of conditions plus interaction analysis)</li>
-                            <li>Using a central composite design can further reduce this to 7 runs</li>
-                        </ul>
-                    </li>
-                </ol>
-
-                <p><strong>Additional advantages:</strong></p>
-                <ul>
-                    <li>Statistically significant conclusions can be obtained (error can be evaluated)</li>
-                    <li>A response surface can be constructed, allowing prediction of untested conditions</li>
-                    <li>Can detect cases where the optimal condition lies outside the tested range</li>
-                </ul>
-            </details>
-        </div>
-
-        <h3>Hard (Advanced)</h3>
-
-        <div class="exercise">
-            <div class="exercise-title">Q7: Designing a Complex Reaction System</div>
-            <p>Design a temperature profile for synthesizing Li₁.₂Ni₀.₂Mn₀.₆O₂ (a lithium-rich cathode material) under the following conditions:</p>
-            <ul>
-                <li>Raw materials: Li₂CO₃, NiO, Mn₂O₃</li>
-                <li>Target: single phase, grain size &lt; 5 μm, precise control of the Li/transition-metal ratio</li>
-                <li>Constraint: Li₂O volatilizes above 900°C (risk of Li deficiency)</li>
-            </ul>
-            <p>Explain the temperature profile (heating rate, hold temperature/time, cooling rate) and the reasoning behind the design.</p>
-
-            <details>
-                <summary>Show Answer</summary>
-                <p><strong>Recommended temperature profile:</strong></p>
-
-                <p><strong>Phase 1: Preliminary heating (Li₂CO₃ decomposition)</strong></p>
-                <ul>
-                    <li>Room temperature → 500°C: 3°C/min</li>
-                    <li>Hold at 500°C: 2 hours</li>
-                    <li><strong>Reason:</strong> Allows the decomposition of Li₂CO₃ (~450°C) to proceed slowly, fully removing CO₂</li>
-                </ul>
-
-                <p><strong>Phase 2: Intermediate heating (precursor formation)</strong></p>
-                <ul>
-                    <li>500°C → 750°C: 5°C/min</li>
-                    <li>Hold at 750°C: 4 hours</li>
-                    <li><strong>Reason:</strong> Forms intermediate phases such as Li₂MnO₃ and LiNiO₂. Homogenizes the material at a temperature with minimal Li volatilization</li>
-                </ul>
-
-                <p><strong>Phase 3: Final firing (target phase synthesis)</strong></p>
-                <ul>
-                    <li>750°C → 850°C: 2°C/min (slow)</li>
-                    <li>Hold at 850°C: 12 hours</li>
-                    <li><strong>Reason:</strong>
-                        <ul>
-                            <li>Forming a single phase of Li₁.₂Ni₀.₂Mn₀.₆O₂ requires an extended duration</li>
-                            <li>Limiting to 850°C minimizes Li volatilization (staying under the &lt;900°C constraint)</li>
-                            <li>The long hold advances diffusion while remaining at a temperature that suppresses grain growth</li>
-                        </ul>
-                    </li>
-                </ul>
-
-                <p><strong>Phase 4: Cooling</strong></p>
-                <ul>
-                    <li>850°C → room temperature: 2°C/min</li>
-                    <li><strong>Reason:</strong> Slow cooling improves crystallinity and prevents cracking from thermal stress</li>
-                </ul>
-
-                <p><strong>Key design points:</strong></p>
-                <ol>
-                    <li><strong>Countermeasures against Li volatilization:</strong>
-                        <ul>
-                            <li>Stay at or below 900°C (the constraint in this problem)</li>
-                            <li>Additionally, use Li-excess raw materials (e.g., Li/TM = 1.25)</li>
-                            <li>Fire under flowing oxygen to lower the Li₂O partial pressure</li>
-                        </ul>
-                    </li>
-                    <li><strong>Grain size control (&lt; 5 μm):</strong>
-                        <ul>
-                            <li>Advance the reaction at low temperature (850°C) over a long duration (12h)</li>
-                            <li>High temperature/short duration causes excessive grain growth</li>
-                            <li>Also reduce the raw material particle size to below 1μm</li>
-                        </ul>
-                    </li>
-                    <li><strong>Compositional uniformity:</strong>
-                        <ul>
-                            <li>The intermediate hold at 750°C is important</li>
-                            <li>This stage homogenizes the distribution of transition metals</li>
-                            <li>If needed, cool once after the 750°C hold, grind, and reheat</li>
-                        </ul>
-                    </li>
-                </ol>
-
-                <p><strong>Total time required:</strong> approximately 30 hours (12h heating + 18h holding)</p>
-
-                <p><strong>Alternative methods to consider:</strong></p>
-                <ul>
-                    <li><strong>Sol-gel method:</strong> synthesis possible at lower temperature (600-700°C), improved homogeneity</li>
-                    <li><strong>Spray pyrolysis:</strong> easier grain size control</li>
-                    <li><strong>Two-step sintering:</strong> 900°C 1h → 800°C 10h to suppress grain growth</li>
-                </ul>
-            </details>
-        </div>
-
-        <div class="exercise">
-            <div class="exercise-title">Q8: Comprehensive Kinetic Analysis Problem</div>
-            <p>From the following data, infer the reaction mechanism and calculate the activation energy.</p>
-            <p><strong>Experimental data:</strong></p>
-            <table>
-                <tr>
-                    <th>Temperature (°C)</th>
-                    <th>Time to 50% Conversion t₅₀ (hours)</th>
-                </tr>
-                <tr><td>1000</td><td>18.5</td></tr>
-                <tr><td>1100</td><td>6.2</td></tr>
-                <tr><td>1200</td><td>2.5</td></tr>
-                <tr><td>1300</td><td>1.2</td></tr>
-            </table>
-            <p>Assuming the Jander model: [1-(1-0.5)^(1/3)]² = k·t₅₀</p>
-
-            <details>
-                <summary>Show Answer</summary>
-                <p><strong>Solution:</strong></p>
-
-                <p><strong>Step 1: Calculate the rate constant k</strong></p>
-                <p>For the Jander equation at α=0.5:<br>
-                [1-(1-0.5)^(1/3)]² = [1-0.794]² = 0.206² = 0.0424</p>
-
-                <p>Therefore k = 0.0424 / t₅₀</p>
-
-                <table>
-                    <tr>
-                        <th>T (°C)</th>
-                        <th>T (K)</th>
-                        <th>t₅₀ (h)</th>
-                        <th>k (h⁻¹)</th>
-                        <th>ln(k)</th>
-                        <th>1000/T (K⁻¹)</th>
-                    </tr>
-                    <tr><td>1000</td><td>1273</td><td>18.5</td><td>0.00229</td><td>-6.080</td><td>0.7855</td></tr>
-                    <tr><td>1100</td><td>1373</td><td>6.2</td><td>0.00684</td><td>-4.985</td><td>0.7284</td></tr>
-                    <tr><td>1200</td><td>1473</td><td>2.5</td><td>0.01696</td><td>-4.077</td><td>0.6788</td></tr>
-                    <tr><td>1300</td><td>1573</td><td>1.2</td><td>0.03533</td><td>-3.343</td><td>0.6357</td></tr>
-                </table>
-
-                <p><strong>Step 2: Arrhenius plot</strong></p>
-                <p>Plot ln(k) vs. 1/T (linear regression)</p>
-
-                <p>Linear fit: ln(k) = A - Eₐ/(R·T)</p>
-                <p>slope = -Eₐ/R</p>
-
-                <p>Linear regression calculation:<br>
-                slope = Δ(ln k) / Δ(1000/T)<br>
-                     = (-3.343 - (-6.080)) / (0.6357 - 0.7855)<br>
-                     = 2.737 / (-0.1498)<br>
-                     = -18.27</p>
-
-                <p><strong>Step 3: Calculate the activation energy</strong></p>
-                <p>slope = -Eₐ / (R × 1000)<br>
-                Eₐ = -slope × R × 1000<br>
-                Eₐ = 18.27 × 8.314 × 1000<br>
-                Eₐ = 151,899 J/mol ≈ <strong>152 kJ/mol</strong></p>
-
-                <p><strong>Step 4: Consider the reaction mechanism</strong></p>
-                <ul>
-                    <li><strong>Comparing activation energies:</strong>
-                        <ul>
-                            <li>Value obtained: 152 kJ/mol</li>
-                            <li>Typical solid-state diffusion: 200-400 kJ/mol</li>
-                            <li>Interfacial reaction: 50-150 kJ/mol</li>
-                        </ul>
-                    </li>
-                    <li><strong>Likely mechanism:</strong>
-                        <ul>
-                            <li>This value falls between interfacial reaction and diffusion</li>
-                            <li>Possibility 1: interfacial reaction is primarily rate-limiting (diffusion contributes little)</li>
-                            <li>Possibility 2: fine particles with a short diffusion distance, giving an apparently low Eₐ</li>
-                            <li>Possibility 3: mixed control (both interfacial reaction and diffusion contribute)</li>
-                        </ul>
-                    </li>
-                </ul>
-
-                <p><strong>Step 5: Proposed verification methods</strong></p>
-                <ol>
-                    <li><strong>Particle size dependence:</strong> run experiments with different particle sizes and check whether k ∝ 1/r₀² holds
-                        <ul>
-                            <li>Holds → diffusion-controlled</li>
-                            <li>Does not hold → interfacial-reaction-controlled</li>
-                        </ul>
-                    </li>
-                    <li><strong>Fitting with other rate equations:</strong>
-                        <ul>
-                            <li>Ginstling-Brounshtein equation (3D diffusion)</li>
-                            <li>Contracting sphere model (interfacial reaction)</li>
-                            <li>Compare which gives a higher R²</li>
-                        </ul>
-                    </li>
-                    <li><strong>Microstructure observation:</strong> observe the reaction interface with SEM
-                        <ul>
-                            <li>Thick product layer → evidence of diffusion control</li>
-                            <li>Thin product layer → possible interfacial-reaction control</li>
-                        </ul>
-                    </li>
-                </ol>
-
-                <p><strong>Final conclusion:</strong><br>
-                Activation energy <strong>Eₐ = 152 kJ/mol</strong><br>
-                Estimated mechanism: <strong>interfacial-reaction control, or diffusion control in a fine-particle system</strong><br>
-                Additional experiments are recommended.</p>
-            </details>
+            <strong>✅ Looking ahead</strong>
+            <p>With this, the overall picture of the major AM processes is complete. In the next chapter, we integrate the knowledge so far and take on simulation and analysis of 3D printing in Python.</p>
         </div>
 
         <h2>Next Steps</h2>
-        <p>In Chapter 4, we covered the fundamentals of additive manufacturing (AM): the seven process categories defined by ISO/ASTM 52900, the structure of the STL file format, and the basics of slicing and G-code. In the next chapter, Chapter 2, we will learn about the detailed build process, material properties, and process parameter optimization for material extrusion (FDM/FFF).</p>
+        <p>In Chapter 4, we took a cross-cutting look at material jetting, binder jetting, directed energy deposition, sheet lamination, and hybrid manufacturing, and surveyed a quantitative approach to process selection along with emerging trends. In the next chapter, Chapter 5, we take on simulation and practical analysis of 3D printing using Python.</p>
 
         <div class="nav-buttons">
-            <a href="./index.html" class="nav-button">← Series Table of Contents</a>
-            <a href="./chapter-5.html" class="nav-button">Proceed to Chapter 2 →</a>
+            <a href="./chapter-3.html" class="nav-button">← Back to Chapter 3</a>
+            <a href="./chapter-5.html" class="nav-button">Proceed to Chapter 5 →</a>
         </div>
 
         <h2>References</h2>
         <ol>
-            <li>Gibson, I., Rosen, D., & Stucker, B. (2015). <em>Additive Manufacturing Technologies: 3D Printing, Rapid Prototyping, and Direct Digital Manufacturing</em> (2nd ed.). Springer. pp. 1-35, 89-145, 287-334. - A comprehensive textbook on AM technology, with detailed coverage of the seven process categories and STL data processing</li>
-            <li>ISO/ASTM 52900:2021. <em>Additive manufacturing — General principles — Fundamentals and vocabulary</em>. International Organization for Standardization. - The international standard for AM terminology and process classification, widely referenced throughout industry</li>
-            <li>Kruth, J.P., Leu, M.C., & Nakagawa, T. (1998). "Progress in Additive Manufacturing and Rapid Prototyping." <em>CIRP Annals - Manufacturing Technology</em>, 47(2), 525-540. - The theoretical foundations of selective laser sintering and binding mechanisms</li>
-            <li>Hull, C.W. (1986). <em>Apparatus for production of three-dimensional objects by stereolithography</em>. US Patent 4,575,330. - The world's first AM technology patent (SLA), a foundational document for the origins of the AM industry</li>
-            <li>Wohlers, T. (2023). <em>Wohlers Report 2023: 3D Printing and Additive Manufacturing Global State of the Industry</em>. Wohlers Associates, Inc. pp. 15-89, 156-234. - The latest statistical report on AM market trends and industrial applications, updated annually as an industry-standard resource</li>
-            <li>3D Systems, Inc. (1988). <em>StereoLithography Interface Specification</em>. - The official specification for the STL file format, defining the ASCII/Binary STL structure</li>
-            <li>numpy-stl Documentation. (2024). <em>Python library for working with STL files</em>. <a href="https://numpy-stl.readthedocs.io/">https://numpy-stl.readthedocs.io/</a> - A Python library for reading STL files and calculating volume</li>
-            <li>trimesh Documentation. (2024). <em>Python library for loading and using triangular meshes</em>. <a href="https://trimsh.org/">https://trimsh.org/</a> - A comprehensive library for mesh repair, boolean operations, and quality evaluation</li>
+            <li>Gibson, I., Rosen, D., &amp; Stucker, B. (2021). <em>Additive Manufacturing Technologies</em> (3rd ed.). Springer. - A standard textbook covering all processes, including material jetting, binder jetting, DED, and sheet lamination</li>
+            <li>ISO/ASTM 52900:2021. <em>Additive manufacturing — General principles — Fundamentals and vocabulary</em>. - The international standard for AM process classification and vocabulary</li>
+            <li>Derby, B. (2010). "Inkjet Printing of Functional and Structural Materials: Fluid Property Requirements, Feature Stability, and Resolution." <em>Annual Review of Materials Research</em>, 40, 395-414. - The theoretical basis of droplet printability and the Ohnesorge / Z numbers</li>
+            <li>Ziaee, M., &amp; Crane, N.B. (2019). "Binder Jetting: A Review of Process, Materials, and Methods." <em>Additive Manufacturing</em>, 28, 781-801. - A comprehensive review of binder jetting process, materials, and sintering</li>
+            <li>Dass, A., &amp; Moridi, A. (2019). "State of the Art in Directed Energy Deposition: From Additive Manufacturing to Materials Design." <em>Coatings</em>, 9(7), 418. - A survey of DED principles, repair, and functionally graded materials</li>
+            <li>Murphy, S.V., &amp; Atala, A. (2014). "3D Bioprinting of Tissues and Organs." <em>Nature Biotechnology</em>, 32, 773-785. - A representative review of bioprinting principles and challenges</li>
+            <li>Tibbits, S. (2014). "4D Printing: Multi-Material Shape Change." <em>Architectural Design</em>, 84(1), 116-121. - The foundational paper introducing the concept of 4D printing</li>
         </ol>
 
         <h2>Tools and Libraries Used</h2>
         <ul>
             <li><strong>NumPy</strong> (v1.24+): numerical computing library - <a href="https://numpy.org/">https://numpy.org/</a></li>
-            <li><strong>numpy-stl</strong> (v3.0+): STL file processing library - <a href="https://numpy-stl.readthedocs.io/">https://numpy-stl.readthedocs.io/</a></li>
-            <li><strong>trimesh</strong> (v4.0+): 3D mesh processing library (repair, validation, boolean operations) - <a href="https://trimsh.org/">https://trimsh.org/</a></li>
             <li><strong>Matplotlib</strong> (v3.7+): data visualization library - <a href="https://matplotlib.org/">https://matplotlib.org/</a></li>
-            <li><strong>SciPy</strong> (v1.10+): scientific computing library (optimization, interpolation) - <a href="https://scipy.org/">https://scipy.org/</a></li>
+            <li><strong>Python</strong> (v3.10+): the runtime for this chapter's code examples - <a href="https://www.python.org/">https://www.python.org/</a></li>
         </ul>
     </div>
 

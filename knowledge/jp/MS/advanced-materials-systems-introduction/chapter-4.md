@@ -2,11 +2,13 @@
 title: 第4章：エネルギー材料
 chapter_title: 第4章：エネルギー材料
 subtitle: リチウムイオン電池・燃料電池・太陽電池 - 高性能化の設計原理
+code_examples: 3
+exercises: 6
 ---
 
 🌐 JP | [🇬🇧 EN](<../../../en/MS/advanced-materials-systems-introduction/chapter-4.html>) | Last sync: 2025-11-16
 
-[AI寺子屋トップ](<../../index.html>)›[材料科学](<../../MS/index.html>)›[Advanced Materials Systems](<../../MS/advanced-materials-systems-introduction/index.html>)›Chapter 2
+[AI寺子屋トップ](<../../index.html>)›[材料科学](<../../MS/index.html>)›[Advanced Materials Systems](<../../MS/advanced-materials-systems-introduction/index.html>)›Chapter 4
 
 ## 学習目標
 
@@ -14,1653 +16,566 @@ subtitle: リチウムイオン電池・燃料電池・太陽電池 - 高性能�
 
 ### 基本理解
 
-  * 構造セラミックスの高強度化・高靭性化メカニズム（相変態強化、繊維強化）
-  * 機能性セラミックス（圧電、誘電、磁性）の物理的起源と結晶構造
-  * バイオセラミックスの生体適合性と骨結合のメカニズム
-  * セラミックスの機械的特性と統計的破壊理論（Weibull分布）
+  * エネルギー変換・貯蔵デバイスの分類と主要な性能指標（エネルギー密度、出力密度、変換効率）
+  * リチウムイオン電池（Lithium-Ion Battery, LIB）の正極・負極材料と理論容量の計算原理
+  * 燃料電池（Fuel Cell）の起電力（Nernst式）と3種類の過電圧（活性化・オーム・濃度）
+  * 太陽電池（Solar Cell）のpn接合動作、Shockley-Queisser限界、IV特性と曲線因子（Fill Factor, FF）
 
 ### 実践スキル
 
-  * Pythonでセラミックスの強度分布（Weibull統計）を解析できる
-  * pycalphadを用いて相図を計算し、焼結条件を最適化できる
-  * 圧電定数・誘電率・磁気特性を計算・評価できる
-  * 材料選択マトリックスで用途に応じた最適セラミックスを選定できる
+  * Faradayの法則から各種電極材料の理論容量（mAh/g）をPythonで計算できる
+  * 燃料電池の分極曲線（Polarization Curve）をモデル化し、最大出力点を求められる
+  * 単一ダイオードモデルで太陽電池のIV曲線・最大出力点・曲線因子・変換効率を計算できる
+  * 材料組成と性能指標の関係を定量的に評価し、用途に応じた材料を選定できる
 
 ### 応用力
 
-  * 用途要求から最適なセラミックス組成と微構造を設計できる
-  * 機能性セラミックスデバイス（センサ、アクチュエータ）を設計できる
-  * バイオセラミックスインプラントの生体適合性を評価できる
-  * セラミックス材料の信頼性設計（確率的破壊予測）ができる
+  * 用途要求（航続距離、出力、寿命）から最適な電池材料系を設計できる
+  * 燃料電池の運転条件（温度、圧力）が性能に与える影響を予測できる
+  * 太陽電池のバンドギャップ選択と効率のトレードオフを評価できる
+  * 次世代エネルギー材料（全固体電池、ペロブスカイト太陽電池）の技術課題を理解できる
 
-## 1.1 構造セラミックス - 高強度・高靭性化の原理
+## 4.1 エネルギー材料の基礎
 
-### 1.1.1 構造セラミックスの概要
+### 4.1.1 エネルギー変換・貯蔵デバイスの分類
 
-構造セラミックス（Structural Ceramics）とは、**優れた機械的性質（高強度・高硬度・耐熱性）を持ち、過酷な環境下で構造部材として使用されるセラミックス材料** です。金属材料では不可能な高温環境や腐食性環境での使用が可能で、以下のような重要な応用があります：
+エネルギー材料（Energy Materials）とは、**化学エネルギー・光エネルギー・電気エネルギーを相互に変換、あるいは貯蔵する機能を担う材料** です。カーボンニュートラル社会の実現に向け、これらの材料は電気自動車、定置用蓄電、再生可能エネルギー発電の基盤技術となっています。本章では代表的な3つのデバイスを扱います：
 
-  * **Al₂O₃（アルミナ）** : 切削工具、耐摩耗部品、人工関節（生体適合性）
-  * **ZrO₂（ジルコニア）** : 歯科材料、酸素センサー、熱遮蔽コーティング（高靭性）
-  * **Si₃N₄（窒化ケイ素）** : ガスタービン部品、ベアリング（高温強度）
-  * **SiC（炭化ケイ素）** : 半導体製造装置、装甲材（超高硬度）
+  * **リチウムイオン電池（LIB）** : 化学エネルギー ⇄ 電気エネルギーを貯蔵（二次電池）
+  * **燃料電池（Fuel Cell）** : 化学エネルギー → 電気エネルギーを連続変換（発電デバイス）
+  * **太陽電池（Solar Cell）** : 光エネルギー → 電気エネルギーを直接変換（光起電力デバイス）
 
-**💡 産業的重要性**
-
-構造セラミックスは航空宇宙・自動車・医療分野で不可欠です。世界のセラミックス市場（2023年時点で$230B以上）の約60%が先進セラミックス材料です。その理由は：
-
-  * 金属の3-5倍の強度（常温）と優れた耐熱性（1500°C以上）
-  * 化学的安定性（酸・アルカリに不活性）
-  * 低密度（金属の1/2-1/3）による軽量化効果
-  * 高硬度（Hv 1500-2500）による耐摩耗性
-
-### 1.1.2 高強度セラミックス（Al₂O₃, ZrO₂, Si₃N₄）
-
-高強度セラミックスは以下の3つの主要材料が代表的です：
     
     
     flowchart LR
-        A[Al₂O₃  
-    アルミナ] --> B[高硬度  
-    Hv 2000]
-        C[ZrO₂  
-    ジルコニア] --> D[高靭性  
-    10-15 MPa√m]
-        E[Si₃N₄  
-    窒化ケイ素] --> F[高温強度  
-    1400°C使用]
+        A[化学エネルギー] <--> B[リチウムイオン電池  
+    貯蔵]
+        A --> C[燃料電池  
+    連続変換]
+        D[光エネルギー] --> E[太陽電池  
+    光起電力]
+        B --> F[電気エネルギー]
+        C --> F
+        E --> F
     
         style A fill:#e3f2fd
+        style D fill:#fff9c4
+        style B fill:#e8f5e9
         style C fill:#fff3e0
-        style E fill:#e8f5e9
-        style B fill:#f3e5f5
-        style D fill:#fce4ec
-        style F fill:#fff9c4
+        style E fill:#fce4ec
+        style F fill:#f3e5f5
             
 
-  1. **Al₂O₃（アルミナ）** : 酸化物セラミックスの代表格。高硬度（Hv 2000）、優れた耐摩耗性、生体適合性により、切削工具・人工関節に使用。製造コストが低く最も広く普及。
-  2. **ZrO₂（ジルコニア）** : 相変態強化（Transformation Toughening）により、セラミックス材料の中で最高レベルの破壊靭性（10-15 MPa√m）を実現。「セラミックス鋼」とも呼ばれる。
-  3. **Si₃N₄（窒化ケイ素）** : 共有結合性が強く、1400°Cまで高強度を維持。ガスタービン部品・ベアリングなどの高温構造材料として使用。熱衝撃抵抗性も優れる。
+### 4.1.2 主要な性能指標
 
-**⚠️ セラミックスの本質的課題**
+エネルギーデバイスの性能を定量的に比較するため、以下の指標を用います。これらは材料設計の目標値を定める基準となります。
 
-セラミックスは高強度・高硬度を持つ一方で、**脆性（低靭性）** が最大の欠点です。微小な欠陥（気孔、亀裂）が応力集中点となり、突発的な破壊を引き起こします（Griffith理論）。破壊靭性は金属の1/10以下です。このため、高靭性化技術が重要な研究課題となっています。
+#### エネルギー密度と出力密度
 
-### 1.1.3 高靭性化メカニズム
+重量エネルギー密度 [Wh/kg] = 容量 [Ah/kg] × 平均電圧 [V] 
 
-#### メカニズム1: 相変態強化（Transformation Toughening）
+エネルギー密度は「どれだけ蓄えられるか（航続距離）」を、出力密度 [W/kg] は「どれだけ速く取り出せるか（加速性能）」を表します。両者はしばしばトレードオフの関係にあり、Ragoneプロット（Ragone Plot）で可視化されます。
 
-ジルコニア（ZrO₂）で最も効果的に機能する強化機構です：
+#### 変換効率
 
-ZrO₂（正方晶、t-phase） → ZrO₂（単斜晶、m-phase） + 体積膨張（3-5%） 
+変換効率 η = 取り出した有効エネルギー ÷ 入力エネルギー × 100 [%] 
 
-**強化のメカニズム：**
+デバイス | 主要指標 | 代表値  
+---|---|---  
+リチウムイオン電池（LIB）| 重量エネルギー密度| 150-260 Wh/kg（セル）  
+固体高分子形燃料電池（PEFC）| 出力密度| 0.5-1.2 W/cm²  
+結晶シリコン太陽電池| 変換効率| 20-27 %（実用モジュール）  
+  
+**💡 エネルギー密度の重要性**
 
-  * **応力誘起変態** : 亀裂先端の高応力場で、準安定な正方晶（t）が単斜晶（m）へ相変態
-  * **体積膨張効果** : 3-5%の体積膨張が亀裂周辺に圧縮応力を発生させ、亀裂進展を抑制
-  * **エネルギー吸収** : 変態に伴うエネルギー消費が破壊エネルギーを増大
-  * **靭性向上効果** : 破壊靭性が3 MPa√m → 10-15 MPa√m（3-5倍向上）
+電気自動車では、電池パックの重量エネルギー密度が航続距離を直接決定します。ガソリン（約12,000 Wh/kg）に対し、現行のLIBは約250 Wh/kg（パックでは150 Wh/kg程度）にとどまります。この差を埋めるため、全固体電池やリチウム金属負極など、次世代材料の研究が精力的に進められています。
 
-**実現方法：** Y₂O₃（3-8 mol%）やMgO（9-15 mol%）を添加し、正方晶を室温で準安定化（PSZ: Partially Stabilized Zirconia）
+## 4.2 リチウムイオン電池
 
-#### メカニズム2: 繊維強化（Fiber Reinforcement）
+### 4.2.1 動作原理
 
-セラミックスマトリックスに高強度繊維を複合化する手法です：
+リチウムイオン電池（Lithium-Ion Battery, LIB）は、**正極と負極の間をリチウムイオン（Li⁺）が移動することで充放電を行う二次電池** です。放電時にはLi⁺が負極から正極へ移動し、外部回路を電子が流れます（充電時は逆）。この「ロッキングチェア型」の動作が高い可逆性と長寿命を実現します。
 
-セラミックス複合材料（CMC） = セラミックスマトリックス + 強化繊維（SiC, C, Al₂O₃） 
+正極（放電）: Li₁₋ₓCoO₂ + xLi⁺ + xe⁻ → LiCoO₂ 
 
-**強化のメカニズム：**
+負極（放電）: LiₓC₆ → xLi⁺ + xe⁻ + 6C 
 
-  * **クラックデフレクション** : 亀裂が繊維界面で偏向し、進展経路が長くなる
-  * **ファイバープルアウト** : 繊維が引き抜かれる際に大きなエネルギーを吸収
-  * **クラックブリッジング** : 繊維が亀裂を架橋し、応力伝達を維持
-  * **靭性向上効果** : 破壊靭性が5 MPa√m → 20-30 MPa√m（4-6倍向上）
+### 4.2.2 正極材料
 
-**応用例：** SiC/SiC複合材料（航空機エンジン部品）、C/C複合材料（ブレーキディスク）
+正極材料は電池の電圧・容量・安全性・コストを決定づける最重要部材です。代表的な材料を比較します。
 
-## 1.2 機能性セラミックス - 圧電・誘電・磁性
+材料 | 略称 | 平均電圧 | 特徴  
+---|---|---|---  
+LiCoO₂| LCO| 3.9 V| 高エネルギー密度だがCo高価・熱的に不安定  
+LiFePO₄| LFP| 3.4 V| 安全性・寿命に優れ低コスト、容量はやや低い  
+LiNi₀.₈Mn₀.₁Co₀.₁O₂| NMC811| 3.8 V| 高容量、Ni高比率でCo削減、EV向け主流  
+  
+### 4.2.3 負極材料
 
-### 1.2.1 圧電セラミックス（Piezoelectric Ceramics）
+負極は現在も黒鉛（Graphite）が主流です。層間にLi⁺を挿入（インターカレーション）し、理論容量は372 mAh/g（LiC₆）です。より高容量なシリコン（Si）系負極（理論容量約3,579 mAh/g）が実用化されつつありますが、充放電に伴う体積膨張（約300%）が寿命上の課題です。
 
-圧電効果とは、**機械的応力を加えると電気分極が生じ（正圧電効果）、逆に電場を印加すると機械的歪みが生じる（逆圧電効果）現象** です。
+### 4.2.4 理論容量の計算
 
-#### 代表的な圧電材料
+電極材料の理論容量は、Faradayの法則（Faraday's Law）から計算できます。1モルの電子が運ぶ電荷はFaraday定数 F = 96,485 C/mol です。
 
-PZT（Pb(Zr,Ti)O₃）：圧電定数 d₃₃ = 200-600 pC/N 
+理論容量 Q [mAh/g] = (n × F) ÷ (M × 3.6) 
 
-BaTiO₃（チタン酸バリウム）：圧電定数 d₃₃ = 85-190 pC/N（鉛フリー代替材料） 
+ここで n は反応電子数、M はモル質量 [g/mol]、3.6 は C/g から mAh/g への換算係数です。この式を4.5節でPython実装します。
 
-**PZT（ジルコン酸チタン酸鉛）の特徴：**
+**⚠️ 容量劣化（Degradation）のメカニズム**
 
-  * **高圧電定数** : d₃₃ = 200-600 pC/N（応用材料として最も優れる）
-  * **モルフォトロピック相境界（MPB）** : Zr/Ti比率 52/48付近で圧電特性が最大化
-  * **キュリー温度** : 320-380°C（この温度以上で圧電性消失）
-  * **応用** : 超音波振動子、圧電アクチュエータ、圧電スピーカー、圧電点火装置
+LIBは充放電を繰り返すと容量が低下します。主な劣化要因は次のとおりです：
 
-**⚠️ 環境問題と鉛フリー化**
+  * **SEI被膜の成長** : 負極表面の固体電解質界面（Solid Electrolyte Interphase）がLi⁺を消費し続ける
+  * **正極の構造崩壊** : 高Ni系での遷移金属溶出や結晶構造の相転移
+  * **リチウム析出（Liプレーティング）** : 低温・急速充電時に金属Liが析出し、内部短絡の危険
 
-PZTは鉛（Pb）を60wt%以上含むため、欧州RoHS規制で使用制限があります。鉛フリー代替材料として、BaTiO₃系、(K,Na)NbO₃系、BiFeO₃系が研究されていますが、PZTの性能には及びません（d₃₃ = 100-300 pC/N）。圧電デバイスは医療機器等の適用除外品目ですが、長期的には代替材料開発が必要です。
+## 4.3 燃料電池
 
-#### 圧電効果の結晶学的起源
+### 4.3.1 動作原理と種類
 
-圧電効果は**非中心対称結晶構造** を持つ材料でのみ発現します：
+燃料電池（Fuel Cell）は、**水素などの燃料と酸素の電気化学反応により、化学エネルギーを直接電気エネルギーに変換する発電デバイス** です。燃焼を経ないためカルノー効率の制約を受けず、高い理論効率が得られます。全体反応は水の生成反応です：
 
-  * **常誘電相（立方晶、Pm3m）** : 中心対称 → 圧電性なし（高温）
-  * **強誘電相（正方晶、P4mm）** : 非中心対称 → 圧電性あり（室温）
-  * **自発分極** : Ti⁴⁺イオンが酸素八面体中心からずれることで双極子モーメント発生
-  * **分域（ドメイン）構造** : 電場印加により分域の方位が揃い、巨大圧電効果を発現（ポーリング処理）
+H₂ + ½O₂ → H₂O （ΔG = -237 kJ/mol, 標準状態） 
 
-### 1.2.2 誘電セラミックス（Dielectric Ceramics）
+種類 | 電解質 | 動作温度 | 主な用途  
+---|---|---|---  
+PEFC（固体高分子形）| プロトン伝導性高分子膜| 60-90 ℃| 燃料電池自動車、家庭用  
+SOFC（固体酸化物形）| 酸化物イオン伝導性セラミックス（YSZ）| 700-1000 ℃| 定置用発電、コジェネ  
+  
+### 4.3.2 起電力とNernst式
 
-誘電セラミックスは、**高い誘電率（εᵣ）を持ち、電気エネルギーを蓄積するコンデンサ材料** として使用されます。
+理論起電力（可逆電位）は、反応物・生成物の活量（分圧）と温度に依存し、Nernst式（Nernst Equation）で表されます：
 
-#### MLCC（積層セラミックコンデンサ）用材料
+E = E° + (RT ÷ 2F) × ln(pH₂ · pO₂1/2) 
 
-BaTiO₃（チタン酸バリウム）：εᵣ = 1,500-10,000（室温、1 kHz） 
+ここで E° は標準可逆電位（25 ℃で1.229 V）、R は気体定数、T は絶対温度、F はFaraday定数、p は各気体の分圧です。空気（O₂分圧0.21 atm）を用いると、純酸素より起電力はわずかに低下します。
 
-**高誘電率の起源：**
+### 4.3.3 分極（過電圧）による電圧損失
 
-  * **強誘電性（Ferroelectricity）** : 自発分極が外部電場により反転可能な性質
-  * **分域壁の移動** : 電場印加により分域壁が容易に移動し、大きな分極変化を生じる
-  * **キュリー温度（Tc）** : BaTiO₃ではTc = 120°C、この温度で誘電率がピーク
-  * **組成調整** : CaZrO₃、SrTiO₃を添加してTcを室温付近にシフト（X7R特性）
-
-**✅ MLCC（多層セラミックコンデンサ）の驚異的性能**
-
-現代のMLCCは極限まで小型化・高性能化が進んでいます：
-
-  * **積層数** : 1,000層以上（誘電体層厚み < 1 μm）
-  * **静電容量** : 1 mm³サイズで100 μF以上達成
-  * **用途** : スマートフォン1台に800個以上搭載
-  * **市場規模** : 年間生産数 1兆個以上（世界最大の電子部品）
-
-BaTiO₃ベースのMLCCは電子機器の小型化・高性能化の鍵となる材料です。
-
-### 1.2.3 磁性セラミックス（Magnetic Ceramics - Ferrites）
-
-フェライト（Ferrites）は、**酸化物系の磁性材料で、高周波における低損失特性** を持つため、トランスフォーマー・インダクタ・電波吸収体に広く使用されます。
-
-#### フェライトの種類と用途
-
-スピネル型フェライト：MFe₂O₄（M = Mn, Ni, Zn, Co等） 
-
-六方晶フェライト（ハードフェライト）：BaFe₁₂O₁₉、SrFe₁₂O₁₉（永久磁石） 
-
-**スピネル型フェライトの特徴：**
-
-  * **ソフト磁性** : 保磁力が小さく（Hc < 100 A/m）、容易に磁化反転
-  * **高周波特性** : 高い電気抵抗（ρ > 10⁶ Ω·cm）により渦電流損失が小さい
-  * **Mn-Znフェライト** : 高透磁率（μᵣ = 2,000-15,000）、低周波トランスフォーマー用
-  * **Ni-Znフェライト** : 高周波特性に優れる（GHz帯）、EMI対策部品用
-
-**六方晶フェライト（ハードフェライト）の特徴：**
-
-  * **ハード磁性** : 大きな保磁力（Hc = 200-400 kA/m）と残留磁束密度（Br = 0.4 T）
-  * **永久磁石材料** : モーター、スピーカー、磁気記録媒体に使用
-  * **低コスト** : 希土類磁石（Nd-Fe-B）より性能は劣るが、原料が安価で大量生産可能
-  * **耐食性** : 酸化物のため金属磁石と異なり腐食しない
-
-**💡 フェライトの磁性起源**
-
-フェライトの磁性はスピネル構造（AB₂O₄）中の**A席（四面体位置）とB席（八面体位置）のイオンの磁気モーメントが反平行配列** することで発現します（フェリ磁性）。Mn-ZnフェライトではMn²⁺とFe³⁺の磁気モーメントが部分的に打ち消し合うため、全体としての磁化は小さくなりますが、高透磁率が実現されます。
-
-## 1.3 バイオセラミックス - 生体適合性と骨結合
-
-### 1.3.1 バイオセラミックスの概要
-
-バイオセラミックス（Bioceramics）とは、**生体組織と接触しても拒絶反応を起こさず（生体適合性）、骨組織と直接結合できる（骨伝導性）セラミックス材料** です。
-
-#### 代表的なバイオセラミックス
-
-HAp（ハイドロキシアパタイト）：Ca₁₀(PO₄)₆(OH)₂ 
-
-β-TCP（リン酸三カルシウム）：Ca₃(PO₄)₂ 
-
-**ハイドロキシアパタイト（HAp）の特徴：**
-
-  * **骨の主成分** : 天然骨の無機成分の65%がHAp（残り35%は有機物コラーゲン）
-  * **生体適合性** : 骨組織と化学組成が類似しているため、拒絶反応が起きない
-  * **骨伝導性（Osteoconduction）** : HAp表面に骨芽細胞が付着・増殖し、新しい骨組織が形成される
-  * **骨結合（Osseointegration）** : HAp表面と骨組織の間に直接的な化学結合が形成される
-  * **応用** : 人工骨、歯科インプラント、骨充填材、Ti合金インプラントのコーティング
-
-**✅ β-TCPの生体吸収性**
-
-β-TCP（リン酸三カルシウム）は、HApと異なり**生体内で徐々に吸収される** 特性を持ちます：
-
-  * **吸収期間** : 6-18ヶ月で完全吸収（粒子サイズ・気孔率に依存）
-  * **置換メカニズム** : β-TCPが溶解しながら、新しい骨組織に置き換わる（Bone remodeling）
-  * **Ca²⁺・PO₄³⁻供給** : 溶解により放出されたイオンが骨形成を促進
-  * **HAp/β-TCP複合材** : 両者の混合比率により吸収速度を制御可能（HAp 70% / β-TCP 30%等）
-
-生体吸収性により、永久的な異物が体内に残らず、自己の骨組織に完全に置き換わる理想的な骨再生が実現します。
-
-### 1.4 Python実践：セラミックス材料の解析と設計
-
-### Example 1: Weibull統計による破壊強度分布の解析
-    
-    
-    # ===================================
-    # Example 1: Arrhenius式シミュレーション
-    # ===================================
-    
-    import numpy as np
-    import matplotlib.pyplot as plt
-    
-    # 物理定数
-    R = 8.314  # J/(mol·K)
-    
-    # BaTiO3系の拡散パラメータ（文献値）
-    D0 = 5e-4  # m²/s (頻度因子)
-    Ea = 300e3  # J/mol (活性化エネルギー 300 kJ/mol)
-    
-    def diffusion_coefficient(T, D0, Ea):
-        """Arrhenius式で拡散係数を計算
-    
-        Args:
-            T (float or array): 温度 [K]
-            D0 (float): 頻度因子 [m²/s]
-            Ea (float): 活性化エネルギー [J/mol]
-    
-        Returns:
-            float or array: 拡散係数 [m²/s]
-        """
-        return D0 * np.exp(-Ea / (R * T))
-    
-    # 温度範囲 800-1400°C
-    T_celsius = np.linspace(800, 1400, 100)
-    T_kelvin = T_celsius + 273.15
-    
-    # 拡散係数を計算
-    D = diffusion_coefficient(T_kelvin, D0, Ea)
-    
-    # プロット
-    plt.figure(figsize=(10, 6))
-    
-    # 対数プロット（Arrheniusプロット）
-    plt.subplot(1, 2, 1)
-    plt.semilogy(T_celsius, D, 'b-', linewidth=2)
-    plt.xlabel('Temperature (°C)', fontsize=12)
-    plt.ylabel('Diffusion Coefficient (m²/s)', fontsize=12)
-    plt.title('Arrhenius Plot', fontsize=14, fontweight='bold')
-    plt.grid(True, alpha=0.3)
-    
-    # 1/T vs ln(D) プロット（直線関係）
-    plt.subplot(1, 2, 2)
-    plt.plot(1000/T_kelvin, np.log(D), 'r-', linewidth=2)
-    plt.xlabel('1000/T (K⁻¹)', fontsize=12)
-    plt.ylabel('ln(D)', fontsize=12)
-    plt.title('Linearized Arrhenius Plot', fontsize=14, fontweight='bold')
-    plt.grid(True, alpha=0.3)
-    
-    plt.tight_layout()
-    plt.savefig('arrhenius_plot.png', dpi=300, bbox_inches='tight')
-    plt.show()
-    
-    # 主要温度での拡散係数を表示
-    key_temps = [1000, 1100, 1200, 1300]
-    print("温度依存性の比較:")
-    print("-" * 50)
-    for T_c in key_temps:
-        T_k = T_c + 273.15
-        D_val = diffusion_coefficient(T_k, D0, Ea)
-        print(f"{T_c:4d}°C: D = {D_val:.2e} m²/s")
-    
-    # 出力例:
-    # 温度依存性の比較:
-    # --------------------------------------------------
-    # 1000°C: D = 1.89e-12 m²/s
-    # 1100°C: D = 9.45e-12 m²/s
-    # 1200°C: D = 4.01e-11 m²/s
-    # 1300°C: D = 1.48e-10 m²/s
-    
-
-### Example 2: Jander式による反応進行のシミュレーション
-    
-    
-    # ===================================
-    # Example 2: Jander式による反応率計算
-    # ===================================
-    
-    import numpy as np
-    import matplotlib.pyplot as plt
-    from scipy.optimize import fsolve
-    
-    def jander_equation(alpha, k, t):
-        """Jander式
-    
-        Args:
-            alpha (float): 反応率 (0-1)
-            k (float): 速度定数 [s⁻¹]
-            t (float): 時間 [s]
-    
-        Returns:
-            float: Jander式の左辺 - k*t
-        """
-        return (1 - (1 - alpha)**(1/3))**2 - k * t
-    
-    def calculate_conversion(k, t):
-        """時間tにおける反応率を計算
-    
-        Args:
-            k (float): 速度定数
-            t (float): 時間
-    
-        Returns:
-            float: 反応率 (0-1)
-        """
-        # Jander式をalphaについて数値的に解く
-        alpha0 = 0.5  # 初期推定値
-        alpha = fsolve(lambda a: jander_equation(a, k, t), alpha0)[0]
-        return np.clip(alpha, 0, 1)  # 0-1の範囲に制限
-    
-    # パラメータ設定
-    D = 1e-11  # m²/s (1200°Cでの拡散係数)
-    C0 = 10000  # mol/m³
-    r0_values = [1e-6, 5e-6, 10e-6]  # 粒子半径 [m]: 1μm, 5μm, 10μm
-    
-    # 時間配列（0-50時間）
-    t_hours = np.linspace(0, 50, 500)
-    t_seconds = t_hours * 3600
-    
-    # プロット
-    plt.figure(figsize=(12, 5))
-    
-    # 粒子サイズの影響
-    plt.subplot(1, 2, 1)
-    for r0 in r0_values:
-        k = D * C0 / r0**2
-        alpha = [calculate_conversion(k, t) for t in t_seconds]
-        plt.plot(t_hours, alpha, linewidth=2,
-                 label=f'r₀ = {r0*1e6:.1f} μm')
-    
-    plt.xlabel('Time (hours)', fontsize=12)
-    plt.ylabel('Conversion (α)', fontsize=12)
-    plt.title('Effect of Particle Size', fontsize=14, fontweight='bold')
-    plt.legend(fontsize=10)
-    plt.grid(True, alpha=0.3)
-    plt.ylim([0, 1])
-    
-    # 温度の影響（粒子サイズ固定）
-    plt.subplot(1, 2, 2)
-    r0_fixed = 5e-6  # 5μm固定
-    temperatures = [1100, 1200, 1300]  # °C
-    
-    for T_c in temperatures:
-        T_k = T_c + 273.15
-        D_T = diffusion_coefficient(T_k, D0, Ea)
-        k = D_T * C0 / r0_fixed**2
-        alpha = [calculate_conversion(k, t) for t in t_seconds]
-        plt.plot(t_hours, alpha, linewidth=2,
-                 label=f'{T_c}°C')
-    
-    plt.xlabel('Time (hours)', fontsize=12)
-    plt.ylabel('Conversion (α)', fontsize=12)
-    plt.title('Effect of Temperature (r₀ = 5 μm)', fontsize=14, fontweight='bold')
-    plt.legend(fontsize=10)
-    plt.grid(True, alpha=0.3)
-    plt.ylim([0, 1])
-    
-    plt.tight_layout()
-    plt.savefig('jander_simulation.png', dpi=300, bbox_inches='tight')
-    plt.show()
-    
-    # 50%反応に要する時間を計算
-    print("\n50%反応に要する時間:")
-    print("-" * 50)
-    for r0 in r0_values:
-        k = D * C0 / r0**2
-        t_50 = fsolve(lambda t: jander_equation(0.5, k, t), 10000)[0]
-        print(f"r₀ = {r0*1e6:.1f} μm: t₅₀ = {t_50/3600:.1f} hours")
-    
-    # 出力例:
-    # 50%反応に要する時間:
-    # --------------------------------------------------
-    # r₀ = 1.0 μm: t₅₀ = 1.9 hours
-    # r₀ = 5.0 μm: t₅₀ = 47.3 hours
-    # r₀ = 10.0 μm: t₅₀ = 189.2 hours
-    
-
-### Example 3: 活性化エネルギーの計算（DSC/TGデータから）
-    
-    
-    # ===================================
-    # Example 3: Kissinger法による活性化エネルギー計算
-    # ===================================
-    
-    import numpy as np
-    import matplotlib.pyplot as plt
-    from scipy.stats import linregress
-    
-    # Kissinger法: ln(β/Tp²) vs 1/Tp の直線の傾きから Ea を求める
-    # β: 加熱速度 [K/min]
-    # Tp: ピーク温度 [K]
-    # 傾き = -Ea/R
-    
-    # 実験データ（異なる加熱速度でのDSCピーク温度）
-    heating_rates = np.array([5, 10, 15, 20])  # K/min
-    peak_temps_celsius = np.array([1085, 1105, 1120, 1132])  # °C
-    peak_temps_kelvin = peak_temps_celsius + 273.15
-    
-    def kissinger_analysis(beta, Tp):
-        """Kissinger法で活性化エネルギーを計算
-    
-        Args:
-            beta (array): 加熱速度 [K/min]
-            Tp (array): ピーク温度 [K]
-    
-        Returns:
-            tuple: (Ea [kJ/mol], A [min⁻¹], R²)
-        """
-        # Kissinger式の左辺
-        y = np.log(beta / Tp**2)
-    
-        # 1/Tp
-        x = 1000 / Tp  # 1000/Tでスケーリング（見やすくするため）
-    
-        # 線形回帰
-        slope, intercept, r_value, p_value, std_err = linregress(x, y)
-    
-        # 活性化エネルギー計算
-        R = 8.314  # J/(mol·K)
-        Ea = -slope * R * 1000  # J/mol → kJ/mol
-    
-        # 頻度因子
-        A = np.exp(intercept)
-    
-        return Ea, A, r_value**2
-    
-    # 活性化エネルギー計算
-    Ea, A, R2 = kissinger_analysis(heating_rates, peak_temps_kelvin)
-    
-    print("Kissinger法による解析結果:")
-    print("=" * 50)
-    print(f"活性化エネルギー Ea = {Ea:.1f} kJ/mol")
-    print(f"頻度因子 A = {A:.2e} min⁻¹")
-    print(f"決定係数 R² = {R2:.4f}")
-    print("=" * 50)
-    
-    # プロット
-    plt.figure(figsize=(10, 6))
-    
-    # Kissingerプロット
-    y_data = np.log(heating_rates / peak_temps_kelvin**2)
-    x_data = 1000 / peak_temps_kelvin
-    
-    plt.plot(x_data, y_data, 'ro', markersize=10, label='実験データ')
-    
-    # フィッティング直線
-    x_fit = np.linspace(x_data.min()*0.95, x_data.max()*1.05, 100)
-    slope = -Ea * 1000 / (R * 1000)
-    intercept = np.log(A)
-    y_fit = slope * x_fit + intercept
-    plt.plot(x_fit, y_fit, 'b-', linewidth=2, label=f'Fit: Ea = {Ea:.1f} kJ/mol')
-    
-    plt.xlabel('1000/Tp (K⁻¹)', fontsize=12)
-    plt.ylabel('ln(β/Tp²)', fontsize=12)
-    plt.title('Kissinger Plot for Activation Energy', fontsize=14, fontweight='bold')
-    plt.legend(fontsize=11)
-    plt.grid(True, alpha=0.3)
-    
-    # テキストボックスで結果を表示
-    textstr = f'Ea = {Ea:.1f} kJ/mol\nR² = {R2:.4f}'
-    props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
-    plt.text(0.05, 0.95, textstr, transform=plt.gca().transAxes, fontsize=11,
-             verticalalignment='top', bbox=props)
-    
-    plt.tight_layout()
-    plt.savefig('kissinger_plot.png', dpi=300, bbox_inches='tight')
-    plt.show()
-    
-    # 出力例:
-    # Kissinger法による解析結果:
-    # ==================================================
-    # 活性化エネルギー Ea = 287.3 kJ/mol
-    # 頻度因子 A = 2.45e+12 min⁻¹
-    # 決定係数 R² = 0.9956
-    # ==================================================
-    
-
-## 1.4 Python実践：セラミックス材料の解析と設計
-
-### 1.4.1 温度プロファイルの3要素
-
-固相反応における温度プロファイルは、反応の成功を左右する最も重要な制御パラメータです。以下の3要素を適切に設計する必要があります：
+実際のセル電圧は、電流を流すと理論起電力より低下します。この電圧損失を分極（Polarization）と呼び、3つの成分に分けられます。
     
     
     flowchart TD
-        A[温度プロファイル設計] --> B[加熱速度  
-    Heating Rate]
-        A --> C[保持時間  
-    Holding Time]
-        A --> D[冷却速度  
-    Cooling Rate]
+        A[理論起電力 E_rev] --> B[活性化過電圧  
+    低電流域で支配的]
+        B --> C[オーム過電圧  
+    中電流域で線形増加]
+        C --> D[濃度過電圧  
+    高電流域で急増]
+        D --> E[実セル電圧 V]
     
-        B --> B1[速すぎ: 熱応力→亀裂]
-        B --> B2[遅すぎ: 不要な相変態]
-    
-        C --> C1[短すぎ: 反応不完全]
-        C --> C2[長すぎ: 粒成長過剰]
-    
-        D --> D1[速すぎ: 熱応力→亀裂]
-        D --> D2[遅すぎ: 好ましくない相]
-    
-        style A fill:#f093fb
+        style A fill:#e8f5e9
         style B fill:#e3f2fd
-        style C fill:#e8f5e9
-        style D fill:#fff3e0
+        style C fill:#fff3e0
+        style D fill:#fce4ec
+        style E fill:#f3e5f5
             
 
-#### 1\. 加熱速度（Heating Rate）
+  1. **活性化過電圧（Activation Overpotential）** : 電極反応を駆動するための障壁。低電流密度域で支配的で、Butler-Volmer式（Tafel近似）で表されます。触媒（Pt）の性能が鍵。
+  2. **オーム過電圧（Ohmic Overpotential）** : 電解質膜のイオン伝導抵抗と電子抵抗による損失。電流に比例（V = iR）し、膜の薄膜化が有効。
+  3. **濃度過電圧（Concentration Overpotential）** : 反応ガスの供給が追いつかず電極表面で枯渇することによる損失。限界電流密度 iL に近づくと急増します。
 
-**一般的な推奨値：** 2-10°C/min
+**💡 分極曲線（Polarization Curve）の読み方**
 
-**考慮すべき要因：**
+横軸に電流密度、縦軸にセル電圧をとったI-V曲線が分極曲線です。低電流域の急な立ち下がり（活性化）、中電流域の直線的な傾き（オーム）、高電流域の急降下（濃度）という3領域が現れます。電圧×電流の積が出力密度であり、最大出力点はこれらの損失のバランスで決まります。4.5節でモデル化します。
 
-  * **熱応力** : 試料内部と表面の温度差が大きいと熱応力が発生し、亀裂の原因に
-  * **中間相の形成** : 低温域での不要な中間相形成を避けるため、ある温度範囲は速く通過
-  * **分解反応** : CO₂やH₂O放出反応では、急速加熱は突沸の原因に
+## 4.4 太陽電池
 
-**⚠️ 実例: BaCO₃の分解反応**
+### 4.4.1 pn接合と光起電力効果
 
-BaTiO₃合成では800-900°Cで BaCO₃ → BaO + CO₂ の分解が起こります。加熱速度が20°C/min以上だと、CO₂が急激に放出され、試料が破裂することがあります。推奨加熱速度は5°C/min以下です。
+太陽電池（Solar Cell）は、**半導体のpn接合（pn Junction）に光を照射することで、電子・正孔対を生成し電力を取り出す光起電力（Photovoltaic）デバイス** です。バンドギャップ（Band Gap, Eg）より大きなエネルギーを持つ光子が価電子帯の電子を伝導帯へ励起し、pn接合の内蔵電界がキャリアを分離することで起電力が生じます。
 
-#### 2\. 保持時間（Holding Time）
+### 4.4.2 Shockley-Queisser限界
 
-**決定方法：** Jander式からの推算 + 実験最適化
+単接合太陽電池の理論効率には上限があり、これをShockley-Queisser限界（Shockley-Queisser Limit, 詳細釣り合い限界）と呼びます。バンドギャップが小さいと多くの光子を吸収できますが電圧が下がり、大きいと電圧は上がるが吸収光子が減るため、効率は最適バンドギャップで最大となります。
 
-必要な保持時間は以下の式で推定できます：
+**💡 最適バンドギャップと理論限界**
 
-t = [α_target / k]^(1/2) × (1 - α_target^(1/3))^(-2) 
+AM1.5G標準太陽光スペクトルに対して、Shockley-Queisser限界はバンドギャップ約1.34 eVで最大の約33%となります。シリコン（Eg = 1.12 eV）の限界は約29-33%で、この最適値に近いことがシリコンが主流である理由の一つです。損失要因は主に、バンドギャップ未満の光子の非吸収と、余剰エネルギーの熱緩和（サーマリゼーション）です。多接合（タンデム）セルはこの限界を超える手段です。
 
-**典型的な保持時間：**
+### 4.4.3 IV特性と曲線因子
 
-  * 低温反応（<1000°C）: 12-24時間
-  * 中温反応（1000-1300°C）: 4-8時間
-  * 高温反応（>1300°C）: 2-4時間
+太陽電池の性能はIV特性（電流-電圧特性）で評価します。実デバイスは単一ダイオードモデル（Single-Diode Model）で近似され、直列抵抗 Rs と並列（シャント）抵抗 Rsh を含みます：
 
-#### 3\. 冷却速度（Cooling Rate）
+I = IL \- I₀ [exp((V + I·Rs) ÷ (n·Vt)) - 1] - (V + I·Rs) ÷ Rsh
 
-**一般的な推奨値：** 1-5°C/min（加熱速度より遅め）
+ここで IL は光生成電流、I₀ は逆飽和電流、n はダイオード因子、Vt = kT/q は熱電圧です。重要な性能指標は次のとおりです：
 
-**重要性：**
+  * **短絡電流 I sc**: V = 0 のときの電流（光吸収量に対応）
+  * **開放電圧 V oc**: I = 0 のときの電圧（材料のバンドギャップに関連）
+  * **曲線因子 FF（Fill Factor）** : FF = (Vmp·Imp) ÷ (Voc·Isc)。IV曲線の「四角さ」を表し、抵抗損失が小さいほど1に近づく
+  * **変換効率 η** : η = (Voc·Isc·FF) ÷ Pin
 
-  * **相変態の制御** : 冷却中の高温相→低温相変態を制御
-  * **欠陥の生成** : 急冷は酸素欠損等の欠陥を凍結
-  * **結晶性** : 徐冷は結晶性を向上
+**✅ ペロブスカイト太陽電池の急伸**
 
-### 1.4.2 温度プロファイルの最適化シミュレーション
+近年、ペロブスカイト太陽電池（Perovskite Solar Cell）が注目されています。有機-無機ハイブリッドのペロブスカイト構造（例: CH₃NH₃PbI₃）を光吸収層に用い、2009年の変換効率3.8%から、現在は単接合で26%超、シリコンとのタンデムで33%超へと急速に向上しました。溶液塗布による低コスト製造が可能な一方、湿度・熱に対する長期安定性と鉛の環境負荷が実用化への課題です。
+
+## 4.5 Python実践：エネルギー材料の性能計算
+
+ここまで学んだ3つのデバイスについて、性能指標を実際にPythonで計算します。以下のコードはすべて自己完結しており、NumPyのみで動作します。
+
+### Example 1: Faradayの法則による電極材料の理論容量
+
+正極・負極材料のモル質量と反応電子数から、理論重量容量 [mAh/g] を計算します。さらにLFP/黒鉛フルセルのエネルギー密度を概算します。
     
     
     # ===================================
-    # Example 4: 温度プロファイル最適化
+    # Example 1: Faradayの法則による理論容量計算
     # ===================================
     
     import numpy as np
-    import matplotlib.pyplot as plt
     
-    def temperature_profile(t, T_target, heating_rate, hold_time, cooling_rate):
-        """温度プロファイルを生成
+    # Faraday定数
+    F = 96485.0  # C/mol
     
-        Args:
-            t (array): 時間配列 [min]
-            T_target (float): 保持温度 [°C]
-            heating_rate (float): 加熱速度 [°C/min]
-            hold_time (float): 保持時間 [min]
-            cooling_rate (float): 冷却速度 [°C/min]
+    # 電極材料: モル質量 [g/mol]、反応電子数（1式量あたり）
+    materials = {
+        "LiCoO2 (LCO)":      {"M": 97.87,  "n": 0.5},   # 実用的にLiの約0.5を脱離
+        "LiFePO4 (LFP)":     {"M": 157.76, "n": 1.0},
+        "LiNi0.8Mn0.1Co0.1O2 (NMC811)": {"M": 96.72, "n": 0.8},
+        "Graphite (LiC6)":   {"M": 72.06,  "n": 1.0},   # C6基準、6炭素あたりLi 1個
+        "Silicon (Li15Si4)": {"M": 28.09,  "n": 3.75},  # Li3.75Si
+    }
     
-        Returns:
-            array: 温度プロファイル [°C]
+    def theoretical_capacity(M, n):
+        """理論重量容量 [mAh/g] を計算
+        Q = n * F / M （C/g）を 3.6 で割り mAh/g へ換算
         """
-        T_room = 25  # 室温
-        T = np.zeros_like(t)
+        Q_C_per_g = n * F / M          # C/g
+        Q_mAh_per_g = Q_C_per_g / 3.6  # mAh/g
+        return Q_mAh_per_g
     
-        # 加熱時間
-        t_heat = (T_target - T_room) / heating_rate
+    print("電極材料の理論重量容量")
+    print("=" * 62)
+    print(f"{'Material':<32}{'M [g/mol]':>10}{'n':>5}{'Q [mAh/g]':>12}")
+    print("-" * 62)
+    for name, p in materials.items():
+        Q = theoretical_capacity(p["M"], p["n"])
+        print(f"{name:<32}{p['M']:>10.2f}{p['n']:>5.2f}{Q:>12.1f}")
+    print("=" * 62)
     
-        # 冷却開始時刻
-        t_cool_start = t_heat + hold_time
+    # フルセルのエネルギー密度概算（LFP正極/黒鉛負極）
+    Q_cat = theoretical_capacity(157.76, 1.0)
+    Q_an = theoretical_capacity(72.06, 1.0)
+    Q_cell = 1.0 / (1.0/Q_cat + 1.0/Q_an)  # 比容量の直列合成
+    V_avg = 3.3  # V, LFP/黒鉛の平均電圧
+    E_grav = Q_cell * V_avg  # Wh/kg（mAh/g × V = mWh/g = Wh/kg）
+    print(f"\nLFP/黒鉛フルセル（活物質のみ）:")
+    print(f"  正極容量   : {Q_cat:.1f} mAh/g")
+    print(f"  負極容量   : {Q_an:.1f} mAh/g")
+    print(f"  合成容量   : {Q_cell:.1f} mAh/g")
+    print(f"  平均電圧   : {V_avg:.1f} V")
+    print(f"  エネルギー密度: {E_grav:.1f} Wh/kg（活物質基準）")
+
+**実行結果：**
     
-        for i, time in enumerate(t):
-            if time <= t_heat:
-                # 加熱フェーズ
-                T[i] = T_room + heating_rate * time
-            elif time <= t_cool_start:
-                # 保持フェーズ
-                T[i] = T_target
+    
+    # 電極材料の理論重量容量
+    # ==============================================================
+    # Material                         M [g/mol]    n   Q [mAh/g]
+    # --------------------------------------------------------------
+    # LiCoO2 (LCO)                         97.87 0.50       136.9
+    # LiFePO4 (LFP)                       157.76 1.00       169.9
+    # LiNi0.8Mn0.1Co0.1O2 (NMC811)         96.72 0.80       221.7
+    # Graphite (LiC6)                      72.06 1.00       371.9
+    # Silicon (Li15Si4)                    28.09 3.75      3578.0
+    # ==============================================================
+    #
+    # LFP/黒鉛フルセル（活物質のみ）:
+    #   正極容量   : 169.9 mAh/g
+    #   負極容量   : 371.9 mAh/g
+    #   合成容量   : 116.6 mAh/g
+    #   平均電圧   : 3.3 V
+    #   エネルギー密度: 384.8 Wh/kg（活物質基準）
+
+計算値は文献値とよく一致します（LFP 約170 mAh/g、黒鉛 372 mAh/g、シリコン 約3,579 mAh/g）。シリコンの理論容量が黒鉛の約10倍であることが、Si系負極が期待される理由です。なお活物質のみの概算値（384.8 Wh/kg）は、電解質・集電体・筐体を含む実セル（150-180 Wh/kg）より高く出ることに注意してください。
+
+### Example 2: 燃料電池の分極曲線モデル
+
+Nernst式で理論起電力を求め、活性化・オーム・濃度の3過電圧を差し引いてPEFCの分極曲線を計算し、最大出力点を探索します。
+    
+    
+    # ===================================
+    # Example 2: PEFC分極曲線モデル
+    # ===================================
+    
+    import numpy as np
+    
+    # 物理定数
+    R = 8.314      # J/(mol K)
+    F = 96485.0    # C/mol
+    T = 353.15     # K（80 ℃、PEFCの標準運転温度）
+    
+    # Nernst / 熱力学
+    E0 = 1.229     # V, H2/O2の標準可逆電位（25 ℃）
+    p_H2 = 1.0     # 水素分圧 [atm]
+    p_O2 = 0.21    # 空気中の酸素分圧 [atm]
+    # Nernst式: H2 + 1/2 O2 -> H2O
+    E_rev = E0 - 8.5e-4 * (T - 298.15) + (R * T) / (2 * F) * np.log(p_H2 * p_O2**0.5)
+    
+    # 分極モデルのパラメータ（代表的なPEFC値）
+    i0 = 1.0e-3    # A/cm^2, 交換電流密度（活性化）
+    alpha = 0.5    # 電荷移動係数
+    i_L = 1.6      # A/cm^2, 限界電流密度（濃度）
+    R_ohm = 0.15   # ohm cm^2, 面積比オーム抵抗
+    i_leak = 1e-3  # A/cm^2, 内部リーク電流
+    
+    def activation_loss(i):
+        return (R * T) / (alpha * 2 * F) * np.log((i + i_leak) / i0)
+    
+    def ohmic_loss(i):
+        return i * R_ohm
+    
+    def concentration_loss(i):
+        return -(R * T) / (2 * F) * np.log(1.0 - i / i_L)
+    
+    def cell_voltage(i):
+        return E_rev - activation_loss(i) - ohmic_loss(i) - concentration_loss(i)
+    
+    # 電流密度掃引
+    i = np.linspace(1e-3, i_L * 0.995, 400)
+    V = cell_voltage(i)
+    P = V * i  # 出力密度 W/cm^2
+    
+    # 最大出力点
+    idx = np.argmax(P)
+    print("PEFC分極モデル（T = 80 ℃、空気カソード）")
+    print("=" * 55)
+    print(f"可逆電圧 E_rev            : {E_rev:.3f} V")
+    print(f"i=1mAでのセル電圧         : {cell_voltage(1e-3):.3f} V")
+    print("-" * 55)
+    for target in [0.2, 0.5, 1.0, 1.4]:
+        j = np.argmin(np.abs(i - target))
+        print(f"i = {i[j]:.2f} A/cm^2 -> V = {V[j]:.3f} V, "
+              f"P = {P[j]:.3f} W/cm^2")
+    print("-" * 55)
+    print(f"最大出力密度              : {P[idx]:.3f} W/cm^2")
+    print(f"  i = {i[idx]:.3f} A/cm^2, V = {V[idx]:.3f} V")
+    eta = V[idx] / 1.482  # 高位発熱量 HHV = 1.482 V 基準
+    print(f"  電圧効率（HHV基準）      : {eta*100:.1f} %")
+    print("=" * 55)
+
+**実行結果：**
+    
+    
+    # PEFC分極モデル（T = 80 ℃、空気カソード）
+    # =======================================================
+    # 可逆電圧 E_rev            : 1.170 V
+    # i=1mAでのセル電圧         : 1.149 V
+    # -------------------------------------------------------
+    # i = 0.20 A/cm^2 -> V = 0.977 V, P = 0.196 W/cm^2
+    # i = 0.50 A/cm^2 -> V = 0.901 V, P = 0.450 W/cm^2
+    # i = 1.00 A/cm^2 -> V = 0.795 V, P = 0.796 W/cm^2
+    # i = 1.40 A/cm^2 -> V = 0.708 V, P = 0.992 W/cm^2
+    # -------------------------------------------------------
+    # 最大出力密度              : 1.026 W/cm^2
+    #   i = 1.540 A/cm^2, V = 0.666 V
+    #   電圧効率（HHV基準）      : 44.9 %
+    # =======================================================
+
+電流密度が増すにつれてセル電圧が低下し、出力密度は限界電流の手前で最大（約1.03 W/cm²）となります。空気カソードの起電力が純酸素より低い点、また最大出力点での電圧効率が約45%にとどまる点は、実運転条件で電圧損失が避けられないことを示しています。実用セルは効率と出力のバランスから、出力密度がピークより低い電圧（0.6-0.7 V）で運転されます。
+
+### Example 3: 太陽電池のIV曲線と曲線因子
+
+単一ダイオードモデルを二分法で解き、結晶シリコン太陽電池のIV曲線、最大出力点、曲線因子、変換効率を求めます。
+    
+    
+    # ===================================
+    # Example 3: 単一ダイオードモデルによる太陽電池IV解析
+    # ===================================
+    
+    import numpy as np
+    
+    # 物理定数
+    q = 1.602176634e-19  # C
+    k = 1.380649e-23     # J/K
+    T = 298.15           # K
+    Vt = k * T / q       # 熱電圧 ~0.0257 V
+    
+    # 単一ダイオードモデルのパラメータ（代表的なc-Siセル、1sun、cm^2あたり）
+    I_L = 0.0400   # A/cm^2, 光生成電流（~40 mA/cm^2）
+    I_0 = 1.0e-12  # A/cm^2, ダイオード逆飽和電流
+    n = 1.0        # ダイオード因子
+    Rs = 0.5       # ohm cm^2, 直列抵抗
+    Rsh = 1000.0   # ohm cm^2, シャント（並列）抵抗
+    
+    def diode_current(V, I):
+        # 単一ダイオードモデルの残差:
+        # I = I_L - I0(exp((V+I Rs)/(n Vt))-1) - (V+I Rs)/Rsh
+        return I_L - I_0 * (np.exp((V + I * Rs) / (n * Vt)) - 1.0) - (V + I * Rs) / Rsh - I
+    
+    def solve_current(V):
+        # 与えられたVに対してIを二分法で求める
+        lo, hi = -0.05, I_L
+        for _ in range(100):
+            mid = 0.5 * (lo + hi)
+            if diode_current(V, mid) > 0:
+                lo = mid
             else:
-                # 冷却フェーズ
-                T[i] = T_target - cooling_rate * (time - t_cool_start)
-                T[i] = max(T[i], T_room)  # 室温以下にはならない
+                hi = mid
+        return 0.5 * (lo + hi)
     
-        return T
+    # 電圧掃引
+    V = np.linspace(0.0, 0.75, 400)
+    I = np.array([solve_current(v) for v in V])
+    P = V * I  # W/cm^2
     
-    def simulate_reaction_progress(T, t, Ea, D0, r0):
-        """温度プロファイルに基づく反応進行を計算
+    # 主要指標
+    Isc = solve_current(0.0)
+    idx_voc = np.argmin(np.abs(I))
+    Voc = V[idx_voc]              # I = 0 となる電圧
+    idx_mpp = np.argmax(P)
+    Vmp, Imp, Pmp = V[idx_mpp], I[idx_mpp], P[idx_mpp]
+    FF = Pmp / (Isc * Voc)
+    P_in = 0.100                  # W/cm^2, AM1.5G ~ 100 mW/cm^2
+    eff = Pmp / P_in
     
-        Args:
-            T (array): 温度プロファイル [°C]
-            t (array): 時間配列 [min]
-            Ea (float): 活性化エネルギー [J/mol]
-            D0 (float): 頻度因子 [m²/s]
-            r0 (float): 粒子半径 [m]
+    print("単一ダイオードc-Si太陽電池（1sun、AM1.5G、25 ℃）")
+    print("=" * 54)
+    print(f"熱電圧 Vt          : {Vt*1000:.2f} mV")
+    print(f"短絡電流 Isc       : {Isc*1000:.2f} mA/cm^2")
+    print(f"開放電圧 Voc       : {Voc:.3f} V")
+    print(f"MPP電圧 Vmp        : {Vmp:.3f} V")
+    print(f"MPP電流 Imp        : {Imp*1000:.2f} mA/cm^2")
+    print(f"最大出力 Pmp       : {Pmp*1000:.2f} mW/cm^2")
+    print(f"曲線因子 FF        : {FF:.3f}")
+    print(f"変換効率 eta       : {eff*100:.2f} %")
+    print("=" * 54)
+
+**実行結果：**
     
-        Returns:
-            array: 反応率
-        """
-        R = 8.314
-        C0 = 10000
-        alpha = np.zeros_like(t)
     
-        for i in range(1, len(t)):
-            T_k = T[i] + 273.15
-            D = D0 * np.exp(-Ea / (R * T_k))
-            k = D * C0 / r0**2
-    
-            dt = (t[i] - t[i-1]) * 60  # min → s
-    
-            # 簡易積分（微小時間での反応進行）
-            if alpha[i-1] < 0.99:
-                dalpha = k * dt / (2 * (1 - (1-alpha[i-1])**(1/3)))
-                alpha[i] = min(alpha[i-1] + dalpha, 1.0)
-            else:
-                alpha[i] = alpha[i-1]
-    
-        return alpha
-    
-    # パラメータ設定
-    T_target = 1200  # °C
-    hold_time = 240  # min (4 hours)
-    Ea = 300e3  # J/mol
-    D0 = 5e-4  # m²/s
-    r0 = 5e-6  # m
-    
-    # 異なる加熱速度での比較
-    heating_rates = [2, 5, 10, 20]  # °C/min
-    cooling_rate = 3  # °C/min
-    
-    # 時間配列
-    t_max = 800  # min
-    t = np.linspace(0, t_max, 2000)
-    
-    # プロット
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 10))
-    
-    # 温度プロファイル
-    for hr in heating_rates:
-        T_profile = temperature_profile(t, T_target, hr, hold_time, cooling_rate)
-        ax1.plot(t/60, T_profile, linewidth=2, label=f'{hr}°C/min')
-    
-    ax1.set_xlabel('Time (hours)', fontsize=12)
-    ax1.set_ylabel('Temperature (°C)', fontsize=12)
-    ax1.set_title('Temperature Profiles', fontsize=14, fontweight='bold')
-    ax1.legend(fontsize=10)
-    ax1.grid(True, alpha=0.3)
-    ax1.set_xlim([0, t_max/60])
-    
-    # 反応進行
-    for hr in heating_rates:
-        T_profile = temperature_profile(t, T_target, hr, hold_time, cooling_rate)
-        alpha = simulate_reaction_progress(T_profile, t, Ea, D0, r0)
-        ax2.plot(t/60, alpha, linewidth=2, label=f'{hr}°C/min')
-    
-    ax2.axhline(y=0.95, color='red', linestyle='--', linewidth=1, label='Target (95%)')
-    ax2.set_xlabel('Time (hours)', fontsize=12)
-    ax2.set_ylabel('Conversion', fontsize=12)
-    ax2.set_title('Reaction Progress', fontsize=14, fontweight='bold')
-    ax2.legend(fontsize=10)
-    ax2.grid(True, alpha=0.3)
-    ax2.set_xlim([0, t_max/60])
-    ax2.set_ylim([0, 1])
-    
-    plt.tight_layout()
-    plt.savefig('temperature_profile_optimization.png', dpi=300, bbox_inches='tight')
-    plt.show()
-    
-    # 各加熱速度での95%反応到達時間を計算
-    print("\n95%反応到達時間の比較:")
-    print("=" * 60)
-    for hr in heating_rates:
-        T_profile = temperature_profile(t, T_target, hr, hold_time, cooling_rate)
-        alpha = simulate_reaction_progress(T_profile, t, Ea, D0, r0)
-    
-        # 95%到達時刻
-        idx_95 = np.where(alpha >= 0.95)[0]
-        if len(idx_95) > 0:
-            t_95 = t[idx_95[0]] / 60
-            print(f"加熱速度 {hr:2d}°C/min: t₉₅ = {t_95:.1f} hours")
-        else:
-            print(f"加熱速度 {hr:2d}°C/min: 反応不完全")
-    
-    # 出力例:
-    # 95%反応到達時間の比較:
-    # ============================================================
-    # 加熱速度  2°C/min: t₉₅ = 7.8 hours
-    # 加熱速度  5°C/min: t₉₅ = 7.2 hours
-    # 加熱速度 10°C/min: t₉₅ = 6.9 hours
-    # 加熱速度 20°C/min: t₉₅ = 6.7 hours
-    
+    # 単一ダイオードc-Si太陽電池（1sun、AM1.5G、25 ℃）
+    # ======================================================
+    # 熱電圧 Vt          : 25.69 mV
+    # 短絡電流 Isc       : 39.98 mA/cm^2
+    # 開放電圧 Voc       : 0.626 V
+    # MPP電圧 Vmp        : 0.530 V
+    # MPP電流 Imp        : 37.56 mA/cm^2
+    # 最大出力 Pmp       : 19.91 mW/cm^2
+    # 曲線因子 FF        : 0.796
+    # 変換効率 eta       : 19.91 %
+    # ======================================================
+
+短絡電流40 mA/cm²、開放電圧0.63 V、曲線因子0.80、変換効率約19.9%という結果は、実用的な結晶シリコンセルの典型値と整合します。曲線因子は直列抵抗 Rs を大きくすると低下し、シャント抵抗 Rsh を小さくしても低下します。パラメータを変えて再計算すると、抵抗損失が効率に与える影響を定量的に確認できます。
 
 ## 演習問題
 
-### 1.5.1 pycalphadとは
+Q4.1: 理論容量の計算
 
-**pycalphad** は、CALPHAD（CALculation of PHAse Diagrams）法に基づく相図計算のためのPythonライブラリです。熱力学データベースから平衡相を計算し、反応経路の設計に有用です。
+スピネル型正極 LiMn₂O₄（モル質量 180.81 g/mol、反応電子数 n = 1）の理論重量容量 [mAh/g] を計算してください。
 
-**💡 CALPHAD法の利点**
+解答を見る
 
-  * 多元系（3元系以上）の複雑な相図を計算可能
-  * 実験データが少ない系でも予測可能
-  * 温度・組成・圧力依存性を包括的に扱える
+Q = n·F ÷ (M × 3.6) = 1 × 96485 ÷ (180.81 × 3.6) = 96485 ÷ 650.9 ≈ **148.2 mAh/g**
 
-### 1.5.2 二元系相図の計算例
-    
-    
-    # ===================================
-    # Example 5: pycalphadで相図計算
-    # ===================================
-    
-    # 注意: pycalphadのインストールが必要
-    # pip install pycalphad
-    
-    from pycalphad import Database, equilibrium, variables as v
-    import matplotlib.pyplot as plt
-    import numpy as np
-    
-    # TDBデータベースを読み込み（ここでは簡易的な例）
-    # 実際には適切なTDBファイルが必要
-    # 例: BaO-TiO2系
-    
-    # 簡易的なTDB文字列（実際はより複雑）
-    tdb_string = """
-    $ BaO-TiO2 system (simplified)
-    ELEMENT BA   BCC_A2  137.327   !
-    ELEMENT TI   HCP_A3   47.867   !
-    ELEMENT O    GAS      15.999   !
-    
-    FUNCTION GBCCBA   298.15  +GHSERBA;   6000 N !
-    FUNCTION GHCPTI   298.15  +GHSERTI;   6000 N !
-    FUNCTION GGASO    298.15  +GHSERO;    6000 N !
-    
-    PHASE LIQUID:L %  1  1.0  !
-    PHASE BAO_CUBIC %  2  1 1  !
-    PHASE TIO2_RUTILE %  2  1 2  !
-    PHASE BATIO3 %  3  1 1 3  !
-    """
-    
-    # 注: 実際の計算には正式なTDBファイルが必要
-    # ここでは概念的な説明に留める
-    
-    print("pycalphadによる相図計算の概念:")
-    print("=" * 60)
-    print("1. TDBデータベース（熱力学データ）を読み込む")
-    print("2. 温度・組成範囲を設定")
-    print("3. 平衡計算を実行")
-    print("4. 安定相を可視化")
-    print()
-    print("実際の適用例:")
-    print("- BaO-TiO2系: BaTiO3の形成温度・組成範囲")
-    print("- Si-N系: Si3N4の安定領域")
-    print("- 多元系セラミックスの相関係")
-    
-    # 概念的なプロット（実データに基づくイメージ）
-    fig, ax = plt.subplots(figsize=(10, 7))
-    
-    # 温度範囲
-    T = np.linspace(800, 1600, 100)
-    
-    # 各相の安定領域（概念図）
-    # BaO + TiO2 → BaTiO3 反応
-    BaO_region = np.ones_like(T) * 0.3
-    TiO2_region = np.ones_like(T) * 0.7
-    BaTiO3_region = np.where((T > 1100) & (T < 1400), 0.5, np.nan)
-    
-    ax.fill_between(T, 0, BaO_region, alpha=0.3, color='blue', label='BaO + TiO2')
-    ax.fill_between(T, BaO_region, TiO2_region, alpha=0.3, color='green',
-                    label='BaTiO3 stable')
-    ax.fill_between(T, TiO2_region, 1, alpha=0.3, color='red', label='Liquid')
-    
-    ax.axhline(y=0.5, color='black', linestyle='--', linewidth=2,
-               label='BaTiO3 composition')
-    ax.axvline(x=1100, color='gray', linestyle=':', linewidth=1, alpha=0.5)
-    ax.axvline(x=1400, color='gray', linestyle=':', linewidth=1, alpha=0.5)
-    
-    ax.set_xlabel('Temperature (°C)', fontsize=12)
-    ax.set_ylabel('Composition (BaO mole fraction)', fontsize=12)
-    ax.set_title('Conceptual Phase Diagram: BaO-TiO2', fontsize=14, fontweight='bold')
-    ax.legend(fontsize=10, loc='upper right')
-    ax.grid(True, alpha=0.3)
-    ax.set_xlim([800, 1600])
-    ax.set_ylim([0, 1])
-    
-    # テキスト注釈
-    ax.text(1250, 0.5, 'BaTiO₃\nformation\nregion',
-            fontsize=11, ha='center', va='center',
-            bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.7))
-    
-    plt.tight_layout()
-    plt.savefig('phase_diagram_concept.png', dpi=300, bbox_inches='tight')
-    plt.show()
-    
-    # 実際の使用例（コメントアウト）
-    """
-    # 実際のpycalphad使用例
-    db = Database('BaO-TiO2.tdb')  # TDBファイル読み込み
-    
-    # 平衡計算
-    eq = equilibrium(db, ['BA', 'TI', 'O'], ['LIQUID', 'BATIO3'],
-                     {v.X('BA'): (0, 1, 0.01),
-                      v.T: (1000, 1600, 50),
-                      v.P: 101325})
-    
-    # 結果プロット
-    eq.plot()
-    """
-    
+LiMn₂O₄は約148 mAh/gで、LFP（170 mAh/g）より低いものの、Mnが安価で高出力という利点があります。
 
-## 1.6 実験計画法（DOE）による条件最適化
+Q4.2: エネルギー密度の比較
 
-### 1.6.1 DOEとは
+NMC811（容量 221.7 mAh/g、平均電圧 3.8 V）とLFP（容量 169.9 mAh/g、平均電圧 3.4 V）について、正極活物質あたりのエネルギー密度 [Wh/kg] をそれぞれ求め、比較してください。
 
-実験計画法（Design of Experiments, DOE）は、複数のパラメータが相互作用する系で、最小の実験回数で最適条件を見つける統計手法です。
+解答を見る
 
-**固相反応で最適化すべき主要パラメータ：**
+NMC811: 221.7 × 3.8 = **842.5 Wh/kg**
 
-  * 反応温度（T）
-  * 保持時間（t）
-  * 粒子サイズ（r）
-  * 原料比（モル比）
-  * 雰囲気（空気、窒素、真空など）
+LFP: 169.9 × 3.4 = **577.7 Wh/kg**
 
-### 1.6.2 応答曲面法（Response Surface Methodology）
-    
-    
-    # ===================================
-    # Example 6: DOEによる条件最適化
-    # ===================================
-    
-    import numpy as np
-    import matplotlib.pyplot as plt
-    from mpl_toolkits.mplot3d import Axes3D
-    from scipy.optimize import minimize
-    
-    # 仮想的な反応率モデル（温度と時間の関数）
-    def reaction_yield(T, t, noise=0):
-        """温度と時間から反応率を計算（仮想モデル）
-    
-        Args:
-            T (float): 温度 [°C]
-            t (float): 時間 [hours]
-            noise (float): ノイズレベル
-    
-        Returns:
-            float: 反応率 [%]
-        """
-        # 最適値: T=1200°C, t=6 hours
-        T_opt = 1200
-        t_opt = 6
-    
-        # 二次モデル（ガウス型）
-        yield_val = 100 * np.exp(-((T-T_opt)/150)**2 - ((t-t_opt)/3)**2)
-    
-        # ノイズ追加
-        if noise > 0:
-            yield_val += np.random.normal(0, noise)
-    
-        return np.clip(yield_val, 0, 100)
-    
-    # 実験点配置（中心複合計画法）
-    T_levels = [1000, 1100, 1200, 1300, 1400]  # °C
-    t_levels = [2, 4, 6, 8, 10]  # hours
-    
-    # グリッドで実験点を配置
-    T_grid, t_grid = np.meshgrid(T_levels, t_levels)
-    yield_grid = np.zeros_like(T_grid, dtype=float)
-    
-    # 各実験点で反応率を測定（シミュレーション）
-    for i in range(len(t_levels)):
-        for j in range(len(T_levels)):
-            yield_grid[i, j] = reaction_yield(T_grid[i, j], t_grid[i, j], noise=2)
-    
-    # 結果の表示
-    print("実験計画法による反応条件最適化")
-    print("=" * 70)
-    print(f"{'Temperature (°C)':<20} {'Time (hours)':<20} {'Yield (%)':<20}")
-    print("-" * 70)
-    for i in range(len(t_levels)):
-        for j in range(len(T_levels)):
-            print(f"{T_grid[i, j]:<20} {t_grid[i, j]:<20} {yield_grid[i, j]:<20.1f}")
-    
-    # 最大反応率の条件を探す
-    max_idx = np.unravel_index(np.argmax(yield_grid), yield_grid.shape)
-    T_best = T_grid[max_idx]
-    t_best = t_grid[max_idx]
-    yield_best = yield_grid[max_idx]
-    
-    print("-" * 70)
-    print(f"最適条件: T = {T_best}°C, t = {t_best} hours")
-    print(f"最大反応率: {yield_best:.1f}%")
-    
-    # 3Dプロット
-    fig = plt.figure(figsize=(14, 6))
-    
-    # 3D表面プロット
-    ax1 = fig.add_subplot(121, projection='3d')
-    T_fine = np.linspace(1000, 1400, 50)
-    t_fine = np.linspace(2, 10, 50)
-    T_mesh, t_mesh = np.meshgrid(T_fine, t_fine)
-    yield_mesh = np.zeros_like(T_mesh)
-    
-    for i in range(len(t_fine)):
-        for j in range(len(T_fine)):
-            yield_mesh[i, j] = reaction_yield(T_mesh[i, j], t_mesh[i, j])
-    
-    surf = ax1.plot_surface(T_mesh, t_mesh, yield_mesh, cmap='viridis',
-                            alpha=0.8, edgecolor='none')
-    ax1.scatter(T_grid, t_grid, yield_grid, color='red', s=50,
-                label='Experimental points')
-    
-    ax1.set_xlabel('Temperature (°C)', fontsize=10)
-    ax1.set_ylabel('Time (hours)', fontsize=10)
-    ax1.set_zlabel('Yield (%)', fontsize=10)
-    ax1.set_title('Response Surface', fontsize=12, fontweight='bold')
-    ax1.view_init(elev=25, azim=45)
-    fig.colorbar(surf, ax=ax1, shrink=0.5, aspect=5)
-    
-    # 等高線プロット
-    ax2 = fig.add_subplot(122)
-    contour = ax2.contourf(T_mesh, t_mesh, yield_mesh, levels=20, cmap='viridis')
-    ax2.contour(T_mesh, t_mesh, yield_mesh, levels=10, colors='black',
-                alpha=0.3, linewidths=0.5)
-    ax2.scatter(T_grid, t_grid, c=yield_grid, s=100, edgecolors='red',
-                linewidths=2, cmap='viridis')
-    ax2.scatter(T_best, t_best, color='red', s=300, marker='*',
-                edgecolors='white', linewidths=2, label='Optimum')
-    
-    ax2.set_xlabel('Temperature (°C)', fontsize=11)
-    ax2.set_ylabel('Time (hours)', fontsize=11)
-    ax2.set_title('Contour Map', fontsize=12, fontweight='bold')
-    ax2.legend(fontsize=10)
-    fig.colorbar(contour, ax=ax2, label='Yield (%)')
-    
-    plt.tight_layout()
-    plt.savefig('doe_optimization.png', dpi=300, bbox_inches='tight')
-    plt.show()
-    
+NMC811はLFPの約1.46倍のエネルギー密度を持ちます。航続距離を重視するEVでNMC系が、安全性・寿命・コストを重視する用途でLFPが選ばれる理由が定量的に理解できます。
 
-### 1.6.3 実験計画の実践的アプローチ
+Q4.3: Nernst式による起電力
 
-実際の固相反応では、以下の手順でDOEを適用します：
+PEFCを純酸素（pO₂ = 1.0 atm）で運転する場合、80 ℃（353.15 K）での可逆電圧はどう変化しますか。Example 2の空気運転（0.21 atm）と比較してください。R = 8.314、F = 96485 を用います。
 
-  1. **スクリーニング実験** （2水準要因計画法）: 影響の大きいパラメータを特定
-  2. **応答曲面法** （中心複合計画法）: 最適条件の探索
-  3. **確認実験** : 予測された最適条件で実験し、モデルを検証
+解答を見る
 
-**✅ 実例: Li-ion電池正極材LiCoO₂の合成最適化**
+Nernst項の差は (RT/2F)·ln(1.0^0.5 / 0.21^0.5) = (RT/2F)·(1/2)·ln(1/0.21)。
 
-ある研究グループがDOEを用いてLiCoO₂の合成条件を最適化した結果：
+RT/2F = 8.314 × 353.15 ÷ (2 × 96485) = 0.01521 V。
 
-  * 実験回数: 従来法100回 → DOE法25回（75%削減）
-  * 最適温度: 900°C（従来の850°Cより高温）
-  * 最適保持時間: 12時間（従来の24時間から半減）
-  * 電池容量: 140 mAh/g → 155 mAh/g（11%向上）
+差 = 0.01521 × 0.5 × ln(4.762) = 0.01521 × 0.5 × 1.561 = **+0.0119 V**
 
-## 1.7 反応速度曲線のフィッティング
+純酸素にすると可逆電圧は約12 mV上昇します。純酸素は起電力を高めますが、供給インフラのコストから車載用途では通常空気が用いられます。
 
-### 1.7.1 実験データからの速度定数決定
-    
-    
-    # ===================================
-    # Example 7: 反応速度曲線フィッティング
-    # ===================================
-    
-    import numpy as np
-    import matplotlib.pyplot as plt
-    from scipy.optimize import curve_fit
-    
-    # 実験データ（時間 vs 反応率）
-    # 例: BaTiO3合成 @ 1200°C
-    time_exp = np.array([0, 1, 2, 3, 4, 6, 8, 10, 12, 15, 20])  # hours
-    conversion_exp = np.array([0, 0.15, 0.28, 0.38, 0.47, 0.60,
-                              0.70, 0.78, 0.84, 0.90, 0.95])
-    
-    # Jander式モデル
-    def jander_model(t, k):
-        """Jander式による反応率計算
-    
-        Args:
-            t (array): 時間 [hours]
-            k (float): 速度定数
-    
-        Returns:
-            array: 反応率
-        """
-        # [1 - (1-α)^(1/3)]² = kt を α について解く
-        kt = k * t
-        alpha = 1 - (1 - np.sqrt(kt))**3
-        alpha = np.clip(alpha, 0, 1)  # 0-1の範囲に制限
-        return alpha
-    
-    # Ginstling-Brounshtein式（別の拡散モデル）
-    def gb_model(t, k):
-        """Ginstling-Brounshtein式
-    
-        Args:
-            t (array): 時間
-            k (float): 速度定数
-    
-        Returns:
-            array: 反応率
-        """
-        # 1 - 2α/3 - (1-α)^(2/3) = kt
-        # 数値的に解く必要があるが、ここでは近似式を使用
-        kt = k * t
-        alpha = 1 - (1 - kt/2)**(3/2)
-        alpha = np.clip(alpha, 0, 1)
-        return alpha
-    
-    # Power law (経験式)
-    def power_law_model(t, k, n):
-        """べき乗則モデル
-    
-        Args:
-            t (array): 時間
-            k (float): 速度定数
-            n (float): 指数
-    
-        Returns:
-            array: 反応率
-        """
-        alpha = k * t**n
-        alpha = np.clip(alpha, 0, 1)
-        return alpha
-    
-    # 各モデルでフィッティング
-    # Jander式
-    popt_jander, _ = curve_fit(jander_model, time_exp, conversion_exp, p0=[0.01])
-    k_jander = popt_jander[0]
-    
-    # Ginstling-Brounshtein式
-    popt_gb, _ = curve_fit(gb_model, time_exp, conversion_exp, p0=[0.01])
-    k_gb = popt_gb[0]
-    
-    # Power law
-    popt_power, _ = curve_fit(power_law_model, time_exp, conversion_exp, p0=[0.1, 0.5])
-    k_power, n_power = popt_power
-    
-    # 予測曲線生成
-    t_fit = np.linspace(0, 20, 200)
-    alpha_jander = jander_model(t_fit, k_jander)
-    alpha_gb = gb_model(t_fit, k_gb)
-    alpha_power = power_law_model(t_fit, k_power, n_power)
-    
-    # 残差計算
-    residuals_jander = conversion_exp - jander_model(time_exp, k_jander)
-    residuals_gb = conversion_exp - gb_model(time_exp, k_gb)
-    residuals_power = conversion_exp - power_law_model(time_exp, k_power, n_power)
-    
-    # R²計算
-    def r_squared(y_true, y_pred):
-        ss_res = np.sum((y_true - y_pred)**2)
-        ss_tot = np.sum((y_true - np.mean(y_true))**2)
-        return 1 - (ss_res / ss_tot)
-    
-    r2_jander = r_squared(conversion_exp, jander_model(time_exp, k_jander))
-    r2_gb = r_squared(conversion_exp, gb_model(time_exp, k_gb))
-    r2_power = r_squared(conversion_exp, power_law_model(time_exp, k_power, n_power))
-    
-    # プロット
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
-    
-    # フィッティング結果
-    ax1.plot(time_exp, conversion_exp, 'ko', markersize=8, label='Experimental data')
-    ax1.plot(t_fit, alpha_jander, 'b-', linewidth=2,
-             label=f'Jander (R²={r2_jander:.4f})')
-    ax1.plot(t_fit, alpha_gb, 'r-', linewidth=2,
-             label=f'Ginstling-Brounshtein (R²={r2_gb:.4f})')
-    ax1.plot(t_fit, alpha_power, 'g-', linewidth=2,
-             label=f'Power law (R²={r2_power:.4f})')
-    
-    ax1.set_xlabel('Time (hours)', fontsize=12)
-    ax1.set_ylabel('Conversion', fontsize=12)
-    ax1.set_title('Kinetic Model Fitting', fontsize=14, fontweight='bold')
-    ax1.legend(fontsize=10)
-    ax1.grid(True, alpha=0.3)
-    ax1.set_xlim([0, 20])
-    ax1.set_ylim([0, 1])
-    
-    # 残差プロット
-    ax2.plot(time_exp, residuals_jander, 'bo-', label='Jander')
-    ax2.plot(time_exp, residuals_gb, 'ro-', label='Ginstling-Brounshtein')
-    ax2.plot(time_exp, residuals_power, 'go-', label='Power law')
-    ax2.axhline(y=0, color='black', linestyle='--', linewidth=1)
-    
-    ax2.set_xlabel('Time (hours)', fontsize=12)
-    ax2.set_ylabel('Residuals', fontsize=12)
-    ax2.set_title('Residual Plot', fontsize=14, fontweight='bold')
-    ax2.legend(fontsize=10)
-    ax2.grid(True, alpha=0.3)
-    
-    plt.tight_layout()
-    plt.savefig('kinetic_fitting.png', dpi=300, bbox_inches='tight')
-    plt.show()
-    
-    # 結果サマリー
-    print("\n反応速度モデルのフィッティング結果:")
-    print("=" * 70)
-    print(f"{'Model':<25} {'Parameter':<30} {'R²':<10}")
-    print("-" * 70)
-    print(f"{'Jander':<25} {'k = ' + f'{k_jander:.4f} h⁻¹':<30} {r2_jander:.4f}")
-    print(f"{'Ginstling-Brounshtein':<25} {'k = ' + f'{k_gb:.4f} h⁻¹':<30} {r2_gb:.4f}")
-    print(f"{'Power law':<25} {'k = ' + f'{k_power:.4f}, n = {n_power:.4f}':<30} {r2_power:.4f}")
-    print("=" * 70)
-    print(f"\n最適モデル: {'Jander' if r2_jander == max(r2_jander, r2_gb, r2_power) else 'GB' if r2_gb == max(r2_jander, r2_gb, r2_power) else 'Power law'}")
-    
-    # 出力例:
-    # 反応速度モデルのフィッティング結果:
-    # ======================================================================
-    # Model                     Parameter                      R²
-    # ----------------------------------------------------------------------
-    # Jander                    k = 0.0289 h⁻¹                 0.9953
-    # Ginstling-Brounshtein     k = 0.0412 h⁻¹                 0.9867
-    # Power law                 k = 0.2156, n = 0.5234         0.9982
-    # ======================================================================
-    #
-    # 最適モデル: Power law
-    
+Q4.4: 過電圧成分の識別
 
-## 1.8 高度なトピック: 微細構造制御
+燃料電池の分極曲線において、(a) 低電流域で電圧が急に立ち下がる、(b) 中電流域で電圧が電流に比例して直線的に低下する、(c) 限界電流付近で電圧が急降下する、という3つの領域は、それぞれどの過電圧が支配的ですか。
 
-### 1.8.1 粒成長の抑制
+解答を見る
 
-固相反応では、高温・長時間保持により望ましくない粒成長が起こります。これを抑制する戦略：
+  * (a) 低電流域: **活性化過電圧** （電極反応の障壁、Tafel項の対数依存）
+  * (b) 中電流域: **オーム過電圧** （V = iR の線形抵抗損失）
+  * (c) 限界電流付近: **濃度過電圧** （反応ガスの供給律速）
 
-  * **Two-step sintering** : 高温で短時間保持後、低温で長時間保持
-  * **添加剤の使用** : 粒成長抑制剤（例: MgO, Al₂O₃）を微量添加
-  * **Spark Plasma Sintering (SPS)** : 急速加熱・短時間焼結
+膜の薄膜化はオーム損失を、触媒の改良は活性化損失を、ガス拡散層の設計は濃度損失を低減します。
 
-### 1.8.2 反応の機械化学的活性化
+Q4.5: 曲線因子と効率
 
-メカノケミカル法（高エネルギーボールミル）により、固相反応を室温付近で進行させることも可能です：
-    
-    
-    # ===================================
-    # Example 8: 粒成長シミュレーション
-    # ===================================
-    
-    import numpy as np
-    import matplotlib.pyplot as plt
-    
-    def grain_growth(t, T, D0, Ea, G0, n):
-        """粒成長の時間発展
-    
-        Burke-Turnbull式: G^n - G0^n = k*t
-    
-        Args:
-            t (array): 時間 [hours]
-            T (float): 温度 [K]
-            D0 (float): 頻度因子
-            Ea (float): 活性化エネルギー [J/mol]
-            G0 (float): 初期粒径 [μm]
-            n (float): 粒成長指数（通常2-4）
-    
-        Returns:
-            array: 粒径 [μm]
-        """
-        R = 8.314
-        k = D0 * np.exp(-Ea / (R * T))
-        G = (G0**n + k * t * 3600)**(1/n)  # hours → seconds
-        return G
-    
-    # パラメータ設定
-    D0_grain = 1e8  # μm^n/s
-    Ea_grain = 400e3  # J/mol
-    G0 = 0.5  # μm
-    n = 3
-    
-    # 温度の影響
-    temps_celsius = [1100, 1200, 1300]
-    t_range = np.linspace(0, 12, 100)  # 0-12 hours
-    
-    plt.figure(figsize=(12, 5))
-    
-    # 温度依存性
-    plt.subplot(1, 2, 1)
-    for T_c in temps_celsius:
-        T_k = T_c + 273.15
-        G = grain_growth(t_range, T_k, D0_grain, Ea_grain, G0, n)
-        plt.plot(t_range, G, linewidth=2, label=f'{T_c}°C')
-    
-    plt.axhline(y=1.0, color='red', linestyle='--', linewidth=1,
-                label='Target grain size')
-    plt.xlabel('Time (hours)', fontsize=12)
-    plt.ylabel('Grain Size (μm)', fontsize=12)
-    plt.title('Grain Growth at Different Temperatures', fontsize=14, fontweight='bold')
-    plt.legend(fontsize=10)
-    plt.grid(True, alpha=0.3)
-    plt.ylim([0, 5])
-    
-    # Two-step sinteringの効果
-    plt.subplot(1, 2, 2)
-    
-    # Conventional sintering: 1300°C, 6 hours
-    t_conv = np.linspace(0, 6, 100)
-    T_conv = 1300 + 273.15
-    G_conv = grain_growth(t_conv, T_conv, D0_grain, Ea_grain, G0, n)
-    
-    # Two-step: 1300°C 1h → 1200°C 5h
-    t1 = np.linspace(0, 1, 20)
-    G1 = grain_growth(t1, 1300+273.15, D0_grain, Ea_grain, G0, n)
-    G_intermediate = G1[-1]
-    
-    t2 = np.linspace(0, 5, 80)
-    G2 = grain_growth(t2, 1200+273.15, D0_grain, Ea_grain, G_intermediate, n)
-    
-    t_two_step = np.concatenate([t1, t2 + 1])
-    G_two_step = np.concatenate([G1, G2])
-    
-    plt.plot(t_conv, G_conv, 'r-', linewidth=2, label='Conventional (1300°C)')
-    plt.plot(t_two_step, G_two_step, 'b-', linewidth=2, label='Two-step (1300°C→1200°C)')
-    plt.axvline(x=1, color='gray', linestyle=':', linewidth=1, alpha=0.5)
-    
-    plt.xlabel('Time (hours)', fontsize=12)
-    plt.ylabel('Grain Size (μm)', fontsize=12)
-    plt.title('Two-Step Sintering Strategy', fontsize=14, fontweight='bold')
-    plt.legend(fontsize=10)
-    plt.grid(True, alpha=0.3)
-    plt.ylim([0, 5])
-    
-    plt.tight_layout()
-    plt.savefig('grain_growth_control.png', dpi=300, bbox_inches='tight')
-    plt.show()
-    
-    # 最終粒径の比較
-    G_final_conv = grain_growth(6, 1300+273.15, D0_grain, Ea_grain, G0, n)
-    G_final_two_step = G_two_step[-1]
-    
-    print("\n粒成長の比較:")
-    print("=" * 50)
-    print(f"Conventional (1300°C, 6h): {G_final_conv:.2f} μm")
-    print(f"Two-step (1300°C 1h + 1200°C 5h): {G_final_two_step:.2f} μm")
-    print(f"粒径抑制効果: {(1 - G_final_two_step/G_final_conv)*100:.1f}%")
-    
-    # 出力例:
-    # 粒成長の比較:
-    # ==================================================
-    # Conventional (1300°C, 6h): 4.23 μm
-    # Two-step (1300°C 1h + 1200°C 5h): 2.87 μm
-    # 粒径抑制効果: 32.2%
-    
+ある太陽電池で Voc = 0.65 V、Isc = 38 mA/cm²、FF = 0.78 でした。入射光を100 mW/cm²（AM1.5G）とするとき、変換効率 η を求めてください。
+
+解答を見る
+
+Pmp = Voc × Isc × FF = 0.65 × 38 × 0.78 = 19.27 mW/cm²
+
+η = Pmp ÷ Pin = 19.27 ÷ 100 = **19.3 %**
+
+曲線因子が0.78から0.82に改善すると、他が同一でも効率は約20.3%へ向上します。直列抵抗の低減とシャント抵抗の増大がFF改善の鍵です。
+
+Q4.6: Shockley-Queisser限界の理解
+
+バンドギャップが大きすぎる材料と小さすぎる材料では、それぞれ変換効率が低下します。その理由を、光子の吸収と電圧の観点から説明してください。
+
+解答を見る
+
+**バンドギャップが大きすぎる場合** : 開放電圧は高くなりますが、Eg未満の光子を吸収できないため短絡電流が小さくなり、電流不足で効率が低下します。
+
+**バンドギャップが小さすぎる場合** : 多くの光子を吸収でき短絡電流は大きくなりますが、開放電圧が低下し、また余剰エネルギーが熱として失われる（サーマリゼーション）ため効率が低下します。
+
+両者のバランスにより、AM1.5Gでは約1.34 eVで効率が最大（約33%）となります。タンデム構造はこの単接合限界を超えるための手法です。
 
 ## 学習目標の確認
 
-この章を完了すると、以下を説明できるようになります：
+この章を通じて、以下を習得できたか確認しましょう：
 
-### 基本理解
+  * ✅ エネルギー変換・貯蔵デバイスを分類し、エネルギー密度・出力密度・変換効率の意味を説明できる
+  * ✅ LIBの正極（LCO/NMC/LFP）・負極（黒鉛/シリコン）材料の特徴と、Faradayの法則による理論容量計算を理解した
+  * ✅ 燃料電池の起電力（Nernst式）と3つの過電圧（活性化・オーム・濃度）を区別し、分極曲線を説明できる
+  * ✅ 太陽電池のpn接合動作、Shockley-Queisser限界、IV特性・曲線因子・変換効率を計算できる
+  * ✅ Pythonで各デバイスの性能指標を定量的に計算し、材料選択の判断に活用できる
 
-  * ✅ 固相反応の3つの律速段階（核生成・界面反応・拡散）を説明できる
-  * ✅ Arrhenius式の物理的意味と温度依存性を理解している
-  * ✅ Jander式とGinstling-Brounshtein式の違いを説明できる
-  * ✅ 温度プロファイルの3要素（加熱速度・保持時間・冷却速度）の重要性を理解している
+## まとめ
 
-### 実践スキル
+本章では、カーボンニュートラル社会の基盤となる3つのエネルギー材料を、性能指標の定量計算を通じて学びました。要点は次のとおりです：
 
-  * ✅ Pythonで拡散係数の温度依存性をシミュレートできる
-  * ✅ Jander式を用いて反応進行を予測できる
-  * ✅ Kissinger法でDSC/TGデータから活性化エネルギーを計算できる
-  * ✅ DOE（実験計画法）で反応条件を最適化できる
-  * ✅ pycalphadを用いた相図計算の基礎を理解している
+  * **リチウムイオン電池** : 理論容量はFaradayの法則で決まり、正極材料（LCO/NMC/LFP）の選択がエネルギー密度・安全性・コストのトレードオフを支配します。シリコン負極は高容量化の有力候補です。
+  * **燃料電池** : 起電力はNernst式で与えられ、実セル電圧は活性化・オーム・濃度の3過電圧で低下します。最大出力点は損失のバランスで決まります。
+  * **太陽電池** : 単接合効率はShockley-Queisser限界（約33%）に制約されます。IV特性から曲線因子と変換効率を求め、抵抗損失の影響を評価できます。
 
-### 応用力
-
-  * ✅ 新規セラミックス材料の合成プロセスを設計できる
-  * ✅ 実験データから反応機構を推定し、適切な速度式を選択できる
-  * ✅ 産業プロセスでの条件最適化戦略を立案できる
-  * ✅ 粒成長制御の戦略（Two-step sintering等）を提案できる
-
-## 演習問題
-
-### Easy（基礎確認）
-
-Q1: 固相反応の律速段階
-
-BaTiO₃の合成反応 BaCO₃ + TiO₂ → BaTiO₃ + CO₂ において、最も遅い（律速となる）段階はどれですか？
-
-a) CO₂の放出  
-b) BaTiO₃核の生成  
-c) Ba²⁺イオンの生成物層中の拡散  
-d) 界面での化学反応
-
-解答を見る
-
-**正解: c) Ba²⁺イオンの生成物層中の拡散**
-
-**解説:**  
-固相反応では、生成物層が反応物を物理的に分離するため、イオンが生成物層を通って拡散する過程が最も遅くなります。
-
-  * a) CO₂放出は気体の拡散なので速い
-  * b) 核生成は初期段階で完了
-  * c) **拡散が律速** （正解）- 固体中のイオン拡散は極めて遅い（D ~ 10⁻¹² m²/s）
-  * d) 界面反応は通常速い
-
-**重要ポイント:** 拡散係数は温度に対して指数関数的に増加するため、反応温度の選択が極めて重要です。
-
-Q2: Arrhenius式のパラメータ
-
-拡散係数 D(T) = D₀ exp(-Eₐ/RT) において、Eₐ（活性化エネルギー）が大きいほど、温度変化に対する拡散係数の感度はどうなりますか？
-
-a) 高くなる（温度依存性が強い）  
-b) 低くなる（温度依存性が弱い）  
-c) 変わらない  
-d) 関係ない
-
-解答を見る
-
-**正解: a) 高くなる（温度依存性が強い）**
-
-**解説:**  
-活性化エネルギーEₐは、指数関数 exp(-Eₐ/RT) の肩に位置するため、Eₐが大きいほど温度変化に対するDの変化率が大きくなります。
-
-**数値例:**
-
-  * Eₐ = 100 kJ/mol の場合: 温度を100°C上げると D は約3倍
-  * Eₐ = 300 kJ/mol の場合: 温度を100°C上げると D は約30倍
-
-このため、活性化エネルギーが大きい系では、温度制御が特に重要になります。
-
-Q3: 粒子サイズと反応速度
-
-Jander式 k = D·C₀/r₀² によれば、粒子半径r₀を1/2にすると、反応速度定数kは何倍になりますか？
-
-a) 2倍  
-b) 4倍  
-c) 1/2倍  
-d) 1/4倍
-
-解答を見る
-
-**正解: b) 4倍**
-
-**計算:**  
-k ∝ 1/r₀²  
-r₀ → r₀/2 のとき、k → k/(r₀/2)² = k/(r₀²/4) = 4k
-
-**実践的意味:**  
-これが「粉砕・微細化」が固相反応で極めて重要な理由です。
-
-  * 粒径10μm → 1μm: 反応速度100倍（反応時間1/100）
-  * ボールミル、ジェットミルによる微細化が標準プロセス
-  * ナノ粒子を使えば室温付近でも反応可能な場合も
-
-### Medium（応用）
-
-Q4: 温度プロファイル設計
-
-BaTiO₃合成で、加熱速度を20°C/minから5°C/minに変更しました。この変更の主な理由として最も適切なのはどれですか？
-
-a) 反応速度を速めるため  
-b) CO₂の急激な放出による試料破裂を防ぐため  
-c) 電気代を節約するため  
-d) 結晶性を下げるため
-
-解答を見る
-
-**正解: b) CO₂の急激な放出による試料破裂を防ぐため**
-
-**詳細な理由:**
-
-BaCO₃ + TiO₂ → BaTiO₃ + CO₂ の反応では、800-900°Cで炭酸バリウムが分解してCO₂を放出します。
-
-  * **急速加熱（20°C/min）の問題:**
-    * 短時間で多量のCO₂が発生
-    * ガス圧が高まり、試料が破裂・飛散
-    * 焼結体に亀裂・クラックが入る
-  * **徐加熱（5°C/min）の利点:**
-    * CO₂がゆっくり放出され、圧力上昇が緩やか
-    * 試料の健全性が保たれる
-    * 均質な反応が進行
-
-**実践的アドバイス:** 分解反応を伴う合成では、ガス放出速度を制御するため、該当温度範囲での加熱速度を特に遅くします（例: 750-950°Cを2°C/minで通過）。
-
-Q5: Kissinger法の適用
-
-DSC測定で以下のデータが得られました。Kissinger法で活性化エネルギーを求めてください。
-
-加熱速度 β (K/min): 5, 10, 15  
-ピーク温度 Tp (K): 1273, 1293, 1308
-
-Kissinger式: ln(β/Tp²) vs 1/Tp の傾き = -Eₐ/R
-
-解答を見る
-
-**解答:**
-
-**ステップ1: データ整理**
-
-β (K/min) | Tp (K) | ln(β/Tp²) | 1000/Tp (K⁻¹)  
----|---|---|---  
-5 | 1273 | -11.558 | 0.7855  
-10 | 1293 | -11.171 | 0.7734  
-15 | 1308 | -10.932 | 0.7645  
-  
-**ステップ2: 線形回帰**
-
-y = ln(β/Tp²) vs x = 1000/Tp をプロット  
-傾き slope = Δy/Δx = (-10.932 - (-11.558)) / (0.7645 - 0.7855) = 0.626 / (-0.021) ≈ -29.8
-
-**ステップ3: Eₐ計算**
-
-slope = -Eₐ / (R × 1000) （1000/Tpを使ったため1000で割る）  
-Eₐ = -slope × R × 1000  
-Eₐ = 29.8 × 8.314 × 1000 = 247,757 J/mol ≈ 248 kJ/mol
-
-**答え: Eₐ ≈ 248 kJ/mol**
-
-**物理的解釈:**  
-この値はBaTiO₃系の固相反応における典型的な活性化エネルギー（250-350 kJ/mol）の範囲内です。この活性化エネルギーは、Ba²⁺イオンの固相拡散に対応していると考えられます。
-
-Q6: DOEによる最適化
-
-実験計画法で、温度（1100, 1200, 1300°C）と時間（4, 6, 8時間）の2因子を検討します。全実験回数は何回必要ですか？また、1因子ずつ変える従来法と比べた利点を2つ挙げてください。
-
-解答を見る
-
-**解答:**
-
-**実験回数:**  
-3水準 × 3水準 = **9回** （フルファクトリアル計画）
-
-**DOEの利点（従来法との比較）:**
-
-  1. **交互作用の検出が可能**
-     * 従来法: 温度の影響、時間の影響を個別に評価
-     * DOE: 「高温では時間を短くできる」といった交互作用を定量化
-     * 例: 1300°Cでは4時間で十分だが、1100°Cでは8時間必要、など
-  2. **実験回数の削減**
-     * 従来法（OFAT: One Factor At a Time）: 
-       * 温度検討: 3回（時間固定）
-       * 時間検討: 3回（温度固定）
-       * 確認実験: 複数回
-       * 合計: 10回以上
-     * DOE: 9回で完了（全条件網羅＋交互作用解析）
-     * さらに中心複合計画法を使えば7回に削減可能
-
-**追加の利点:**
-
-  * 統計的に有意な結論が得られる（誤差評価が可能）
-  * 応答曲面を構築でき、未実施条件の予測が可能
-  * 最適条件が実験範囲外にある場合でも検出できる
-
-### Hard（発展）
-
-Q7: 複雑な反応系の設計
-
-次の条件でLi₁.₂Ni₀.₂Mn₀.₆O₂（リチウムリッチ正極材料）を合成する温度プロファイルを設計してください：
-
-  * 原料: Li₂CO₃, NiO, Mn₂O₃
-  * 目標: 単一相、粒径 < 5 μm、Li/遷移金属比の精密制御
-  * 制約: 900°C以上でLi₂Oが揮発（Li欠損のリスク）
-
-温度プロファイル（加熱速度、保持温度・時間、冷却速度）と、その設計理由を説明してください。
-
-解答を見る
-
-**推奨温度プロファイル:**
-
-**Phase 1: 予備加熱（Li₂CO₃分解）**
-
-  * 室温 → 500°C: 3°C/min
-  * 500°C保持: 2時間
-  * **理由:** Li₂CO₃の分解（~450°C）をゆっくり進行させ、CO₂を完全に除去
-
-**Phase 2: 中間加熱（前駆体形成）**
-
-  * 500°C → 750°C: 5°C/min
-  * 750°C保持: 4時間
-  * **理由:** Li₂MnO₃やLiNiO₂などの中間相を形成。Li揮発の少ない温度で均質化
-
-**Phase 3: 本焼成（目的相合成）**
-
-  * 750°C → 850°C: 2°C/min（ゆっくり）
-  * 850°C保持: 12時間
-  * **理由:**
-    * Li₁.₂Ni₀.₂Mn₀.₆O₂の単一相形成には長時間必要
-    * 850°Cに制限してLi揮発を最小化（<900°C制約）
-    * 長時間保持で拡散を進めるが、粒成長は抑制される温度
-
-**Phase 4: 冷却**
-
-  * 850°C → 室温: 2°C/min
-  * **理由:** 徐冷により結晶性向上、熱応力による亀裂防止
-
-**設計の重要ポイント:**
-
-  1. **Li揮発対策:**
-     * 900°C以下に制限（本問の制約）
-     * さらに、Li過剰原料（Li/TM = 1.25など）を使用
-     * 酸素気流中で焼成してLi₂Oの分圧を低減
-  2. **粒径制御 ( < 5 μm):**
-     * 低温（850°C）・長時間（12h）で反応を進める
-     * 高温・短時間だと粒成長が過剰になる
-     * 原料粒径も1μm以下に微細化
-  3. **組成均一性:**
-     * 750°Cでの中間保持が重要
-     * この段階で遷移金属の分布を均質化
-     * 必要に応じて、750°C保持後に一度冷却→粉砕→再加熱
-
-**全体所要時間:** 約30時間（加熱12h + 保持18h）
-
-**代替手法の検討:**
-
-  * **Sol-gel法:** より低温（600-700°C）で合成可能、均質性向上
-  * **Spray pyrolysis:** 粒径制御が容易
-  * **Two-step sintering:** 900°C 1h → 800°C 10h で粒成長抑制
-
-Q8: 速度論的解析の総合問題
-
-以下のデータから、反応機構を推定し、活性化エネルギーを計算してください。
-
-**実験データ:**
-
-温度 (°C) | 50%反応到達時間 t₅₀ (hours)  
----|---  
-1000| 18.5  
-1100| 6.2  
-1200| 2.5  
-1300| 1.2  
-  
-Jander式を仮定した場合: [1-(1-0.5)^(1/3)]² = k·t₅₀
-
-解答を見る
-
-**解答:**
-
-**ステップ1: 速度定数kの計算**
-
-Jander式で α=0.5 のとき:  
-[1-(1-0.5)^(1/3)]² = [1-0.794]² = 0.206² = 0.0424
-
-したがって k = 0.0424 / t₅₀
-
-T (°C) | T (K) | t₅₀ (h) | k (h⁻¹) | ln(k) | 1000/T (K⁻¹)  
----|---|---|---|---|---  
-1000| 1273| 18.5| 0.00229| -6.080| 0.7855  
-1100| 1373| 6.2| 0.00684| -4.985| 0.7284  
-1200| 1473| 2.5| 0.01696| -4.077| 0.6788  
-1300| 1573| 1.2| 0.03533| -3.343| 0.6357  
-  
-**ステップ2: Arrheniusプロット**
-
-ln(k) vs 1/T をプロット（線形回帰）
-
-線形フィット: ln(k) = A - Eₐ/(R·T)
-
-傾き = -Eₐ/R
-
-線形回帰計算:  
-slope = Δ(ln k) / Δ(1000/T)  
-= (-3.343 - (-6.080)) / (0.6357 - 0.7855)  
-= 2.737 / (-0.1498)  
-= -18.27
-
-**ステップ3: 活性化エネルギー計算**
-
-slope = -Eₐ / (R × 1000)  
-Eₐ = -slope × R × 1000  
-Eₐ = 18.27 × 8.314 × 1000  
-Eₐ = 151,899 J/mol ≈ **152 kJ/mol**
-
-**ステップ4: 反応機構の考察**
-
-  * **活性化エネルギーの比較:**
-    * 得られた値: 152 kJ/mol
-    * 典型的な固相拡散: 200-400 kJ/mol
-    * 界面反応: 50-150 kJ/mol
-  * **推定される機構:**
-    * この値は界面反応と拡散の中間
-    * 可能性1: 界面反応が主律速（拡散の影響は小）
-    * 可能性2: 粒子が微細で拡散距離が短く、見かけのEₐが低い
-    * 可能性3: 混合律速（界面反応と拡散の両方が寄与）
-
-**ステップ5: 検証方法の提案**
-
-  1. **粒子サイズ依存性:** 異なる粒径で実験し、k ∝ 1/r₀² が成立するか確認 
-     * 成立 → 拡散律速
-     * 不成立 → 界面反応律速
-  2. **他の速度式でのフィッティング:**
-     * Ginstling-Brounshtein式（3次元拡散）
-     * Contracting sphere model（界面反応）
-     * どちらがR²が高いか比較
-  3. **微細構造観察:** SEMで反応界面を観察 
-     * 厚い生成物層 → 拡散律速の証拠
-     * 薄い生成物層 → 界面反応律速の可能性
-
-**最終結論:**  
-活性化エネルギー **Eₐ = 152 kJ/mol**  
-推定機構: **界面反応律速、または微細粒子系での拡散律速**  
-追加実験が推奨される。
+これらのモデルは単純化されていますが、材料設計の第一近似として実務でも有用です。より精密な解析には、電気化学モデル（PyBaMM等）やデバイスシミュレータを用います。
 
 ## 次のステップ
 
-第1章では先進セラミックス材料（構造・機能性・バイオセラミックス）の基礎理論を学びました。次の第4章では、エネルギー材料（高性能エンジニアリングプラスチック、機能性高分子、生分解性ポリマー）について学びます。
+第4章では、エネルギー材料（リチウムイオン電池・燃料電池・太陽電池）の設計原理と性能計算を学びました。次の第5章では、さらに発展的な材料システムのトピックへ進みます。
 
-[← シリーズ目次](<./index.html>) [第4章へ進む →](<./chapter-4.html>)
+[← 第3章へ戻る](<./chapter-3.html>) [第5章へ進む →](<./chapter-5.html>)
 
 ## 参考文献
 
   1. Goodenough, J. B., & Park, K. S. (2013). "The Li-ion rechargeable battery: A perspective." _Journal of the American Chemical Society_ , 135(4), 1167-1176. - リチウムイオン電池の発展史と今後の展望に関するノーベル賞受賞者による総説
   2. Steele, B. C. H., & Heinzel, A. (2001). "Materials for fuel-cell technologies." _Nature_ , 414(6861), 345-352. - 固体酸化物形燃料電池（SOFC）とPEM燃料電池の材料設計指針
-  3. Snyder, G. J., & Toberer, E. S. (2008). "Complex thermoelectric materials." _Nature Materials_ , 7(2), 105-114. - 熱電材料の性能指数（ZT）向上戦略と最新材料の包括的レビュー
+  3. Nelson, J. (2003). _The Physics of Solar Cells_. Imperial College Press. pp. 1-40, 143-200. - 太陽電池の物理とIV特性・単一ダイオードモデルの体系的解説
   4. Green, M. A., Ho-Baillie, A., & Snaith, H. J. (2014). "The emergence of perovskite solar cells." _Nature Photonics_ , 8(7), 506-514. - ペロブスカイト太陽電池の急速な発展と高効率化メカニズム
   5. Tarascon, J. M., & Armand, M. (2001). "Issues and challenges facing rechargeable lithium batteries." _Nature_ , 414(6861), 359-367. - リチウムイオン電池の課題と次世代電池材料の展望
-  6. Rowe, D. M. (2006). _Thermoelectrics Handbook: Macro to Nano_. CRC Press. pp. 1-45, 201-267. - 熱電変換の基礎理論から最新ナノ構造材料までの体系的解説
+  6. Shockley, W., & Queisser, H. J. (1961). "Detailed balance limit of efficiency of p-n junction solar cells." _Journal of Applied Physics_ , 32(3), 510-519. - 単接合太陽電池の理論効率限界を導いた古典的論文
   7. PyBaMM Documentation. (2024). _Python Battery Mathematical Modeling_. <https://pybamm.org/> \- 電池物理・電気化学シミュレーションのためのPythonライブラリ
 
 ## 使用ツールとライブラリ
 
   * **NumPy** (v1.24+): 数値計算ライブラリ - <https://numpy.org/>
-  * **SciPy** (v1.10+): 科学技術計算ライブラリ（curve_fit, optimize） - <https://scipy.org/>
+  * **SciPy** (v1.10+): 科学技術計算ライブラリ（optimize, integrate） - <https://scipy.org/>
   * **Matplotlib** (v3.7+): データ可視化ライブラリ - <https://matplotlib.org/>
-  * **pycalphad** (v0.10+): 相図計算ライブラリ - <https://pycalphad.org/>
+  * **PyBaMM** (v23+): 電池数理モデリングライブラリ - <https://pybamm.org/>
   * **pymatgen** (v2023+): 材料科学計算ライブラリ - <https://pymatgen.org/>
 
 ### 免責事項

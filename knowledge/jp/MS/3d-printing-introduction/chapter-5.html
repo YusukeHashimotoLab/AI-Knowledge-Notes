@@ -330,9 +330,9 @@
                 font-size: 0.8rem;
             }
         }
-    
-        
-    
+
+
+
         /* Breadcrumb styles */
         .breadcrumb {
             background: #f7fafc;
@@ -457,2309 +457,576 @@
 
         <header>
         <div class="header-content">
-            <h1>第5章：積層造形の基礎</h1>
-            <p class="subtitle">AM技術の原理と分類 - 3Dプリンティングの技術体系</p>
+            <h1>第5章：Python実践：3Dプリンティングシミュレーション</h1>
+            <p class="subtitle">STL解析・スライシング・熱伝導・パラメータ最適化・機械学習をコードで動かす</p>
             <div class="meta">
                 <span class="meta-item">📚 3Dプリンティング入門シリーズ</span>
-                <span class="meta-item">⏱️ 読了時間: 35-40分</span>
-                <span class="meta-item">🎓 難易度: 初級〜中級</span>
+                <span class="meta-item">⏱️ 読了時間: 45-50分</span>
+                <span class="meta-item">🎓 難易度: 中級〜上級</span>
+                <span class="meta-item">💻 コード例: 5</span>
+                <span class="meta-item">📝 演習問題: 5</span>
             </div>
         </div>
     </header>
 
     <div class="container">
         <h2>学習目標</h2>
-        <p>この章を完了すると、以下を説明できるようになります：</p>
+        <p>この章を完了すると、以下を説明・実践できるようになります：</p>
 
         <h3>基本理解（Level 1）</h3>
         <ul>
-            <li>積層造形（AM）の定義とISO/ASTM 52900規格の基本概念</li>
-            <li>7つのAMプロセスカテゴリ（MEX, VPP, PBF, MJ, BJ, SL, DED）の特徴</li>
-            <li>STLファイル形式の構造（三角形メッシュ、法線ベクトル、頂点順序）</li>
-            <li>AMの歴史（1986年ステレオリソグラフィから現代システムまで）</li>
+            <li>STL（STereoLithography）ファイルが三角形メッシュとして物体表面を表すことを理解し、頂点・法線・エッジの関係を説明できる</li>
+            <li>スライシング（Slicing）が「平面と三角形の交線を各層で求める幾何演算」であることを説明できる</li>
+            <li>造形中の温度変化が非定常熱伝導方程式（Transient Heat Conduction Equation）で記述できることを理解している</li>
+            <li>プロセスパラメータ最適化と機械学習（Machine Learning）がなぜ3Dプリンティングで有効かを説明できる</li>
         </ul>
 
         <h3>実践スキル（Level 2）</h3>
         <ul>
-            <li>PythonでSTLファイルを読み込み、体積・表面積を計算できる</li>
-            <li>numpy-stlとtrimeshを使ったメッシュ検証と修復ができる</li>
-            <li>スライシングの基本原理（レイヤー高さ、シェル、インフィル）を理解</li>
-            <li>G-codeの基本構造（G0/G1/G28/M104など）を読み解ける</li>
+            <li>NumPyだけで三角形メッシュを生成し、体積・表面積・法線・水密性（watertight）を計算できる</li>
+            <li>平面交差アルゴリズムを実装し、任意の高さでの断面輪郭とその周長を求められる</li>
+            <li>1次元非定常熱伝導方程式を陽解法（explicit finite difference）で解き、冷却曲線を描ける</li>
+            <li>グリッドサーチ（grid search）で造形時間と表面品質のトレードオフを定量化できる</li>
         </ul>
 
         <h3>応用力（Level 3）</h3>
         <ul>
-            <li>用途要求に応じて最適なAMプロセスを選択できる</li>
-            <li>メッシュの問題（非多様体、法線反転）を検出・修正できる</li>
-            <li>造形パラメータ（レイヤー高さ、印刷速度、温度）を最適化できる</li>
-            <li>STLファイルの品質評価とプリント適性判断ができる</li>
-        </ul>
-
-        <h2>1.1 積層造形（AM）とは</h2>
-
-        <h3>1.1.1 積層造形の定義</h3>
-        <p>積層造形（Additive Manufacturing, AM）とは、<strong>ISO/ASTM 52900:2021規格で定義される「3次元CADデータから材料を層ごとに積み上げて物体を製造するプロセス」</strong>です。従来の切削加工（除去加工）とは対照的に、必要な部分にのみ材料を付加するため、以下の革新的な特徴を持ちます：</p>
-
-        <ul>
-            <li><strong>設計自由度</strong>: 従来製法では不可能な複雑形状（中空構造、ラティス構造、トポロジー最適化形状）を製造可能</li>
-            <li><strong>材料効率</strong>: 必要な部分にのみ材料を使用するため、材料廃棄率が5-10%（従来加工は30-90%廃棄）</li>
-            <li><strong>オンデマンド製造</strong>: 金型不要でカスタマイズ製品を少量・多品種生産可能</li>
-            <li><strong>一体化製造</strong>: 従来は複数部品を組立てていた構造を一体造形し、組立工程を削減</li>
+            <li>メッシュの品質指標（水密性・法線の一貫性）から造形適性を判断できる</li>
+            <li>熱シミュレーションの結果を層間接着や反りの議論（第2章）と結びつけられる</li>
+            <li>合成データで回帰モデルを学習し、特徴量重要度から支配的なパラメータを読み取れる</li>
+            <li>各手法の前提と限界を理解し、実務でどこまで信頼してよいかを判断できる</li>
         </ul>
 
         <div class="info-box">
-            <strong>💡 産業的重要性</strong>
-            <p>AM市場は急成長中で、Wohlers Report 2023によると：</p>
-            <ul>
-                <li>世界のAM市場規模: $18.3B（2023年）→ $83.9B予測（2030年、年成長率23.5%）</li>
-                <li>用途の内訳: プロトタイピング（38%）、ツーリング（27%）、最終製品（35%）</li>
-                <li>主要産業: 航空宇宙（26%）、医療（21%）、自動車（18%）、消費財（15%）</li>
-                <li>材料別シェア: ポリマー（55%）、金属（35%）、セラミックス（7%）、その他（3%）</li>
-            </ul>
+            <strong>💡 この章の位置づけ</strong>
+            <p>第1章から第4章では、積層造形（Additive Manufacturing, AM）の原理・材料・プロセスを体系的に学びました。本章はシリーズの集大成として、それらの知識を<strong>実際に動くPythonコード</strong>へ落とし込みます。STLの読み込みからスライシング、熱シミュレーション、パラメータ最適化、機械学習まで、5つの実践課題を順に手を動かして確認します。ここで扱うコードはすべて <code>python3</code> で実行し、掲載する出力は実際の実行結果です。外部ライブラリは NumPy と scikit-learn のみに絞り、STL処理は専用ライブラリに頼らず自前で実装することで、内部の仕組みまで見通せるようにしています。</p>
         </div>
 
-        <h3>1.1.2 AMの歴史と発展</h3>
-        <p>積層造形技術は約40年の歴史を持ち、以下のマイルストーンを経て現在に至ります：</p>
+        <h2>5.1 STLファイルの読み込みと解析</h2>
 
-        <pre class="mermaid">
-flowchart LR
-    A[1986<br/>SLA発明<br/>Chuck Hull] --> B[1988<br/>SLS登場<br/>Carl Deckard]
-    B --> C[1992<br/>FDM特許<br/>Stratasys社]
-    C --> D[2005<br/>RepRap<br/>オープンソース化]
-    D --> E[2012<br/>金属AM普及<br/>EBM/SLM]
-    E --> F[2023<br/>産業化加速<br/>大型・高速化]
+        <h3>5.1.1 三角形メッシュとしての物体表現</h3>
+        <p>STL（STereoLithography）ファイルは、物体の表面を<strong>三角形メッシュ（Triangle Mesh）</strong>の集合として表現します。各三角形は3つの頂点座標と1つの外向き法線ベクトルを持ちます。第1章で構造を学んだこの形式を、ここでは自前のコードで解析します。numpy-stlのような専用ライブラリを使わず、NumPyだけで三角形配列を組み立てることで、体積や表面積が「どの式から」得られるのかを明確にします。</p>
 
-    style A fill:#e3f2fd
-    style B fill:#fff3e0
-    style C fill:#e8f5e9
-    style D fill:#f3e5f5
-    style E fill:#fce4ec
-    style F fill:#fff9c4
-        </pre>
+        <p>解析対象として、一辺20 mmの立方体を12枚の三角形（各面2枚）として生成します。立方体は体積・表面積の理論値（それぞれ 20³ = 8000 mm³、6×20² = 2400 mm²）が分かっているため、実装の検算に最適です。</p>
 
-        <ol>
-            <li><strong>1986年: ステレオリソグラフィ（SLA）発明</strong> - Chuck Hull博士（3D Systems社創業者）が光硬化樹脂を層状に硬化させる最初のAM技術を発明（US Patent 4,575,330）。「3Dプリンティング」という言葉もこの時期に誕生。</li>
-            <li><strong>1988年: 選択的レーザー焼結（SLS）登場</strong> - Carl Deckard博士（テキサス大学）がレーザーで粉末材料を焼結する技術を開発。金属やセラミックスへの応用可能性を開く。</li>
-            <li><strong>1992年: 熱溶解積層（FDM）特許</strong> - Stratasys社がFDM技術を商用化。現在最も普及している3Dプリンティング方式の基礎を確立。</li>
-            <li><strong>2005年: RepRapプロジェクト</strong> - Adrian Bowyer教授がオープンソース3Dプリンタ「RepRap」を発表。特許切れと相まって低価格化・民主化が進展。</li>
-            <li><strong>2012年以降: 金属AMの産業普及</strong> - 電子ビーム溶解（EBM）、選択的レーザー溶融（SLM）が航空宇宙・医療分野で実用化。GE AviationがFUEL噴射ノズルを量産開始。</li>
-            <li><strong>2023年現在: 大型化・高速化の時代</strong> - バインダージェット、連続繊維複合材AM、マルチマテリアルAMなど新技術が産業実装段階へ。</li>
-        </ol>
-
-        <h3>1.1.3 AMの主要応用分野</h3>
-
-        <h4>応用1: プロトタイピング（Rapid Prototyping）</h4>
-        <p>AMの最初の主要用途で、設計検証・機能試験・市場評価用のプロトタイプを迅速に製造します：</p>
-
+        <h3>5.1.2 体積・表面積・水密性の計算</h3>
+        <p>三角形メッシュから幾何量を求める式は次の3つが基本です。</p>
         <ul>
-            <li><strong>リードタイム短縮</strong>: 従来の試作（数週間〜数ヶ月）→ AMでは数時間〜数日</li>
-            <li><strong>設計反復の加速</strong>: 低コストで複数バージョンを試作し、設計を最適化</li>
-            <li><strong>コミュニケーション改善</strong>: 視覚的・触覚的な物理モデルで関係者間の認識を統一</li>
-            <li><strong>典型例</strong>: 自動車の意匠モデル、家電製品の筐体試作、医療機器の術前シミュレーションモデル</li>
+            <li><strong>表面積</strong>: 各三角形の面積 ½|（v₂−v₁）×（v₃−v₁）| の総和</li>
+            <li><strong>体積</strong>: 原点と各三角形が作る符号付き四面体 (v₁·(v₂×v₃))/6 の総和の絶対値（発散定理に基づく手法）</li>
+            <li><strong>水密性（watertight）</strong>: すべての無向エッジがちょうど2枚の三角形に共有されること。1枚しか共有しないエッジがあれば穴が空いている</li>
         </ul>
 
-        <h4>応用2: ツーリング（Tooling & Fixtures）</h4>
-        <p>製造現場で使用する治具・工具・金型をAMで製造する応用です：</p>
+        <h4>コード例1: NumPyによるSTLメッシュ解析</h4>
+        <pre><code class="language-python">import numpy as np
 
-        <ul>
-            <li><strong>カスタム治具</strong>: 生産ラインに特化した組立治具・検査治具を迅速に製作</li>
-            <li><strong>コンフォーマル冷却金型</strong>: 従来の直線的冷却路ではなく、製品形状に沿った3次元冷却路を内蔵した射出成形金型（冷却時間30-70%短縮）</li>
-            <li><strong>軽量化ツール</strong>: ラティス構造を使った軽量エンドエフェクタで作業者の負担を軽減</li>
-            <li><strong>典型例</strong>: BMWの組立ライン用治具（年間100,000個以上をAMで製造）、GolfのTaylorMadeドライバー金型</li>
-        </ul>
+def make_cube_mesh(size=20.0):
+    """一辺 size の立方体を12枚の三角形メッシュ(法線外向き)として生成"""
+    s = size
+    v = np.array([
+        [0, 0, 0], [s, 0, 0], [s, s, 0], [0, s, 0],   # 底面 z=0
+        [0, 0, s], [s, 0, s], [s, s, s], [0, s, s],   # 上面 z=s
+    ], dtype=float)
+    # 各面を反時計回り(外から見て CCW)で定義
+    faces = [
+        (0, 3, 2), (0, 2, 1),   # 底面 (-z)
+        (4, 5, 6), (4, 6, 7),   # 上面 (+z)
+        (0, 1, 5), (0, 5, 4),   # 前面 (-y)
+        (2, 3, 7), (2, 7, 6),   # 背面 (+y)
+        (1, 2, 6), (1, 6, 5),   # 右面 (+x)
+        (0, 4, 7), (0, 7, 3),   # 左面 (-x)
+    ]
+    tris = np.array([[v[a], v[b], v[c]] for a, b, c in faces])
+    return tris
 
-        <h4>応用3: 最終製品（End-Use Parts）</h4>
-        <p>AMで直接、最終製品を製造する応用が近年急増しています：</p>
+def triangle_normals(tris):
+    """各三角形の単位法線ベクトル (v2-v1)x(v3-v1)"""
+    e1 = tris[:, 1] - tris[:, 0]
+    e2 = tris[:, 2] - tris[:, 0]
+    n = np.cross(e1, e2)
+    lengths = np.linalg.norm(n, axis=1, keepdims=True)
+    return n / lengths
 
-        <ul>
-            <li><strong>航空宇宙部品</strong>: GE Aviation LEAP燃料噴射ノズル（従来20部品→AM一体化、重量25%軽減、年間100,000個以上生産）</li>
-            <li><strong>医療インプラント</strong>: チタン製人工股関節・歯科インプラント（患者固有の解剖学的形状に最適化、骨結合を促進する多孔質構造）</li>
-            <li><strong>カスタム製品</strong>: 補聴器（年間1,000万個以上がAMで製造）、スポーツシューズのミッドソール（Adidas 4D、Carbon社DLS技術）</li>
-            <li><strong>スペア部品</strong>: 絶版部品・希少部品のオンデマンド製造（自動車、航空機、産業機械）</li>
-        </ul>
+def surface_area(tris):
+    """三角形面積の総和 = 表面積"""
+    e1 = tris[:, 1] - tris[:, 0]
+    e2 = tris[:, 2] - tris[:, 0]
+    return 0.5 * np.linalg.norm(np.cross(e1, e2), axis=1).sum()
+
+def mesh_volume(tris):
+    """符号付き四面体法による体積 (原点と各三角形が作る四面体の総和)"""
+    v1, v2, v3 = tris[:, 0], tris[:, 1], tris[:, 2]
+    signed = np.einsum('ij,ij-&gt;i', v1, np.cross(v2, v3)) / 6.0
+    return abs(signed.sum())
+
+def is_watertight(tris, tol=6):
+    """各無向エッジがちょうど2枚の三角形に共有されるかを検査"""
+    verts = np.round(tris.reshape(-1, 3), tol)
+    uniq, inv = np.unique(verts, axis=0, return_inverse=True)
+    idx = inv.reshape(-1, 3)
+    edge_count = {}
+    for a, b, c in idx:
+        for u, w in [(a, b), (b, c), (c, a)]:
+            key = (min(u, w), max(u, w))
+            edge_count[key] = edge_count.get(key, 0) + 1
+    counts = np.array(list(edge_count.values()))
+    watertight = bool(np.all(counts == 2))
+    return watertight, len(uniq), len(edge_count), counts
+
+mesh = make_cube_mesh(20.0)
+normals = triangle_normals(mesh)
+area = surface_area(mesh)
+vol = mesh_volume(mesh)
+wt, n_vertices, n_edges, counts = is_watertight(mesh)
+bbox_min = mesh.reshape(-1, 3).min(axis=0)
+bbox_max = mesh.reshape(-1, 3).max(axis=0)
+
+print(f"三角形数        : {len(mesh)}")
+print(f"ユニーク頂点数  : {n_vertices}")
+print(f"ユニークエッジ数: {n_edges}")
+print(f"表面積          : {area:.2f} mm^2  (理論値 6*20^2 = {6*20**2})")
+print(f"体積            : {vol:.2f} mm^3  (理論値 20^3 = {20**3})")
+print(f"バウンディングボックス: min={bbox_min}, max={bbox_max}")
+print(f"水密(watertight): {wt}  (全エッジ共有数の最小={counts.min()}, 最大={counts.max()})")
+print(f"先頭3枚の単位法線:")
+for i in range(3):
+    print(f"  面{i}: [{normals[i,0]:+.2f} {normals[i,1]:+.2f} {normals[i,2]:+.2f}]")
+</code></pre>
+
+        <p><strong>実行結果：</strong></p>
+        <pre><code class="language-text">三角形数        : 12
+ユニーク頂点数  : 8
+ユニークエッジ数: 18
+表面積          : 2400.00 mm^2  (理論値 6*20^2 = 2400)
+体積            : 8000.00 mm^3  (理論値 20^3 = 8000)
+バウンディングボックス: min=[0. 0. 0.], max=[20. 20. 20.]
+水密(watertight): True  (全エッジ共有数の最小=2, 最大=2)
+先頭3枚の単位法線:
+  面0: [+0.00 +0.00 -1.00]
+  面1: [+0.00 +0.00 -1.00]
+  面2: [+0.00 +0.00 +1.00]
+</code></pre>
+
+        <p>体積8000 mm³・表面積2400 mm²が理論値と完全に一致し、実装が正しいことが確認できます。ユニークエッジ数が18・全エッジの共有数がすべて2であることは、このメッシュが<strong>水密（閉じた表面）</strong>であることを意味します。頂点8・エッジ18・面12はオイラーの多面体公式 V−E+F = 8−18+12 = 2 も満たしています。法線がすべて外向き（底面が −z、上面が +z）に揃っている点も、造形時の内外判定が正しく行える条件です。</p>
 
         <div class="warning-box">
-            <strong>⚠️ AMの制約と課題</strong>
-            <p>AMは万能ではなく、以下の制約があります：</p>
-            <ul>
-                <li><strong>造形速度</strong>: 大量生産には不向き（射出成形1個/数秒 vs AM数時間）。経済的ブレークイーブンは通常1,000個以下</li>
-                <li><strong>造形サイズ制限</strong>: ビルドボリューム（多くの装置で200×200×200mm程度）を超える大型部品は分割製造が必要</li>
-                <li><strong>表面品質</strong>: 積層痕（layer lines）が残るため、高精度表面が必要な場合は後加工必須（研磨、機械加工）</li>
-                <li><strong>材料特性の異方性</strong>: 積層方向（Z軸）と面内方向（XY平面）で機械的性質が異なる場合がある（特にFDM）</li>
-                <li><strong>材料コスト</strong>: AMグレード材料は汎用材料の2-10倍高価（ただし材料効率と設計最適化で相殺可能）</li>
-            </ul>
+            <strong>⚠️ 水密性チェックの前提</strong>
+            <p>ここでのエッジ共有チェックは、頂点座標を小数6桁で丸めて同一視しています。実際のSTLファイルでは、CADからの書き出し時に同じ位置の頂点がわずかに異なる浮動小数点値を持つ「頂点の重複」が頻繁に起こります。丸めの桁数を誤ると、本来つながっているエッジが別物と判定され、健全なメッシュを「穴あき」と誤検出します。実務では trimesh などのライブラリが許容誤差付きで頂点を統合してから判定します。ここでは仕組みを理解するために最小限の実装にとどめています。</p>
         </div>
 
-        <h2>1.2 ISO/ASTM 52900による7つのAMプロセス分類</h2>
+        <h2>5.2 スライシングアルゴリズムの実装</h2>
 
-        <h3>1.2.1 AMプロセス分類の全体像</h3>
-        <p>ISO/ASTM 52900:2021規格では、すべてのAM技術を<strong>エネルギー源と材料供給方法に基づいて7つのプロセスカテゴリ</strong>に分類しています。各プロセスには固有の長所・短所があり、用途に応じて最適な技術を選択する必要があります。</p>
-
-        <pre class="mermaid">
-flowchart TD
-    AM[積層造形<br/>7つのプロセス] --> MEX[Material Extrusion<br/>材料押出]
-    AM --> VPP[Vat Photopolymerization<br/>液槽光重合]
-    AM --> PBF[Powder Bed Fusion<br/>粉末床溶融結合]
-    AM --> MJ[Material Jetting<br/>材料噴射]
-    AM --> BJ[Binder Jetting<br/>結合剤噴射]
-    AM --> SL[Sheet Lamination<br/>シート積層]
-    AM --> DED[Directed Energy Deposition<br/>指向性エネルギー堆積]
-
-    MEX --> MEX_EX[FDM/FFF<br/>低コスト・普及型]
-    VPP --> VPP_EX[SLA/DLP<br/>高精度・高表面品質]
-    PBF --> PBF_EX[SLS/SLM/EBM<br/>高強度・金属対応]
-
-    style AM fill:#f093fb
-    style MEX fill:#e3f2fd
-    style VPP fill:#fff3e0
-    style PBF fill:#e8f5e9
-    style MJ fill:#f3e5f5
-    style BJ fill:#fce4ec
-    style SL fill:#fff9c4
-    style DED fill:#fce4ec
-        </pre>
-
-        <h3>1.2.2 Material Extrusion (MEX) - 材料押出</h3>
-        <p><strong>原理</strong>: 熱可塑性樹脂フィラメントを加熱・溶融し、ノズルから押し出して積層。最も普及している技術（FDM/FFFとも呼ばれる）。</p>
+        <h3>5.2.1 平面と三角形の交差</h3>
+        <p><strong>スライシング（Slicing）</strong>とは、3Dモデルを一定の高さ（レイヤー高さ）ごとに水平面で切断し、各層の輪郭を抽出する処理です（第1章参照）。その核心は<strong>「平面 z = z₀ と各三角形の交線分を求める」</strong>という幾何演算にあります。三角形の3辺のうち、平面を挟んで反対側に端点を持つ辺だけが平面と交わります。交点は端点間の線形補間で求められ、1つの三角形からはちょうど2つの交点、すなわち1本の線分が得られます。</p>
 
         <div class="equation">
-            プロセス: フィラメント → 加熱ノズル（190-260°C）→ 溶融押出 → 冷却固化 → 次層積層
+            交点 = p₀ + t·(p₁ − p₀),　t = (z − z_p₀) / (z_p₁ − z_p₀)
         </div>
 
-        <p><strong>特徴：</strong></p>
-        <ul>
-            <li><strong>低コスト</strong>: 装置価格$200-$5,000（デスクトップ）、$10,000-$100,000（産業用）</li>
-            <li><strong>材料多様性</strong>: PLA、ABS、PETG、ナイロン、PC、カーボン繊維複合材、PEEK（高性能）</li>
-            <li><strong>造形速度</strong>: 20-150 mm³/s（中程度）、レイヤー高さ0.1-0.4mm</li>
-            <li><strong>精度</strong>: ±0.2-0.5 mm（デスクトップ）、±0.1 mm（産業用）</li>
-            <li><strong>表面品質</strong>: 積層痕が明瞭（後加工で改善可能）</li>
-            <li><strong>材料異方性</strong>: Z軸方向（積層方向）の強度が20-80%低い（層間接着が弱点）</li>
-        </ul>
+        <p>各層でこれらの線分を集めると、その層の断面輪郭（contour）になります。ここでは断面が高さとともに変化する例として、底辺20 mm・高さ30 mmの四角錐をスライスします。四角錐の断面は正方形で、高さが上がるほど小さくなるため、輪郭抽出が正しく機能しているかを周長の減少から確認できます。</p>
 
-        <p><strong>応用例：</strong></p>
-        <ul>
-            <li>プロトタイピング（最も一般的な用途、低コスト・高速）</li>
-            <li>治具・工具（製造現場で使用、軽量・カスタマイズ容易）</li>
-            <li>教育用モデル（学校・大学で広く使用、安全・低コスト）</li>
-            <li>最終製品（カスタム補聴器、義肢装具、建築模型）</li>
-        </ul>
+        <h4>コード例2: 平面交差によるスライシング</h4>
+        <pre><code class="language-python">import numpy as np
+
+def make_pyramid_mesh(base=20.0, height=30.0):
+    """底辺 base、高さ height の四角錐メッシュ(側面4枚+底面2枚)"""
+    b, h = base, height
+    apex = [b/2, b/2, h]
+    v = np.array([
+        [0, 0, 0], [b, 0, 0], [b, b, 0], [0, b, 0], apex,
+    ], dtype=float)
+    faces = [
+        (0, 2, 1), (0, 3, 2),        # 底面
+        (0, 1, 4), (1, 2, 4),        # 側面
+        (2, 3, 4), (3, 0, 4),
+    ]
+    return np.array([[v[a], v[b], v[c]] for a, b, c in faces])
+
+def slice_at_z(tris, z):
+    """平面 z=z0 と各三角形の交線分を求め、輪郭周長を返す"""
+    segments = []
+    for tri in tris:
+        pts = []
+        for i in range(3):
+            p0, p1 = tri[i], tri[(i + 1) % 3]
+            z0, z1 = p0[2], p1[2]
+            if (z0 - z) * (z1 - z) &lt; 0:          # エッジが平面をまたぐ
+                t = (z - z0) / (z1 - z0)
+                pts.append(p0 + t * (p1 - p0))
+        if len(pts) == 2:
+            segments.append((pts[0], pts[1]))
+    perimeter = sum(np.linalg.norm(a - b) for a, b in segments)
+    return segments, perimeter
+
+pyr = make_pyramid_mesh(base=20.0, height=30.0)
+layer_height = 0.2
+z_max = 30.0
+n_layers = int(z_max / layer_height)
+print(f"モデル: 四角錐 底辺20mm 高さ30mm, レイヤー高さ {layer_height} mm")
+print(f"総レイヤー数: {n_layers}")
+print(f"{'z (mm)':&gt;8} {'交線分数':&gt;8} {'周長 (mm)':&gt;12}")
+total_path = 0.0
+for z in [1.0, 6.0, 12.0, 18.0, 24.0, 29.0]:
+    segs, perim = slice_at_z(pyr, z)
+    print(f"{z:8.1f} {len(segs):8d} {perim:12.3f}")
+
+# 全レイヤーの外周経路長を積算(印刷時間の概算に使用)
+for i in range(1, n_layers + 1):
+    z = i * layer_height
+    _, perim = slice_at_z(pyr, min(z, z_max - 1e-6))
+    total_path += perim
+print_speed = 50.0  # mm/s
+print(f"外周経路長の総和: {total_path:.1f} mm")
+print(f"外周のみの印刷時間概算 ({print_speed:.0f} mm/s): {total_path/print_speed:.1f} s")
+</code></pre>
+
+        <p><strong>実行結果：</strong></p>
+        <pre><code class="language-text">モデル: 四角錐 底辺20mm 高さ30mm, レイヤー高さ 0.2 mm
+総レイヤー数: 150
+  z (mm)     交線分数      周長 (mm)
+     1.0        4       77.333
+     6.0        4       64.000
+    12.0        4       48.000
+    18.0        4       32.000
+    24.0        4       16.000
+    29.0        4        2.667
+外周経路長の総和: 5960.0 mm
+外周のみの印刷時間概算 (50 mm/s): 119.2 s
+</code></pre>
+
+        <p>各層で交線分がちょうど4本（正方形の4辺）得られ、周長が高さとともに線形に減少しています。z = 1 mmで周長77.3 mm、頂点近くのz = 29 mmでは2.67 mmと、四角錐の相似的な縮小を正しく捉えています。全150層の外周経路長を合計すると約5960 mmとなり、50 mm/sで外周のみを描くなら約119秒という概算が得られます。実際の造形ではこれにインフィルやトラベル移動、加減速が加わるため、これはあくまで下限の目安です。</p>
 
         <div class="info-box">
-            <strong>💡 FDMの代表的装置</strong>
-            <ul>
-                <li><strong>Ultimaker S5</strong>: デュアルヘッド、ビルドボリューム330×240×300mm、$6,000</li>
-                <li><strong>Prusa i3 MK4</strong>: オープンソース系、高い信頼性、$1,200</li>
-                <li><strong>Stratasys Fortus 450mc</strong>: 産業用、ULTEM 9085対応、$250,000</li>
-                <li><strong>Markforged X7</strong>: 連続カーボン繊維複合材対応、$100,000</li>
-            </ul>
+            <strong>💡 この実装の範囲と実務との差</strong>
+            <p>ここでは「線分を集めて周長を測る」ところまでを実装しました。実用的なスライサーは、この線分群を端点でつないで閉じた輪郭（ループ）に整列させ、内外を判定してシェルとインフィルを生成し、さらにG-code（第1章）へ変換します。特に、複数の穴を持つ断面や自己交差する輪郭の処理、浮動小数点誤差で端点がわずかにずれた線分の接続は、実装上の難所です。本コードは幾何の核心を示すものであり、そのまま製品スライサーになるわけではありません。</p>
         </div>
 
-        <h3>1.2.3 Vat Photopolymerization (VPP) - 液槽光重合</h3>
-        <p><strong>原理</strong>: 液状の光硬化性樹脂（フォトポリマー）に紫外線（UV）レーザーまたはプロジェクターで光を照射し、選択的に硬化させて積層。</p>
+        <h2>5.3 熱シミュレーション：層の冷却</h2>
+
+        <h3>5.3.1 非定常熱伝導方程式</h3>
+        <p>第2章では、層間接着が「界面がガラス転移温度（Tg）より高温である間だけ進む」ことを学びました。では、押し出された層は実際にどれくらいの速さで冷えるのでしょうか。これを定量的に扱うのが<strong>非定常熱伝導方程式（Transient Heat Conduction Equation）</strong>です。1次元では次の形になります。</p>
 
         <div class="equation">
-            プロセス: UV照射 → 光重合反応 → 固化 → ビルドプラットフォーム上昇 → 次層照射
+            ∂T/∂t = α · ∂²T/∂x²,　α = k / (ρ·c)（熱拡散率）
         </div>
 
-        <p><strong>VPPの2つの主要方式：</strong></p>
-        <ol>
-            <li><strong>SLA（Stereolithography）</strong>: UV レーザー（355 nm）をガルバノミラーで走査し、点描的に硬化。高精度だが低速。</li>
-            <li><strong>DLP（Digital Light Processing）</strong>: プロジェクターで面全体を一括露光。高速だが解像度はプロジェクター画素数に依存（Full HD: 1920×1080）。</li>
-            <li><strong>LCD-MSLA（Masked SLA）</strong>: LCDマスクを使用、DLP類似だが低コスト化（$200-$1,000のデスクトップ機多数）。</li>
-        </ol>
+        <p>ここで α は<strong>熱拡散率（thermal diffusivity）</strong>で、熱伝導率 k・密度 ρ・比熱 c から決まります。この偏微分方程式を、空間を格子に区切って差分で近似する<strong>陽解法（explicit finite difference）</strong>で解きます。陽解法は実装が明快ですが、時間刻み dt が大きすぎると数値的に発散するため、格子フーリエ数 r = α·dt/dx² が 0.5 以下という<strong>安定条件</strong>を守る必要があります。</p>
 
-        <p><strong>特徴：</strong></p>
-        <ul>
-            <li><strong>高精度</strong>: XY解像度25-100 μm、Z解像度10-50 μm（全AM技術中で最高レベル）</li>
-            <li><strong>表面品質</strong>: 滑らかな表面（Ra < 5 μm）、積層痕がほぼ見えない</li>
-            <li><strong>造形速度</strong>: SLA（10-50 mm³/s）、DLP/LCD（100-500 mm³/s、面積依存）</li>
-            <li><strong>材料制約</strong>: 光硬化性樹脂のみ（機械的性質はFDMより劣る場合が多い）</li>
-            <li><strong>後処理必須</strong>: 洗浄（IPA等）→ 二次硬化（UV照射）→ サポート除去</li>
-        </ul>
+        <p>ここでは、押出直後の厚さ0.8 mmの薄壁が、両面から周囲空気へ対流冷却されながら固化する過程を計算します。境界条件には対流（ニュートンの冷却則）をゴースト点法で組み込みます。</p>
 
-        <p><strong>応用例：</strong></p>
-        <ul>
-            <li>歯科用途（歯列矯正モデル、サージカルガイド、義歯、年間数百万個生産）</li>
-            <li>ジュエリー鋳造用ワックスモデル（高精度・複雑形状）</li>
-            <li>医療モデル（術前計画、解剖学モデル、患者説明用）</li>
-            <li>マスターモデル（シリコン型取り用、デザイン検証）</li>
-        </ul>
+        <h4>コード例3: 1次元非定常熱伝導の陽解法</h4>
+        <pre><code class="language-python">import numpy as np
 
-        <h3>1.2.4 Powder Bed Fusion (PBF) - 粉末床溶融結合</h3>
-        <p><strong>原理</strong>: 粉末材料を薄く敷き詰め、レーザーまたは電子ビームで選択的に溶融・焼結し、冷却固化させて積層。金属・ポリマー・セラミックスに対応。</p>
+# 押出直後の薄壁が両面から対流冷却されながら固化する過程を
+# 1次元非定常熱伝導方程式 dT/dt = alpha d2T/dx2 の陽解法で解く
+L = 0.8e-3        # 壁厚 m (0.8 mm)
+nx = 21           # 格子点数
+dx = L / (nx - 1)
+alpha = 1.3e-7    # PLAの熱拡散率 m^2/s
+T_ext = 210.0     # 押出温度 C
+T_env = 30.0      # 周囲温度 C
+Tg = 60.0         # PLAのガラス転移温度 C
+h = 40.0          # 対流熱伝達率 W/(m^2 K)
+k = 0.13          # PLAの熱伝導率 W/(m K)
 
-        <div class="equation">
-            プロセス: 粉末敷設 → レーザー/電子ビーム走査 → 溶融・焼結 → 固化 → 次層粉末敷設
-        </div>
+dt = 0.2 * dx**2 / alpha          # 安定条件 (Fourier数 &lt;= 0.5) を満たす時間刻み
+r = alpha * dt / dx**2
+Bi = h * dx / k                   # 格子ビオ数
+print(f"格子間隔 dx = {dx*1e6:.1f} um, 時間刻み dt = {dt*1000:.3f} ms")
+print(f"格子フーリエ数 r = {r:.3f} (&lt;=0.5 で安定), 格子ビオ数 Bi = {Bi:.4f}")
 
-        <p><strong>PBFの3つの主要方式：</strong></p>
-        <ol>
-            <li><strong>SLS（Selective Laser Sintering）</strong>: ポリマー粉末（PA12ナイロン等）をレーザー焼結。サポート不要（周囲粉末が支持）。</li>
-            <li><strong>SLM（Selective Laser Melting）</strong>: 金属粉末（Ti-6Al-4V、AlSi10Mg、Inconel 718等）を完全溶融。高密度部品（相対密度>99%）製造可能。</li>
-            <li><strong>EBM（Electron Beam Melting）</strong>: 電子ビームで金属粉末を溶融。高温予熱（650-1000°C）により残留応力が小さく、造形速度が速い。</li>
-        </ol>
+T = np.full(nx, T_ext)
+t = 0.0
+t_center_Tg = None
+checkpoints = [0.0, 0.5, 1.0, 2.0, 5.0]
+records = {}
+next_cp = 0
+max_steps = 2_000_000
+for step in range(max_steps):
+    Tn = T.copy()
+    # 内部格子: 陽的差分
+    Tn[1:-1] = T[1:-1] + r * (T[2:] - 2*T[1:-1] + T[:-2])
+    # 対流境界(両端): ゴースト点法で対流を反映
+    Tn[0] = T[0] + 2*r*(T[1] - T[0]) - 2*r*Bi*(T[0] - T_env)
+    Tn[-1] = T[-1] + 2*r*(T[-2] - T[-1]) - 2*r*Bi*(T[-1] - T_env)
+    T = Tn
+    t += dt
+    if t_center_Tg is None and T[nx//2] &lt;= Tg:
+        t_center_Tg = t
+    while next_cp &lt; len(checkpoints) and t &gt;= checkpoints[next_cp]:
+        records[checkpoints[next_cp]] = (T[0], T[nx//2])
+        next_cp += 1
+    if T.max() &lt;= Tg and t_center_Tg is not None:
+        break
 
-        <p><strong>特徴：</strong></p>
-        <ul>
-            <li><strong>高強度</strong>: 溶融・再凝固により鍛造材に匹敵する機械的性質（引張強度500-1200 MPa）</li>
-            <li><strong>複雑形状対応</strong>: サポート不要（粉末が支持）でオーバーハング造形可能</li>
-            <li><strong>材料多様性</strong>: Ti合金、Al合金、ステンレス鋼、Ni超合金、Co-Cr合金、ナイロン</li>
-            <li><strong>高コスト</strong>: 装置価格$200,000-$1,500,000、材料費$50-$500/kg</li>
-            <li><strong>後処理</strong>: サポート除去、熱処理（応力除去）、表面仕上げ（ブラスト、研磨）</li>
-        </ul>
-
-        <p><strong>応用例：</strong></p>
-        <ul>
-            <li>航空宇宙部品（軽量化、一体化、GE LEAP燃料ノズル等）</li>
-            <li>医療インプラント（患者固有形状、多孔質構造、Ti-6Al-4V）</li>
-            <li>金型（コンフォーマル冷却、複雑形状、H13工具鋼）</li>
-            <li>自動車部品（軽量化ブラケット、カスタムエンジン部品）</li>
-        </ul>
-
-        <h3>1.2.5 Material Jetting (MJ) - 材料噴射</h3>
-        <p><strong>原理</strong>: インクジェットプリンタと同様に、液滴状の材料（光硬化性樹脂またはワックス）をヘッドから噴射し、UV照射で即座に硬化させて積層。</p>
-
-        <p><strong>特徴：</strong></p>
-        <ul>
-            <li><strong>超高精度</strong>: XY解像度42-85 μm、Z解像度16-32 μm</li>
-            <li><strong>マルチマテリアル</strong>: 同一造形で複数材料・複数色を使い分け可能</li>
-            <li><strong>フルカラー造形</strong>: CMYK樹脂の組合せで1,000万色以上の表現</li>
-            <li><strong>表面品質</strong>: 極めて滑らか（積層痕ほぼなし）</li>
-            <li><strong>高コスト</strong>: 装置$50,000-$300,000、材料費$200-$600/kg</li>
-            <li><strong>材料制約</strong>: 光硬化性樹脂のみ、機械的性質は中程度</li>
-        </ul>
-
-        <p><strong>応用例：</strong>: 医療解剖モデル（軟組織・硬組織を異なる材料で再現）、フルカラー建築模型、デザイン検証モデル</p>
-
-        <h3>1.2.6 Binder Jetting (BJ) - 結合剤噴射</h3>
-        <p><strong>原理</strong>: 粉末床に液状バインダー（接着剤）をインクジェット方式で噴射し、粉末粒子を結合。造形後に焼結または含浸処理で強度向上。</p>
-
-        <p><strong>特徴：</strong></p>
-        <ul>
-            <li><strong>高速造形</strong>: レーザー走査不要で面全体を一括処理、造形速度100-500 mm³/s</li>
-            <li><strong>材料多様性</strong>: 金属粉末、セラミックス、砂型（鋳造用）、フルカラー（石膏）</li>
-            <li><strong>サポート不要</strong>: 周囲粉末が支持、除去後リサイクル可能</li>
-            <li><strong>低密度問題</strong>: 焼結前は脆弱（グリーン密度50-60%）、焼結後も相対密度90-98%</li>
-            <li><strong>後処理必須</strong>: 脱脂 → 焼結（金属：1200-1400°C）→ 含浸（銅・青銅）</li>
-        </ul>
-
-        <p><strong>応用例：</strong>: 砂型鋳造用型（エンジンブロック等の大型鋳物）、金属部品（Desktop Metal、HP Metal Jet）、フルカラー像（記念品、教育モデル）</p>
-
-        <h3>1.2.7 Sheet Lamination (SL) - シート積層</h3>
-        <p><strong>原理</strong>: シート状材料（紙、金属箔、プラスチックフィルム）を積層し、接着または溶接で結合。各層をレーザーまたはブレードで輪郭切断。</p>
-
-        <p><strong>代表技術：</strong></p>
-        <ul>
-            <li><strong>LOM（Laminated Object Manufacturing）</strong>: 紙・プラスチックシート、接着剤で積層、レーザー切断</li>
-            <li><strong>UAM（Ultrasonic Additive Manufacturing）</strong>: 金属箔を超音波溶接、CNC切削で輪郭加工</li>
-        </ul>
-
-        <p><strong>特徴：</strong> 大型造形可能、材料費安価、精度中程度、用途限定的（主に視覚モデル、金属では埋込センサー等）</p>
-
-        <h3>1.2.8 Directed Energy Deposition (DED) - 指向性エネルギー堆積</h3>
-        <p><strong>原理</strong>: 金属粉末またはワイヤーを供給しながら、レーザー・電子ビーム・アークで溶融し、基板上に堆積。大型部品や既存部品の補修に使用。</p>
-
-        <p><strong>特徴：</strong></p>
-        <ul>
-            <li><strong>高速堆積</strong>: 堆積速度1-5 kg/h（PBFの10-50倍）</li>
-            <li><strong>大型対応</strong>: ビルドボリューム制限が少ない（多軸ロボットアーム使用）</li>
-            <li><strong>補修・コーティング</strong>: 既存部品の摩耗部分修復、表面硬化層形成</li>
-            <li><strong>低精度</strong>: 精度±0.5-2 mm、後加工（機械加工）必須</li>
-        </ul>
-
-        <p><strong>応用例：</strong>: タービンブレード補修、大型航空宇宙部品、工具の耐摩耗コーティング</p>
-
-        <div class="warning-box">
-            <strong>⚠️ プロセス選択の指針</strong>
-            <p>最適なAMプロセスは用途要求により異なります：</p>
-            <ul>
-                <li><strong>精度最優先</strong> → VPP（SLA/DLP）またはMJ</li>
-                <li><strong>低コスト・普及型</strong> → MEX（FDM/FFF）</li>
-                <li><strong>金属高強度部品</strong> → PBF（SLM/EBM）</li>
-                <li><strong>大量生産（砂型）</strong> → BJ</li>
-                <li><strong>大型・高速堆積</strong> → DED</li>
-            </ul>
-        </div>
-        </div>
-
-        <h2>1.3 STLファイル形式とデータ処理</h2>
-
-        <h3>1.3.1 STLファイルの構造</h3>
-        <p>STL（STereoLithography）は、<strong>AMで最も広く使用される3Dモデルファイル形式</strong>で、1987年に3D Systems社が開発しました。STLファイルは物体表面を<strong>三角形メッシュ（Triangle Mesh）の集合</strong>として表現します。</p>
-
-        <h4>STLファイルの基本構造</h4>
-        <div class="equation">
-            STLファイル = 法線ベクトル（n） + 3つの頂点座標（v1, v2, v3）× 三角形数
-        </div>
-
-        <p><strong>ASCII STL形式の例：</strong></p>
-        <pre><code class="language-plaintext">solid cube
-  facet normal 0 0 1
-    outer loop
-      vertex 0 0 10
-      vertex 10 0 10
-      vertex 10 10 10
-    endloop
-  endfacet
-  facet normal 0 0 1
-    outer loop
-      vertex 0 0 10
-      vertex 10 10 10
-      vertex 0 10 10
-    endloop
-  endfacet
-  ...
-endsolid cube
+print(f"{'時刻 (s)':&gt;8} {'表面温度 (C)':&gt;14} {'中心温度 (C)':&gt;14}")
+for cp in checkpoints:
+    if cp in records:
+        surf, cen = records[cp]
+        print(f"{cp:8.1f} {surf:14.1f} {cen:14.1f}")
+print(f"中心が Tg={Tg:.0f}C に達する時刻: {t_center_Tg:.2f} s")
 </code></pre>
 
-        <p><strong>STLフォーマットの2つの種類：</strong></p>
-        <ol>
-            <li><strong>ASCII STL</strong>: 人間が読めるテキスト形式。ファイルサイズ大（同じモデルでBinaryの10-20倍）。デバッグ・検証に有用。</li>
-            <li><strong>Binary STL</strong>: バイナリ形式、ファイルサイズ小、処理高速。産業用途で標準。構造：80バイトヘッダー + 4バイト（三角形数） + 各三角形50バイト（法線12B + 頂点36B + 属性2B）。</li>
-        </ol>
+        <p><strong>実行結果：</strong></p>
+        <pre><code class="language-text">格子間隔 dx = 40.0 um, 時間刻み dt = 2.462 ms
+格子フーリエ数 r = 0.200 (&lt;=0.5 で安定), 格子ビオ数 Bi = 0.0123
+  時刻 (s)       表面温度 (C)       中心温度 (C)
+     0.0          209.1          210.0
+     0.5          194.7          204.8
+     1.0          187.0          196.7
+     2.0          172.6          181.5
+     5.0          136.9          143.5
+中心が Tg=60C に達する時刻: 18.86 s
+</code></pre>
 
-        <h3>1.3.2 STLファイルの重要概念</h3>
-
-        <h4>1. 法線ベクトル（Normal Vector）</h4>
-        <p>各三角形面には<strong>法線ベクトル（外向き方向）</strong>が定義され、物体の「内側」と「外側」を区別します。法線方向は<strong>右手の法則</strong>で決定されます：</p>
-
-        <div class="equation">
-            法線n = (v2 - v1) × (v3 - v1) / |(v2 - v1) × (v3 - v1)|
-        </div>
-
-        <p><strong>頂点順序ルール：</strong> 頂点v1, v2, v3は反時計回り（CCW: Counter-ClockWise）に配置され、外から見て反時計回りの順序で法線が外向きになります。</p>
-
-        <h4>2. 多様体（Manifold）条件</h4>
-        <p>STLメッシュが3Dプリント可能であるためには、<strong>多様体（Manifold）</strong>でなければなりません：</p>
-
-        <ul>
-            <li><strong>エッジ共有</strong>: すべてのエッジ（辺）は正確に2つの三角形に共有される</li>
-            <li><strong>頂点共有</strong>: すべての頂点は連続した三角形扇（fan）に属する</li>
-            <li><strong>閉じた表面</strong>: 穴や開口部がなく、完全に閉じた表面を形成</li>
-            <li><strong>自己交差なし</strong>: 三角形が互いに交差・貫通していない</li>
-        </ul>
+        <p>格子フーリエ数 r = 0.20 は安定条件（≤0.5）を満たしており、計算は発散せず滑らかな冷却曲線を与えます。表面は空気と接するため中心よりわずかに速く冷えますが、格子ビオ数 Bi = 0.012 と非常に小さい（＝内部の熱伝導が対流に対して十分速い）ため、表面と中心の温度差は小さく、壁全体がほぼ一様に冷えていきます。中心がTg（60°C）を下回るまで約19秒——これは<strong>周囲が30°Cと比較的暖かい</strong>ためで、冷却ファンで周囲温度を下げれば、この時間は大きく短縮されます。第2章で学んだ「暖かい環境ほど溶着ウィンドウが長い」という定性的な結論が、ここでは具体的な秒数として裏づけられます。</p>
 
         <div class="warning-box">
-            <strong>⚠️ 非多様体メッシュの問題</strong>
-            <p>非多様体メッシュ（Non-Manifold Mesh）は3Dプリント不可能です。典型的な問題：</p>
-            <ul>
-                <li><strong>穴（Holes）</strong>: 閉じていない表面、エッジが1つの三角形にのみ属する</li>
-                <li><strong>T字接合（T-junction）</strong>: エッジが3つ以上の三角形に共有される</li>
-                <li><strong>法線反転（Inverted Normals）</strong>: 法線が内側を向いている三角形が混在</li>
-                <li><strong>重複頂点（Duplicate Vertices）</strong>: 同じ位置に複数の頂点が存在</li>
-                <li><strong>微小三角形（Degenerate Triangles）</strong>: 面積がゼロまたはほぼゼロの三角形</li>
-            </ul>
-            <p>これらの問題はスライサーソフトウェアでエラーを引き起こし、造形失敗の原因となります。</p>
+            <strong>⚠️ モデルの単純化</strong>
+            <p>このモデルは1次元・対流冷却のみを扱い、下の層や造形プレートへの熱伝導、押出時の潜熱、温度依存の物性を無視しています。そのため実際の冷却より遅めに出る傾向があります。目的は絶対時間の精密予測ではなく、「安定条件を満たした陽解法で冷却曲線が得られること」「周囲温度と熱伝達が冷却の速さを支配すること」を体感することにあります。定量的な設計には、より高次の2次元・3次元モデルや有限要素法が用いられます。</p>
         </div>
 
-        <h3>1.3.3 STLファイルの品質指標</h3>
+        <h2>5.4 プロセスパラメータの最適化</h2>
 
-        <p>STLメッシュの品質は以下の指標で評価されます：</p>
+        <h3>5.4.1 造形時間と表面品質のトレードオフ</h3>
+        <p>3Dプリンティングの現場では、「できるだけ速く、できるだけきれいに」という相反する要求を両立させる必要があります。この2つはしばしば逆方向を向きます。レイヤー高さを大きくすれば層数が減って造形時間は短くなりますが、積層痕が目立って表面が粗くなります。ここでは、レイヤー高さと印刷速度という2つのパラメータを<strong>グリッドサーチ（grid search）</strong>で総当たりし、トレードオフを定量化します。</p>
 
-        <ol>
-            <li><strong>三角形数（Triangle Count）</strong>: 通常10,000-500,000個。過少（粗いモデル）または過多（ファイルサイズ大・処理遅延）は避ける。</li>
-            <li><strong>エッジ長の一様性</strong>: 極端に大小の三角形が混在すると造形品質低下。理想的には0.1-1.0 mm範囲。</li>
-            <li><strong>アスペクト比（Aspect Ratio）</strong>: 細長い三角形（高アスペクト比）は数値誤差の原因。理想的にはアスペクト比 < 10。</li>
-            <li><strong>法線の一貫性</strong>: すべての法線が外向き統一。反転法線が混在すると内外判定エラー。</li>
-        </ol>
+        <p>造形時間と表面粗さは、次の簡潔なモデルで見積もります。</p>
+        <ul>
+            <li><strong>造形時間</strong> ∝ （部品高さ / レイヤー高さ）×（層あたり経路長 / 印刷速度）</li>
+            <li><strong>表面粗さ Ra</strong> ∝ レイヤー高さの2乗（積層痕を三角形近似した幾何モデル Ra ≈ LH²/8）</li>
+        </ul>
+        <p>そのうえで、「表面粗さ Ra が許容値6 µm以下」という品質制約を満たすなかで、造形時間が最短になる条件を探します。</p>
+
+        <h4>コード例4: グリッドサーチによるパラメータ最適化</h4>
+        <pre><code class="language-python"># 造形時間と表面品質のトレードオフをグリッドサーチで評価する。
+# 造形時間 ~ 高さ/(レイヤー高さ) x 経路/(速度)
+# 表面粗さ Ra ~ レイヤー高さに比例(積層痕)
+part_height = 30.0      # mm
+path_per_layer = 80.0   # mm/層 (外周+インフィルの代表値)
+layer_heights = [0.10, 0.15, 0.20, 0.30]
+speeds = [40, 60, 80, 100]     # mm/s
+Ra_max = 6.0            # 許容表面粗さ um
+
+print(f"{'LH(mm)':&gt;7} {'v(mm/s)':&gt;8} {'時間(min)':&gt;10} {'Ra(um)':&gt;8} {'許容':&gt;6}")
+results = []
+for lh in layer_heights:
+    n_layers = part_height / lh
+    Ra = 1000.0 * lh**2 / 8.0    # 積層痕の幾何モデル Ra ~ LH^2/(8) を um換算
+    for v in speeds:
+        t_build = n_layers * path_per_layer / v / 60.0   # min
+        ok = Ra &lt;= Ra_max
+        results.append((lh, v, t_build, Ra, ok))
+        flag = "OK" if ok else "NG"
+        print(f"{lh:7.2f} {v:8d} {t_build:10.2f} {Ra:8.2f} {flag:&gt;6}")
+
+feasible = [r for r in results if r[4]]
+best = min(feasible, key=lambda x: x[2])
+print(f"\n制約 Ra&lt;={Ra_max:.0f}um を満たす最短時間の条件:")
+print(f"  レイヤー高さ {best[0]:.2f} mm, 速度 {best[1]} mm/s, "
+      f"造形時間 {best[2]:.2f} min, Ra {best[3]:.2f} um")
+</code></pre>
+
+        <p><strong>実行結果：</strong></p>
+        <pre><code class="language-text"> LH(mm)  v(mm/s)    時間(min)   Ra(um)     許容
+   0.10       40      10.00     1.25     OK
+   0.10       60       6.67     1.25     OK
+   0.10       80       5.00     1.25     OK
+   0.10      100       4.00     1.25     OK
+   0.15       40       6.67     2.81     OK
+   0.15       60       4.44     2.81     OK
+   0.15       80       3.33     2.81     OK
+   0.15      100       2.67     2.81     OK
+   0.20       40       5.00     5.00     OK
+   0.20       60       3.33     5.00     OK
+   0.20       80       2.50     5.00     OK
+   0.20      100       2.00     5.00     OK
+   0.30       40       3.33    11.25     NG
+   0.30       60       2.22    11.25     NG
+   0.30       80       1.67    11.25     NG
+   0.30      100       1.33    11.25     NG
+
+制約 Ra&lt;=6um を満たす最短時間の条件:
+  レイヤー高さ 0.20 mm, 速度 100 mm/s, 造形時間 2.00 min, Ra 5.00 um
+</code></pre>
+
+        <p>レイヤー高さ0.30 mmはRa = 11.25 µmとなり品質制約を満たしません（NG）。造形時間だけを見れば0.30 mm・100 mm/sの1.33分が最速ですが、表面品質を犠牲にしています。品質制約を満たす範囲で最短なのは<strong>レイヤー高さ0.20 mm・速度100 mm/s</strong>で、造形時間2.00分・Ra 5.00 µmという結論が得られます。このように、複数の目的が競合するときは「制約付き最適化」として定式化すると、意思決定が明確になります。</p>
 
         <div class="info-box">
-            <strong>💡 STLファイルの解像度トレードオフ</strong>
-            <p>STLメッシュの解像度（三角形数）は精度とファイルサイズのトレードオフです：</p>
-            <ul>
-                <li><strong>低解像度（1,000-10,000三角形）</strong>: 高速処理、小ファイル、但し曲面が角張る（ファセット化明瞭）</li>
-                <li><strong>中解像度（10,000-100,000三角形）</strong>: 多くの用途で適切、バランス良好</li>
-                <li><strong>高解像度（100,000-1,000,000三角形）</strong>: 滑らかな曲面、但しファイルサイズ大（数十MB）、処理遅延</li>
-            </ul>
-            <p>CADソフトでSTLエクスポート時に、<strong>Chordal Tolerance（コード公差）</strong>または<strong>Angle Tolerance（角度公差）</strong>で解像度を制御します。推奨値：コード公差0.01-0.1 mm、角度公差5-15度。</p>
+            <strong>💡 グリッドサーチの位置づけ</strong>
+            <p>パラメータが2〜3個で、それぞれ数段階なら、総当たりのグリッドサーチが最も見通しがよく確実です。ただし、パラメータが増えると組み合わせ数が指数的に膨れ上がります（次元の呪い）。実務ではベイズ最適化や遺伝的アルゴリズムといった、より少ない試行で良い解を探す手法が使われます。ここで示したモデルの係数（Ra ≈ LH²/8 など）は説明のための単純化であり、実際の表面粗さはノズル形状・材料・冷却にも依存します。傾向をつかむ道具として活用してください。</p>
         </div>
 
-        <h3>1.3.4 Pythonライブラリによる STL処理</h3>
+        <h2>5.5 機械学習によるプロセス予測</h2>
 
-        <p>PythonでSTLファイルを扱うための主要ライブラリ：</p>
+        <h3>5.5.1 データ駆動でプロセスと品質を結ぶ</h3>
+        <p>これまでのシミュレーションは、物理法則（幾何・熱伝導）を式で書き下す<strong>物理ベースモデル</strong>でした。一方、層間接着・欠陥・最終強度のように、多数の要因が複雑に絡んで単純な式にしづらい現象もあります。そこで有効なのが、実験・シミュレーションのデータからパラメータと結果の関係を学ぶ<strong>機械学習（Machine Learning）</strong>です。</p>
 
-        <ol>
-            <li><strong>numpy-stl</strong>: 高速STL読込・書込、体積・表面積計算、法線ベクトル操作。シンプルで軽量。</li>
-            <li><strong>trimesh</strong>: 包括的な3Dメッシュ処理ライブラリ。メッシュ修復、ブーリアン演算、レイキャスト、衝突検出。多機能だが依存関係多い。</li>
-            <li><strong>PyMesh</strong>: 高度なメッシュ処理（リメッシュ、サブディビジョン、フィーチャー抽出）。インストールやや複雑。</li>
-        </ol>
+        <p>ここでは、ノズル温度・レイヤー高さ・印刷速度・インフィル密度という4つのプロセスパラメータから<strong>引張強度</strong>を予測するモデルを作ります。実験データの代わりに、既知の生成関数（第2章の物理的傾向を反映：高温ほど溶着が進み強度増、厚い層ほど層間接着が低下、高速ほど溶着時間が減り強度低下、インフィルは強度にほぼ線形寄与）にノイズを加えた<strong>合成データ</strong>500点を用います。回帰器には<strong>ランダムフォレスト回帰（Random Forest Regression）</strong>を使い、決定係数 R²・平均絶対誤差（MAE）で精度を評価し、特徴量重要度から支配的なパラメータを読み取ります。</p>
 
-        <p><strong>numpy-stlの基本的な使用法：</strong></p>
-        <pre><code class="language-python">from stl import mesh
-import numpy as np
+        <h4>コード例5: ランダムフォレストによる強度予測</h4>
+        <pre><code class="language-python">import numpy as np
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import r2_score, mean_absolute_error
 
-# STLファイルを読み込み
-your_mesh = mesh.Mesh.from_file('model.stl')
+rng = np.random.default_rng(42)
+n = 500
+# 合成データ: プロセスパラメータ -&gt; 引張強度(MPa)
+nozzle_T = rng.uniform(190, 230, n)     # ノズル温度 C
+layer_h  = rng.uniform(0.10, 0.30, n)   # レイヤー高さ mm
+speed    = rng.uniform(40, 100, n)      # 印刷速度 mm/s
+infill   = rng.uniform(20, 100, n)      # インフィル密度 %
 
-# 基本的な幾何情報
-volume, cog, inertia = your_mesh.get_mass_properties()
-print(f"Volume: {volume:.2f} mm³")
-print(f"Center of Gravity: {cog}")
-print(f"Surface Area: {your_mesh.areas.sum():.2f} mm²")
+# 既知の生成関数(層間溶着・インフィルの寄与)+ ノイズ
+strength = (
+    18.0
+    + 0.22 * (nozzle_T - 190)          # 高温ほど層間溶着が進み強度増
+    - 55.0 * (layer_h - 0.10)          # 厚い層ほど層間接着が低下
+    - 0.05 * (speed - 40)              # 高速ほど溶着時間が減り強度低下
+    + 0.28 * infill                    # インフィルは強度にほぼ線形寄与
+    + rng.normal(0, 2.0, n)
+)
 
-# 三角形数
-print(f"Number of Triangles: {len(your_mesh.vectors)}")
+X = np.column_stack([nozzle_T, layer_h, speed, infill])
+y = strength
+X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=0.25, random_state=0)
+
+model = RandomForestRegressor(n_estimators=200, random_state=0)
+model.fit(X_tr, y_tr)
+pred = model.predict(X_te)
+r2 = r2_score(y_te, pred)
+mae = mean_absolute_error(y_te, pred)
+
+print(f"学習データ数: {len(X_tr)}, テストデータ数: {len(X_te)}")
+print(f"テスト R^2 : {r2:.3f}")
+print(f"テスト MAE : {mae:.2f} MPa")
+names = ["ノズル温度", "レイヤー高さ", "印刷速度", "インフィル"]
+print("特徴量重要度:")
+for nm, imp in sorted(zip(names, model.feature_importances_), key=lambda x: -x[1]):
+    print(f"  {nm:12s}: {imp:.3f}")
+
+# 未知条件の強度予測
+q = np.array([[220.0, 0.15, 50.0, 80.0]])
+pq = model.predict(q)[0]
+print(f"予測: ノズル220C/LH0.15mm/50mm/s/インフィル80% -&gt; 引張強度 {pq:.1f} MPa")
 </code></pre>
 
-        <h2>1.4 スライシングとツールパス生成</h2>
+        <p><strong>実行結果：</strong></p>
+        <pre><code class="language-text">学習データ数: 375, テストデータ数: 125
+テスト R^2 : 0.906
+テスト MAE : 1.93 MPa
+特徴量重要度:
+  インフィル       : 0.686
+  レイヤー高さ      : 0.159
+  ノズル温度       : 0.123
+  印刷速度        : 0.031
+予測: ノズル220C/LH0.15mm/50mm/s/インフィル80% -&gt; 引張強度 42.7 MPa
+</code></pre>
 
-        <p>STLファイルを3Dプリンタが理解できる指令（G-code）に変換するプロセスを<strong>スライシング（Slicing）</strong>といいます。このセクションでは、スライシングの基本原理、ツールパス戦略、そしてG-codeの基礎を学びます。</p>
-
-        <h3>1.4.1 スライシングの基本原理</h3>
-
-        <p>スライシングは、3Dモデルを一定の高さ（レイヤー高さ）で水平に切断し、各層の輪郭を抽出するプロセスです：</p>
-
-        <pre class="mermaid">
-flowchart TD
-    A[3Dモデル<br/>STLファイル] --> B[Z軸方向に<br/>層状にスライス]
-    B --> C[各層の輪郭抽出<br/>Contour Detection]
-    C --> D[シェル生成<br/>Perimeter Path]
-    D --> E[インフィル生成<br/>Infill Path]
-    E --> F[サポート追加<br/>Support Structure]
-    F --> G[ツールパス最適化<br/>Retraction/Travel]
-    G --> H[G-code出力]
-
-    style A fill:#e3f2fd
-    style H fill:#e8f5e9
-        </pre>
-
-        <h4>レイヤー高さ（Layer Height）の選択</h4>
-        <p>レイヤー高さは造形品質と造形時間のトレードオフを決定する最重要パラメータです：</p>
-
-        <table>
-            <tr>
-                <th>レイヤー高さ</th>
-                <th>造形品質</th>
-                <th>造形時間</th>
-                <th>典型的な用途</th>
-            </tr>
-            <tr>
-                <td>0.1 mm（極細）</td>
-                <td>非常に高い（積層痕ほぼ不可視）</td>
-                <td>非常に長い（×2-3倍）</td>
-                <td>フィギュア、医療モデル、最終製品</td>
-            </tr>
-            <tr>
-                <td>0.2 mm（標準）</td>
-                <td>良好（積層痕は見えるが許容）</td>
-                <td>標準</td>
-                <td>一般的なプロトタイプ、機能部品</td>
-            </tr>
-            <tr>
-                <td>0.3 mm（粗）</td>
-                <td>低い（積層痕明瞭）</td>
-                <td>短い（×0.5倍）</td>
-                <td>初期プロトタイプ、内部構造部品</td>
-            </tr>
-        </table>
+        <p>テストデータでの決定係数 R² = 0.906、平均絶対誤差 1.93 MPaと、未知のパラメータ組合せに対しても良好な予測精度が得られました。特徴量重要度を見ると、<strong>インフィル密度（0.686）</strong>が圧倒的に支配的で、次いでレイヤー高さ・ノズル温度が続き、印刷速度の寄与は小さいことが分かります。これは生成関数でインフィルの係数（0.28×最大80）が最も大きく強度に効くように設定したことと整合しており、モデルが物理的傾向を正しく学習できたことを示します。実務では、こうした重要度分析が「どのパラメータを優先的に管理・最適化すべきか」の指針になります。</p>
 
         <div class="warning-box">
-            <strong>⚠️ レイヤー高さの制約</strong>
-            <p>レイヤー高さはノズル径の<strong>25-80%</strong>に設定する必要があります。例えば0.4mmノズルの場合、レイヤー高さは0.1-0.32mmが推奨範囲です。これを超えると、樹脂の押出量が不足したり、ノズルが前の層を引きずる問題が発生します。</p>
+            <strong>⚠️ 合成データであることの意味</strong>
+            <p>ここでのデータは既知の関数から生成した<strong>合成データ</strong>であり、モデルが高精度なのは「答えを知っている関数」を学習させたからです。実際の造形では、材料ロット差・装置個体差・環境揺らぎが加わり、同じR²は望めません。また、学習データの範囲外（外挿）では予測が信頼できない点にも注意が必要です。機械学習は万能の予測装置ではなく、<strong>十分な質と量のデータがあって初めて有効</strong>な道具です。ここでは「パイプラインの組み方」と「重要度の読み解き方」を学ぶことが目的です。</p>
         </div>
-
-        <h3>1.4.2 シェルとインフィル戦略</h3>
-
-        <h4>シェル（外殻）の生成</h4>
-        <p><strong>シェル（Shell/Perimeter）</strong>は、各層の外周部を形成する経路です：</p>
-
-        <ul>
-            <li><strong>シェル数（Perimeter Count）</strong>: 通常2-4本。外部品質と強度に影響。
-                <ul>
-                    <li>1本: 非常に弱い、透明性高い、装飾用のみ</li>
-                    <li>2本: 標準（バランス良好）</li>
-                    <li>3-4本: 高強度、表面品質向上、気密性向上</li>
-                </ul>
-            </li>
-            <li><strong>シェル順序</strong>: 内側→外側（Inside-Out）が一般的。外側→内側は表面品質重視時に使用。</li>
-        </ul>
-
-        <h4>インフィル（内部充填）パターン</h4>
-        <p><strong>インフィル（Infill）</strong>は内部構造を形成し、強度と材料使用量を制御します：</p>
-
-        <table>
-            <tr>
-                <th>パターン</th>
-                <th>強度</th>
-                <th>印刷速度</th>
-                <th>材料使用量</th>
-                <th>特徴</th>
-            </tr>
-            <tr>
-                <td>Grid（格子）</td>
-                <td>中</td>
-                <td>速い</td>
-                <td>中</td>
-                <td>シンプル、等方性、標準的な選択</td>
-            </tr>
-            <tr>
-                <td>Honeycomb（ハニカム）</td>
-                <td>高</td>
-                <td>遅い</td>
-                <td>中</td>
-                <td>高強度、重量比優秀、航空宇宙用途</td>
-            </tr>
-            <tr>
-                <td>Gyroid</td>
-                <td>非常に高</td>
-                <td>中</td>
-                <td>中</td>
-                <td>3次元等方性、曲面的、最新の推奨</td>
-            </tr>
-            <tr>
-                <td>Concentric（同心円）</td>
-                <td>低</td>
-                <td>速い</td>
-                <td>少</td>
-                <td>柔軟性重視、シェル追従</td>
-            </tr>
-            <tr>
-                <td>Lines（直線）</td>
-                <td>低（異方性）</td>
-                <td>非常に速い</td>
-                <td>少</td>
-                <td>高速印刷、方向性強度</td>
-            </tr>
-        </table>
-
-        <div class="info-box">
-            <strong>💡 インフィル密度の目安</strong>
-            <ul>
-                <li><strong>0-10%</strong>: 装飾品、非荷重部品（材料節約優先）</li>
-                <li><strong>20%</strong>: 標準的なプロトタイプ（バランス良好）</li>
-                <li><strong>40-60%</strong>: 機能部品、高強度要求</li>
-                <li><strong>100%</strong>: 最終製品、水密性要求、最高強度（造形時間×3-5倍）</li>
-            </ul>
-        </div>
-
-        <h3>1.4.3 サポート構造の生成</h3>
-
-        <p>オーバーハング角度が45度を超える部分は、<strong>サポート構造（Support Structure）</strong>が必要です：</p>
-
-        <h4>サポートのタイプ</h4>
-        <ul>
-            <li><strong>Linear Support（直線サポート）</strong>: 垂直な柱状サポート。シンプルで除去しやすいが、材料使用量多い。</li>
-            <li><strong>Tree Support（ツリーサポート）</strong>: 樹木状に分岐するサポート。材料使用量30-50%削減、除去しやすい。CuraやPrusaSlicerで標準サポート。</li>
-            <li><strong>Interface Layers（接合層）</strong>: サポート上面に薄い接合層を設ける。除去しやすく、表面品質向上。通常2-4層。</li>
-        </ul>
-
-        <h4>サポート設定の重要パラメータ</h4>
-        <table>
-            <tr>
-                <th>パラメータ</th>
-                <th>推奨値</th>
-                <th>効果</th>
-            </tr>
-            <tr>
-                <td>Overhang Angle</td>
-                <td>45-60°</td>
-                <td>この角度以上でサポート生成</td>
-            </tr>
-            <tr>
-                <td>Support Density</td>
-                <td>10-20%</td>
-                <td>密度が高いほど安定だが除去困難</td>
-            </tr>
-            <tr>
-                <td>Support Z Distance</td>
-                <td>0.2-0.3 mm</td>
-                <td>サポートと造形物の間隔（除去しやすさ）</td>
-            </tr>
-            <tr>
-                <td>Interface Layers</td>
-                <td>2-4層</td>
-                <td>接合層数（表面品質と除去性のバランス）</td>
-            </tr>
-        </table>
-
-        <h3>1.4.4 G-codeの基礎</h3>
-
-        <p><strong>G-code</strong>は、3DプリンタやCNCマシンを制御する標準的な数値制御言語です。各行が1つのコマンドを表します：</p>
-
-        <h4>主要なG-codeコマンド</h4>
-
-        <table>
-            <tr>
-                <th>コマンド</th>
-                <th>分類</th>
-                <th>機能</th>
-                <th>例</th>
-            </tr>
-            <tr>
-                <td>G0</td>
-                <td>移動</td>
-                <td>高速移動（非押出）</td>
-                <td>G0 X100 Y50 Z10 F6000</td>
-            </tr>
-            <tr>
-                <td>G1</td>
-                <td>移動</td>
-                <td>直線移動（押出あり）</td>
-                <td>G1 X120 Y60 E0.5 F1200</td>
-            </tr>
-            <tr>
-                <td>G28</td>
-                <td>初期化</td>
-                <td>ホームポジション復帰</td>
-                <td>G28 （全軸）, G28 Z （Z軸のみ）</td>
-            </tr>
-            <tr>
-                <td>M104</td>
-                <td>温度</td>
-                <td>ノズル温度設定（非待機）</td>
-                <td>M104 S200</td>
-            </tr>
-            <tr>
-                <td>M109</td>
-                <td>温度</td>
-                <td>ノズル温度設定（待機）</td>
-                <td>M109 S210</td>
-            </tr>
-            <tr>
-                <td>M140</td>
-                <td>温度</td>
-                <td>ベッド温度設定（非待機）</td>
-                <td>M140 S60</td>
-            </tr>
-            <tr>
-                <td>M190</td>
-                <td>温度</td>
-                <td>ベッド温度設定（待機）</td>
-                <td>M190 S60</td>
-            </tr>
-        </table>
-
-        <h4>G-codeの例（造形開始部分）</h4>
-        <pre><code class="language-gcode">; === Start G-code ===
-M140 S60       ; ベッドを60°Cに加熱開始（非待機）
-M104 S210      ; ノズルを210°Cに加熱開始（非待機）
-G28            ; 全軸ホーミング
-G29            ; オートレベリング（ベッドメッシュ計測）
-M190 S60       ; ベッド温度到達を待機
-M109 S210      ; ノズル温度到達を待機
-G92 E0         ; 押出量をゼロリセット
-G1 Z2.0 F3000  ; Z軸を2mm上昇（安全確保）
-G1 X10 Y10 F5000  ; プライム位置へ移動
-G1 Z0.3 F3000  ; Z軸を0.3mmへ降下（初層高さ）
-G1 X100 E10 F1500 ; プライムライン描画（ノズル詰まり除去）
-G92 E0         ; 押出量を再度ゼロリセット
-; === 造形開始 ===
-</code></pre>
-
-        <h3>1.4.5 主要スライシングソフトウェア</h3>
-
-        <table>
-            <tr>
-                <th>ソフトウェア</th>
-                <th>ライセンス</th>
-                <th>特徴</th>
-                <th>推奨用途</th>
-            </tr>
-            <tr>
-                <td>Cura</td>
-                <td>オープンソース</td>
-                <td>使いやすい、豊富なプリセット、Tree Support標準搭載</td>
-                <td>初心者〜中級者、FDM汎用</td>
-            </tr>
-            <tr>
-                <td>PrusaSlicer</td>
-                <td>オープンソース</td>
-                <td>高度な設定、変数レイヤー高さ、カスタムサポート</td>
-                <td>中級者〜上級者、最適化重視</td>
-            </tr>
-            <tr>
-                <td>Slic3r</td>
-                <td>オープンソース</td>
-                <td>PrusaSlicerの元祖、軽量</td>
-                <td>レガシーシステム、研究用途</td>
-            </tr>
-            <tr>
-                <td>Simplify3D</td>
-                <td>商用（$150）</td>
-                <td>高速スライシング、マルチプロセス、詳細制御</td>
-                <td>プロフェッショナル、産業用途</td>
-            </tr>
-            <tr>
-                <td>IdeaMaker</td>
-                <td>無料</td>
-                <td>Raise3D専用だが汎用性高い、直感的UI</td>
-                <td>Raise3Dユーザー、初心者</td>
-            </tr>
-        </table>
-
-        <h3>1.4.6 ツールパス最適化戦略</h3>
-
-        <p>効率的なツールパスは、造形時間・品質・材料使用量を改善します：</p>
-
-        <ul>
-            <li><strong>リトラクション（Retraction）</strong>: 移動時にフィラメントを引き戻してストリング（糸引き）を防止。
-                <ul>
-                    <li>距離: 1-6mm（ボーデンチューブ式は4-6mm、ダイレクト式は1-2mm）</li>
-                    <li>速度: 25-45 mm/s</li>
-                    <li>過度なリトラクションはノズル詰まりの原因</li>
-                </ul>
-            </li>
-            <li><strong>Z-hop（Z軸跳躍）</strong>: 移動時にノズルを上昇させて造形物との衝突を回避。0.2-0.5mm上昇。造形時間微増だが表面品質向上。</li>
-            <li><strong>コーミング（Combing）</strong>: 移動経路をインフィル上に制限し、表面への移動痕を低減。外観重視時に有効。</li>
-            <li><strong>シーム位置（Seam Position）</strong>: 各層の開始/終了点を揃える戦略。
-                <ul>
-                    <li>Random: ランダム配置（目立たない）</li>
-                    <li>Aligned: 一直線に配置（後加工でシームを除去しやすい）</li>
-                    <li>Sharpest Corner: 最も鋭角なコーナーに配置（目立ちにくい）</li>
-                </ul>
-            </li>
-        </ul>
-
-        <h3>Example 1: STLファイルの読み込みと基本情報取得</h3>
-        <pre><code class="language-python"># ===================================
-# Example 1: STLファイルの読み込みと基本情報取得
-# ===================================
-
-import numpy as np
-from stl import mesh
-
-# STLファイルを読み込む
-your_mesh = mesh.Mesh.from_file('model.stl')
-
-# 基本的な幾何情報を取得
-volume, cog, inertia = your_mesh.get_mass_properties()
-
-print("=== STLファイル基本情報 ===")
-print(f"Volume: {volume:.2f} mm³")
-print(f"Surface Area: {your_mesh.areas.sum():.2f} mm²")
-print(f"Center of Gravity: [{cog[0]:.2f}, {cog[1]:.2f}, {cog[2]:.2f}] mm")
-print(f"Number of Triangles: {len(your_mesh.vectors)}")
-
-# バウンディングボックス（最小包含直方体）を計算
-min_coords = your_mesh.vectors.min(axis=(0, 1))
-max_coords = your_mesh.vectors.max(axis=(0, 1))
-dimensions = max_coords - min_coords
-
-print(f"\n=== バウンディングボックス ===")
-print(f"X: {min_coords[0]:.2f} to {max_coords[0]:.2f} mm (幅: {dimensions[0]:.2f} mm)")
-print(f"Y: {min_coords[1]:.2f} to {max_coords[1]:.2f} mm (奥行: {dimensions[1]:.2f} mm)")
-print(f"Z: {min_coords[2]:.2f} to {max_coords[2]:.2f} mm (高さ: {dimensions[2]:.2f} mm)")
-
-# 造形時間の簡易推定（レイヤー高さ0.2mm、速度50mm/sと仮定）
-layer_height = 0.2  # mm
-print_speed = 50    # mm/s
-num_layers = int(dimensions[2] / layer_height)
-# 簡易計算: 表面積に基づく推定
-estimated_path_length = your_mesh.areas.sum() / layer_height  # mm
-estimated_time_seconds = estimated_path_length / print_speed
-estimated_time_minutes = estimated_time_seconds / 60
-
-print(f"\n=== 造形推定 ===")
-print(f"レイヤー数（0.2mm/層）: {num_layers} 層")
-print(f"推定造形時間: {estimated_time_minutes:.1f} 分 ({estimated_time_minutes/60:.2f} 時間)")
-
-# 出力例:
-# === STLファイル基本情報 ===
-# Volume: 12450.75 mm³
-# Surface Area: 5832.42 mm²
-# Center of Gravity: [25.34, 18.92, 15.67] mm
-# Number of Triangles: 2456
-#
-# === バウンディングボックス ===
-# X: 0.00 to 50.00 mm (幅: 50.00 mm)
-# Y: 0.00 to 40.00 mm (奥行: 40.00 mm)
-# Z: 0.00 to 30.00 mm (高さ: 30.00 mm)
-#
-# === 造形推定 ===
-# レイヤー数（0.2mm/層）: 150 層
-# 推定造形時間: 97.2 分 (1.62 時間)
-</code></pre>
-
-        <h3>Example 2: メッシュの法線ベクトル検証</h3>
-        <pre><code class="language-python"># ===================================
-# Example 2: メッシュの法線ベクトル検証
-# ===================================
-
-import numpy as np
-from stl import mesh
-
-def check_normals(mesh_data):
-    """STLメッシュの法線ベクトルの整合性をチェック
-
-    Args:
-        mesh_data: numpy-stlのMeshオブジェクト
-
-    Returns:
-        tuple: (flipped_count, total_count, percentage)
-    """
-    # 右手系ルールで法線方向を確認
-    flipped_count = 0
-    total_count = len(mesh_data.vectors)
-
-    for i, facet in enumerate(mesh_data.vectors):
-        v0, v1, v2 = facet
-
-        # エッジベクトルを計算
-        edge1 = v1 - v0
-        edge2 = v2 - v0
-
-        # 外積で法線を計算（右手系）
-        calculated_normal = np.cross(edge1, edge2)
-
-        # 正規化
-        norm = np.linalg.norm(calculated_normal)
-        if norm > 1e-10:  # ゼロベクトルでないことを確認
-            calculated_normal = calculated_normal / norm
-        else:
-            continue  # 縮退三角形をスキップ
-
-        # ファイルに保存されている法線と比較
-        stored_normal = mesh_data.normals[i]
-        stored_norm = np.linalg.norm(stored_normal)
-
-        if stored_norm > 1e-10:
-            stored_normal = stored_normal / stored_norm
-
-        # 内積で方向の一致をチェック
-        dot_product = np.dot(calculated_normal, stored_normal)
-
-        # 内積が負なら逆向き
-        if dot_product < 0:
-            flipped_count += 1
-
-    percentage = (flipped_count / total_count) * 100 if total_count > 0 else 0
-
-    return flipped_count, total_count, percentage
-
-# STLファイルを読み込み
-your_mesh = mesh.Mesh.from_file('model.stl')
-
-# 法線チェックを実行
-flipped, total, percent = check_normals(your_mesh)
-
-print("=== 法線ベクトル検証結果 ===")
-print(f"総三角形数: {total}")
-print(f"反転法線数: {flipped}")
-print(f"反転率: {percent:.2f}%")
-
-if flipped == 0:
-    print("\n✅ すべての法線が正しい方向を向いています")
-    print("   このメッシュは3Dプリント可能です")
-elif percent < 5:
-    print("\n⚠️ 一部の法線が反転しています（軽微）")
-    print("   スライサーが自動修正する可能性が高い")
-else:
-    print("\n❌ 多数の法線が反転しています（重大）")
-    print("   メッシュ修復ツール（Meshmixer, netfabb）での修正を推奨")
-
-# 出力例:
-# === 法線ベクトル検証結果 ===
-# 総三角形数: 2456
-# 反転法線数: 0
-# 反転率: 0.00%
-#
-# ✅ すべての法線が正しい方向を向いています
-#    このメッシュは3Dプリント可能です
-</code></pre>
-
-        <h3>Example 3: マニフォールド性のチェック</h3>
-        <pre><code class="language-python"># ===================================
-# Example 3: マニフォールド性（Watertight）のチェック
-# ===================================
-
-import trimesh
-
-# STLファイルを読み込み（trimeshは自動で修復を試みる）
-mesh = trimesh.load('model.stl')
-
-print("=== メッシュ品質診断 ===")
-
-# 基本情報
-print(f"Vertex count: {len(mesh.vertices)}")
-print(f"Face count: {len(mesh.faces)}")
-print(f"Volume: {mesh.volume:.2f} mm³")
-
-# マニフォールド性をチェック
-print(f"\n=== 3Dプリント適性チェック ===")
-print(f"Is watertight (密閉性): {mesh.is_watertight}")
-print(f"Is winding consistent (法線一致性): {mesh.is_winding_consistent}")
-print(f"Is valid (幾何的妥当性): {mesh.is_valid}")
-
-# 問題の詳細を診断
-if not mesh.is_watertight:
-    # 穴（hole）の数を検出
-    try:
-        edges = mesh.edges_unique
-        edges_sorted = mesh.edges_sorted
-        duplicate_edges = len(edges_sorted) - len(edges)
-        print(f"\n⚠️ 問題検出:")
-        print(f"   - メッシュに穴があります")
-        print(f"   - 重複エッジ数: {duplicate_edges}")
-    except:
-        print(f"\n⚠️ メッシュ構造に問題があります")
-
-# 修復を試みる
-if not mesh.is_watertight or not mesh.is_winding_consistent:
-    print(f"\n🔧 自動修復を実行中...")
-
-    # 法線を修正
-    trimesh.repair.fix_normals(mesh)
-    print("   ✓ 法線ベクトルを修正")
-
-    # 穴を埋める
-    trimesh.repair.fill_holes(mesh)
-    print("   ✓ 穴を充填")
-
-    # 縮退三角形を削除
-    mesh.remove_degenerate_faces()
-    print("   ✓ 縮退面を削除")
-
-    # 重複頂点を結合
-    mesh.merge_vertices()
-    print("   ✓ 重複頂点を結合")
-
-    # 修復後の状態を確認
-    print(f"\n=== 修復後の状態 ===")
-    print(f"Is watertight: {mesh.is_watertight}")
-    print(f"Is winding consistent: {mesh.is_winding_consistent}")
-
-    # 修復したメッシュを保存
-    if mesh.is_watertight:
-        mesh.export('model_repaired.stl')
-        print(f"\n✅ 修復完了！ model_repaired.stl として保存しました")
-    else:
-        print(f"\n❌ 自動修復失敗。Meshmixer等の専用ツールを推奨")
-else:
-    print(f"\n✅ このメッシュは3Dプリント可能です")
-
-# 出力例:
-# === メッシュ品質診断 ===
-# Vertex count: 1534
-# Face count: 2456
-# Volume: 12450.75 mm³
-#
-# === 3Dプリント適性チェック ===
-# Is watertight (密閉性): True
-# Is winding consistent (法線一致性): True
-# Is valid (幾何的妥当性): True
-#
-# ✅ このメッシュは3Dプリント可能です
-</code></pre>
-
-        <h3>Example 4: 基本的なスライシングアルゴリズム</h3>
-        <pre><code class="language-python"># ===================================
-# Example 4: 基本的なスライシングアルゴリズム
-# ===================================
-
-import numpy as np
-from stl import mesh
-
-def slice_mesh_at_height(mesh_data, z_height):
-    """温度プロファイルを生成
-
-    Args:
-        t (array): 時間配列 [min]
-        T_target (float): 保持温度 [°C]
-        heating_rate (float): 加熱速度 [°C/min]
-        hold_time (float): 保持時間 [min]
-        cooling_rate (float): 冷却速度 [°C/min]
-
-    Returns:
-        array: 温度プロファイル [°C]
-    """
-    T_room = 25  # 室温
-    T = np.zeros_like(t)
-
-    # 加熱時間
-    t_heat = (T_target - T_room) / heating_rate
-
-    # 冷却開始時刻
-    t_cool_start = t_heat + hold_time
-
-    for i, time in enumerate(t):
-        if time <= t_heat:
-            # 加熱フェーズ
-            T[i] = T_room + heating_rate * time
-        elif time <= t_cool_start:
-            # 保持フェーズ
-            T[i] = T_target
-        else:
-            # 冷却フェーズ
-            T[i] = T_target - cooling_rate * (time - t_cool_start)
-            T[i] = max(T[i], T_room)  # 室温以下にはならない
-
-    return T
-
-def simulate_reaction_progress(T, t, Ea, D0, r0):
-    """温度プロファイルに基づく反応進行を計算
-
-    Args:
-        T (array): 温度プロファイル [°C]
-        t (array): 時間配列 [min]
-        Ea (float): 活性化エネルギー [J/mol]
-        D0 (float): 頻度因子 [m²/s]
-        r0 (float): 粒子半径 [m]
-
-    Returns:
-        array: 反応率
-    """
-    R = 8.314
-    C0 = 10000
-    alpha = np.zeros_like(t)
-
-    for i in range(1, len(t)):
-        T_k = T[i] + 273.15
-        D = D0 * np.exp(-Ea / (R * T_k))
-        k = D * C0 / r0**2
-
-        dt = (t[i] - t[i-1]) * 60  # min → s
-
-        # 簡易積分（微小時間での反応進行）
-        if alpha[i-1] < 0.99:
-            dalpha = k * dt / (2 * (1 - (1-alpha[i-1])**(1/3)))
-            alpha[i] = min(alpha[i-1] + dalpha, 1.0)
-        else:
-            alpha[i] = alpha[i-1]
-
-    return alpha
-
-# パラメータ設定
-T_target = 1200  # °C
-hold_time = 240  # min (4 hours)
-Ea = 300e3  # J/mol
-D0 = 5e-4  # m²/s
-r0 = 5e-6  # m
-
-# 異なる加熱速度での比較
-heating_rates = [2, 5, 10, 20]  # °C/min
-cooling_rate = 3  # °C/min
-
-# 時間配列
-t_max = 800  # min
-t = np.linspace(0, t_max, 2000)
-
-# プロット
-fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 10))
-
-# 温度プロファイル
-for hr in heating_rates:
-    T_profile = temperature_profile(t, T_target, hr, hold_time, cooling_rate)
-    ax1.plot(t/60, T_profile, linewidth=2, label=f'{hr}°C/min')
-
-ax1.set_xlabel('Time (hours)', fontsize=12)
-ax1.set_ylabel('Temperature (°C)', fontsize=12)
-ax1.set_title('Temperature Profiles', fontsize=14, fontweight='bold')
-ax1.legend(fontsize=10)
-ax1.grid(True, alpha=0.3)
-ax1.set_xlim([0, t_max/60])
-
-# 反応進行
-for hr in heating_rates:
-    T_profile = temperature_profile(t, T_target, hr, hold_time, cooling_rate)
-    alpha = simulate_reaction_progress(T_profile, t, Ea, D0, r0)
-    ax2.plot(t/60, alpha, linewidth=2, label=f'{hr}°C/min')
-
-ax2.axhline(y=0.95, color='red', linestyle='--', linewidth=1, label='Target (95%)')
-ax2.set_xlabel('Time (hours)', fontsize=12)
-ax2.set_ylabel('Conversion', fontsize=12)
-ax2.set_title('Reaction Progress', fontsize=14, fontweight='bold')
-ax2.legend(fontsize=10)
-ax2.grid(True, alpha=0.3)
-ax2.set_xlim([0, t_max/60])
-ax2.set_ylim([0, 1])
-
-plt.tight_layout()
-plt.savefig('temperature_profile_optimization.png', dpi=300, bbox_inches='tight')
-plt.show()
-
-# 各加熱速度での95%反応到達時間を計算
-print("\n95%反応到達時間の比較:")
-print("=" * 60)
-for hr in heating_rates:
-    T_profile = temperature_profile(t, T_target, hr, hold_time, cooling_rate)
-    alpha = simulate_reaction_progress(T_profile, t, Ea, D0, r0)
-
-    # 95%到達時刻
-    idx_95 = np.where(alpha >= 0.95)[0]
-    if len(idx_95) > 0:
-        t_95 = t[idx_95[0]] / 60
-        print(f"加熱速度 {hr:2d}°C/min: t₉₅ = {t_95:.1f} hours")
-    else:
-        print(f"加熱速度 {hr:2d}°C/min: 反応不完全")
-
-# 出力例:
-# 95%反応到達時間の比較:
-# ============================================================
-# 加熱速度  2°C/min: t₉₅ = 7.8 hours
-# 加熱速度  5°C/min: t₉₅ = 7.2 hours
-# 加熱速度 10°C/min: t₉₅ = 6.9 hours
-# 加熱速度 20°C/min: t₉₅ = 6.7 hours
-</code></pre>
 
         <h2>演習問題</h2>
+        <p>理解を確認するための演習です。まず自分で考えてから解答を開いてください。</p>
 
-        <h3>1.5.1 pycalphadとは</h3>
-        <p><strong>pycalphad</strong>は、CALPHAD（CALculation of PHAse Diagrams）法に基づく相図計算のためのPythonライブラリです。熱力学データベースから平衡相を計算し、反応経路の設計に有用です。</p>
-
-        <div class="info-box">
-            <strong>💡 CALPHAD法の利点</strong>
-            <ul>
-                <li>多元系（3元系以上）の複雑な相図を計算可能</li>
-                <li>実験データが少ない系でも予測可能</li>
-                <li>温度・組成・圧力依存性を包括的に扱える</li>
-            </ul>
+        <div class="exercise">
+            <p class="exercise-title">演習1（基礎）: 水密性の意味</p>
+            <p>コード例1で、立方体メッシュの1枚の三角形をうっかり削除したとします。<code>is_watertight</code> の結果はどう変わり、それは造形にどんな問題を引き起こしますか。</p>
+            <details>
+                <summary>解答を見る</summary>
+                <p>三角形を1枚削除すると、その三角形が担っていた3本のエッジのうち、隣接三角形と共有していたエッジは共有数が2から1へ減ります。共有数が1のエッジが生じるため <code>np.all(counts == 2)</code> が False となり、<strong>watertight = False</strong>（穴あき）と判定されます。表面に穴が空いたメッシュは内外の区別が曖昧になり、スライサーが断面輪郭を閉じられず、造形が失敗したり意図しない中空・欠損が生じます。</p>
+            </details>
         </div>
 
-        <h3>1.5.2 二元系相図の計算例</h3>
-        <pre><code class="language-python"># ===================================
-# Example 5: pycalphadで相図計算
-# ===================================
+        <div class="exercise">
+            <p class="exercise-title">演習2（計算）: スライス周長の予測</p>
+            <p>コード例2の四角錐（底辺20 mm・高さ30 mm）を z = 15 mm でスライスすると、断面正方形の一辺と周長はいくらになりますか。相似比から手計算してください。</p>
+            <details>
+                <summary>解答を見る</summary>
+                <p>四角錐は高さ30 mmで頂点に収束するので、高さ z における断面正方形の一辺は 20 ×(1 − z/30) です。z = 15 mm では 20 ×(1 − 0.5) = <strong>10 mm</strong>。周長は 4 × 10 = <strong>40 mm</strong>。コード例2の出力（z=12で48、z=18で32）の中間として整合します。</p>
+            </details>
+        </div>
 
-# 注意: pycalphadのインストールが必要
-# pip install pycalphad
+        <div class="exercise">
+            <p class="exercise-title">演習3（考察）: 安定条件</p>
+            <p>コード例3で、時間刻みを <code>dt = 0.6 * dx**2 / alpha</code> に変えると格子フーリエ数 r はいくつになり、計算結果はどうなると予想されますか。</p>
+            <details>
+                <summary>解答を見る</summary>
+                <p>r = α·dt/dx² = 0.6 となり、陽解法の<strong>安定条件 r ≤ 0.5 を超えます</strong>。このとき数値解は時間ステップごとに振動が増幅し、温度が物理的にありえない値（例えば数百度を超える発散や負の温度）へ暴走します。陽解法では安定条件が絶対で、dxを細かくするほどdtも小さくする必要があります。安定条件に縛られたくない場合は、無条件安定な陰解法（implicit method）を用います。</p>
+            </details>
+        </div>
 
-from pycalphad import Database, equilibrium, variables as v
-import matplotlib.pyplot as plt
-import numpy as np
+        <div class="exercise">
+            <p class="exercise-title">演習4（応用）: 制約の変更</p>
+            <p>コード例4で許容表面粗さを <code>Ra_max = 3.0</code>（µm）に厳しくすると、最短造形時間の条件はどう変わりますか。表の値から答えてください。</p>
+            <details>
+                <summary>解答を見る</summary>
+                <p>Ra ≤ 3.0 µm を満たすのはレイヤー高さ0.10 mm（Ra=1.25）と0.15 mm（Ra=2.81）のみで、0.20 mm（Ra=5.00）は除外されます。この範囲で最短時間は<strong>レイヤー高さ0.15 mm・速度100 mm/s</strong>の2.67分です。品質要求を厳しくすると、選べるレイヤー高さの上限が下がり、造形時間が延びるというトレードオフが明確に現れます。</p>
+            </details>
+        </div>
 
-# TDBデータベースを読み込み（ここでは簡易的な例）
-# 実際には適切なTDBファイルが必要
-# 例: BaO-TiO2系
+        <div class="exercise">
+            <p class="exercise-title">演習5（応用）: 特徴量重要度の解釈</p>
+            <p>コード例5で、もし特徴量重要度において「印刷速度」が最大になったとしたら、生成関数や実データについてどんな解釈が可能ですか。</p>
+            <details>
+                <summary>解答を見る</summary>
+                <p>印刷速度の重要度が最大になるのは、強度が速度に強く依存する場合です。生成関数でいえば速度の係数（現状 −0.05）が他より大きい、あるいは速度が広い範囲で変動して強度への寄与が支配的になった状況です。実データでこれが起きたなら、その装置・材料では<strong>高速化に伴う溶着時間の不足（層間接着の低下）が強度のボトルネック</strong>になっている可能性を示唆します。対策として速度上限の見直しやノズル温度の引き上げ（第2章の層間強度モデル）が候補になります。重要度は「どの因子を優先して管理すべきか」を教えてくれる診断ツールです。</p>
+            </details>
+        </div>
 
-# 簡易的なTDB文字列（実際はより複雑）
-tdb_string = """
-$ BaO-TiO2 system (simplified)
-ELEMENT BA   BCC_A2  137.327   !
-ELEMENT TI   HCP_A3   47.867   !
-ELEMENT O    GAS      15.999   !
-
-FUNCTION GBCCBA   298.15  +GHSERBA;   6000 N !
-FUNCTION GHCPTI   298.15  +GHSERTI;   6000 N !
-FUNCTION GGASO    298.15  +GHSERO;    6000 N !
-
-PHASE LIQUID:L %  1  1.0  !
-PHASE BAO_CUBIC %  2  1 1  !
-PHASE TIO2_RUTILE %  2  1 2  !
-PHASE BATIO3 %  3  1 1 3  !
-"""
-
-# 注: 実際の計算には正式なTDBファイルが必要
-# ここでは概念的な説明に留める
-
-print("pycalphadによる相図計算の概念:")
-print("=" * 60)
-print("1. TDBデータベース（熱力学データ）を読み込む")
-print("2. 温度・組成範囲を設定")
-print("3. 平衡計算を実行")
-print("4. 安定相を可視化")
-print()
-print("実際の適用例:")
-print("- BaO-TiO2系: BaTiO3の形成温度・組成範囲")
-print("- Si-N系: Si3N4の安定領域")
-print("- 多元系セラミックスの相関係")
-
-# 概念的なプロット（実データに基づくイメージ）
-fig, ax = plt.subplots(figsize=(10, 7))
-
-# 温度範囲
-T = np.linspace(800, 1600, 100)
-
-# 各相の安定領域（概念図）
-# BaO + TiO2 → BaTiO3 反応
-BaO_region = np.ones_like(T) * 0.3
-TiO2_region = np.ones_like(T) * 0.7
-BaTiO3_region = np.where((T > 1100) & (T < 1400), 0.5, np.nan)
-
-ax.fill_between(T, 0, BaO_region, alpha=0.3, color='blue', label='BaO + TiO2')
-ax.fill_between(T, BaO_region, TiO2_region, alpha=0.3, color='green',
-                label='BaTiO3 stable')
-ax.fill_between(T, TiO2_region, 1, alpha=0.3, color='red', label='Liquid')
-
-ax.axhline(y=0.5, color='black', linestyle='--', linewidth=2,
-           label='BaTiO3 composition')
-ax.axvline(x=1100, color='gray', linestyle=':', linewidth=1, alpha=0.5)
-ax.axvline(x=1400, color='gray', linestyle=':', linewidth=1, alpha=0.5)
-
-ax.set_xlabel('Temperature (°C)', fontsize=12)
-ax.set_ylabel('Composition (BaO mole fraction)', fontsize=12)
-ax.set_title('Conceptual Phase Diagram: BaO-TiO2', fontsize=14, fontweight='bold')
-ax.legend(fontsize=10, loc='upper right')
-ax.grid(True, alpha=0.3)
-ax.set_xlim([800, 1600])
-ax.set_ylim([0, 1])
-
-# テキスト注釈
-ax.text(1250, 0.5, 'BaTiO₃\nformation\nregion',
-        fontsize=11, ha='center', va='center',
-        bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.7))
-
-plt.tight_layout()
-plt.savefig('phase_diagram_concept.png', dpi=300, bbox_inches='tight')
-plt.show()
-
-# 実際の使用例（コメントアウト）
-"""
-# 実際のpycalphad使用例
-db = Database('BaO-TiO2.tdb')  # TDBファイル読み込み
-
-# 平衡計算
-eq = equilibrium(db, ['BA', 'TI', 'O'], ['LIQUID', 'BATIO3'],
-                 {v.X('BA'): (0, 1, 0.01),
-                  v.T: (1000, 1600, 50),
-                  v.P: 101325})
-
-# 結果プロット
-eq.plot()
-"""
-</code></pre>
-
-        <h2>1.6 実験計画法（DOE）による条件最適化</h2>
-
-        <h3>1.6.1 DOEとは</h3>
-        <p>実験計画法（Design of Experiments, DOE）は、複数のパラメータが相互作用する系で、最小の実験回数で最適条件を見つける統計手法です。</p>
-
-        <p><strong>固相反応で最適化すべき主要パラメータ：</strong></p>
+        <h2>まとめ</h2>
+        <p>本章では、シリーズで学んだ積層造形の知識を、5つの実行可能なPythonコードとして手を動かして確認しました。要点は次のとおりです。</p>
         <ul>
-            <li>反応温度（T）</li>
-            <li>保持時間（t）</li>
-            <li>粒子サイズ（r）</li>
-            <li>原料比（モル比）</li>
-            <li>雰囲気（空気、窒素、真空など）</li>
+            <li><strong>STL解析（5.1）</strong>: 三角形メッシュから体積・表面積・法線・水密性をNumPyだけで計算。理論値との一致で実装を検算できる。</li>
+            <li><strong>スライシング（5.2）</strong>: 「平面と三角形の交線分を求める」幾何演算が核心。断面輪郭の周長から造形経路を見積もれる。</li>
+            <li><strong>熱シミュレーション（5.3）</strong>: 非定常熱伝導方程式を陽解法で解き、冷却曲線を得た。安定条件と、周囲温度が冷却を支配することを確認。</li>
+            <li><strong>パラメータ最適化（5.4）</strong>: グリッドサーチで造形時間と表面品質のトレードオフを定量化し、制約付きで最適条件を選定。</li>
+            <li><strong>機械学習（5.5）</strong>: 合成データでランダムフォレスト回帰を学習し、特徴量重要度から支配的パラメータを特定。</li>
+            <li><strong>共通の姿勢</strong>: どの手法も前提と限界を持つ。数値の絶対値を過信せず、傾向と意思決定支援として活用する。</li>
         </ul>
-
-        <h3>1.6.2 応答曲面法（Response Surface Methodology）</h3>
-        <pre><code class="language-python"># ===================================
-# Example 6: DOEによる条件最適化
-# ===================================
-
-import numpy as np
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-from scipy.optimize import minimize
-
-# 仮想的な反応率モデル（温度と時間の関数）
-def reaction_yield(T, t, noise=0):
-    """温度と時間から反応率を計算（仮想モデル）
-
-    Args:
-        T (float): 温度 [°C]
-        t (float): 時間 [hours]
-        noise (float): ノイズレベル
-
-    Returns:
-        float: 反応率 [%]
-    """
-    # 最適値: T=1200°C, t=6 hours
-    T_opt = 1200
-    t_opt = 6
-
-    # 二次モデル（ガウス型）
-    yield_val = 100 * np.exp(-((T-T_opt)/150)**2 - ((t-t_opt)/3)**2)
-
-    # ノイズ追加
-    if noise > 0:
-        yield_val += np.random.normal(0, noise)
-
-    return np.clip(yield_val, 0, 100)
-
-# 実験点配置（中心複合計画法）
-T_levels = [1000, 1100, 1200, 1300, 1400]  # °C
-t_levels = [2, 4, 6, 8, 10]  # hours
-
-# グリッドで実験点を配置
-T_grid, t_grid = np.meshgrid(T_levels, t_levels)
-yield_grid = np.zeros_like(T_grid, dtype=float)
-
-# 各実験点で反応率を測定（シミュレーション）
-for i in range(len(t_levels)):
-    for j in range(len(T_levels)):
-        yield_grid[i, j] = reaction_yield(T_grid[i, j], t_grid[i, j], noise=2)
-
-# 結果の表示
-print("実験計画法による反応条件最適化")
-print("=" * 70)
-print(f"{'Temperature (°C)':<20} {'Time (hours)':<20} {'Yield (%)':<20}")
-print("-" * 70)
-for i in range(len(t_levels)):
-    for j in range(len(T_levels)):
-        print(f"{T_grid[i, j]:<20} {t_grid[i, j]:<20} {yield_grid[i, j]:<20.1f}")
-
-# 最大反応率の条件を探す
-max_idx = np.unravel_index(np.argmax(yield_grid), yield_grid.shape)
-T_best = T_grid[max_idx]
-t_best = t_grid[max_idx]
-yield_best = yield_grid[max_idx]
-
-print("-" * 70)
-print(f"最適条件: T = {T_best}°C, t = {t_best} hours")
-print(f"最大反応率: {yield_best:.1f}%")
-
-# 3Dプロット
-fig = plt.figure(figsize=(14, 6))
-
-# 3D表面プロット
-ax1 = fig.add_subplot(121, projection='3d')
-T_fine = np.linspace(1000, 1400, 50)
-t_fine = np.linspace(2, 10, 50)
-T_mesh, t_mesh = np.meshgrid(T_fine, t_fine)
-yield_mesh = np.zeros_like(T_mesh)
-
-for i in range(len(t_fine)):
-    for j in range(len(T_fine)):
-        yield_mesh[i, j] = reaction_yield(T_mesh[i, j], t_mesh[i, j])
-
-surf = ax1.plot_surface(T_mesh, t_mesh, yield_mesh, cmap='viridis',
-                        alpha=0.8, edgecolor='none')
-ax1.scatter(T_grid, t_grid, yield_grid, color='red', s=50,
-            label='Experimental points')
-
-ax1.set_xlabel('Temperature (°C)', fontsize=10)
-ax1.set_ylabel('Time (hours)', fontsize=10)
-ax1.set_zlabel('Yield (%)', fontsize=10)
-ax1.set_title('Response Surface', fontsize=12, fontweight='bold')
-ax1.view_init(elev=25, azim=45)
-fig.colorbar(surf, ax=ax1, shrink=0.5, aspect=5)
-
-# 等高線プロット
-ax2 = fig.add_subplot(122)
-contour = ax2.contourf(T_mesh, t_mesh, yield_mesh, levels=20, cmap='viridis')
-ax2.contour(T_mesh, t_mesh, yield_mesh, levels=10, colors='black',
-            alpha=0.3, linewidths=0.5)
-ax2.scatter(T_grid, t_grid, c=yield_grid, s=100, edgecolors='red',
-            linewidths=2, cmap='viridis')
-ax2.scatter(T_best, t_best, color='red', s=300, marker='*',
-            edgecolors='white', linewidths=2, label='Optimum')
-
-ax2.set_xlabel('Temperature (°C)', fontsize=11)
-ax2.set_ylabel('Time (hours)', fontsize=11)
-ax2.set_title('Contour Map', fontsize=12, fontweight='bold')
-ax2.legend(fontsize=10)
-fig.colorbar(contour, ax=ax2, label='Yield (%)')
-
-plt.tight_layout()
-plt.savefig('doe_optimization.png', dpi=300, bbox_inches='tight')
-plt.show()
-</code></pre>
-
-        <h3>1.6.3 実験計画の実践的アプローチ</h3>
-        <p>実際の固相反応では、以下の手順でDOEを適用します：</p>
-
-        <ol>
-            <li><strong>スクリーニング実験</strong>（2水準要因計画法）: 影響の大きいパラメータを特定</li>
-            <li><strong>応答曲面法</strong>（中心複合計画法）: 最適条件の探索</li>
-            <li><strong>確認実験</strong>: 予測された最適条件で実験し、モデルを検証</li>
-        </ol>
 
         <div class="success-box">
-            <strong>✅ 実例: Li-ion電池正極材LiCoO₂の合成最適化</strong>
-            <p>ある研究グループがDOEを用いてLiCoO₂の合成条件を最適化した結果：</p>
-            <ul>
-                <li>実験回数: 従来法100回 → DOE法25回（75%削減）</li>
-                <li>最適温度: 900°C（従来の850°Cより高温）</li>
-                <li>最適保持時間: 12時間（従来の24時間から半減）</li>
-                <li>電池容量: 140 mAh/g → 155 mAh/g（11%向上）</li>
-            </ul>
-        </div>
-
-        <h2>1.7 反応速度曲線のフィッティング</h2>
-
-        <h3>1.7.1 実験データからの速度定数決定</h3>
-        <pre><code class="language-python"># ===================================
-# Example 7: 反応速度曲線フィッティング
-# ===================================
-
-import numpy as np
-import matplotlib.pyplot as plt
-from scipy.optimize import curve_fit
-
-# 実験データ（時間 vs 反応率）
-# 例: BaTiO3合成 @ 1200°C
-time_exp = np.array([0, 1, 2, 3, 4, 6, 8, 10, 12, 15, 20])  # hours
-conversion_exp = np.array([0, 0.15, 0.28, 0.38, 0.47, 0.60,
-                          0.70, 0.78, 0.84, 0.90, 0.95])
-
-# Jander式モデル
-def jander_model(t, k):
-    """Jander式による反応率計算
-
-    Args:
-        t (array): 時間 [hours]
-        k (float): 速度定数
-
-    Returns:
-        array: 反応率
-    """
-    # [1 - (1-α)^(1/3)]² = kt を α について解く
-    kt = k * t
-    alpha = 1 - (1 - np.sqrt(kt))**3
-    alpha = np.clip(alpha, 0, 1)  # 0-1の範囲に制限
-    return alpha
-
-# Ginstling-Brounshtein式（別の拡散モデル）
-def gb_model(t, k):
-    """Ginstling-Brounshtein式
-
-    Args:
-        t (array): 時間
-        k (float): 速度定数
-
-    Returns:
-        array: 反応率
-    """
-    # 1 - 2α/3 - (1-α)^(2/3) = kt
-    # 数値的に解く必要があるが、ここでは近似式を使用
-    kt = k * t
-    alpha = 1 - (1 - kt/2)**(3/2)
-    alpha = np.clip(alpha, 0, 1)
-    return alpha
-
-# Power law (経験式)
-def power_law_model(t, k, n):
-    """べき乗則モデル
-
-    Args:
-        t (array): 時間
-        k (float): 速度定数
-        n (float): 指数
-
-    Returns:
-        array: 反応率
-    """
-    alpha = k * t**n
-    alpha = np.clip(alpha, 0, 1)
-    return alpha
-
-# 各モデルでフィッティング
-# Jander式
-popt_jander, _ = curve_fit(jander_model, time_exp, conversion_exp, p0=[0.01])
-k_jander = popt_jander[0]
-
-# Ginstling-Brounshtein式
-popt_gb, _ = curve_fit(gb_model, time_exp, conversion_exp, p0=[0.01])
-k_gb = popt_gb[0]
-
-# Power law
-popt_power, _ = curve_fit(power_law_model, time_exp, conversion_exp, p0=[0.1, 0.5])
-k_power, n_power = popt_power
-
-# 予測曲線生成
-t_fit = np.linspace(0, 20, 200)
-alpha_jander = jander_model(t_fit, k_jander)
-alpha_gb = gb_model(t_fit, k_gb)
-alpha_power = power_law_model(t_fit, k_power, n_power)
-
-# 残差計算
-residuals_jander = conversion_exp - jander_model(time_exp, k_jander)
-residuals_gb = conversion_exp - gb_model(time_exp, k_gb)
-residuals_power = conversion_exp - power_law_model(time_exp, k_power, n_power)
-
-# R²計算
-def r_squared(y_true, y_pred):
-    ss_res = np.sum((y_true - y_pred)**2)
-    ss_tot = np.sum((y_true - np.mean(y_true))**2)
-    return 1 - (ss_res / ss_tot)
-
-r2_jander = r_squared(conversion_exp, jander_model(time_exp, k_jander))
-r2_gb = r_squared(conversion_exp, gb_model(time_exp, k_gb))
-r2_power = r_squared(conversion_exp, power_law_model(time_exp, k_power, n_power))
-
-# プロット
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
-
-# フィッティング結果
-ax1.plot(time_exp, conversion_exp, 'ko', markersize=8, label='Experimental data')
-ax1.plot(t_fit, alpha_jander, 'b-', linewidth=2,
-         label=f'Jander (R²={r2_jander:.4f})')
-ax1.plot(t_fit, alpha_gb, 'r-', linewidth=2,
-         label=f'Ginstling-Brounshtein (R²={r2_gb:.4f})')
-ax1.plot(t_fit, alpha_power, 'g-', linewidth=2,
-         label=f'Power law (R²={r2_power:.4f})')
-
-ax1.set_xlabel('Time (hours)', fontsize=12)
-ax1.set_ylabel('Conversion', fontsize=12)
-ax1.set_title('Kinetic Model Fitting', fontsize=14, fontweight='bold')
-ax1.legend(fontsize=10)
-ax1.grid(True, alpha=0.3)
-ax1.set_xlim([0, 20])
-ax1.set_ylim([0, 1])
-
-# 残差プロット
-ax2.plot(time_exp, residuals_jander, 'bo-', label='Jander')
-ax2.plot(time_exp, residuals_gb, 'ro-', label='Ginstling-Brounshtein')
-ax2.plot(time_exp, residuals_power, 'go-', label='Power law')
-ax2.axhline(y=0, color='black', linestyle='--', linewidth=1)
-
-ax2.set_xlabel('Time (hours)', fontsize=12)
-ax2.set_ylabel('Residuals', fontsize=12)
-ax2.set_title('Residual Plot', fontsize=14, fontweight='bold')
-ax2.legend(fontsize=10)
-ax2.grid(True, alpha=0.3)
-
-plt.tight_layout()
-plt.savefig('kinetic_fitting.png', dpi=300, bbox_inches='tight')
-plt.show()
-
-# 結果サマリー
-print("\n反応速度モデルのフィッティング結果:")
-print("=" * 70)
-print(f"{'Model':<25} {'Parameter':<30} {'R²':<10}")
-print("-" * 70)
-print(f"{'Jander':<25} {'k = ' + f'{k_jander:.4f} h⁻¹':<30} {r2_jander:.4f}")
-print(f"{'Ginstling-Brounshtein':<25} {'k = ' + f'{k_gb:.4f} h⁻¹':<30} {r2_gb:.4f}")
-print(f"{'Power law':<25} {'k = ' + f'{k_power:.4f}, n = {n_power:.4f}':<30} {r2_power:.4f}")
-print("=" * 70)
-print(f"\n最適モデル: {'Jander' if r2_jander == max(r2_jander, r2_gb, r2_power) else 'GB' if r2_gb == max(r2_jander, r2_gb, r2_power) else 'Power law'}")
-
-# 出力例:
-# 反応速度モデルのフィッティング結果:
-# ======================================================================
-# Model                     Parameter                      R²
-# ----------------------------------------------------------------------
-# Jander                    k = 0.0289 h⁻¹                 0.9953
-# Ginstling-Brounshtein     k = 0.0412 h⁻¹                 0.9867
-# Power law                 k = 0.2156, n = 0.5234         0.9982
-# ======================================================================
-#
-# 最適モデル: Power law
-</code></pre>
-
-        <h2>1.8 高度なトピック: 微細構造制御</h2>
-
-        <h3>1.8.1 粒成長の抑制</h3>
-        <p>固相反応では、高温・長時間保持により望ましくない粒成長が起こります。これを抑制する戦略：</p>
-
-        <ul>
-            <li><strong>Two-step sintering</strong>: 高温で短時間保持後、低温で長時間保持</li>
-            <li><strong>添加剤の使用</strong>: 粒成長抑制剤（例: MgO, Al₂O₃）を微量添加</li>
-            <li><strong>Spark Plasma Sintering (SPS)</strong>: 急速加熱・短時間焼結</li>
-        </ul>
-
-        <h3>1.8.2 反応の機械化学的活性化</h3>
-        <p>メカノケミカル法（高エネルギーボールミル）により、固相反応を室温付近で進行させることも可能です：</p>
-
-        <pre><code class="language-python"># ===================================
-# Example 8: 粒成長シミュレーション
-# ===================================
-
-import numpy as np
-import matplotlib.pyplot as plt
-
-def grain_growth(t, T, D0, Ea, G0, n):
-    """粒成長の時間発展
-
-    Burke-Turnbull式: G^n - G0^n = k*t
-
-    Args:
-        t (array): 時間 [hours]
-        T (float): 温度 [K]
-        D0 (float): 頻度因子
-        Ea (float): 活性化エネルギー [J/mol]
-        G0 (float): 初期粒径 [μm]
-        n (float): 粒成長指数（通常2-4）
-
-    Returns:
-        array: 粒径 [μm]
-    """
-    R = 8.314
-    k = D0 * np.exp(-Ea / (R * T))
-    G = (G0**n + k * t * 3600)**(1/n)  # hours → seconds
-    return G
-
-# パラメータ設定
-D0_grain = 1e8  # μm^n/s
-Ea_grain = 400e3  # J/mol
-G0 = 0.5  # μm
-n = 3
-
-# 温度の影響
-temps_celsius = [1100, 1200, 1300]
-t_range = np.linspace(0, 12, 100)  # 0-12 hours
-
-plt.figure(figsize=(12, 5))
-
-# 温度依存性
-plt.subplot(1, 2, 1)
-for T_c in temps_celsius:
-    T_k = T_c + 273.15
-    G = grain_growth(t_range, T_k, D0_grain, Ea_grain, G0, n)
-    plt.plot(t_range, G, linewidth=2, label=f'{T_c}°C')
-
-plt.axhline(y=1.0, color='red', linestyle='--', linewidth=1,
-            label='Target grain size')
-plt.xlabel('Time (hours)', fontsize=12)
-plt.ylabel('Grain Size (μm)', fontsize=12)
-plt.title('Grain Growth at Different Temperatures', fontsize=14, fontweight='bold')
-plt.legend(fontsize=10)
-plt.grid(True, alpha=0.3)
-plt.ylim([0, 5])
-
-# Two-step sinteringの効果
-plt.subplot(1, 2, 2)
-
-# Conventional sintering: 1300°C, 6 hours
-t_conv = np.linspace(0, 6, 100)
-T_conv = 1300 + 273.15
-G_conv = grain_growth(t_conv, T_conv, D0_grain, Ea_grain, G0, n)
-
-# Two-step: 1300°C 1h → 1200°C 5h
-t1 = np.linspace(0, 1, 20)
-G1 = grain_growth(t1, 1300+273.15, D0_grain, Ea_grain, G0, n)
-G_intermediate = G1[-1]
-
-t2 = np.linspace(0, 5, 80)
-G2 = grain_growth(t2, 1200+273.15, D0_grain, Ea_grain, G_intermediate, n)
-
-t_two_step = np.concatenate([t1, t2 + 1])
-G_two_step = np.concatenate([G1, G2])
-
-plt.plot(t_conv, G_conv, 'r-', linewidth=2, label='Conventional (1300°C)')
-plt.plot(t_two_step, G_two_step, 'b-', linewidth=2, label='Two-step (1300°C→1200°C)')
-plt.axvline(x=1, color='gray', linestyle=':', linewidth=1, alpha=0.5)
-
-plt.xlabel('Time (hours)', fontsize=12)
-plt.ylabel('Grain Size (μm)', fontsize=12)
-plt.title('Two-Step Sintering Strategy', fontsize=14, fontweight='bold')
-plt.legend(fontsize=10)
-plt.grid(True, alpha=0.3)
-plt.ylim([0, 5])
-
-plt.tight_layout()
-plt.savefig('grain_growth_control.png', dpi=300, bbox_inches='tight')
-plt.show()
-
-# 最終粒径の比較
-G_final_conv = grain_growth(6, 1300+273.15, D0_grain, Ea_grain, G0, n)
-G_final_two_step = G_two_step[-1]
-
-print("\n粒成長の比較:")
-print("=" * 50)
-print(f"Conventional (1300°C, 6h): {G_final_conv:.2f} μm")
-print(f"Two-step (1300°C 1h + 1200°C 5h): {G_final_two_step:.2f} μm")
-print(f"粒径抑制効果: {(1 - G_final_two_step/G_final_conv)*100:.1f}%")
-
-# 出力例:
-# 粒成長の比較:
-# ==================================================
-# Conventional (1300°C, 6h): 4.23 μm
-# Two-step (1300°C 1h + 1200°C 5h): 2.87 μm
-# 粒径抑制効果: 32.2%
-</code></pre>
-
-        <h2>学習目標の確認</h2>
-        <p>この章を完了すると、以下を説明できるようになります：</p>
-
-        <h3>基本理解</h3>
-        <ul>
-            <li>✅ 固相反応の3つの律速段階（核生成・界面反応・拡散）を説明できる</li>
-            <li>✅ Arrhenius式の物理的意味と温度依存性を理解している</li>
-            <li>✅ Jander式とGinstling-Brounshtein式の違いを説明できる</li>
-            <li>✅ 温度プロファイルの3要素（加熱速度・保持時間・冷却速度）の重要性を理解している</li>
-        </ul>
-
-        <h3>実践スキル</h3>
-        <ul>
-            <li>✅ Pythonで拡散係数の温度依存性をシミュレートできる</li>
-            <li>✅ Jander式を用いて反応進行を予測できる</li>
-            <li>✅ Kissinger法でDSC/TGデータから活性化エネルギーを計算できる</li>
-            <li>✅ DOE（実験計画法）で反応条件を最適化できる</li>
-            <li>✅ pycalphadを用いた相図計算の基礎を理解している</li>
-        </ul>
-
-        <h3>応用力</h3>
-        <ul>
-            <li>✅ 新規セラミックス材料の合成プロセスを設計できる</li>
-            <li>✅ 実験データから反応機構を推定し、適切な速度式を選択できる</li>
-            <li>✅ 産業プロセスでの条件最適化戦略を立案できる</li>
-            <li>✅ 粒成長制御の戦略（Two-step sintering等）を提案できる</li>
-        </ul>
-
-        <h2>演習問題</h2>
-
-        <h3>Easy（基礎確認）</h3>
-
-        <div class="exercise">
-            <div class="exercise-title">Q1: STLファイル形式の理解</div>
-            <p>STLファイルのASCII形式とBinary形式について、正しい説明はどれですか？</p>
-            <p>a) ASCII形式の方がファイルサイズが小さい<br>
-            b) Binary形式は人間が直接読めるテキスト形式<br>
-            c) Binary形式は通常ASCII形式の5-10倍小さいファイルサイズ<br>
-            d) Binary形式はASCII形式より精度が低い</p>
-
-            <details>
-                <summary>解答を表示</summary>
-                <p><strong>正解: c) Binary形式は通常ASCII形式の5-10倍小さいファイルサイズ</strong></p>
-                <p><strong>解説:</strong></p>
-                <ul>
-                    <li><strong>ASCII STL</strong>: テキスト形式で人間が読める。各三角形が7行（facet、normal、3頂点、endfacet）で記述される。大きなファイルサイズ（数十MB〜数百MB）。</li>
-                    <li><strong>Binary STL</strong>: バイナリ形式で小型。80バイトヘッダー + 4バイト三角形数 + 各三角形50バイト。同じ形状でASCIIの1/5〜1/10のサイズ。</li>
-                    <li>精度は両形式とも同じ（32-bit浮動小数点数）</li>
-                    <li>現代の3Dプリンタソフトは両形式をサポート、Binary推奨</li>
-                </ul>
-                <p><strong>実例:</strong> 10,000三角形のモデル → ASCII: 約7MB、Binary: 約0.5MB</p>
-            </details>
-        </div>
-
-        <div class="exercise">
-            <div class="exercise-title">Q2: 造形時間の簡易計算</div>
-            <p>体積12,000 mm³、高さ30 mmの造形物を、レイヤー高さ0.2 mm、印刷速度50 mm/sで造形します。おおよその造形時間はどれですか？（インフィル20%、壁2層と仮定）</p>
-            <p>a) 30分<br>
-            b) 60分<br>
-            c) 90分<br>
-            d) 120分</p>
-
-            <details>
-                <summary>解答を表示</summary>
-                <p><strong>正解: c) 90分（約1.5時間）</strong></p>
-                <p><strong>計算手順:</strong></p>
-                <ol>
-                    <li><strong>レイヤー数</strong>: 高さ30mm ÷ レイヤー高さ0.2mm = 150層</li>
-                    <li><strong>1層あたりの経路長さの推定</strong>:
-                        <ul>
-                            <li>体積12,000mm³ → 1層あたり平均80mm³</li>
-                            <li>壁（シェル）: 約200mm/層（ノズル径0.4mmと仮定）</li>
-                            <li>インフィル20%: 約100mm/層</li>
-                            <li>合計: 約300mm/層</li>
-                        </ul>
-                    </li>
-                    <li><strong>総経路長</strong>: 300mm/層 × 150層 = 45,000mm = 45m</li>
-                    <li><strong>印刷時間</strong>: 45,000mm ÷ 50mm/s = 900秒 = 15分</li>
-                    <li><strong>実際の時間</strong>: 移動時間・リトラクション・加減速を考慮すると約5-6倍 → 75-90分</li>
-                </ol>
-                <p><strong>ポイント:</strong> スライサーソフトが提供する推定時間は、加減速・移動・温度安定化を含むため、単純計算の4-6倍程度になります。</p>
-            </details>
-        </div>
-
-        <div class="exercise">
-            <div class="exercise-title">Q3: AMプロセスの選択</div>
-            <p>次の用途に最適なAMプロセスを選んでください：「航空機エンジン部品のチタン合金製燃料噴射ノズル、複雑な内部流路、高強度・高耐熱性要求」</p>
-            <p>a) FDM (Fused Deposition Modeling)<br>
-            b) SLA (Stereolithography)<br>
-            c) SLM (Selective Laser Melting)<br>
-            d) Binder Jetting</p>
-
-            <details>
-                <summary>解答を表示</summary>
-                <p><strong>正解: c) SLM (Selective Laser Melting / Powder Bed Fusion for Metal)</strong></p>
-                <p><strong>理由:</strong></p>
-                <ul>
-                    <li><strong>SLMの特徴</strong>: 金属粉末（チタン、インコネル、ステンレス）をレーザーで完全溶融。高密度（99.9%）、高強度、高耐熱性。</li>
-                    <li><strong>用途適合性</strong>:
-                        <ul>
-                            <li>✓ チタン合金（Ti-6Al-4V）対応</li>
-                            <li>✓ 複雑内部流路製造可能（サポート除去後）</li>
-                            <li>✓ 航空宇宙グレードの機械的特性</li>
-                            <li>✓ GE Aviationが実際にFUEL噴射ノズルをSLMで量産</li>
-                        </ul>
-                    </li>
-                    <li><strong>他の選択肢が不適な理由</strong>:
-                        <ul>
-                            <li>FDM: プラスチックのみ、強度・耐熱性不足</li>
-                            <li>SLA: 樹脂のみ、機能部品には不適</li>
-                            <li>Binder Jetting: 金属可能だが、焼結後密度90-95%で航空宇宙基準に届かない</li>
-                        </ul>
-                    </li>
-                </ul>
-                <p><strong>実例:</strong> GE AviationのLEAP燃料ノズル（SLM製）は、従来20部品を溶接していたものを1部品に統合、重量25%削減、耐久性5倍向上を達成。</p>
-            </details>
-        </div>
-
-        <h3>Medium（応用）</h3>
-
-        <div class="exercise">
-            <div class="exercise-title">Q4: PythonでSTLメッシュを検証</div>
-            <p>以下のPythonコードを完成させて、STLファイルのマニフォールド性（watertight）を検証してください。</p>
-            <pre><code class="language-python">import trimesh
-
-mesh = trimesh.load('model.stl')
-
-# ここにコードを追加: マニフォールド性をチェックし、
-# 問題があれば自動修復を行い、修復後のメッシュを
-# 'model_fixed.stl'として保存してください
-</code></pre>
-
-            <details>
-                <summary>解答を表示</summary>
-                <p><strong>解答例:</strong></p>
-                <pre><code class="language-python">import trimesh
-
-mesh = trimesh.load('model.stl')
-
-# マニフォールド性をチェック
-print(f"Is watertight: {mesh.is_watertight}")
-print(f"Is winding consistent: {mesh.is_winding_consistent}")
-
-# 問題がある場合は修復
-if not mesh.is_watertight or not mesh.is_winding_consistent:
-    print("メッシュ修復を実行中...")
-
-    # 法線を修正
-    trimesh.repair.fix_normals(mesh)
-
-    # 穴を埋める
-    trimesh.repair.fill_holes(mesh)
-
-    # 縮退三角形を削除
-    mesh.remove_degenerate_faces()
-
-    # 重複頂点を結合
-    mesh.merge_vertices()
-
-    # 修復結果を確認
-    print(f"修復後 watertight: {mesh.is_watertight}")
-
-    # 修復したメッシュを保存
-    if mesh.is_watertight:
-        mesh.export('model_fixed.stl')
-        print("修復完了: model_fixed.stl として保存")
-    else:
-        print("⚠️ 自動修復失敗。Meshmixer等を使用してください")
-else:
-    print("✓ メッシュは3Dプリント可能です")
-</code></pre>
-                <p><strong>解説:</strong></p>
-                <ul>
-                    <li><code>trimesh.repair.fix_normals()</code>: 法線ベクトルの向きを統一</li>
-                    <li><code>trimesh.repair.fill_holes()</code>: メッシュの穴を充填</li>
-                    <li><code>remove_degenerate_faces()</code>: 面積ゼロの縮退三角形を削除</li>
-                    <li><code>merge_vertices()</code>: 重複した頂点を結合</li>
-                </ul>
-                <p><strong>実践ポイント:</strong> trimeshでも修復できない複雑な問題は、Meshmixer、Netfabb、MeshLabなどの専用ツールが必要です。</p>
-            </details>
-        </div>
-
-        <div class="exercise">
-            <div class="exercise-title">Q5: サポート材料の体積計算</div>
-            <p>直径40mm、高さ30mmの円柱を、底面から45度の角度で傾けて造形します。サポート密度15%、レイヤー高さ0.2mmと仮定して、おおよそのサポート材料体積を推定してください。</p>
-
-            <details>
-                <summary>解答を表示</summary>
-                <p><strong>解答プロセス:</strong></p>
-                <ol>
-                    <li><strong>サポートが必要な領域の特定</strong>:
-                        <ul>
-                            <li>45度傾斜 → 円柱底面の約半分がオーバーハング（45度以上の傾斜）</li>
-                            <li>円柱を45度傾けると、片側が浮いた状態になる</li>
-                        </ul>
-                    </li>
-                    <li><strong>サポート領域の幾何計算</strong>:
-                        <ul>
-                            <li>円柱の投影面積: π × (20mm)² ≈ 1,257 mm²</li>
-                            <li>45度傾斜時のサポート必要面積: 約1,257mm² × 0.5 = 629 mm²</li>
-                            <li>サポート高さ: 最大で約 30mm × sin(45°) ≈ 21mm</li>
-                            <li>サポート体積（密度100%と仮定）: 629mm² × 21mm ÷ 2（三角形状）≈ 6,600 mm³</li>
-                        </ul>
-                    </li>
-                    <li><strong>サポート密度15%を考慮</strong>:
-                        <ul>
-                            <li>実際のサポート材料: 6,600mm³ × 0.15 = <strong>約990 mm³</strong></li>
-                        </ul>
-                    </li>
-                    <li><strong>検証</strong>:
-                        <ul>
-                            <li>円柱本体の体積: π × 20² × 30 ≈ 37,700 mm³</li>
-                            <li>サポート/本体比: 990 / 37,700 ≈ 2.6%（妥当な範囲）</li>
-                        </ul>
-                    </li>
-                </ol>
-                <p><strong>答え: 約1,000 mm³ (990 mm³)</strong></p>
-                <p><strong>実践的考察:</strong></p>
-                <ul>
-                    <li>造形向きの最適化で、サポートを大幅削減可能（この例では円柱を立てて造形すればサポート不要）</li>
-                    <li>Tree Supportを使用すれば、さらに30-50%材料削減可能</li>
-                    <li>水溶性サポート材（PVA、HIPS）を使用すれば、除去が容易</li>
-                </ul>
-            </details>
-        </div>
-
-        <div class="exercise">
-            <div class="exercise-title">Q6: レイヤー高さの最適化</div>
-            <p>高さ60mmの造形物を、品質と時間のバランスを考慮して造形します。レイヤー高さ0.1mm、0.2mm、0.3mmの3つの選択肢がある場合、それぞれの造形時間比と推奨用途を説明してください。</p>
-
-            <details>
-                <summary>解答を表示</summary>
-                <p><strong>解答:</strong></p>
-                <table>
-                    <tr>
-                        <th>レイヤー高さ</th>
-                        <th>レイヤー数</th>
-                        <th>時間比</th>
-                        <th>品質</th>
-                        <th>推奨用途</th>
-                    </tr>
-                    <tr>
-                        <td>0.1 mm</td>
-                        <td>600層</td>
-                        <td>×3.0</td>
-                        <td>非常に高い</td>
-                        <td>展示用フィギュア、医療モデル、最終製品</td>
-                    </tr>
-                    <tr>
-                        <td>0.2 mm</td>
-                        <td>300層</td>
-                        <td>×1.0（基準）</td>
-                        <td>良好</td>
-                        <td>一般的なプロトタイプ、機能部品</td>
-                    </tr>
-                    <tr>
-                        <td>0.3 mm</td>
-                        <td>200層</td>
-                        <td>×0.67</td>
-                        <td>低い</td>
-                        <td>初期プロトタイプ、強度優先の内部部品</td>
-                    </tr>
-                </table>
-
-                <p><strong>時間比の計算根拠:</strong></p>
-                <ul>
-                    <li>レイヤー数が1/2になると、Z軸移動回数も1/2</li>
-                    <li>BUT: 各層の印刷時間は微増（1層あたりの体積が増えるため）</li>
-                    <li>総合的には、レイヤー高さに「ほぼ反比例」（厳密には0.9-1.1倍の係数あり）</li>
-                </ul>
-
-                <p><strong>実践的な選択基準:</strong></p>
-                <ol>
-                    <li><strong>0.1mm推奨ケース</strong>:
-                        <ul>
-                            <li>表面品質が最優先（顧客プレゼン、展示会）</li>
-                            <li>曲面の滑らかさが重要（顔、曲線形状）</li>
-                            <li>積層痕をほぼ消したい</li>
-                        </ul>
-                    </li>
-                    <li><strong>0.2mm推奨ケース</strong>:
-                        <ul>
-                            <li>品質と時間のバランス重視（最も一般的）</li>
-                            <li>機能試験用プロトタイプ</li>
-                            <li>適度な表面仕上がりで十分</li>
-                        </ul>
-                    </li>
-                    <li><strong>0.3mm推奨ケース</strong>:
-                        <ul>
-                            <li>速度優先（形状確認のみ）</li>
-                            <li>内部構造部品（外観不問）</li>
-                            <li>大型造形物（時間削減効果大）</li>
-                        </ul>
-                    </li>
-                </ol>
-
-                <p><strong>変数レイヤー高さ（Advanced）:</strong><br>
-                PrusaSlicerやCuraの変数レイヤー高さ機能を使えば、平坦部は0.3mm、曲面部は0.1mmと混在させて、品質と時間を両立可能。</p>
-            </details>
-        </div>
-
-        <div class="exercise">
-            <div class="exercise-title">Q7: AMプロセス選択の総合問題</div>
-            <p>航空宇宙用の軽量ブラケット（アルミニウム合金、トポロジー最適化済み複雑形状、高強度・軽量要求）の製造に最適なAMプロセスを選択し、その理由を3つ挙げてください。また、考慮すべき後処理を2つ挙げてください。</p>
-
-            <details>
-                <summary>解答を表示</summary>
-                <p><strong>最適プロセス: LPBF (Laser Powder Bed Fusion) - SLM for Aluminum</strong></p>
-                <p><strong>選択理由（3つ）:</strong></p>
-                <ol>
-                    <li><strong>高密度・高強度</strong>:
-                        <ul>
-                            <li>レーザー完全溶融により相対密度99.5%以上を達成</li>
-                            <li>鍛造材に匹敵する機械的特性（引張強度、疲労特性）</li>
-                            <li>航空宇宙認証（AS9100、Nadcap）取得可能</li>
-                        </ul>
-                    </li>
-                    <li><strong>トポロジー最適化形状の製造能力</strong>:
-                        <ul>
-                            <li>複雑なラティス構造（厚さ0.5mm以下）を高精度で造形</li>
-                            <li>中空構造、バイオニック形状など従来加工不可能な形状に対応</li>
-                            <li>サポート除去後、内部構造もアクセス可能</li>
-                        </ul>
-                    </li>
-                    <li><strong>材料効率と軽量化</strong>:
-                        <ul>
-                            <li>Buy-to-Fly比（材料投入量/最終製品重量）が切削加工の1/10〜1/20</li>
-                            <li>トポロジー最適化で従来設計比40-60%軽量化</li>
-                            <li>アルミ合金（AlSi10Mg、Scalmalloy）で比強度最大化</li>
-                        </ul>
-                    </li>
-                </ol>
-
-                <p><strong>必要な後処理（2つ）:</strong></p>
-                <ol>
-                    <li><strong>熱処理（Heat Treatment）</strong>:
-                        <ul>
-                            <li>応力除去焼鈍（Stress Relief Annealing）: 300°C、2-4時間</li>
-                            <li>目的: 造形時の残留応力を除去、寸法安定性向上</li>
-                            <li>効果: 疲労寿命30-50%向上、反り変形防止</li>
-                        </ul>
-                    </li>
-                    <li><strong>表面処理（Surface Finishing）</strong>:
-                        <ul>
-                            <li>機械加工（CNC）: 取り付け面、ボルト穴の高精度加工（Ra < 3.2μm）</li>
-                            <li>化学研磨（Electropolishing）: 表面粗さ低減（Ra 10μm → 2μm）</li>
-                            <li>ショットピーニング（Shot Peening）: 表面層に圧縮残留応力を付与、疲労特性向上</li>
-                            <li>アノダイズ処理: 耐食性向上、絶縁性付与（航空宇宙標準）</li>
-                        </ul>
-                    </li>
-                </ol>
-
-                <p><strong>追加考慮事項:</strong></p>
-                <ul>
-                    <li><strong>造形方向</strong>: 荷重方向と積層方向を考慮（Z方向強度は10-15%低い）</li>
-                    <li><strong>サポート設計</strong>: 除去しやすいTree Support、接触面積最小化</li>
-                    <li><strong>品質管理</strong>: CT スキャンで内部欠陥検査、X線検査</li>
-                    <li><strong>トレーサビリティ</strong>: 粉末ロット管理、造形パラメータ記録</li>
-                </ul>
-
-                <p><strong>実例: Airbus A350のチタンブラケット</strong><br>
-                従来32部品を組立てていたブラケットを1部品に統合、重量55%削減、リードタイム65%短縮、コスト35%削減を達成。</p>
-            </details>
-        </div>
-                3水準 × 3水準 = <strong>9回</strong>（フルファクトリアル計画）</p>
-
-                <p><strong>DOEの利点（従来法との比較）:</strong></p>
-                <ol>
-                    <li><strong>交互作用の検出が可能</strong>
-                        <ul>
-                            <li>従来法: 温度の影響、時間の影響を個別に評価</li>
-                            <li>DOE: 「高温では時間を短くできる」といった交互作用を定量化</li>
-                            <li>例: 1300°Cでは4時間で十分だが、1100°Cでは8時間必要、など</li>
-                        </ul>
-                    </li>
-                    <li><strong>実験回数の削減</strong>
-                        <ul>
-                            <li>従来法（OFAT: One Factor At a Time）:
-                                <ul>
-                                    <li>温度検討: 3回（時間固定）</li>
-                                    <li>時間検討: 3回（温度固定）</li>
-                                    <li>確認実験: 複数回</li>
-                                    <li>合計: 10回以上</li>
-                                </ul>
-                            </li>
-                            <li>DOE: 9回で完了（全条件網羅＋交互作用解析）</li>
-                            <li>さらに中心複合計画法を使えば7回に削減可能</li>
-                        </ul>
-                    </li>
-                </ol>
-
-                <p><strong>追加の利点:</strong></p>
-                <ul>
-                    <li>統計的に有意な結論が得られる（誤差評価が可能）</li>
-                    <li>応答曲面を構築でき、未実施条件の予測が可能</li>
-                    <li>最適条件が実験範囲外にある場合でも検出できる</li>
-                </ul>
-            </details>
-        </div>
-
-        <h3>Hard（発展）</h3>
-
-        <div class="exercise">
-            <div class="exercise-title">Q7: 複雑な反応系の設計</div>
-            <p>次の条件でLi₁.₂Ni₀.₂Mn₀.₆O₂（リチウムリッチ正極材料）を合成する温度プロファイルを設計してください：</p>
-            <ul>
-                <li>原料: Li₂CO₃, NiO, Mn₂O₃</li>
-                <li>目標: 単一相、粒径 < 5 μm、Li/遷移金属比の精密制御</li>
-                <li>制約: 900°C以上でLi₂Oが揮発（Li欠損のリスク）</li>
-            </ul>
-            <p>温度プロファイル（加熱速度、保持温度・時間、冷却速度）と、その設計理由を説明してください。</p>
-
-            <details>
-                <summary>解答を見る</summary>
-                <p><strong>推奨温度プロファイル:</strong></p>
-
-                <p><strong>Phase 1: 予備加熱（Li₂CO₃分解）</strong></p>
-                <ul>
-                    <li>室温 → 500°C: 3°C/min</li>
-                    <li>500°C保持: 2時間</li>
-                    <li><strong>理由:</strong> Li₂CO₃の分解（~450°C）をゆっくり進行させ、CO₂を完全に除去</li>
-                </ul>
-
-                <p><strong>Phase 2: 中間加熱（前駆体形成）</strong></p>
-                <ul>
-                    <li>500°C → 750°C: 5°C/min</li>
-                    <li>750°C保持: 4時間</li>
-                    <li><strong>理由:</strong> Li₂MnO₃やLiNiO₂などの中間相を形成。Li揮発の少ない温度で均質化</li>
-                </ul>
-
-                <p><strong>Phase 3: 本焼成（目的相合成）</strong></p>
-                <ul>
-                    <li>750°C → 850°C: 2°C/min（ゆっくり）</li>
-                    <li>850°C保持: 12時間</li>
-                    <li><strong>理由:</strong>
-                        <ul>
-                            <li>Li₁.₂Ni₀.₂Mn₀.₆O₂の単一相形成には長時間必要</li>
-                            <li>850°Cに制限してLi揮発を最小化（<900°C制約）</li>
-                            <li>長時間保持で拡散を進めるが、粒成長は抑制される温度</li>
-                        </ul>
-                    </li>
-                </ul>
-
-                <p><strong>Phase 4: 冷却</strong></p>
-                <ul>
-                    <li>850°C → 室温: 2°C/min</li>
-                    <li><strong>理由:</strong> 徐冷により結晶性向上、熱応力による亀裂防止</li>
-                </ul>
-
-                <p><strong>設計の重要ポイント:</strong></p>
-                <ol>
-                    <li><strong>Li揮発対策:</strong>
-                        <ul>
-                            <li>900°C以下に制限（本問の制約）</li>
-                            <li>さらに、Li過剰原料（Li/TM = 1.25など）を使用</li>
-                            <li>酸素気流中で焼成してLi₂Oの分圧を低減</li>
-                        </ul>
-                    </li>
-                    <li><strong>粒径制御 (< 5 μm):</strong>
-                        <ul>
-                            <li>低温（850°C）・長時間（12h）で反応を進める</li>
-                            <li>高温・短時間だと粒成長が過剰になる</li>
-                            <li>原料粒径も1μm以下に微細化</li>
-                        </ul>
-                    </li>
-                    <li><strong>組成均一性:</strong>
-                        <ul>
-                            <li>750°Cでの中間保持が重要</li>
-                            <li>この段階で遷移金属の分布を均質化</li>
-                            <li>必要に応じて、750°C保持後に一度冷却→粉砕→再加熱</li>
-                        </ul>
-                    </li>
-                </ol>
-
-                <p><strong>全体所要時間:</strong> 約30時間（加熱12h + 保持18h）</p>
-
-                <p><strong>代替手法の検討:</strong></p>
-                <ul>
-                    <li><strong>Sol-gel法:</strong> より低温（600-700°C）で合成可能、均質性向上</li>
-                    <li><strong>Spray pyrolysis:</strong> 粒径制御が容易</li>
-                    <li><strong>Two-step sintering:</strong> 900°C 1h → 800°C 10h で粒成長抑制</li>
-                </ul>
-            </details>
-        </div>
-
-        <div class="exercise">
-            <div class="exercise-title">Q8: 速度論的解析の総合問題</div>
-            <p>以下のデータから、反応機構を推定し、活性化エネルギーを計算してください。</p>
-            <p><strong>実験データ:</strong></p>
-            <table>
-                <tr>
-                    <th>温度 (°C)</th>
-                    <th>50%反応到達時間 t₅₀ (hours)</th>
-                </tr>
-                <tr><td>1000</td><td>18.5</td></tr>
-                <tr><td>1100</td><td>6.2</td></tr>
-                <tr><td>1200</td><td>2.5</td></tr>
-                <tr><td>1300</td><td>1.2</td></tr>
-            </table>
-            <p>Jander式を仮定した場合: [1-(1-0.5)^(1/3)]² = k·t₅₀</p>
-
-            <details>
-                <summary>解答を見る</summary>
-                <p><strong>解答:</strong></p>
-
-                <p><strong>ステップ1: 速度定数kの計算</strong></p>
-                <p>Jander式で α=0.5 のとき:<br>
-                [1-(1-0.5)^(1/3)]² = [1-0.794]² = 0.206² = 0.0424</p>
-
-                <p>したがって k = 0.0424 / t₅₀</p>
-
-                <table>
-                    <tr>
-                        <th>T (°C)</th>
-                        <th>T (K)</th>
-                        <th>t₅₀ (h)</th>
-                        <th>k (h⁻¹)</th>
-                        <th>ln(k)</th>
-                        <th>1000/T (K⁻¹)</th>
-                    </tr>
-                    <tr><td>1000</td><td>1273</td><td>18.5</td><td>0.00229</td><td>-6.080</td><td>0.7855</td></tr>
-                    <tr><td>1100</td><td>1373</td><td>6.2</td><td>0.00684</td><td>-4.985</td><td>0.7284</td></tr>
-                    <tr><td>1200</td><td>1473</td><td>2.5</td><td>0.01696</td><td>-4.077</td><td>0.6788</td></tr>
-                    <tr><td>1300</td><td>1573</td><td>1.2</td><td>0.03533</td><td>-3.343</td><td>0.6357</td></tr>
-                </table>
-
-                <p><strong>ステップ2: Arrheniusプロット</strong></p>
-                <p>ln(k) vs 1/T をプロット（線形回帰）</p>
-
-                <p>線形フィット: ln(k) = A - Eₐ/(R·T)</p>
-                <p>傾き = -Eₐ/R</p>
-
-                <p>線形回帰計算:<br>
-                slope = Δ(ln k) / Δ(1000/T)<br>
-                     = (-3.343 - (-6.080)) / (0.6357 - 0.7855)<br>
-                     = 2.737 / (-0.1498)<br>
-                     = -18.27</p>
-
-                <p><strong>ステップ3: 活性化エネルギー計算</strong></p>
-                <p>slope = -Eₐ / (R × 1000)<br>
-                Eₐ = -slope × R × 1000<br>
-                Eₐ = 18.27 × 8.314 × 1000<br>
-                Eₐ = 151,899 J/mol ≈ <strong>152 kJ/mol</strong></p>
-
-                <p><strong>ステップ4: 反応機構の考察</strong></p>
-                <ul>
-                    <li><strong>活性化エネルギーの比較:</strong>
-                        <ul>
-                            <li>得られた値: 152 kJ/mol</li>
-                            <li>典型的な固相拡散: 200-400 kJ/mol</li>
-                            <li>界面反応: 50-150 kJ/mol</li>
-                        </ul>
-                    </li>
-                    <li><strong>推定される機構:</strong>
-                        <ul>
-                            <li>この値は界面反応と拡散の中間</li>
-                            <li>可能性1: 界面反応が主律速（拡散の影響は小）</li>
-                            <li>可能性2: 粒子が微細で拡散距離が短く、見かけのEₐが低い</li>
-                            <li>可能性3: 混合律速（界面反応と拡散の両方が寄与）</li>
-                        </ul>
-                    </li>
-                </ul>
-
-                <p><strong>ステップ5: 検証方法の提案</strong></p>
-                <ol>
-                    <li><strong>粒子サイズ依存性:</strong> 異なる粒径で実験し、k ∝ 1/r₀² が成立するか確認
-                        <ul>
-                            <li>成立 → 拡散律速</li>
-                            <li>不成立 → 界面反応律速</li>
-                        </ul>
-                    </li>
-                    <li><strong>他の速度式でのフィッティング:</strong>
-                        <ul>
-                            <li>Ginstling-Brounshtein式（3次元拡散）</li>
-                            <li>Contracting sphere model（界面反応）</li>
-                            <li>どちらがR²が高いか比較</li>
-                        </ul>
-                    </li>
-                    <li><strong>微細構造観察:</strong> SEMで反応界面を観察
-                        <ul>
-                            <li>厚い生成物層 → 拡散律速の証拠</li>
-                            <li>薄い生成物層 → 界面反応律速の可能性</li>
-                        </ul>
-                    </li>
-                </ol>
-
-                <p><strong>最終結論:</strong><br>
-                活性化エネルギー <strong>Eₐ = 152 kJ/mol</strong><br>
-                推定機構: <strong>界面反応律速、または微細粒子系での拡散律速</strong><br>
-                追加実験が推奨される。</p>
-            </details>
+            <strong>✅ シリーズ完結</strong>
+            <p>おめでとうございます。全5章を通じて、積層造形の原理（第1章）、材料押出法（第2章）、光造形と粉末床溶融結合（第3章）、材料噴射・結合剤噴射ほか（第4章）、そして本章のPython実践まで学び終えました。原理の理解と、それをコードで確かめる力の両方が身についたはずです。ここからは、実際の3Dプリンタやオープンソースのスライサー・メッシュライブラリ（trimesh など）に触れ、自分の課題に応用していってください。</p>
         </div>
 
         <h2>次のステップ</h2>
-        <p>第5章では積層造形（AM）の基礎として、ISO/ASTM 52900による7つのプロセス分類、STLファイル形式の構造、スライシングとG-codeの基本を学びました。次の第2章では、材料押出（FDM/FFF）の詳細な造形プロセス、材料特性、プロセスパラメータ最適化について学びます。</p>
+        <p>本章で扱ったコードは、あえて外部ライブラリを最小限にして仕組みを露わにしたものです。実務や研究へ進むための発展として、次のような方向があります。</p>
+        <ul>
+            <li><strong>メッシュ処理の本格化</strong>: trimesh や Open3D を使い、実STLの読み込み・修復・ブーリアン演算・可視化を体験する。</li>
+            <li><strong>スライサーの深掘り</strong>: 輪郭ループの整列、インフィル生成、G-code出力までを実装し、Cura/PrusaSlicer の出力と比較する。</li>
+            <li><strong>熱・応力の高度化</strong>: 2次元・3次元の有限要素法（FEM）で、反りや残留応力（第2章）を定量的にシミュレートする。</li>
+            <li><strong>機械学習の実データ適用</strong>: 自分で造形・試験したデータを集め、ベイズ最適化で条件出しを効率化する。</li>
+        </ul>
+        <p>本シリーズが、あなたが積層造形を「使う」段階から「理解して設計・最適化する」段階へ進む足がかりとなれば幸いです。</p>
 
         <div class="nav-buttons">
-            <a href="./index.html" class="nav-button">← シリーズ目次</a>
-            <a href="./index.html" class="nav-button">シリーズ目次へ戻る →</a>
+            <a href="./chapter-4.html" class="nav-button">← 第4章へ戻る</a>
+            <a href="./index.html" class="nav-button">シリーズ目次へ →</a>
         </div>
 
         <h2>参考文献</h2>
         <ol>
-            <li>Gibson, I., Rosen, D., & Stucker, B. (2015). <em>Additive Manufacturing Technologies: 3D Printing, Rapid Prototyping, and Direct Digital Manufacturing</em> (2nd ed.). Springer. pp. 1-35, 89-145, 287-334. - AM技術の包括的教科書、7つのプロセスカテゴリとSTLデータ処理の詳細解説</li>
-            <li>ISO/ASTM 52900:2021. <em>Additive manufacturing — General principles — Fundamentals and vocabulary</em>. International Organization for Standardization. - AM用語とプロセス分類の国際標準規格、産業界で広く参照される</li>
-            <li>Kruth, J.P., Leu, M.C., & Nakagawa, T. (1998). "Progress in Additive Manufacturing and Rapid Prototyping." <em>CIRP Annals - Manufacturing Technology</em>, 47(2), 525-540. - 選択的レーザー焼結とバインディング機構の理論的基礎</li>
-            <li>Hull, C.W. (1986). <em>Apparatus for production of three-dimensional objects by stereolithography</em>. US Patent 4,575,330. - 世界初のAM技術（SLA）の特許、AM産業の起源となる重要文献</li>
-            <li>Wohlers, T. (2023). <em>Wohlers Report 2023: 3D Printing and Additive Manufacturing Global State of the Industry</em>. Wohlers Associates, Inc. pp. 15-89, 156-234. - AM市場動向と産業応用の最新統計レポート、年次更新される業界標準資料</li>
-            <li>3D Systems, Inc. (1988). <em>StereoLithography Interface Specification</em>. - STLファイル形式の公式仕様書、ASCII/Binary STL構造の定義</li>
-            <li>numpy-stl Documentation. (2024). <em>Python library for working with STL files</em>. <a href="https://numpy-stl.readthedocs.io/">https://numpy-stl.readthedocs.io/</a> - STLファイル読込・体積計算のためのPythonライブラリ</li>
-            <li>trimesh Documentation. (2024). <em>Python library for loading and using triangular meshes</em>. <a href="https://trimsh.org/">https://trimsh.org/</a> - メッシュ修復・ブーリアン演算・品質評価の包括的ライブラリ</li>
+            <li>Gibson, I., Rosen, D., &amp; Stucker, B. (2021). <em>Additive Manufacturing Technologies</em> (3rd ed.). Springer. - AMのデータ処理・スライシング・シミュレーションを含む標準的教科書</li>
+            <li>ISO/ASTM 52900:2021. <em>Additive manufacturing — General principles — Fundamentals and vocabulary</em>. - AMプロセス分類と用語の国際標準規格</li>
+            <li>Incropera, F.P., DeWitt, D.P., Bergman, T.L., &amp; Lavine, A.S. (2017). <em>Fundamentals of Heat and Mass Transfer</em> (8th ed.). Wiley. - 非定常熱伝導と陽解法・安定条件の標準的教科書</li>
+            <li>Harris, C.R., et al. (2020). "Array Programming with NumPy." <em>Nature</em>, 585, 357-362. - 本章のメッシュ・数値計算を支えるNumPyの基盤論文</li>
+            <li>Pedregosa, F., et al. (2011). "Scikit-learn: Machine Learning in Python." <em>Journal of Machine Learning Research</em>, 12, 2825-2830. - コード例5で用いたscikit-learnの基礎文献</li>
+            <li>Dawson-Haggerty, M., et al. (2024). <em>trimesh: Python library for loading and using triangular meshes</em>. <a href="https://trimesh.org/">https://trimesh.org/</a> - 実STL処理・メッシュ修復・可視化のための包括的ライブラリ</li>
+            <li>Slic3r Project. (2024). <em>Slic3r Manual: Slicing Algorithms</em>. <a href="https://manual.slic3r.org/">https://manual.slic3r.org/</a> - 平面交差スライシングと輪郭生成の実装解説</li>
         </ol>
 
         <h2>使用ツールとライブラリ</h2>
         <ul>
-            <li><strong>NumPy</strong> (v1.24+): 数値計算ライブラリ - <a href="https://numpy.org/">https://numpy.org/</a></li>
-            <li><strong>numpy-stl</strong> (v3.0+): STLファイル処理ライブラリ - <a href="https://numpy-stl.readthedocs.io/">https://numpy-stl.readthedocs.io/</a></li>
-            <li><strong>trimesh</strong> (v4.0+): 3Dメッシュ処理ライブラリ（修復、検証、ブーリアン演算） - <a href="https://trimsh.org/">https://trimsh.org/</a></li>
-            <li><strong>Matplotlib</strong> (v3.7+): データ可視化ライブラリ - <a href="https://matplotlib.org/">https://matplotlib.org/</a></li>
-            <li><strong>SciPy</strong> (v1.10+): 科学技術計算ライブラリ（最適化、補間） - <a href="https://scipy.org/">https://scipy.org/</a></li>
+            <li><strong>NumPy</strong> (v1.24+): 数値計算ライブラリ（メッシュ解析・スライシング・熱伝導） - <a href="https://numpy.org/">https://numpy.org/</a></li>
+            <li><strong>scikit-learn</strong> (v1.3+): 機械学習ライブラリ（ランダムフォレスト回帰） - <a href="https://scikit-learn.org/">https://scikit-learn.org/</a></li>
+            <li><strong>trimesh</strong> (v4.0+): 3Dメッシュ処理ライブラリ（発展学習用） - <a href="https://trimesh.org/">https://trimesh.org/</a></li>
+            <li><strong>Python</strong> (v3.10+): 本章のコード例の実行環境 - <a href="https://www.python.org/">https://www.python.org/</a></li>
         </ul>
     </div>
 

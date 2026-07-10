@@ -9,89 +9,147 @@ chapter_title: "第2章: 高度なサンプリング法"
 
 ## 学習目標
 
-  * 高度なサンプリング法の基本概念と理論的枠組みを理解する
-  * 数学的定式化とアルゴリズムを習得する
-  * Pythonによる実装方法を学ぶ
-  * 材料科学・物理学への応用例を理解する
-  * 数値シミュレーションの実践的手法を身につける
+第1章では、メトロポリス法(Metropolis method)を用いてボルツマン分布(Boltzmann distribution)に従う 配置をサンプリングする基本を学びました。本章では、素朴なモンテカルロ法(Monte Carlo method)が 苦手とする「エネルギー障壁で隔てられた状態空間」や「稀にしか訪れない高重み領域」を効率よく サンプリングするための高度な手法を学びます。ここで得られる考え方は、第3章で扱う 分子動力学法(Molecular Dynamics method)にもレプリカ交換分子動力学として直接応用されます。 
 
-## 1\. 理論的基礎
+  * 素朴なサンプリングが破綻する理由を理解し、重点サンプリング(importance sampling)で分散を削減できる
+  * 拡張アンサンブル法(extended ensemble method)、特にレプリカ交換法の受理規則と温度ラダーを説明できる
+  * Wang-Landau法により状態密度(density of states)を直接推定する仕組みを理解する
+  * アンブレラサンプリング(umbrella sampling)とWHAMによる自由エネルギー計算の原理を理解する
+  * 各手法の長所・短所を比較し、問題に応じて適切な手法を選択できる
 
-### 基本理論
+**この章のメタ情報**  
+読了時間: 30〜35分 / 難易度: Advanced(上級) / コード例: 3(すべて実行済み) / 演習問題: 5 
 
-高度なサンプリング法の基本的な数学的定式化を学びます。 重要な方程式と物理的意味を理解することが本章の目標です。 
+## 2.1 単純サンプリングの限界と重点サンプリング
 
-主要な方程式： \\[ \frac{\partial f}{\partial t} = L[f] + N[f] \\] ここで \\( L \\) は線形演算子、\\( N \\) は非線形項を表します。 
+### なぜ素朴なモンテカルロ法は破綻するのか
 
-### コード例1: 基本実装
+統計力学では、逆温度 \\( \beta = 1/(k_B T) \\) のもとで系がボルツマン分布 \\[ p(\mathbf{x}) = \frac{1}{Z}\, e^{-\beta U(\mathbf{x})}, \qquad Z = \int e^{-\beta U(\mathbf{x})}\, d\mathbf{x} \\] に従うと考えます。物理量 \\( A \\) の期待値 \\( \langle A \rangle = \int A(\mathbf{x})\, p(\mathbf{x})\, d\mathbf{x} \\) を数値的に求めたいのが目標です。ところが、配置空間から一様に点を選ぶ「単純サンプリング」では、 分布 \\( p \\) が集中している高重み領域を訪れる確率が指数的に小さくなり、 推定量の分散が爆発してしまいます。 
 
-import numpy as np import matplotlib.pyplot as plt class BasicSolver: """{章タイトル}の基本ソルバー""" def __init__(self, N=100): self.N = N self.x = np.linspace(0, 10, N) self.dx = self.x[1] - self.x[0] def solve(self, T=1.0, dt=0.01): """基本的な時間発展ソルバー""" steps = int(T / dt) solution = np.zeros((steps, self.N)) # 初期条件 solution[0, :] = np.exp(-(self.x - 5)**2) # 時間発展 for n in range(steps - 1): # ここに具体的なアルゴリズムを実装 solution[n+1, :] = solution[n, :] # プレースホルダー return solution def plot(self, solution): """結果の可視化""" fig, ax = plt.subplots(figsize=(10, 6)) im = ax.contourf(self.x, np.arange(len(solution)), solution, levels=20, cmap='viridis') ax.set_xlabel('空間座標 x', fontsize=12) ax.set_ylabel('時間ステップ', fontsize=12) ax.set_title('高度なサンプリング法のシミュレーション', fontsize=14, fontweight='bold') plt.colorbar(im, ax=ax) return fig # 実行例 solver = BasicSolver(N=100) solution = solver.solve(T=1.0, dt=0.01) fig = solver.plot(solution) plt.show()
+**重点サンプリング** は、サンプリングしやすい提案分布 \\( q(\mathbf{x}) \\) から 点を生成し、重み \\( w = p/q \\) で補正する手法です。 \\[ \langle A \rangle = \int A(\mathbf{x})\, \frac{p(\mathbf{x})}{q(\mathbf{x})}\, q(\mathbf{x})\, d\mathbf{x} \approx \frac{1}{N}\sum_{i=1}^{N} A(\mathbf{x}_i)\, \frac{p(\mathbf{x}_i)}{q(\mathbf{x}_i)}, \qquad \mathbf{x}_i \sim q. \\] 提案分布 \\( q \\) を重要な領域に寄せておくと、少ないサンプル数で高精度の推定が得られます。 
 
-## 2\. アルゴリズムの実装
+### コード例1: 重点サンプリングによる分散削減
 
-### コード例2: 高度な実装
+標準正規分布の裾確率 \\( P(X \gt 4) \\) を推定します。これは、高重み領域が めったに訪れられない「稀な事象」の最小モデルです。単純モンテカルロと重点サンプリングを 比較します。 
 
-import numpy as np import matplotlib.pyplot as plt from scipy import sparse from scipy.sparse.linalg import spsolve class AdvancedSolver: """高度なアルゴリズム実装""" def __init__(self, N=100, method='implicit'): self.N = N self.method = method self.x = np.linspace(0, 10, N) self.dx = self.x[1] - self.x[0] def build_matrix(self, dt): """行列の構築（陰的法用）""" N = self.N diag = np.ones(N) off_diag = -0.5 * np.ones(N-1) A = sparse.diags([off_diag, diag, off_diag], [-1, 0, 1], format='csr') return A def solve(self, T=1.0, dt=0.01): """時間発展ソルバー""" steps = int(T / dt) solution = np.zeros((steps, self.N)) # 初期条件 solution[0, :] = self.initial_condition() if self.method == 'implicit': A = self.build_matrix(dt) for n in range(steps - 1): b = solution[n, :] solution[n+1, :] = spsolve(A, b) else: for n in range(steps - 1): solution[n+1, :] = self.explicit_step(solution[n, :], dt) return solution def initial_condition(self): """初期条件の設定""" return np.exp(-(self.x - 5)**2 / 0.5) def explicit_step(self, u, dt): """陽的法による1ステップ""" u_new = u.copy() # 実装の詳細 return u_new def compute_error(self, numerical, analytical): """誤差評価""" return np.linalg.norm(numerical - analytical) / np.linalg.norm(analytical) def plot_comparison(self): """解の比較プロット""" fig, axes = plt.subplots(2, 2, figsize=(14, 10)) for i, (ax, method) in enumerate(zip(axes.flat, ['explicit', 'implicit', 'crank-nicolson', 'spectral'])): ax.set_title(f'{method}法', fontsize=12, fontweight='bold') ax.set_xlabel('x') ax.set_ylabel('u(x,t)') ax.grid(True, alpha=0.3) plt.tight_layout() return fig # 実行例 solver = AdvancedSolver(N=200, method='implicit') solution = solver.solve(T=2.0, dt=0.01) print(f"計算完了: {solution.shape}個の時間ステップ")
+import numpy as np from math import erfc, sqrt np.random.seed(42) # 目標: 標準正規分布 X ~ N(0,1) の裾確率 P(X > a) を推定する。 # これは配置空間のごく一部の高重み領域が支配するボルツマン平均を # 計算する「稀な事象」の典型例です。 a = 4.0 N = 200000 # --- 単純モンテカルロ: N(0,1) からサンプリングし a を超える割合を数える --- x_naive = np.random.randn(N) hits = (x_naive > a).astype(float) p_naive = hits.mean() se_naive = np.sqrt(hits.var(ddof=1) / N) # 推定量の標準誤差 # --- 重点サンプリング: ずらしたガウス分布 q = N(a, 1) からサンプリング --- # 推定量: E_p[1_{x>a}] = E_q[1_{x>a} * p(x)/q(x)] x_is = a + np.random.randn(N) w = np.exp(-0.5 * x_is**2) / np.exp(-0.5 * (x_is - a)**2) # 重み p/q contrib = (x_is > a).astype(float) * w p_is = contrib.mean() se_is = np.sqrt(contrib.var(ddof=1) / N) p_true = 0.5 * erfc(a / sqrt(2.0)) # 相補誤差関数による参照値 print(f"参照値 P(X>{a}) = {p_true:.6e}") print(f"単純MC: 推定値 = {p_naive:.6e}, 標準誤差 = {se_naive:.2e}") print(f"重点サンプリング: 推定値 = {p_is:.6e}, 標準誤差 = {se_is:.2e}") print(f"分散削減率 = {se_naive**2 / se_is**2:.1f} 倍") print(f"単純MCで a を超えたサンプル数: {int(hits.sum())} / {N}")
 
-## 3\. 安定性と精度の解析
+参照値 P(X>4.0) = 3.167124e-05 単純MC: 推定値 = 1.500000e-05, 標準誤差 = 8.66e-06 重点サンプリング: 推定値 = 3.163344e-05, 標準誤差 = 1.50e-07 分散削減率 = 3326.3 倍 単純MCで a を超えたサンプル数: 3 / 200000
 
-### コード例3: 安定性解析
+単純モンテカルロでは20万サンプル中わずか3点しか裾に到達せず、推定値は真値から大きく外れ、 標準誤差も推定値と同程度に大きくなっています。一方、提案分布を裾へ寄せた重点サンプリングでは 同じサンプル数で標準誤差が約3300分の1に縮小し、真値をよく再現しています。 これが「サンプルを重要な領域へ誘導する」という高度なサンプリング法の基本思想です。 
 
-import numpy as np import matplotlib.pyplot as plt class StabilityAnalyzer: """安定性解析ツール""" def __init__(self): self.k_values = np.linspace(0, np.pi, 100) def amplification_factor(self, k, dt, dx, method='FTCS'): """増幅係数の計算""" r = dt / dx**2 if method == 'FTCS': # Forward Time Centered Space g = 1 - 4*r*np.sin(k/2)**2 elif method == 'BTCS': # Backward Time Centered Space g = 1 / (1 + 4*r*np.sin(k/2)**2) elif method == 'Crank-Nicolson': g = (1 - 2*r*np.sin(k/2)**2) / (1 + 2*r*np.sin(k/2)**2) else: g = np.ones_like(k) return g def plot_stability_regions(self): """安定性領域のプロット""" fig, axes = plt.subplots(2, 2, figsize=(14, 10)) methods = ['FTCS', 'BTCS', 'Crank-Nicolson', 'Upwind'] r_values = [0.1, 0.3, 0.5, 0.7] for ax, method in zip(axes.flat, methods): for r in r_values: g = self.amplification_factor(self.k_values, r, 1.0, method) ax.plot(self.k_values, np.abs(g), label=f'r={r}') ax.axhline(y=1, color='k', linestyle='--', alpha=0.5) ax.set_xlabel('波数 k', fontsize=12) ax.set_ylabel('|増幅係数|', fontsize=12) ax.set_title(f'{method}法の安定性', fontsize=12, fontweight='bold') ax.legend() ax.grid(True, alpha=0.3) plt.tight_layout() return fig def von_neumann_analysis(self, dt, dx): """von Neumann安定性解析""" r = dt / dx**2 # CFL条件のチェック if r > 0.5: print(f"警告: CFL条件違反 (r={r:.3f} > 0.5)") return False else: print(f"安定: r={r:.3f} ≤ 0.5") return True def convergence_test(self): """収束性テスト""" dx_values = [0.1, 0.05, 0.025, 0.0125] errors = [] for dx in dx_values: # 数値解と理論解の誤差計算 error = dx**2 # 2次精度の仮定 errors.append(error) # 収束次数の推定 fig, ax = plt.subplots(figsize=(10, 6)) ax.loglog(dx_values, errors, 'bo-', linewidth=2, markersize=8, label='数値誤差') ax.loglog(dx_values, [dx**2 for dx in dx_values], 'r--', label='O(Δx²)') ax.set_xlabel('格子間隔 Δx', fontsize=12) ax.set_ylabel('誤差', fontsize=12) ax.set_title('収束性テスト', fontsize=14, fontweight='bold') ax.legend() ax.grid(True, alpha=0.3) return fig # 実行例 analyzer = StabilityAnalyzer() fig = analyzer.plot_stability_regions() plt.show() analyzer.von_neumann_analysis(dt=0.001, dx=0.1)
+## 2.2 拡張アンサンブル法(レプリカ交換)
 
-## 4\. 多次元問題への拡張
+### エネルギー障壁とエルゴード性の破れ
 
-### コード例4: 2次元問題
+第1章のメトロポリス法は、局所的な提案更新に基づくため、 高いエネルギー障壁で隔てられた複数の準安定状態がある系では 一方の状態に閉じ込められ、全状態空間を十分にサンプリングできません。 これを**エルゴード性の破れ** と呼びます。低温 \\( (\beta\, \text{が大}) \\) ほど 障壁を越える確率は \\( e^{-\beta \Delta U} \\) に従って指数的に小さくなります。 
 
-import numpy as np import matplotlib.pyplot as plt from mpl_toolkits.mplot3d import Axes3D class Solver2D: """2次元問題のソルバー""" def __init__(self, Nx=50, Ny=50, Lx=1.0, Ly=1.0): self.Nx = Nx self.Ny = Ny self.Lx = Lx self.Ly = Ly self.x = np.linspace(0, Lx, Nx) self.y = np.linspace(0, Ly, Ny) self.X, self.Y = np.meshgrid(self.x, self.y) self.dx = self.x[1] - self.x[0] self.dy = self.y[1] - self.y[0] self.u = np.zeros((Nx, Ny)) def initialize_gaussian(self, x0=0.5, y0=0.5, sigma=0.1): """ガウス型初期条件""" self.u = np.exp(-((self.X - x0)**2 + (self.Y - y0)**2) / (2*sigma**2)) def laplacian_2d(self, u): """2次元Laplacian""" laplacian = np.zeros_like(u) # 内部点 laplacian[1:-1, 1:-1] = ( (u[2:, 1:-1] - 2*u[1:-1, 1:-1] + u[:-2, 1:-1]) / self.dx**2 + (u[1:-1, 2:] - 2*u[1:-1, 1:-1] + u[1:-1, :-2]) / self.dy**2 ) return laplacian def step(self, dt): """時間発展（1ステップ）""" lap = self.laplacian_2d(self.u) self.u += dt * lap def solve(self, T=0.1, dt=0.001): """時間発展ソルバー""" steps = int(T / dt) for n in range(steps): self.step(dt) if n % 10 == 0: print(f"ステップ {n}/{steps}") return self.u def plot_solution(self): """解の可視化""" fig = plt.figure(figsize=(16, 5)) # 2Dコンター図 ax1 = fig.add_subplot(131) im = ax1.contourf(self.X, self.Y, self.u, levels=20, cmap='viridis') ax1.set_xlabel('x', fontsize=12) ax1.set_ylabel('y', fontsize=12) ax1.set_title('コンター図', fontsize=12, fontweight='bold') plt.colorbar(im, ax=ax1) # 3Dサーフェス ax2 = fig.add_subplot(132, projection='3d') surf = ax2.plot_surface(self.X, self.Y, self.u, cmap='plasma', alpha=0.8) ax2.set_xlabel('x') ax2.set_ylabel('y') ax2.set_zlabel('u(x,y)') ax2.set_title('3Dサーフェス', fontsize=12, fontweight='bold') # 断面図 ax3 = fig.add_subplot(133) mid_y = self.Ny // 2 ax3.plot(self.x, self.u[:, mid_y], 'b-', linewidth=2, label='y=0.5断面') ax3.set_xlabel('x', fontsize=12) ax3.set_ylabel('u(x, y=0.5)', fontsize=12) ax3.set_title('断面プロファイル', fontsize=12, fontweight='bold') ax3.legend() ax3.grid(True, alpha=0.3) plt.tight_layout() return fig # 実行例 solver_2d = Solver2D(Nx=100, Ny=100) solver_2d.initialize_gaussian(x0=0.5, y0=0.5, sigma=0.1) solver_2d.solve(T=0.1, dt=0.0005) fig = solver_2d.plot_solution() plt.show()
+**レプリカ交換法(replica exchange method、パラレルテンパリング)** は、 逆温度 \\( \beta_1 \gt \beta_2 \gt \cdots \gt \beta_M \\) からなる温度ラダー上に \\( M \\) 個の複製(レプリカ)を並べ、それぞれ独立にメトロポリス更新しながら、 隣り合うレプリカの配置を確率的に交換します。高温レプリカは障壁を容易に越えられるため、 交換を通じてその「動きやすさ」が低温レプリカにも伝わります。 
 
-## 5\. 応用例とケーススタディ
+レプリカ \\( m \\) と \\( n \\) の配置交換は、詳細釣り合いを満たすように 次の確率で受理します。 \\[ P_{\text{acc}} = \min\\!\left(1,\; \exp\big[(\beta_m - \beta_n)\,(U_m - U_n)\big]\right) \\] ここで \\( U_m \\) はレプリカ \\( m \\) が現在保持する配置のエネルギーです。 温度ラダーは、隣接レプリカのエネルギー分布が十分に重なるよう、 典型的には幾何級数的に設定します。 
 
-### コード例5: 材料科学への応用
+### コード例2: 二重井戸ポテンシャルでの障壁横断
 
-import numpy as np import matplotlib.pyplot as plt class MaterialsApplication: """材料科学への応用シミュレーション""" def __init__(self, N=200, L=10.0): self.N = N self.L = L self.x = np.linspace(0, L, N) self.dx = self.x[1] - self.x[0] # 物性値 self.diffusivity = 1.0 self.reaction_rate = 0.1 def reaction_diffusion(self, u, v): """反応拡散方程式""" # Laplacian lap_u = np.zeros_like(u) lap_u[1:-1] = (u[2:] - 2*u[1:-1] + u[:-2]) / self.dx**2 lap_v = np.zeros_like(v) lap_v[1:-1] = (v[2:] - 2*v[1:-1] + v[:-2]) / self.dx**2 # 反応項 f = u * v**2 du_dt = self.diffusivity * lap_u - f dv_dt = 0.5 * self.diffusivity * lap_v + f return du_dt, dv_dt def simulate_process(self, T=50.0, dt=0.01): """材料プロセスシミュレーション""" steps = int(T / dt) # 初期条件 u = np.ones(self.N) v = np.zeros(self.N) v[self.N//4:3*self.N//4] = 1.0 # 時間発展 u_history = [u.copy()] v_history = [v.copy()] for n in range(steps): du, dv = self.reaction_diffusion(u, v) u += dt * du v += dt * dv # 境界条件 u[0] = u[1] u[-1] = u[-2] v[0] = v[1] v[-1] = v[-2] if n % 100 == 0: u_history.append(u.copy()) v_history.append(v.copy()) return u_history, v_history def plot_process(self, u_history, v_history): """プロセスの可視化""" fig, axes = plt.subplots(2, 3, figsize=(15, 8)) times = [0, len(u_history)//4, len(u_history)//2, 3*len(u_history)//4, len(u_history)-1] for idx, t_idx in enumerate(times[:3]): ax = axes[0, idx] ax.plot(self.x, u_history[t_idx], 'b-', linewidth=2, label='成分A') ax.plot(self.x, v_history[t_idx], 'r-', linewidth=2, label='成分B') ax.set_xlabel('位置 x', fontsize=10) ax.set_ylabel('濃度', fontsize=10) ax.set_title(f't = {t_idx*10:.1f}', fontsize=11, fontweight='bold') ax.legend() ax.grid(True, alpha=0.3) for idx, t_idx in enumerate(times[2:]): ax = axes[1, idx] ax.plot(self.x, u_history[t_idx], 'b-', linewidth=2, label='成分A') ax.plot(self.x, v_history[t_idx], 'r-', linewidth=2, label='成分B') ax.set_xlabel('位置 x', fontsize=10) ax.set_ylabel('濃度', fontsize=10) ax.set_title(f't = {t_idx*10:.1f}', fontsize=11, fontweight='bold') ax.legend() ax.grid(True, alpha=0.3) plt.tight_layout() return fig # 実行例 app = MaterialsApplication(N=200, L=10.0) u_hist, v_hist = app.simulate_process(T=100.0, dt=0.01) fig = app.plot_process(u_hist, v_hist) plt.show() print("材料プロセスシミュレーション完了")
+二重井戸ポテンシャル \\( U(x) = h\,(x^2-1)^2 \\) を対象に、低温での素朴なメトロポリス法と レプリカ交換法を比較します。低温では障壁 \\( \beta h = 20 \\) が高く、素朴な手法は 初期の井戸から抜け出せないはずです。 
 
-## 6\. 性能最適化とベンチマーク
+import numpy as np # 二重井戸ポテンシャル U(x) = h * (x^2 - 1)^2 # x = +/-1 に2つの極小、x = 0 に高さ h の障壁を持ちます。 h = 5.0 def U(x): return h * (x**2 - 1.0)**2 def metropolis_run(beta, n_steps, step=0.3, x0=-1.0, rng=None): """単一温度の素朴なメトロポリス法。軌跡と障壁横断回数を返す。""" if rng is None: rng = np.random.default_rng() x = x0 traj = np.empty(n_steps) crossings = 0 prev_sign = np.sign(x) for i in range(n_steps): xp = x + step * rng.standard_normal() if rng.random() < np.exp(-beta * (U(xp) - U(x))): x = xp s = np.sign(x) if s != 0 and s != prev_sign: crossings += 1 prev_sign = s traj[i] = x return traj, crossings def replica_exchange(betas, n_steps, step=0.3, swap_every=10, rng=None): """レプリカ交換法(パラレルテンパリング)。温度ラダー上で交換を行う。""" if rng is None: rng = np.random.default_rng() M = len(betas) xs = np.full(M, -1.0) # 全レプリカを左の井戸から開始 coldest = np.empty(n_steps) # 最低温レプリカの軌跡 crossings = 0 prev_sign = np.sign(xs[0]) swap_attempts = 0 swap_accepts = 0 for i in range(n_steps): # 各レプリカの局所メトロポリス更新 for m in range(M): xp = xs[m] + step * rng.standard_normal() if rng.random() < np.exp(-betas[m] * (U(xp) - U(xs[m]))): xs[m] = xp # 隣接レプリカの交換 if i % swap_every == 0: for m in range(M - 1): swap_attempts += 1 delta = (betas[m] - betas[m+1]) * (U(xs[m]) - U(xs[m+1])) if rng.random() < np.exp(delta): xs[m], xs[m+1] = xs[m+1], xs[m] swap_accepts += 1 # 最低温レプリカ(index 0 = 最大 beta)を追跡 s = np.sign(xs[0]) if s != 0 and s != prev_sign: crossings += 1 prev_sign = s coldest[i] = xs[0] acc = swap_accepts / max(swap_attempts, 1) return coldest, crossings, acc n_steps = 40000 beta_cold = 4.0 # 低温 => 実効的な障壁が高い (beta*h = 20) # 低温での素朴なメトロポリス法 traj_plain, cross_plain = metropolis_run(beta_cold, n_steps, x0=-1.0, rng=np.random.default_rng(7)) frac_right_plain = np.mean(traj_plain > 0) # 幾何級数的な温度ラダーによるレプリカ交換 betas = np.array([4.0, 2.4, 1.44, 0.864, 0.5]) # beta ラダー(低温 -> 高温) traj_re, cross_re, swap_acc = replica_exchange(betas, n_steps, rng=np.random.default_rng(7)) frac_right_re = np.mean(traj_re > 0) print(f"障壁の高さ h = {h}, 低温 beta = {beta_cold} (beta*h = {beta_cold*h:.0f})") print(f"温度ラダー (beta): {betas}") print() print("低温での素朴なメトロポリス法:") print(f" 障壁横断回数 = {cross_plain}") print(f" 右井戸 (x>0) の滞在割合 = {frac_right_plain:.3f}") print() print("レプリカ交換法(最低温レプリカ):") print(f" 障壁横断回数 = {cross_re}") print(f" 右井戸 (x>0) の滞在割合 = {frac_right_re:.3f}") print(f" 隣接交換の平均受理率 = {swap_acc:.2f}") print() print("対称性より各井戸の厳密な滞在割合は 0.500 です。")
 
-### コード例6: 性能最適化
+障壁の高さ h = 5.0, 低温 beta = 4.0 (beta*h = 20) 温度ラダー (beta): [4. 2.4 1.44 0.864 0.5 ] 低温での素朴なメトロポリス法: 障壁横断回数 = 0 右井戸 (x>0) の滞在割合 = 0.000 レプリカ交換法(最低温レプリカ): 障壁横断回数 = 1622 右井戸 (x>0) の滞在割合 = 0.494 隣接交換の平均受理率 = 0.82 対称性より各井戸の厳密な滞在割合は 0.500 です。
 
-import numpy as np import matplotlib.pyplot as plt import time from numba import jit class PerformanceOptimizer: """性能最適化とベンチマーク""" @staticmethod def naive_implementation(N, steps): """最適化なしの実装""" x = np.linspace(0, 10, N) u = np.exp(-x**2) start_time = time.time() for _ in range(steps): u_new = u.copy() for i in range(1, N-1): u_new[i] = 0.25 * (u[i-1] + 2*u[i] + u[i+1]) u = u_new elapsed = time.time() - start_time return u, elapsed @staticmethod def vectorized_implementation(N, steps): """ベクトル化実装""" x = np.linspace(0, 10, N) u = np.exp(-x**2) start_time = time.time() for _ in range(steps): u[1:-1] = 0.25 * (u[:-2] + 2*u[1:-1] + u[2:]) elapsed = time.time() - start_time return u, elapsed @staticmethod @jit(nopython=True) def numba_kernel(u, N, steps): """Numba JIT最適化カーネル""" for _ in range(steps): u_new = u.copy() for i in range(1, N-1): u_new[i] = 0.25 * (u[i-1] + 2*u[i] + u[i+1]) u = u_new return u @staticmethod def numba_implementation(N, steps): """Numba JIT実装""" x = np.linspace(0, 10, N) u = np.exp(-x**2) start_time = time.time() u = PerformanceOptimizer.numba_kernel(u, N, steps) elapsed = time.time() - start_time return u, elapsed def benchmark(self): """ベンチマーク実行""" N_values = [100, 500, 1000, 2000] steps = 1000 results = { 'naive': [], 'vectorized': [], 'numba': [] } for N in N_values: print(f"N={N}のベンチマーク中...") # Naive _, t_naive = self.naive_implementation(N, steps) results['naive'].append(t_naive) # Vectorized _, t_vec = self.vectorized_implementation(N, steps) results['vectorized'].append(t_vec) # Numba（ウォームアップ） self.numba_implementation(10, 10) _, t_numba = self.numba_implementation(N, steps) results['numba'].append(t_numba) return N_values, results def plot_benchmark(self, N_values, results): """ベンチマーク結果のプロット""" fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5)) # 実行時間 ax1.plot(N_values, results['naive'], 'o-', linewidth=2, label='Naive', markersize=8) ax1.plot(N_values, results['vectorized'], 's-', linewidth=2, label='Vectorized', markersize=8) ax1.plot(N_values, results['numba'], '^-', linewidth=2, label='Numba JIT', markersize=8) ax1.set_xlabel('グリッド点数 N', fontsize=12) ax1.set_ylabel('実行時間 [秒]', fontsize=12) ax1.set_title('性能比較', fontsize=14, fontweight='bold') ax1.legend() ax1.grid(True, alpha=0.3) # 高速化率 speedup_vec = np.array(results['naive']) / np.array(results['vectorized']) speedup_numba = np.array(results['naive']) / np.array(results['numba']) ax2.bar(np.array(N_values) - 50, speedup_vec, width=80, alpha=0.7, label='Vectorized') ax2.bar(np.array(N_values) + 50, speedup_numba, width=80, alpha=0.7, label='Numba') ax2.set_xlabel('グリッド点数 N', fontsize=12) ax2.set_ylabel('高速化率', fontsize=12) ax2.set_title('高速化率（Naiveとの比較）', fontsize=14, fontweight='bold') ax2.legend() ax2.grid(True, alpha=0.3, axis='y') plt.tight_layout() return fig # 実行例 optimizer = PerformanceOptimizer() N_vals, bench_results = optimizer.benchmark() fig = optimizer.plot_benchmark(N_vals, bench_results) plt.show() print("\n=== ベンチマーク結果 ===") for N, t_naive, t_vec, t_numba in zip(N_vals, bench_results['naive'], bench_results['vectorized'], bench_results['numba']): print(f"N={N}: Naive={t_naive:.4f}s, Vectorized={t_vec:.4f}s, " f"Numba={t_numba:.4f}s")
+素朴なメトロポリス法は40000ステップで一度も障壁を越えられず、 初期の左井戸(x<0)に完全に閉じ込められています(右井戸滞在割合0.000)。 一方、レプリカ交換法では最低温レプリカが1622回も障壁を横断し、 両井戸をほぼ対称(0.494、厳密値0.500)にサンプリングできています。 隣接交換の受理率0.82は温度ラダーが適切に設計されていることを示します。 
 
-## 7\. 総合演習プロジェクト
+## 2.3 Wang-Landau法
 
-### コード例7: 総合プロジェクト
+### 状態密度を直接推定する
 
-import numpy as np import matplotlib.pyplot as plt from matplotlib.animation import FuncAnimation class ComprehensiveProject: """総合演習プロジェクト: 高度なサンプリング法の実践応用""" def __init__(self, Nx=150, Ny=150): self.Nx = Nx self.Ny = Ny self.x = np.linspace(0, 10, Nx) self.y = np.linspace(0, 10, Ny) self.X, self.Y = np.meshgrid(self.x, self.y) self.dx = self.x[1] - self.x[0] self.dy = self.y[1] - self.y[0] # 状態変数 self.field = np.zeros((Nx, Ny)) self.auxiliary = np.zeros((Nx, Ny)) def initialize_complex_condition(self): """複雑な初期条件""" # 複数のガウス分布の重ね合わせ centers = [(2, 2), (5, 5), (8, 8), (2, 8), (8, 2)] for (cx, cy) in centers: self.field += np.exp(-((self.X - cx)**2 + (self.Y - cy)**2) / 0.3) # ノイズの付加 self.field += 0.1 * np.random.randn(self.Nx, self.Ny) def coupled_evolution(self, dt): """結合した発展方程式""" # Laplacian計算 lap_field = np.zeros_like(self.field) lap_field[1:-1, 1:-1] = ( (self.field[2:, 1:-1] - 2*self.field[1:-1, 1:-1] + self.field[:-2, 1:-1]) / self.dx**2 + (self.field[1:-1, 2:] - 2*self.field[1:-1, 1:-1] + self.field[1:-1, :-2]) / self.dy**2 ) # 非線形項 nonlinear_term = self.field**2 - self.field**3 # 時間発展 self.field += dt * (lap_field + nonlinear_term) # 境界条件（Neumann） self.field[0, :] = self.field[1, :] self.field[-1, :] = self.field[-2, :] self.field[:, 0] = self.field[:, 1] self.field[:, -1] = self.field[:, -2] def compute_statistics(self): """統計量の計算""" mean = np.mean(self.field) std = np.std(self.field) total_energy = np.sum(self.field**2) * self.dx * self.dy return { 'mean': mean, 'std': std, 'energy': total_energy, 'min': np.min(self.field), 'max': np.max(self.field) } def run_simulation(self, T=5.0, dt=0.01): """シミュレーション実行""" steps = int(T / dt) # 統計情報の記録 stats_history = [] for n in range(steps): self.coupled_evolution(dt) if n % 10 == 0: stats = self.compute_statistics() stats['time'] = n * dt stats_history.append(stats) print(f"ステップ {n}/{steps}: エネルギー={stats['energy']:.4f}") return stats_history def plot_final_results(self, stats_history): """最終結果の総合プロット""" fig = plt.figure(figsize=(16, 12)) gs = fig.add_gridspec(3, 3, hspace=0.3, wspace=0.3) # 最終フィールド（コンター） ax1 = fig.add_subplot(gs[0, :2]) im1 = ax1.contourf(self.X, self.Y, self.field, levels=30, cmap='RdBu_r') ax1.set_xlabel('x', fontsize=12) ax1.set_ylabel('y', fontsize=12) ax1.set_title('最終フィールド分布', fontsize=14, fontweight='bold') plt.colorbar(im1, ax=ax1) # 3Dサーフェス ax2 = fig.add_subplot(gs[0, 2], projection='3d') surf = ax2.plot_surface(self.X[::3, ::3], self.Y[::3, ::3], self.field[::3, ::3], cmap='viridis') ax2.set_xlabel('x') ax2.set_ylabel('y') ax2.set_zlabel('field') ax2.set_title('3D視覚化', fontsize=12, fontweight='bold') # エネルギー時間発展 ax3 = fig.add_subplot(gs[1, 0]) times = [s['time'] for s in stats_history] energies = [s['energy'] for s in stats_history] ax3.plot(times, energies, 'b-', linewidth=2) ax3.set_xlabel('時間 t', fontsize=12) ax3.set_ylabel('全エネルギー', fontsize=12) ax3.set_title('エネルギー保存', fontsize=12, fontweight='bold') ax3.grid(True, alpha=0.3) # 統計量の時間発展 ax4 = fig.add_subplot(gs[1, 1]) means = [s['mean'] for s in stats_history] stds = [s['std'] for s in stats_history] ax4.plot(times, means, 'r-', linewidth=2, label='平均値') ax4.plot(times, stds, 'g-', linewidth=2, label='標準偏差') ax4.set_xlabel('時間 t', fontsize=12) ax4.set_ylabel('統計量', fontsize=12) ax4.set_title('統計的性質', fontsize=12, fontweight='bold') ax4.legend() ax4.grid(True, alpha=0.3) # 最小・最大値 ax5 = fig.add_subplot(gs[1, 2]) mins = [s['min'] for s in stats_history] maxs = [s['max'] for s in stats_history] ax5.plot(times, mins, 'b-', linewidth=2, label='最小値') ax5.plot(times, maxs, 'r-', linewidth=2, label='最大値') ax5.set_xlabel('時間 t', fontsize=12) ax5.set_ylabel('値', fontsize=12) ax5.set_title('最小・最大値', fontsize=12, fontweight='bold') ax5.legend() ax5.grid(True, alpha=0.3) # ヒストグラム ax6 = fig.add_subplot(gs[2, 0]) ax6.hist(self.field.flatten(), bins=50, alpha=0.7, color='blue') ax6.set_xlabel('フィールド値', fontsize=12) ax6.set_ylabel('頻度', fontsize=12) ax6.set_title('値の分布', fontsize=12, fontweight='bold') ax6.grid(True, alpha=0.3, axis='y') # 断面プロファイル ax7 = fig.add_subplot(gs[2, 1]) mid_y = self.Ny // 2 ax7.plot(self.x, self.field[:, mid_y], 'b-', linewidth=2) ax7.set_xlabel('x', fontsize=12) ax7.set_ylabel('field(x, y=5)', fontsize=12) ax7.set_title('中央断面', fontsize=12, fontweight='bold') ax7.grid(True, alpha=0.3) # パワースペクトル ax8 = fig.add_subplot(gs[2, 2]) fft_field = np.fft.fft2(self.field) power_spectrum = np.abs(fft_field)**2 power_spectrum_1d = np.mean(power_spectrum, axis=0) freq = np.fft.fftfreq(self.Nx, self.dx) ax8.loglog(freq[1:self.Nx//2], power_spectrum_1d[1:self.Nx//2], 'b-') ax8.set_xlabel('波数', fontsize=12) ax8.set_ylabel('パワー', fontsize=12) ax8.set_title('パワースペクトル', fontsize=12, fontweight='bold') ax8.grid(True, alpha=0.3) return fig # メイン実行 project = ComprehensiveProject(Nx=150, Ny=150) project.initialize_complex_condition() print("総合シミュレーション開始...") stats_history = project.run_simulation(T=5.0, dt=0.01) fig = project.plot_final_results(stats_history) plt.show() print("\n=== シミュレーション完了 ===") print(f"最終エネルギー: {stats_history[-1]['energy']:.4f}") print(f"最終平均値: {stats_history[-1]['mean']:.4f}") print(f"最終標準偏差: {stats_history[-1]['std']:.4f}")
+これまでの手法は固定温度でのサンプリングでしたが、 **Wang-Landau法** は温度に依存しない量である **状態密度(density of states)** \\( g(E) \\) を直接推定します。 \\( g(E) \\) が分かれば、任意の温度における分配関数 \\( Z(\beta) = \sum_E g(E)\, e^{-\beta E} \\) や自由エネルギーを 一度の計算からすべて得られます。 
+
+アイデアは、エネルギー空間で**平坦なヒストグラム** を実現することです。 遷移を確率 \\[ P(E \to E') = \min\\!\left(1,\; \frac{g(E)}{g(E')}\right) \\] で受理すると、系はエネルギーの逆数 \\( 1/g(E) \\) に比例して各エネルギーを訪れ、 訪問頻度が均され始めます。訪れるたびに \\( g(E) \\) を修正因子 \\( f \\) で \\( \ln g(E) \leftarrow \ln g(E) + \ln f \\) と更新し、 ヒストグラムが十分平坦になるたびに \\( f \\) を \\( \sqrt{f} \\) へと細かくしていきます。 \\( f \\) が1に近づくにつれ \\( g(E) \\) は真の状態密度へ収束します。 
+
+### コード例3: 2次元イジング模型の状態密度
+
+\\( 4\times4 \\) の2次元イジング模型(2D Ising model)を対象に、Wang-Landau法で 状態密度を推定します。16スピンなら全 \\( 2^{16} \\) 状態を全数列挙して 厳密な \\( g(E) \\) を計算できるため、推定精度を直接検証できます。 
+
+import numpy as np L = 4 # 4x4 周期境界イジング格子(16スピン) N = L * L def energy(state): """周期境界を持つ2次元イジング配置の全エネルギー (J=1)。""" s = state.reshape(L, L) e = 0 e -= np.sum(s * np.roll(s, 1, axis=0)) e -= np.sum(s * np.roll(s, 1, axis=1)) return int(e) # ---- 全数列挙による厳密な状態密度 (2^16 状態) ---- exact = {} for idx in range(2**N): bits = (idx >> np.arange(N)) & 1 state = 2 * bits - 1 # {0,1} -> {-1,+1} に変換 E = energy(state) exact[E] = exact.get(E, 0) + 1 energies = sorted(exact.keys()) # 4x4 格子で許される全エネルギー # ---- Wang-Landau法による状態密度の推定 ---- def wang_landau(seed=0, flat=0.90, f_final=1e-6): rng = np.random.default_rng(seed) e_index = {E: i for i, E in enumerate(energies)} nbins = len(energies) lng = np.zeros(nbins) # ln g(E) をその場で更新 state = rng.integers(0, 2, size=N) * 2 - 1 E = energy(state) f = 1.0 # ln 修正因子は ln(e)=1 から開始 sweeps = 0 while f > f_final: hist = np.zeros(nbins) flat_enough = False while not flat_enough: for _ in range(N * 100): k = rng.integers(N) s = state.reshape(L, L) i, j = divmod(k, L) nb = (s[(i+1) % L, j] + s[(i-1) % L, j] \+ s[i, (j+1) % L] + s[i, (j-1) % L]) dE = 2 * s[i, j] * nb Enew = E + dE iold, inew = e_index[E], e_index[Enew] if np.log(rng.random()) < lng[iold] - lng[inew]: state[k] *= -1 E = Enew lng[e_index[E]] += f hist[e_index[E]] += 1 sweeps += 100 nonzero = hist[hist > 0] if nonzero.min() > flat * hist.mean(): flat_enough = True f *= 0.5 # 修正因子を細かくする return lng, sweeps lng, sweeps = wang_landau(seed=1) # 正規化: 最小の g は 2(完全整列した2つの基底状態)に等しい。 lng -= lng.min() lng += np.log(2.0) # sum g(E) = 2^N になるよう再スケール。 lng += np.log(2**N) - np.log(np.sum(np.exp(lng))) print(f"{'E':>5} {'厳密 g(E)':>12} {'WL g(E)':>16} {'相対誤差':>10}") for E in energies: ge = exact[E] gw = np.exp(lng[energies.index(E)]) print(f"{E:>5} {ge:>12d} {gw:>16.1f} {abs(gw-ge)/ge:>9.2%}") print() print(f"Wang-Landauの総スイープ数: {sweeps}") print(f"厳密な g(E) の総和 = {sum(exact.values())} (2^16 = {2**N} と一致すべき)")
+
+E 厳密 g(E) WL g(E) 相対誤差 -32 2 2.0 0.83% -24 32 33.3 4.01% -20 64 65.1 1.73% -16 424 425.3 0.32% -12 1728 1737.9 0.57% -8 6688 6649.8 0.57% -4 13568 13647.4 0.59% 0 20524 20487.4 0.18% 4 13568 13595.8 0.21% 8 6688 6672.1 0.24% 12 1728 1706.3 1.26% 16 424 417.4 1.55% 20 64 63.0 1.60% 24 32 31.1 2.79% 32 2 2.0 0.22% Wang-Landauの総スイープ数: 71300 厳密な g(E) の総和 = 65536 (2^16 = 65536 と一致すべき)
+
+推定された状態密度は、7桁にわたって変化する \\( g(E) \\) を全エネルギー領域で 数パーセント以内の誤差で再現しています。低温側の物理を支配する基底状態 \\( (E=-32,\; g=2) \\) も正しく捉えられている点が重要です。 一度の計算で全温度の熱力学量が得られることが、Wang-Landau法の最大の利点です。 
+
+## 2.4 アンブレラサンプリングと自由エネルギー計算
+
+### 反応座標に沿った自由エネルギー(PMF)
+
+化学反応や相転移では、ある**反応座標(reaction coordinate)** \\( \xi \\) に沿った 自由エネルギー面、いわゆる平均力ポテンシャル(potential of mean force、PMF) \\[ F(\xi) = -\frac{1}{\beta}\, \ln p(\xi), \qquad p(\xi) = \int \delta(\xi(\mathbf{x}) - \xi)\, p(\mathbf{x})\, d\mathbf{x} \\] を知りたいことがよくあります。しかし \\( F(\xi) \\) が高い障壁を含むと、 通常のサンプリングでは障壁付近 \\( p(\xi) \\) がほとんど得られません。 
+
+**アンブレラサンプリング(umbrella sampling)** は、反応座標を複数の窓に分割し、 各窓 \\( i \\) に調和的なバイアスポテンシャル \\[ w_i(\xi) = \frac{1}{2}\, k_i\, (\xi - \xi_i^{0})^2 \\] を加えて、系を目的の \\( \xi_i^{0} \\) 付近に「傘」で押さえつけます。 こうして各窓では障壁近傍でも十分な統計が得られます。 各窓で得られたバイアス付きヒストグラム \\( p_i^{b}(\xi) \\) からバイアスの効果を取り除き、 窓どうしをつなぎ合わせて元の \\( F(\xi) \\) を復元するのが **WHAM(Weighted Histogram Analysis Method、重み付きヒストグラム解析法)** です。 
+
+WHAMは、各窓の自由エネルギーシフト \\( f_i \\) と、バイアスのない確率 \\( p(\xi) \\) を、 次の連立方程式を自己無撞着に反復して求めます。 \\[ p(\xi) = \frac{\sum_{i} n_i\, p_i^{b}(\xi)} {\sum_{i} N_i\, e^{-\beta [w_i(\xi) - f_i]}}, \qquad e^{-\beta f_i} = \int e^{-\beta w_i(\xi)}\, p(\xi)\, d\xi. \\] ここで \\( N_i \\) は窓 \\( i \\) の総サンプル数、\\( n_i \\) はビンごとのカウントです。 重点サンプリングの重み補正(2.1節)を多数の窓へ一般化したものと理解できます。 
+
+アンブレラサンプリングやレプリカ交換で得た配置の重みを結合し、 複数の熱力学状態にまたがって推定量を統合する現代的な枠組みとして、 MBAR(Multistate Bennett Acceptance Ratio)が広く使われています。 WHAMはそのヒストグラム版に相当します。 
+
+## 2.5 手法の比較と実践的な指針
+
+本章で扱った手法は、いずれも「素朴なサンプリングが届かない領域へサンプルを誘導する」 という共通の目的を持ちますが、得意とする問題設定は異なります。 以下に整理します。 
+
+手法 | 主目的 | 得意な問題 | 主な注意点  
+---|---|---|---  
+重点サンプリング | 期待値・稀な事象の推定 | 良い提案分布が作れる低次元問題 | 提案分布が悪いと重みの分散が発散  
+レプリカ交換法 | 障壁を越えた平衡サンプリング | 準安定状態が複数ある系 | 温度ラダー設計、レプリカ数のコスト  
+Wang-Landau法 | 状態密度の直接推定 | 離散エネルギーの模型、全温度の熱力学量 | 連続系や大規模系への拡張が難しい  
+アンブレラサンプリング + WHAM | 反応座標に沿った自由エネルギー面 | 良い反応座標が既知の反応・相転移 | 反応座標の選択と窓の重なりが成否を決める  
+  
+実務では、まず問題を「特定の温度での平均が欲しいのか」「自由エネルギー地形が欲しいのか」 「全温度の熱力学量が欲しいのか」で切り分けると、適切な手法が見えてきます。 そして、ここで学んだ拡張アンサンブルやバイアスの考え方は、 離散的なモンテカルロ更新に限りません。次章で学ぶ分子動力学法にも、 レプリカ交換分子動力学(REMD)やメタダイナミクスとして自然に組み込まれます。 サンプリングを加速するという発想そのものが、計算統計力学を貫く共通の柱なのです。 
 
 ## 演習問題
 
-### 演習1: 理論的理解
+### 演習2.1: 重点サンプリングの提案分布
 
-高度なサンプリング法の基礎方程式を導出し、物理的意味を説明せよ。 特に、各項の役割と境界条件の重要性について論じなさい。 
+コード例1で提案分布を \\( q = N(a, 1) \\) から \\( q = N(0, 1) \\)(すなわち単純MCと同一)に 変えると、標準誤差はどう変化するでしょうか。理由を分散の式に基づいて説明し、 さらに \\( q = N(a, \sigma^2) \\) の分散 \\( \sigma^2 \\) を変えたときに最適点が存在するか 議論しなさい。 
 
-### 演習2: アルゴリズム実装
+### 演習2.2: レプリカ交換の受理規則の導出
 
-本章で学んだアルゴリズムを改良し、より高精度・高速な実装を作成せよ。 安定性条件と計算誤差について定量的に評価しなさい。 
+逆温度 \\( \beta_m, \beta_n \\) の2つのレプリカがそれぞれエネルギー \\( U_m, U_n \\) の配置を 持つとき、交換前後のボルツマン重みの比から、受理確率 \\( \min(1, \exp[(\beta_m-\beta_n)(U_m-U_n)]) \\) を詳細釣り合いに基づいて導出しなさい。 
 
-### 演習3: 応用プロジェクト
+### 演習2.3: 温度ラダーの設計
 
-材料科学または物理学の具体的な問題を選び、高度なサンプリング法の手法を 適用してシミュレーションせよ。結果を解析し、物理的解釈を与えなさい。 
+コード例2の温度ラダーを \\( M=3 \\) に減らす、あるいはラダーの間隔を広げると、 隣接交換の受理率と障壁横断回数はどう変化するでしょうか。実際にパラメータを変えて実行し、 受理率とサンプリング効率のトレードオフを定量的に考察しなさい。 
+
+### 演習2.4: Wang-Landauからの熱力学量
+
+コード例3で得た状態密度 \\( g(E) \\) を用いて、分配関数 \\( Z(\beta)=\sum_E g(E)e^{-\beta E} \\) から内部エネルギー \\( \langle E \rangle(\beta) \\) と比熱 \\( C(\beta) \\) を温度の関数として計算し、 比熱がピークを示す温度を求めなさい。 
+
+### 演習2.5: アンブレラサンプリングの適用
+
+2.2節の二重井戸ポテンシャルに対し、反応座標を \\( \xi = x \\) として複数の窓に 調和バイアスをかけるアンブレラサンプリングを実装し、WHAMまたは単純な 重み補正で自由エネルギー \\( F(x) \\) を復元しなさい。得られた \\( F(x) \\) が \\( U(x) \\) の形状(2つの井戸と障壁)と整合するか確認しなさい。 
+
+## 学習目標の確認
+
+  * 単純サンプリングが高重み領域を訪れられず破綻する理由と、重点サンプリングによる分散削減を、実測(約3300倍)を通じて理解できましたか。
+  * レプリカ交換法の受理規則と温度ラダーの役割を説明し、素朴なメトロポリス法との違いを実験結果で示せますか。
+  * Wang-Landau法が平坦ヒストグラムを通じて状態密度を直接推定する仕組みを説明できますか。
+  * アンブレラサンプリングとWHAMが、反応座標に沿った自由エネルギー面をどのように復元するか理解できましたか。
+  * 4つの手法の長所・短所を比較し、与えられた問題に適した手法を選べますか。
 
 ## まとめ
 
-  * 高度なサンプリング法の理論的基礎と数学的定式化を学んだ
-  * 数値アルゴリズムの実装と安定性解析手法を習得した
-  * 多次元問題への拡張と実装技術を理解した
-  * 材料科学・物理学への応用例を実践した
-  * 性能最適化とベンチマーク手法を学んだ
-  * 総合的なシミュレーションプロジェクトを完成させた
+  * ボルツマン分布のサンプリングでは高重み領域が稀にしか訪れられず、素朴な手法は破綻する。重点サンプリングは提案分布と重み補正でこれを克服する。
+  * レプリカ交換法は温度ラダー上の複製を確率的に交換し、高いエネルギー障壁を越えた平衡サンプリングを実現する。
+  * Wang-Landau法は温度に依存しない状態密度を直接推定し、一度の計算で全温度の熱力学量を与える。
+  * アンブレラサンプリングとWHAMは、バイアスポテンシャルと重み補正により反応座標に沿った自由エネルギー面を復元する。
+  * いずれの手法も「サンプリングを重要領域へ誘導・加速する」という共通思想に基づき、分子動力学法にも応用される。
+
+## 次のステップ
+
+本章では、状態空間を効率よく探索する確率的サンプリング法を学びました。 第3章では視点を変え、系の運動方程式を時間積分することで配置を生成する 分子動力学法(Molecular Dynamics method)を扱います。決定論的な時間発展と 本章の確率的サンプリングは対極にあるように見えますが、 レプリカ交換分子動力学のように両者を組み合わせることで、 より強力なサンプリングが可能になります。次章へ進みましょう。 
 
 ## 参考文献
 
-  1. 数値計算の基礎理論に関する標準的教科書
-  2. 計算物理学・計算材料科学の専門書
-  3. Pythonによる科学技術計算の実践ガイド
-  4. 性能最適化とHPC技術の解説書
+  1. D. Frenkel and B. Smit, _Understanding Molecular Simulation: From Algorithms to Applications_ , 2nd ed., Academic Press, 2002.
+  2. M. E. J. Newman and G. T. Barkema, _Monte Carlo Methods in Statistical Physics_ , Oxford University Press, 1999.
+  3. K. Hukushima and K. Nemoto, "Exchange Monte Carlo Method and Application to Spin Glass Simulations," _J. Phys. Soc. Jpn._ 65, 1604 (1996).
+  4. F. Wang and D. P. Landau, "Efficient, Multiple-Range Random Walk Algorithm to Calculate the Density of States," _Phys. Rev. Lett._ 86, 2050 (2001).
+  5. S. Kumar et al., "The Weighted Histogram Analysis Method for Free-Energy Calculations on Biomolecules," _J. Comput. Chem._ 13, 1011 (1992).
 
 [前へ](<chapter-1.html>) [目次](<index.html>) [次へ](<chapter-3.html>)
 
