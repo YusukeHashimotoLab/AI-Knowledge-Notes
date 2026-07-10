@@ -13,12 +13,22 @@ directly under a dojo that contains index.html; chapters = chapter*.html files
 inside it) and either reports drift (--check, default; exit 1 on mismatch) or
 rewrites the numbers in place (--write).
 
-Per-series chapter badges on dojo cards are CHECKED (reported) but never
-rewritten, because their formats vary and mismatches sometimes need editorial
-judgement (e.g. a series intentionally listing only a study track).
+Per-series chapter badges on dojo cards are also patched to their real
+chapter counts (fix_series_badges): the example-count text next to them
+("・35例", ", 30 Examples") is left untouched since it can't be verified
+cheaply, but the badge's numeral itself is kept in sync like everything else
+here, including under --write.
+
+If any expected pattern matches zero times in a file (e.g. the page markup
+changed shape and a regex no longer applies), that is reported as a
+"pattern not found" warning distinct from ordinary drift, and causes the
+script to exit 1 even under --write — a 0-match pattern means the
+corresponding number may be stale on disk with no drift having been
+detected or fixed for it, which needs a human to update the regex.
 
 Usage:
   python3 scripts/update_index_stats.py            # check, exit 1 on drift
+  python3 scripts/update_index_stats.py --check    # same as default (explicit)
   python3 scripts/update_index_stats.py --write    # fix in place
   python3 scripts/update_index_stats.py --quiet    # check, print only drift
 """
@@ -64,11 +74,21 @@ class Patcher:
             self.text = fh.read()
         self.original = self.text
         self.drift = []  # human-readable mismatch descriptions
+        self.not_found = []  # labels whose pattern matched zero times
 
     def sub(self, pattern: str, repl: str, label: str, count: int = 0, flags=0):
-        """Replace pattern; record drift if the replacement changes anything."""
+        """Replace pattern; record drift if the replacement changes anything.
+
+        A pattern that matches zero times is recorded separately in
+        not_found: it means the corresponding number can't be verified or
+        fixed at all (as opposed to drift, where it was checked and found
+        wrong), which is a distinct failure mode worth flagging loudly.
+        """
         new, n = re.subn(pattern, repl, self.text, count=count, flags=flags)
-        if n and new != self.text:
+        if n == 0:
+            self.not_found.append(label)
+            return
+        if new != self.text:
             self.drift.append(label)
             self.text = new
 
@@ -190,6 +210,8 @@ def patch_landing(p: Patcher, locale: str, totals, per_dojo):
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--write", action="store_true", help="fix files in place")
+    ap.add_argument("--check", action="store_true",
+                     help="check only; exit 1 on drift (default behavior; explicit alias)")
     ap.add_argument("--quiet", action="store_true", help="print only drift/mismatches")
     args = ap.parse_args()
 
@@ -204,6 +226,10 @@ def main() -> int:
             patch_dojo_header(p, locale, n_series, n_chapters)
             patch_category_counts(p, locale)
             fix_series_badges(p, per_series)
+            for nf in p.not_found:
+                exit_code = 1
+                print(f"WARN  {rel(idx)}: pattern not found for '{nf}' "
+                      f"(number could not be verified/fixed; stale value may remain)")
             if p.changed():
                 exit_code = 1
                 for d in p.drift:
@@ -218,6 +244,10 @@ def main() -> int:
         landing = os.path.join(KNOWLEDGE, locale, "index.html")
         p = Patcher(landing)
         patch_landing(p, locale, totals, per_dojo)
+        for nf in p.not_found:
+            exit_code = 1
+            print(f"WARN  {rel(landing)}: pattern not found for '{nf}' "
+                  f"(number could not be verified/fixed; stale value may remain)")
         if p.changed():
             exit_code = 1
             for d in p.drift:
@@ -228,8 +258,6 @@ def main() -> int:
         elif not args.quiet:
             print(f"ok    {rel(landing)} (totals {totals[0]} series / {totals[1]} chapters)")
 
-    if args.write:
-        return 0
     return exit_code
 
 

@@ -8,17 +8,54 @@ on:
     paths:
       - 'knowledge/**/*.html'
       - 'knowledge/**/*.md'
+      - 'private/**/*.html'
+      - 'endowed/**/*.html'
       - 'scripts/check_links.py'
+      - 'scripts/update_index_stats.py'
+      - 'scripts/build_search_index.py'
+      - 'scripts/build_sitemap.py'
       - '.github/workflows/link-check.yml'
   pull_request:
     paths:
       - 'knowledge/**/*.html'
       - 'knowledge/**/*.md'
+      - 'private/**/*.html'
+      - 'endowed/**/*.html'
       - 'scripts/check_links.py'
+      - 'scripts/update_index_stats.py'
+      - 'scripts/build_search_index.py'
+      - 'scripts/build_sitemap.py'
       - '.github/workflows/link-check.yml'
   workflow_dispatch:
 
 jobs:
+  check-generated-assets:
+    name: Check Generated Assets (stats, search index, sitemap)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        # fetch-depth is intentionally left at the default (1, shallow):
+        # build_sitemap.py --check auto-detects a shallow clone and degrades
+        # to a URL-set-only comparison (skipping <lastmod>) in that case, so
+        # a full-history checkout isn't needed just for this check.
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Verify dojo/landing page stats are up to date
+        run: python3 scripts/update_index_stats.py --check
+
+      - name: Verify search index is up to date
+        run: python3 scripts/build_search_index.py --check
+
+      - name: Verify sitemap.xml is up to date
+        run: python3 scripts/build_sitemap.py --check
+
   check-links-en:
     name: Check Links (English)
     runs-on: ubuntu-latest
@@ -156,17 +193,19 @@ jobs:
   summary:
     name: Link Check Summary
     runs-on: ubuntu-latest
-    needs: [check-links-en, check-links-jp]
+    needs: [check-generated-assets, check-links-en, check-links-jp]
     if: always()
 
     steps:
       - name: Check overall status
         run: |
           echo "=== Link Check Complete ==="
+          echo "Generated assets: ${{ needs.check-generated-assets.result }}"
           echo "English: ${{ needs.check-links-en.result }}"
           echo "Japanese: ${{ needs.check-links-jp.result }}"
 
-          if [ "${{ needs.check-links-en.result }}" != "success" ] || \
+          if [ "${{ needs.check-generated-assets.result }}" != "success" ] || \
+             [ "${{ needs.check-links-en.result }}" != "success" ] || \
              [ "${{ needs.check-links-jp.result }}" != "success" ]; then
             echo ""
             echo "Some link checks failed. Please review the artifacts."
