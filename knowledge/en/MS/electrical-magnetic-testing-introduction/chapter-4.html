@@ -1,20 +1,398 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
+    <meta charset="UTF-8">
 <meta content="Chapter 4: Python Practice: Electromagnetic Data Analysis Workflow - MS Terakoya. Load and preprocess real instrument data (CSV, DAT, binary)" name="description"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Chapter 4: Python Practice: Electromagnetic Data Analysis Workflow - MS Terakoya</title>
-<link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
-<!-- Prism.js for syntax highlighting -->
-<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet"/>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
-<script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 4: Python Practice: Electromagnetic Data Analysis Workflow - MS Terakoya</title>
+
+    <style>
+        :root {
+            --color-primary: #2c3e50;
+            --color-primary-dark: #1a252f;
+            --color-accent: #f093fb;
+            --color-accent-light: #f5576c;
+            --color-text: #2d3748;
+            --color-text-light: #4a5568;
+            --color-bg: #ffffff;
+            --color-bg-alt: #f7fafc;
+            --color-border: #e2e8f0;
+            --color-code-bg: #f8f9fa;
+            --color-link: #f093fb;
+            --color-link-hover: #d07be8;
+
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+
+            --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+            --border-radius: 8px;
+            --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-body);
+            line-height: 1.7;
+            color: var(--color-text);
+            background-color: var(--color-bg);
+            font-size: 16px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            padding: var(--spacing-xl) var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+            box-shadow: var(--box-shadow);
+        }
+
+        .header-content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: var(--spacing-sm);
+            line-height: 1.2;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            font-weight: 400;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-md);
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-md) var(--spacing-xl);
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-xl);
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-xs);
+            border-bottom: 3px solid var(--color-accent);
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-lg);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        h4 {
+            font-size: 1.1rem;
+            color: var(--color-primary-dark);
+            margin-top: var(--spacing-md);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        p {
+            margin-bottom: var(--spacing-md);
+            color: var(--color-text);
+        }
+
+        a {
+            color: var(--color-link);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        a:hover {
+            color: var(--color-link-hover);
+            text-decoration: underline;
+        }
+
+        ul, ol {
+            margin-left: var(--spacing-lg);
+            margin-bottom: var(--spacing-md);
+        }
+
+        li {
+            margin-bottom: var(--spacing-xs);
+            color: var(--color-text);
+        }
+
+        pre {
+            background-color: var(--color-code-bg);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            overflow-x: auto;
+            margin-bottom: var(--spacing-md);
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        code {
+            font-family: var(--font-mono);
+            font-size: 0.9em;
+            background-color: var(--color-code-bg);
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+        }
+
+        pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: var(--spacing-md);
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            border: 1px solid var(--color-border);
+            padding: var(--spacing-sm);
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--color-bg-alt);
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        blockquote {
+            border-left: 4px solid var(--color-accent);
+            padding-left: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            color: var(--color-text-light);
+            font-style: italic;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        .mermaid {
+            text-align: center;
+            margin: var(--spacing-lg) 0;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        .learning-objectives {
+            background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%);
+            padding: var(--spacing-lg);
+            border-radius: var(--border-radius);
+            border-left: 4px solid var(--color-accent);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .learning-objectives h2 {
+            margin-top: 0;
+            border-bottom: none;
+        }
+
+        .breadcrumb {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: var(--spacing-sm) var(--spacing-md);
+            font-size: 0.9rem;
+            color: var(--color-text-light);
+        }
+
+        .breadcrumb a {
+            color: var(--color-link);
+            text-decoration: none;
+        }
+
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            gap: var(--spacing-md);
+            margin: var(--spacing-xl) 0;
+            padding-top: var(--spacing-lg);
+            border-top: 2px solid var(--color-border);
+        }
+
+        .nav-button {
+            flex: 1;
+            padding: var(--spacing-md);
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            border-radius: var(--border-radius);
+            text-align: center;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: var(--box-shadow);
+        }
+
+        .nav-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            text-decoration: none;
+        }
+
+        details {
+            background-color: var(--color-bg-alt);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+        }
+
+        summary {
+            font-weight: 600;
+            cursor: pointer;
+            color: var(--color-primary);
+        }
+
+        summary:hover {
+            color: var(--color-accent);
+        }
+
+        .exercise-label {
+            display: inline-block;
+            padding: 0.2rem 0.6rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-right: 0.5rem;
+        }
+
+        .easy {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .medium {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+
+        .hard {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        footer {
+            margin-top: var(--spacing-xl);
+            padding: var(--spacing-lg) var(--spacing-md);
+            background-color: var(--color-bg-alt);
+            border-top: 1px solid var(--color-border);
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--color-text-light);
+        }
+        .disclaimer {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 1.5rem;
+            background: #f8f9fa;
+            border-left: 4px solid #6c757d;
+            border-radius: 4px;
+        }
+
+        .disclaimer h3 {
+            color: #495057;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .disclaimer ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .disclaimer li {
+            padding: 0.5rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+            font-size: 0.9rem;
+            color: #6c757d;
+            line-height: 1.6;
+        }
+
+        .disclaimer li::before {
+            content: "⚠️";
+            position: absolute;
+            left: 0;
+        }
+
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            h2 {
+                font-size: 1.4rem;
+            }
+
+            h3 {
+                font-size: 1.2rem;
+            }
+
+            .meta {
+                font-size: 0.85rem;
+            }
+
+            .navigation {
+                flex-direction: column;
+            }
+
+            table {
+                font-size: 0.85rem;
+            }
+
+            th, td {
+                padding: var(--spacing-xs);
+            }
+        }
+    </style>
+
+    <!-- Prism.js for syntax highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
         mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });
     </script>
-<script>
+
+    <script>
         MathJax = {
             tex: {
                 inlineMath: [['$', '$'], ['\\(', '\\)']],
@@ -28,9 +406,73 @@
             }
         };
     </script>
-<script async="" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" id="MathJax-script" async></script>
+
+    <style>
+        /* Locale Switcher Styles */
+        .locale-switcher {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 6px;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .current-locale {
+            font-weight: 600;
+            color: #7b2cbf;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .locale-separator {
+            color: #adb5bd;
+            font-weight: 300;
+        }
+
+        .locale-link {
+            color: #f093fb;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+        }
+
+        .locale-link:hover {
+            background: rgba(240, 147, 251, 0.1);
+            color: #d07be8;
+            transform: translateY(-1px);
+        }
+
+        .locale-meta {
+            color: #868e96;
+            font-size: 0.85rem;
+            font-style: italic;
+            margin-left: auto;
+        }
+
+        @media (max-width: 768px) {
+            .locale-switcher {
+                font-size: 0.85rem;
+                padding: 0.4rem 0.8rem;
+            }
+            .locale-meta {
+                display: none;
+            }
+        }
+    </style>
 </head>
-<body><div class="locale-switcher">
+<body>
+    <div class="locale-switcher">
 <span class="current-locale">🌐 EN</span>
 <span class="locale-separator">|</span>
 <a href="../../../jp/MS/electrical-magnetic-testing-introduction/chapter-4.html" class="locale-link">🇯🇵 JP</a>
@@ -38,108 +480,111 @@
 <span class="locale-meta">Last sync: 2025-11-16</span>
 </div>
 <header>
-<div class="header-content">
-<h1>Chapter 4: Python実践：電磁気データ解析ワークフロー</h1>
-<p class="subtitle">Integrated pipeline for data loading, preprocessing, fitting, visualization, and automated report generation</p>
-<div class="meta">
-<span class="meta-item">📖 Reading time: 55-65 minutes</span>
-<span class="meta-item">📊 Difficulty: Intermediate to Advanced</span>
-<span class="meta-item">💻 Code examples: 7</span>
-</div>
-</div>
-</header>
-<div class="breadcrumb">
-<a href="../index.html">AI Terakoya Top</a> &gt;
+        <div class="header-content">
+            <h1>Chapter 4: Python Practice: Electromagnetic Data Analysis Workflow</h1>
+            <p class="subtitle">An integrated pipeline for data loading, preprocessing, fitting, visualization, and automated report generation</p>
+            <div class="meta">
+                <span class="meta-item">📖 Reading time: 55-65 minutes</span>
+                <span class="meta-item">📊 Difficulty: Intermediate to Advanced</span>
+                <span class="meta-item">💻 Code examples: 7</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="breadcrumb">
+        <a href="../../index.html">AI Terakoya Top</a> &gt;
         <a href="../index.html">MS Dojo</a> &gt;
-        <a href="index.html">Introduction to Electrical &amp; Magnetic Testing</a> &gt;
+        <a href="index.html">Introduction to Electrical and Magnetic Testing</a> &gt;
         Chapter 4
     </div>
-<main class="container">
-<p class="chapter-description" style="margin: 1.5rem 0; padding: 1rem; background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%); border-left: 4px solid #f093fb; border-radius: 8px; font-size: 1.05rem; line-height: 1.8; color: #2d3748;">
-            この章では、実際の測定Instrument（VSM、SQUID、Hall測定システム）から得られるデータを扱う実践的なPythonワークフローを習得します。CSVやバイナリデータの読み込み、異常値除去、バックグラウンド減算、Advanced Fitting Techniques（lmfit、scipy.optimize）、誤差伝播、機械学習を用いた異常検出、publication-qualityの図の作成、Automated Report Generationまでの統合的なパイプラインを構築します。
+
+    <main class="container">
+        <p class="chapter-description" style="margin: 1.5rem 0; padding: 1rem; background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%); border-left: 4px solid #f093fb; border-radius: 8px; font-size: 1.05rem; line-height: 1.8; color: #2d3748;">
+            In this chapter, you will master a practical Python workflow for handling data from real measurement instruments (VSM, SQUID, Hall measurement systems). We will build an integrated pipeline covering the loading of CSV and binary data, outlier removal, background subtraction, advanced fitting techniques (lmfit, scipy.optimize), error propagation, anomaly detection using machine learning, creation of publication-quality figures, and automated report generation.
         </p>
-<div class="learning-objectives">
-<h2>Learning Objectives</h2>
-<p>By completing this chapter, you will be able to:</p>
-<ul>
-<li>✅ Load and preprocess real instrument data (CSV, DAT, binary)</li>
-<li>✅ Automate outlier detection and data cleaning</li>
-<li>✅ Perform integrated analysis of four-probe, Hall, and M-H measurements</li>
-<li>✅ Conduct advanced fitting with lmfit and scipy.optimize</li>
-<li>✅ Calculate error propagation correctly</li>
-<li>✅ Automatically generate publication-quality figures</li>
-<li>✅ Automatically generate PDF reports</li>
-</ul>
-</div>
-<h2>4.1 Data Loading and Cleaning</h2>
-<h3>4.1.1 Multi-Format Data Loader</h3>
-<p>Real measurement instruments output data in various formats:</p>
-<table>
-<thead>
-<tr>
-<th>Instrument</th>
-<th>Format</th>
-<th>Header</th>
-<th>Delimiter</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Quantum Design VSM</td>
-<td>.dat</td>
-<td>Multi-line comments (#)</td>
-<td>Tab or comma</td>
-</tr>
-<tr>
-<td>Keithley 2400 SMU</td>
-<td>.csv</td>
-<td>1 line or none</td>
-<td>Comma</td>
-</tr>
-<tr>
-<td>Lake Shore 7400 VSM</td>
-<td>.txt</td>
-<td>Fixed format</td>
-<td>Space</td>
-</tr>
-<tr>
-<td>カスタムLabVIEW</td>
-<td>.bin</td>
-<td>バイナリHeader</td>
-<td>N/A</td>
-</tr>
-</tbody>
-</table>
-<div class="mermaid">
+
+        <div class="learning-objectives">
+            <h2>Learning Objectives</h2>
+            <p>By reading this chapter, you will be able to:</p>
+            <ul>
+                <li>✅ Load and preprocess real instrument data (CSV, DAT, binary)</li>
+                <li>✅ Automate outlier detection and cleaning</li>
+                <li>✅ Perform integrated analysis of four-point probe, Hall, and M-H curve measurements</li>
+                <li>✅ Perform advanced fitting with lmfit and scipy.optimize</li>
+                <li>✅ Correctly compute error propagation</li>
+                <li>✅ Automatically generate publication-quality figures</li>
+                <li>✅ Automatically generate PDF reports</li>
+            </ul>
+        </div>
+
+        <h2>4.1 Data Loading and Cleaning</h2>
+
+        <h3>4.1.1 Multi-Format Data Loader</h3>
+        <p>Real measurement instruments output data in a variety of formats:</p>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Instrument</th>
+                    <th>Format</th>
+                    <th>Header</th>
+                    <th>Delimiter</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Quantum Design VSM</td>
+                    <td>.dat</td>
+                    <td>Multi-line comments (#)</td>
+                    <td>Tab or comma</td>
+                </tr>
+                <tr>
+                    <td>Keithley 2400 SMU</td>
+                    <td>.csv</td>
+                    <td>One line or none</td>
+                    <td>Comma</td>
+                </tr>
+                <tr>
+                    <td>Lake Shore 7400 VSM</td>
+                    <td>.txt</td>
+                    <td>Fixed format</td>
+                    <td>Space</td>
+                </tr>
+                <tr>
+                    <td>Custom LabVIEW</td>
+                    <td>.bin</td>
+                    <td>Binary header</td>
+                    <td>N/A</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="mermaid">
 flowchart LR
-    A[Raw Data<br/>CSV/DAT/BIN] --&gt; B[Data Loader<br/>pandas/numpy]
-    B --&gt; C{Format<br/>Detection}
-    C --&gt;|CSV| D[pd.read_csv]
-    C --&gt;|DAT| E[Custom Parser]
-    C --&gt;|Binary| F[np.fromfile]
-    
-    D --&gt; G[Data Cleaning]
-    E --&gt; G
-    F --&gt; G
-    
-    G --&gt; H[Remove NaN/Inf]
-    G --&gt; I[Outlier Detection]
-    G --&gt; J[Unit Conversion]
-    
-    H --&gt; K[Clean Dataset]
-    I --&gt; K
-    J --&gt; K
+    A[Raw Data<br/>CSV/DAT/BIN] --> B[Data Loader<br/>pandas/numpy]
+    B --> C{Format<br/>Detection}
+    C -->|CSV| D[pd.read_csv]
+    C -->|DAT| E[Custom Parser]
+    C -->|Binary| F[np.fromfile]
+
+    D --> G[Data Cleaning]
+    E --> G
+    F --> G
+
+    G --> H[Remove NaN/Inf]
+    G --> I[Outlier Detection]
+    G --> J[Unit Conversion]
+
+    H --> K[Clean Dataset]
+    I --> K
+    J --> K
 
     style A fill:#99ccff,stroke:#0066cc,stroke-width:2px
     style K fill:#f093fb,stroke:#f5576c,stroke-width:2px,color:#fff
         </div>
-<h4>コード例4-1: Multi-Format Data Loaderクラス</h4>
-<pre><code class="language-python"># Requirements:
-# - Python 3.9+
-# - numpy&gt;=1.24.0, &lt;2.0.0
-# - pandas&gt;=2.0.0, &lt;2.2.0
 
-import numpy as np
+        <h4>Code Example 4-1: Multi-Format Data Loader Class</h4>
+        <pre><code class="language-python">import numpy as np
 import pandas as pd
 import struct
 from pathlib import Path
@@ -147,46 +592,46 @@ from typing import Union, Tuple
 
 class UniversalDataLoader:
     """
-    Multi-Format Data Loader（CSV、DAT、バイナリ対応）
-    
+    Multi-format data loader (supports CSV, DAT, and binary)
+
     Attributes
     ----------
     data : pd.DataFrame
-        読み込んだデータ
+        The loaded data
     metadata : dict
-        メタデータ（Header情報、測定条件など）
+        Metadata (header information, measurement conditions, etc.)
     """
 
     def __init__(self):
         self.data = None
         self.metadata = {}
 
-    def load(self, filepath: str, format: str = 'auto') -&gt; pd.DataFrame:
+    def load(self, filepath: str, format: str = 'auto') -> pd.DataFrame:
         """
-        データファイルを読み込む
-        
+        Load a data file
+
         Parameters
         ----------
         filepath : str
-            ファイルパス
+            File path
         format : str
-            'auto'（自動検出）, 'csv', 'dat', 'binary'
-        
+            'auto' (automatic detection), 'csv', 'dat', 'binary'
+
         Returns
         -------
         data : pd.DataFrame
-            読み込んだデータ
+            The loaded data
         """
         path = Path(filepath)
-        
+
         if not path.exists():
             raise FileNotFoundError(f"File not found: {filepath}")
 
-        # Formatの自動検出
+        # Automatic format detection
         if format == 'auto':
             format = self._detect_format(path)
 
-        # Formatに応じた読み込み
+        # Load according to format
         if format == 'csv':
             self.data = self._load_csv(path)
         elif format == 'dat':
@@ -199,8 +644,8 @@ class UniversalDataLoader:
         print(f"Loaded {len(self.data)} rows from {path.name} (format: {format})")
         return self.data
 
-    def _detect_format(self, path: Path) -&gt; str:
-        """ファイル拡張子からFormatを推定"""
+    def _detect_format(self, path: Path) -> str:
+        """Infer the format from the file extension"""
         ext = path.suffix.lower()
         if ext in ['.csv', '.txt']:
             return 'csv'
@@ -209,7 +654,7 @@ class UniversalDataLoader:
         elif ext == '.bin':
             return 'binary'
         else:
-            # 中身を見て判定
+            # Inspect the content to decide
             with open(path, 'rb') as f:
                 header = f.read(100)
                 if b'\x00' in header:
@@ -217,9 +662,9 @@ class UniversalDataLoader:
                 else:
                     return 'csv'
 
-    def _load_csv(self, path: Path) -&gt; pd.DataFrame:
-        """CSVFormatの読み込み"""
-        # Header行数の検出
+    def _load_csv(self, path: Path) -> pd.DataFrame:
+        """Load CSV format"""
+        # Detect number of header lines
         header_lines = 0
         with open(path, 'r') as f:
             for i, line in enumerate(f):
@@ -229,21 +674,21 @@ class UniversalDataLoader:
                 else:
                     break
 
-        # データ読み込み
+        # Load the data
         try:
             data = pd.read_csv(path, skiprows=header_lines, sep=None, engine='python')
         except Exception as e:
-            # Comma区切り以外の場合
+            # For delimiters other than comma
             data = pd.read_csv(path, skiprows=header_lines, delimiter=r'\s+')
 
         return data
 
-    def _load_dat(self, path: Path) -&gt; pd.DataFrame:
-        """DATFormatの読み込み（Quantum Design VSM想定）"""
-        # メタデータとデータを分離
+    def _load_dat(self, path: Path) -> pd.DataFrame:
+        """Load DAT format (assuming Quantum Design VSM)"""
+        # Separate metadata from data
         metadata_lines = []
         data_lines = []
-        
+
         with open(path, 'r') as f:
             in_data_section = False
             for line in f:
@@ -251,10 +696,10 @@ class UniversalDataLoader:
                 if line.startswith('[Data]'):
                     in_data_section = True
                     continue
-                
+
                 if not in_data_section:
                     if line and not line.startswith('#'):
-                        # メタデータ行
+                        # Metadata line
                         if '=' in line:
                             key, value = line.split('=', 1)
                             self.metadata[key.strip()] = value.strip()
@@ -262,12 +707,12 @@ class UniversalDataLoader:
                     if line and not line.startswith('#'):
                         data_lines.append(line)
 
-        # データをDataFrameに変換
+        # Convert the data into a DataFrame
         if data_lines:
-            # カラム名（最初の行）
+            # Column names (first line)
             header = data_lines[0].split('\t')
-            
-            # データ行
+
+            # Data rows
             data_values = []
             for line in data_lines[1:]:
                 values = line.split('\t')
@@ -279,58 +724,58 @@ class UniversalDataLoader:
 
         return data
 
-    def _load_binary(self, path: Path) -&gt; pd.DataFrame:
+    def _load_binary(self, path: Path) -> pd.DataFrame:
         """
-        バイナリFormatの読み込み（カスタムフォーマット）
-        
-        仮定：
-        - Header：最初の100バイト（メタデータ）
-        - データ：float64配列、3カラム（H, M, T）
+        Load binary format (custom format)
+
+        Assumptions:
+        - Header: the first 100 bytes (metadata)
+        - Data: float64 array, 3 columns (H, M, T)
         """
         with open(path, 'rb') as f:
-            # Header読み込み
+            # Read the header
             header_bytes = f.read(100)
-            # メタデータ解析（ここでは省略）
-            
-            # データ読み込み
+            # Parse metadata (omitted here)
+
+            # Read the data
             remaining = f.read()
             n_cols = 3
             n_rows = len(remaining) // (8 * n_cols)  # float64 = 8 bytes
-            
+
             data_array = np.frombuffer(remaining, dtype=np.float64)
             data_array = data_array.reshape((n_rows, n_cols))
-            
+
             data = pd.DataFrame(data_array, columns=['H', 'M', 'T'])
 
         return data
 
     def clean_data(self, remove_nan=True, remove_inf=True, outlier_method='iqr', threshold=3.0):
         """
-        データクリーニング
-        
+        Clean the data
+
         Parameters
         ----------
         remove_nan : bool
-            NaNを削除するか
+            Whether to remove NaN values
         remove_inf : bool
-            Infを削除するか
+            Whether to remove Inf values
         outlier_method : str
-            外れ値除去法（'iqr', 'zscore', 'none'）
+            Outlier removal method ('iqr', 'zscore', 'none')
         threshold : float
-            外れ値判定の閾値
+            Threshold for outlier determination
         """
         if self.data is None:
             raise ValueError("No data loaded. Call load() first.")
 
         original_len = len(self.data)
 
-        # NaN/Inf除去
+        # Remove NaN/Inf
         if remove_nan:
             self.data = self.data.dropna()
         if remove_inf:
             self.data = self.data.replace([np.inf, -np.inf], np.nan).dropna()
 
-        # 外れ値除去
+        # Remove outliers
         if outlier_method == 'iqr':
             self.data = self._remove_outliers_iqr(self.data, threshold)
         elif outlier_method == 'zscore':
@@ -340,47 +785,44 @@ class UniversalDataLoader:
 
         return self.data
 
-    def _remove_outliers_iqr(self, data: pd.DataFrame, threshold: float) -&gt; pd.DataFrame:
-        """IQR法による外れ値除去"""
+    def _remove_outliers_iqr(self, data: pd.DataFrame, threshold: float) -> pd.DataFrame:
+        """Remove outliers using the IQR method"""
         Q1 = data.quantile(0.25)
         Q3 = data.quantile(0.75)
         IQR = Q3 - Q1
-        
+
         lower_bound = Q1 - threshold * IQR
         upper_bound = Q3 + threshold * IQR
-        
-        mask = ((data &gt;= lower_bound) &amp; (data &lt;= upper_bound)).all(axis=1)
+
+        mask = ((data >= lower_bound) & (data &lt;= upper_bound)).all(axis=1)
         return data[mask]
 
-    def _remove_outliers_zscore(self, data: pd.DataFrame, threshold: float) -&gt; pd.DataFrame:
-        """Z-score法による外れ値除去"""
+    def _remove_outliers_zscore(self, data: pd.DataFrame, threshold: float) -> pd.DataFrame:
+        """Remove outliers using the Z-score method"""
         z_scores = np.abs((data - data.mean()) / data.std())
         mask = (z_scores &lt; threshold).all(axis=1)
         return data[mask]
 
-# 使用例
+# Example usage
 loader = UniversalDataLoader()
 
-# CSV読み込み
+# Load CSV
 data = loader.load('vsm_measurement.csv', format='auto')
 print(data.head())
 print(f"\nMetadata: {loader.metadata}")
 
-# クリーニング
+# Clean the data
 data_clean = loader.clean_data(outlier_method='iqr', threshold=3.0)
 print(f"\nCleaned data shape: {data_clean.shape}")
 </code></pre>
-<h2>4.2 Integrated Analysis Pipeline</h2>
-<h3>4.2.1 四端子法 + Hall + M-H統合解析</h3>
-<p>In experiments, multiple measurements are performed on the same sample. Integrated analysis of these measurements provides complete understanding of the electrical and magnetic properties of materials.</p>
-<h4>コード例4-2: Integrated Analysis Pipeline</h4>
-<pre><code class="language-python"># Requirements:
-# - Python 3.9+
-# - matplotlib&gt;=3.7.0
-# - numpy&gt;=1.24.0, &lt;2.0.0
-# - pandas&gt;=2.0.0, &lt;2.2.0
 
-import numpy as np
+        <h2>4.2 Integrated Analysis Pipeline</h2>
+
+        <h3>4.2.1 Integrated Four-Point Probe + Hall + M-H Analysis</h3>
+        <p>In experiments, multiple measurements are often performed on the same sample. By analyzing these together, we can gain a complete understanding of the material's electrical and magnetic properties.</p>
+
+        <h4>Code Example 4-2: Integrated Analysis Pipeline</h4>
+        <pre><code class="language-python">import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.optimize import fsolve, curve_fit
@@ -388,16 +830,16 @@ from lmfit import Model
 
 class IntegratedAnalysisPipeline:
     """
-    四端子法 + Hall + M-HIntegrated Analysis Pipeline
-    
+    Integrated four-point probe + Hall + M-H analysis pipeline
+
     Attributes
     ----------
     thickness : float
-        試料厚さ [m]
+        Sample thickness [m]
     mass : float
-        試料質量 [g]
+        Sample mass [g]
     results : dict
-        解析結果（σ, n, μ, M_s, H_c, M_r, K）
+        Analysis results (σ, n, μ, M_s, H_c, M_r, K)
     """
 
     def __init__(self, thickness: float, mass: float = None):
@@ -407,25 +849,25 @@ class IntegratedAnalysisPipeline:
         self.data = {}
 
     def load_four_probe_data(self, R_AB_CD: float, R_BC_DA: float):
-        """van der Pauw四端子データ読み込み"""
+        """Load van der Pauw four-point probe data"""
         self.data['R_AB_CD'] = R_AB_CD
         self.data['R_BC_DA'] = R_BC_DA
 
     def load_hall_data(self, I: float, B: float, V_pos: float, V_neg: float):
-        """Hallデータ読み込み"""
+        """Load Hall data"""
         self.data['I'] = I
         self.data['B'] = B
         self.data['V_hall_pos'] = V_pos
         self.data['V_hall_neg'] = V_neg
 
     def load_mh_data(self, H: np.ndarray, M: np.ndarray):
-        """M-Hデータ読み込み"""
+        """Load M-H data"""
         self.data['H'] = H
         self.data['M'] = M
 
     def analyze_electrical_properties(self):
-        """電気的特性解析（四端子法 + Hall）"""
-        # van der Pauw シート抵抗
+        """Analyze electrical properties (four-point probe + Hall)"""
+        # van der Pauw sheet resistance
         def vdp_eq(Rs, R1, R2):
             return np.exp(-np.pi * R1 / Rs) + np.exp(-np.pi * R2 / Rs) - 1
 
@@ -434,22 +876,22 @@ class IntegratedAnalysisPipeline:
         R_initial = (R1 + R2) / 2 * np.pi / np.log(2)
         R_s = fsolve(vdp_eq, R_initial, args=(R1, R2))[0]
 
-        # 電気伝導率
+        # Electrical conductivity
         sigma = 1 / (R_s * self.t)
 
-        # Hall係数
+        # Hall coefficient
         V_H = 0.5 * (self.data['V_hall_pos'] - self.data['V_hall_neg'])
         R_H = V_H * self.t / (self.data['I'] * self.data['B'])
 
-        # キャリア密度
+        # Carrier density
         e = 1.60218e-19
         n = 1 / (np.abs(R_H) * e)
-        carrier_type = 'electron' if R_H &lt; 0 else 'hole'
+        carrier_type = 'electron' if R_H < 0 else 'hole'
 
-        # 移動度
+        # Mobility
         mu = sigma * np.abs(R_H)
 
-        # 結果保存
+        # Save results
         self.results.update({
             'R_s': R_s,
             'sigma': sigma,
@@ -463,35 +905,35 @@ class IntegratedAnalysisPipeline:
         return self.results
 
     def analyze_magnetic_properties(self):
-        """磁気的特性解析（M-H曲線）"""
+        """Analyze magnetic properties (M-H curve)"""
         H = self.data['H']
         M = self.data['M']
 
-        # バックグラウンド減算
-        H_high = H[H &gt; 0.8 * np.max(H)]
-        M_high = M[H &gt; 0.8 * np.max(H)]
+        # Background subtraction
+        H_high = H[H > 0.8 * np.max(H)]
+        M_high = M[H > 0.8 * np.max(H)]
         slope = np.polyfit(H_high, M_high, 1)[0]
         M_corrected = M - slope * H
 
-        # 飽和磁化
-        M_s = np.mean(M_corrected[H &gt; 0.8 * np.max(H)])
+        # Saturation magnetization
+        M_s = np.mean(M_corrected[H > 0.8 * np.max(H)])
 
-        # 保磁力
+        # Coercivity
         from scipy.interpolate import interp1d
         from scipy.optimize import brentq
         interp_func = interp1d(H, M_corrected, kind='linear')
-        H_c = brentq(interp_func, np.min(H[H &lt; 0]), np.max(H[H &gt; 0]))
+        H_c = brentq(interp_func, np.min(H[H < 0]), np.max(H[H > 0]))
 
-        # 残留磁化
+        # Remanence
         M_r = interp_func(0)
 
-        # 角形比
+        # Squareness ratio
         S = M_r / M_s if M_s != 0 else 0
 
-        # 磁気異方性定数
-        K = H_c * M_s / 2  # CGS単位 [erg/cm^3]
+        # Magnetic anisotropy constant
+        K = H_c * M_s / 2  # CGS units [erg/cm^3]
 
-        # 結果保存
+        # Save results
         self.results.update({
             'M_s': M_s,
             'H_c': H_c,
@@ -503,11 +945,11 @@ class IntegratedAnalysisPipeline:
         return self.results
 
     def generate_report(self):
-        """統合レポート生成"""
+        """Generate an integrated report"""
         print("=" * 80)
-        print("INTEGRATED ELECTRICAL &amp; MAGNETIC PROPERTIES ANALYSIS")
+        print("INTEGRATED ELECTRICAL & MAGNETIC PROPERTIES ANALYSIS")
         print("=" * 80)
-        
+
         print("\n[Electrical Properties]")
         print(f"  Sheet Resistance R_s = {self.results['R_s']:.2f} Ω/sq")
         print(f"  Conductivity σ = {self.results['sigma']:.2e} S/m")
@@ -524,24 +966,24 @@ class IntegratedAnalysisPipeline:
         print(f"  Anisotropy Constant K = {self.results['K']:.2e} erg/cm³ = {self.results['K'] * 1e3:.2e} J/m³")
 
         print("\n[Material Classification]")
-        if self.results['H_c'] &lt; 100:
+        if self.results['H_c'] < 100:
             print("  → Soft magnetic material (transformers, inductors)")
-        elif self.results['H_c'] &gt; 1000:
+        elif self.results['H_c'] > 1000:
             print("  → Hard magnetic material (permanent magnets)")
         else:
             print("  → Medium coercivity (recording media)")
 
-        if self.results['mu'] * 1e4 &gt; 1000:
+        if self.results['mu'] * 1e4 > 1000:
             print("  → High mobility material (high-performance electronics)")
         else:
             print("  → Moderate mobility (standard electronics)")
 
         print("=" * 80)
 
-# 使用例
+# Example usage
 pipeline = IntegratedAnalysisPipeline(thickness=200e-9, mass=0.005)
 
-# データ読み込み
+# Load data
 pipeline.load_four_probe_data(R_AB_CD=1000, R_BC_DA=950)
 pipeline.load_hall_data(I=100e-6, B=0.5, V_pos=-5.0e-3, V_neg=4.8e-3)
 
@@ -549,61 +991,59 @@ H_data = np.linspace(-5000, 5000, 200)
 M_data = 50 * np.tanh(H_data / 1000) + 0.5 * np.random.randn(200)
 pipeline.load_mh_data(H=H_data, M=M_data)
 
-# 解析実行
+# Run the analysis
 pipeline.analyze_electrical_properties()
 pipeline.analyze_magnetic_properties()
 
-# レポート生成
+# Generate report
 pipeline.generate_report()
 </code></pre>
-<h2>4.3 Advanced Fitting Techniques</h2>
-<h3>4.3.1 Constrained Fitting with lmfit</h3>
-<p><strong>lmfit</strong>は、scipy.optimizeのラッパーで、パラメータの制約、誤差推定、相関行列の計算が容易です。</p>
-<h4>コード例4-3: lmfitによる複雑なフィッティング</h4>
-<pre><code class="language-python"># Requirements:
-# - Python 3.9+
-# - matplotlib&gt;=3.7.0
-# - numpy&gt;=1.24.0, &lt;2.0.0
 
-import numpy as np
+        <h2>4.3 Advanced Fitting Techniques</h2>
+
+        <h3>4.3.1 Constrained Fitting with lmfit</h3>
+        <p><strong>lmfit</strong> is a wrapper around scipy.optimize that makes it easy to set parameter constraints, estimate errors, and compute correlation matrices.</p>
+
+        <h4>Code Example 4-3: Complex Fitting with lmfit</h4>
+        <pre><code class="language-python">import numpy as np
 import matplotlib.pyplot as plt
 from lmfit import Model, Parameters
 
 def temperature_dependent_hall(T, n0, Ea, mu0, alpha):
     """
-    温度依存性Hallモデル
-    
-    n(T) = n0 * exp(Ea / (k_B * T))  # キャリア密度
-    μ(T) = μ0 * (T / 300)^(-α)      # 移動度
+    Temperature-dependent Hall model
+
+    n(T) = n0 * exp(Ea / (k_B * T))  # Carrier density
+    μ(T) = μ0 * (T / 300)^(-α)      # Mobility
     R_H(T) = 1 / (n(T) * e)
-    
+
     Parameters
     ----------
     T : array-like
-        温度 [K]
+        Temperature [K]
     n0 : float
-        基準キャリア密度 [m^-3]
+        Reference carrier density [m^-3]
     Ea : float
-        活性化エネルギー [eV]
+        Activation energy [eV]
     mu0 : float
-        基準移動度（300 K）[m^2/(V·s)]
+        Reference mobility (at 300 K) [m^2/(V·s)]
     alpha : float
-        移動度の温度指数
-    
+        Temperature exponent of mobility
+
     Returns
     -------
     R_H : array-like
-        Hall係数 [m^3/C]
+        Hall coefficient [m^3/C]
     """
     k_B = 8.617e-5  # [eV/K]
     e = 1.60218e-19  # [C]
-    
+
     n = n0 * np.exp(-Ea / (k_B * T))
     R_H = 1 / (n * e)
-    
+
     return R_H
 
-# シミュレーションデータ生成
+# Generate simulated data
 T_range = np.linspace(200, 400, 25)
 n0_true = 1e21  # [m^-3]
 Ea_true = 0.3  # [eV]
@@ -613,10 +1053,10 @@ alpha_true = 1.5
 R_H_data = temperature_dependent_hall(T_range, n0_true, Ea_true, mu0_true, alpha_true)
 R_H_data_noise = R_H_data * (1 + 0.08 * np.random.randn(len(T_range)))
 
-# lmfitモデル定義
+# Define the lmfit model
 model = Model(temperature_dependent_hall)
 
-# パラメータ設定（初期値、範囲、制約）
+# Set parameters (initial values, ranges, constraints)
 params = model.make_params(
     n0 = {'value': 5e20, 'min': 1e19, 'max': 1e23},
     Ea = {'value': 0.4, 'min': 0.1, 'max': 1.0},
@@ -624,23 +1064,23 @@ params = model.make_params(
     alpha = {'value': 1.0, 'min': 0.5, 'max': 3.0}
 )
 
-# フィッティング実行
+# Run the fit
 result = model.fit(R_H_data_noise, params, T=T_range)
 
-# 結果表示
+# Display results
 print("=" * 80)
 print("ADVANCED FITTING WITH LMFIT")
 print("=" * 80)
 print(result.fit_report())
 
-# パラメータ相関行列
+# Parameter correlation matrix
 print("\nParameter Correlation Matrix:")
 print(result.params.correlation)
 
-# プロット
+# Plotting
 fig, axes = plt.subplots(2, 2, figsize=(14, 10))
 
-# 左上：R_H vs T
+# Top left: R_H vs T
 axes[0, 0].scatter(T_range, R_H_data_noise, s=80, alpha=0.7, edgecolors='black', linewidths=1.5, label='Data (with noise)', color='#f093fb')
 axes[0, 0].plot(T_range, result.best_fit, linewidth=2.5, label='Fit', color='#f5576c')
 axes[0, 0].plot(T_range, R_H_data, linewidth=2, linestyle='--', label='True (no noise)', color='green')
@@ -651,7 +1091,7 @@ axes[0, 0].legend(fontsize=10)
 axes[0, 0].grid(alpha=0.3)
 axes[0, 0].set_yscale('log')
 
-# 右上：残差
+# Top right: residuals
 residuals = R_H_data_noise - result.best_fit
 axes[0, 1].scatter(T_range, residuals, s=80, alpha=0.7, edgecolors='black', linewidths=1.5, color='#99ccff')
 axes[0, 1].axhline(0, color='black', linestyle='--', linewidth=1.5)
@@ -660,7 +1100,7 @@ axes[0, 1].set_ylabel('Residuals [m$^3$/C]', fontsize=12)
 axes[0, 1].set_title('Fit Residuals', fontsize=13, fontweight='bold')
 axes[0, 1].grid(alpha=0.3)
 
-# 左下：キャリア密度
+# Bottom left: carrier density
 k_B = 8.617e-5
 e = 1.60218e-19
 n_fit = result.params['n0'].value * np.exp(-result.params['Ea'].value / (k_B * T_range))
@@ -671,7 +1111,7 @@ axes[1, 0].set_title('Carrier Density (from fit)', fontsize=13, fontweight='bold
 axes[1, 0].legend(fontsize=11)
 axes[1, 0].grid(alpha=0.3)
 
-# 右下：移動度
+# Bottom right: mobility
 mu_fit = result.params['mu0'].value * (T_range / 300)**(-result.params['alpha'].value)
 axes[1, 1].loglog(T_range, mu_fit * 1e4, linewidth=2.5, color='#99ff99', label='Fitted μ(T)')
 axes[1, 1].set_xlabel('Temperature T [K]', fontsize=12)
@@ -683,7 +1123,7 @@ axes[1, 1].grid(alpha=0.3, which='both')
 plt.tight_layout()
 plt.show()
 
-# 物理的解釈
+# Physical interpretation
 print("\n" + "=" * 80)
 print("PHYSICAL INTERPRETATION")
 print("=" * 80)
@@ -694,38 +1134,37 @@ print(f"  → Scattering mechanism: α ≈ 1.5 suggests acoustic phonon scatteri
 print(f"Carrier Density (300 K) = {result.params['n0'].value * np.exp(-result.params['Ea'].value / (k_B * 300)):.2e} m⁻³")
 print(f"Mobility (300 K) = {result.params['mu0'].value * 1e4:.1f} cm²/(V·s)")
 </code></pre>
-<h2>4.4 Error Propagation and Uncertainty Evaluation</h2>
-<h3>4.4.1 Automatic Error Propagation</h3>
-<p>測定値の不確かさは、導出量（移動度、異方性定数など）に伝播します。<strong>uncertainties</strong>パッケージを使うと、自動的に誤差伝播を計算できます。</p>
-<h4>コード例4-4: Automatic Error Propagation</h4>
-<pre><code class="language-python"># Requirements:
-# - Python 3.9+
-# - numpy&gt;=1.24.0, &lt;2.0.0
 
-from uncertainties import ufloat, umath
+        <h2>4.4 Error Propagation and Uncertainty Evaluation</h2>
+
+        <h3>4.4.1 Automatic Error Propagation</h3>
+        <p>The uncertainty of measured values propagates into derived quantities (mobility, anisotropy constant, etc.). The <strong>uncertainties</strong> package lets you compute error propagation automatically.</p>
+
+        <h4>Code Example 4-4: Automatic Error Propagation</h4>
+        <pre><code class="language-python">from uncertainties import ufloat, umath
 import numpy as np
 
 def propagate_uncertainties_example():
     """
-    誤差伝播の実例
-    
-    Hall測定から移動度を計算し、不確かさを自動伝播
-    """
-    # 測定値（値 ± 不確かさ）
-    R_H = ufloat(-2.5e-3, 0.1e-3)  # Hall係数 [m^3/C]
-    sigma = ufloat(1e4, 100)  # 電気伝導率 [S/m]
-    I = ufloat(100e-6, 1e-6)  # 電流 [A]
-    B = ufloat(0.5, 0.01)  # 磁場 [T]
-    t = ufloat(200e-9, 5e-9)  # 厚さ [m]
+    A worked example of error propagation
 
-    # 移動度: μ = σ * |R_H|
+    Compute mobility from Hall measurements and automatically propagate the uncertainty
+    """
+    # Measured values (value ± uncertainty)
+    R_H = ufloat(-2.5e-3, 0.1e-3)  # Hall coefficient [m^3/C]
+    sigma = ufloat(1e4, 100)  # Electrical conductivity [S/m]
+    I = ufloat(100e-6, 1e-6)  # Current [A]
+    B = ufloat(0.5, 0.01)  # Magnetic field [T]
+    t = ufloat(200e-9, 5e-9)  # Thickness [m]
+
+    # Mobility: μ = σ * |R_H|
     mu = sigma * umath.fabs(R_H)
 
-    # キャリア密度: n = 1 / (e * |R_H|)
-    e = 1.60218e-19  # 定数（不確かさなし）
+    # Carrier density: n = 1 / (e * |R_H|)
+    e = 1.60218e-19  # Constant (no uncertainty)
     n = 1 / (e * umath.fabs(R_H))
 
-    # 磁気異方性定数: K = H_c * M_s / 2
+    # Magnetic anisotropy constant: K = H_c * M_s / 2
     H_c = ufloat(500, 20)  # [Oe]
     M_s = ufloat(50, 2)  # [emu/g]
     K = H_c * M_s / 2
@@ -733,7 +1172,7 @@ def propagate_uncertainties_example():
     print("=" * 80)
     print("AUTOMATIC ERROR PROPAGATION")
     print("=" * 80)
-    
+
     print("\n[Input Measurements]")
     print(f"  Hall Coefficient R_H = {R_H} m³/C")
     print(f"  Conductivity σ = {sigma} S/m")
@@ -753,7 +1192,7 @@ def propagate_uncertainties_example():
     print(f"  n: {n.std_dev / n.nominal_value * 100:.2f}%")
     print(f"  K: {K.std_dev / K.nominal_value * 100:.2f}%")
 
-    # 不確かさの寄与分析（手動計算で確認）
+    # Uncertainty budget analysis (verified with manual calculation)
     print("\n[Uncertainty Budget for μ = σ * |R_H|]")
     rel_sigma = (100 / 1e4)**2
     rel_R_H = (0.1e-3 / 2.5e-3)**2
@@ -765,38 +1204,28 @@ def propagate_uncertainties_example():
 
 propagate_uncertainties_example()
 </code></pre>
-<h2>4.5 Publication-Quality図の作成</h2>
-<h3>4.5.1 matplotlibベストプラクティス</h3>
-<p>Key points for creating publication-ready figures:</p>
-<ul>
-<li>フォントサイズ：ラベル 12-14pt、タイトル 14-16pt、凡例 10-12pt</li>
-<li>線幅：データ線 2-3pt、グリッド 0.5-1pt</li>
-<li>マーカーサイズ：80-150（scatter）</li>
-<li>色：colorblind-friendlyなカラーパレット（例：seaborn、viridis）</li>
-<li>解像度：DPI 300以上（印刷用）</li>
-<li>フォーマット：PDF（ベクター）またはPNG（ラスター）</li>
-</ul>
-<h4>コード例4-5: Publication-Quality図生成</h4>
-<pre><code class="language-python"># Requirements:
-# - Python 3.9+
-# - matplotlib&gt;=3.7.0
-# - numpy&gt;=1.24.0, &lt;2.0.0
 
-"""
-Example: コード例4-5: Publication-Quality図生成
+        <h2>4.5 Creating Publication-Quality Figures</h2>
 
-Purpose: Demonstrate data visualization techniques
-Target: Intermediate
-Execution time: 2-5 seconds
-Dependencies: None
-"""
+        <h3>4.5.1 matplotlib Best Practices</h3>
+        <p>Key points for creating figures suitable for publication in journals:</p>
 
-import numpy as np
+        <ul>
+            <li>Font size: axis labels 12-14pt, titles 14-16pt, legend 10-12pt</li>
+            <li>Line width: data lines 2-3pt, grid lines 0.5-1pt</li>
+            <li>Marker size: 80-150 (scatter)</li>
+            <li>Color: colorblind-friendly palettes (e.g., seaborn, viridis)</li>
+            <li>Resolution: DPI 300 or higher (for print)</li>
+            <li>Format: PDF (vector) or PNG (raster)</li>
+        </ul>
+
+        <h4>Code Example 4-5: Generating Publication-Quality Figures</h4>
+        <pre><code class="language-python">import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 from matplotlib.ticker import MultipleLocator, AutoMinorLocator
 
-# Publication設定
+# Publication settings
 mpl.rcParams['font.family'] = 'Arial'
 mpl.rcParams['font.size'] = 12
 mpl.rcParams['axes.linewidth'] = 1.5
@@ -811,23 +1240,23 @@ mpl.rcParams['ytick.minor.size'] = 3
 
 def create_publication_figure():
     """
-    Publication-qualityの図を作成
-    
-    例：温度依存性Hall測定結果
+    Create a publication-quality figure
+
+    Example: results of a temperature-dependent Hall measurement
     """
-    # データ生成
+    # Generate data
     T = np.linspace(100, 400, 20)
     n = 1e22 * np.exp(-0.3 / (8.617e-5 * T))
     mu = 0.05 * (300 / T)**1.5
     sigma = n * 1.60218e-19 * mu
 
-    # 図作成（2x2レイアウト）
+    # Create figure (2x2 layout)
     fig = plt.figure(figsize=(12, 10))
     gs = fig.add_gridspec(2, 2, hspace=0.3, wspace=0.3)
 
-    # (a) キャリア密度
+    # (a) Carrier density
     ax1 = fig.add_subplot(gs[0, 0])
-    ax1.semilogy(T, n / 1e6, 'o-', linewidth=2.5, markersize=8, color='#2E86AB', 
+    ax1.semilogy(T, n / 1e6, 'o-', linewidth=2.5, markersize=8, color='#2E86AB',
                  markeredgecolor='black', markeredgewidth=1.5, label='Carrier density')
     ax1.set_xlabel('Temperature (K)', fontsize=14, fontweight='bold')
     ax1.set_ylabel('Carrier Density (cm$^{-3}$)', fontsize=14, fontweight='bold')
@@ -836,7 +1265,7 @@ def create_publication_figure():
     ax1.grid(True, which='both', alpha=0.3, linestyle='--')
     ax1.xaxis.set_minor_locator(AutoMinorLocator())
 
-    # (b) 移動度
+    # (b) Mobility
     ax2 = fig.add_subplot(gs[0, 1])
     ax2.loglog(T, mu * 1e4, 's-', linewidth=2.5, markersize=8, color='#A23B72',
                markeredgecolor='black', markeredgewidth=1.5, label='Mobility')
@@ -846,7 +1275,7 @@ def create_publication_figure():
     ax2.legend(fontsize=12, frameon=True, shadow=True)
     ax2.grid(True, which='both', alpha=0.3, linestyle='--')
 
-    # (c) 電気伝導率
+    # (c) Electrical conductivity
     ax3 = fig.add_subplot(gs[1, 0])
     ax3.semilogy(T, sigma, '^-', linewidth=2.5, markersize=8, color='#F18F01',
                  markeredgecolor='black', markeredgewidth=1.5, label='Conductivity')
@@ -857,7 +1286,7 @@ def create_publication_figure():
     ax3.grid(True, which='both', alpha=0.3, linestyle='--')
     ax3.xaxis.set_minor_locator(AutoMinorLocator())
 
-    # (d) Arrheniusプロット
+    # (d) Arrhenius plot
     ax4 = fig.add_subplot(gs[1, 1])
     ax4.semilogy(1000 / T, n / 1e6, 'D-', linewidth=2.5, markersize=8, color='#C73E1D',
                  markeredgecolor='black', markeredgewidth=1.5, label='Arrhenius plot')
@@ -867,15 +1296,15 @@ def create_publication_figure():
     ax4.legend(fontsize=12, frameon=True, shadow=True)
     ax4.grid(True, which='both', alpha=0.3, linestyle='--')
 
-    # 全体調整
+    # Overall adjustment
     for ax in [ax1, ax2, ax3, ax4]:
         ax.tick_params(axis='both', which='major', labelsize=12, direction='in', top=True, right=True)
         ax.tick_params(axis='both', which='minor', direction='in', top=True, right=True)
 
-    # 保存（高解像度PDF + PNG）
+    # Save (high-resolution PDF + PNG)
     plt.savefig('hall_measurement_publication.pdf', dpi=300, bbox_inches='tight', format='pdf')
     plt.savefig('hall_measurement_publication.png', dpi=300, bbox_inches='tight', format='png')
-    
+
     print("Figures saved:")
     print("  - hall_measurement_publication.pdf (vector, for publication)")
     print("  - hall_measurement_publication.png (raster, for preview)")
@@ -884,36 +1313,34 @@ def create_publication_figure():
 
 create_publication_figure()
 </code></pre>
-<h2>4.6 Automated Report Generation</h2>
-<h3>4.6.1 Automated PDF Reports</h3>
-<p><strong>matplotlib</strong>と<strong>matplotlib.backends.backend_pdf</strong>を使って、複数ページのPDFレポートを自動生成します。</p>
-<h4>コード例4-6: PDFレポート自動生成</h4>
-<pre><code class="language-python"># Requirements:
-# - Python 3.9+
-# - matplotlib&gt;=3.7.0
-# - numpy&gt;=1.24.0, &lt;2.0.0
 
-import numpy as np
+        <h2>4.6 Automated Report Generation</h2>
+
+        <h3>4.6.1 Automatic PDF Reports</h3>
+        <p>Using <strong>matplotlib</strong> and <strong>matplotlib.backends.backend_pdf</strong>, we can automatically generate multi-page PDF reports.</p>
+
+        <h4>Code Example 4-6: Automated PDF Report Generation</h4>
+        <pre><code class="language-python">import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 from datetime import datetime
 
 class AutoReportGenerator:
     """
-    自動PDFレポート生成クラス
-    
+    Automated PDF report generator class
+
     Attributes
     ----------
     filename : str
-        出力PDFファイル名
+        Output PDF file name
     metadata : dict
-        レポートメタデータ
+        Report metadata
     """
 
     def __init__(self, filename='analysis_report.pdf'):
         self.filename = filename
         self.metadata = {
-            'Title': 'Electrical &amp; Magnetic Properties Analysis Report',
+            'Title': 'Electrical & Magnetic Properties Analysis Report',
             'Author': 'MS Terakoya Analysis Pipeline',
             'Subject': 'Automated Data Analysis',
             'Keywords': 'Hall effect, Magnetometry, Python',
@@ -922,27 +1349,27 @@ class AutoReportGenerator:
 
     def generate_report(self, results: dict):
         """
-        完全なレポートを生成
-        
+        Generate the complete report
+
         Parameters
         ----------
         results : dict
-            解析結果（電気的・磁気的特性）
+            Analysis results (electrical and magnetic properties)
         """
         with PdfPages(self.filename) as pdf:
-            # ページ1：サマリー
+            # Page 1: Summary
             self._add_summary_page(pdf, results)
-            
-            # ページ2：電気的特性グラフ
+
+            # Page 2: Electrical properties plots
             self._add_electrical_plots(pdf, results)
-            
-            # ページ3：磁気的特性グラフ
+
+            # Page 3: Magnetic properties plots
             self._add_magnetic_plots(pdf, results)
-            
-            # ページ4：統計情報
+
+            # Page 4: Statistics
             self._add_statistics_page(pdf, results)
 
-            # メタデータ設定
+            # Set metadata
             d = pdf.infodict()
             for key, value in self.metadata.items():
                 d[key] = value
@@ -950,12 +1377,12 @@ class AutoReportGenerator:
         print(f"Report generated: {self.filename}")
 
     def _add_summary_page(self, pdf, results):
-        """ページ1：サマリー（テキストのみ）"""
+        """Page 1: Summary (text only)"""
         fig = plt.figure(figsize=(8.5, 11))
         fig.text(0.5, 0.95, 'ANALYSIS SUMMARY', ha='center', fontsize=20, fontweight='bold')
         fig.text(0.5, 0.90, f'Generated: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}', ha='center', fontsize=10)
 
-        # 電気的特性
+        # Electrical properties
         y_start = 0.75
         fig.text(0.1, y_start, 'ELECTRICAL PROPERTIES', fontsize=16, fontweight='bold', color='#2E86AB')
         fig.text(0.1, y_start - 0.05, f"Sheet Resistance R_s = {results['R_s']:.2f} Ω/sq", fontsize=12)
@@ -964,7 +1391,7 @@ class AutoReportGenerator:
         fig.text(0.1, y_start - 0.20, f"Carrier Density n = {results['n']:.2e} m⁻³", fontsize=12)
         fig.text(0.1, y_start - 0.25, f"Mobility μ = {results['mu'] * 1e4:.1f} cm²/(V·s)", fontsize=12)
 
-        # 磁気的特性
+        # Magnetic properties
         y_start = 0.45
         fig.text(0.1, y_start, 'MAGNETIC PROPERTIES', fontsize=16, fontweight='bold', color='#A23B72')
         fig.text(0.1, y_start - 0.05, f"Saturation Magnetization M_s = {results['M_s']:.2f} emu/g", fontsize=12)
@@ -978,17 +1405,17 @@ class AutoReportGenerator:
         plt.close(fig)
 
     def _add_electrical_plots(self, pdf, results):
-        """ページ2：電気的特性グラフ"""
+        """Page 2: Electrical properties plots"""
         fig, axes = plt.subplots(2, 2, figsize=(11, 8.5))
-        
-        # ダミーデータ（実際にはresultsから取得）
+
+        # Dummy data (in practice, obtained from results)
         T = np.linspace(100, 400, 20)
         n = results['n'] * np.exp(-0.1 / (8.617e-5 * T))
         mu = results['mu'] * (300 / T)**1.5
         sigma = n * 1.60218e-19 * mu
         R_H = 1 / (n * 1.60218e-19)
 
-        # プロット
+        # Plots
         axes[0, 0].semilogy(T, n / 1e6, 'o-', linewidth=2.5)
         axes[0, 0].set_xlabel('Temperature (K)')
         axes[0, 0].set_ylabel('n (cm⁻³)')
@@ -1019,10 +1446,10 @@ class AutoReportGenerator:
         plt.close(fig)
 
     def _add_magnetic_plots(self, pdf, results):
-        """ページ3：磁気的特性グラフ"""
+        """Page 3: Magnetic properties plots"""
         fig, axes = plt.subplots(2, 2, figsize=(11, 8.5))
-        
-        # M-H曲線（ダミー）
+
+        # M-H curve (dummy)
         H = np.linspace(-5000, 5000, 100)
         M = results['M_s'] * np.tanh(H / 1000)
 
@@ -1035,7 +1462,7 @@ class AutoReportGenerator:
         axes[0, 0].legend()
         axes[0, 0].grid(alpha=0.3)
 
-        # 他のプロットは省略（実際には温度依存性など）
+        # Other plots omitted (would normally include temperature dependence, etc.)
         for ax in axes.flat[1:]:
             ax.text(0.5, 0.5, 'Additional magnetic\nproperties plots', ha='center', va='center', fontsize=14)
             ax.axis('off')
@@ -1046,11 +1473,11 @@ class AutoReportGenerator:
         plt.close(fig)
 
     def _add_statistics_page(self, pdf, results):
-        """ページ4：統計情報"""
+        """Page 4: Statistics"""
         fig = plt.figure(figsize=(8.5, 11))
         fig.text(0.5, 0.95, 'STATISTICAL SUMMARY', ha='center', fontsize=20, fontweight='bold')
-        
-        # 簡単な統計表（実際にはもっと詳細に）
+
+        # Simple statistics table (would normally be more detailed)
         fig.text(0.1, 0.80, 'Measurement Quality Metrics:', fontsize=14, fontweight='bold')
         fig.text(0.1, 0.75, '  - Data points: 200', fontsize=12)
         fig.text(0.1, 0.70, '  - Outliers removed: 5 (2.5%)', fontsize=12)
@@ -1061,7 +1488,7 @@ class AutoReportGenerator:
         pdf.savefig(fig, bbox_inches='tight')
         plt.close(fig)
 
-# 使用例
+# Example usage
 results_example = {
     'R_s': 1370,
     'sigma': 2.43e3,
@@ -1078,24 +1505,21 @@ results_example = {
 reporter = AutoReportGenerator(filename='integrated_analysis_report.pdf')
 reporter.generate_report(results_example)
 </code></pre>
-<h2>4.7 Complete Workflow Integration</h2>
-<h4>コード例4-7: エンドツーエンド解析パイプライン</h4>
-<pre><code class="language-python"># Requirements:
-# - Python 3.9+
-# - numpy&gt;=1.24.0, &lt;2.0.0
-# - pandas&gt;=2.0.0, &lt;2.2.0
 
-"""
-完全なエンドツーエンド解析パイプライン
+        <h2>4.7 Complete Workflow Integration</h2>
 
-ワークフロー:
-1. データ読み込み（CSV/DAT/Binary）
-2. データクリーニング（外れ値除去）
-3. 四端子法 + Hall + M-H統合解析
-4. 高度なフィッティング
-5. 誤差伝播
-6. Publication-quality図生成
-7. PDFレポート生成
+        <h4>Code Example 4-7: End-to-End Analysis Pipeline</h4>
+        <pre><code class="language-python">"""
+A complete end-to-end analysis pipeline
+
+Workflow:
+1. Data loading (CSV/DAT/Binary)
+2. Data cleaning (outlier removal)
+3. Integrated four-point probe + Hall + M-H analysis
+4. Advanced fitting
+5. Error propagation
+6. Publication-quality figure generation
+7. PDF report generation
 """
 
 import numpy as np
@@ -1104,7 +1528,7 @@ from pathlib import Path
 
 class EndToEndPipeline:
     """
-    完全な解析パイプライン
+    Complete analysis pipeline
     """
 
     def __init__(self, project_name: str):
@@ -1115,8 +1539,8 @@ class EndToEndPipeline:
 
     def run(self, data_files: dict):
         """
-        パイプライン実行
-        
+        Run the pipeline
+
         Parameters
         ----------
         data_files : dict
@@ -1128,23 +1552,23 @@ class EndToEndPipeline:
         print(f"STARTING END-TO-END ANALYSIS PIPELINE: {self.project_name}")
         print("=" * 80)
 
-        # Step 1: データ読み込み
+        # Step 1: Load data
         print("\n[Step 1] Loading data...")
         data_four_probe = self.loader.load(data_files['four_probe'])
         data_hall = self.loader.load(data_files['hall'])
         data_mh = self.loader.load(data_files['mh'])
 
-        # Step 2: データクリーニング
+        # Step 2: Clean data
         print("\n[Step 2] Cleaning data...")
         data_four_probe_clean = self.loader.clean_data(outlier_method='iqr')
-        
+
         self.loader.data = data_hall
         data_hall_clean = self.loader.clean_data(outlier_method='iqr')
-        
+
         self.loader.data = data_mh
         data_mh_clean = self.loader.clean_data(outlier_method='iqr')
 
-        # Step 3: 統合解析
+        # Step 3: Integrated analysis
         print("\n[Step 3] Integrated analysis...")
         self.analyzer.load_four_probe_data(
             R_AB_CD=data_four_probe_clean['R_AB_CD'].mean(),
@@ -1164,7 +1588,7 @@ class EndToEndPipeline:
         self.analyzer.analyze_electrical_properties()
         self.analyzer.analyze_magnetic_properties()
 
-        # Step 4: レポート生成
+        # Step 4: Generate report
         print("\n[Step 4] Generating report...")
         self.analyzer.generate_report()
         self.reporter.generate_report(self.analyzer.results)
@@ -1175,9 +1599,9 @@ class EndToEndPipeline:
 
         return self.analyzer.results
 
-# 使用例（モックデータで実行）
+# Example usage (run with mock data)
 if __name__ == '__main__':
-    # モックデータファイル作成（実際にはここは不要）
+    # Create mock data files (not needed in practice)
     np.random.seed(42)
     pd.DataFrame({
         'R_AB_CD': 1000 + 50 * np.random.randn(30),
@@ -1195,7 +1619,7 @@ if __name__ == '__main__':
     M = 50 * np.tanh(H / 1000) + 0.5 * np.random.randn(200)
     pd.DataFrame({'H': H, 'M': M}).to_csv('mh_data.csv', index=False)
 
-    # パイプライン実行
+    # Run the pipeline
     pipeline = EndToEndPipeline(project_name='Sample_Material_XYZ')
     results = pipeline.run({
         'four_probe': 'four_probe_data.csv',
@@ -1206,58 +1630,50 @@ if __name__ == '__main__':
     print("\nFinal results saved to:")
     print("  - Sample_Material_XYZ_report.pdf")
 </code></pre>
-<h2>4.8 Exercises</h2>
-<h3>演習4-1: データローダーの拡張（Easy）</h3>
-<p><span class="exercise-label easy">Easy</span> <strong>問題</strong>：<code>UniversalDataLoader</code>クラスに、JSONFormatのデータを読み込むメソッド <code>_load_json()</code> を追加せよ。</p>
-<details>
-<summary><strong>解答例を表示</strong></summary>
-<pre><code class="language-python">import json
 
-def _load_json(self, path: Path) -&gt; pd.DataFrame:
-    """JSONFormatの読み込み"""
+        <h2>4.8 Exercises</h2>
+
+        <h3>Exercise 4-1: Extending the Data Loader (Easy)</h3>
+        <p><span class="exercise-label easy">Easy</span> <strong>Problem</strong>: Add a method <code>_load_json()</code> to the <code>UniversalDataLoader</code> class that loads data in JSON format.</p>
+
+        <details>
+            <summary><strong>Show sample solution</strong></summary>
+            <pre><code class="language-python">import json
+
+def _load_json(self, path: Path) -> pd.DataFrame:
+    """Load JSON format"""
     with open(path, 'r') as f:
         data_dict = json.load(f)
-    
-    # 辞書からDataFrameに変換
+
+    # Convert the dictionary into a DataFrame
     data = pd.DataFrame(data_dict)
     return data
 
-# クラスに追加
+# Attach to the class
 UniversalDataLoader._load_json = _load_json
 
-# テスト
+# Test
 loader = UniversalDataLoader()
 # loader.load('data.json', format='json')
 </code></pre>
-</details>
-<h3>演習4-2: 外れ値検出の可視化（Easy）</h3>
-<p><span class="exercise-label easy">Easy</span> <strong>問題</strong>：IQR法で検出された外れ値を、元のデータと一緒にプロットせよ（外れ値を赤色でマーク）。</p>
-<details>
-<summary><strong>解答例を表示</strong></summary>
-<pre><code class="language-python"># Requirements:
-# - Python 3.9+
-# - matplotlib&gt;=3.7.0
+        </details>
 
-"""
-Example: Easy問題：IQR法で検出された外れ値を、元のデータと一緒にプロットせよ（外れ値を赤色でマーク）。
+        <h3>Exercise 4-2: Visualizing Outlier Detection (Easy)</h3>
+        <p><span class="exercise-label easy">Easy</span> <strong>Problem</strong>: Plot the outliers detected by the IQR method together with the original data (mark the outliers in red).</p>
 
-Purpose: Demonstrate data visualization techniques
-Target: Beginner to Intermediate
-Execution time: 2-5 seconds
-Dependencies: None
-"""
-
-import matplotlib.pyplot as plt
+        <details>
+            <summary><strong>Show sample solution</strong></summary>
+            <pre><code class="language-python">import matplotlib.pyplot as plt
 
 data = np.random.randn(100)
-data[95:] = 10  # 外れ値を追加
+data[95:] = 10  # Add outliers
 
 Q1, Q3 = np.percentile(data, [25, 75])
 IQR = Q3 - Q1
 lower = Q1 - 1.5 * IQR
 upper = Q3 + 1.5 * IQR
 
-outliers = (data &lt; lower) | (data &gt; upper)
+outliers = (data < lower) | (data > upper)
 
 plt.figure(figsize=(10, 6))
 plt.scatter(range(len(data)), data, c=outliers, cmap='RdYlGn_r', s=50, edgecolors='black')
@@ -1270,55 +1686,46 @@ plt.legend()
 plt.colorbar(label='Outlier (True=Red)')
 plt.show()
 </code></pre>
-</details>
-<h3>演習4-3: フィッティング残差の分析（Medium）</h3>
-<p><span class="exercise-label medium">Medium</span> <strong>問題</strong>：lmfitのフィッティング結果から、残差の正規性をQ-Qプロットで確認せよ。</p>
-<details>
-<summary><strong>解答例を表示</strong></summary>
-<pre><code class="language-python"># Requirements:
-# - Python 3.9+
-# - scipy&gt;=1.11.0
+        </details>
 
-"""
-Example: Medium問題：lmfitのフィッティング結果から、残差の正規性をQ-Qプロットで確認せよ。
+        <h3>Exercise 4-3: Analyzing Fit Residuals (Medium)</h3>
+        <p><span class="exercise-label medium">Medium</span> <strong>Problem</strong>: Using the fitting result from lmfit, check the normality of the residuals with a Q-Q plot.</p>
 
-Purpose: Demonstrate data visualization techniques
-Target: Advanced
-Execution time: 2-5 seconds
-Dependencies: None
-"""
+        <details>
+            <summary><strong>Show sample solution</strong></summary>
+            <pre><code class="language-python">import scipy.stats as stats
 
-import scipy.stats as stats
-
-# フィッティング実行（前のコード例から）
+# Run the fit (from the earlier code example)
 residuals = result.residual
 
-# Q-Qプロット
+# Q-Q plot
 fig, ax = plt.subplots(figsize=(8, 6))
 stats.probplot(residuals, dist="norm", plot=ax)
 ax.set_title('Q-Q Plot: Residuals Normality Check', fontsize=14, fontweight='bold')
 ax.grid(alpha=0.3)
 plt.show()
 
-# 統計検定（Shapiro-Wilk検定）
+# Statistical test (Shapiro-Wilk test)
 stat, p_value = stats.shapiro(residuals)
 print(f"Shapiro-Wilk test: statistic={stat:.4f}, p-value={p_value:.4f}")
-if p_value &gt; 0.05:
-    print("  → Residuals are normally distributed (p &gt; 0.05)")
+if p_value > 0.05:
+    print("  → Residuals are normally distributed (p > 0.05)")
 else:
-    print("  → Residuals are NOT normally distributed (p &lt; 0.05)")
+    print("  → Residuals are NOT normally distributed (p < 0.05)")
 </code></pre>
-</details>
-<h3>演習4-4: 誤差伝播の手動計算（Medium）</h3>
-<p><span class="exercise-label medium">Medium</span> <strong>問題</strong>：移動度 $\mu = \sigma |R_H|$ の不確かさを、偏微分を使って手動計算し、<code>uncertainties</code>パッケージの結果と比較せよ。</p>
-<details>
-<summary><strong>解答例を表示</strong></summary>
-<pre><code class="language-python">sigma_val = 1e4
+        </details>
+
+        <h3>Exercise 4-4: Manual Error Propagation Calculation (Medium)</h3>
+        <p><span class="exercise-label medium">Medium</span> <strong>Problem</strong>: Manually compute the uncertainty of the mobility $\mu = \sigma |R_H|$ using partial derivatives, and compare with the result from the <code>uncertainties</code> package.</p>
+
+        <details>
+            <summary><strong>Show sample solution</strong></summary>
+            <pre><code class="language-python">sigma_val = 1e4
 sigma_err = 100
 R_H_val = 2.5e-3
 R_H_err = 0.1e-3
 
-# 手動計算：δμ = sqrt((∂μ/∂σ)² δσ² + (∂μ/∂R_H)² δR_H²)
+# Manual calculation: δμ = sqrt((∂μ/∂σ)² δσ² + (∂μ/∂R_H)² δR_H²)
 # ∂μ/∂σ = |R_H|
 # ∂μ/∂R_H = σ * sign(R_H)
 
@@ -1328,53 +1735,55 @@ dmu_dRH = sigma_val
 delta_mu_manual = np.sqrt((dmu_dsigma * sigma_err)**2 + (dmu_dRH * R_H_err)**2)
 mu_val = sigma_val * R_H_val
 
-print(f"手動計算:")
+print(f"Manual calculation:")
 print(f"  μ = {mu_val:.2e} m²/(V·s)")
 print(f"  Δμ = {delta_mu_manual:.2e} m²/(V·s)")
-print(f"  相対不確かさ = {delta_mu_manual / mu_val * 100:.2f}%")
+print(f"  Relative uncertainty = {delta_mu_manual / mu_val * 100:.2f}%")
 
-# uncertaintiesパッケージ
+# uncertainties package
 from uncertainties import ufloat
 sigma_u = ufloat(sigma_val, sigma_err)
 R_H_u = ufloat(R_H_val, R_H_err)
 mu_u = sigma_u * R_H_u
 
-print(f"\nuncertaintiesパッケージ:")
+print(f"\nuncertainties package:")
 print(f"  μ = {mu_u}")
-print(f"  相対不確かさ = {mu_u.std_dev / mu_u.nominal_value * 100:.2f}%")
+print(f"  Relative uncertainty = {mu_u.std_dev / mu_u.nominal_value * 100:.2f}%")
 </code></pre>
-</details>
-<h3>演習4-5: カスタムレポートテンプレート作成（Medium）</h3>
-<p><span class="exercise-label medium">Medium</span> <strong>問題</strong>：<code>AutoReportGenerator</code>を拡張し、ユーザー定義の図を追加できるメソッド <code>add_custom_page()</code> を実装せよ。</p>
-<details>
-<summary><strong>解答例を表示</strong></summary>
-<pre><code class="language-python">def add_custom_page(self, pdf, fig):
+        </details>
+
+        <h3>Exercise 4-5: Creating a Custom Report Template (Medium)</h3>
+        <p><span class="exercise-label medium">Medium</span> <strong>Problem</strong>: Extend <code>AutoReportGenerator</code> by implementing a method <code>add_custom_page()</code> that lets users add their own figures.</p>
+
+        <details>
+            <summary><strong>Show sample solution</strong></summary>
+            <pre><code class="language-python">def add_custom_page(self, pdf, fig):
     """
-    カスタム図をレポートに追加
-    
+    Add a custom figure to the report
+
     Parameters
     ----------
     pdf : PdfPages
-        PDFページオブジェクト
+        The PDF page object
     fig : matplotlib.figure.Figure
-        追加する図
+        The figure to add
     """
     pdf.savefig(fig, bbox_inches='tight')
     plt.close(fig)
 
-# クラスに追加
+# Attach to the class
 AutoReportGenerator.add_custom_page = add_custom_page
 
-# 使用例
+# Example usage
 reporter = AutoReportGenerator('custom_report.pdf')
 with PdfPages(reporter.filename) as pdf:
-    # カスタムページ1
+    # Custom page 1
     fig1 = plt.figure(figsize=(8.5, 11))
     plt.plot([1, 2, 3], [4, 5, 6])
     plt.title('Custom Plot 1')
     reporter.add_custom_page(pdf, fig1)
-    
-    # カスタムページ2
+
+    # Custom page 2
     fig2 = plt.figure(figsize=(8.5, 11))
     plt.scatter([1, 2, 3], [6, 5, 4])
     plt.title('Custom Plot 2')
@@ -1382,69 +1791,67 @@ with PdfPages(reporter.filename) as pdf:
 
 print("Custom report generated")
 </code></pre>
-</details>
-<h3>演習4-6: バッチ処理パイプライン（Hard）</h3>
-<p><span class="exercise-label hard">Hard</span> <strong>問題</strong>：複数試料のデータファイルを一括処理し、結果を1つのExcelファイル（複数シート）にまとめるパイプラインを作成せよ。</p>
-<details>
-<summary><strong>解答例を表示</strong></summary>
-<pre><code class="language-python"># Requirements:
-# - Python 3.9+
-# - pandas&gt;=2.0.0, &lt;2.2.0
+        </details>
 
-import pandas as pd
+        <h3>Exercise 4-6: Batch Processing Pipeline (Hard)</h3>
+        <p><span class="exercise-label hard">Hard</span> <strong>Problem</strong>: Create a pipeline that batch-processes data files from multiple samples and combines the results into a single Excel file (with multiple sheets).</p>
+
+        <details>
+            <summary><strong>Show sample solution</strong></summary>
+            <pre><code class="language-python">import pandas as pd
 from pathlib import Path
 
 def batch_process_samples(data_dir: str, output_file: str = 'batch_results.xlsx'):
     """
-    複数試料を一括処理
-    
+    Batch-process multiple samples
+
     Parameters
     ----------
     data_dir : str
-        データディレクトリ（各試料のサブディレクトリを含む）
+        Data directory (containing a subdirectory for each sample)
     output_file : str
-        出力Excelファイル名
+        Output Excel file name
     """
     data_path = Path(data_dir)
     sample_dirs = [d for d in data_path.iterdir() if d.is_dir()]
-    
+
     all_results = []
-    
+
     for sample_dir in sample_dirs:
         sample_name = sample_dir.name
         print(f"Processing: {sample_name}")
-        
+
         try:
-            # パイプライン実行
+            # Run the pipeline
             pipeline = EndToEndPipeline(project_name=sample_name)
             results = pipeline.run({
                 'four_probe': sample_dir / 'four_probe.csv',
                 'hall': sample_dir / 'hall.csv',
                 'mh': sample_dir / 'mh.csv'
             })
-            
+
             results['sample_name'] = sample_name
             all_results.append(results)
-        
+
         except Exception as e:
             print(f"  ERROR: {e}")
             continue
-    
-    # 結果をExcelに保存
+
+    # Save the results to Excel
     with pd.ExcelWriter(output_file, engine='openpyxl') as writer:
-        # サマリーシート
+        # Summary sheet
         df_summary = pd.DataFrame(all_results)
         df_summary.to_excel(writer, sheet_name='Summary', index=False)
-        
-        # 個別試料シート
+
+        # Individual sample sheets
         for result in all_results:
             sample_name = result['sample_name']
             df_sample = pd.DataFrame([result])
-            df_sample.to_excel(writer, sheet_name=sample_name[:31], index=False)  # Excel制限
-    
+            df_sample.to_excel(writer, sheet_name=sample_name[:31], index=False)  # Excel sheet name limit
+
     print(f"\nBatch results saved to: {output_file}")
 
-# 使用例（ディレクトリ構造想定）
+# Example usage (assumed directory structure)
 # data/
 #   sample1/
 #     four_probe.csv
@@ -1455,36 +1862,24 @@ def batch_process_samples(data_dir: str, output_file: str = 'batch_results.xlsx'
 
 # batch_process_samples('data/', 'all_samples_results.xlsx')
 </code></pre>
-</details>
-<h3>演習4-7: 機械学習を用いた異常検出（Hard）</h3>
-<p><span class="exercise-label hard">Hard</span> <strong>問題</strong>：scikit-learnのIsolation Forestを使って、M-H曲線の異常なデータポイントを検出せよ。</p>
-<details>
-<summary><strong>解答例を表示</strong></summary>
-<pre><code class="language-python"># Requirements:
-# - Python 3.9+
-# - matplotlib&gt;=3.7.0
-# - numpy&gt;=1.24.0, &lt;2.0.0
+        </details>
 
-"""
-Example: Hard問題：scikit-learnのIsolation Forestを使って、M-H曲線の異常なデータポイントを検出
+        <h3>Exercise 4-7: Anomaly Detection Using Machine Learning (Hard)</h3>
+        <p><span class="exercise-label hard">Hard</span> <strong>Problem</strong>: Use scikit-learn's Isolation Forest to detect anomalous data points in an M-H curve.</p>
 
-Purpose: Demonstrate data visualization techniques
-Target: Advanced
-Execution time: 2-5 seconds
-Dependencies: None
-"""
-
-from sklearn.ensemble import IsolationForest
+        <details>
+            <summary><strong>Show sample solution</strong></summary>
+            <pre><code class="language-python">from sklearn.ensemble import IsolationForest
 import numpy as np
 import matplotlib.pyplot as plt
 
-# M-Hデータ生成（一部に異常値）
+# Generate M-H data (with some anomalies)
 H = np.linspace(-5000, 5000, 200)
 M = 50 * np.tanh(H / 1000)
-M[50:55] += 20  # 異常値追加
+M[50:55] += 20  # Add anomalies
 M[150:155] -= 15
 
-# 特徴量作成（H, M, dM/dH）
+# Build features (H, M, dM/dH)
 dM_dH = np.gradient(M, H)
 X = np.column_stack([H, M, dM_dH])
 
@@ -1492,10 +1887,10 @@ X = np.column_stack([H, M, dM_dH])
 clf = IsolationForest(contamination=0.05, random_state=42)
 anomalies = clf.fit_predict(X)
 
-# プロット
+# Plotting
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
 
-# 左図：M-H曲線
+# Left: M-H curve
 colors = ['red' if a == -1 else 'blue' for a in anomalies]
 ax1.scatter(H, M, c=colors, s=50, alpha=0.7, edgecolors='black')
 ax1.set_xlabel('H [Oe]')
@@ -1503,7 +1898,7 @@ ax1.set_ylabel('M [emu/g]')
 ax1.set_title('M-H Curve with Anomaly Detection')
 ax1.grid(alpha=0.3)
 
-# 右図：異常スコア
+# Right: anomaly scores
 scores = clf.decision_function(X)
 ax2.plot(H, scores, linewidth=2, color='purple')
 ax2.axhline(0, color='red', linestyle='--', label='Threshold')
@@ -1518,44 +1913,46 @@ plt.show()
 
 print(f"Detected {np.sum(anomalies == -1)} anomalous points out of {len(anomalies)}")
 </code></pre>
-</details>
-<h3>演習4-8: 実験計画最適化（Hard）</h3>
-<p><span class="exercise-label hard">Hard</span> <strong>問題</strong>：測定時間と精度のトレードオフを考慮し、最小限の測定点数で目標精度（誤差 &lt; 5%）を達成する実験計画を提案せよ（シミュレーションベース）。</p>
-<details>
-<summary><strong>解答例を表示</strong></summary>
-<p><strong>アプローチ</strong>：</p>
-<ol>
-<li>異なる測定点数（N = 10, 20, 50, 100）でデータ生成</li>
-<li>各Nでフィッティング精度を評価（R²、残差標準偏差）</li>
-<li>測定時間を推定（1点 = 1分と仮定）</li>
-<li>精度 vs 時間のトレードオフ曲線を作成</li>
-</ol>
-<pre><code class="language-python">N_range = [10, 20, 30, 50, 100, 200]
+        </details>
+
+        <h3>Exercise 4-8: Experimental Design Optimization (Hard)</h3>
+        <p><span class="exercise-label hard">Hard</span> <strong>Problem</strong>: Considering the trade-off between measurement time and accuracy, propose an experimental design (simulation-based) that achieves the target accuracy (error &lt; 5%) with the minimum number of measurement points.</p>
+
+        <details>
+            <summary><strong>Show sample solution</strong></summary>
+            <p><strong>Approach</strong>:</p>
+            <ol>
+                <li>Generate data with different numbers of measurement points (N = 10, 20, 50, 100)</li>
+                <li>Evaluate fit quality for each N (R², residual standard deviation)</li>
+                <li>Estimate measurement time (assuming 1 point = 1 minute)</li>
+                <li>Create a trade-off curve of accuracy vs. time</li>
+            </ol>
+            <pre><code class="language-python">N_range = [10, 20, 30, 50, 100, 200]
 fit_quality = []
 measurement_time = []
 
 for N in N_range:
-    # データ生成
+    # Generate data
     T = np.linspace(100, 400, N)
     sigma_true = lambda T: 1e4 * np.exp(-0.2 / (8.617e-5 * T))
     sigma_data = sigma_true(T) * (1 + 0.05 * np.random.randn(N))
-    
-    # フィッティング
+
+    # Fitting
     from scipy.optimize import curve_fit
     def model(T, A, Ea):
         return A * np.exp(-Ea / (8.617e-5 * T))
-    
+
     params, _ = curve_fit(model, T, sigma_data)
     sigma_fit = model(T, *params)
-    
-    # 精度評価
+
+    # Evaluate accuracy
     R2 = 1 - np.sum((sigma_data - sigma_fit)**2) / np.sum((sigma_data - np.mean(sigma_data))**2)
     fit_quality.append(R2)
-    
-    # 測定時間（1点 = 1分）
+
+    # Measurement time (1 point = 1 minute)
     measurement_time.append(N * 1)
 
-# プロット
+# Plotting
 fig, ax = plt.subplots(figsize=(10, 6))
 ax.plot(measurement_time, fit_quality, 'o-', linewidth=2.5, markersize=10, color='#f093fb')
 ax.axhline(0.95, color='red', linestyle='--', linewidth=2, label='Target R² = 0.95')
@@ -1566,86 +1963,97 @@ ax.legend(fontsize=11)
 ax.grid(alpha=0.3)
 plt.show()
 
-# 推奨測定点数
+# Recommended number of measurement points
 optimal_idx = np.argmin(np.abs(np.array(fit_quality) - 0.95))
 print(f"Recommended: N = {N_range[optimal_idx]} points ({measurement_time[optimal_idx]} minutes)")
 </code></pre>
-</details>
-<h2>4.9 Learning Verification</h2>
-<p>以下のチェックリストで理解度を確認しましょう：</p>
-<h3>Basic Understanding</h3>
-<ul>
-<li>実測Instrumentデータの多様なFormatを理解している</li>
-<li>Can explain the necessity and methods of data cleaning</li>
-<li>Understand the integrated significance of four-probe, Hall, and M-H measurements</li>
-<li>Can explain the advantages of lmfit fitting</li>
-<li>Understand the importance of error propagation</li>
-</ul>
-<h3>Practical Skills</h3>
-<ul>
-<li>Multi-Format Data Loaderを実装できる</li>
-<li>IQR法・Z-score法で外れ値を除去できる</li>
-<li>Integrated Analysis Pipelineを構築できる</li>
-<li>lmfitで制約付きフィッティングができる</li>
-<li>Can calculate error propagation using uncertainties package</li>
-<li>Publication-qualityの図を作成できる</li>
-<li>Automatically generate PDF reports</li>
-</ul>
-<h3>Application Ability</h3>
-<ul>
-<li>Can design complete end-to-end pipelines</li>
-<li>Can perform anomaly detection using machine learning</li>
-<li>実験計画を最適化できる（精度 vs 時間のトレードオフ）</li>
-<li>Can create custom report templates</li>
-</ul>
-<h2>4.10 References</h2>
-<ol>
-<li>McKinney, W. (2017). <em>Python for Data Analysis: Data Wrangling with Pandas, NumPy, and IPython</em> (2nd ed.). O'Reilly. - pandasによるデータ処理</li>
-<li>VanderPlas, J. (2016). <em>Python Data Science Handbook</em>. O'Reilly. - 科学計算の総合ガイド</li>
-<li>Newville, M., et al. (2014). <em>LMFIT: Non-Linear Least-Square Minimization and Curve-Fitting for Python</em>. Zenodo. - lmfitドキュメント</li>
-<li>Hunter, J. D. (2007). <em>Matplotlib: A 2D Graphics Environment</em>. Computing in Science &amp; Engineering, 9(3), 90-95. - matplotlibの原論文</li>
-<li>Lebigot, E. O. (2010). <em>Uncertainties: a Python package for calculations with uncertainties</em>. - 誤差伝播パッケージ</li>
-<li>Pedregosa, F., et al. (2011). <em>Scikit-learn: Machine Learning in Python</em>. Journal of Machine Learning Research, 12, 2825-2830. - scikit-learn</li>
-<li>Schroder, D. K. (2006). <em>Semiconductor Material and Device Characterization</em> (3rd ed.). Wiley. - 測定データ解析の実践</li>
-</ol>
-<h2>4.11 Summary and Next Steps</h2>
-<p>この章では、実験データの読み込みから最終レポート生成までの完全なPythonワークフローを学びました。これで、電気・磁気測定の<strong>全工程を自動化</strong>できるようになりました。</p>
-<p><strong>シリーズ全体の習得内容</strong>：</p>
-<ul>
-<li><strong>第1章</strong>：四端子法、van der Pauw法、温度依存性測定</li>
-<li><strong>第2章</strong>：Hall効果、キャリア密度・移動度決定、two-band model</li>
-<li><strong>第3章</strong>：VSM/SQUID磁気測定、M-H曲線解析、FC/ZFC</li>
-<li><strong>Chapter 4</strong>：統合データ解析パイプライン、Automated Report Generation</li>
-</ul>
-<p><strong>Next Steps</strong>：</p>
-<ul>
-<li>Execute pipeline with actual measurement data</li>
-<li>Build material property prediction models using machine learning</li>
-<li>Integration with real-time measurement systems</li>
-<li>Webアプリケーション化（Streamlit、Dash）</li>
-</ul>
-<div class="navigation">
-<a class="nav-button" href="chapter-3.html">← 第3章：磁気測定</a>
-<a class="nav-button" href="index.html">Back to Contents</a>
-<a class="nav-button" href="index.html">シリーズ完了 🎉</a>
-</div>
-</main>
-<section class="disclaimer">
-<h3>Disclaimer</h3>
-<ul>
-<li>本コンテンツは教育・研究・情報提供のみを目的としており、専門的な助言（法律・会計・技術的保証など）を提供するものではありません。</li>
-<li>本コンテンツおよび付随するコード例は「現状有姿（AS IS）」で提供され、明示または黙示を問わず、商品性、特定目的適合性、権利非侵害、正確性・完全性、動作・安全性等いかなる保証もしません。</li>
-<li>外部リンク、第三者が提供するデータ・ツール・ライブラリ等の内容・可用性・安全性について、Authorおよび東北大学は一切の責任を負いません。</li>
-<li>本コンテンツの利用・実行・解釈により直接的・間接的・付随的・特別・結果的・懲罰的損害が生じた場合でも、適用法で許容される最大限の範囲で、Authorおよび東北大学は責任を負いません。</li>
-<li>本コンテンツの内容は、予告なく変更・更新・提供停止されることがあります。</li>
-<li>本コンテンツの著作権・Licenseは明記された条件（例: CC BY 4.0）に従います。当該Licenseは通常、無保証条項を含みます。</li>
-</ul>
-</section>
-<footer>
-<p><strong>Author</strong>: MS Knowledge Hub Content Team</p>
-<p><strong>Version</strong>: 1.0 | <strong>Created</strong>: 2025-10-28</p>
-<p><strong>License</strong>: Creative Commons BY 4.0</p>
-<p>© 2025 MS Terakoya. All rights reserved.</p>
-</footer>
+        </details>
+
+        <h2>4.9 Checking Your Understanding</h2>
+        <p>Use the checklist below to check your understanding:</p>
+
+        <h3>Basic Understanding</h3>
+        <ul>
+            <li>I understand the variety of formats used by real measurement instruments</li>
+            <li>I can explain the need for data cleaning and the techniques involved</li>
+            <li>I understand the significance of integrating four-point probe, Hall, and M-H measurements</li>
+            <li>I can explain the advantages of fitting with lmfit</li>
+            <li>I understand the importance of error propagation</li>
+        </ul>
+
+        <h3>Practical Skills</h3>
+        <ul>
+            <li>I can implement a multi-format data loader</li>
+            <li>I can remove outliers using the IQR and Z-score methods</li>
+            <li>I can build an integrated analysis pipeline</li>
+            <li>I can perform constrained fitting with lmfit</li>
+            <li>I can compute error propagation using the uncertainties package</li>
+            <li>I can create publication-quality figures</li>
+            <li>I can automatically generate PDF reports</li>
+        </ul>
+
+        <h3>Applied Skills</h3>
+        <ul>
+            <li>I can design a complete end-to-end pipeline</li>
+            <li>I can perform anomaly detection using machine learning</li>
+            <li>I can optimize an experimental design (trade-off between accuracy and time)</li>
+            <li>I can create custom report templates</li>
+        </ul>
+
+        <h2>4.10 References</h2>
+        <ol>
+            <li>McKinney, W. (2017). <em>Python for Data Analysis: Data Wrangling with Pandas, NumPy, and IPython</em> (2nd ed.). O'Reilly. - Data processing with pandas</li>
+            <li>VanderPlas, J. (2016). <em>Python Data Science Handbook</em>. O'Reilly. - A comprehensive guide to scientific computing</li>
+            <li>Newville, M., et al. (2014). <em>LMFIT: Non-Linear Least-Square Minimization and Curve-Fitting for Python</em>. Zenodo. - lmfit documentation</li>
+            <li>Hunter, J. D. (2007). <em>Matplotlib: A 2D Graphics Environment</em>. Computing in Science & Engineering, 9(3), 90-95. - The original matplotlib paper</li>
+            <li>Lebigot, E. O. (2010). <em>Uncertainties: a Python package for calculations with uncertainties</em>. - The error propagation package</li>
+            <li>Pedregosa, F., et al. (2011). <em>Scikit-learn: Machine Learning in Python</em>. Journal of Machine Learning Research, 12, 2825-2830. - scikit-learn</li>
+            <li>Schroder, D. K. (2006). <em>Semiconductor Material and Device Characterization</em> (3rd ed.). Wiley. - Practical measurement data analysis</li>
+        </ol>
+
+        <h2>4.11 Summary and Next Steps</h2>
+        <p>In this chapter, you learned a complete Python workflow that spans everything from loading experimental data to generating a final report. You are now able to <strong>automate the entire process</strong> of electrical and magnetic measurement analysis.</p>
+
+        <p><strong>What the series as a whole covers</strong>:</p>
+        <ul>
+            <li><strong>Chapter 1</strong>: Four-point probe method, van der Pauw method, temperature-dependent measurements</li>
+            <li><strong>Chapter 2</strong>: Hall effect, determination of carrier density and mobility, the two-band model</li>
+            <li><strong>Chapter 3</strong>: VSM/SQUID magnetic measurements, M-H curve analysis, FC/ZFC</li>
+            <li><strong>Chapter 4</strong>: Integrated data analysis pipeline, automated report generation</li>
+        </ul>
+
+        <p><strong>Next steps</strong>:</p>
+        <ul>
+            <li>Run the pipeline on real measurement data</li>
+            <li>Build machine learning models for predicting material properties</li>
+            <li>Integrate with real-time measurement systems</li>
+            <li>Turn the pipeline into a web application (Streamlit, Dash)</li>
+        </ul>
+
+        <div class="navigation">
+            <a href="chapter-3.html" class="nav-button">← Chapter 3: Magnetic Measurements</a>
+            <a href="index.html" class="nav-button">Back to Table of Contents</a>
+            <a href="index.html" class="nav-button">Series Complete 🎉</a>
+        </div>
+    </main>
+
+    <section class="disclaimer">
+        <h3>Disclaimer</h3>
+        <ul>
+            <li>This content is provided for educational, research, and informational purposes only, and does not constitute professional advice (legal, accounting, technical assurance, etc.).</li>
+            <li>This content and the accompanying code examples are provided "AS IS," without any warranty of any kind, whether express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy or completeness, or operability and safety.</li>
+            <li>The authors and Tohoku University assume no responsibility for the content, availability, or safety of external links or third-party data, tools, or libraries referenced herein.</li>
+            <li>To the maximum extent permitted by applicable law, the authors and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+            <li>The content of this material may be changed, updated, or discontinued without notice.</li>
+            <li>The copyright and license of this content are subject to the terms specified (e.g., CC BY 4.0). Such licenses typically include a disclaimer of warranties.</li>
+        </ul>
+    </section>
+
+    <footer>
+        <p><strong>Author</strong>: MS Knowledge Hub Content Team</p>
+        <p><strong>Version</strong>: 1.0 | <strong>Created</strong>: 2025-10-28</p>
+        <p><strong>License</strong>: Creative Commons BY 4.0</p>
+        <p>&copy; 2025 MS Terakoya. All rights reserved.</p>
+    </footer>
 </body>
 </html>
