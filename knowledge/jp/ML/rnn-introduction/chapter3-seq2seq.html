@@ -420,14 +420,14 @@ $$</p>
 \begin{aligned}
 \mathbf{s}_0 &= \mathbf{c} \\
 \mathbf{s}_t &= \text{LSTM}(\mathbf{y}_{t-1}, \mathbf{s}_{t-1}) \\
-P(y_t | y_{<t}, \mathbf{x}) &= \text{softmax}(\mathbf{W}_o \mathbf{s}_t + \mathbf{b}_o)
+P(y_t | y_{&lt;t}, \mathbf{x}) &= \text{softmax}(\mathbf{W}_o \mathbf{s}_t + \mathbf{b}_o)
 \end{aligned}
 $$</p>
 
 <p>ここで：</p>
 <ul>
 <li>$\mathbf{s}_t$ は時刻 $t$ のDecoder隠れ状態</li>
-<li>$y_{<t}$ は時刻 $t$ より前の出力系列</li>
+<li>$y_{&lt;t}$ は時刻 $t$ より前の出力系列</li>
 <li>$\mathbf{W}_o, \mathbf{b}_o$ は出力層のパラメータ</li>
 </ul>
 
@@ -469,7 +469,7 @@ $$</p>
 <div class="mermaid">
 graph LR
     subgraph Training["訓練時: Teacher Forcing"]
-        T1["<SOS>"] --> TD1[Decoder]
+        T1["&lt;SOS&gt;"] --> TD1[Decoder]
         TD1 --> TP1[予測: 私]
         T2[正解: 私] --> TD2[Decoder]
         TD2 --> TP2[予測: は]
@@ -478,7 +478,7 @@ graph LR
     end
 
     subgraph Inference["推論時: Autoregressive"]
-        I1["<SOS>"] --> ID1[Decoder]
+        I1["&lt;SOS&gt;"] --> ID1[Decoder]
         ID1 --> IP1[予測: 私]
         IP1 --> ID2[Decoder]
         ID2 --> IP2[予測: は]
@@ -714,7 +714,7 @@ print(f"\nパラメータ数: {sum(p.numel() for p in decoder.parameters()):,}")
         # Encoderで入力系列を処理
         hidden, cell = self.encoder(src)
 
-        # Decoderの最初の入力は<SOS>トークン
+        # Decoderの最初の入力は&lt;SOS&gt;トークン
         input = trg[:, 0]
 
         # 各タイムステップでDecoderを実行
@@ -793,8 +793,8 @@ print(f"訓練可能パラメータ数: {sum(p.numel() for p in model.parameters
 
         # 出力を整形: [batch_size, trg_len, output_dim] -> [batch_size * trg_len, output_dim]
         output_dim = output.shape[-1]
-        output = output[:, 1:].reshape(-1, output_dim)  # <SOS>を除外
-        trg = trg[:, 1:].reshape(-1)  # <SOS>を除外
+        output = output[:, 1:].reshape(-1, output_dim)  # &lt;SOS&gt;を除外
+        trg = trg[:, 1:].reshape(-1)  # &lt;SOS&gt;を除外
 
         # 損失計算
         loss = criterion(output, trg)
@@ -890,7 +890,7 @@ Epoch 10: Train Loss = 1.000, Val Loss = 1.300
 
 <p>アルゴリズム：</p>
 <p>$$
-y_t = \arg\max_{y} P(y | y_{<t}, \mathbf{x})
+y_t = \arg\max_{y} P(y | y_{&lt;t}, \mathbf{x})
 $$</p>
 
 <ul>
@@ -920,7 +920,7 @@ $$</p>
         # Encoderで入力を処理
         hidden, cell = model.encoder(src)
 
-        # <SOS>トークンから開始
+        # &lt;SOS&gt;トークンから開始
         SOS_token = 1
         EOS_token = 2
 
@@ -934,7 +934,7 @@ $$</p>
             # 最も確率の高いトークンを選択
             top1 = output.argmax(1)
 
-            # <EOS>トークンなら終了
+            # &lt;EOS&gt;トークンなら終了
             if top1.item() == EOS_token:
                 break
 
@@ -996,7 +996,7 @@ Greedy Searchの特性:
 
 <div class="mermaid">
 graph TD
-    Start["<SOS>"] --> T1A[私<br/>-0.5]
+    Start["&lt;SOS&gt;"] --> T1A[私<br/>-0.5]
     Start --> T1B[僕<br/>-0.8]
     Start --> T1C[俺<br/>-1.2]
 
@@ -1020,12 +1020,12 @@ graph TD
 
 <p>Beam Search のスコア計算：</p>
 <p>$$
-\text{score}(\mathbf{y}) = \log P(\mathbf{y} | \mathbf{x}) = \sum_{t=1}^{T'} \log P(y_t | y_{<t}, \mathbf{x})
+\text{score}(\mathbf{y}) = \log P(\mathbf{y} | \mathbf{x}) = \sum_{t=1}^{T'} \log P(y_t | y_{&lt;t}, \mathbf{x})
 $$</p>
 
 <p>長さ正規化：</p>
 <p>$$
-\text{score}_{\text{normalized}}(\mathbf{y}) = \frac{1}{T'^{\alpha}} \sum_{t=1}^{T'} \log P(y_t | y_{<t}, \mathbf{x})
+\text{score}_{\text{normalized}}(\mathbf{y}) = \frac{1}{T'^{\alpha}} \sum_{t=1}^{T'} \log P(y_t | y_{&lt;t}, \mathbf{x})
 $$</p>
 <p>ここで $\alpha$ は長さペナルティ係数（通常0.6〜1.0）です。</p>
 
@@ -1066,7 +1066,7 @@ def beam_search_decode(model, src, trg_vocab, max_len=50, beam_width=5, alpha=0.
             candidates = []
 
             for score, seq, h, c in beams:
-                # 系列が<EOS>で終了していれば完了リストに追加
+                # 系列が&lt;EOS&gt;で終了していれば完了リストに追加
                 if seq[-1] == EOS_token:
                     completed_sequences.append((score, seq))
                     continue
