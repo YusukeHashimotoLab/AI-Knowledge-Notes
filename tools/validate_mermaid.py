@@ -10,6 +10,7 @@ Mermaid Diagram Validation Tool
     python validate_mermaid.py <directory>  # 指定ディレクトリのみ検証
 """
 
+import os
 import re
 from pathlib import Path
 from typing import List, Tuple, Dict
@@ -26,7 +27,10 @@ class MermaidValidator:
         Args:
             base_dir: Base directory to search for HTML files (default: current directory)
         """
-        self.base_dir = base_dir or Path.cwd()
+        # Resolve base_dir to an absolute path so that relative_to() comparisons
+        # in print_report() have a consistent absolute reference. Scanned file
+        # paths are also resolved (see validate_all) to match this.
+        self.base_dir = Path(base_dir).resolve() if base_dir else Path.cwd().resolve()
         self.errors = []
         self.warnings = []
         self.total_diagrams = 0
@@ -42,26 +46,37 @@ class MermaidValidator:
         Returns:
             List of (line_number, mermaid_content) tuples
         """
+        # NOTE: The previous implementation was line-based and assumed every
+        # Mermaid block spanned multiple lines with the opening <div ...> tag,
+        # the diagram body, and the closing </div> each on their own line. Many
+        # of our generated pages emit the whole block inline on a single line
+        # (e.g. `<div class="mermaid">flowchart TD; A-->B</div>`) or place the
+        # diagram text on the same line as the opening tag. The old logic never
+        # captured inline content and never detected a same-line </div>, so it
+        # silently swallowed following markup (<h3>, <pre>, ...) as if it were
+        # the diagram, producing false "No valid diagram type" errors.
+        #
+        # Mermaid diagram bodies never contain a nested <div>, so the first
+        # </div> after an opening tag reliably closes the block. We therefore
+        # scan with a DOTALL regex that handles inline, single-line, and
+        # multi-line blocks uniformly, and derive the 1-based start line from
+        # the match offset for error reporting.
         blocks = []
-        lines = html_content.split('\n')
-        in_mermaid = False
-        mermaid_content = []
-        start_line = 0
+        pattern = re.compile(r'<div class="mermaid">(.*?)</div>', re.DOTALL)
+        matched = 0
+        for match in pattern.finditer(html_content):
+            matched += 1
+            start_line = html_content.count('\n', 0, match.start()) + 1
+            blocks.append((start_line, match.group(1).strip()))
 
-        for i, line in enumerate(lines, 1):
-            if '<div class="mermaid">' in line:
-                in_mermaid = True
-                start_line = i
-                mermaid_content = []
-            elif in_mermaid and '</div>' in line:
-                # Found complete block
-                blocks.append((start_line, '\n'.join(mermaid_content)))
-                in_mermaid = False
-            elif in_mermaid:
-                mermaid_content.append(line)
-
-        # Check for unclosed blocks
-        if in_mermaid:
+        # Any opening tag without a matching </div> is an unclosed block.
+        open_count = html_content.count('<div class="mermaid">')
+        if open_count > matched:
+            # Report the first unclosed opening tag position.
+            idx = -1
+            for _ in range(matched + 1):
+                idx = html_content.find('<div class="mermaid">', idx + 1)
+            start_line = html_content.count('\n', 0, idx) + 1 if idx >= 0 else 0
             self.errors.append({
                 'file': file_path,
                 'line': start_line,
@@ -85,10 +100,16 @@ class MermaidValidator:
         """
         issues = []
 
-        # Check for diagram type
+        # Check for diagram type.
+        # NOTE: 'xychart-beta' (and other newer types below) were missing from
+        # the original list, so valid xychart diagrams were reported as errors.
+        # This list must track the diagram types actually renderable by the
+        # mermaid version pinned in the pages (mermaid@10.9.x).
         diagram_types = ['graph', 'flowchart', 'sequenceDiagram', 'classDiagram',
-                        'stateDiagram', 'erDiagram', 'gantt', 'pie', 'timeline',
-                        'journey', 'gitGraph', 'mindmap', 'quadrantChart']
+                        'stateDiagram-v2', 'stateDiagram', 'erDiagram', 'gantt',
+                        'pie', 'timeline', 'journey', 'gitGraph', 'mindmap',
+                        'quadrantChart', 'xychart-beta', 'sankey-beta',
+                        'requirementDiagram', 'C4Context', 'block-beta']
 
         first_line = content.strip().split('\n')[0] if content.strip() else ''
         has_diagram_type = any(first_line.startswith(dtype) for dtype in diagram_types)
@@ -105,15 +126,19 @@ class MermaidValidator:
         # Validate graph/flowchart direction for graph diagrams
         if first_line.startswith('graph') or first_line.startswith('flowchart'):
             parts = first_line.split()
+            # Inline single-line blocks look like `flowchart TD; A-->B`; strip a
+            # trailing ';' (and anything after it) so the direction token is
+            # compared cleanly instead of e.g. 'TD;'.
+            direction = parts[1].split(';')[0] if len(parts) >= 2 else ''
             if len(parts) < 2:
                 issues.append({
                     'severity': 'warning',
                     'message': f'Graph/flowchart missing direction (TD, LR, etc.)'
                 })
-            elif parts[1] not in ['TD', 'TB', 'BT', 'RL', 'LR']:
+            elif direction not in ['TD', 'TB', 'BT', 'RL', 'LR']:
                 issues.append({
                     'severity': 'warning',
-                    'message': f'Unknown graph direction: {parts[1]}'
+                    'message': f'Unknown graph direction: {direction}'
                 })
 
         # Check for style syntax
@@ -195,12 +220,15 @@ class MermaidValidator:
             target_dir: Directory to search (default: all series directories)
         """
         if target_dir:
-            html_files = list(target_dir.glob('**/*.html'))
+            # Resolve to absolute paths so reported file paths share the same
+            # absolute base as self.base_dir (avoids ValueError in relative_to).
+            target_dir = Path(target_dir).resolve()
+            html_files = [p.resolve() for p in target_dir.glob('**/*.html')]
         else:
             # Search all series directories
             html_files = []
             for series_dir in self.base_dir.glob('*-introduction'):
-                html_files.extend(series_dir.glob('*.html'))
+                html_files.extend(p.resolve() for p in series_dir.glob('*.html'))
 
         if not html_files:
             print(f"⚠ No HTML files found in {target_dir or self.base_dir}")
@@ -211,6 +239,23 @@ class MermaidValidator:
 
         for html_file in sorted(html_files):
             self.validate_file(html_file)
+
+    def _display_path(self, file_path: Path) -> str:
+        """
+        Return a path for display relative to base_dir.
+
+        Uses Path.relative_to() when file_path is inside base_dir, and falls
+        back to os.path.relpath() otherwise (e.g. when the scan target lives on
+        a different branch of the tree than base_dir, or on a different drive on
+        Windows where relpath can still raise ValueError — then show absolute).
+        """
+        try:
+            return str(Path(file_path).relative_to(self.base_dir))
+        except ValueError:
+            try:
+                return os.path.relpath(str(file_path), str(self.base_dir))
+            except ValueError:
+                return str(file_path)
 
     def print_report(self) -> None:
         """Print validation report."""
@@ -226,7 +271,7 @@ class MermaidValidator:
             print("❌ ERRORS:")
             print("-" * 70)
             for error in self.errors:
-                rel_path = error['file'].relative_to(self.base_dir)
+                rel_path = self._display_path(error['file'])
                 print(f"\n  File: {rel_path}:{error['line']}")
                 print(f"  Type: {error['type']}")
                 if 'diagram_type' in error:
@@ -239,7 +284,7 @@ class MermaidValidator:
             print("⚠️  WARNINGS:")
             print("-" * 70)
             for warning in self.warnings:
-                rel_path = warning['file'].relative_to(self.base_dir)
+                rel_path = self._display_path(warning['file'])
                 print(f"\n  File: {rel_path}:{warning['line']}")
                 print(f"  Type: {warning['type']}")
                 if 'diagram_type' in warning:

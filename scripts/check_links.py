@@ -12,18 +12,26 @@ from datetime import datetime
 from typing import Dict, List, Tuple, Set
 from urllib.parse import urlparse, unquote
 
+# Hard requirement: BeautifulSoup4 (and lxml). Do NOT auto-install packages as a
+# side effect of importing this module (F-05). If missing, tell the user exactly
+# how to install and exit with a non-zero status.
 try:
     from bs4 import BeautifulSoup
+except ImportError:
+    sys.stderr.write(
+        "Error: required package 'beautifulsoup4' (with 'lxml') is not installed.\n"
+        "Install the pinned dependencies with:\n"
+        "    python3 -m pip install -r requirements.txt\n"
+    )
+    sys.exit(2)
+
+# Optional dependency: tqdm only provides a progress bar. The checker runs fine
+# without it, so degrade gracefully instead of hard-requiring it.
+try:
     import tqdm
     HAS_TQDM = True
 except ImportError:
     HAS_TQDM = False
-    print("Warning: BeautifulSoup4 or tqdm not installed. Installing...")
-    import subprocess
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "beautifulsoup4", "lxml", "tqdm"])
-    from bs4 import BeautifulSoup
-    import tqdm
-    HAS_TQDM = True
 
 
 class LinkChecker:

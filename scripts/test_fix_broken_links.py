@@ -3,22 +3,72 @@
 Unit tests for fix_broken_links.py
 
 Tests all fix patterns to ensure correct behavior.
+
+These tests are location-independent and hermetic (F-04): they no longer rely on
+Path.cwd() pointing at the wp/ repo root. Instead each test builds a throwaway
+``knowledge/en`` tree in a tempfile.TemporaryDirectory and uses that as the
+LinkFixer base directory. The LinkFixer only requires that ``knowledge/en``
+exists (its constructor validates this); every method under test operates on
+path strings / in-memory state rather than real content files, so small
+synthetic fixtures are sufficient.
 """
 
 import sys
+import tempfile
 import unittest
 from pathlib import Path
+
+# Make the import work regardless of the current working directory or how the
+# test is discovered (from wp/ as ``scripts`` or from the outer repo as
+# ``wp/scripts``). The module under test lives alongside this file.
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
 from fix_broken_links import LinkFixer
+
+
+def _build_synthetic_knowledge_tree(base_dir: Path) -> None:
+    """Create a minimal synthetic knowledge/en tree under base_dir.
+
+    LinkFixer's constructor requires knowledge/en to exist. We create a small,
+    representative set of dojo/series directories plus a couple of tiny HTML
+    files so the fixture resembles real content without depending on it.
+    """
+    knowledge_en = base_dir / "knowledge" / "en"
+    series_dir = knowledge_en / "MI" / "gnn-introduction"
+    series_dir.mkdir(parents=True, exist_ok=True)
+    (knowledge_en / "assets" / "css").mkdir(parents=True, exist_ok=True)
+
+    # Minimal synthetic content files (kept tiny; existence is what matters for
+    # the constructor and any path-resolution helpers).
+    (knowledge_en / "index.html").write_text(
+        "<!DOCTYPE html><html><body>knowledge index</body></html>",
+        encoding="utf-8",
+    )
+    (series_dir / "index.html").write_text(
+        "<!DOCTYPE html><html><body>series index</body></html>",
+        encoding="utf-8",
+    )
+    (series_dir / "chapter-1.html").write_text(
+        "<!DOCTYPE html><html><body>chapter 1</body></html>",
+        encoding="utf-8",
+    )
 
 
 class TestLinkFixer(unittest.TestCase):
     """Test cases for LinkFixer class."""
 
     def setUp(self):
-        """Set up test fixture."""
-        # Use current directory as base
-        self.base_dir = Path.cwd()
+        """Set up a hermetic test fixture with a synthetic knowledge/en tree."""
+        self._tmp = tempfile.TemporaryDirectory()
+        self.base_dir = Path(self._tmp.name)
+        _build_synthetic_knowledge_tree(self.base_dir)
         self.fixer = LinkFixer(base_dir=self.base_dir, dry_run=True)
+
+    def tearDown(self):
+        """Clean up the temporary directory."""
+        self._tmp.cleanup()
 
     def test_file_context_chapter(self):
         """Test file context extraction for chapter file."""
@@ -196,9 +246,15 @@ class TestIntegration(unittest.TestCase):
     """Integration tests."""
 
     def setUp(self):
-        """Set up test fixture."""
-        self.base_dir = Path.cwd()
+        """Set up a hermetic test fixture with a synthetic knowledge/en tree."""
+        self._tmp = tempfile.TemporaryDirectory()
+        self.base_dir = Path(self._tmp.name)
+        _build_synthetic_knowledge_tree(self.base_dir)
         self.fixer = LinkFixer(base_dir=self.base_dir, dry_run=True)
+
+    def tearDown(self):
+        """Clean up the temporary directory."""
+        self._tmp.cleanup()
 
     def test_statistics_initialization(self):
         """Test that statistics are properly initialized."""
