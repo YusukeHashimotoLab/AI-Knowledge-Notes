@@ -9,7 +9,7 @@ from pathlib import Path
 from datetime import datetime
 from collections import defaultdict
 
-OUTPUT_DIR = Path("/Users/yusukehashimoto/Documents/pycharm/AI_Homepage/wp/restricted/jp/research/spin-wave-references")
+OUTPUT_DIR = Path("/Users/yusukehashimoto/Documents/pycharm/AI_Homepage/restricted/jp/research/spin-wave-references")
 MANIFEST_PATH = OUTPUT_DIR / "manifest.json"
 THEMES_DIR = OUTPUT_DIR / "themes"
 

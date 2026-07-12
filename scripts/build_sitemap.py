@@ -75,6 +75,8 @@ def is_excluded(relpath: str) -> bool:
     parts = relpath.split("/")
     if "archive" in parts:
         return True
+    if relpath == "404.html":  # noindex error page
+        return True
     if len(parts) == 3 and parts[0] == "knowledge" and parts[1] in LOCALES \
             and parts[2] == "search.html":
         return True

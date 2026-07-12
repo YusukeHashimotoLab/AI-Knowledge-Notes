@@ -16,7 +16,7 @@ import subprocess
 
 # Configuration
 SOURCE_DIR = Path("/Users/yusukehashimoto/Documents/pycharm/Write_review/projects/spin_wave/papers_satoh")
-OUTPUT_DIR = Path("/Users/yusukehashimoto/Documents/pycharm/AI_Homepage/wp/restricted/jp/research/spin-wave-references/papers")
+OUTPUT_DIR = Path("/Users/yusukehashimoto/Documents/pycharm/AI_Homepage/restricted/jp/research/spin-wave-references/papers")
 MANIFEST_PATH = OUTPUT_DIR.parent / "manifest.json"
 
 # HTML Template
