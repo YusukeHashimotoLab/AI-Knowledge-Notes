@@ -1,61 +1,60 @@
 ---
-title: Chapter 2：experiment management and version control
-chapter_title: Chapter 2：experiment management and version control
-subtitle: reproduciblemachine learning of for of experiment tracking and data versioning
-reading_time: 30-35min
+title: "Chapter 2: Experiment Tracking and Version Control"
+chapter_title: "Chapter 2: Experiment Tracking and Version Control"
+subtitle: Experiment tracking and data versioning for reproducible machine learning
+reading_time: 30-35 minutes
 difficulty: Intermediate
 code_examples: 12
 exercises: 5
 version: 1.0
+created_at: 2025-10-21
 ---
-
-This chapter covers Chapter 2：experiment management and version control. You will learn experiment tracking and best practices for experiment management.
 
 ## Learning Objectives
 
-By reading this chapter, you will be able to:
+By the end of this chapter, you will be able to:
 
-  * ✅ Understand the importance of experiment management in machine learning
-  * ✅ Implement experiment tracking and model management using MLflow
-  * ✅ Execute hyperparameter optimization with Weights & Biases
-  * ✅ Perform data and model version control with DVC
-  * ✅ Apply best practices for experiment management
+  * ✅ Understand why experiment management matters in machine learning
+  * ✅ Implement experiment tracking and model management with MLflow
+  * ✅ Run hyperparameter optimization with Weights & Biases
+  * ✅ Version data and models with DVC
+  * ✅ Apply experiment management best practices
   * ✅ Build reproducible machine learning pipelines
 
 * * *
 
-## 2.1 Importance of Experiment Management
+## 2.1 Why Experiment Management Matters
 
-### experiment managementWhat is
+### What Is Experiment Management?
 
-**experiment management（Experiment Management）** 、is the systematic process of recording, tracking, comparing, and reproducing experiments in machine learning projects.
+**Experiment management** is the systematic process of recording, tracking, comparing, and reproducing experiments in a machine learning project.
 
-> "Excellent ML projects depend on the ability to manage hundreds to thousands of experiments."
+> "A great ML project depends on the ability to manage hundreds to thousands of experiments."
 
-### Challenges in Experiment Management
+### Challenges of Experiment Management
 
 Challenge | Impact | Solution  
 ---|---|---  
-**lack of reproducibility** | Cannot reproduce past experiments | parameters・code・data of version control  
-**difficulty comparing experiments** | Cannot select optimal model | unified metrics logging  
-**loss of insights** | Information is not shared between teams | centralized experiment tracking  
-**data drift** | Cannot track data changes | data versioning  
+**Lack of reproducibility** | Past experiments cannot be reproduced | Version control for parameters, code, and data  
+**Difficulty comparing experiments** | Cannot select the best model | Unified metric logging  
+**Loss of insights** | Information is not shared across the team | Centralized experiment tracking  
+**Data drift** | Data changes cannot be traced | Data versioning  
   
-### Overview of Experiment Management
+### The Big Picture of Experiment Management
     
     
     ```mermaid
     graph TD
-        A[Experiment Design] --> B[Parameter Configuration]
-        B --> C[Data Loading]
-        C --> D[model training]
-        D --> E[Metrics Logging]
-        E --> F[Artifact Storage]
-        F --> G[Experiment comparison]
+        A[Experiment Design] --> B[Set Parameters]
+        B --> C[Load Data]
+        C --> D[Train Model]
+        D --> E[Log Metrics]
+        E --> F[Save Artifacts]
+        F --> G[Compare Experiments]
         G --> H{Improved?}
-        H -->|Yes| I[Best Model Selection]
+        H -->|Yes| I[Select Best Model]
         H -->|No| B
-        I --> J[Model Deployment]
+        I --> J[Deploy Model]
     
         style A fill:#ffebee
         style D fill:#e3f2fd
@@ -65,59 +64,45 @@ Challenge | Impact | Solution
         style J fill:#c8e6c9
     ```
 
-### Value Brought by Experiment Management
+### The Value Experiment Management Delivers
 
-#### 1\. ensuring reproducibility
+#### 1\. Guaranteed Reproducibility
 
-  * Environment where same results can be reproduced
-  * Complete record of code, data, and parameters
-  * Easier auditing and compliance
+  * An environment where the same results can be reproduced
+  * Complete records of code, data, and parameters
+  * Easier audits and compliance
 
-#### 2\. experiment of comparison and minanalysis
+#### 2\. Experiment Comparison and Analysis
 
-  * Systematically compare multiple experiments
-  * Visualize relationship between parameters and performance
+  * Compare multiple experiments systematically
+  * Visualize the relationship between parameters and performance
   * Data-driven decision making
 
-#### 3\. selecting the best model
+#### 3\. Best Model Selection
 
-  * Select model with objective criteria
-  * Performance vs cost tradeoff analysis
-  * Confident deployment to production
+  * Select models based on objective criteria
+  * Analyze the trade-off between performance and cost
+  * Deploy to production with confidence
 
 * * *
 
 ## 2.2 MLflow
 
-### MLflowWhat is
+### What Is MLflow?
 
 **MLflow** is an open-source platform for managing the entire machine learning lifecycle.
 
-### MLflow of key components
+### Key MLflow Components
 
-Component | Function | Purpose  
+Component | Functionality | Use Case  
 ---|---|---  
-**MLflow Tracking** | Record experiment parameters and metrics | experiment management  
+**MLflow Tracking** | Log experiment parameters and metrics | Experiment management  
 **MLflow Projects** | Reproducible code execution | Environment management  
-**MLflow Models** | Model packaging and deployment | model management  
-**MLflow Registry** | Model of version control | Production operations  
+**MLflow Models** | Model packaging and deployment | Model management  
+**MLflow Registry** | Model version management | Production operations  
   
-### MLflow Tracking: basic usage
+### MLflow Tracking: Basic Usage
     
-    
-    # Requirements:
-    # - Python 3.9+
-    # - mlflow>=2.4.0
-    # - numpy>=1.24.0, <2.0.0
-    
-    """
-    Example: MLflow Tracking: basic usage
-    
-    Purpose: Demonstrate machine learning model training and evaluation
-    Target: Advanced
-    Execution time: 30-60 seconds
-    Dependencies: None
-    """
     
     import mlflow
     import mlflow.sklearn
@@ -140,12 +125,12 @@ Component | Function | Purpose
         X, y, test_size=0.2, random_state=42
     )
     
-    # MLflowConfigure experiment
+    # Configure the MLflow experiment
     mlflow.set_experiment("random_forest_classification")
     
-    # Run experiment
+    # Run the experiment
     with mlflow.start_run(run_name="rf_baseline"):
-        # Parameter configuration
+        # Set parameters
         n_estimators = 100
         max_depth = 10
         random_state = 42
@@ -155,7 +140,7 @@ Component | Function | Purpose
         mlflow.log_param("max_depth", max_depth)
         mlflow.log_param("random_state", random_state)
     
-        # Train model
+        # Train the model
         model = RandomForestClassifier(
             n_estimators=n_estimators,
             max_depth=max_depth,
@@ -163,18 +148,18 @@ Component | Function | Purpose
         )
         model.fit(X_train, y_train)
     
-        # prediction and metrics of calculation
+        # Predict and compute metrics
         y_pred = model.predict(X_test)
         accuracy = accuracy_score(y_test, y_pred)
         precision = precision_score(y_test, y_pred)
         recall = recall_score(y_test, y_pred)
     
-        # Logging metrics
+        # Log metrics
         mlflow.log_metric("accuracy", accuracy)
         mlflow.log_metric("precision", precision)
         mlflow.log_metric("recall", recall)
     
-        # Save model
+        # Save the model
         mlflow.sklearn.log_model(model, "model")
     
         print(f"Accuracy: {accuracy:.3f}")
@@ -182,7 +167,7 @@ Component | Function | Purpose
         print(f"Recall: {recall:.3f}")
     
 
-**Output** ：
+**Output** :
     
     
     Accuracy: 0.895
@@ -190,29 +175,15 @@ Component | Function | Purpose
     Recall: 0.902
     
 
-### running and comparing multiple experiments
+### Running and Comparing Multiple Experiments
     
-    
-    # Requirements:
-    # - Python 3.9+
-    # - mlflow>=2.4.0
-    # - numpy>=1.24.0, <2.0.0
-    
-    """
-    Example: running and comparing multiple experiments
-    
-    Purpose: Demonstrate machine learning model training and evaluation
-    Target: Advanced
-    Execution time: 30-60 seconds
-    Dependencies: None
-    """
     
     import mlflow
     from sklearn.ensemble import RandomForestClassifier
     from sklearn.metrics import accuracy_score
     import numpy as np
     
-    # experimentconfiguration of list
+    # List of experiment configurations
     experiment_configs = [
         {"n_estimators": 50, "max_depth": 5, "name": "rf_shallow"},
         {"n_estimators": 100, "max_depth": 10, "name": "rf_medium"},
@@ -222,7 +193,7 @@ Component | Function | Purpose
     
     mlflow.set_experiment("rf_hyperparameter_tuning")
     
-    # Run experiments with each configuration
+    # Run an experiment for each configuration
     results = []
     for config in experiment_configs:
         with mlflow.start_run(run_name=config["name"]):
@@ -230,7 +201,7 @@ Component | Function | Purpose
             mlflow.log_param("n_estimators", config["n_estimators"])
             mlflow.log_param("max_depth", config["max_depth"])
     
-            # Train model
+            # Train the model
             model = RandomForestClassifier(
                 n_estimators=config["n_estimators"],
                 max_depth=config["max_depth"],
@@ -238,16 +209,16 @@ Component | Function | Purpose
             )
             model.fit(X_train, y_train)
     
-            # evaluation
+            # Evaluate
             train_acc = accuracy_score(y_train, model.predict(X_train))
             test_acc = accuracy_score(y_test, model.predict(X_test))
     
-            # Logging metrics
+            # Log metrics
             mlflow.log_metric("train_accuracy", train_acc)
             mlflow.log_metric("test_accuracy", test_acc)
             mlflow.log_metric("overfit_gap", train_acc - test_acc)
     
-            # Save model
+            # Save the model
             mlflow.sklearn.log_model(model, "model")
     
             results.append({
@@ -259,12 +230,12 @@ Component | Function | Purpose
     
             print(f"{config['name']}: Train={train_acc:.3f}, Test={test_acc:.3f}, Overfit={train_acc - test_acc:.3f}")
     
-    print("\n=== Comparison of experiment results ===")
+    print("\n=== Experiment result comparison ===")
     for result in sorted(results, key=lambda x: x['test_acc'], reverse=True):
         print(f"{result['name']}: Test Accuracy = {result['test_acc']:.3f}")
     
 
-**Output** ：
+**Output** :
     
     
     rf_shallow: Train=0.862, Test=0.855, Overfit=0.007
@@ -272,40 +243,27 @@ Component | Function | Purpose
     rf_deep: Train=0.987, Test=0.890, Overfit=0.097
     rf_full: Train=1.000, Test=0.885, Overfit=0.115
     
-    === Comparison of experiment results ===
+    === Experiment result comparison ===
     rf_medium: Test Accuracy = 0.895
     rf_deep: Test Accuracy = 0.890
     rf_full: Test Accuracy = 0.885
     rf_shallow: Test Accuracy = 0.855
     
 
-### MLflow Autolog: automatic logging
+### MLflow Autolog: Automatic Logging
     
-    
-    # Requirements:
-    # - Python 3.9+
-    # - mlflow>=2.4.0
-    
-    """
-    Example: MLflow Autolog: automatic logging
-    
-    Purpose: Demonstrate machine learning model training and evaluation
-    Target: Advanced
-    Execution time: 30-60 seconds
-    Dependencies: None
-    """
     
     import mlflow
     from sklearn.ensemble import RandomForestClassifier
     from sklearn.model_selection import cross_val_score
     
-    # enable MLflow autolog
+    # Enable MLflow autolog
     mlflow.sklearn.autolog()
     
     mlflow.set_experiment("rf_with_autolog")
     
     with mlflow.start_run(run_name="rf_autolog_example"):
-        # train model (parameters and metrics are automatically logged)
+        # Train the model (parameters and metrics are logged automatically)
         model = RandomForestClassifier(
             n_estimators=150,
             max_depth=15,
@@ -314,7 +272,7 @@ Component | Function | Purpose
         )
         model.fit(X_train, y_train)
     
-        # manually log additional metrics
+        # Log additional metrics manually
         cv_scores = cross_val_score(model, X_train, y_train, cv=5)
         mlflow.log_metric("cv_mean", cv_scores.mean())
         mlflow.log_metric("cv_std", cv_scores.std())
@@ -323,29 +281,24 @@ Component | Function | Purpose
         print(f"CV Mean: {cv_scores.mean():.3f} (+/- {cv_scores.std():.3f})")
     
 
-**Output** ：
+**Output** :
     
     
     Test Accuracy: 0.900
     CV Mean: 0.893 (+/- 0.012)
     
 
-> **benefits of autolog** : Parameters, metrics, and models are automatically logged, preventing manual logging errors.
+> **Advantages of Autolog** : Parameters, metrics, and models are recorded automatically, preventing mistakes in manual logging code.
 
-### MLflow Models: Model of packaging
+### MLflow Models: Packaging Models
     
-    
-    # Requirements:
-    # - Python 3.9+
-    # - mlflow>=2.4.0
-    # - pandas>=2.0.0, <2.2.0
     
     import mlflow
     import mlflow.pyfunc
     import pandas as pd
     from sklearn.ensemble import RandomForestClassifier
     
-    # Define custom model wrapper
+    # Define a custom model wrapper
     class CustomModelWrapper(mlflow.pyfunc.PythonModel):
         def __init__(self, model):
             self.model = model
@@ -353,7 +306,7 @@ Component | Function | Purpose
         def predict(self, context, model_input):
             """Custom prediction logic"""
             predictions = self.model.predict_proba(model_input)
-            # Return predictions only when confidence is 0.7 or higher
+            # Return a prediction only when confidence is 0.7 or higher
             confident_predictions = []
             for i, prob in enumerate(predictions):
                 max_prob = max(prob)
@@ -363,17 +316,17 @@ Component | Function | Purpose
                     confident_predictions.append(-1)  # Unknown
             return confident_predictions
     
-    # Train model
+    # Train the model
     base_model = RandomForestClassifier(n_estimators=100, random_state=42)
     base_model.fit(X_train, y_train)
     
-    # Wrap custom model
+    # Wrap the custom model
     wrapped_model = CustomModelWrapper(base_model)
     
     mlflow.set_experiment("custom_model_packaging")
     
     with mlflow.start_run(run_name="confident_predictor"):
-        # Save custom model
+        # Save the custom model
         mlflow.pyfunc.log_model(
             artifact_path="confident_model",
             python_model=wrapped_model,
@@ -390,29 +343,25 @@ Component | Function | Purpose
     
         # Test predictions
         test_predictions = wrapped_model.predict(None, X_test[:5])
-        print(f"Predictions with confidence: {test_predictions}")
-        print(f"Low-confidence predictions（-1）number of: {sum(1 for p in test_predictions if p == -1)}")
+        print(f"Confidence-aware predictions: {test_predictions}")
+        print(f"Number of low-confidence predictions (-1): {sum(1 for p in test_predictions if p == -1)}")
     
 
-### MLflow UI: experiment visualization
+### MLflow UI: Visualizing Experiments
     
     
-    # start MLflow UI
+    # Start the MLflow UI
     # mlflow ui --port 5000
     
-    # access http://localhost:5000 in browser
-    # - display list of experiments
-    # - parameters and metrics of comparison
-    # - Model of download
-    # - search and filter experiments
+    # Open http://localhost:5000 in your browser
+    # - List all experiments
+    # - Compare parameters and metrics
+    # - Download models
+    # - Search and filter experiments
     
 
-### MLflow Projects: reproducible execution
+### MLflow Projects: Reproducible Execution
     
-    
-    # Requirements:
-    # - Python 3.9+
-    # - mlflow>=2.4.0
     
     # MLproject file (YAML format)
     """
@@ -429,10 +378,10 @@ Component | Function | Purpose
         command: "python train.py --n-estimators {n_estimators} --max-depth {max_depth} --data-path {data_path}"
     """
     
-    # run project
+    # Run the project
     import mlflow
     
-    # run locally
+    # Run locally
     mlflow.run(
         ".",
         parameters={
@@ -442,7 +391,7 @@ Component | Function | Purpose
         }
     )
     
-    # run from GitHub
+    # Run from GitHub
     mlflow.run(
         "https://github.com/username/ml-project",
         version="main",
@@ -454,42 +403,28 @@ Component | Function | Purpose
 
 ## 2.3 Weights & Biases (W&B)
 
-### Weights & BiasesWhat is
+### What Is Weights & Biases?
 
-**Weights & Biases (W&B)**is a powerful platform for experiment tracking, visualization, and hyperparameter optimization.
+**Weights & Biases (W&B)** is a powerful platform for experiment tracking, visualization, and hyperparameter optimization.
 
-### W&B of key features
+### Key W&B Features
 
-Function | Description | Purpose  
+Feature | Description | Use Case  
 ---|---|---  
-**Experiment Tracking** | Visualize metrics in real-time | Experiment monitoring  
-**Sweeps** | Automatic hyperparameter optimization | Tuning  
-**Artifacts** | Save models and datasets | version control  
+**Experiment Tracking** | Visualize metrics in real time | Experiment monitoring  
+**Sweeps** | Automated hyperparameter optimization | Tuning  
+**Artifacts** | Store models and datasets | Version control  
 **Reports** | Create and share experiment reports | Team collaboration  
   
-### W&B: basic experiment tracking
+### W&B: Basic Experiment Tracking
     
-    
-    # Requirements:
-    # - Python 3.9+
-    # - numpy>=1.24.0, <2.0.0
-    # - wandb>=0.15.0
-    
-    """
-    Example: W&B: basic experiment tracking
-    
-    Purpose: Demonstrate data visualization techniques
-    Target: Advanced
-    Execution time: 30-60 seconds
-    Dependencies: None
-    """
     
     import wandb
     from sklearn.ensemble import RandomForestClassifier
     from sklearn.metrics import accuracy_score, f1_score, confusion_matrix
     import numpy as np
     
-    # initialize W&B
+    # Initialize W&B
     wandb.init(
         project="ml-experiment-tracking",
         name="rf_baseline",
@@ -501,10 +436,10 @@ Function | Description | Purpose
         }
     )
     
-    # get configuration
+    # Retrieve the configuration
     config = wandb.config
     
-    # Train model
+    # Train the model
     model = RandomForestClassifier(
         n_estimators=config.n_estimators,
         max_depth=config.max_depth,
@@ -513,12 +448,12 @@ Function | Description | Purpose
     )
     model.fit(X_train, y_train)
     
-    # evaluation
+    # Evaluate
     y_pred = model.predict(X_test)
     accuracy = accuracy_score(y_test, y_pred)
     f1 = f1_score(y_test, y_pred)
     
-    # Logging metrics
+    # Log metrics
     wandb.log({
         "accuracy": accuracy,
         "f1_score": f1,
@@ -526,7 +461,7 @@ Function | Description | Purpose
         "test_samples": len(X_test)
     })
     
-    # Visualize confusion matrix
+    # Visualize the confusion matrix
     wandb.log({
         "confusion_matrix": wandb.plot.confusion_matrix(
             probs=None,
@@ -538,33 +473,19 @@ Function | Description | Purpose
     
     print(f"Accuracy: {accuracy:.3f}, F1: {f1:.3f}")
     
-    # Finish experiment
+    # Finish the run
     wandb.finish()
     
 
-**Output** ：
+**Output** :
     
     
     Accuracy: 0.895, F1: 0.897
     View run at: https://wandb.ai/username/ml-experiment-tracking/runs/xxxxx
     
 
-### W&B: real-time visualization of learning curves
+### W&B: Real-Time Learning Curve Visualization
     
-    
-    # Requirements:
-    # - Python 3.9+
-    # - numpy>=1.24.0, <2.0.0
-    # - wandb>=0.15.0
-    
-    """
-    Example: W&B: real-time visualization of learning curves
-    
-    Purpose: Demonstrate core concepts and implementation patterns
-    Target: Advanced
-    Execution time: 1-5 minutes
-    Dependencies: None
-    """
     
     import wandb
     from sklearn.model_selection import learning_curve
@@ -573,7 +494,7 @@ Function | Description | Purpose
     
     wandb.init(project="learning-curves", name="rf_learning_curve")
     
-    # Calculate learning curves
+    # Compute the learning curve
     train_sizes = np.linspace(0.1, 1.0, 10)
     train_sizes_abs, train_scores, test_scores = learning_curve(
         RandomForestClassifier(n_estimators=100, random_state=42),
@@ -594,33 +515,20 @@ Function | Description | Purpose
             "test_score_std": test_scores[i].std()
         })
     
-    print("Calculate learning curvescomplete")
+    print("Learning curve computation complete")
     wandb.finish()
     
 
-### W&B Sweeps: hyperparameter optimization
+### W&B Sweeps: Hyperparameter Optimization
     
-    
-    # Requirements:
-    # - Python 3.9+
-    # - wandb>=0.15.0
-    
-    """
-    Example: W&B Sweeps: hyperparameter optimization
-    
-    Purpose: Demonstrate machine learning model training and evaluation
-    Target: Advanced
-    Execution time: 30-60 seconds
-    Dependencies: None
-    """
     
     import wandb
     from sklearn.ensemble import RandomForestClassifier
     from sklearn.metrics import accuracy_score
     
-    # define sweep configuration
+    # Define the sweep configuration
     sweep_config = {
-        'method': 'bayes',  # Bayesianoptimization
+        'method': 'bayes',  # Bayesian optimization
         'metric': {
             'name': 'accuracy',
             'goal': 'maximize'
@@ -649,13 +557,13 @@ Function | Description | Purpose
         }
     }
     
-    # Define training function
+    # Define the training function
     def train():
-        # initialize W&B
+        # Initialize W&B
         wandb.init()
         config = wandb.config
     
-        # Train model
+        # Train the model
         model = RandomForestClassifier(
             n_estimators=config.n_estimators,
             max_depth=config.max_depth,
@@ -665,51 +573,36 @@ Function | Description | Purpose
         )
         model.fit(X_train, y_train)
     
-        # evaluation
+        # Evaluate
         train_acc = accuracy_score(y_train, model.predict(X_train))
         test_acc = accuracy_score(y_test, model.predict(X_test))
     
-        # Logging metrics
+        # Log metrics
         wandb.log({
             'accuracy': test_acc,
             'train_accuracy': train_acc,
             'overfit_gap': train_acc - test_acc
         })
     
-    # run sweep
+    # Run the sweep
     sweep_id = wandb.sweep(sweep_config, project="hyperparameter-tuning")
     
-    # 10 timesexperiments of execution
+    # Run 10 experiments
     wandb.agent(sweep_id, function=train, count=10)
     
-    print(f"Sweepcomplete: {sweep_id}")
+    print(f"Sweep complete: {sweep_id}")
     
 
-**Output** ：
+**Output** :
     
     
-    Sweepcomplete: username/hyperparameter-tuning/sweep_xxxxx
-    best of accuracy: 0.915
-    optimalparameters: n_estimators=220, max_depth=18, min_samples_split=3, min_samples_leaf=2
+    Sweep complete: username/hyperparameter-tuning/sweep_xxxxx
+    Best accuracy: 0.915
+    Best parameters: n_estimators=220, max_depth=18, min_samples_split=3, min_samples_leaf=2
     
 
-### W&B: Model and dataset of save
+### W&B: Saving Models and Datasets
     
-    
-    # Requirements:
-    # - Python 3.9+
-    # - joblib>=1.3.0
-    # - pandas>=2.0.0, <2.2.0
-    # - wandb>=0.15.0
-    
-    """
-    Example: W&B: Model and dataset of save
-    
-    Purpose: Demonstrate machine learning model training and evaluation
-    Target: Advanced
-    Execution time: 30-60 seconds
-    Dependencies: None
-    """
     
     import wandb
     import joblib
@@ -717,15 +610,15 @@ Function | Description | Purpose
     
     wandb.init(project="model-artifacts", name="rf_with_artifacts")
     
-    # Train model
+    # Train the model
     model = RandomForestClassifier(n_estimators=100, random_state=42)
     model.fit(X_train, y_train)
     
-    # Save model
+    # Save the model
     model_path = "random_forest_model.pkl"
     joblib.dump(model, model_path)
     
-    # W&Bsave as artifact in
+    # Store it as a W&B artifact
     artifact = wandb.Artifact(
         name="random_forest_model",
         type="model",
@@ -734,7 +627,7 @@ Function | Description | Purpose
     artifact.add_file(model_path)
     wandb.log_artifact(artifact)
     
-    # dataset of save
+    # Save the dataset
     import pandas as pd
     df_train = pd.DataFrame(X_train, columns=[f"feature_{i}" for i in range(X_train.shape[1])])
     df_train['target'] = y_train
@@ -748,32 +641,19 @@ Function | Description | Purpose
     data_artifact.add_file("train_data.csv")
     wandb.log_artifact(data_artifact)
     
-    print("Model and datasetsaved")
+    print("Model and dataset saved")
     wandb.finish()
     
 
-### W&B: multiplenumberexperiment visualizationcomparison
+### W&B: Visual Comparison of Multiple Experiments
     
-    
-    # Requirements:
-    # - Python 3.9+
-    # - wandb>=0.15.0
-    
-    """
-    Example: W&B: multiplenumberexperiment visualizationcomparison
-    
-    Purpose: Demonstrate data visualization techniques
-    Target: Advanced
-    Execution time: 30-60 seconds
-    Dependencies: None
-    """
     
     import wandb
     from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
     from sklearn.linear_model import LogisticRegression
     from sklearn.metrics import accuracy_score, precision_score, recall_score
     
-    # multiplenumber of Modelexperiment with
+    # Experiment with multiple models
     models = {
         "random_forest": RandomForestClassifier(n_estimators=100, random_state=42),
         "gradient_boosting": GradientBoostingClassifier(n_estimators=100, random_state=42),
@@ -781,20 +661,20 @@ Function | Description | Purpose
     }
     
     for model_name, model in models.items():
-        # Start experiment
+        # Start the run
         run = wandb.init(
             project="model-comparison",
             name=model_name,
             reinit=True
         )
     
-        # Train model
+        # Train the model
         model.fit(X_train, y_train)
     
-        # Prediction and evaluation
+        # Predict and evaluate
         y_pred = model.predict(X_test)
     
-        # Logging metrics
+        # Log metrics
         wandb.log({
             "accuracy": accuracy_score(y_test, y_pred),
             "precision": precision_score(y_test, y_pred),
@@ -802,7 +682,7 @@ Function | Description | Purpose
             "model_type": model_name
         })
     
-        # featuresimportantdegree of log（if possible）
+        # Log feature importance (when available)
         if hasattr(model, 'feature_importances_'):
             importance_data = [[i, imp] for i, imp in enumerate(model.feature_importances_)]
             table = wandb.Table(data=importance_data, columns=["feature", "importance"])
@@ -810,61 +690,47 @@ Function | Description | Purpose
     
         run.finish()
     
-    print("allModelexperiment completion of")
+    print("All model experiments complete")
     
 
 * * *
 
 ## 2.4 DVC (Data Version Control)
 
-### DVCWhat is
+### What Is DVC?
 
-**DVC（Data Version Control）** 、data and Model of version control 、Gitis a tool that implements workflows like。
+**DVC (Data Version Control)** is a tool that brings Git-like workflows to versioning data and models.
 
-### DVC of key features
+### Key DVC Features
 
-Function | Description | Purpose  
+Feature | Description | Use Case  
 ---|---|---  
-**data versioning** | large data of version control | datatracking  
-**pipeline definition** | reproducibleMLpipeline | workflowmanagement  
-**remote storage** | S3、GCS、Azureetc.withintegration | datasharing  
-**experiment management** | tracking and comparing experiments | Experiment comparison  
+**Data versioning** | Version control for large data files | Data tracking  
+**Pipeline definition** | Reproducible ML pipelines | Workflow management  
+**Remote storage** | Integration with S3, GCS, Azure, and more | Data sharing  
+**Experiment management** | Track and compare experiments | Experiment comparison  
   
-### DVCsetup and initialization of
+### Setting Up and Initializing DVC
     
     
-    # DVCinstallation of
+    # Install DVC
     # pip install dvc
     
-    # Gitrepository of initialization（if not yet）
+    # Initialize a Git repository (if not done yet)
     # git init
     
-    # initialize DVC
+    # Initialize DVC
     # dvc init
     
-    # .dvc/config file created
+    # The .dvc/config file is created
     # git add .dvc .dvcignore
     # git commit -m "Initialize DVC"
     
 
-### data of version control
+### Versioning Data
     
     
-    # Requirements:
-    # - Python 3.9+
-    # - numpy>=1.24.0, <2.0.0
-    # - pandas>=2.0.0, <2.2.0
-    
-    """
-    Example: data of version control
-    
-    Purpose: Demonstrate data manipulation and preprocessing
-    Target: Beginner to Intermediate
-    Execution time: ~5 seconds
-    Dependencies: None
-    """
-    
-    # Pythongenerate data with
+    # Generate data in Python
     import pandas as pd
     import numpy as np
     
@@ -877,66 +743,53 @@ Function | Description | Purpose
         'target': np.random.randint(0, 2, 1000)
     })
     
-    # data of save
+    # Save the data
     data.to_csv('data/raw_data.csv', index=False)
-    print("datasaved: data/raw_data.csv")
+    print("Data saved: data/raw_data.csv")
     
     
     
-    # DVCtrack data with
+    # Track the data with DVC
     # dvc add data/raw_data.csv
     
-    # this creates the following:
-    # - data/raw_data.csv.dvc (metadatafile)
-    # - data/.gitignore (actual data excluded)
+    # This creates the following:
+    # - data/raw_data.csv.dvc (metadata file)
+    # - data/.gitignore (excludes the actual data)
     
-    # metadatafile Gitcommit to
+    # Commit the metadata file to Git
     # git add data/raw_data.csv.dvc data/.gitignore
     # git commit -m "Add raw data"
     
-    # Configure remote storage（example: localdirectory）
+    # Configure remote storage (example: local directory)
     # dvc remote add -d local_storage /tmp/dvc-storage
     # git add .dvc/config
     # git commit -m "Configure DVC remote storage"
     
-    # data remote push
+    # Push the data to the remote
     # dvc push
     
 
-### DVCDefine pipeline
+### Defining a DVC Pipeline
     
     
-    # Requirements:
-    # - Python 3.9+
-    # - pandas>=2.0.0, <2.2.0
-    
-    """
-    Example: DVCDefine pipeline
-    
-    Purpose: Demonstrate data manipulation and preprocessing
-    Target: Beginner to Intermediate
-    Execution time: 1-5 minutes
-    Dependencies: None
-    """
-    
-    # prepare.py - data preprocessingscript
+    # prepare.py - data preprocessing script
     import pandas as pd
     from sklearn.model_selection import train_test_split
     import sys
     
     def prepare_data(input_file, train_file, test_file):
-        # Load data
+        # Load the data
         data = pd.read_csv(input_file)
     
-        # training・test data of minrate
+        # Split into training and test sets
         train, test = train_test_split(data, test_size=0.2, random_state=42)
     
-        # save
+        # Save
         train.to_csv(train_file, index=False)
         test.to_csv(test_file, index=False)
     
-        print(f"training data: {len(train)}row")
-        print(f"test data: {len(test)}row")
+        print(f"Training data: {len(train)} rows")
+        print(f"Test data: {len(test)} rows")
     
     if __name__ == "__main__":
         prepare_data(
@@ -947,37 +800,23 @@ Function | Description | Purpose
     
     
     
-    # Requirements:
-    # - Python 3.9+
-    # - joblib>=1.3.0
-    # - pandas>=2.0.0, <2.2.0
-    
-    """
-    Example: DVCDefine pipeline
-    
-    Purpose: Demonstrate machine learning model training and evaluation
-    Target: Advanced
-    Execution time: 30-60 seconds
-    Dependencies: None
-    """
-    
-    # train.py - model trainingscript
+    # train.py - model training script
     import pandas as pd
     from sklearn.ensemble import RandomForestClassifier
     import joblib
     import json
     
     def train_model(train_file, model_file, metrics_file):
-        # Load data
+        # Load the data
         train = pd.read_csv(train_file)
         X_train = train.drop('target', axis=1)
         y_train = train['target']
     
-        # Train model
+        # Train the model
         model = RandomForestClassifier(n_estimators=100, random_state=42)
         model.fit(X_train, y_train)
     
-        # Save model
+        # Save the model
         joblib.dump(model, model_file)
     
         # Save metrics
@@ -987,7 +826,7 @@ Function | Description | Purpose
         with open(metrics_file, 'w') as f:
             json.dump(metrics, f)
     
-        print(f"training accuracy: {train_accuracy:.3f}")
+        print(f"Training accuracy: {train_accuracy:.3f}")
     
     if __name__ == "__main__":
         train_model(
@@ -998,35 +837,21 @@ Function | Description | Purpose
     
     
     
-    # Requirements:
-    # - Python 3.9+
-    # - joblib>=1.3.0
-    # - pandas>=2.0.0, <2.2.0
-    
-    """
-    Example: DVCDefine pipeline
-    
-    Purpose: Demonstrate data manipulation and preprocessing
-    Target: Intermediate
-    Execution time: 1-3 seconds
-    Dependencies: None
-    """
-    
-    # evaluate.py - Modelevaluationscript
+    # evaluate.py - model evaluation script
     import pandas as pd
     import joblib
     import json
     from sklearn.metrics import accuracy_score, precision_score, recall_score
     
     def evaluate_model(test_file, model_file, metrics_file):
-        # load data and models
+        # Load the data and model
         test = pd.read_csv(test_file)
         X_test = test.drop('target', axis=1)
         y_test = test['target']
     
         model = joblib.load(model_file)
     
-        # Prediction and evaluation
+        # Predict and evaluate
         y_pred = model.predict(X_test)
     
         metrics = {
@@ -1039,9 +864,9 @@ Function | Description | Purpose
         with open(metrics_file, 'w') as f:
             json.dump(metrics, f)
     
-        print(f"test accuracy: {metrics['accuracy']:.3f}")
-        print(f"precision: {metrics['precision']:.3f}")
-        print(f"recall: {metrics['recall']:.3f}")
+        print(f"Test accuracy: {metrics['accuracy']:.3f}")
+        print(f"Precision: {metrics['precision']:.3f}")
+        print(f"Recall: {metrics['recall']:.3f}")
     
     if __name__ == "__main__":
         evaluate_model(
@@ -1051,7 +876,7 @@ Function | Description | Purpose
         )
     
 
-### dvc.yaml: Define pipeline
+### dvc.yaml: Defining the Pipeline
     
     
     # dvc.yaml
@@ -1088,36 +913,36 @@ Function | Description | Purpose
     
     
     
-    # Run pipeline
+    # Run the pipeline
     # dvc repro
     
     # Output:
     # Running stage 'prepare':
     # > python prepare.py
-    # training data: 800row
-    # test data: 200row
+    # Training data: 800 rows
+    # Test data: 200 rows
     #
     # Running stage 'train':
     # > python train.py
-    # training accuracy: 1.000
+    # Training accuracy: 1.000
     #
     # Running stage 'evaluate':
     # > python evaluate.py
-    # test accuracy: 0.895
-    # precision: 0.891
-    # recall: 0.902
+    # Test accuracy: 0.895
+    # Precision: 0.891
+    # Recall: 0.902
     
-    # metrics of display
+    # Show metrics
     # dvc metrics show
     
-    # Visualize pipeline
+    # Visualize the pipeline
     # dvc dag
     
 
-### DVC Experiments: experiment of tracking
+### DVC Experiments: Tracking Experiments
     
     
-    # parametersfile of creation
+    # Create the parameter file
     # params.yaml
     """
     model:
@@ -1130,15 +955,15 @@ Function | Description | Purpose
       random_state: 42
     """
     
-    # Run experiment
+    # Run an experiment
     # dvc exp run
     
-    # multiplenumberexperiments of andcolumnexecution
+    # Run multiple experiments in parallel
     # dvc exp run --set-param model.n_estimators=150
     # dvc exp run --set-param model.n_estimators=200
     # dvc exp run --set-param model.max_depth=15
     
-    # experiment results of display
+    # Show experiment results
     # dvc exp show
     
     # Output:
@@ -1151,32 +976,27 @@ Function | Description | Purpose
     # │ exp-3       │ 100         │ 15       │ 0.898     │
     # └─────────────┴─────────────┴──────────┴───────────┘
     
-    # apply best experiment
+    # Apply the best experiment
     # dvc exp apply exp-2
     # git add .
     # git commit -m "Apply best experiment: n_estimators=200"
     
 
-### DVC and Gitintegrated workflow of
+### Integrated DVC and Git Workflow
     
     
-    # Requirements:
-    # - Python 3.9+
-    # - numpy>=1.24.0, <2.0.0
-    # - pandas>=2.0.0, <2.2.0
-    
-    # completeworkflowexample
+    # Complete workflow example
     import subprocess
     import os
     
     def dvc_workflow_example():
-        """DVC and Gitcomplete usingMLworkflow"""
+        """Complete ML workflow using DVC and Git"""
     
-        # 1. new branch creation
+        # 1. Create a new branch
         subprocess.run(["git", "checkout", "-b", "experiment/new-features"])
     
-        # 2. new data additional
-        print("new data generationmedium...")
+        # 2. Add new data
+        print("Generating new data...")
         import pandas as pd
         import numpy as np
     
@@ -1184,54 +1004,50 @@ Function | Description | Purpose
             'feature1': np.random.randn(1500),
             'feature2': np.random.randn(1500),
             'feature3': np.random.randn(1500),
-            'feature4': np.random.randn(1500),  # new features
+            'feature4': np.random.randn(1500),  # New feature
             'target': np.random.randint(0, 2, 1500)
         })
         new_data.to_csv('data/raw_data_v2.csv', index=False)
     
-        # 3. DVCtrack new data with
+        # 3. Track the new data with DVC
         subprocess.run(["dvc", "add", "data/raw_data_v2.csv"])
     
-        # 4. changes commit
+        # 4. Commit the changes
         subprocess.run(["git", "add", "data/raw_data_v2.csv.dvc", "data/.gitignore"])
         subprocess.run(["git", "commit", "-m", "Add new dataset with feature4"])
     
-        # 5. pipeline execution
+        # 5. Run the pipeline
         subprocess.run(["dvc", "repro"])
     
-        # 6. results verification
+        # 6. Check the results
         subprocess.run(["dvc", "metrics", "show"])
     
-        # 7. changes push
+        # 7. Push the changes
         subprocess.run(["git", "push", "origin", "experiment/new-features"])
         subprocess.run(["dvc", "push"])
     
-        print("workflowcomplete")
+        print("Workflow complete")
     
-    # note: actual of executioninappropriateGit/DVCsetup required
-    print("DVCworkflowexample（Command explanation）")
+    # Note: Actual execution requires a proper Git/DVC setup
+    print("DVC workflow example (command walkthrough)")
     
 
 * * *
 
-## 2.5 best practices
+## 2.5 Best Practices
 
-### 1\. metadatalog of best practices
+### 1\. Metadata Logging Best Practices
 
-#### loginformation to be
+#### Information to Record
 
-Category | Item | reason  
+Category | Items | Reason  
 ---|---|---  
-**experimentinformation** | experiment name、date and time、executionperson | experiment of identification and tracking  
-**environment information** | Pythonversion、library version、OS | ensuring reproducibility  
-**data information** | data version、number of samples、mindistribution | data driftdetection  
-**model information** | architecture、parameters | Modelreconstruction of  
-**evaluationinformation** | metrics、confusionrowcolumn | performance of comparison  
+**Experiment info** | Experiment name, timestamp, owner | Experiment identification and tracking  
+**Environment info** | Python version, library versions, OS | Ensuring reproducibility  
+**Data info** | Data version, sample count, distribution | Data drift detection  
+**Model info** | Architecture, parameters | Rebuilding the model  
+**Evaluation info** | Metrics, confusion matrix | Performance comparison  
       
-    
-    # Requirements:
-    # - Python 3.9+
-    # - mlflow>=2.4.0
     
     import mlflow
     import platform
@@ -1239,28 +1055,28 @@ Category | Item | reason
     from datetime import datetime
     
     def log_comprehensive_metadata(model, X_train, y_train, X_test, y_test):
-        """comprehensive metadata logging"""
+        """Log comprehensive metadata"""
     
         with mlflow.start_run(run_name=f"exp_{datetime.now().strftime('%Y%m%d_%H%M%S')}"):
-            # 1. environment information
+            # 1. Environment info
             mlflow.log_param("python_version", sys.version)
             mlflow.log_param("os", platform.system())
             mlflow.log_param("os_version", platform.version())
     
-            # 2. data information
+            # 2. Data info
             mlflow.log_param("train_samples", len(X_train))
             mlflow.log_param("test_samples", len(X_test))
             mlflow.log_param("n_features", X_train.shape[1])
             mlflow.log_param("class_distribution", dict(zip(*np.unique(y_train, return_counts=True))))
     
-            # 3. model information
+            # 3. Model info
             mlflow.log_param("model_type", type(model).__name__)
             mlflow.log_params(model.get_params())
     
-            # 4. training
+            # 4. Training
             model.fit(X_train, y_train)
     
-            # 5. evaluationmetrics
+            # 5. Evaluation metrics
             from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
     
             y_pred_train = model.predict(X_train)
@@ -1272,15 +1088,15 @@ Category | Item | reason
             mlflow.log_metric("test_recall", recall_score(y_test, y_pred_test))
             mlflow.log_metric("test_f1", f1_score(y_test, y_pred_test))
     
-            # 6. experimentmemo
+            # 6. Experiment notes
             mlflow.set_tag("experiment_description", "Comprehensive metadata logging example")
             mlflow.set_tag("data_version", "v1.0")
             mlflow.set_tag("experiment_type", "baseline")
     
-            # 7. Save model
+            # 7. Save the model
             mlflow.sklearn.log_model(model, "model")
     
-            print("comprehensive metadata log")
+            print("Comprehensive metadata logged")
     
     # Usage example
     from sklearn.ensemble import RandomForestClassifier
@@ -1288,12 +1104,8 @@ Category | Item | reason
     log_comprehensive_metadata(model, X_train, y_train, X_test, y_test)
     
 
-### 2\. hyperparametermanagement
+### 2\. Hyperparameter Management
     
-    
-    # Requirements:
-    # - Python 3.9+
-    # - pyyaml>=6.0.0
     
     import yaml
     from dataclasses import dataclass, asdict
@@ -1301,7 +1113,7 @@ Category | Item | reason
     
     @dataclass
     class ModelConfig:
-        """Modelconfiguration of structured definition"""
+        """Structured definition of model configuration"""
         n_estimators: int = 100
         max_depth: Optional[int] = 10
         min_samples_split: int = 2
@@ -1309,39 +1121,34 @@ Category | Item | reason
         random_state: int = 42
     
         def save(self, filepath: str):
-            """configuration YAMLfile save"""
+            """Save the configuration to a YAML file"""
             with open(filepath, 'w') as f:
                 yaml.dump(asdict(self), f)
     
         @classmethod
         def load(cls, filepath: str):
-            """YAMLfilefromconfiguration loading"""
+            """Load the configuration from a YAML file"""
             with open(filepath, 'r') as f:
                 config_dict = yaml.safe_load(f)
             return cls(**config_dict)
     
-    # save configuration
+    # Save the configuration
     config = ModelConfig(n_estimators=150, max_depth=15)
     config.save("configs/model_config.yaml")
     
-    # configuration of loading
+    # Load the configuration
     loaded_config = ModelConfig.load("configs/model_config.yaml")
     
-    # Train model
+    # Train the model
     from sklearn.ensemble import RandomForestClassifier
     model = RandomForestClassifier(**asdict(loaded_config))
     model.fit(X_train, y_train)
     
-    print(f"configurationuseModeltrain: {asdict(loaded_config)}")
+    print(f"Trained model using configuration: {asdict(loaded_config)}")
     
 
-### 3\. artifact management
+### 3\. Artifact Management
     
-    
-    # Requirements:
-    # - Python 3.9+
-    # - joblib>=1.3.0
-    # - mlflow>=2.4.0
     
     import mlflow
     import joblib
@@ -1355,29 +1162,29 @@ Category | Item | reason
         feature_names,
         experiment_name="my_experiment"
     ):
-        """experiment of artifacts systematic save"""
+        """Save experiment artifacts systematically"""
     
         mlflow.set_experiment(experiment_name)
     
         with mlflow.start_run():
-            # 1. Save model
+            # 1. Save the model
             mlflow.sklearn.log_model(model, "model")
     
             # 2. Save metrics
             for metric_name, metric_value in metrics.items():
                 mlflow.log_metric(metric_name, metric_value)
     
-            # 3. save configuration
+            # 3. Save the configuration
             for param_name, param_value in config.items():
                 mlflow.log_param(param_name, param_value)
     
-            # 4. feature information of save
+            # 4. Save feature information
             feature_info = {
                 "feature_names": feature_names,
                 "n_features": len(feature_names)
             }
     
-            # temporaryfile saveMLflowlog to
+            # Save to a temporary file and log to MLflow
             temp_dir = Path("temp_artifacts")
             temp_dir.mkdir(exist_ok=True)
     
@@ -1386,7 +1193,7 @@ Category | Item | reason
                 json.dump(feature_info, f, indent=2)
             mlflow.log_artifact(str(feature_path))
     
-            # 5. featuresimportantdegree of save（if possible）
+            # 5. Save feature importance (when available)
             if hasattr(model, 'feature_importances_'):
                 importance_df = {
                     name: float(imp)
@@ -1397,7 +1204,7 @@ Category | Item | reason
                     json.dump(importance_df, f, indent=2)
                 mlflow.log_artifact(str(importance_path))
     
-            # 6. predictionexample of save
+            # 6. Save sample predictions
             sample_predictions = {
                 "sample_input": X_test[:5].tolist(),
                 "predictions": model.predict(X_test[:5]).tolist()
@@ -1407,11 +1214,11 @@ Category | Item | reason
                 json.dump(sample_predictions, f, indent=2)
             mlflow.log_artifact(str(pred_path))
     
-            # temporaryfile of delete
+            # Remove temporary files
             import shutil
             shutil.rmtree(temp_dir)
     
-            print("all of artifactssaved")
+            print("All artifacts saved")
     
     # Usage example
     model = RandomForestClassifier(n_estimators=100, random_state=42)
@@ -1433,19 +1240,15 @@ Category | Item | reason
     save_experiment_artifacts(model, metrics, config, feature_names)
     
 
-### 4\. experiment of organization
+### 4\. Organizing Experiments
     
-    
-    # Requirements:
-    # - Python 3.9+
-    # - mlflow>=2.4.0
     
     from enum import Enum
     import mlflow
     from datetime import datetime
     
     class ExperimentType(Enum):
-        """experimenttype of definition"""
+        """Definition of experiment types"""
         BASELINE = "baseline"
         FEATURE_ENGINEERING = "feature_engineering"
         HYPERPARAMETER_TUNING = "hyperparameter_tuning"
@@ -1453,7 +1256,7 @@ Category | Item | reason
         PRODUCTION = "production"
     
     class ExperimentManager:
-        """experiment of organizationalmanagement"""
+        """Organized management of experiments"""
     
         def __init__(self, project_name: str):
             self.project_name = project_name
@@ -1464,7 +1267,7 @@ Category | Item | reason
             model_name: str,
             version: str = "v1"
         ) -> str:
-            """generate hierarchical experiment names"""
+            """Generate a hierarchical experiment name"""
             return f"{self.project_name}/{exp_type.value}/{model_name}/{version}"
     
         def run_experiment(
@@ -1477,36 +1280,36 @@ Category | Item | reason
             version: str = "v1",
             description: str = ""
         ):
-            """Run experiment and log"""
+            """Run and record an experiment"""
     
-            # experiment name of generation
+            # Generate the experiment name
             exp_name = self.create_experiment_name(exp_type, model_name, version)
             mlflow.set_experiment(exp_name)
     
-            # executionname of generation（with timestamp）
+            # Generate the run name (with a timestamp)
             run_name = f"{model_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
     
             with mlflow.start_run(run_name=run_name):
-                # set tags
+                # Set tags
                 mlflow.set_tag("experiment_type", exp_type.value)
                 mlflow.set_tag("model_name", model_name)
                 mlflow.set_tag("version", version)
                 mlflow.set_tag("description", description)
     
-                # training
+                # Training
                 train_metrics = train_fn(model)
     
-                # evaluation
+                # Evaluation
                 test_metrics = evaluate_fn(model)
     
-                # Logging metrics
+                # Log metrics
                 for metric_name, metric_value in {**train_metrics, **test_metrics}.items():
                     mlflow.log_metric(metric_name, metric_value)
     
-                # Save model
+                # Save the model
                 mlflow.sklearn.log_model(model, "model")
     
-                print(f"experiment complete: {exp_name}/{run_name}")
+                print(f"Experiment complete: {exp_name}/{run_name}")
                 return test_metrics
     
     # Usage example
@@ -1522,7 +1325,7 @@ Category | Item | reason
         test_f1 = f1_score(y_test, model.predict(X_test))
         return {"test_accuracy": test_acc, "test_f1": test_f1}
     
-    # baselineModelexperiments of
+    # Baseline model experiment
     from sklearn.ensemble import RandomForestClassifier
     rf_model = RandomForestClassifier(n_estimators=100, random_state=42)
     
@@ -1536,110 +1339,97 @@ Category | Item | reason
         description="Initial baseline model with default parameters"
     )
     
-    print(f"results: {results}")
+    print(f"Results: {results}")
     
 
 * * *
 
-## 2.6 this of Summary
+## 2.6 Chapter Summary
 
-### What We Learned
+### What You Learned
 
-  1. **Importance of Experiment Management**
+  1. **Why Experiment Management Matters**
 
-     * ensuring reproducibility machine learningproject of infrastructure
-     * systematicexperiment managementefficient withModeldevelopment
-     * data and Model of version controlnecessity of
+     * Ensuring reproducibility is the foundation of machine learning projects
+     * Systematic experiment management enables efficient model development
+     * The need for data and model version control
   2. **MLflow**
 
-     * MLflow Tracking: parameters and Logging metrics
-     * MLflow Models: Model packaging and deployment
-     * MLflow Projects: reproducibleexperimentenvironment
-     * AutologFunctionbyautomatic logging
+     * MLflow Tracking: logging parameters and metrics
+     * MLflow Models: model packaging and deployment
+     * MLflow Projects: reproducible experiment environments
+     * Automatic logging with the autolog feature
   3. **Weights & Biases**
 
-     * real-timeexperimentvisualization
-     * Automatic hyperparameter optimization（Sweeps）
-     * Team collaborationand report sharing
-     * artifact management and versioning
+     * Real-time experiment visualization
+     * Automated hyperparameter optimization (Sweeps)
+     * Team collaboration and report sharing
+     * Artifact management and versioning
   4. **DVC**
 
-     * data and Model of Gitlikemanagement
-     * reproducibleMLpipeline definition
-     * remote storagewithintegration
-     * tracking and comparing experiments
-  5. **best practices**
+     * Git-like management of data and models
+     * Reproducible ML pipeline definitions
+     * Integration with remote storage
+     * Experiment tracking and comparison
+  5. **Best Practices**
 
-     * comprehensive metadata logging
-     * structuredparametersmanagement
-     * systematicArtifact Storage
-     * hierarchical experiment organization
+     * Comprehensive metadata logging
+     * Structured parameter management
+     * Systematic artifact storage
+     * Hierarchical experiment organization
 
-### tool usageminguidelines
+### Guidelines for Choosing the Right Tool
 
-tool | strengths | recommended use cases  
+Tool | Strengths | Recommended Use Cases  
 ---|---|---  
-**MLflow** | open source、high flexibility | on-premises environment、freedom-oriented  
-**W &B** | advanced visualization、Team collaboration | cloud environment、team development  
-**DVC** | Gitaffinity with、data management | large data、Versionemphasis  
+**MLflow** | Open source, highly flexible | On-premises environments, maximum freedom  
+**W &B** | Advanced visualization, team collaboration | Cloud environments, team development  
+**DVC** | Git affinity, data management | Large datasets, versioning-focused workflows  
   
-### Next Chapter
+### To the Next Chapter
 
-Chapter 3in、**continuous integration/deploymentment（CI/CD）** we will learn：
+In Chapter 3, we will learn about **Continuous Integration/Deployment (CI/CD)** :
 
-  * MLOpsinCI/CDpipeline
-  * automatictest and Modelvalidation
-  * Modeldeployment strategy of
-  * monitoring and feedback loop
+  * CI/CD pipelines in MLOps
+  * Automated testing and model validation
+  * Model deployment strategies
+  * Monitoring and feedback loops
 
 * * *
 
 ## Exercises
 
-### Problem1（Difficulty：easy）
+### Problem 1 (Difficulty: easy)
 
-experiment managementin「reproducibility」why it is important3listDescriptionplease。
+Give three reasons why "reproducibility" is important in experiment management, and explain each.
 
-Example solution
+Sample Answer
 
-**Solution** ：
+**Answer** :
 
-  1. **results of validation**
+  1. **Verifying results**
 
-     * same conditionsexperiment with reexecution、results of validity verification 
-     * unexpectedresults incidentalor、systematicProblemcan determine
-  2. **Share insights**
+     * You can rerun an experiment under the same conditions to confirm the validity of its results
+     * You can determine whether an unexpected result is coincidental or a systematic problem
+  2. **Sharing insights**
 
-     * team members can reproduce same experiments and deepen understanding
-     * research results of transparency and reliability improvement
-  3. **debugging and Improved**
+     * Team members can reproduce the same experiment to deepen their understanding
+     * The transparency and credibility of research results improve
+  3. **Debugging and improvement**
 
-     * Problemwhen it occurs、specificexperiments ofstate reproducible and debuggable
-     * past of successfulexperiment base 、gradualImproved 
+     * When a problem occurs, you can reproduce the specific experiment state to debug it
+     * You can build incremental improvements on top of previously successful experiments
 
-### Problem2（Difficulty：medium）
+### Problem 2 (Difficulty: medium)
 
-MLflowusing、following of requirements satisfyexperiment tracking implementationplease：
+Using MLflow, implement experiment tracking that satisfies the following requirements:
 
-  * 3 differenthyperparameterconfiguration Modeltrain
-  * eachexperiment training accuracy and test accuracy log
-  * most alsohightest accuracy achievedexperiment specific
+  * Train models with three different hyperparameter configurations
+  * Record training and test accuracy for each experiment
+  * Identify the experiment that achieved the highest test accuracy
 
-Example solution
+Sample Answer
     
-    
-    # Requirements:
-    # - Python 3.9+
-    # - mlflow>=2.4.0
-    
-    """
-    Example: MLflowusing、following of requirements satisfyexperiment trac
-    
-    Purpose: Demonstrate machine learning model training and evaluation
-    Target: Advanced
-    Execution time: 30-60 seconds
-    Dependencies: None
-    """
     
     import mlflow
     from sklearn.ensemble import RandomForestClassifier
@@ -1651,10 +1441,10 @@ Example solution
     X, y = make_classification(n_samples=1000, n_features=20, random_state=42)
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
     
-    # experimentconfiguration
+    # Configure the experiment
     mlflow.set_experiment("hyperparameter_comparison")
     
-    # differenthyperparameterconfiguration
+    # Different hyperparameter configurations
     configs = [
         {"n_estimators": 50, "max_depth": 5},
         {"n_estimators": 100, "max_depth": 10},
@@ -1663,25 +1453,25 @@ Example solution
     
     results = []
     
-    # Run experiments with each configuration
+    # Run an experiment for each configuration
     for i, config in enumerate(configs):
         with mlflow.start_run(run_name=f"experiment_{i+1}"):
             # Log parameters
             mlflow.log_params(config)
     
-            # Train model
+            # Train the model
             model = RandomForestClassifier(**config, random_state=42)
             model.fit(X_train, y_train)
     
-            # accuracy of calculation
+            # Compute accuracy
             train_acc = accuracy_score(y_train, model.predict(X_train))
             test_acc = accuracy_score(y_test, model.predict(X_test))
     
-            # Logging metrics
+            # Log metrics
             mlflow.log_metric("train_accuracy", train_acc)
             mlflow.log_metric("test_accuracy", test_acc)
     
-            # Save results
+            # Save the results
             results.append({
                 "config": config,
                 "train_acc": train_acc,
@@ -1689,84 +1479,78 @@ Example solution
                 "run_id": mlflow.active_run().info.run_id
             })
     
-            print(f"experiment {i+1}: Train={train_acc:.3f}, Test={test_acc:.3f}")
+            print(f"Experiment {i+1}: Train={train_acc:.3f}, Test={test_acc:.3f}")
     
-    # best experiment specific
+    # Identify the best experiment
     best_result = max(results, key=lambda x: x['test_acc'])
     
-    print("\n=== best experiment ===")
-    print(f"configuration: {best_result['config']}")
-    print(f"test accuracy: {best_result['test_acc']:.3f}")
+    print("\n=== Best experiment ===")
+    print(f"Configuration: {best_result['config']}")
+    print(f"Test accuracy: {best_result['test_acc']:.3f}")
     print(f"Run ID: {best_result['run_id']}")
     
 
-**Output** ：
+**Output** :
     
     
-    experiment 1: Train=0.862, Test=0.855
-    experiment 2: Train=0.895, Test=0.895
-    experiment 3: Train=0.987, Test=0.890
+    Experiment 1: Train=0.862, Test=0.855
+    Experiment 2: Train=0.895, Test=0.895
+    Experiment 3: Train=0.987, Test=0.890
     
-    === best experiment ===
-    configuration: {'n_estimators': 100, 'max_depth': 10}
-    test accuracy: 0.895
+    === Best experiment ===
+    Configuration: {'n_estimators': 100, 'max_depth': 10}
+    Test accuracy: 0.895
     Run ID: xxxxxxxxxxxxx
     
 
-### Problem3（Difficulty：medium）
+### Problem 3 (Difficulty: medium)
 
-DVCmain benefits of using、Gitcompared to using onlyDescriptionplease。
+Explain the main advantages of using DVC compared to using Git alone.
 
-Example solution
+Sample Answer
 
-**Solution** ：
+**Answer** :
 
-**DVCmain benefits of** ：
+**Main advantages of DVC** :
 
-  1. **large-capacityfile of efficientmanagement**
+  1. **Efficient management of large files**
 
-     * Git: large-capacityfile（dataset、Model）repository bloat with
-     * DVC: actualfile remote storage save、Gitonly metadata in
-  2. **data of version control**
+     * Git: large files (datasets, models) bloat the repository
+     * DVC: actual files live in remote storage; only metadata is stored in Git
+  2. **Data versioning**
 
-     * Git: binaryfile of differenceminmanagement inefficient
-     * DVC: data of change history efficient tracking、optional of Versionrestorable to
-  3. **reproduciblepipeline**
+     * Git: diff management for binary files is inefficient
+     * DVC: tracks data change history efficiently and can restore any version
+  3. **Reproducible pipelines**
 
-     * Git: scriptversion controlonly
-     * DVC: data、code、parameters complete includingpipeline definition・reproduction
-  4. **Team collaborationease of**
+     * Git: version control for scripts only
+     * DVC: defines and reproduces complete pipelines including data, code, and parameters
+  4. **Easier team collaboration**
 
-     * Git: large-capacityfile of sharing difficulty
-     * DVC: via remote storage efficient datasharing
+     * Git: sharing large files is difficult
+     * DVC: shares data efficiently via remote storage
 
-**comparisondisplay** ：
+**Comparison table** :
 
-perspective | Git only | DVC + Git  
+Aspect | Git only | DVC + Git  
 ---|---|---  
-codemanagement | ◎ excellent | ◎ excellent  
-data management | △ inefficient | ◎ optimization  
-model management | △ difficulty | ◎ systematic  
-pipeline | × unsupported | ◎ full support  
-reproducibility | △ sectionmin | ◎ complete  
+Code management | ◎ Excellent | ◎ Excellent  
+Data management | △ Inefficient | ◎ Optimized  
+Model management | △ Difficult | ◎ Systematic  
+Pipelines | × Not supported | ◎ Fully supported  
+Reproducibility | △ Partial | ◎ Complete  
   
-### Problem4（Difficulty：hard）
+### Problem 4 (Difficulty: hard)
 
-comprehensiveexperiment managementplease design a system。following of elements include:
+Design a comprehensive experiment management system. Include the following elements:
 
-  * experiment of automatic logging
-  * parameters of structuredmanagement
-  * Comparison of experiment resultsFunction
-  * bestModelautomatic selection of
+  * Automatic experiment logging
+  * Structured parameter management
+  * Experiment result comparison
+  * Automatic best model selection
 
-Example solution
+Sample Answer
     
-    
-    # Requirements:
-    # - Python 3.9+
-    # - mlflow>=2.4.0
-    # - pandas>=2.0.0, <2.2.0
-    # - pyyaml>=6.0.0
     
     import mlflow
     import yaml
@@ -1778,7 +1562,7 @@ Example solution
     
     @dataclass
     class ExperimentConfig:
-        """experimentconfiguration of structured definition"""
+        """Structured definition of experiment configuration"""
         experiment_name: str
         model_params: Dict[str, Any]
         data_params: Dict[str, Any]
@@ -1786,7 +1570,7 @@ Example solution
         tags: Dict[str, str] = None
     
     class ComprehensiveExperimentManager:
-        """comprehensiveexperiment managementsystem"""
+        """Comprehensive experiment management system"""
     
         def __init__(self, tracking_uri: str = None):
             if tracking_uri:
@@ -1800,29 +1584,29 @@ Example solution
             X_train, y_train,
             X_test, y_test
         ) -> Dict[str, float]:
-            """Run experiment and automatic logging"""
+            """Run an experiment with automatic logging"""
     
-            # Configure experiment
+            # Configure the experiment
             mlflow.set_experiment(config.experiment_name)
     
             with mlflow.start_run(description=config.description):
-                # 1. parameters of logging
+                # 1. Log parameters
                 mlflow.log_params(config.model_params)
                 mlflow.log_params(config.data_params)
     
-                # 2. set tags
+                # 2. Set tags
                 if config.tags:
                     for key, value in config.tags.items():
                         mlflow.set_tag(key, value)
     
-                # 3. Train model
+                # 3. Train the model
                 model.fit(X_train, y_train)
     
-                # 4. prediction
+                # 4. Predict
                 y_train_pred = model.predict(X_train)
                 y_test_pred = model.predict(X_test)
     
-                # 5. metrics of calculation
+                # 5. Compute metrics
                 metrics = {
                     "train_accuracy": accuracy_score(y_train, y_train_pred),
                     "test_accuracy": accuracy_score(y_test, y_test_pred),
@@ -1832,14 +1616,14 @@ Example solution
                     "overfit_gap": accuracy_score(y_train, y_train_pred) - accuracy_score(y_test, y_test_pred)
                 }
     
-                # 6. metrics of logging
+                # 6. Log metrics
                 for metric_name, metric_value in metrics.items():
                     mlflow.log_metric(metric_name, metric_value)
     
-                # 7. Save model
+                # 7. Save the model
                 mlflow.sklearn.log_model(model, "model")
     
-                # 8. Save results
+                # 8. Save the results
                 run_id = mlflow.active_run().info.run_id
                 result = {
                     "run_id": run_id,
@@ -1848,16 +1632,16 @@ Example solution
                 }
                 self.results.append(result)
     
-                print(f"experiment complete: {config.experiment_name}")
-                print(f"  test accuracy: {metrics['test_accuracy']:.3f}")
+                print(f"Experiment complete: {config.experiment_name}")
+                print(f"  Test accuracy: {metrics['test_accuracy']:.3f}")
                 print(f"  Run ID: {run_id}")
     
                 return metrics
     
         def compare_experiments(self) -> pd.DataFrame:
-            """Comparison of experiment results"""
+            """Compare experiment results"""
             if not self.results:
-                print("no experiment results")
+                print("No experiment results available")
                 return pd.DataFrame()
     
             comparison_data = []
@@ -1873,41 +1657,41 @@ Example solution
             return df.sort_values("test_accuracy", ascending=False)
     
         def get_best_model(self, metric: str = "test_accuracy") -> Dict[str, Any]:
-            """best modelautomatic selection of"""
+            """Automatically select the best model"""
             if not self.results:
-                raise ValueError("no experiment results")
+                raise ValueError("No experiment results available")
     
             best_result = max(self.results, key=lambda x: x["metrics"][metric])
     
-            print(f"\n=== best model（{metric}criteria）===")
+            print(f"\n=== Best model (by {metric}) ===")
             print(f"Run ID: {best_result['run_id']}")
-            print(f"experiment name: {best_result['config']['experiment_name']}")
+            print(f"Experiment name: {best_result['config']['experiment_name']}")
             print(f"{metric}: {best_result['metrics'][metric]:.3f}")
-            print(f"\nall metrics:")
+            print(f"\nAll metrics:")
             for m_name, m_value in best_result['metrics'].items():
                 print(f"  {m_name}: {m_value:.3f}")
     
             return best_result
     
         def save_comparison_report(self, filepath: str = "experiment_comparison.csv"):
-            """comparisonreport of save"""
+            """Save the comparison report"""
             df = self.compare_experiments()
             df.to_csv(filepath, index=False)
-            print(f"save comparison report: {filepath}")
+            print(f"Comparison report saved: {filepath}")
     
     # Usage example
     from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
     from sklearn.datasets import make_classification
     from sklearn.model_selection import train_test_split
     
-    # data of preparation
+    # Prepare the data
     X, y = make_classification(n_samples=1000, n_features=20, random_state=42)
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
     
-    # experimentmanager of initialization
+    # Initialize the experiment manager
     manager = ComprehensiveExperimentManager()
     
-    # experiment1: Random Forest（shallow）
+    # Experiment 1: Random Forest (shallow)
     config1 = ExperimentConfig(
         experiment_name="model_comparison",
         model_params={"n_estimators": 50, "max_depth": 5, "random_state": 42},
@@ -1918,7 +1702,7 @@ Example solution
     rf_shallow = RandomForestClassifier(**config1.model_params)
     manager.run_experiment(config1, rf_shallow, X_train, y_train, X_test, y_test)
     
-    # experiment2: Random Forest（deep）
+    # Experiment 2: Random Forest (deep)
     config2 = ExperimentConfig(
         experiment_name="model_comparison",
         model_params={"n_estimators": 100, "max_depth": 20, "random_state": 42},
@@ -1929,7 +1713,7 @@ Example solution
     rf_deep = RandomForestClassifier(**config2.model_params)
     manager.run_experiment(config2, rf_deep, X_train, y_train, X_test, y_test)
     
-    # experiment3: Gradient Boosting
+    # Experiment 3: Gradient Boosting
     config3 = ExperimentConfig(
         experiment_name="model_comparison",
         model_params={"n_estimators": 100, "max_depth": 5, "random_state": 42},
@@ -1940,45 +1724,45 @@ Example solution
     gb = GradientBoostingClassifier(**config3.model_params)
     manager.run_experiment(config3, gb, X_train, y_train, X_test, y_test)
     
-    # results of comparison
-    print("\n=== all experiments of comparison ===")
+    # Compare the results
+    print("\n=== Comparison of all experiments ===")
     comparison_df = manager.compare_experiments()
     print(comparison_df[['experiment', 'test_accuracy', 'test_f1', 'overfit_gap']])
     
-    # best modelselection of
+    # Select the best model
     best_model = manager.get_best_model(metric="test_accuracy")
     
-    # report of save
+    # Save the report
     manager.save_comparison_report()
     
 
-**Output** ：
+**Output** :
     
     
-    experiment complete: model_comparison
-      test accuracy: 0.855
+    Experiment complete: model_comparison
+      Test accuracy: 0.855
       Run ID: xxxxx
     
-    experiment complete: model_comparison
-      test accuracy: 0.890
+    Experiment complete: model_comparison
+      Test accuracy: 0.890
       Run ID: yyyyy
     
-    experiment complete: model_comparison
-      test accuracy: 0.905
+    Experiment complete: model_comparison
+      Test accuracy: 0.905
       Run ID: zzzzz
     
-    === all experiments of comparison ===
+    === Comparison of all experiments ===
            experiment  test_accuracy  test_f1  overfit_gap
     2  model_comparison          0.905    0.903        0.032
     1  model_comparison          0.890    0.891        0.097
     0  model_comparison          0.855    0.856        0.007
     
-    === best model（test_accuracycriteria）===
+    === Best model (by test_accuracy) ===
     Run ID: zzzzz
-    experiment name: model_comparison
+    Experiment name: model_comparison
     test_accuracy: 0.905
     
-    all metrics:
+    All metrics:
       train_accuracy: 0.937
       test_accuracy: 0.905
       test_precision: 0.906
@@ -1986,27 +1770,20 @@ Example solution
       test_f1: 0.903
       overfit_gap: 0.032
     
-    save comparison report: experiment_comparison.csv
+    Comparison report saved: experiment_comparison.csv
     
 
-### Problem5（Difficulty：hard）
+### Problem 5 (Difficulty: hard)
 
-MLflow and DVCcomplete combination ofmachine learningworkflow design、implementationplease。data of version controlfrom experiment tracking、Save modelinclude up to。
+Design and implement a complete machine learning workflow that combines MLflow and DVC. Include everything from data version control to experiment tracking and model storage.
 
-Example solution
+Sample Answer
     
-    
-    # Requirements:
-    # - Python 3.9+
-    # - joblib>=1.3.0
-    # - mlflow>=2.4.0
-    # - pandas>=2.0.0, <2.2.0
-    # - pyyaml>=6.0.0
     
     """
-    completeML workflow: DVC + MLflow
+    Complete ML workflow: DVC + MLflow
     
-    directorystructure:
+    Directory structure:
     project/
     ├── data/
     │   ├── raw/
@@ -2020,7 +1797,7 @@ Example solution
     └── params.yaml
     """
     
-    # params.yaml contents of
+    # Contents of params.yaml
     """
     data:
       raw_path: data/raw/dataset.csv
@@ -2054,21 +1831,21 @@ Example solution
         params = load_params()
         data_params = params['data']
     
-        # Load data
+        # Load the data
         df = pd.read_csv(data_params['raw_path'])
     
-        # training・testminrate
+        # Train/test split
         train, test = train_test_split(
             df,
             test_size=data_params['test_size'],
             random_state=data_params['random_state']
         )
     
-        # save
+        # Save
         train.to_csv(data_params['train_path'], index=False)
         test.to_csv(data_params['test_path'], index=False)
     
-        print(f"data preparationcomplete: Train={len(train)}, Test={len(test)}")
+        print(f"Data preparation complete: Train={len(train)}, Test={len(test)}")
     
     if __name__ == "__main__":
         prepare_data()
@@ -2091,22 +1868,22 @@ Example solution
         model_params = params['model']
         mlflow_params = params['mlflow']
     
-        # MLflow of configuration
+        # Configure MLflow
         mlflow.set_tracking_uri(mlflow_params['tracking_uri'])
         mlflow.set_experiment(mlflow_params['experiment_name'])
     
-        # Load data
+        # Load the data
         train = pd.read_csv(data_params['train_path'])
         X_train = train.drop('target', axis=1)
         y_train = train['target']
     
-        # MLflowStart experiment
+        # Start the MLflow run
         with mlflow.start_run():
             # Log parameters
             mlflow.log_params(model_params)
             mlflow.log_param("train_size", len(X_train))
     
-            # Train model
+            # Train the model
             model = RandomForestClassifier(
                 n_estimators=model_params['n_estimators'],
                 max_depth=model_params['max_depth'],
@@ -2119,12 +1896,12 @@ Example solution
             train_score = model.score(X_train, y_train)
             mlflow.log_metric("train_accuracy", train_score)
     
-            # Save model
+            # Save the model
             model_path = "models/model.pkl"
             joblib.dump(model, model_path)
             mlflow.sklearn.log_model(model, "model")
     
-            print(f"trainingcomplete: Train Accuracy={train_score:.3f}")
+            print(f"Training complete: Train Accuracy={train_score:.3f}")
     
     if __name__ == "__main__":
         train_model()
@@ -2146,22 +1923,22 @@ Example solution
         data_params = params['data']
         mlflow_params = params['mlflow']
     
-        # MLflow of configuration
+        # Configure MLflow
         mlflow.set_tracking_uri(mlflow_params['tracking_uri'])
         mlflow.set_experiment(mlflow_params['experiment_name'])
     
-        # load data and models
+        # Load the data and model
         test = pd.read_csv(data_params['test_path'])
         X_test = test.drop('target', axis=1)
         y_test = test['target']
     
         model = joblib.load("models/model.pkl")
     
-        # evaluation
+        # Evaluate
         y_pred = model.predict(X_test)
         test_accuracy = accuracy_score(y_test, y_pred)
     
-        # detailsreport
+        # Detailed report
         report = classification_report(y_test, y_pred, output_dict=True)
     
         # Save metrics
@@ -2175,18 +1952,18 @@ Example solution
         with open("metrics/test_metrics.json", 'w') as f:
             json.dump(metrics, f, indent=2)
     
-        # MLflowrecorded in
+        # Log to MLflow
         with mlflow.start_run():
             for metric_name, metric_value in metrics.items():
                 mlflow.log_metric(metric_name, metric_value)
     
-        print(f"evaluationcomplete: Test Accuracy={test_accuracy:.3f}")
-        print(f"detailsmetrics: {metrics}")
+        print(f"Evaluation complete: Test Accuracy={test_accuracy:.3f}")
+        print(f"Detailed metrics: {metrics}")
     
     if __name__ == "__main__":
         evaluate_model()
     
-    # dvc.yaml contents of
+    # Contents of dvc.yaml
     """
     stages:
       prepare:
@@ -2222,43 +1999,43 @@ Example solution
               cache: false
     """
     
-    # completeworkflow of executionexample
+    # Example of running the complete workflow
     """
-    # 1. initialize DVC
+    # 1. Initialize DVC
     dvc init
     
-    # 2. data of additional
+    # 2. Add the data
     dvc add data/raw/dataset.csv
     git add data/raw/dataset.csv.dvc data/.gitignore
     git commit -m "Add raw data"
     
-    # 3. Run pipeline
+    # 3. Run the pipeline
     dvc repro
     
-    # 4. experimentparameters of changes
+    # 4. Change an experiment parameter
     dvc exp run --set-param model.n_estimators=200
     
-    # 5. Comparison of experiment results
+    # 5. Compare experiment results
     dvc exp show
     
-    # 6. apply best experiment
+    # 6. Apply the best experiment
     dvc exp apply <experiment-name>
     git add .
     git commit -m "Apply best experiment"
     
-    # 7. MLflow UIcheck results with
+    # 7. Review results in the MLflow UI
     mlflow ui --backend-store-uri ./mlruns
     """
     
-    print("completeworkflowdesigncomplete")
-    print("DVC: data and pipeline of version control")
+    print("Complete workflow design finished")
+    print("DVC: version control for data and pipelines")
     print("MLflow: experiment tracking and model management")
-    print("integration: reproducible trackingpossibleMLworkflow")
-    </experiment-name>
+    print("Integration: a reproducible and traceable ML workflow")
+    
 
 * * *
 
-## referenceliterature
+## References
 
   1. Géron, A. (2019). _Hands-On Machine Learning with Scikit-Learn, Keras, and TensorFlow_ (2nd ed.). O'Reilly Media.
   2. Huyen, C. (2022). _Designing Machine Learning Systems_. O'Reilly Media.

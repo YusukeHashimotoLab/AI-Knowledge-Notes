@@ -1,11 +1,9 @@
 ---
 title: "Chapter 4: Electrical and Magnetic Properties"
 chapter_title: "Chapter 4: Electrical and Magnetic Properties"
-subtitle: Physics of Conduction Phenomena and Magnetism
+subtitle: The Physics of Conduction Phenomena and Magnetism
 difficulty: Intermediate to Advanced
 ---
-
-This chapter covers Electrical and Magnetic Properties. You will learn essential concepts and techniques.
 
 ## What You Will Learn in This Chapter
 
@@ -14,56 +12,56 @@ This chapter covers Electrical and Magnetic Properties. You will learn essential
 #### Basic Level
 
   * Explain the mechanism of electrical conduction using the Drude model
-  * Understand the relationship between Hall effect and carrier density/mobility
+  * Understand the relationship between the Hall effect, carrier density, and mobility
   * Explain the differences between ferromagnetism, antiferromagnetism, and paramagnetism
 
 #### Intermediate Level
 
   * Calculate electrical conductivity from band structure
-  * Understand and calculate the relationship between magnetic moment and spin density
-  * Explain the impact of spin-orbit interaction on magnetism
+  * Understand and compute the relationship between magnetic moment and spin density
+  * Explain how spin-orbit coupling affects magnetism
 
 #### Advanced Level
 
   * Quantitatively predict electrical and magnetic properties from DFT calculation results
   * Understand the basic mechanism of superconductivity (BCS theory)
-  * Compare experimental data with DFT calculations to evaluate functional validity
+  * Compare experimental data with DFT calculations and assess the validity of functionals
 
-## Classical Theory of Electrical Conduction: Drude Model
+## Classical Theory of Electrical Conduction: The Drude Model
 
 ### Free Electron Approximation
 
-This is the simplest model that treats valence electrons in metals as "freely moving particles." Electrons move freely through the lattice of atomic nuclei, and scattering occurs due to lattice vibrations (phonons) and impurities.
+This is the simplest model, which treats the valence electrons in a metal as "freely moving particles". Electrons move freely through the lattice of atomic nuclei, and scattering occurs due to lattice vibrations (phonons) and impurities.
 
-### Basic Equations of Drude Model
+### Basic Equation of the Drude Model
 
-Equation of motion for electrons in an electric field $\mathbf{E}$:
+The equation of motion for an electron in an electric field $\mathbf{E}$:
 
 $$ m^* \frac{d\mathbf{v}}{dt} = -e\mathbf{E} - \frac{m^*\mathbf{v}}{\tau} $$ 
 
   * $m^*$: effective mass of the electron
   * $\mathbf{v}$: drift velocity
-  * $\tau$: relaxation time (average time until collision)
+  * $\tau$: relaxation time (mean time between collisions)
   * $-e$: electron charge
 
-In steady state ($d\mathbf{v}/dt = 0$):
+In the steady state ($d\mathbf{v}/dt = 0$):
 
 $$ \mathbf{v} = -\frac{e\tau}{m^*}\mathbf{E} $$ 
 
 ### Electrical Conductivity
 
-Current density $\mathbf{J}$ is:
+The current density $\mathbf{J}$ is:
 
 $$ \mathbf{J} = -ne\mathbf{v} = \frac{ne^2\tau}{m^*}\mathbf{E} = \sigma \mathbf{E} $$ 
 
-Therefore, electrical conductivity is:
+Therefore, the electrical conductivity is:
 
 $$ \sigma = \frac{ne^2\tau}{m^*} $$ 
 
   * $n$: carrier density [m⁻³]
   * $e$: electron charge ($1.602 \times 10^{-19}$ C)
 
-**Relationship with mobility $\mu$** :
+Relationship with the **mobility $\mu$** :
 
 $$ \mu = \frac{e\tau}{m^*}, \quad \sigma = ne\mu $$ 
 
@@ -75,13 +73,7 @@ Cu (copper) | 5.96 × 10⁷ | 8.5 × 10²⁸ | 43
 Si (n-type) | 10³ - 10⁵ | 10²¹ - 10²³ | 1400  
 GaAs (n-type) | 10³ - 10⁶ | 10²¹ - 10²³ | 8500  
   
-### Drude Model Simulation
-    
-    
-    # Requirements:
-    # - Python 3.9+
-    # - matplotlib>=3.7.0
-    # - numpy>=1.24.0, <2.0.0
+### Simulating the Drude Model
     
     
     import numpy as np
@@ -127,7 +119,7 @@ GaAs (n-type) | 10³ - 10⁶ | 10²¹ - 10²³ | 8500
     print(f"Electrical conductivity: {sigma_Cu:.2e} S/m")
     print(f"Mobility: {mu_Cu:.1f} cm^2/Vs")
     
-    # Mobility and temperature dependence for semiconductor (Si n-type)
+    # Temperature dependence of mobility in a semiconductor (n-type Si)
     temperatures = np.linspace(100, 500, 50)  # [K]
     # Temperature dependence of mobility (simplified model: μ ∝ T^-3/2)
     mu_Si_ref = 1400  # [cm^2/Vs] at 300K
@@ -136,10 +128,10 @@ GaAs (n-type) | 10³ - 10⁶ | 10²¹ - 10²³ | 8500
     
     plt.figure(figsize=(10, 6))
     plt.plot(temperatures, mu_Si, linewidth=2, color='#f093fb')
-    plt.axhline(y=1400, color='red', linestyle='--', label='Room temperature value (300K)')
+    plt.axhline(y=1400, color='red', linestyle='--', label='Room-temperature value (300K)')
     plt.xlabel('Temperature [K]', fontsize=12)
     plt.ylabel('Mobility [cm²/Vs]', fontsize=12)
-    plt.title('Temperature Dependence of Mobility in Si n-type Semiconductor', fontsize=14, fontweight='bold')
+    plt.title('Temperature Dependence of Mobility in n-type Si', fontsize=14, fontweight='bold')
     plt.legend()
     plt.grid(True, alpha=0.3)
     plt.tight_layout()
@@ -149,17 +141,17 @@ GaAs (n-type) | 10³ - 10⁶ | 10²¹ - 10²³ | 8500
 
 ## Hall Effect and Carrier Measurement
 
-### Principle of Hall Effect
+### Principle of the Hall Effect
 
-When a magnetic field perpendicular to a current-carrying conductor is applied, the Lorentz force causes charge separation, resulting in a potential difference (Hall voltage) in the transverse direction.
+When a magnetic field is applied perpendicular to a current-carrying conductor, the Lorentz force deflects the charges, producing a transverse potential difference (Hall voltage).
     
     
     ```mermaid
     graph LR
-        A[Current Jx] --> B[Magnetic Field Bz]
-        B --> C[Lorentz ForceF = -e v × B]
-        C --> D[Charge Separation]
-        D --> E[Hall Voltage VH]
+        A[Current Jx] --> B[Magnetic field Bz]
+        B --> C[Lorentz forceF = -e v × B]
+        C --> D[Charge separation]
+        D --> E[Hall voltage VH]
     
         style A fill:#f093fb,stroke:#f5576c,stroke-width:2px,color:#fff
         style E fill:#d4edda,stroke:#28a745,stroke-width:2px
@@ -167,7 +159,7 @@ When a magnetic field perpendicular to a current-carrying conductor is applied, 
 
 ### Hall Coefficient
 
-The Hall electric field $E_y$ is:
+The Hall field $E_y$ is:
 
 $$ E_y = R_H J_x B_z $$ 
 
@@ -178,21 +170,15 @@ $$ R_H = \frac{1}{ne} $$
   * For holes: $R_H > 0$
   * For electrons: $R_H < 0$
 
-**Carrier Density Measurement** :
+**Measuring carrier density** :
 
 $$ n = \frac{1}{|R_H| e} $$ 
 
-**Mobility Measurement** :
+**Measuring mobility** :
 
 $$ \mu = |R_H| \sigma $$ 
 
-### Hall Effect Measurement Simulation
-    
-    
-    # Requirements:
-    # - Python 3.9+
-    # - matplotlib>=3.7.0
-    # - numpy>=1.24.0, <2.0.0
+### Simulating a Hall Effect Measurement
     
     
     import numpy as np
@@ -200,7 +186,7 @@ $$ \mu = |R_H| \sigma $$
     
     def hall_effect_simulation(n, mu, B_range, thickness=1e-3):
         """
-        Simulate Hall effect
+        Simulate the Hall effect
     
         Parameters:
         -----------
@@ -229,7 +215,7 @@ $$ \mu = |R_H| \sigma $$
     
         return V_H, R_Hall, R_H
     
-    # Example of Si n-type semiconductor
+    # Example: n-type Si semiconductor
     n_Si = 1e22  # [m^-3]
     mu_Si = 0.14  # [m^2/Vs] = 1400 cm^2/Vs
     
@@ -243,16 +229,16 @@ $$ \mu = |R_H| \sigma $$
     ax1.plot(B_range, V_H * 1e3, linewidth=2, color='#f093fb')
     ax1.axhline(y=0, color='black', linestyle='-', linewidth=0.5)
     ax1.axvline(x=0, color='black', linestyle='-', linewidth=0.5)
-    ax1.set_xlabel('Magnetic Field [T]', fontsize=12)
-    ax1.set_ylabel('Hall Voltage [mV]', fontsize=12)
+    ax1.set_xlabel('Magnetic field [T]', fontsize=12)
+    ax1.set_ylabel('Hall voltage [mV]', fontsize=12)
     ax1.set_title('Magnetic Field Dependence of Hall Voltage', fontsize=14, fontweight='bold')
     ax1.grid(True, alpha=0.3)
     
     # Hall resistance vs magnetic field
     ax2.plot(B_range, R_Hall, linewidth=2, color='#f5576c')
     ax2.axhline(y=0, color='black', linestyle='-', linewidth=0.5)
-    ax2.set_xlabel('Magnetic Field [T]', fontsize=12)
-    ax2.set_ylabel('Hall Resistance [Ω]', fontsize=12)
+    ax2.set_xlabel('Magnetic field [T]', fontsize=12)
+    ax2.set_ylabel('Hall resistance [Ω]', fontsize=12)
     ax2.set_title('Magnetic Field Dependence of Hall Resistance', fontsize=14, fontweight='bold')
     ax2.grid(True, alpha=0.3)
     
@@ -263,65 +249,65 @@ $$ \mu = |R_H| \sigma $$
     print("=== Hall Effect Measurement Results ===")
     print(f"Carrier density: {n_Si:.2e} m^-3")
     print(f"Hall coefficient: {R_H:.2e} m^3/C")
-    print(f"Hall coefficient sign: {'Negative (electrons)' if R_H < 0 else 'Positive (holes)'}")
-    print(f"Hall voltage at 1T magnetic field: {V_H[np.argmin(np.abs(B_range - 1.0))] * 1e3:.3f} mV")
+    print(f"Sign of Hall coefficient: {'negative (electrons)' if R_H < 0 else 'positive (holes)'}")
+    print(f"Hall voltage at 1T field: {V_H[np.argmin(np.abs(B_range - 1.0))] * 1e3:.3f} mV")
     
 
 ## Fundamentals of Magnetism
 
-### Origins of Magnetic Moment
+### Origin of the Magnetic Moment
 
 The magnetic moment of atoms and molecules has two contributions:
 
-  1. **Orbital magnetic moment** : due to electron orbital motion $$\mathbf{\mu}_L = -\frac{e}{2m_e}\mathbf{L}$$ 
-  2. **Spin magnetic moment** : due to electron intrinsic angular momentum (spin) $$\mathbf{\mu}_S = -g_s \frac{e}{2m_e}\mathbf{S}$$ 
+  1. **Orbital magnetic moment** : arising from the orbital motion of the electron $$\mathbf{\mu}_L = -\frac{e}{2m_e}\mathbf{L}$$ 
+  2. **Spin magnetic moment** : arising from the intrinsic angular momentum (spin) of the electron $$\mathbf{\mu}_S = -g_s \frac{e}{2m_e}\mathbf{S}$$ 
 
-Here, $g_s pprox 2$ is the g-factor.Bohr magneton $\mu_B$：
+Here, $g_s \approx 2$ is the g-factor. Using the Bohr magneton $\mu_B$:
 
 $$ \mu_B = \frac{e\hbar}{2m_e} = 9.274 \times 10^{-24} \, \text{J/T} $$ 
 
-### Magnetization and Susceptibility
+### Magnetization and Magnetic Susceptibility
 
-$M$ 、 ：
+The magnetization $M$ is the magnetic moment per unit volume:
 
 $$ \mathbf{M} = \frac{1}{V}\sum_i \mathbf{\mu}_i $$ 
 
-susceptibility$\chi$ ：
+The magnetic susceptibility $\chi$ is:
 
 $$ \mathbf{M} = \chi \mathbf{H} $$ 
 
-  * $\chi > 0$: paramagnetism (magnetization in field direction)
-  * $\chi < 0$: diamagnetism (magnetization opposite to field)
+  * $\chi > 0$: paramagnetism (magnetization along the field direction)
+  * $\chi < 0$: diamagnetism (magnetization opposite to the field)
 
 ### Classification of Magnetism
 
-Magnetism | susceptibility$\chi$ | Characteristics | Representative Examples  
+Magnetism | Susceptibility $\chi$ | Characteristics | Typical Examples  
 ---|---|---|---  
-**Diamagnetism** | $\chi < 0$（） | Repels external field, no temperature dependence | Cu, Au, Si  
-**Paramagnetism** | $\chi > 0$（） | 、Curie（$\chi \propto 1/T$） | Al, Pt, O₂  
-**Ferromagnetism** | $\chi \gg 1$ | 、CurieTemperature$T_C$ordered below | Fe, Co, Ni  
-**AntiFerromagnetism** | $\chi > 0$（） | Anti、NéelTemperature$T_N$ordered below | MnO, Cr  
-**Ferrimagnetism** | $\chi > 0$（） | Antiparallel but different magnitudes → net magnetization | Fe₃O₄（magnetite）  
+**Diamagnetism** | $\chi < 0$ (small) | Repelled by external fields, no temperature dependence | Cu, Au, Si  
+**Paramagnetism** | $\chi > 0$ (small) | Weakly magnetized along the field, Curie law ($\chi \propto 1/T$) | Al, Pt, O₂  
+**Ferromagnetism** | $\chi \gg 1$ | Spontaneous magnetization, ordered below the Curie temperature $T_C$ | Fe, Co, Ni  
+**Antiferromagnetism** | $\chi > 0$ (small) | Neighboring spins antiparallel, ordered below the Néel temperature $T_N$ | MnO, Cr  
+**Ferrimagnetism** | $\chi > 0$ (large) | Antiparallel but unequal magnitudes → net magnetization | Fe₃O₄ (magnetite)  
   
-### Ferromagnetism （Weiss）
+### Mean-Field Theory of Ferromagnetism (Weiss Theory)
 
-Ferromagnetism 、「」。Weiss 、「」$H_{\text{eff}}$：
+In ferromagnets, an "exchange interaction" acts to align neighboring spins parallel to each other. Weiss introduced an "effective field" $H_{\text{eff}}$ felt by each spin:
 
 $$ H_{\text{eff}} = H + \lambda M $$ 
 
-$\lambda$ Weissconstant（constant）。、CurieTemperature$T_C$：
+$\lambda$ is the Weiss constant (molecular field constant). Solving the self-consistent equation yields the Curie temperature $T_C$:
 
 $$ T_C = \frac{C\lambda}{N_A k_B} $$ 
 
-$T < T_C$ 。
+Spontaneous magnetization arises for $T < T_C$.
 
-## Prediction of Magnetism by DFT Calculations
+## Predicting Magnetism with DFT Calculations
 
 ### Spin-Polarized DFT Calculations
 
 In DFT calculations of magnetic materials, spin-up (↑) and spin-down (↓) electrons are treated separately (spin-polarized calculation).
 
-Electron density is decomposed into spin components:
+The electron density is decomposed into spin components:
 
 $$ n(\mathbf{r}) = n_\uparrow(\mathbf{r}) + n_\downarrow(\mathbf{r}) $$ 
 
@@ -333,14 +319,14 @@ $$ m(\mathbf{r}) = n_\uparrow(\mathbf{r}) - n_\downarrow(\mathbf{r}) $$
 
 $$ \mu = \mu_B \int m(\mathbf{r}) d\mathbf{r} $$ 
 
-### Spin-Polarized Calculation Settings in VASP
+### Setting Up Spin-Polarized Calculations in VASP
     
     
-    # INCAR file to set up spin-polarized calculation in VASP
+    # INCAR file to set up a spin-polarized calculation in VASP
     
     def create_magnetic_incar(system_name='Fe', initial_magmom=2.0):
         """
-        Generate VASP INCAR file for magnetic materials
+        Generate a VASP INCAR file for magnetic materials
     
         Parameters:
         -----------
@@ -372,7 +358,7 @@ $$ \mu = \mu_B \int m(\mathbf{r}) d\mathbf{r} $$
     ISPIN = 2           # Enable spin polarization
     MAGMOM = {initial_magmom}  # Initial magnetic moment [μB]
     
-    # Magnetic moment output
+    # Output of magnetic moments
     LORBIT = 11         # Atom- and orbital-projected magnetic moments
     
     # Parallelization
@@ -380,13 +366,13 @@ $$ \mu = \mu_B \int m(\mathbf{r}) d\mathbf{r} $$
     """
         return incar_content
     
-    # FerromagnetismFe（BCC） calculation
+    # Calculation setup for ferromagnetic Fe (BCC)
     incar_fe = create_magnetic_incar('Fe BCC', initial_magmom=2.2)
-    print("=== Fe Ferromagnetismcalculation INCAR ===")
+    print("=== INCAR for Ferromagnetic Fe Calculation ===")
     print(incar_fe)
     
-    # AntiFerromagnetismMnO（rocksalt） calculation
-    # Set initial spins of Mn atoms alternately
+    # Calculation setup for antiferromagnetic MnO (rocksalt)
+    # Set alternating initial spins on the Mn atoms
     incar_mno = """SYSTEM = MnO antiferromagnetic
     
     ENCUT = 450
@@ -399,23 +385,17 @@ $$ \mu = \mu_B \int m(\mathbf{r}) d\mathbf{r} $$
     
     # Spin-polarized calculation
     ISPIN = 2
-    MAGMOM = 4.0 -4.0 4.0 -4.0 0 0 0 0  # Mn4（）+ O4（Magnetism）
+    MAGMOM = 4.0 -4.0 4.0 -4.0 0 0 0 0  # 4 Mn (alternating) + 4 O (nonmagnetic)
     
     LORBIT = 11
     NCORE = 4
     """
     
-    print("\n=== MnO AntiFerromagnetismcalculation INCAR ===")
+    print("\n=== INCAR for Antiferromagnetic MnO Calculation ===")
     print(incar_mno)
     
 
-### Visualization of Spin Density
-    
-    
-    # Requirements:
-    # - Python 3.9+
-    # - matplotlib>=3.7.0
-    # - numpy>=1.24.0, <2.0.0
+### Visualizing the Spin Density
     
     
     import numpy as np
@@ -425,13 +405,13 @@ $$ \mu = \mu_B \int m(\mathbf{r}) d\mathbf{r} $$
     # Generate dummy spin density data (in practice, read from VASP output)
     def generate_spin_density_data():
         """
-        Simulate spin density around Fe atom
+        Generate a mock spin density around an Fe atom
         """
         x = np.linspace(-3, 3, 50)
         y = np.linspace(-3, 3, 50)
         X, Y = np.meshgrid(x, y)
     
-        # Approximate spin density with Gaussian distribution
+        # Approximate the spin density with a Gaussian distribution
         spin_density = 2.2 * np.exp(-(X**2 + Y**2) / 2)
     
         return X, Y, spin_density
@@ -444,10 +424,10 @@ $$ \mu = \mu_B \int m(\mathbf{r}) d\mathbf{r} $$
     # Contour plot
     contour = ax1.contourf(X, Y, spin_density, levels=20, cmap='RdBu_r')
     ax1.contour(X, Y, spin_density, levels=10, colors='black', linewidths=0.5, alpha=0.3)
-    fig.colorbar(contour, ax=ax1, label='Spin Density [μB/Å³]')
+    fig.colorbar(contour, ax=ax1, label='Spin density [μB/Å³]')
     ax1.set_xlabel('x [Å]', fontsize=12)
     ax1.set_ylabel('y [Å]', fontsize=12)
-    ax1.set_title('FeAround Fe AtomSpin Density（2D）', fontsize=14, fontweight='bold')
+    ax1.set_title('Spin Density around an Fe Atom (2D)', fontsize=14, fontweight='bold')
     ax1.set_aspect('equal')
     
     # 3D surface
@@ -456,48 +436,48 @@ $$ \mu = \mu_B \int m(\mathbf{r}) d\mathbf{r} $$
     surf = ax2.plot_surface(X, Y, spin_density, cmap=cm.coolwarm, alpha=0.8)
     ax2.set_xlabel('x [Å]', fontsize=10)
     ax2.set_ylabel('y [Å]', fontsize=10)
-    ax2.set_zlabel('Spin Density [μB/Å³]', fontsize=10)
-    ax2.set_title('FeAround Fe AtomSpin Density（3D）', fontsize=14, fontweight='bold')
+    ax2.set_zlabel('Spin density [μB/Å³]', fontsize=10)
+    ax2.set_title('Spin Density around an Fe Atom (3D)', fontsize=14, fontweight='bold')
     
     plt.tight_layout()
     plt.savefig('spin_density.png', dpi=300, bbox_inches='tight')
     plt.show()
     
-    # Calculate magnetic moment (numerical integration)
+    # Calculate the magnetic moment (numerical integration)
     dx = X[0, 1] - X[0, 0]
     dy = Y[1, 0] - Y[0, 0]
     total_moment = np.sum(spin_density) * dx * dy
     
     print(f"\n=== Magnetic Moment Calculation Results ===")
     print(f"Integrated magnetic moment: {total_moment:.2f} μB")
-    print(f"(Experimental Fe: approximately 2.2 μB)")
+    print(f"(Actual Fe: about 2.2 μB)")
     
 
-## Spin-Orbit Interaction (SOC)
+## Spin-Orbit Coupling (SOC)
 
 ### Origin of SOC
 
-$\mathbf{S}$$\mathbf{L}$。：
+This is the effect in which the electron spin $\mathbf{S}$ interacts with the orbital angular momentum $\mathbf{L}$. It arises from relativistic effects:
 
 $$ H_{\text{SOC}} = \lambda \mathbf{L} \cdot \mathbf{S} $$ 
 
-$\lambda$ constant、$Z$ （$\lambda \propto Z^4$）。
+$\lambda$ is the spin-orbit coupling constant, which increases rapidly with atomic number $Z$ ($\lambda \propto Z^4$).
 
 ### Physical Effects of SOC
 
-  * **Magnetic anisotropy** : Energy depends on magnetization direction
-  * **Magnetic circular dichroism** (MCD): Difference in absorption for circularly polarized light
-  * **Rashba effect** : Spin splitting in systems with broken inversion symmetry
-  * **Topological insulators** : Band inversion by SOC
+  * **Magnetic anisotropy** : the energy depends on the direction of magnetization
+  * **Magnetic circular dichroism** (MCD): difference in absorption of circularly polarized light
+  * **Rashba effect** : spin splitting in systems with broken inversion symmetry
+  * **Topological insulators** : SOC-induced band inversion
 
-### SOC Calculation Settings in VASP
+### Setting Up SOC Calculations in VASP
     
     
-    # VASP calculation settings including spin-orbit interaction
+    # VASP calculation setup including spin-orbit coupling
     
     def create_soc_incar(system_name='Pt', include_soc=True):
         """
-        Generate INCAR file for SOC calculations
+        Generate an INCAR file for SOC calculations
     
         Parameters:
         -----------
@@ -513,17 +493,17 @@ $\lambda$ constant、$Z$ （$\lambda \propto Z^4$）。
     PREC = Accurate
     GGA = PE
     
-    EDIFF = 1E-7        # High precision required for SOC calculations
+    EDIFF = 1E-7        # High accuracy required for SOC calculations
     ISMEAR = 1
     SIGMA = 0.2
     
-    #  + SOC
+    # Spin polarization + SOC
     ISPIN = 2
     """
     
         if include_soc:
-            incar_content += """LSORBIT = .TRUE.    # Enable spin-orbit interaction
-    LNONCOLLINEAR = .TRUE.  # Magnetism（ ）
+            incar_content += """LSORBIT = .TRUE.    # Enable spin-orbit coupling
+    LNONCOLLINEAR = .TRUE.  # Noncollinear magnetism (spin directions are free)
     GGA_COMPAT = .FALSE.    # Recommended for SOC calculations
     """
     
@@ -535,22 +515,16 @@ $\lambda$ constant、$Z$ （$\lambda \propto Z^4$）。
     
     # Pt (heavy element, SOC important)
     incar_pt_soc = create_soc_incar('Pt bulk', include_soc=True)
-    print("=== Pt + SOC calculation INCAR ===")
+    print("=== INCAR for Pt + SOC Calculation ===")
     print(incar_pt_soc)
     
-    # Without SOC for comparison
+    # For comparison without SOC
     incar_pt_no_soc = create_soc_incar('Pt bulk', include_soc=False)
-    print("\n=== Pt (Without SOC) calculation INCAR ===")
+    print("\n=== INCAR for Pt (without SOC) Calculation ===")
     print(incar_pt_no_soc)
     
 
-### Band Splitting by SOC
-    
-    
-    # Requirements:
-    # - Python 3.9+
-    # - matplotlib>=3.7.0
-    # - numpy>=1.24.0, <2.0.0
+### SOC-Induced Band Splitting
     
     
     import numpy as np
@@ -559,7 +533,7 @@ $\lambda$ constant、$Z$ （$\lambda \propto Z^4$）。
     # Band structure simulation with and without SOC
     def simulate_soc_band_splitting():
         """
-        Band Splitting by SOC
+        Visualize SOC-induced band splitting with a mock model
         """
         k = np.linspace(-np.pi, np.pi, 200)
     
@@ -587,8 +561,8 @@ $\lambda$ constant、$Z$ （$\lambda \propto Z^4$）。
     ax1.grid(True, alpha=0.3)
     
     # With SOC
-    ax2.plot(k/np.pi, E_soc_up, linewidth=2, color='red', label='Spin-up')
-    ax2.plot(k/np.pi, E_soc_down, linewidth=2, color='blue', label='Spin-down')
+    ax2.plot(k/np.pi, E_soc_up, linewidth=2, color='red', label='Spin up')
+    ax2.plot(k/np.pi, E_soc_down, linewidth=2, color='blue', label='Spin down')
     ax2.axhline(y=0, color='black', linestyle='--', linewidth=0.5)
     ax2.set_xlabel('k [π/a]', fontsize=12)
     ax2.set_ylabel('Energy [eV]', fontsize=12)
@@ -600,35 +574,35 @@ $\lambda$ constant、$Z$ （$\lambda \propto Z^4$）。
     plt.savefig('soc_band_splitting.png', dpi=300, bbox_inches='tight')
     plt.show()
     
-    # Splitting at k=π/2Energy
+    # Splitting energy at k=π/2
     idx = len(k) // 4
     splitting = E_soc_up[idx] - E_soc_down[idx]
-    print(f"\n=== Band Splitting by SOC ===")
+    print(f"\n=== SOC-Induced Band Splitting ===")
     print(f"Splitting at k=π/2: {splitting:.3f} eV")
     
 
 ## Fundamentals of Superconductivity
 
-### Superconducting Phenomenon
+### The Superconducting Phenomenon
 
-criticalTemperature$T_c$、。1911、Kamerlingh OnnesHg。
+Below a critical temperature $T_c$, the electrical resistance drops to zero. It was discovered in Hg by Kamerlingh Onnes in 1911.
 
 ### BCS Theory (1957)
 
-Microscopic theory by Bardeen, Cooper, and Schrieffer. Electrons form "Cooper pairs" through attractive interaction mediated by phonons (lattice vibrations).
+The microscopic theory by Bardeen, Cooper, and Schrieffer. Electrons acquire an attractive interaction mediated by phonons (lattice vibrations) and form "Cooper pairs".
 
-#### Cooper Pair Formation Mechanism
+#### Mechanism of Cooper Pair Formation
 
-  1. Electron A distorts the lattice (attracts positive charge)
-  2. Distorted lattice attracts electron B
-  3. Effectively, attractive interaction acts between electrons A-B (phonon-mediated)
-  4. Anti・Anti （$\mathbf{k}\uparrow, -\mathbf{k}\downarrow$）
+  1. Electron A distorts the lattice (attracting positive charge)
+  2. The distorted lattice attracts electron B
+  3. An effective attraction acts between electrons A and B (phonon-mediated)
+  4. An electron pair with opposite spins and opposite momenta forms ($\mathbf{k}\uparrow, -\mathbf{k}\downarrow$)
 
 **Superconducting gap** :
 
 $$ \Delta(T) = \Delta_0 \tanh\left(1.74\sqrt{\frac{T_c - T}{T}}\right) $$ 
 
-$T=0$K at：
+Gap at $T=0$ K:
 
 $$ \Delta_0 \approx 1.76 k_B T_c $$ 
 
@@ -636,19 +610,13 @@ $$ \Delta_0 \approx 1.76 k_B T_c $$
 
 Material | $T_c$ [K] | Type | Notes  
 ---|---|---|---  
-Hg（） | 4.15 | Type I | First superconductor discovered  
+Hg (mercury) | 4.15 | Type I | First superconductor ever discovered  
 Nb₃Sn | 18.3 | Type II | A15 structure, used in magnets  
-YBa₂Cu₃O₇（YBCO） | 92 | High-Tc | Cuprate, above liquid nitrogen temperature  
-MgB₂ | 39 | Type II | Simple structure, explained by BCS theory  
-H₃S（high pressure） | 203 | High-Tc | 150 GPa、$T_c$  
+YBa₂Cu₃O₇ (YBCO) | 92 | High-Tc | Cuprate, above liquid nitrogen temperature  
+MgB₂ | 39 | Type II | Simple structure, explainable by BCS theory  
+H₃S (high pressure) | 203 | High-Tc | 150 GPa, record-high $T_c$  
   
-### Temperature Dependence of Superconducting Gap
-    
-    
-    # Requirements:
-    # - Python 3.9+
-    # - matplotlib>=3.7.0
-    # - numpy>=1.24.0, <2.0.0
+### Temperature Dependence of the Superconducting Gap
     
     
     import numpy as np
@@ -656,14 +624,14 @@ H₃S（high pressure） | 203 | High-Tc | 150 GPa、$T_c$
     
     def superconducting_gap(T, Tc):
         """
-        BCSTemperature Dependence of Superconducting Gap
+        Temperature dependence of the superconducting gap from BCS theory
     
         Parameters:
         -----------
         T : array
             Temperature [K]
         Tc : float
-            criticalTemperature [K]
+            Critical temperature [K]
     
         Returns:
         --------
@@ -672,7 +640,7 @@ H₃S（high pressure） | 203 | High-Tc | 150 GPa、$T_c$
         """
         k_B = 8.617e-5  # Boltzmann constant [eV/K]
     
-        # BCS theory approximation formula
+        # Approximate formula from BCS theory
         Delta_0 = 1.76 * k_B * Tc * 1000  # [meV]
     
         Delta = np.zeros_like(T)
@@ -681,7 +649,7 @@ H₃S（high pressure） | 203 | High-Tc | 150 GPa、$T_c$
     
         return Delta
     
-    # Tc for various superconductors
+    # T_c of various superconductors
     materials = {
         'Al': 1.2,
         'Nb': 9.2,
@@ -699,7 +667,7 @@ H₃S（high pressure） | 203 | High-Tc | 150 GPa、$T_c$
     
     plt.xlabel('Temperature [K]', fontsize=12)
     plt.ylabel('Superconducting gap Δ(T) [meV]', fontsize=12)
-    plt.title('Temperature Dependence of Superconducting Gap', fontsize=14, fontweight='bold')
+    plt.title('Temperature Dependence of the Superconducting Gap', fontsize=14, fontweight='bold')
     plt.legend()
     plt.grid(True, alpha=0.3)
     plt.xlim(0, 100)
@@ -707,7 +675,7 @@ H₃S（high pressure） | 203 | High-Tc | 150 GPa、$T_c$
     plt.savefig('superconducting_gap.png', dpi=300, bbox_inches='tight')
     plt.show()
     
-    # Verification of Δ_0 / k_B T_c (1.76 in BCS theory)
+    # Verify Δ_0 / k_B T_c (1.76 in BCS theory)
     for name, Tc in materials.items():
         k_B = 8.617e-5
         Delta_0 = 1.76 * k_B * Tc * 1000
@@ -717,128 +685,128 @@ H₃S（high pressure） | 203 | High-Tc | 150 GPa、$T_c$
 
 ## Summary
 
-### What We Learned in This Chapter
+### What You Learned in This Chapter
 
 #### Electrical Properties
 
-  * Drude：$\sigma = ne^2\tau/m^*$
-  * Hall effect can measure carrier density and mobility
-  * Temperature（$\mu \propto T^{-3/2}$）
+  * Understanding electrical conduction with the Drude model: $\sigma = ne^2\tau/m^*$
+  * The Hall effect allows measurement of carrier density and mobility
+  * In semiconductors, mobility decreases with rising temperature ($\mu \propto T^{-3/2}$)
 
 #### Magnetic Properties
 
-  * Magnetism Diamagnetism、Paramagnetism、Ferromagnetism、AntiFerromagnetism、Ferrimagnetism
-  * Spin-Polarized DFT Calculations（ISPIN=2）
-  * Spin-Orbit Interaction (SOC) 、 
+  * Magnetism is classified into diamagnetism, paramagnetism, ferromagnetism, antiferromagnetism, and ferrimagnetism
+  * Spin-polarized DFT calculations (ISPIN=2) can predict magnetic moments
+  * Spin-orbit coupling (SOC) is important for heavy elements and is the origin of magnetic anisotropy
 
 #### Superconductivity
 
-  * BCS theory: electrons form Cooper pairs, resulting in zero resistance
-  * Superconducting gap：$\Delta_0 \approx 1.76 k_B T_c$
-  * High-TcSuperconductivity（YBCO: 92K） Temperature
+  * BCS theory: electrons form Cooper pairs, leading to zero resistance
+  * Superconducting gap: $\Delta_0 \approx 1.76 k_B T_c$
+  * High-temperature superconductors (YBCO: 92K) operate above liquid nitrogen temperature
 
-#### Preparation for Next Chapter
+#### Preparing for the Next Chapter
 
-  * In Chapter 5, we will learn about optical and thermal properties
-  * We will calculate optical absorption, bandgap, phonons, and thermal conductivity
+  * In Chapter 5, we will study optical and thermal properties
+  * We will calculate light absorption, band gaps, phonons, and thermal conduction
 
 ## Exercises
 
-#### Exercise1：Drude （Difficulty：★☆☆）
+#### Exercise 1: Applying the Drude Model (Difficulty: ★☆☆)
 
-**Problem** ：Calculate the electrical conductivity and mobility from the following data.
+**Problem** : Calculate the electrical conductivity and mobility from the following data.
 
   * Material: n-type Si semiconductor
   * Carrier density: $n = 1.0 \times 10^{22}$ m⁻³
   * Relaxation time: $\tau = 0.1$ ps = $1.0 \times 10^{-13}$ s
   * Effective mass: $m^* = 0.26 m_e$
 
-**Hint** ：
+**Hints** :
 
   * $\sigma = ne^2\tau/m^*$
   * $\mu = e\tau/m^*$
   * $e = 1.602 \times 10^{-19}$ C, $m_e = 9.109 \times 10^{-31}$ kg
 
-**Answer** ：$\sigma \approx 1.08 \times 10^4$ S/m、$\mu \approx 674$ cm²/Vs
+**Answer** : $\sigma \approx 1.08 \times 10^4$ S/m, $\mu \approx 674$ cm²/Vs
 
-#### Exercise2：Hall（Difficulty：★★☆）
+#### Exercise 2: Identifying Carriers with the Hall Effect (Difficulty: ★★☆)
 
-**Problem** ：1T 、Hall、Hall$R_H = +5.0 \times 10^{-4}$ m³/C。
+**Problem** : A 1 T magnetic field was applied to a semiconductor and a Hall measurement was performed, yielding a Hall coefficient $R_H = +5.0 \times 10^{-4}$ m³/C.
 
   1. Are the carriers electrons or holes?
-  2. Carrier densitycalculation
-  3. $\sigma = 100$ S/m 、calculation
+  2. Calculate the carrier density
+  3. Given an electrical conductivity of $\sigma = 100$ S/m, calculate the mobility
 
-**Answer** ：
+**Answers** :
 
-  1. $R_H > 0$ （p）
+  1. Since $R_H > 0$, the carriers are holes (p-type semiconductor)
   2. $n = 1/(R_H \cdot e) = 1.25 \times 10^{22}$ m⁻³
   3. $\mu = R_H \cdot \sigma = 0.05$ m²/Vs = 500 cm²/Vs
 
-#### Exercise3： calculation（Difficulty：★★☆）
+#### Exercise 3: Calculating the Magnetic Moment (Difficulty: ★★☆)
 
-**Problem** ：Fe（BCCstructure、a=2.87 Å） Spin-Polarized DFT Calculations、 ：
+**Problem** : A spin-polarized DFT calculation of an Fe atom (BCC structure, a=2.87 Å) gave the following results:
 
-  * Spin-upelectrons: 8.1
-  * Spin-downelectrons: 5.9
+  * Number of spin-up electrons: 8.1
+  * Number of spin-down electrons: 5.9
 
-Calculate the magnetic moment and compare with the experimental value (2.2 μB).
+Calculate the magnetic moment and compare it with the experimental value (2.2 μB).
 
-**Hint** ：$\mu = (N_\uparrow - N_\downarrow) \mu_B$
+**Hint** : $\mu = (N_\uparrow - N_\downarrow) \mu_B$
 
-**Answer** ：$\mu = (8.1 - 5.9) \mu_B = 2.2 \mu_B$(agrees with experimental value)
+**Answer** : $\mu = (8.1 - 5.9) \mu_B = 2.2 \mu_B$ (in agreement with experiment)
 
-#### Exercise4：Superconducting gap calculation（Difficulty：★★☆）
+#### Exercise 4: Calculating the Superconducting Gap (Difficulty: ★★☆)
 
-**Problem** ：Nb（） criticalTemperature $T_c = 9.2$K。
+**Problem** : The critical temperature of Nb (niobium) is $T_c = 9.2$ K.
 
-  1. $T = 0$K atSuperconducting gap$\Delta_0$calculation
-  2. $T = 5$K atSuperconducting gap$\Delta(5K)$calculation
+  1. Calculate the superconducting gap $\Delta_0$ at $T = 0$ K
+  2. Calculate the superconducting gap $\Delta(5K)$ at $T = 5$ K
 
-**Hint** ：
+**Hints** :
 
   * $\Delta_0 = 1.76 k_B T_c$
   * $\Delta(T) = \Delta_0 \tanh(1.74\sqrt{(T_c - T)/T})$
   * $k_B = 8.617 \times 10^{-5}$ eV/K
 
-**Answer** ：
+**Answers** :
 
   1. $\Delta_0 = 1.76 \times 8.617 \times 10^{-5} \times 9.2 = 1.40$ meV
   2. $\Delta(5K) = 1.40 \times \tanh(1.74\sqrt{(9.2-5)/5}) = 1.40 \times 0.87 = 1.22$ meV
 
-#### Exercise5：VASPcalculation （Difficulty：★★★）
+#### Exercise 5: Preparing a VASP Spin-Polarized Calculation (Difficulty: ★★★)
 
-**Problem** ：AntiFerromagnetismMnO（rocksaltstructure、a=4.43 Å） Spin-Polarized DFT Calculations。
+**Problem** : Prepare a spin-polarized DFT calculation of antiferromagnetic MnO (rocksalt structure, a=4.43 Å).
 
-  1. Create MnO structure with ASE (2×2×2 supercell)
-  2. Mn atomInitial magnetic moment（±5.0 μB）
-  3. Create INCAR file (ISPIN=2, MAGMOM settings)
-  4. Create KPOINTS file (6×6×6 mesh)
+  1. Create the MnO structure with ASE (2×2×2 supercell)
+  2. Set alternating initial magnetic moments on the Mn atoms (±5.0 μB)
+  3. Create the INCAR file (ISPIN=2, MAGMOM settings)
+  4. Create the KPOINTS file (6×6×6 mesh)
 
-**Evaluation criteria** ：
+**Evaluation criteria** :
 
-  * Is MAGMOM set only for Mn atoms?
-  * Are Mn atom spins in alternating configuration?
-  * O atomInitial magnetic moment0
+  * Is MAGMOM set only for the Mn atoms?
+  * Are the Mn spins arranged in an alternating pattern?
+  * Are the initial magnetic moments of the O atoms set to 0?
 
-#### Exercise6：susceptibility Temperature（Difficulty：★★★）
+#### Exercise 6: Temperature Dependence of Magnetic Susceptibility (Difficulty: ★★★)
 
-**Problem** ：Paramagnetism susceptibility 、Curie：
+**Problem** : The magnetic susceptibility of a paramagnetic material follows the Curie law:
 
 $$ \chi = \frac{C}{T} $$ 
 
-、$C$ Curieconstant。 、Curieconstant：
+where $C$ is the Curie constant. Determine the Curie constant from the following data:
 
-Temperature [K] | susceptibility $\chi$ [10⁻⁶]  
+Temperature [K] | Susceptibility $\chi$ [10⁻⁶]  
 ---|---  
 100| 8.5  
 200| 4.2  
 300| 2.8  
 400| 2.1  
   
-**Hint** ：$\chi$$1/T$ Curieconstant
+**Hint** : The slope of the line in a plot of $\chi$ versus $1/T$ gives the Curie constant
 
-**Sample Answer** ：$C \approx 8.5 \times 10^{-4}$ K(linear fit)
+**Example answer** : $C \approx 8.5 \times 10^{-4}$ K (linear fit)
 
 ## References
 

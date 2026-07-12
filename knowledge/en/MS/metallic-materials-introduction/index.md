@@ -1,203 +1,206 @@
 ---
-title: Introduction to Metallic MaterialsSeries
-chapter_title: Introduction to Metallic MaterialsSeries
-subtitle: metallic bondfromfunctionitymaterialto - materialdesign of fundamentals
-difficulty: Introduction〜
+title: Introduction to Metallic Materials Series
+chapter_title: Introduction to Metallic Materials Series
+subtitle: From Metallic Bonding to Functional Materials - Building the Foundations of Materials Design
+difficulty: Beginner to Intermediate
 code_examples: 35
+version: 1.0
+created_at: 2025-10-30
 ---
 
-## Series
+## Series Overview
 
-this series is 、metallic materials of fundamentals and becomemetallic bond and Crystal Structurefrom、Alloydesign、Strengthening Mechanisms、functionitymetallic materialsto、Python practiceal apro chi studyIntroductionko sis。CalculationMaterials Science of pointfrommetallic materials understand 、materialdesign of construction 。
+This series is an introductory course that takes a practical, Python-based approach to metallic materials — from the metallic bonding and crystal structures that underpin them, through alloy design and strengthening mechanisms, to functional metallic materials. You will learn to understand metallic materials from the perspective of computational materials science and build a foundation for materials design.
 
-### learning of
+### Learning Path
     
     
-```mermaid
-flowchart LR
-    A[Chapter 1: Metallic Bonding and Crystal Structure]-->B[Chapter 2: Alloy Design and Phase Diagrams]
-    B-->C[Chapter 3: Strengthening Mechanisms]
-    C-->D[Chapter 4: Functional Metallic Materials]
-    D-->E[Chapter 5: Data Analysis Practice]
-    style A fill:#f093fb,stroke:#f5576c,stroke-width:2px,color:#fff
-    style B fill:#f093fb,stroke:#f5576c,stroke-width:2px,color:#fff
-    style C fill:#f093fb,stroke:#f5576c,stroke-width:2px,color:#fff
-    style D fill:#f093fb,stroke:#f5576c,stroke-width:2px,color:#fff
-    style E fill:#f093fb,stroke:#f5576c,stroke-width:2px,color:#fff
-```
+    ```mermaid
+    flowchart LR
+        A[Chapter 1Metallic Bonding andCrystal Structures] --> B[Chapter 2Alloy Design andPhase Diagrams]
+        B --> C[Chapter 3Strengthening Mechanisms]
+        C --> D[Chapter 4Functional Metallic Materials]
+        D --> E[Chapter 5Hands-on Data Analysis]
+    
+        style A fill:#f093fb,stroke:#f5576c,stroke-width:2px,color:#fff
+        style B fill:#f093fb,stroke:#f5576c,stroke-width:2px,color:#fff
+        style C fill:#f093fb,stroke:#f5576c,stroke-width:2px,color:#fff
+        style D fill:#f093fb,stroke:#f5576c,stroke-width:2px,color:#fff
+        style E fill:#f093fb,stroke:#f5576c,stroke-width:2px,color:#fff
+    ```
 
-## Series
+## Series Structure
 
-Chapter1
+Chapter 1
 
-metallic bond and Crystal Structure
+Metallic Bonding and Crystal Structures
 
-metallic bond of 、FCC/BCC/HCPCrystal Structure、 rate、coordination number、burabe 、 surface and Tableshow study、Python structureVisualization and ityCalculation perform。
+Learn the electron theory of metallic bonding, FCC/BCC/HCP crystal structures, packing fractions, coordination numbers, Bravais lattices, and the notation of crystal planes and directions, then visualize structures and compute properties with Python. 
 
-⏱️ 30-35💻 7Code Example📊 Introduction
+⏱️ 30-35 min 💻 7 code examples 📊 Beginner
 
-[learning start →](<chapter-1.html>)
+[Start Learning →](<chapter-1.html>)
 
-Chapter2
+Chapter 2
 
-Alloydesign and Phase Diagram
+Alloy Design and Phase Diagrams
 
-Solid Solution（ ・ ）、Intermetallic Compound、Eutectic・ reaction、Phase Transformation、two systemPhase Diagram of 、Scheil-Gulliver equation、CALPHAD of fundamentals learn。
+Learn solid solutions (substitutional and interstitial), intermetallic compounds, eutectic and peritectic reactions, phase transformations, the interpretation of binary phase diagrams, the Scheil-Gulliver equation, and the fundamentals of the CALPHAD method. 
 
-⏱️ 30-35💻 7Code Example📊 Introduction〜
+⏱️ 30-35 min 💻 7 code examples 📊 Beginner to Intermediate
 
-[learning start →](<chapter-2.html>)
+[Start Learning →](<chapter-2.html>)
 
-Chapter3
+Chapter 3
 
 Strengthening Mechanisms
 
-Solid Solution Strengthening、Precipitation Strengthening（Orowan Mechanism）、Work Hardening（Dislocation Densityincrease）、Grain Refinement（Hall-PetchRelation）、transformationstrengthening、 strengthening of theory and practiceCalculation learn。
+Learn the theory and practical calculations of solid-solution strengthening, precipitation strengthening (Orowan mechanism), work hardening (dislocation density increase), grain refinement (Hall-Petch relationship), transformation strengthening, and combined strengthening. 
 
-⏱️ 25-35💻 7Code Example📊
+⏱️ 25-35 min 💻 7 code examples 📊 Intermediate
 
-[learning start →](<chapter-3.html>)
+[Start Learning →](<chapter-3.html>)
 
-Chapter4
+Chapter 4
 
-functionitymetallic materials
+Functional Metallic Materials
 
-（BCStheory、high ）、 Alloy（Martensitetransformation）、 Alloy、 material、 itymaterial、formation material of principle and application learn。
+Learn the principles and applications of superconductors (BCS theory, high-temperature superconductivity), shape-memory alloys (martensitic transformation), hydrogen-storage alloys, thermoelectric materials, magnetic materials, and biocompatible materials. 
 
-⏱️ 25-35💻 7Code Example📊 〜up
+⏱️ 25-35 min 💻 7 code examples 📊 Intermediate to Advanced
 
-[learning start →](<chapter-4.html>)
+[Start Learning →](<chapter-4.html>)
 
-Chapter5
+Chapter 5
 
-Pythonpractice：metallic materialsDataanalyzewa kfro
+Python in Practice: Metallic Materials Data Analysis Workflow
 
-pymatgen/ASEbyCrystal Structureoperation、pycalphadbyPhase DiagramCalculation、materialDatabe sAPI 、mechanicallearningbymaterial ityPrediction、 wa kfro practice 。
+Practice crystal structure manipulation with pymatgen/ASE, phase diagram computation with pycalphad, materials database API integration, machine learning-based property prediction, and an integrated workflow. 
 
-⏱️ 30-40💻 7Code Example📊 up
+⏱️ 30-40 min 💻 7 code examples 📊 Advanced
 
-[learning start →](<chapter-5.html>)
+[Start Learning →](<chapter-5.html>)
 
 ## Learning Objectives
 
-of Series dothing 、or less of skiru and knowledge learn ：
+Upon completing this series, you will acquire the following skills and knowledge:
 
-  * ✅ metallic bond of moderu understand 、 degree・ degree Calculationcan
-  * ✅ FCC、BCC、HCP of Crystal Structure 、 rate・coordination number can
-  * ✅ mira Index surface and Table 、surface Calculationcan
-  * ✅ two systemPhase Diagram 、EquilibriumComposition・fraction Calculationcan
-  * ✅ Hume-Rothery Rules usingSolid Solutionformation Predictioncan
-  * ✅ Hall-Petchequation、Orowanequation Strength al Predictioncan
-  * ✅ multiple of Strengthening Mechanisms of Phase use design can
-  * ✅ BCStheory Temperature of Dependence understandcan
-  * ✅ effect of enerugi explaincan
-  * ✅ pymatgen and pycalphad Phase Diagram and structureData can
+  * ✅ Understand the free-electron model of metallic bonding and calculate electrical and thermal conductivity
+  * ✅ Draw FCC, BCC, and HCP crystal structures and compute packing fractions and coordination numbers
+  * ✅ Express crystal planes and directions with Miller indices and calculate interplanar spacings
+  * ✅ Read binary phase diagrams and calculate equilibrium compositions and phase fractions
+  * ✅ Predict solid-solution formation using the Hume-Rothery rules
+  * ✅ Quantitatively predict strength with the Hall-Petch and Orowan equations
+  * ✅ Design materials accounting for interactions among multiple strengthening mechanisms
+  * ✅ Understand the material dependence of the superconducting transition temperature through BCS theory
+  * ✅ Explain the energetics of the shape-memory effect
+  * ✅ Handle phase diagrams and structural data with pymatgen and pycalphad
 
-## recommendedlearningpata n
+## Recommended Learning Patterns
 
-### pata n1: learning - theory and practice of barans（5-7 ）
+### Pattern 1: Standard Learning - Balanced Theory and Practice (5-7 Days)
 
-  * 1day: Chapter1（metallic bond and Crystal Structure）
-  * 2day: Chapter2（Alloydesign and Phase Diagram）
-  * 3day: Chapter3（Strengthening Mechanisms）
-  * 4day: Chapter4（functionitymetallic materials）
-  * 5day: Chapter5（Pythonpractice）+
+  * Day 1: Chapter 1 (Metallic Bonding and Crystal Structures)
+  * Day 2: Chapter 2 (Alloy Design and Phase Diagrams)
+  * Day 3: Chapter 3 (Strengthening Mechanisms)
+  * Day 4: Chapter 4 (Functional Metallic Materials)
+  * Day 5: Chapter 5 (Python in Practice) + Comprehensive Review
 
-### pata n2: learning - metallic materialsmasta （3 ）
+### Pattern 2: Intensive Learning - Metallic Materials Master (3 Days)
 
-  * 1day: Chapter1-2（Crystal Structure and Alloydesign）
-  * 2day: Chapter3-4（Strengthening Mechanisms and functionitymaterial）
-  * 3day: Chapter5（practiceanalyze）+ eachExercises
+  * Day 1: Chapters 1-2 (Crystal Structures and Alloy Design)
+  * Day 2: Chapters 3-4 (Strengthening Mechanisms and Functional Materials)
+  * Day 3: Chapter 5 (Hands-on Analysis) + Exercise Problems from Each Chapter
 
-### pata n3: practice - CalculationMaterials Scienceskirulearn（1 ）
+### Pattern 3: Practice-Focused - Computational Materials Science Skills (1 Day)
 
-  * Chapter1-4: Code Example of execute（theory is Degree）
-  * Chapter5: 、actualmaterialData Calculation
-  * necessary theory Confirmation
+  * Chapters 1-4: Execute the code examples only (refer to theory as needed)
+  * Chapter 5: Work through carefully and practice calculations with real materials data
+  * Return to the theory sections whenever clarification is needed
 
-## knowledge
+## Prerequisites
 
-| necessaryLevel| explain  
+Field | Required Level | Description  
 ---|---|---  
-**Materials Sciencefundamentals**|  IntroductionLevel| izationstudy 、Atomstructure、 Table of understand  
-**study**|  study1-2 Level| study、thermodynamics、 study、 study of fundamentals  
-**numberstudy**|  study1 Level| 、line number、 equation of fundamentals  
-**Python**| |  numpy、matplotlib、pandas、pymatgen、ASE of Basicoperation  
+**Materials Science Basics** | Introductory Level Complete | Understanding of chemical bonding, atomic structure, and the periodic table  
+**Physics** | Undergraduate Year 1-2 | Fundamentals of mechanics, thermodynamics, electromagnetism, and quantum mechanics  
+**Mathematics** | Undergraduate Year 1 | Fundamentals of calculus, linear algebra, and differential equations  
+**Python** | Intermediate | Basic operations with numpy, matplotlib, pandas, pymatgen, and ASE  
   
-## usedoPythonraiburari
+## Python Libraries Used
 
-of Series usedomainraiburari：
+Main libraries used in this series:
 
-  * **numpy** : valueCalculation and operation
-  * **matplotlib** : 2DGraph・FigureTablecreation
-  * **scipy** : studyCalculation（optimize、value 、statistics）
-  * **pandas** : Datatreatment and analyze
-  * **pymatgen** : Crystal Structureoperation、Phase Diagram、materialDatabe s
-  * **ASE** : AtomSimulation （Crystal Structure、enerugi Calculation）
-  * **pycalphad** : CALPHADPhase DiagramCalculation
-  * **scikit-learn** : mechanicallearning（ 、classification、 ）
-  * **seaborn** : statisticsalDataVisualization
+  * **numpy** : Numerical computation and array operations
+  * **matplotlib** : 2D graphs and figure creation
+  * **scipy** : Scientific computing (optimization, numerical integration, statistics)
+  * **pandas** : Data processing and analysis
+  * **pymatgen** : Crystal structure manipulation, phase diagrams, and materials database integration
+  * **ASE** : Atomic Simulation Environment (crystal structures, energy calculations)
+  * **pycalphad** : CALPHAD phase diagram computation
+  * **scikit-learn** : Machine learning (regression, classification, dimensionality reduction)
+  * **seaborn** : Statistical data visualization
 
-## FAQ - exist
+## FAQ - Frequently Asked Questions
 
-### Q1: Experimental Data evenlearning ？
+### Q1: Can I follow this series without experimental data?
 
-is 、 is。this series is theoryCalculation and Simulation point 。 materialDatabe s（Materials Project、AFLOW） of Data use 、experiment understand obtain 。
+Yes, absolutely. This series focuses on theoretical calculations and simulations. By using data from public materials databases (Materials Project, AFLOW), you can gain a deep understanding without doing any experiments.
 
-### Q2: Alloydesign and Strengthening Mechanisms of Relation is ？
+### Q2: How are alloy design and strengthening mechanisms related?
 
-Alloydesign（Chapter2） Composition and structure design 、Strengthening Mechanisms（Chapter3） mechanicalalStrength caninfluence ization 。 dothing 、 Characteristics domaterialdesign 。
+In alloy design (Chapter 2) you design the composition and microstructure, and in strengthening mechanisms (Chapter 3) you quantify how they affect mechanical strength. Integrating both enables materials design that achieves target properties.
 
-### Q3: Materials Informatics（MI） to of application is ？
+### Q3: How does this apply to Materials Informatics (MI)?
 
-Chapter5 studypymatgen and pycalphad is 、MI materialdescriptor 、Databe sconstruction、mechanicallearningmoderucreation of is。structure-Composition-Characteristics of Relation mechanicallearning Predictiondo of skiruis。
+The pymatgen and pycalphad skills learned in Chapter 5 form the foundation for materials descriptor extraction, database construction, and machine learning model building in MI. They are essential skills for predicting structure-composition-property relationships with machine learning.
 
-### Q4: Phase DiagramCalculation（pycalphad） of learn is is？
+### Q4: Is mastering phase diagram computation (pycalphad) mandatory?
 
-Chapter2 and Chapter5 、Basical Python and numpy of knowledge learning 。pycalphad is also 、Alloy of useis。
+It is covered in Chapters 2 and 5 and can be learned with basic knowledge of Python and numpy. pycalphad is widely used in industry and is highly useful in practical alloy development.
 
-### Q5: seramiks and rima also use ？
+### Q5: Can these concepts be applied to ceramics and polymers?
 
-this series is ization 、Crystal Structure（Chapter1）、Phase Transformation（Chapter2）、Strengthening Mechanisms（Chapter3） of fundamentalsconcept is material also is。however、seramiks is ion ・ 、 rima is high of theory necessaryis。
+This series specializes in metals, but the fundamental concepts of crystal structures (Chapter 1), phase transformations (Chapter 2), and strengthening mechanisms (Chapter 3) are common to other materials as well. Note, however, that ceramics involve ionic and covalent bonding, while polymers require macromolecule-specific theories.
 
-### Q6: ChapteroneprincipleCalculation and of Relation is ？
+### Q6: How does this relate to first-principles calculations?
 
-this seriesinChapteroneprincipleCalculation is 、pymatgen and ASE is ChapteroneprincipleCalculation（VASP、Quantum ESPRESSO） and of possibleis。this series fundamentals after、ChapteroneprincipleCalculation of Idealalis。
+This series does not cover first-principles calculations, but pymatgen and ASE can interface with first-principles codes (VASP, Quantum ESPRESSO). Ideally, build your foundations with this series first, then move on to first-principles calculations.
 
-### Q7: Dislocationtheory of Detailed is study？
+### Q7: Can I learn the details of dislocation theory here?
 
-Chapter3 DislocationbyStrengthening Mechanisms（Work Hardening） 、Dislocation of Detailed study（Burgers Vector、 Dislocation、Dislocation、Frank-Read ） is 「 Introduction」Series studything 。
+Chapter 3 covers dislocation-based strengthening (work hardening), but for the detailed crystallography of dislocations (Burgers vectors, edge dislocations, screw dislocations, Frank-Read sources) we recommend the "Introduction to Crystal Defects" series.
 
-### Q8: useAlloy（Steel、Aluminum Alloy、Titanium Alloy） of design is ？
+### Q8: What about designing practical alloys (steels, aluminum alloys, titanium alloys)?
 
-this series is principle point 。 useAlloy of Specifical design is 「Alloydesignpractice」Series 。however、this series studyprinciple（Solid Solution Strengthening、Precipitation Strengthening、Phase Diagram） is useAlloydesign of is。
+This series focuses on principles. Concrete design of practical alloys is covered in the "Alloy Design in Practice" series. That said, the principles learned here (solid-solution strengthening, precipitation strengthening, phase diagrams) are the foundation of practical alloy design.
 
-### Q9: Dataanalyze（Chapter5） studyalsois？
+### Q9: Can I start with the data analysis (Chapter 5) first?
 
-Chapter5 is Chapter1-4 of theory as。 、Crystal Structure（Chapter1） and Phase Diagram（Chapter2） of understand 、Chapter5 of practiceko do is understand 。theory practicefrom thing also possibleis 、after theory thing 。
+Chapter 5 assumes the theory from Chapters 1-4. At minimum, an understanding of crystal structures (Chapter 1) and phase diagrams (Chapter 2) is enough to follow the hands-on code in Chapter 5. Skipping the theory and starting with practice is possible, but we recommend returning to the theory afterwards.
 
-### Q10: mechanicallearningbymaterial is study？
+### Q10: Can I learn machine learning-based materials exploration?
 
-Chapter5 mechanicallearning of fundamentals（ 、classification） 、 al material （beizuoptimize、 learning、descriptordesign） is 「Materials Informaticspractice」Series studything 。this series is of and becomematerialdescriptor of understand provide 。
+Chapter 5 covers the fundamentals of machine learning (regression, classification), but for full-scale materials exploration (Bayesian optimization, active learning, descriptor design) we recommend the "Materials Informatics in Practice" series. This series provides the prerequisite understanding of materials descriptors.
 
-## learning of int
+## Key Learning Points
 
-  * **ske ru** : AtomLevel（Å）→ Microstructure（μm）→ makroCharacteristics of structure
-  * **ization of** : 「 」in 「Yield Stress800 MPa」、「 」in 「Volume Fraction15%」
-  * **structure-CharacteristicsPhase** : Crystal Structure and structure ity influencedo consider
-  * **ko doexecute and Parameter** : of Code Example execute 、Parameter understand
-  * **Databe s use** : Materials Project、AFLOW of Data
-  * **theory and experiment of** : theoryCalculationresult of experimentvalue and Ratiocomparisondo
+  * **Develop a sense of scale** : Keep in mind the hierarchy from the atomic level (Å) → microstructure (μm) → macroscopic properties
+  * **Make quantification a habit** : Say "yield stress of 800 MPa" instead of "strong", and "volume fraction of 15%" instead of "a lot"
+  * **Structure-property correlations** : Always consider how crystal structure and microstructure affect material properties
+  * **Run the code and vary parameters** : Execute every code example and change parameters to understand the behavior
+  * **Use public databases** : Practice with data from Materials Project and AFLOW
+  * **Connect theory and experiment** : Make a habit of comparing theoretical results with experimental values from the literature
 
-## of step
+## Next Steps
 
-of Series after、or less of learning ：
+After completing this series, we recommend the following advanced learning:
 
-  * **seramiksmaterialIntroduction** \- ion・ 、 、 izationstudy
-  * **rima materialIntroduction** \- high izationstudy、reoroji 、 ization
-  * **materialIntroduction** \- strengthening、 surface、 rule
-  * **Introduction** \- Dislocation、 、Phase Boundary、Point Defect
-  * **Alloydesignpractice** \- Steel、Aluminum Alloy、Titanium Alloy of usedesign
-  * **Phase DiagramCalculationpractice** \- pycalphad and ThermoCalcby systemPhase DiagramCalculation
-  * **ChapteroneprincipleCalculationIntroduction** \- density numbertheory、VASP、Quantum ESPRESSO
-  * **Materials Informaticspractice** \- descriptordesign、mechanicallearningmoderingu、beizuoptimize
+  * **Introduction to Ceramic Materials** \- Ionic and covalent bonding, sintering, and defect chemistry
+  * **Introduction to Polymer Materials** \- Polymer chemistry, rheology, and crystallization
+  * **Introduction to Composite Materials** \- Fiber reinforcement, interfaces, and the rule of mixtures
+  * **Introduction to Crystal Defects** \- Dislocations, grain boundaries, phase boundaries, and point defects
+  * **Alloy Design in Practice** \- Practical design of steels, aluminum alloys, and titanium alloys
+  * **Phase Diagram Computation in Practice** \- Multicomponent phase diagram computation with pycalphad and ThermoCalc
+  * **Introduction to First-Principles Calculations** \- Density functional theory, VASP, and Quantum ESPRESSO
+  * **Materials Informatics in Practice** \- Descriptor design, machine learning modeling, and Bayesian optimization
