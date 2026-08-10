@@ -805,7 +805,7 @@ where,
   * $n$: Number of atoms per unit cell
   * $M$: Atomic weight (g/mol)
   * $V_{cell}$: Unit cell volume (cm³)
-  * $N_A$: Avogadro's number (6.022×10²³ mol{¹)
+  * $N_A$: Avogadro's number (6.022×10²³ mol⁻¹)
 
 ### Slip Systems and Ductility
 

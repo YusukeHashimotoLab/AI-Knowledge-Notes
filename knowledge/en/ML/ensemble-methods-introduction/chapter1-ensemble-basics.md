@@ -80,7 +80,8 @@ Component | Meaning | Solution
     
     """
     Example: $$
-    \text{Error} = \text{Bias}^2 + \text{Variance} + \text{Ir
+    \text{Error} = \text{Bias}^2 + \text{Variance} + \text{Irreducible Error}
+    $$
     
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate

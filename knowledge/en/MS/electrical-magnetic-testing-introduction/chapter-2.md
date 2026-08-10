@@ -981,7 +981,7 @@ Easy **Problem** :Hall coefficient $R_H = -1.5 \times 10^{-3}$ m$^3$/C was measu
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: EasyProblem:Hall coefficient $R_H = -1.5 \times 10^{-3}$ m$^
+    Example: EasyProblem:Hall coefficient $R_H = -1.5 \times 10^{-3}$ m$^3$/C was measured.
     
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
@@ -1046,7 +1046,7 @@ Medium **Problem** :van der Pauwmeasurementで, $R_{\text{AB,CD}} = 950$ Ω, $R_
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: MediumProblem:van der Pauwmeasurementで, $R_{\text{AB,CD}} = 
+    Example: MediumProblem:van der Pauwmeasurementで, $R_{\text{AB,CD}} = 950$ Ω, $R_{\text{BC,DA}} = 1050$ Ω, $V_{24}^{+B} = -4.5$ mV, $V_{24}^{-B} = +4.3$ mV, $I = 100$ μA, $B = 0.5$ T, $t = 300$ nm was obtained.
     
     Purpose: Demonstrate optimization techniques
     Target: Intermediate
@@ -1242,7 +1242,7 @@ Hard **Problem** :Hall voltage $V_H = (5.0 \pm 0.2)$ mV, current $I = (100 \pm 1
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: HardProblem:Hall voltage $V_H = (5.0 \pm 0.2)$ mV, current $
+    Example: HardProblem:Hall voltage $V_H = (5.0 \pm 0.2)$ mV, current $I = (100 \pm 1)$ μA, magnetic field $B = (0.50 \pm 0.02)$ T, thickness $t = (200 \pm 10)$ nm.
     
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate

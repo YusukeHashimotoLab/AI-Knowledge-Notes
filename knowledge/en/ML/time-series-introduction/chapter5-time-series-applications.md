@@ -394,7 +394,8 @@ $$ \mathbf{y}_t = \mathbf{c} + \mathbf{A}_1 \mathbf{y}_{t-1} + \mathbf{A}_2 \mat
     
     """
     Example: $$
-    \mathbf{y}_t = \mathbf{c} + \mathbf{A}_1 \mathbf{y}_{t-1}
+    \mathbf{y}_t = \mathbf{c} + \mathbf{A}_1 \mathbf{y}_{t-1} + \mathbf{A}_2 \mathbf{y}_{t-2} + \cdots + \mathbf{A}_p \mathbf{y}_{t-p} + \mathbf{\epsilon}_t
+    $$
     
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate

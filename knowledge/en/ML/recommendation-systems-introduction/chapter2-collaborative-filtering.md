@@ -87,7 +87,11 @@ $$ R = \begin{bmatrix} r_{11} & r_{12} & \cdots & r_{1m} \\\ r_{21} & r_{22} & \
     Example: $$
     R = \begin{bmatrix}
     r_{11} & r_{12} & \cdots & r_{1m} \\
-    
+    r_{21} & r_{22} & \cdots & r_{2m} \\
+    \vdots & \vdots & \ddots & \vdots \\
+    r_{n1} & r_{n2} & \cdots & r_{nm}
+    \end{bmatrix}
+    $$
     
     Purpose: Demonstrate data manipulation and preprocessing
     Target: Beginner to Intermediate

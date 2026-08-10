@@ -108,7 +108,7 @@ The dependence on the renormalization scale \\(\mu\\) is described by the Callan
 
 The renormalized correlation function \\(G\\) satisfies:
 
-\\[ \left[ \mu\frac{\partial}{\partial\mu} + \beta(\lambda)\frac{\partial}{\partial\lambda} \+ n\gamma(\lambda) \right] G = 0 \\]
+\\[ \left[ \mu\frac{\partial}{\partial\mu} + \beta(\lambda)\frac{\partial}{\partial\lambda} + n\gamma(\lambda) \right] G = 0 \\]
 
 **β function** : running of coupling constant
 
@@ -259,7 +259,7 @@ Effective Field Theory (EFT) describes low-energy phenomena through an effective
 
 Integrate out modes above high momentum \\(\Lambda\\):
 
-\\[ e^{iS_{\text{eff}}[\phi_<]} = \int \mathcal{D}\phi_> \, e^{iS[\phi_< \+ \phi_>]} \\]
+\\[ e^{iS_{\text{eff}}[\phi_<]} = \int \mathcal{D}\phi_> \, e^{iS[\phi_< + \phi_>]} \\]
 
 \\(\phi_< (|\mathbf{k}| < \Lambda)\\): low modes, \\(\phi_> (|\mathbf{k}| > \Lambda)\\): high modes
 

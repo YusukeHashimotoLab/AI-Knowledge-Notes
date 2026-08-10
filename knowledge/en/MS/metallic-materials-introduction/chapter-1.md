@@ -1117,7 +1117,7 @@ Show solution
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Problem:The electron density of copper (Cu) is $n = 8.45 \ti
+    Example: Problem:The electron density of copper (Cu) is $n = 8.45 \times 10^{28}$ m⁻³ and the relaxation time is $\tau = 2.5 \times 10^{-14}$ s. Calculate the electrical conductivity $\sigma$ and electrical resistivity $\rho$ of copper using the Drude model.
     
     Purpose: Demonstrate data visualization techniques
     Target: Beginner to Intermediate
@@ -1201,7 +1201,7 @@ Show solution
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Problem:For an FCC structure with lattice parameter $a = 4.0
+    Example: Problem:For an FCC structure with lattice parameter $a = 4.05$ Å, calculate the atomic radius $r$, the packing fraction, and the number of atoms per unit cell.
     
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate

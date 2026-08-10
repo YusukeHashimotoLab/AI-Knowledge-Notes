@@ -47,7 +47,7 @@ import numpy as np from scipy.special import gamma # ===========================
 
 繰り込みされた相関関数 \\(G\\) は：
 
-\\[ \left[ \mu\frac{\partial}{\partial\mu} + \beta(\lambda)\frac{\partial}{\partial\lambda} \+ n\gamma(\lambda) \right] G = 0 \\]
+\\[ \left[ \mu\frac{\partial}{\partial\mu} + \beta(\lambda)\frac{\partial}{\partial\lambda} + n\gamma(\lambda) \right] G = 0 \\]
 
 **β関数** : 結合定数の走り
 
@@ -103,7 +103,7 @@ Ising模型の臨界指数: ====================================================
 
 高運動量 \\(\Lambda\\) 以上を積分:
 
-\\[ e^{iS_{\text{eff}}[\phi_<]} = \int \mathcal{D}\phi_> \, e^{iS[\phi_< \+ \phi_>]} \\]
+\\[ e^{iS_{\text{eff}}[\phi_<]} = \int \mathcal{D}\phi_> \, e^{iS[\phi_< + \phi_>]} \\]
 
 \\(\phi_< (|\mathbf{k}| < \Lambda)\\): 低モード、\\(\phi_> (|\mathbf{k}| > \Lambda)\\): 高モード
 

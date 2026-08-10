@@ -249,7 +249,7 @@ GNNの**統一フレームワーク** です（Gilmer et al., 2017）。
 集約方法 | 数式 | 特徴  
 ---|---|---  
 **Sum** | $\sum_{j \in \mathcal{N}(i)} m_{ij}^{(t)}$ | 順序不変、次数に敏感  
-**Mean** | $\frac{1}{ | \mathcal{N}(i)  
+**Mean** | $\frac{1}{\lvert \mathcal{N}(i) \rvert} \sum_{j \in \mathcal{N}(i)} m_{ij}^{(t)}$ | 正規化、次数不変  
 **Max** | $\max_{j \in \mathcal{N}(i)} m_{ij}^{(t)}$ | 最も強い特徴を保持  
 **Attention** | $\sum_{j \in \mathcal{N}(i)} \alpha_{ij} m_{ij}^{(t)}$ | 重要度で重み付け  
       

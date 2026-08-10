@@ -644,7 +644,7 @@ Easy **Problem** : For gold with carrier density $n = 5.9 \times 10^{28}$ m$^{-3
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: EasyProblem: For gold with carrier density $n = 5.9 \times 1
+    Example: EasyProblem: For gold with carrier density $n = 5.9 \times 10^{28}$ m$^{-3}$ and scattering relaxation time $\tau = 3 \times 10^{-14}$ s, calculate the electrical conductivity and resistivity.
     
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
@@ -702,7 +702,7 @@ Medium **Problem** : In van der Pauw measurement, $R_{\text{AB,CD}} = 85$ © and
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: MediumProblem: In van der Pauw measurement, $R_{\text{AB,CD}
+    Example: MediumProblem: In van der Pauw measurement, $R_{\text{AB,CD}} = 85$ Ω and $R_{\text{BC,DA}} = 115$ Ω were obtained. Calculate the sheet resistance $R_s$ and determine the bulk resistivity $\rho$ for thickness $t = 50$ nm.
     
     Purpose: Demonstrate optimization techniques
     Target: Intermediate

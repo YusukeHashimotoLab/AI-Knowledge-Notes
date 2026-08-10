@@ -388,7 +388,13 @@ $$ \begin{aligned} \mathbf{m}_t &= \beta_1 \mathbf{m}_{t-1} + (1-\beta_1) \nabla
     """
     Example: $$
     \begin{aligned}
-    \mathbf{m}_t &= \beta_1 \mathbf{m}_{t-1} 
+    \mathbf{m}_t &= \beta_1 \mathbf{m}_{t-1} + (1-\beta_1) \nabla f(\mathbf{x}_t) \\
+    \mathbf{v}_t &= \beta_2 \mathbf{v}_{t-1} + (1-\beta_2) (\nabla f(\mathbf{x}_t))^2 \\
+    \hat{\mathbf{m}}_t &= \frac{\mathbf{m}_t}{1-\beta_1^t} \\
+    \hat{\mathbf{v}}_t &= \frac{\mathbf{v}_t}{1-\beta_2^t} \\
+    \mathbf{x}_{t+1} &= \mathbf{x}_t - \alpha \frac{\hat{\mathbf{m}}_t}{\sqrt{\hat{\mathbf{v}}_t} + \epsilon}
+    \end{aligned}
+    $$
     
     Purpose: Demonstrate data visualization techniques
     Target: Advanced
@@ -554,7 +560,9 @@ $$ \begin{aligned} \nabla_{\mathbf{x}} \mathcal{L} &= 0 \\\ \nabla_{\lambda} \ma
     Example: $$
     \begin{aligned}
     \nabla_{\mathbf{x}} \mathcal{L} &= 0 \\
-    \
+    \nabla_{\lambda} \mathcal{L} &= 0
+    \end{aligned}
+    $$
     
     Purpose: Demonstrate data visualization techniques
     Target: Advanced
@@ -648,7 +656,10 @@ $$ \begin{aligned} \min_{\mathbf{w}, b} \quad & \frac{1}{2} \|\mathbf{w}\|^2 \\\
     """
     Example: $$
     \begin{aligned}
-    \min_{\mathbf{w}, b} \quad & \frac{1}{2} 
+    \min_{\mathbf{w}, b} \quad & \frac{1}{2} \|\mathbf{w}\|^2 \\
+    \text{subject to} \quad & y_i(\mathbf{w}^T \mathbf{x}_i + b) \geq 1, \quad i = 1, \ldots, n
+    \end{aligned}
+    $$
     
     Purpose: Demonstrate data visualization techniques
     Target: Advanced
@@ -735,7 +746,11 @@ $$ \begin{aligned} \min_{\mathbf{x}} \quad & \mathbf{c}^T \mathbf{x} \\\ \text{s
     """
     Example: $$
     \begin{aligned}
-    \min_{\mathbf{x}} \quad & \mathbf{c}^T \m
+    \min_{\mathbf{x}} \quad & \mathbf{c}^T \mathbf{x} \\
+    \text{subject to} \quad & \mathbf{A} \mathbf{x} \leq \mathbf{b} \\
+    & \mathbf{x} \geq 0
+    \end{aligned}
+    $$
     
     Purpose: Demonstrate data visualization techniques
     Target: Advanced
@@ -939,7 +954,8 @@ $$ \min_{\mathbf{w}} \sum_{i=1}^n \log(1 + \exp(-y_i \mathbf{w}^T \mathbf{x}_i))
     
     """
     Example: $$
-    \min_{\mathbf{w}} \sum_{i=1}^n \log(1 + \exp(-y_i \mathbf
+    \min_{\mathbf{w}} \sum_{i=1}^n \log(1 + \exp(-y_i \mathbf{w}^T \mathbf{x}_i)) + \lambda \|\mathbf{w}\|^2
+    $$
     
     Purpose: Demonstrate data visualization techniques
     Target: Advanced
@@ -1241,7 +1257,7 @@ Therefore, the minimum value $f(x^*) = 0$ is achieved at $x^* = -2$.
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Therefore, the minimum value $f(x^*) = 0$ is achieved at $x^
+    Example: Therefore, the minimum value $f(x^*) = 0$ is achieved at $x^* = -2$.
     
     Purpose: Demonstrate data visualization techniques
     Target: Advanced

@@ -378,7 +378,7 @@ $$ \frac{dP}{dT} = \frac{\Delta S_{\text{trans}}}{\Delta V_{\text{trans}}} = \fr
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: $$ \frac{dP}{dT} = \frac{\Delta S_{\text{trans}}}{\Delta V_{
+    Example: $$ \frac{dP}{dT} = \frac{\Delta S_{\text{trans}}}{\Delta V_{\text{trans}}} = \frac{\Delta H_{\text{trans}}}{T \Delta V_{\text{trans}}} $$
     
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
@@ -484,7 +484,7 @@ $$ \ln \frac{P_2}{P_1} = -\frac{\Delta H_{\text{vap}}}{R} \left( \frac{1}{T_2} -
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: $$ \ln \frac{P_2}{P_1} = -\frac{\Delta H_{\text{vap}}}{R} \l
+    Example: $$ \ln \frac{P_2}{P_1} = -\frac{\Delta H_{\text{vap}}}{R} \left( \frac{1}{T_2} - \frac{1}{T_1} \right) $$
     
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
