@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 normalize_cdn_loading.py — Idempotent normalizer for CDN resource loading across
-the static site (wp/knowledge, wp/private, wp/endowed).
+the static site (wp/knowledge, wp/profile, wp/endowed).
 
 Transformations (all idempotent — a second run reports 0 modifications):
   1. Pin exact library versions on cdn.jsdelivr.net URLs
@@ -30,7 +30,7 @@ Transformations (all idempotent — a second run reports 0 modifications):
      right after <meta charset ...> on <head> pages that lack a viewport meta.
 
 Usage:
-    python3 scripts/normalize_cdn_loading.py            # apply to knowledge/private/endowed
+    python3 scripts/normalize_cdn_loading.py            # apply to knowledge/profile/endowed
     python3 scripts/normalize_cdn_loading.py --dry-run  # report only, write nothing
     python3 scripts/normalize_cdn_loading.py path ...   # limit to given files/dirs
 """
@@ -41,7 +41,7 @@ import sys
 import glob
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # wp/
-DEFAULT_DIRS = ["knowledge", "private", "endowed"]
+DEFAULT_DIRS = ["knowledge", "profile", "endowed"]
 
 # --- Subresource Integrity map: final CDN URL -> sha384 hash -----------------
 # Computed with: curl -sL <url> | openssl dgst -sha384 -binary | openssl base64 -A

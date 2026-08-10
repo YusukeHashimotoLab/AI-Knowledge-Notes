@@ -3,12 +3,14 @@
 
 Source of truth for "what pages exist" is `git ls-files '*.html'` (not a
 filesystem walk) — this is the simplest robust way to cover every tracked
-HTML page across knowledge/{jp,en}, private/{jp,en}, and endowed/{jp,en}/**
+HTML page across knowledge/{jp,en}, profile/{jp,en}, and endowed/{jp,en}/**
 in one shot without having to special-case each tree's layout.
 
 Excluded:
   - knowledge/<locale>/search.html   (the search pages are noindex)
   - any path with an 'archive' path segment
+  - anything under private/  (legacy path of the profile/ tree; those files are
+    now noindex meta-refresh redirect stubs kept only so old URLs keep working)
 
 Each URL is https://yusukehashimotolab.github.io/AI-Knowledge-Notes/<path>,
 with every path segment individually percent-encoded via urllib.parse.quote
@@ -76,6 +78,10 @@ def is_excluded(relpath: str) -> bool:
     if "archive" in parts:
         return True
     if relpath == "404.html":  # noindex error page
+        return True
+    # private/ is the legacy path of the profile/ tree; every file there is a
+    # noindex meta-refresh redirect stub, so it must never enter the sitemap.
+    if parts[0] == "private":
         return True
     if len(parts) == 3 and parts[0] == "knowledge" and parts[1] in LOCALES \
             and parts[2] == "search.html":

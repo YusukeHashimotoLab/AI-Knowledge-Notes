@@ -2,15 +2,16 @@
 """
 add_head_metadata.py — Idempotent inserter of SEO head metadata (canonical
 URL, hreflang alternates, Open Graph tags) across every tracked HTML page in
-the static site (knowledge/, private/, endowed/).
+the static site (knowledge/, profile/, endowed/).
 
 Modeled on scripts/normalize_cdn_loading.py's conventions: pure regex-based
 head editing (no BeautifulSoup — that would reformat all ~1,600 files),
 per-category counters, dry-run-by-default with an explicit --write flag.
 
 Target file set mirrors scripts/build_sitemap.py: `git ls-files '*.html'`,
-excluding any path with an 'archive' path segment and excluding
-knowledge/{jp,en}/search.html (noindex, excluded from the sitemap too).
+excluding any path with an 'archive' path segment, excluding
+knowledge/{jp,en}/search.html (noindex, excluded from the sitemap too), and
+excluding private/** (legacy path of profile/**: noindex redirect stubs).
 
 Insertion point: a single stable point, immediately after the closing
 </title> tag, matching indentation already used for hand-authored canonical/
@@ -86,6 +87,11 @@ def is_excluded(relpath: str) -> bool:
     if "archive" in parts:
         return True
     if os.path.basename(relpath) == "search.html":
+        return True
+    # private/ is the legacy path of the profile/ tree: noindex meta-refresh
+    # redirect stubs that must keep their hand-written head (canonical to the
+    # new URL, no Open Graph) — never inject metadata into them.
+    if parts[0] == "private":
         return True
     return False
 
