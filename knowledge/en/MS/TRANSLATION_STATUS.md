@@ -3,7 +3,7 @@
 **Dojo**: Materials Science
 **Generated**: 2026-08-10
 **Total Series**: 35
-**Total Files**: 202 (35 index + 167 chapters)
+**Total Files**: 203 (35 index + 168 chapters)
 **Complete Series** (index + chapters): 34/35
 
 ---
@@ -12,7 +12,7 @@
 
 - **Series Translated**: 35/35 (100%)
 - **Index Pages**: 35/35 (100%)
-- **Total Chapter Files**: 167
+- **Total Chapter Files**: 168
 - **Average Chapters per Series**: 4.8
 
 ---
@@ -572,12 +572,12 @@
 
 **Directory**: `supercritical-fluid-introduction`
 **Location**: `/MS/supercritical-fluid-introduction/`
-**Files**: 8 total (1 index + 7 chapters)
+**Files**: 9 total (1 index + 8 chapters)
 **Last Update**: 2026-08-10
 
 - ✅ `index.html` - Series overview page
 
-**Chapters** (7):
+**Chapters** (8):
 - ✅ `chapter-1.html`
 - ✅ `chapter-2.html`
 - ✅ `chapter-3.html`
@@ -585,6 +585,7 @@
 - ✅ `chapter-5.html`
 - ✅ `chapter-6.html`
 - ✅ `chapter-7.html`
+- ✅ `chapter-8.html`
 
 ---
 
