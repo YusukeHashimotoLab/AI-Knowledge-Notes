@@ -17,6 +17,85 @@ from typing import List, Tuple, Dict
 import sys
 
 
+# --- Contamination detection -------------------------------------------------
+#
+# The block extractor uses a non-greedy `<div class="mermaid">(.*?)</div>`
+# regex. That is correct for well-formed pages, but it has a blind spot: if a
+# block is closed with something that is NOT `</div>` -- e.g. a bogus
+# type-named tag such as `</flowchart>` / `</graph>` / `</mermaid>` /
+# `</timeline>` / `</sequenceDiagram>`, or a leftover markdown fence -- the
+# regex simply keeps scanning and re-closes on a LATER `</div>`, swallowing all
+# the page markup in between into the "diagram" body. Because only the FIRST
+# line of the body is type-checked, such a block passed validation silently
+# (29 real pages were affected before this was found by hand).
+#
+# The rules below make that bug class loud: a Mermaid body is pure Mermaid
+# text, so any closing HTML tag, markdown fence, or block-level HTML open tag
+# inside it means the div swallowed page content.
+#
+# Calibration against the live corpus (1,952 mermaid divs) -- the only
+# tag-like tokens that legitimately occur inside diagram bodies are:
+#   <br/> (3,855)  <br> (66)  '< br>' (23)  <sub>/</sub> (20)  <sup>/</sup> (2)
+#   <-->  (38, a mermaid bidirectional edge, not a tag)
+#   <sos>/</sos> (3, a literal seq2seq label token, see below)
+# and zero markdown fences. Inline formatting tags are therefore allowlisted.
+
+# Inline formatting / line-break tags that may legitimately appear in a node
+# label. Never reported.
+INLINE_ALLOWED_TAGS = {
+    'br', 'b', 'i', 'u', 's', 'em', 'strong', 'sub', 'sup',
+    'small', 'span', 'code', 'kbd', 'mark', 'wbr',
+}
+
+# Block-level / structural / document HTML tags. An OPEN tag from this set, or
+# a CLOSING tag from this set, inside a Mermaid body means page markup was
+# swallowed -> ERROR.
+BLOCK_LEVEL_TAGS = {
+    'html', 'head', 'body', 'div', 'p',
+    'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+    'ul', 'ol', 'li', 'dl', 'dt', 'dd',
+    'table', 'thead', 'tbody', 'tfoot', 'tr', 'td', 'th', 'caption', 'colgroup',
+    'section', 'article', 'header', 'footer', 'nav', 'aside', 'main',
+    'blockquote', 'pre', 'figure', 'figcaption', 'hr',
+    'form', 'fieldset', 'legend', 'label', 'input', 'button', 'select',
+    'option', 'textarea',
+    'script', 'style', 'link', 'meta', 'title', 'template', 'noscript',
+    'iframe', 'img', 'picture', 'source', 'video', 'audio', 'canvas', 'svg',
+    'details', 'summary', 'dialog', 'a',
+}
+
+# Mermaid diagram type names. Doubles as the source for the bogus type-named
+# closing tags (`</flowchart>`, `</sequenceDiagram>`, ...) plus the `</mermaid>`
+# variant, so the two can never drift apart.
+MERMAID_DIAGRAM_TYPES = ['graph', 'flowchart', 'sequenceDiagram', 'classDiagram',
+                         'stateDiagram-v2', 'stateDiagram', 'erDiagram', 'gantt',
+                         'pie', 'timeline', 'journey', 'gitGraph', 'mindmap',
+                         'quadrantChart', 'xychart-beta', 'sankey-beta',
+                         'requirementDiagram', 'C4Context', 'block-beta']
+BOGUS_CLOSER_TAGS = {t.lower() for t in MERMAID_DIAGRAM_TYPES} | {'mermaid'}
+
+# `</name>` anywhere in the body. Deliberately strict about the `</` being
+# adjacent to the name: mermaid labels are full of `<` comparisons and `-->`
+# arrows, and a loose pattern would start matching them.
+_CLOSING_TAG_RE = re.compile(r'</([A-Za-z][A-Za-z0-9-]*)\s*>')
+
+# `<name ...>` for block-level tags only. Both anchors matter for zero false
+# positives, because mermaid labels legitimately contain `<` comparisons next to
+# `-->` arrows:
+#   * no whitespace is allowed after `<`, so `A[ρ < a] --> B` is not an `<a>` tag
+#   * the lookahead demands real tag syntax after the name, so `A[x <p] --> B`
+#     is not a `<p>` tag while `<p>`, `<p class="x">` and `<br/>` still match
+# Longest-first alternation keeps `<h1>` from being read as an `<h...>` prefix,
+# and `<param>`-style names never match a shorter tag name.
+_BLOCK_OPEN_TAG_RE = re.compile(
+    r'<(' + '|'.join(sorted(BLOCK_LEVEL_TAGS, key=len, reverse=True)) + r')(?=[\s/>])[^>]*>',
+    re.IGNORECASE,
+)
+
+# Markdown code fences (``` / ~~~) left behind by the markdown -> HTML step.
+_FENCE_RE = re.compile(r'```|~~~')
+
+
 class MermaidValidator:
     """Mermaid diagram validator for HTML files."""
 
@@ -86,6 +165,129 @@ class MermaidValidator:
 
         return blocks
 
+    def detect_contamination(self, content: str) -> List[Dict]:
+        """
+        Detect page markup that leaked into a Mermaid diagram body.
+
+        A Mermaid body is pure diagram text. Anything below means the
+        ``<div class="mermaid">`` was closed by something other than ``</div>``
+        (a bogus type-named tag, a stray markdown fence) and the non-greedy
+        extractor re-closed on a later ``</div>``, absorbing page markup:
+
+        * a markdown code fence (``` or ~~~)                  -> error
+        * a block-level HTML open tag (<p, <div, <h3, <ul...) -> error
+        * a closing tag for a block-level HTML element        -> error
+        * a closing tag named after a Mermaid diagram type
+          (</flowchart>, </graph>, </mermaid>, </timeline>,
+          </sequenceDiagram>)                                -> error
+        * any other closing tag that is not inline formatting -> warning
+
+        Inline formatting tags (``<br/>``, ``<br>``, ``<sub>``, ``<sup>``,
+        ``<b>``, ``<i>``, ...) are allowlisted because Mermaid node labels use
+        them legitimately; ``INLINE_ALLOWED_TAGS`` documents the full set.
+
+        Each rule reports at most once per block: a swallowed body holds dozens
+        of tags that all resolve to the same reported line, and one actionable
+        pointer per diagram beats a wall of duplicates.
+
+        The last rule is a warning rather than an error on purpose: three live
+        pages carry a literal ``</sos>`` seq2seq label token that an HTML tidy
+        pass balanced into the body. It is junk, but it is pre-existing junk,
+        so it must not turn the corpus red - it surfaces as a warning instead.
+
+        Args:
+            content: Mermaid diagram body as extracted from the div
+
+        Returns:
+            List of issue dicts ({'severity', 'message'}), possibly empty
+        """
+        issues = []
+        if not content:
+            return issues
+
+        def _line_of(offset: int) -> int:
+            """1-based line number *within the diagram body*."""
+            return content.count('\n', 0, offset) + 1
+
+        # 1. Markdown fences never belong in a rendered Mermaid body.
+        for m in _FENCE_RE.finditer(content):
+            issues.append({
+                'severity': 'error',
+                'message': (
+                    f'Markdown code fence "{m.group(0)}" inside Mermaid body '
+                    f'(body line {_line_of(m.start())}) - the block was not '
+                    f'closed properly and swallowed page content'
+                ),
+            })
+            break  # one report per block is enough
+
+        # 2. Block-level HTML open tags.
+        for m in _BLOCK_OPEN_TAG_RE.finditer(content):
+            issues.append({
+                'severity': 'error',
+                'message': (
+                    f'Block-level HTML tag "{m.group(0)[:40]}" inside Mermaid '
+                    f'body (body line {_line_of(m.start())}) - the block '
+                    f'swallowed page markup'
+                ),
+            })
+            break
+
+        # 3. Closing tags. A swallowed block typically contains dozens of them
+        # (</li>, </td>, </p>, ...), all at the same reported line, so emit at
+        # most one error and one warning per block. A bogus type-named closer is
+        # the most diagnostic finding, so it wins over a generic block closer.
+        bogus_hit = None
+        block_hit = None
+        unknown_hit = None
+        for m in _CLOSING_TAG_RE.finditer(content):
+            name = m.group(1)
+            lowered = name.lower()
+            if lowered in INLINE_ALLOWED_TAGS:
+                continue
+            hit = (name, _line_of(m.start()))
+            if lowered in BOGUS_CLOSER_TAGS:
+                bogus_hit = bogus_hit or hit
+            elif lowered in BLOCK_LEVEL_TAGS:
+                block_hit = block_hit or hit
+            else:
+                unknown_hit = unknown_hit or hit
+
+        if bogus_hit:
+            name, body_line = bogus_hit
+            issues.append({
+                'severity': 'error',
+                'message': (
+                    f'Bogus type-named closing tag "</{name}>" inside Mermaid '
+                    f'body (body line {body_line}) - the block must be closed '
+                    f'with </div>; the extractor re-closed on a later </div> '
+                    f'and swallowed page content'
+                ),
+            })
+        elif block_hit:
+            name, body_line = block_hit
+            issues.append({
+                'severity': 'error',
+                'message': (
+                    f'Closing HTML tag "</{name}>" inside Mermaid body '
+                    f'(body line {body_line}) - the block swallowed page markup'
+                ),
+            })
+
+        if unknown_hit:
+            name, body_line = unknown_hit
+            issues.append({
+                'severity': 'warning',
+                'message': (
+                    f'Unexpected closing tag "</{name}>" inside Mermaid body '
+                    f'(body line {body_line}) - Mermaid bodies should contain '
+                    f'only inline formatting tags '
+                    f'({", ".join(sorted(INLINE_ALLOWED_TAGS))})'
+                ),
+            })
+
+        return issues
+
     def validate_mermaid_syntax(self, content: str, file_path: Path, line_num: int) -> Dict:
         """
         Validate Mermaid diagram syntax.
@@ -105,11 +307,11 @@ class MermaidValidator:
         # the original list, so valid xychart diagrams were reported as errors.
         # This list must track the diagram types actually renderable by the
         # mermaid version pinned in the pages (mermaid@10.9.x).
-        diagram_types = ['graph', 'flowchart', 'sequenceDiagram', 'classDiagram',
-                        'stateDiagram-v2', 'stateDiagram', 'erDiagram', 'gantt',
-                        'pie', 'timeline', 'journey', 'gitGraph', 'mindmap',
-                        'quadrantChart', 'xychart-beta', 'sankey-beta',
-                        'requirementDiagram', 'C4Context', 'block-beta']
+        diagram_types = MERMAID_DIAGRAM_TYPES
+
+        # Contamination checks run FIRST: a swallowed block usually still has a
+        # valid-looking first line, so the type check alone cannot see it.
+        issues.extend(self.detect_contamination(content))
 
         first_line = content.strip().split('\n')[0] if content.strip() else ''
         has_diagram_type = any(first_line.startswith(dtype) for dtype in diagram_types)

@@ -7,6 +7,9 @@ behaviour:
   - zero-error run on valid diagrams
   - single-line ``<div class="mermaid">...</div>`` blocks (they must be captured
     and validated, and must not swallow the markup that follows)
+  - swallowed page content (the non-greedy ``</div>`` blind spot): bogus
+    type-named closers, leftover markdown fences and leaked block markup are
+    errors, while ``<br/>``-style inline tags in node labels are not
   - error run reports the correct count and a non-zero exit/return code
   - relative-path invocation (the original crash scenario)
   - absolute-path invocation
@@ -79,6 +82,52 @@ BROKEN_PRE = (
 
 # No recognizable diagram type -> genuine error.
 BROKEN_NO_TYPE = '<div class="mermaid">this is not a diagram at all</div>'
+
+
+# --- Swallowed-content fixtures (the validator blind spot) -----------------------
+#
+# These reproduce the bug class repaired across 29 diagrams: the block was
+# closed with a bogus type-named tag or a leftover markdown fence instead of
+# </div>, so the non-greedy extractor re-closed on a LATER </div> and absorbed
+# the page markup in between. The first body line still read "flowchart TD",
+# so the type check -- the only content check at the time -- passed silently.
+
+# Closed with </flowchart>; the extractor runs on to the section wrapper's
+# </div>, swallowing an <h3> and a <p>.
+SWALLOWED_BOGUS_CLOSER = (
+    '<div class="section">\n'
+    '<div class="mermaid">\n'
+    'flowchart TD\n'
+    '  A[Start] --> B[End]\n'
+    '</flowchart>\n'
+    '<h3>Next section</h3>\n'
+    '<p>Prose that is not a diagram.</p>\n'
+    '</div>'
+)
+
+# Same shape, but the bogus closer is a leftover markdown fence.
+SWALLOWED_FENCE = (
+    '<div class="section">\n'
+    '<div class="mermaid">\n'
+    'graph LR\n'
+    '  A --> B\n'
+    '```\n'
+    '<p>Prose that is not a diagram.</p>\n'
+    '</div>'
+)
+
+# Bogus closer variants seen in the wild.
+BOGUS_CLOSERS = ('flowchart', 'graph', 'mermaid', 'timeline', 'sequenceDiagram')
+
+# A <br/> line break in a node label is legitimate Mermaid (3,900+ uses in the
+# live corpus) and must never be flagged.
+VALID_BR_LABEL = (
+    '<div class="mermaid">\n'
+    'flowchart LR\n'
+    '  A[Chapter 1<br/>Intro] --> B[Chapter 2<br>Details]\n'
+    '  B --> C[H<sub>2</sub>O and x<sup>2</sup>]\n'
+    '</div>'
+)
 
 
 def _page(body: str) -> str:
@@ -176,6 +225,148 @@ class TestSingleLineDiv(unittest.TestCase):
             self.assertEqual(v.errors[0]['type'], 'unclosed_block')
 
 
+class TestSwallowedContent(unittest.TestCase):
+    """Regression: the extractor's non-greedy </div> blind spot.
+
+    ``<div class="mermaid">(.*?)</div>`` re-closes on a LATER </div> whenever the
+    intended closer is a bogus type-named tag (``</flowchart>``, ``</graph>``,
+    ``</mermaid>``, ``</timeline>``, ``</sequenceDiagram>``) or a leftover
+    markdown fence, absorbing page markup into the "diagram". Only the first
+    body line was type-checked, so 29 such diagrams passed validation silently.
+    These tests make sure that can never happen again.
+    """
+
+    def _errors_for(self, body: str):
+        with tempfile.TemporaryDirectory() as td:
+            _write(td, "page.html", body)
+            v = MermaidValidator(Path(td))
+            _run_quiet(v.validate_all, Path(td))
+            return v.errors, v.warnings
+
+    def test_bogus_type_named_closer_is_error(self):
+        errors, _ = self._errors_for(SWALLOWED_BOGUS_CLOSER)
+        self.assertTrue(errors, "bogus </flowchart> closer must be reported")
+        self.assertTrue(
+            any('</flowchart>' in e['message'] for e in errors),
+            f"expected the bogus closer to be named; got {[e['message'] for e in errors]}",
+        )
+
+    def test_every_known_bogus_closer_is_error(self):
+        for tag in BOGUS_CLOSERS:
+            body = (
+                '<div class="section">\n'
+                '<div class="mermaid">\n'
+                'flowchart TD\n'
+                '  A --> B\n'
+                f'</{tag}>\n'
+                '</div>'
+            )
+            with self.subTest(tag=tag):
+                errors, _ = self._errors_for(body)
+                self.assertTrue(
+                    any(f'</{tag}>' in e['message'] for e in errors),
+                    f"</{tag}> must be reported as an error",
+                )
+
+    def test_markdown_fence_is_error(self):
+        errors, _ = self._errors_for(SWALLOWED_FENCE)
+        self.assertTrue(
+            any('fence' in e['message'].lower() for e in errors),
+            f"a leftover ``` fence must be reported; got {[e['message'] for e in errors]}",
+        )
+
+    def test_tilde_fence_is_error(self):
+        body = '<div class="mermaid">\nflowchart TD\n  A --> B\n~~~\n</div>'
+        errors, _ = self._errors_for(body)
+        self.assertTrue(any('fence' in e['message'].lower() for e in errors))
+
+    def test_swallowed_h3_is_error(self):
+        """The swallowed <h3> is named, alongside the bogus closer."""
+        errors, _ = self._errors_for(SWALLOWED_BOGUS_CLOSER)
+        messages = ' | '.join(e['message'] for e in errors)
+        self.assertIn('<h3>', messages)
+        self.assertIn('</flowchart>', messages)
+
+    def test_swallowed_p_is_error(self):
+        """A leaked <p>...</p> is caught even with no bogus closer to point at."""
+        body = (
+            '<div class="section">\n'
+            '<div class="mermaid">\n'
+            'flowchart TD\n'
+            '  A --> B\n'
+            '<p>swallowed prose</p>\n'
+            '</div>'
+        )
+        errors, _ = self._errors_for(body)
+        messages = ' | '.join(e['message'] for e in errors)
+        self.assertIn('<p>', messages)
+        self.assertIn('</p>', messages)
+
+    def test_one_report_per_rule_per_block(self):
+        """A swallowed body holds dozens of tags; the report stays actionable."""
+        body = (
+            '<div class="section">\n'
+            '<div class="mermaid">\n'
+            'flowchart TD\n'
+            '  A --> B\n'
+            '</flowchart>\n'
+            '<ul><li>one</li><li>two</li><li>three</li></ul>\n'
+            '<table><tr><td>a</td><td>b</td></tr></table>\n'
+            '</div>'
+        )
+        errors, _ = self._errors_for(body)
+        # One block-open-tag error + one closing-tag error, not one per tag.
+        self.assertEqual(len(errors), 2, [e['message'] for e in errors])
+
+    def test_swallowed_block_markup_without_bogus_closer_is_error(self):
+        """Even with a valid first line and no bogus closer, leaked <p>/<div> is an error."""
+        body = (
+            '<div class="section">\n'
+            '<div class="mermaid">\n'
+            'flowchart TD\n'
+            '  A --> B\n'
+            '<p>swallowed prose</p>\n'
+            '</div>'
+        )
+        errors, _ = self._errors_for(body)
+        self.assertTrue(errors, "leaked block markup must not pass silently")
+
+    def test_br_and_inline_tags_in_labels_are_not_flagged(self):
+        """<br/>, <br>, <sub>, <sup> are legitimate inside Mermaid node labels."""
+        errors, warnings = self._errors_for(VALID_BR_LABEL)
+        self.assertEqual(errors, [], f"false positive: {[e['message'] for e in errors]}")
+        self.assertEqual(
+            warnings, [], f"false positive warning: {[w['message'] for w in warnings]}"
+        )
+
+    def test_clean_diagram_reports_no_contamination(self):
+        v = MermaidValidator(Path('.'))
+        self.assertEqual(v.detect_contamination('flowchart TD\n  A[a<br/>b] --> B'), [])
+        self.assertEqual(v.detect_contamination(''), [])
+
+    def test_comparison_labels_are_not_mistaken_for_tags(self):
+        """`<` comparisons next to `-->` arrows must not read as HTML tags.
+
+        The live corpus is full of labels like ``A[ρ < 1.2 g/cm³] --> B``. A
+        loose tag pattern would see ``< a] -->`` as an ``<a ...>`` anchor and
+        ``<p] -->`` as a ``<p>``, so the detector requires real tag syntax.
+        """
+        v = MermaidValidator(Path('.'))
+        for label in (
+            'flowchart TD\n  A[rho < a] --> B',
+            'flowchart TD\n  A[x <a] --> B',
+            'flowchart TD\n  A[x <p] --> B',
+            'flowchart TD\n  A[T < 0.8T_c] --> B[x < 1.2 g/cm3]',
+            'flowchart LR\n  A <--> B',
+            'flowchart LR\n  A[one< br>two] --> B',
+        ):
+            with self.subTest(label=label):
+                self.assertEqual(
+                    v.detect_contamination(label), [],
+                    f"false positive on {label!r}",
+                )
+
+
 class TestErrorRuns(unittest.TestCase):
     """Broken diagrams must be counted and surface a non-zero exit code."""
 
@@ -187,7 +378,13 @@ class TestErrorRuns(unittest.TestCase):
             _run_quiet(v.validate_all, Path(td))
             # print_report must not raise.
             _run_quiet(v.print_report)
-            self.assertEqual(len(v.errors), 2)
+            # Both files must be reported. BROKEN_PRE now yields more than one
+            # error: besides "no diagram type" (the <pre> is the first token),
+            # the <pre>/</pre> pair is also flagged as leaked block markup.
+            self.assertEqual(
+                {Path(e['file']).name for e in v.errors}, {"pre.html", "notype.html"}
+            )
+            self.assertGreaterEqual(len(v.errors), 2)
 
     def test_cli_exit_code_zero_when_clean(self):
         with tempfile.TemporaryDirectory() as td:
@@ -280,8 +477,8 @@ def run_tests():
     """Run all tests (used when executing this file directly)."""
     loader = unittest.TestLoader()
     suite = unittest.TestSuite()
-    for tc in (TestZeroErrorRuns, TestSingleLineDiv, TestErrorRuns,
-               TestPathInvocation, TestNoHtml):
+    for tc in (TestZeroErrorRuns, TestSingleLineDiv, TestSwallowedContent,
+               TestErrorRuns, TestPathInvocation, TestNoHtml):
         suite.addTests(loader.loadTestsFromTestCase(tc))
     runner = unittest.TextTestRunner(verbosity=2)
     result = runner.run(suite)
