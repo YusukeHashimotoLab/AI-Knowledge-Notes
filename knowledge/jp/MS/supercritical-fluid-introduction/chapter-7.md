@@ -1,0 +1,1279 @@
+---
+title: "第7章: Pythonによる実践計算"
+chapter_title: "第7章: Pythonによる実践計算"
+subtitle: 物性計算、相図の作成、状態方程式の実装、プロセスシミュレーション
+---
+
+第6章では式を扱いました。本章ではそれを動くコードに変えます。まず状態方程式を自分で書く必要をなくす参照品質の物性ライブラリCoolPropから始め、次に相図をプログラムで作成し、van der Waals式とPeng-Robinson式を実装して参照データと比較し、最後に多段抽出、RESSによる粒子生成、溶解度データのフィッティングといったプロセスモデルへ進みます。番号付きの例はすべて自己完結しており、掲載している出力は実際にコードを実行して得たものです。
+
+## 学習目標
+
+本章を修了すると、以下のことができるようになります：
+
+  * CoolPropと`thermo`をインストールして熱物性計算に用い、両者を適切に使い分けられる
+  * 任意の $T$、$P$ における密度、粘度、熱伝導率、熱容量、エンタルピー、音速を取得できる
+  * 飽和曲線と超臨界領域を含む $P$-$T$ 図および $P$-$V$ 図をプログラムで作成できる
+  * van der Waals式とPeng-Robinson式をゼロから実装し、参照状態方程式に対する誤差を定量化できる
+  * 多段の超臨界抽出をシミュレートし、濃度プロファイルを解釈できる
+  * 超臨界CO₂抽出を一貫してモデル化できる：溶解度、収率、製品1 kgあたりのCO₂消費量
+  * ノズル条件からRESSの粒子径を推定できる
+  * 実験溶解度データをChrastil式にフィッティングし、パラメータの不確かさを正しく報告できる
+
+* * *
+
+## 7.1 超臨界流体計算ライブラリ
+
+### CoolProp
+
+[CoolProp](<http://www.coolprop.org/>)は、122種類以上の純物質と混合物を扱えるオープンソースの熱物性ライブラリです。CO₂にはSpan-Wagner式、水にはIAPWS-95式といった参照品質のHelmholtz自由エネルギー型状態方程式を実装しているため、その出力は立方型状態方程式による近似ではなく実験精度に近い値になります。
+
+  * **高精度** ：参照状態方程式に基づき、密度では通常0.1%以内
+  * **広い適用範囲** ：三重点から高温高圧まで
+  * **多言語対応** ：Python、MATLAB、Excel、C++
+  * **高速** ：最適化されたC++バックエンド
+
+インストール
+    
+    
+    pip install CoolProp
+
+### thermoライブラリ
+
+[thermo](<https://github.com/CalebBell/thermo>)は、非常に大きな化合物データベースと柔軟なモデル層をもつ、純Python実装の化学工学向け物性ライブラリです。
+
+  * **化合物データベース** ：20,000種類以上の化合物の臨界物性を収録
+  * **純Python実装** ：読みやすく、改変・拡張が容易
+  * **状態方程式の柔軟性** ：複数の立方型状態方程式（PR、SRK、VDW）と混合則
+  * **基団寄与法** ：実験データがない場合の推算手法
+
+インストール
+    
+    
+    pip install thermo
+
+### 使い分け
+
+項目 | CoolProp | thermo  
+---|---|---  
+精度 | 非常に高い（参照状態方程式） | 高い（立方型状態方程式・推算法）  
+速度 | 速い（C++バックエンド） | 中程度（純Python）  
+収録物質数 | 純物質122種類以上 | 20,000種類以上（データベース）  
+混合物 | 対応（HEOSバックエンド） | 強力に対応、混合則も柔軟  
+カスタマイズ性 | 限定的 | 非常に高い  
+学習曲線 | 緩やか | やや急  
+適した用途 | 実務での物性計算 | 研究、稀な化合物、モデル開発  
+  
+**推奨** ：参照状態方程式が存在する溶媒（CO₂、水、エタノール）にはCoolPropを、参照状態方程式が存在しないことの多い有機化合物である溶質には`thermo`を使うのがよいでしょう。本章の例でCoolPropを用いるのは、超臨界プロセスの設計を支配するのが溶媒物性だからです。
+
+* * *
+
+## 7.2 CoolPropによる物性計算
+
+### 基本的な呼び出しパターン
+
+ほとんどすべての計算は、完全にSI単位系で動作する単一の関数`PropsSI`を通して行います。
+
+PropsSI: 覚えるべき唯一の関数
+    
+    
+    from CoolProp.CoolProp import PropsSI
+    
+    # 書式: PropsSI('出力物性', '入力1名', 値1, '入力2名', 値2, '物質名')
+    
+    # 10 MPa、50℃におけるCO2の密度
+    rho = PropsSI('D', 'P', 10e6, 'T', 50 + 273.15, 'CO2')
+    print(f"密度: {rho:.2f} kg/m^3")   # 密度: 384.33 kg/m^3
+
+状態は独立な2つの物性で決まるため、`('P', 'T')`、`('T', 'D')`、`('P', 'H')`、さらに飽和状態については`('T', 'Q')`（乾き度）といった入力の組み合わせがいずれも有効です。
+
+記号 | 物性 | SI単位  
+---|---|---  
+`T`| 温度| K  
+`P`| 圧力| Pa  
+`D`| 密度| kg/m³  
+`H`| 比エンタルピー| J/kg  
+`S`| 比エントロピー| J/(kg·K)  
+`C`| 定圧比熱 $c_p$| J/(kg·K)  
+`O`| 定容比熱 $c_v$| J/(kg·K)  
+`V`| 粘度| Pa·s  
+`L`| 熱伝導率| W/(m·K)  
+`A`| 音速| m/s  
+`Q`| 乾き度| -  
+  
+**すべてSI単位系であり、そこでつまずきます。** 圧力はbarやMPaではなくPa、温度は℃ではなくK、粘度はcPではなくPa·sです。圧力の10⁶倍の誤りはCoolPropで最も多い間違いです。単位換算はコードの境界で一度だけ行い、内部ではSIを保つようにしてください。
+
+### 例1: 完全な物性表
+
+最初に欲しくなるのは、想定する運転範囲全体にわたる物性表でしょう。この例では物性表を作り、どの状態が実際に超臨界なのかを判定し、換算物性を付け加え、CSVに書き出します。
+
+コード例1: 超臨界CO₂の総合物性表
+    
+    
+    import CoolProp.CoolProp as CP
+    import pandas as pd
+    
+    def calculate_scf_properties(fluid, pressure_mpa, temperature_c):
+        """
+        超臨界流体の熱物性を総合的に計算する。
+    
+        Parameters:
+        -----------
+        fluid : str
+            物質名（'CO2'、'Water'、'Ethanol' など）
+        pressure_mpa : float
+            圧力 (MPa)
+        temperature_c : float
+            温度 (℃)
+    
+        Returns:
+        --------
+        dict : 計算された物性の辞書
+        """
+        # SI単位へ変換
+        P = pressure_mpa * 1e6      # Pa
+        T = temperature_c + 273.15  # K
+    
+        # 臨界物性
+        Tc = CP.PropsSI('Tcrit', fluid)
+        Pc = CP.PropsSI('pcrit', fluid)
+    
+        # 温度と圧力の両方が臨界値を超えて初めて超臨界となる
+        is_supercritical = (T > Tc) and (P > Pc)
+    
+        properties = {
+            'Fluid': fluid,
+            'Pressure (MPa)': pressure_mpa,
+            'Temperature (C)': temperature_c,
+            'Is Supercritical': is_supercritical,
+            'Density (kg/m3)': CP.PropsSI('D', 'P', P, 'T', T, fluid),
+            'Viscosity (uPa s)': CP.PropsSI('V', 'P', P, 'T', T, fluid) * 1e6,
+            'Thermal Conductivity (mW/m/K)': CP.PropsSI('L', 'P', P, 'T', T, fluid) * 1e3,
+            'Cp (J/kg/K)': CP.PropsSI('C', 'P', P, 'T', T, fluid),
+            'Cv (J/kg/K)': CP.PropsSI('O', 'P', P, 'T', T, fluid),
+            'Enthalpy (kJ/kg)': CP.PropsSI('H', 'P', P, 'T', T, fluid) / 1e3,
+            'Entropy (J/kg/K)': CP.PropsSI('S', 'P', P, 'T', T, fluid),
+            'Speed of Sound (m/s)': CP.PropsSI('A', 'P', P, 'T', T, fluid),
+        }
+    
+        # 換算物性
+        properties['Reduced Pressure (Pr)'] = P / Pc
+        properties['Reduced Temperature (Tr)'] = T / Tc
+    
+        return properties
+    
+    # 現実的な運転範囲で超臨界CO2の物性表を作成する
+    pressures = [8, 10, 15, 20, 25]        # MPa
+    temperatures = [35, 50, 75, 100, 150]  # ℃
+    
+    results = []
+    for P in pressures:
+        for T in temperatures:
+            try:
+                results.append(calculate_scf_properties('CO2', P, T))
+            except Exception as e:
+                print(f"エラー (P={P} MPa, T={T}℃): {e}")
+    
+    df = pd.DataFrame(results)
+    
+    pd.options.display.float_format = '{:.2f}'.format
+    print("=== 超臨界CO2 物性表 ===")
+    print(df[['Pressure (MPa)', 'Temperature (C)', 'Is Supercritical',
+              'Density (kg/m3)', 'Viscosity (uPa s)',
+              'Cp (J/kg/K)']].to_string(index=False))
+    
+    df.to_csv('scCO2_properties.csv', index=False, encoding='utf-8-sig')
+    print("\n物性表を 'scCO2_properties.csv' に保存しました")
+
+=== 超臨界CO2 物性表 === Pressure (MPa) Temperature (C) Is Supercritical Density (kg/m3) Viscosity (uPa s) Cp (J/kg/K) 8 35 True 419.09 29.16 29593.72 8 50 True 219.18 20.29 2512.52 8 75 True 166.54 20.05 1573.36 8 100 True 141.27 20.68 1335.83 8 150 True 112.98 22.42 1180.29 10 35 True 712.81 57.99 3988.64 10 50 True 384.33 27.79 5807.71 10 75 True 233.43 22.09 2009.83 10 100 True 188.56 21.92 1521.75 10 150 True 145.56 23.15 1253.35 15 35 True 815.06 74.49 2534.09 15 50 True 699.75 56.77 3049.49 15 75 True 463.33 34.24 3165.55 15 100 True 332.35 27.52 2103.98 15 150 True 233.93 25.76 1455.21 20 35 True 865.72 84.72 2201.52 20 50 True 784.29 69.45 2371.44 20 75 True 626.23 48.92 2620.93 20 100 True 480.53 36.71 2340.43 20 150 True 327.10 29.62 1639.76 25 35 True 901.23 92.97 2039.98 25 50 True 834.19 78.50 2120.56 25 75 True 711.61 59.38 2247.71 25 100 True 588.45 46.11 2199.85 25 150 True 415.50 34.53 1749.36 物性表を 'scCO2_properties.csv' に保存しました
+
+#### この表が示す3つのこと
+
+  * **密度の崖。** 10 MPaでは50℃から35℃へ冷却するだけで密度が384から713 kg/m³へとほぼ倍増します。この1つの数値が超臨界抽出の事業的基盤です。高密度で溶かし、低密度で析出させ、圧力または温度をスイッチとして使います。
+  * **$c_p$ の発散は実在する。** 8 MPa・35℃、すなわち臨界点（7.38 MPa、31.0℃）のすぐ上では $c_p$ が29,594 J/(kg·K)に達し、高温側の値の25倍にもなります。これが第6章で導いた発散であり、臨界点近傍でヒーターの応答が鈍くなる理由です。
+  * **気体的な粘度は保たれる。** 901 kg/m³（25 MPa・35℃）という密度でも粘度は93 μPa·s、液体の水の約10分の1です。液体的な密度と気体的な粘度の組み合わせこそが、超臨界流体の物質移動を速くしています。
+
+### 例2: 臨界点と三重点のデータ
+
+どんな計算の前にも、臨界点が実際どこにあるかを確認しましょう。CoolPropでは同じ関数を引数2つで呼ぶことで固定点データを取得できます。
+
+コード例2: 代表的な超臨界溶媒の固定点データ
+    
+    
+    from CoolProp.CoolProp import PropsSI
+    
+    def print_fixed_points(fluid):
+        """物質の臨界点と三重点のデータを出力する。"""
+        T_crit = PropsSI('Tcrit', fluid)      # K
+        P_crit = PropsSI('pcrit', fluid)      # Pa
+        rho_crit = PropsSI('rhocrit', fluid)  # kg/m^3
+        T_triple = PropsSI('Ttriple', fluid)  # K
+        P_triple = PropsSI('ptriple', fluid)  # Pa
+        M = PropsSI('molar_mass', fluid)      # kg/mol
+    
+        print(f"{fluid}:")
+        print(f"  モル質量: {M * 1000:.2f} g/mol")
+        print(f"  臨界点:   {T_crit - 273.15:7.2f} ℃, "
+              f"{P_crit / 1e6:6.3f} MPa, {rho_crit:6.1f} kg/m^3")
+        print(f"  三重点:   {T_triple - 273.15:7.2f} ℃, "
+              f"{P_triple:.3e} Pa")
+    
+        # 臨界圧縮因子
+        R = 8.314462618  # J/(mol·K)
+        Zc = P_crit * M / (rho_crit * R * T_crit)
+        print(f"  Zc = {Zc:.4f}")
+    
+    for fluid in ['CO2', 'Water', 'Ethanol']:
+        print_fixed_points(fluid)
+        print()
+
+CO2: モル質量: 44.01 g/mol 臨界点: 30.98 ℃, 7.377 MPa, 467.6 kg/m^3 三重点: -56.56 ℃, 5.180e+05 Pa Zc = 0.2746 Water: モル質量: 18.02 g/mol 臨界点: 373.95 ℃, 22.064 MPa, 322.0 kg/m^3 三重点: 0.01 ℃, 6.117e+02 Pa Zc = 0.2294 Ethanol: モル質量: 46.07 g/mol 臨界点: 241.56 ℃, 6.268 MPa, 273.2 kg/m^3 三重点: -114.05 ℃, 7.354e-04 Pa Zc = 0.2470
+
+ここから読み取るべき点が2つあります。第1に、計算された $Z_c$（0.229〜0.275）は第6章で導いたvan der Waals式の予測値0.375を大きく下回っており、この方程式の中心的な弱点をわずか3行で数値的に確認できます。第2に、CO₂の三重点圧力は0.518 MPa、すなわち大気圧より高く、まさにこれが固体CO₂が常圧下で融解せず昇華する理由です。
+
+* * *
+
+## 7.3 相図の作成
+
+**グラフの日本語表示について。** 以下の例ではグラフの軸ラベルに日本語を用いています。文字化けを避けるため、実行前に日本語フォントを指定してください（例: `plt.rcParams['font.family'] = 'Hiragino Sans'`、Linuxでは `'IPAexGothic'`）。
+
+### 例3: P-T相図の自動生成
+
+再利用可能な相図生成関数です。固定点を取得し、飽和曲線をたどり、超臨界領域を塗り分け、各相にラベルを付けます。
+
+コード例3: P-T相図の生成
+    
+    
+    import CoolProp.CoolProp as CP
+    import matplotlib.pyplot as plt
+    import numpy as np
+    
+    def generate_phase_diagram(fluid, save_path=None):
+        """
+        臨界点と相境界を含むP-T相図を生成する。
+    
+        Parameters:
+        -----------
+        fluid : str
+            物質名（'CO2'、'Water' など）
+        save_path : str, optional
+            図の保存先パス
+        """
+        # 固定点を℃とMPaに変換
+        Tc = CP.PropsSI('Tcrit', fluid) - 273.15
+        Pc = CP.PropsSI('pcrit', fluid) / 1e6
+        Tt = CP.PropsSI('Ttriple', fluid) - 273.15
+        Pt = CP.PropsSI('ptriple', fluid) / 1e6
+    
+        # 飽和曲線（気液境界）
+        T_sat = np.linspace(Tt + 1, Tc - 0.1, 100)  # ℃
+        P_sat = []
+    
+        for T in T_sat:
+            try:
+                P_sat.append(CP.PropsSI('P', 'T', T + 273.15, 'Q', 0, fluid) / 1e6)
+            except ValueError:
+                P_sat.append(np.nan)
+    
+        fig, ax = plt.subplots(figsize=(10, 7))
+    
+        ax.plot(T_sat, P_sat, 'b-', linewidth=2, label='気液境界')
+        ax.plot(Tc, Pc, 'ro', markersize=12,
+                label=f'臨界点 ({Tc:.1f} ℃, {Pc:.2f} MPa)')
+        ax.plot(Tt, Pt, 'go', markersize=10,
+                label=f'三重点 ({Tt:.1f} ℃, {Pt:.4f} MPa)')
+    
+        # 超臨界領域を塗る
+        T_shade = np.linspace(Tc, Tc + 100, 50)
+        ax.fill_between(T_shade, np.full_like(T_shade, Pc),
+                        np.full_like(T_shade, Pc * 3),
+                        alpha=0.2, color='red', label='超臨界領域')
+    
+        # 相のラベル
+        ax.text(Tt - 20, Pt / 2, '固相', fontsize=14, ha='center')
+        ax.text(Tc - 20, Pc / 2, '液相', fontsize=14, ha='center')
+        ax.text(Tc - 20, Pc / 10, '気相', fontsize=14, ha='center')
+        ax.text(Tc + 30, Pc * 1.5, '超臨界流体', fontsize=14, ha='center',
+                color='red', weight='bold')
+    
+        ax.set_xlabel('温度 (℃)', fontsize=12)
+        ax.set_ylabel('圧力 (MPa)', fontsize=12)
+        ax.set_title(f'{fluid} の相図', fontsize=14, weight='bold')
+        ax.legend(loc='upper left', fontsize=10)
+        ax.grid(True, alpha=0.3)
+        ax.set_xlim(Tt - 30, Tc + 100)
+        ax.set_ylim(0, Pc * 3)
+    
+        plt.tight_layout()
+    
+        if save_path:
+            plt.savefig(save_path, dpi=300, bbox_inches='tight')
+            print(f"相図を '{save_path}' に保存しました")
+    
+        plt.show()
+    
+    # 代表的な超臨界溶媒の相図を生成する
+    generate_phase_diagram('CO2', 'CO2_phase_diagram.png')
+    # generate_phase_diagram('Water', 'H2O_phase_diagram.png')
+    # generate_phase_diagram('Ethanol', 'ethanol_phase_diagram.png')
+
+**この図に描かれていないもの。** CoolPropは気液境界を直接与えますが、昇華曲線と融解曲線は与えません。これらは参照Helmholtz型状態方程式が保持していない固相のデータを必要とします。CO₂の完全な相図を描くには、固相境界を別の相関式から追加しなければなりません。CO₂の融解曲線は非常に急峻で、三重点近傍では $dP/dT \sim 10^7$ Pa/K のオーダーになるため、線形の圧力軸上ではほぼ垂直に見えます。
+
+### 例4: 相転移をまたぐP-V等温線
+
+$P$-$V$ 図では二相領域が目に見えます。$T_c$ 以下では飽和液と飽和蒸気を結ぶ水平な共存線によって等温線が中断され、$T_c$ より上では連続になります。
+
+コード例4: CO₂のP-V等温線
+    
+    
+    import CoolProp.CoolProp as CP
+    import matplotlib.pyplot as plt
+    import numpy as np
+    
+    def generate_pv_diagram(fluid, temperatures_c, save_path=None):
+        """
+        相転移をまたぐ等温線を含むP-V図を生成する。
+    
+        Parameters:
+        -----------
+        fluid : str
+            物質名
+        temperatures_c : list
+            温度のリスト (℃)
+        save_path : str, optional
+            図の保存先パス
+        """
+        Tc = CP.PropsSI('Tcrit', fluid) - 273.15
+        Pc = CP.PropsSI('pcrit', fluid) / 1e6
+    
+        fig, ax = plt.subplots(figsize=(10, 7))
+    
+        for T_c in temperatures_c:
+            T_k = T_c + 273.15
+    
+            if T_c < Tc - 0.5:
+                # 臨界温度以下: 等温線が二相領域を横切る
+                P_sat = CP.PropsSI('P', 'T', T_k, 'Q', 0, fluid) / 1e6
+    
+                # 圧縮液の枝
+                P_liquid = np.linspace(P_sat + 0.1, Pc * 2, 50)
+                V_liquid = [1 / CP.PropsSI('D', 'P', P * 1e6, 'T', T_k, fluid)
+                            for P in P_liquid]
+    
+                # 過熱蒸気の枝
+                P_vapor = np.linspace(0.1, P_sat - 0.01, 50)
+                V_vapor = [1 / CP.PropsSI('D', 'P', P * 1e6, 'T', T_k, fluid)
+                           for P in P_vapor]
+    
+                # 共存線の両端（飽和液・飽和蒸気）
+                V_liq_sat = 1 / CP.PropsSI('D', 'T', T_k, 'Q', 0, fluid)
+                V_vap_sat = 1 / CP.PropsSI('D', 'T', T_k, 'Q', 1, fluid)
+    
+                ax.plot(V_liquid, P_liquid, 'b-', alpha=0.7)
+                ax.plot(V_vapor, P_vapor, 'b-', alpha=0.7,
+                        label=f'{T_c:.0f} ℃（Tc以下）')
+                ax.plot([V_liq_sat, V_vap_sat], [P_sat, P_sat], 'b--', alpha=0.7)
+            else:
+                # 臨界温度以上: 単一の連続した枝
+                P_range = np.linspace(0.1, Pc * 2, 100)
+                V_range = [1 / CP.PropsSI('D', 'P', P * 1e6, 'T', T_k, fluid)
+                           for P in P_range]
+    
+                label = (f'{T_c:.1f} ℃（Tc）' if abs(T_c - Tc) < 0.5
+                         else f'{T_c:.0f} ℃（Tc以上）')
+                ax.plot(V_range, P_range, 'r-', linewidth=2, alpha=0.8, label=label)
+    
+        ax.set_xlabel('比容積 (m³/kg)', fontsize=12)
+        ax.set_ylabel('圧力 (MPa)', fontsize=12)
+        ax.set_title(f'{fluid} のP-V図（等温線）', fontsize=14, weight='bold')
+        ax.set_xscale('log')
+        ax.legend(loc='best', fontsize=9)
+        ax.grid(True, alpha=0.3, which='both')
+    
+        plt.tight_layout()
+    
+        if save_path:
+            plt.savefig(save_path, dpi=300, bbox_inches='tight')
+            print(f"P-V図を '{save_path}' に保存しました")
+    
+        plt.show()
+    
+    Tc_CO2 = CP.PropsSI('Tcrit', 'CO2') - 273.15
+    generate_pv_diagram('CO2', [20, 30, Tc_CO2, 40, 60, 100], 'CO2_pv_diagram.png')
+
+**実用的な変形。** 横軸を比容積から密度に置き換えると $P$-$\rho$ 図になり、抽出の検討ではこちらのほうが有用です。溶解度は体積ではなく密度と相関するためです（第6章のChrastil式）。変更は1行で済みます。`CP.PropsSI('D', ...)` の逆数ではなくその値をそのままプロットし、対数軸を外すだけです。
+
+* * *
+
+## 7.4 状態方程式の実装
+
+第6章ではvan der Waals式とPeng-Robinson式を導出しました。これらを自分で実装する価値は2つあります。参照ライブラリに収録されていない化合物を扱うにはカスタムの状態方程式コードが必要ですし、自分の実装をCoolPropと比較することが、立方型状態方程式がどこで破綻するかを体感する最短の道でもあります。
+
+### 例5: van der Waalsソルバーとその検証
+
+コード例5: van der Waals状態方程式クラス
+    
+    
+    import numpy as np
+    from CoolProp.CoolProp import PropsSI
+    
+    class VanDerWaalsEOS:
+        """van der Waals状態方程式。"""
+    
+        def __init__(self, Tc, Pc):
+            """
+            Parameters
+            ----------
+            Tc : float
+                臨界温度 (K)
+            Pc : float
+                臨界圧力 (Pa)
+            """
+            self.Tc = Tc
+            self.Pc = Pc
+            self.R = 8.314  # J/(mol·K)
+    
+            # 臨界定数から求めたvan der Waalsパラメータ
+            self.a = 27 * (self.R * Tc)**2 / (64 * Pc)  # Pa·m^6/mol^2
+            self.b = self.R * Tc / (8 * Pc)             # m^3/mol
+    
+        def pressure(self, V, T):
+            """
+            モル体積と温度から圧力を計算する。
+    
+            Parameters
+            ----------
+            V : float
+                モル体積 (m^3/mol)
+            T : float
+                温度 (K)
+    
+            Returns
+            -------
+            float
+                圧力 (Pa)
+            """
+            return self.R * T / (V - self.b) - self.a / V**2
+    
+        def molar_volume(self, P, T):
+            """
+            モル体積: 3次方程式の実正根。
+    
+            V^3 - (b + RT/P)V^2 + (a/P)V - ab/P = 0
+    
+            Returns
+            -------
+            array
+                実正根 (m^3/mol)、昇順
+            """
+            coeffs = [
+                1,
+                -(self.b + self.R * T / P),
+                self.a / P,
+                -self.a * self.b / P
+            ]
+    
+            roots = np.roots(coeffs)
+            real_positive = roots[(np.isreal(roots)) & (roots.real > 0)].real
+    
+            return np.sort(real_positive)
+    
+    # CO2で検証する
+    Tc_co2 = PropsSI('Tcrit', 'CO2')
+    Pc_co2 = PropsSI('pcrit', 'CO2')
+    M_co2 = PropsSI('molar_mass', 'CO2')  # kg/mol
+    
+    vdw = VanDerWaalsEOS(Tc_co2, Pc_co2)
+    
+    # 超臨界条件
+    T = 313.15   # 40 ℃
+    P = 100e5    # 100 bar
+    
+    V_roots = vdw.molar_volume(P, T)
+    
+    # 参照値: モル体積 = モル質量 / 質量密度
+    V_coolprop = M_co2 / PropsSI('D', 'T', T, 'P', P, 'CO2')
+    
+    print(f"van der Waals式 T = {T - 273.15:.1f} ℃, P = {P / 1e5:.0f} bar")
+    print(f"  実正根:           {np.round(V_roots * 1e6, 2)} cm^3/mol")
+    print(f"  採用値（最大）:   {V_roots[-1] * 1e6:.2f} cm^3/mol")
+    print(f"  CoolPropの参照値: {V_coolprop * 1e6:.2f} cm^3/mol")
+    print(f"  相対誤差:         "
+          f"{abs(V_roots[-1] - V_coolprop) / V_coolprop * 100:.1f}%")
+
+van der Waals式 T = 40.0 ℃, P = 100 bar 実正根: [90.44] cm^3/mol 採用値（最大）: 90.44 cm^3/mol CoolPropの参照値: 70.01 cm^3/mol 相対誤差: 29.2%
+
+ごく普通の抽出条件でモル体積に29%の誤差が生じます。参照値を求める行の単位処理にも注目してください。CoolPropの`'D'`は _質量_ 密度（kg/m³）なので、モル体積に換算するにはモル質量をそれで割る必要があります。モル基準と質量基準の混同は、状態方程式の検証コードで1000倍の誤差を生む最大の原因です。
+
+### 例6: Peng-Robinsonソルバーとその検証
+
+コード例6: Peng-Robinson状態方程式クラスと検証
+    
+    
+    import numpy as np
+    import CoolProp.CoolProp as CP
+    
+    class PengRobinsonEOS:
+        """
+        Peng-Robinson状態方程式。
+    
+        P = RT/(V-b) - a(T)/(V(V+b) + b(V-b))
+        """
+    
+        def __init__(self, Tc, Pc, omega):
+            """
+            Parameters:
+            -----------
+            Tc : float
+                臨界温度 (K)
+            Pc : float
+                臨界圧力 (Pa)
+            omega : float
+                偏心因子
+            """
+            self.Tc = Tc
+            self.Pc = Pc
+            self.omega = omega
+            self.R = 8.314  # J/(mol·K)
+    
+            self.a_c = 0.45724 * (self.R * Tc)**2 / Pc
+            self.b = 0.07780 * self.R * Tc / Pc
+    
+            # κ: 標準の相関式と、重い分子（omega > 0.49）向けの拡張形
+            if omega <= 0.49:
+                self.kappa = 0.37464 + 1.54226*omega - 0.26992*omega**2
+            else:
+                self.kappa = (0.379642 + 1.48503*omega
+                              - 0.164423*omega**2 + 0.016666*omega**3)
+    
+        def alpha(self, T):
+            """温度補正項α。"""
+            Tr = T / self.Tc
+            return (1 + self.kappa * (1 - np.sqrt(Tr)))**2
+    
+        def a(self, T):
+            """温度依存の引力パラメータ。"""
+            return self.a_c * self.alpha(T)
+    
+        def calculate_Z(self, P, T):
+            """
+            立方形式から圧縮因子を求める。
+    
+            Returns:
+            --------
+            array : 実正根（1個または3個）、昇順
+            """
+            A = self.a(T) * P / (self.R * T)**2
+            B = self.b * P / (self.R * T)
+    
+            # Z^3 + c2 Z^2 + c1 Z + c0 = 0
+            c2 = -(1 - B)
+            c1 = A - 3*B**2 - 2*B
+            c0 = -(A*B - B**2 - B**3)
+    
+            roots = np.roots([1, c2, c1, c0])
+    
+            real_roots = roots[np.isreal(roots)].real
+            return np.sort(real_roots[real_roots > 0])
+    
+        def calculate_density(self, P, T, phase='vapor'):
+            """
+            モル密度 (mol/m^3)。
+    
+            Parameters:
+            -----------
+            phase : str
+                'liquid'（最小根）または 'vapor'（最大根）
+            """
+            Z_roots = self.calculate_Z(P, T)
+    
+            if len(Z_roots) == 0:
+                raise ValueError("有効な圧縮因子が見つかりません")
+    
+            Z = Z_roots[0] if phase == 'liquid' else Z_roots[-1]
+    
+            V = Z * self.R * T / P  # m^3/mol
+            return 1 / V            # mol/m^3
+    
+        def calculate_pressure(self, V, T):
+            """モル体積と温度から圧力を計算する。"""
+            a_T = self.a(T)
+            return (self.R * T / (V - self.b)
+                    - a_T / (V*(V + self.b) + self.b*(V - self.b)))
+    
+    # CO2の物性（NIST値）
+    CO2_Tc = 304.13     # K
+    CO2_Pc = 7.3773e6   # Pa
+    CO2_omega = 0.22394
+    M_CO2 = 44.01e-3    # kg/mol
+    
+    pr = PengRobinsonEOS(CO2_Tc, CO2_Pc, CO2_omega)
+    
+    print("=== Peng-Robinson式とCoolProp参照EOSの比較（CO2）===")
+    print(f"{'T (C)':>7} {'P (MPa)':>9} {'PR (kg/m3)':>12} "
+          f"{'CoolProp':>10} {'誤差':>8}")
+    
+    for T_c, P_mpa in [(35, 10), (50, 10), (50, 20), (75, 15), (100, 25)]:
+        T = T_c + 273.15
+        P = P_mpa * 1e6
+    
+        # モル密度 (mol/m^3) × モル質量 (kg/mol) = 質量密度 (kg/m^3)
+        rho_pr = pr.calculate_density(P, T) * M_CO2
+        rho_ref = CP.PropsSI('D', 'P', P, 'T', T, 'CO2')
+        err = (rho_pr - rho_ref) / rho_ref * 100
+    
+        print(f"{T_c:>7} {P_mpa:>9} {rho_pr:>12.1f} {rho_ref:>10.1f} {err:>7.1f}%")
+
+=== Peng-Robinson式とCoolProp参照EOSの比較（CO2）=== T (C) P (MPa) PR (kg/m3) CoolProp 誤差 35 10 651.6 712.8 -8.6% 50 10 375.3 384.3 -2.3% 50 20 762.9 784.3 -2.7% 75 15 440.8 463.3 -4.9% 100 25 565.1 588.5 -4.0%
+
+**Peng-Robinson式の評価は妥当。** 参照状態方程式に対する誤差は2〜9%で、同程度の状態におけるvan der Waals式の29%と比べれば圧倒的です。しかも最悪値（−8.6%）は35℃、すなわち $T_c$ よりわずか4 K高い条件であり、立方型状態方程式が苦手とすることが知られている領域です。臨界近傍を離れれば誤差は2〜5%に収まります。3次方程式を1回解くだけの3パラメータの式としては驚くべき費用対効果ですが、同時に、数値そのものが重要な場面ではやはりCoolPropを使うべき理由でもあります。
+
+* * *
+
+## 7.5 プロセスシミュレーション
+
+### 例7: 多段抽出カスケード
+
+各段で平衡分配係数を仮定した多段抽出モデルです。鍵となる無次元数は**抽出因子** $E = K \cdot (S/F)$、すなわち分配係数と溶媒／原料比の積です。
+
+コード例7: 多段抽出シミュレーター
+    
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    
+    class MultiStageExtractor:
+        """
+        超臨界流体による多段抽出のシミュレーション。
+    
+        仮定:
+        - 各段で平衡に達する
+        - 温度・圧力は一定
+        - 理想混合
+        - 各段に新鮮な溶媒を供給する（多段バッチ型カスケード）。
+          真の向流接触では段の物質収支を収束するまで反復する必要があるが、
+          この陽的な形式は標準的な第一次見積りとして用いられる。
+        """
+    
+        def __init__(self, n_stages, K_partition, S_F_ratio, solute_feed):
+            """
+            Parameters:
+            -----------
+            n_stages : int
+                抽出段数
+            K_partition : float
+                分配係数（超臨界流体中の質量分率 / 原料中の質量分率）
+            S_F_ratio : float
+                溶媒／原料の質量比
+            solute_feed : float
+                原料中の初期溶質濃度 (kg溶質 / kg原料)
+            """
+            self.n_stages = n_stages
+            self.K = K_partition
+            self.S_F = S_F_ratio
+            self.C_feed = solute_feed
+    
+        def solve_cascade(self):
+            """
+            段ごとの物質収支を解く。
+    
+            Returns:
+            --------
+            dict : 濃度プロファイルと抽出効率
+            """
+            C_feed_stage = np.zeros(self.n_stages + 1)     # 原料相の濃度
+            C_solvent_stage = np.zeros(self.n_stages + 1)  # 溶媒相の濃度
+    
+            # 境界条件
+            C_feed_stage[0] = self.C_feed  # 第0段に新鮮な原料が入る
+            C_solvent_stage[self.n_stages] = 0  # 清浄な溶媒
+    
+            E = self.K * self.S_F  # 抽出因子
+    
+            for stage in range(self.n_stages):
+                # 平衡関係 C_solvent = K * C_feed のもとでの物質収支
+                C_feed_stage[stage + 1] = (
+                    (C_feed_stage[stage] + self.S_F * C_solvent_stage[stage + 1])
+                    / (1 + E)
+                )
+                C_solvent_stage[stage] = self.K * C_feed_stage[stage + 1]
+    
+            # 閉じた物質収支から求めた全体回収率
+            solute_extracted = self.S_F * np.sum(C_solvent_stage[:self.n_stages])
+            efficiency = solute_extracted / self.C_feed * 100
+    
+            return {
+                'C_feed': C_feed_stage,
+                'C_solvent': C_solvent_stage,
+                'efficiency': efficiency,
+                'solute_remaining': C_feed_stage[-1],
+                'extraction_factor': E
+            }
+    
+        def plot_concentration_profile(self, results):
+            """カスケードに沿った濃度プロファイルを可視化する。"""
+            stages = np.arange(self.n_stages + 1)
+    
+            fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+    
+            ax1.plot(stages, results['C_feed'], 'o-', label='原料相',
+                     linewidth=2, markersize=8)
+            ax1.plot(stages, results['C_solvent'], 's-', label='溶媒相',
+                     linewidth=2, markersize=8)
+            ax1.set_xlabel('段数', fontsize=12)
+            ax1.set_ylabel('濃度 (kg/kg)', fontsize=12)
+            ax1.set_title('多段抽出における濃度プロファイル',
+                          fontsize=13, weight='bold')
+            ax1.legend(fontsize=11)
+            ax1.grid(True, alpha=0.3)
+    
+            cumulative = np.zeros(self.n_stages + 1)
+            for i in range(1, self.n_stages + 1):
+                cumulative[i] = (1 - results['C_feed'][i] / self.C_feed) * 100
+    
+            ax2.plot(stages, cumulative, 'o-', color='green',
+                     linewidth=2, markersize=8)
+            ax2.set_xlabel('段数', fontsize=12)
+            ax2.set_ylabel('累積抽出率 (%)', fontsize=12)
+            ax2.set_title('段数に対する抽出効率', fontsize=13, weight='bold')
+            ax2.grid(True, alpha=0.3)
+            ax2.set_ylim(0, 105)
+    
+            plt.tight_layout()
+            plt.show()
+    
+    # 超臨界CO2によるコーヒー豆からのカフェイン抽出。
+    # K = 0.05: カフェインは湿ったコーヒー豆のマトリックス中のほうが
+    # CO2相よりはるかに濃度が高く、そのため大きな溶媒比が必要になる。
+    extractor = MultiStageExtractor(
+        n_stages=5,
+        K_partition=0.05,
+        S_F_ratio=20,     # コーヒー1 kgあたりCO2 20 kg
+        solute_feed=0.02  # 豆中のカフェイン 2 wt%
+    )
+    
+    results = extractor.solve_cascade()
+    
+    print("=== 多段抽出シミュレーション ===")
+    print(f"段数: {extractor.n_stages}")
+    print(f"抽出因子 (E = K x S/F): {results['extraction_factor']:.2f}")
+    print(f"全体抽出効率: {results['efficiency']:.2f}%")
+    print(f"原料中の残存カフェイン: {results['solute_remaining']*100:.4f} wt%")
+    print("\n段ごとの濃度:")
+    print(f"{'段':<6} {'原料相 (kg/kg)':<16} {'溶媒相 (kg/kg)':<16}")
+    print("-" * 40)
+    for i in range(extractor.n_stages + 1):
+        print(f"{i:<6} {results['C_feed'][i]:<16.6f} "
+              f"{results['C_solvent'][i]:<16.6f}")
+    
+    extractor.plot_concentration_profile(results)
+
+=== 多段抽出シミュレーション === 段数: 5 抽出因子 (E = K x S/F): 1.00 全体抽出効率: 96.88% 原料中の残存カフェイン: 0.0625 wt% 段ごとの濃度: 段 原料相 (kg/kg) 溶媒相 (kg/kg) \---------------------------------------- 0 0.020000 0.000500 1 0.010000 0.000250 2 0.005000 0.000125 3 0.002500 0.000063 
+
+**$E$ が本質的な数である理由。** $E = 1$ では各段が残存溶質のちょうど半分を除去するため、原料濃度は段ごとに半減し、$n$ 段後の回収率は $1 - (1+E)^{-n}$、ここでは96.9%になります。溶媒比を $S/F = 40$ へ倍増すれば $E = 2$ となり同じ5段で99.6%、逆に $S/F = 10$ に半減すれば $E = 0.5$ で86.8%にとどまります。段数と溶媒比はある程度まで互換であり、経済的な最適点は「容器を1基増やすコスト」と「CO₂循環動力を増やすコスト」が釣り合うところにあります。
+
+### 例8: 抽出収率とCO₂消費量
+
+プロセスレベルのモデルです。Chrastil式による溶解度が熱力学的な上限を与え、1次の速度定数が与えられた時間内にどこまで近づけるかを決め、その結果をプラント経済性を左右する指標、すなわち製品1 kgあたりのCO₂消費量として表現します。
+
+コード例8: 超臨界CO₂抽出プロセスモデル
+    
+    
+    import numpy as np
+    from CoolProp.CoolProp import PropsSI
+    
+    class SCF_ExtractionModel:
+        """超臨界流体抽出の簡易モデル。"""
+    
+        def __init__(self, solute_mw, chrastil_params):
+            """
+            Parameters
+            ----------
+            solute_mw : float
+                溶質のモル質量 (g/mol)
+            chrastil_params : dict
+                Chrastil式のパラメータ {'k': ..., 'a': ..., 'b': ...}
+                S = (rho/1000)**k * exp(a/T + b)、Sの単位は kg/kg
+            """
+            self.solute_mw = solute_mw
+            self.k = chrastil_params['k']
+            self.a = chrastil_params['a']
+            self.b = chrastil_params['b']
+    
+        def solubility_chrastil(self, T, rho):
+            """
+            Chrastil式による溶解度。
+    
+            S = (rho/1000)**k * exp(a/T + b)
+    
+            Parameters
+            ----------
+            T : float
+                温度 (K)
+            rho : float
+                CO2密度 (kg/m^3)
+    
+            Returns
+            -------
+            float
+                溶解度 (kg溶質 / kg CO2)
+            """
+            return (rho / 1000)**self.k * np.exp(self.a / T + self.b)
+    
+        def extraction_yield(self, T_celsius, P_bar, flow_rate_co2, time_hours,
+                             solute_mass_initial, k_rate=0.5):
+            """
+            抽出収率をシミュレートする。
+    
+            Parameters
+            ----------
+            T_celsius : float
+                温度 (℃)
+            P_bar : float
+                圧力 (bar)
+            flow_rate_co2 : float
+                CO2の質量流量 (kg/h)
+            time_hours : float
+                抽出時間 (h)
+            solute_mass_initial : float
+                初期溶質量 (kg)
+            k_rate : float
+                1次の抽出速度定数 (1/h)、実験的に決定する
+    
+            Returns
+            -------
+            dict
+                抽出結果
+            """
+            T = T_celsius + 273.15
+            P = P_bar * 1e5
+    
+            # 参照状態方程式によるCO2密度
+            rho = PropsSI('D', 'T', T, 'P', P, 'CO2')
+    
+            # 平衡溶解度
+            S = self.solubility_chrastil(T, rho)
+    
+            # 総CO2使用量
+            total_co2 = flow_rate_co2 * time_hours  # kg
+    
+            # 熱力学的上限: すべてのCO2が飽和して出ていく場合
+            max_extracted = S * total_co2  # kg
+    
+            # 速度による制約: E(t) = E_max * (1 - exp(-k t))
+            # ただし実在する溶質量が上限
+            actual_extracted = min(
+                max_extracted * (1 - np.exp(-k_rate * time_hours)),
+                solute_mass_initial
+            )
+    
+            yield_percent = actual_extracted / solute_mass_initial * 100
+    
+            return {
+                'CO2密度 [kg/m3]': rho,
+                '溶解度 [g/kg-CO2]': S * 1000,
+                '総CO2使用量 [kg]': total_co2,
+                '抽出量 [kg]': actual_extracted,
+                '収率 [%]': yield_percent,
+                'CO2原単位 [kg-CO2/kg-product]': (
+                    total_co2 / actual_extracted if actual_extracted > 0 else np.inf
+                )
+            }
+    
+    # カフェイン。注意: kとaは文献で報告される典型的なオーダーの値だが、
+    # bはS(50℃, 200 bar)がCO2 1 kgあたり約1 gという報告値のオーダーに
+    # 合うよう校正したものである。引用可能なパラメータセットではなく
+    # 例示用の値なので、実務では自分のデータで再フィッティングすること。
+    caffeine_params = {'k': 8.0, 'a': -5000, 'b': 10.51}
+    extractor = SCF_ExtractionModel(solute_mw=194.19,
+                                    chrastil_params=caffeine_params)
+    
+    conditions = {
+        'T_celsius': 50,
+        'P_bar': 200,
+        'flow_rate_co2': 10,       # kg/h
+        'time_hours': 3,
+        'solute_mass_initial': 0.5  # kg
+    }
+    
+    result = extractor.extraction_yield(**conditions)
+    
+    print("=== 超臨界CO2抽出シミュレーション ===")
+    for key, value in result.items():
+        print(f"  {key}: {value:.2f}")
+
+=== 超臨界CO2抽出シミュレーション === CO2密度 [kg/m3]: 784.29 溶解度 [g/kg-CO2]: 1.00 総CO2使用量 [kg]: 30.00 抽出量 [kg]: 0.02 収率 [%]: 4.67 CO2原単位 [kg-CO2/kg-product]: 1285.58
+
+**CO₂原単位を読んだうえで、もう一度フローシートを見直してください。** 抽出したカフェイン1 kgあたりCO₂が1286 kg、しかも3時間で回収できたのは仕込み量の4.7%にすぎません。どちらも溶解度1 g/kgという値から直接導かれます。希薄な溶液は膨大な溶媒処理量を要求するのです。だからこそ実際の超臨界プラントはすべて、溶媒を使い捨てにせず再圧縮を伴う閉ループで運転します。そして資本費・運転費を支配するのは通常、抽出容器ではなく圧縮機です。
+
+ここで用いたChrastilパラメータは例示のために校正したものであり、論文からの引用ではありません（コード中のコメントを参照）。例10のように自分のデータでフィッティングしてください。
+
+### 例9: RESS法による粒子径の推定
+
+RESS法（Rapid Expansion of Supercritical Solutions）では、飽和した超臨界溶液を微細なノズルから膨張させます。溶媒力がマイクロ秒のうちに失われ、溶質が微粒子として核生成します。Weber数によるスケーリングから粒子径のオーダーを見積もれます。
+
+コード例9: ノズル条件からのRESS粒子径推定
+    
+    
+    import numpy as np
+    from CoolProp.CoolProp import PropsSI
+    
+    def ress_particle_size_model(T_celsius, P_bar, nozzle_diameter_mm,
+                                 expansion_ratio, sigma=0.01):
+        """
+        Weber数スケーリングによるRESS粒子径のオーダー推定。
+    
+        Parameters
+        ----------
+        T_celsius : float
+            ノズル上流温度 (℃)
+        P_bar : float
+            ノズル上流圧力 (bar)
+        nozzle_diameter_mm : float
+            ノズル径 (mm)
+        expansion_ratio : float
+            膨張比 P_upstream / P_downstream
+        sigma : float
+            実効表面張力 (N/m)。溶質依存だが 0.01 N/m が典型的なオーダー。
+    
+        Returns
+        -------
+        dict
+            予測されるノズル出口速度、Weber数、粒子径
+        """
+        T = T_celsius + 273.15
+        P_upstream = P_bar * 1e5
+    
+        # 上流側の物性
+        rho_upstream = PropsSI('D', 'T', T, 'P', P_upstream, 'CO2')
+        a = PropsSI('A', 'T', T, 'P', P_upstream, 'CO2')  # 音速
+    
+        # 比熱比
+        gamma = (PropsSI('C', 'T', T, 'P', P_upstream, 'CO2')
+                 / PropsSI('O', 'T', T, 'P', P_upstream, 'CO2'))
+    
+        # ノズル出口速度（等エントロピー膨張の近似）:
+        # v = sqrt(2 dh)、dh ~ a^2 ln(P1/P2) / gamma
+        v_exit = np.sqrt(2 * a**2 * np.log(expansion_ratio) / gamma)
+    
+        # Weber数 We = rho v^2 d / sigma
+        d_nozzle = nozzle_diameter_mm * 1e-3  # m
+        We = rho_upstream * v_exit**2 * d_nozzle / sigma
+    
+        # 経験的スケーリング: d_particle ~ d_nozzle / sqrt(We)
+        d_particle = d_nozzle / np.sqrt(We)
+    
+        return {
+            'CO2密度 [kg/m3]': rho_upstream,
+            '音速 [m/s]': a,
+            '比熱比 [-]': gamma,
+            'ノズル出口速度 [m/s]': v_exit,
+            'Weber数 [-]': We,
+            '予測粒子径 [nm]': d_particle * 1e9,
+        }
+    
+    ress_result = ress_particle_size_model(
+        T_celsius=60,
+        P_bar=150,
+        nozzle_diameter_mm=0.1,
+        expansion_ratio=150
+    )
+    
+    print("=== RESS法による粒子径予測 ===")
+    for key, value in ress_result.items():
+        print(f"  {key}: {value:.4g}")
+
+=== RESS法による粒子径予測 === CO2密度 [kg/m3]: 604.1 音速 [m/s]: 309.2 比熱比 [-]: 3.582 ノズル出口速度 [m/s]: 517.2 Weber数 [-]: 1.616e+06 予測粒子径 [nm]: 78.67
+
+**これは予測ではなくスケーリング則として扱ってください。** 結果を決めているのは2つの量です。1つは出口速度（ここでは517 m/s、膨張が超音速であることがRESSの急冷を可能にしています）、もう1つは仮定した表面張力です。$d_p \propto \sigma^{1/2}$ なので、$\sigma$ に一桁の不確かさがあれば予測粒子径は3倍動きます。このモデルには核生成の速度論も凝集も、$\sigma$ 以外の溶質物性も入っていません。したがって答えは「数十から数百ナノメートル」というRESSにとって妥当な領域を示すものと読み、設計に使う前に必ず自分の測定値で校正してください。
+
+比熱比が3.58になっている点にも注目してください。理想的な二原子分子気体の1.3から大きく外れているのは、60℃・150 barでは $c_p$ がなお強く増大しているためです。ここで理想気体の $\gamma$ を代入すれば出口速度に60%の誤差が生じます。
+
+* * *
+
+## 7.6 データ解析とモデルフィッティング
+
+### 例10: 実験溶解度データへのChrastil式のフィッティング
+
+現実的なワークフローです。複数の温度・圧力で測定した溶解度、密度を与えるCoolProp、そして3つのChrastilパラメータを求める`curve_fit`。そして点推定値よりも重要な、パラメータの不確かさです。
+
+コード例10: パラメータ不確かさを伴うChrastil回帰
+    
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from scipy.optimize import curve_fit
+    from CoolProp.CoolProp import PropsSI
+    
+    # 実験データ: 超臨界CO2中のナフタレン溶解度（例示値）
+    experimental_data = {
+        'T': [308.15, 308.15, 308.15, 318.15, 318.15, 318.15],  # K
+        'P': [90e5, 120e5, 150e5, 90e5, 120e5, 150e5],          # Pa
+        'S': [2.1e-3, 3.5e-3, 4.8e-3, 1.8e-3, 3.0e-3, 4.2e-3]   # kg/kg
+    }
+    
+    def chrastil_model(X, k, a, b):
+        """
+        Chrastil式: S = (rho/1000)**k * exp(a/T + b)
+    
+        Parameters
+        ----------
+        X : tuple of arrays
+            (T, P) - 温度 (K) と圧力 (Pa)
+        k, a, b : float
+            フィッティングパラメータ
+    
+        Returns
+        -------
+        array
+            溶解度 (kg/kg)
+        """
+        T, P = X
+        T = np.atleast_1d(T)
+        P = np.atleast_1d(P)
+        rho = np.array([PropsSI('D', 'T', t, 'P', p, 'CO2') for t, p in zip(T, P)])
+        return (rho / 1000)**k * np.exp(a / T + b)
+    
+    T_data = np.array(experimental_data['T'])
+    P_data = np.array(experimental_data['P'])
+    S_data = np.array(experimental_data['S'])
+    
+    # 実験条件におけるCO2密度
+    rho_data = np.array([PropsSI('D', 'T', t, 'P', p, 'CO2')
+                         for t, p in zip(T_data, P_data)])
+    print("実験条件におけるCO2密度 (kg/m^3):")
+    print(np.round(rho_data, 1))
+    
+    # 非線形最小二乗法
+    params, covariance = curve_fit(
+        chrastil_model, (T_data, P_data), S_data,
+        p0=[8.0, -5000, 15], maxfev=10000
+    )
+    
+    k_fit, a_fit, b_fit = params
+    errors = np.sqrt(np.diag(covariance))
+    
+    print("\nChrastil式のフィッティング結果:")
+    print(f"  k = {k_fit:.3f} +/- {errors[0]:.3f}")
+    print(f"  a = {a_fit:.1f} +/- {errors[1]:.1f} K")
+    print(f"  b = {b_fit:.3f} +/- {errors[2]:.3f}")
+    
+    # モデルの検証
+    S_predicted = chrastil_model((T_data, P_data), *params)
+    rmse = np.sqrt(np.mean((S_data - S_predicted)**2))
+    r_squared = (1 - np.sum((S_data - S_predicted)**2)
+                 / np.sum((S_data - np.mean(S_data))**2))
+    
+    print("\nモデル精度:")
+    print(f"  RMSE: {rmse*1000:.4f} g/kg")
+    print(f"  R^2:  {r_squared:.4f}")
+    
+    # パリティプロット
+    fig, ax = plt.subplots(figsize=(8, 6))
+    ax.scatter(S_data * 1000, S_predicted * 1000, s=100, alpha=0.7,
+               edgecolors='black')
+    limit = max(S_data) * 1000 * 1.1
+    ax.plot([0, limit], [0, limit], 'r--', label='理想線')
+    ax.set_xlabel('実験値 (g/kg-CO₂)', fontsize=12)
+    ax.set_ylabel('予測値 (g/kg-CO₂)', fontsize=12)
+    ax.set_title(f'Chrastil式のフィッティング (R² = {r_squared:.3f})',
+                 fontsize=14, fontweight='bold')
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+    plt.tight_layout()
+    plt.savefig('chrastil_fitting.png', dpi=300, bbox_inches='tight')
+    plt.show()
+
+実験条件におけるCO2密度 (kg/m^3): [662.1 767.1 815.1 337.5 657.7 742. ] Chrastil式のフィッティング結果: k = 1.753 +/- 0.813 a = -1650.0 +/- 2032.2 K b = 0.218 +/- 6.614 モデル精度: RMSE: 0.5459 g/kg R^2: 0.7391
+
+#### これが誠実なフィッティングの姿です
+
+$R^2 = 0.74$、$k = 1.75 \pm 0.81$。会合数の相対不確かさは46%で、$a$ は誤差範囲が値そのものより大きくなっています。ここから3つの教訓が得られ、それは文献で目にするほとんどの溶解度相関にも当てはまります。
+
+  * **6点で3パラメータは決まらない。** 共分散行列がそれを明確に示しています。不確かさを併記せずに公表されたパラメータセットは疑ってかかるべきです。
+  * **臨界近傍の点が悪影響を及ぼしている。** 318.15 K・90 barではCO₂密度がわずか338 kg/m³で、同じ圧力の308.15 Kにおける662 kg/m³の半分以下です。単一の $k$ で高密度領域と臨界近傍領域の両方を記述することはできません。まさにChrastil式の「単一会合数」という仮定が崩れる場所です。
+  * **フィッティングを前提に実験を設計する。** 3つの温度にわたり少なくとも4つの圧力を測り、密度の圧力感受性が穏やかになる $T_r \approx 1.05$ 以上に留まるようにすれば、通常 $R^2$ は0.98を超え、$k$ の不確かさは10%を下回ります。
+
+* * *
+
+## 7.7 物性計算のその先へ
+
+### 混合物と共溶媒
+
+エタノールのような極性エントレーナーの添加は、超臨界CO₂を極性溶質へ拡張する標準的な手法です（第2章）。CoolPropはHelmholtz型（HEOS）バックエンドで、組成を明示した文字列により混合物を扱います。
+
+HEOSバックエンドによる混合物密度
+    
+    
+    from CoolProp.CoolProp import PropsSI
+    
+    T, P = 323.15, 150e5  # 50 ℃, 150 bar
+    
+    rho_pure = PropsSI('D', 'T', T, 'P', P, 'CO2')
+    print(f"純CO2:                      {rho_pure:.1f} kg/m^3")
+    
+    for partner in ['Nitrogen', 'Methane', 'Ethane', 'Propane', 'Ethanol']:
+        mixture = f'HEOS::CO2[0.9]&{partner}[0.1]'
+        try:
+            rho = PropsSI('D', 'T', T, 'P', P, mixture)
+            print(f"CO2 + 10 mol% {partner:<9}: {rho:.1f} kg/m^3")
+        except ValueError as e:
+            print(f"CO2 + 10 mol% {partner:<9}: 計算不可 "
+                  f"({str(e).split(';')[-1].strip()[:48]}...)")
+
+純CO2: 699.8 kg/m^3 CO2 + 10 mol% Nitrogen : 516.8 kg/m^3 CO2 + 10 mol% Methane : 546.0 kg/m^3 CO2 + 10 mol% Ethane : 617.7 kg/m^3 CO2 + 10 mol% Propane : 656.7 kg/m^3 CO2 + 10 mol% Ethanol : 計算不可 (error: Could not match the binary pair [124-38-9...)
+
+**最も使いたい組み合わせが、まさに欠けています。** HEOSによる混合物計算にはフィッティング済みの二成分相互作用パラメータが必要で、CoolPropはそれがない場合に計算を拒否します。超臨界抽出で最も重要なエントレーナー系であるCO₂＋エタノールがまさにその例です。これはバグではなく、その組み合わせに参照品質の混合物モデルが存在しないという誠実な表明です。
+
+この壁に当たったら、`thermo`で立方型状態方程式と明示的な $k_{ij}$ を用い（第6章によればCO₂-エタノールでは $k_{ij} \approx 0.10$）、立方型状態方程式の精度で妥協し、入手できる二成分気液平衡データで検証してください。また、軽質ガスが混合物を強く希薄化することにも注目してください。窒素が10 mol%入るだけで密度は700から517 kg/m³へ低下します。溶存空気やパージ不足が抽出収率を静かに損なうのはこのためです。
+
+### 分子動力学シミュレーション
+
+溶質周囲の局所密度増加、クラスターの寿命、拡散機構といった分子レベルの問いには、分子動力学（MD）が適しています。
+
+  * **LAMMPS** ：汎用。CO₂にはTraPPE力場が標準的な選択
+  * **GROMACS** ：生体分子系、生体試料の超臨界乾燥
+  * **NAMD** ：大規模系
+
+代表的なMDツール
+    
+    
+    conda install -c conda-forge lammps   # シミュレーションエンジン
+    pip install MDAnalysis                # 軌跡解析
+
+実務上の指針として、CO₂にはTraPPE、有機溶質にはOPLSを用い、定圧状態にはNPTアンサンブル、周期境界条件を適用し、平衡化には1〜5 nsを確保してください。臨界点近傍では相関時間が長く、平衡化不足が誤った結果を生む最大の原因になります。
+
+### 機械学習による物性予測
+
+溶質に適用できる状態方程式が存在しない場合、データ駆動の代理モデルで測定データを内挿できます。基本形は $(T, P, \rho, \text{分子記述子}) \rightarrow S$ に対する標準的な教師あり回帰です。
+
+代理モデルの概略（scikit-learn）
+    
+    
+    from sklearn.ensemble import RandomForestRegressor
+    from sklearn.model_selection import train_test_split
+    from sklearn.metrics import r2_score
+    
+    # 特徴量: 温度、圧力、密度
+    # （複数溶質を扱うモデルではモル質量、logP、極性表面積などの
+    #   分子記述子を追加する）
+    X = np.column_stack([T_data, P_data, rho_data])
+    y = S_data
+    
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42)
+    
+    model = RandomForestRegressor(n_estimators=100, random_state=42)
+    model.fit(X_train, y_train)
+    
+    y_pred = model.predict(X_test)
+    print(f"代理モデルの R^2: {r2_score(y_test, y_pred):.4f}")
+
+**代理モデルは外挿できません。** 決定木アンサンブルは学習範囲の外では定数を返すため、10〜20 MPaのデータで学習したランダムフォレストは40 MPaに対しても一見もっともらしい、しかし物理を全く含まない値を返します。記述子生成には`RDKit`、`DeepChem`、`ChemML`が有用ですが、それ以上に重要な作法は、モデルとともに必ず学習範囲を明示すること、そしてデータが疎な場合にはChrastil式のような物理に基づく相関を優先することです。
+
+### プロセスシミュレータ
+
+プラント規模のフローシートには次のツールが使われます。
+
+  * **Aspen Plus / HYSYS** ：Pythonから`pywin32`経由のCOM接続で駆動。産業用の超臨界抽出やsCO₂発電サイクル設計の標準
+  * **DWSIM** ：オープンソース、Pythonスクリプト機能を内蔵
+  * **Cantera** ：化学反応論と熱力学。超臨界水酸化のモデル化に有用
+
+これらのパッケージの物性モデルは既定では立方型状態方程式であることが多いです。例6で定量化した誤差を踏まえ、臨界近傍のフローシートを信頼する前に、溶媒については参照状態方程式（REFPROPまたはCoolProp）を参照させられるかを確認してください。
+
+* * *
+
+## まとめ
+
+### 要点
+
+**1\. 物性計算**
+
+  * CoolPropの`PropsSI`は2つの状態量から参照品質の物性を与える。すべてSI単位系。
+  * 運転範囲全体の物性表を作れば、密度の崖と $c_p$ の発散がすぐに見える。
+
+**2\. 相図**
+
+  * $P$-$T$ 図は飽和曲線と固定点から得られる。固相境界には別のデータが必要。
+  * $P$-$V$ 等温線は二相領域の共存線を可視化する。抽出の検討では $P$-$\rho$ がより有用。
+
+**3\. 状態方程式の自作**
+
+  * van der Waals式：ごく普通の抽出条件で密度誤差29%。
+  * Peng-Robinson式：2〜9%、臨界近傍で最悪。
+  * 新しい実装は必ず参照状態方程式と比較してから使う。
+
+**4\. プロセスモデル**
+
+  * 抽出因子 $E = K \cdot (S/F)$ が段数回収率 $1 - (1+E)^{-n}$ を支配する。
+  * 溶解度の低さはそのままCO₂原単位の高さになり、これが溶媒循環の理由となる。
+  * RESSの粒子径はWeber数スケーリングに従う。オーダーとして扱う。
+
+**5\. データフィッティング**
+
+  * 点推定値だけでなくパラメータの不確かさを報告する。
+  * データが疎で臨界近傍の点を含むと、Chrastilパラメータは十分に決まらない。
+  * データ駆動の代理モデルは内挿はできるが外挿は決してできない。
+
+ここで扱った道具は、超臨界流体のプロジェクトが実際に必要とする計算、すなわち物性の取得、相挙動、独自の熱力学計算、プロセスの見積り、データ解析を網羅しています。溶媒には参照ライブラリを、それ以外には自分で書いた透明なコードを組み合わせることで、精度と「なぜその数値になったのか」を見通す力の両方が得られます。
+
+* * *
+
+**演習問題**
+
+#### 問題1: 溶媒間の物性比較
+
+CO₂、エタノール、水の超臨界状態について、同じ換算条件（$P_r = 1.5$、$T_r = 1.2$）における密度、粘度、熱伝導率を比較してください。CoolPropで絶対条件に変換し、3つの流体を同じグラフに描き、伝熱用流体としてどれが最適かを論じてください。
+
+#### 問題2: 状態方程式の検証
+
+例6を拡張して誤差マップを作成してください。CO₂について5、10、15、20 MPa、および30、40、50、75、100℃でvan der Waals式、Peng-Robinson式、CoolPropの密度を計算し、換算温度に対する誤差率をプロットして、誤差が極大となる位置の理由を説明してください。
+
+#### 問題3: 抽出プロセスの最適化
+
+例7と例8を用いて、回収率90%以上を制約としてCO₂原単位（カフェイン1 kgあたりのCO₂質量）を最小化してください。条件はカフェイン仕込み1 kg、CO₂流量5〜20 kg/h、温度40〜80℃、圧力100〜300 barとします。`scipy.optimize.minimize`を用い、最適点でどの制約が有効になっているかを考察してください。
+
+#### 問題4: 溶解度データの統計解析
+
+以下の代表的なイブプロフェンのデータにChrastil式をフィッティングし、パラメータの95%信頼区間、$R^2$、残差プロットを報告してください。次に60℃・100 barの点を除いて再フィッティングし、臨界近傍の測定点1つが結果をどれだけ動かすかを議論してください。
+
+T (℃)| P (bar)| S (mg/kg)  
+---|---|---  
+40| 100| 1.2  
+40| 150| 2.8  
+40| 200| 4.5  
+60| 100| 0.9  
+60| 150| 2.1  
+60| 200| 3.8  
+  
+#### 問題5: 相図のカスタマイズ
+
+例3を用いてエタノールの $P$-$T$ 相図を作成し、1 atm（1.013 bar）の等圧線を追加し、それが飽和曲線と交わる点として標準沸点を示し、超臨界領域を塗り分けてください。有用な極性をもつにもかかわらず、超臨界エタノールが超臨界CO₂よりはるかに使われないのはなぜでしょうか。
+
+#### 問題6: 混合溶媒の密度
+
+HEOSバックエンドでCO₂＋エタノール（エタノール10 mol%）の50℃・150 barにおける密度を計算しようとし、次にエタノール0〜20 mol%で計算を試みてください。計算できない場合はその理由を述べ、代替手段（`thermo`と明示的な $k_{ij}$）で同じ計算を行い、理想混合（モル分率加重）の予測と比較して過剰体積の大きさを評価してください。
+
+* * *
+
+## 参考資料
+
+### Pythonライブラリ
+
+  * [CoolProp公式ドキュメント](<http://www.coolprop.org/>) \- 参照品質の熱物性
+  * [thermo公式ドキュメント](<https://thermo.readthedocs.io/>) \- 化学工学向け物性モデル
+  * [SciPy](<https://docs.scipy.org/doc/scipy/>) \- 最適化とカーブフィッティング
+
+### データソース
+
+  * [NIST Chemistry WebBook](<https://webbook.nist.gov/chemistry/>) \- 熱物性データ
+  * [NIST REFPROP](<https://www.nist.gov/srd/refprop>) \- 参照流体物性
+  * [DIPPRデータベース](<https://www.aiche.org/dippr>) \- 物性データベース
+  * [PubChem](<https://pubchem.ncbi.nlm.nih.gov/>) \- 化合物物性と記述子
+
+### 書籍
+
+  * McHugh & Krukonis, _Supercritical Fluid Extraction: Principles and Practice_
+  * Prausnitz, Lichtenthaler & de Azevedo, _Molecular Thermodynamics of Fluid-Phase Equilibria_
+  * Poling, Prausnitz & O'Connell, _The Properties of Gases and Liquids_
+
+* * *

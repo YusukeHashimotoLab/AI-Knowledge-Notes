@@ -1,19 +1,19 @@
 # MS Series English Translation Status
 
 **Dojo**: Materials Science
-**Generated**: 2026-07-04
-**Total Series**: 36
-**Total Files**: 200 (36 index + 165 chapters)
-**Complete Series** (index + chapters): 34/36
+**Generated**: 2026-08-10
+**Total Series**: 35
+**Total Files**: 202 (35 index + 167 chapters)
+**Complete Series** (index + chapters): 34/35
 
 ---
 
 ## Summary Statistics
 
-- **Series Translated**: 36/36 (100%)
-- **Index Pages**: 35/36 (97%)
-- **Total Chapter Files**: 165
-- **Average Chapters per Series**: 4.6
+- **Series Translated**: 35/35 (100%)
+- **Index Pages**: 35/35 (100%)
+- **Total Chapter Files**: 167
+- **Average Chapters per Series**: 4.8
 
 ---
 
@@ -572,33 +572,23 @@
 
 **Directory**: `supercritical-fluid-introduction`
 **Location**: `/MS/supercritical-fluid-introduction/`
-**Files**: 6 total (1 index + 5 chapters)
-**Last Update**: 2026-02-27
+**Files**: 8 total (1 index + 7 chapters)
+**Last Update**: 2026-08-10
 
 - ✅ `index.html` - Series overview page
 
-**Chapters** (5):
+**Chapters** (7):
 - ✅ `chapter-1.html`
 - ✅ `chapter-2.html`
 - ✅ `chapter-3.html`
 - ✅ `chapter-4.html`
 - ✅ `chapter-5.html`
+- ✅ `chapter-6.html`
+- ✅ `chapter-7.html`
 
 ---
 
-### 33. Unknown ⚠️
-
-**Directory**: `supercritical-fluids-introduction`
-**Location**: `/MS/supercritical-fluids-introduction/`
-**Files**: 0 total (0 index + 0 chapters)
-**Last Update**: Unknown
-
-- ❌ `index.html` - Missing
-- ⚠️ No chapter files found
-
----
-
-### 34. Introduction to Materials Synthesis Processes Series - MS Terakoya ✅
+### 33. Introduction to Materials Synthesis Processes Series - MS Terakoya ✅
 
 **Directory**: `synthesis-processes-introduction`
 **Location**: `/MS/synthesis-processes-introduction/`
@@ -615,7 +605,7 @@
 
 ---
 
-### 35. Introduction to Thin Films and Nanomaterials Series - MS Terakoya ✅
+### 34. Introduction to Thin Films and Nanomaterials Series - MS Terakoya ✅
 
 **Directory**: `thin-film-nano-introduction`
 **Location**: `/MS/thin-film-nano-introduction/`
@@ -632,7 +622,7 @@
 
 ---
 
-### 36. Introduction to X-ray Diffraction Analysis Series - MS Terakoya ✅
+### 35. Introduction to X-ray Diffraction Analysis Series - MS Terakoya ✅
 
 **Directory**: `xrd-analysis-introduction`
 **Location**: `/MS/xrd-analysis-introduction/`
