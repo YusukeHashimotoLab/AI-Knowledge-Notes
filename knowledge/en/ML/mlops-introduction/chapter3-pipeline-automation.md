@@ -2069,8 +2069,6 @@ Sample Answer
     # - xgboost>=2.0.0
     
     """
-    Example: Using Prefect, create a pipeline that trains multiple models
-    
     Purpose: Demonstrate machine learning model training and evaluation
     Target: Advanced
     Execution time: 30-60 seconds
@@ -2305,8 +2303,6 @@ Sample Answer
     # - requests>=2.31.0
     
     """
-    Example: Implement an error handling feature that meets the following
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Intermediate
     Execution time: 10-20 seconds

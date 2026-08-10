@@ -1218,8 +1218,6 @@ Complete the following code to implement a sentiment analysis model using BERT. 
     # - transformers>=4.30.0
     
     """
-    Example: Complete the following code to implement a sentiment analysi
-    
     Purpose: Demonstrate optimization techniques
     Target: Advanced
     Execution time: 1-5 minutes
@@ -1256,8 +1254,6 @@ Answer Example
     # - transformers>=4.30.0
     
     """
-    Example: Complete the following code to implement a sentiment analysi
-    
     Purpose: Demonstrate optimization techniques
     Target: Advanced
     Execution time: 1-5 minutes

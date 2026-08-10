@@ -849,8 +849,6 @@ Library | Features | Japanese Support | Accuracy
     # - opencv-python>=4.8.0
     
     """
-    Example: Super-resolutionis the technology to enhance low-resolution 
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds
@@ -1806,8 +1804,6 @@ Sample Answer
     # - torch>=2.0.0, <2.3.0
     
     """
-    Example: Convert a CNN model trained in PyTorch to ONNX format and co
-    
     Purpose: Demonstrate data visualization techniques
     Target: Advanced
     Execution time: 2-5 seconds

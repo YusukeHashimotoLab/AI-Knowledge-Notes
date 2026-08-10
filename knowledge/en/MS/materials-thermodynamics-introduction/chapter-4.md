@@ -435,8 +435,6 @@ This is observed in many alloy systems such as Pt-Ag, Fe-Ni, and Cu-Zn systems.
     # - matplotlib>=3.7.0
     
     """
-    Example: This is observed in many alloy systems such as Pt-Ag, Fe-Ni,
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds
@@ -832,8 +830,6 @@ Correlating predicted microstructure from phase diagrams with actual microstruct
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: Correlating predicted microstructure from phase diagrams wit
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds

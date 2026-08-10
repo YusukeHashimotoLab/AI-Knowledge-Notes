@@ -335,8 +335,6 @@ First, let's create a table summarizing the relationships of lattice parameters 
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: First, let's create a table summarizing the relationships of
-    
     Purpose: Demonstrate data manipulation and preprocessing
     Target: Beginner to Intermediate
     Execution time: 10-30 seconds
@@ -425,8 +423,6 @@ First, let's generate a two-dimensional square lattice and visualize the lattice
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: First, let's generate a two-dimensional square lattice and v
-    
     Purpose: Demonstrate data visualization techniques
     Target: Beginner to Intermediate
     Execution time: 2-5 seconds
@@ -515,8 +511,6 @@ Let's visualize a three-dimensional cubic unit cell using Plotly.
     # - plotly>=5.14.0
     
     """
-    Example: Let's visualize a three-dimensional cubic unit cell using Pl
-    
     Purpose: Demonstrate data visualization techniques
     Target: Beginner to Intermediate
     Execution time: 2-5 seconds

@@ -1379,8 +1379,6 @@ In this chapter, we will build a practical materials space mapping system that c
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Code Example 15: Comparison of Dimensionality Reduction Meth
-    
     Purpose: Demonstrate data visualization techniques
     Target: Beginner to Intermediate
     Execution time: 2-5 seconds
@@ -1529,8 +1527,6 @@ In this chapter, we will build a practical materials space mapping system that c
     # - seaborn>=0.12.0
     
     """
-    Example: Code Example 17: Material Property and Cluster Relationship 
-    
     Purpose: Demonstrate data visualization techniques
     Target: Advanced
     Execution time: 2-5 seconds

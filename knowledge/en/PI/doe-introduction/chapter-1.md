@@ -80,8 +80,6 @@ Compare the performance of three types of catalysts (A, B, C) in a chemical reac
     # - seaborn>=0.12.0
     
     """
-    Example: Compare the performance of three types of catalysts (A, B, C
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds
@@ -183,8 +181,6 @@ Evaluate the effects of temperature and pressure on chemical reaction yield.
     # - seaborn>=0.12.0
     
     """
-    Example: Evaluate the effects of temperature and pressure on chemical
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds
@@ -317,8 +313,6 @@ Design an experiment with 3 factors (temperature, pressure, catalyst amount), 2 
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: Design an experiment with 3 factors (temperature, pressure, 
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds
@@ -571,8 +565,6 @@ Analyze the interaction between temperature and pressure in detail.
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: Analyze the interaction between temperature and pressure in 
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds
@@ -950,8 +942,6 @@ Optimize temperature, catalyst concentration, and reaction time in an esterifica
     # - seaborn>=0.12.0
     
     """
-    Example: Optimize temperature, catalyst concentration, and reaction t
-    
     Purpose: Demonstrate data visualization techniques
     Target: Advanced
     Execution time: 2-5 seconds

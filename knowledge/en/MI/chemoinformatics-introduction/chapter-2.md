@@ -610,8 +610,6 @@ mordred is a library that can calculate over 1,800 types of descriptors at once.
     # - seaborn>=0.12.0
     
     """
-    Example: Code Example 9: Correlation Matrix and Redundant Feature Rem
-    
     Purpose: Demonstrate data visualization techniques
     Target: Beginner to Intermediate
     Execution time: 1-5 minutes
@@ -1165,8 +1163,6 @@ Sample Answer
     # - lightgbm>=4.0.0
     
     """
-    Example: Average (ensemble) the predictions of three models: Ridge, R
-    
     Purpose: Demonstrate machine learning model training and evaluation
     Target: Advanced
     Execution time: 1-5 minutes

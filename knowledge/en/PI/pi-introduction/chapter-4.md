@@ -59,8 +59,6 @@ purity | Product Purity (Target Variable) | Once per day | %
     # - seaborn>=0.12.0
     
     """
-    Example: Code Example 1: Data Generation and EDA (Exploratory Data An
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds
@@ -1134,8 +1132,6 @@ Integrating all previous steps, we establish an end-to-end PI project workflow.
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: Code Example 8: Integrated Pipeline and Deployment Preparati
-    
     Purpose: Demonstrate data visualization techniques
     Target: Advanced
     Execution time: 30-60 seconds

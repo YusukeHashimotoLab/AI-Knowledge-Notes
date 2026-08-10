@@ -1860,8 +1860,6 @@ Model Adaptation | Changes in process conditions | Online learning, adaptive alg
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: Code Example 10: Integrated Implementation of Production Mon
-    
     Purpose: Demonstrate simulation and statistical methods
     Target: Advanced
     Execution time: 5-15 seconds

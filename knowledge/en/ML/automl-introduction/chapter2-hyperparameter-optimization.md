@@ -52,8 +52,6 @@ The search space defines the range and distribution of possible values for each 
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: The search space defines the range and distribution of possi
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
     Execution time: ~5 seconds
@@ -241,8 +239,6 @@ When performance stops improving during training, early stopping terminates trai
     # - lightgbm>=4.0.0
     
     """
-    Example: When performance stops improving during training, early stop
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
     Execution time: 1-5 minutes
@@ -439,8 +435,6 @@ By terminating unpromising trials early, computational time can be significantly
     # - lightgbm>=4.0.0
     
     """
-    Example: By terminating unpromising trials early, computational time 
-    
     Purpose: Demonstrate optimization techniques
     Target: Beginner to Intermediate
     Execution time: 1-5 minutes
@@ -615,8 +609,6 @@ A complete optimization example using Optuna.
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Hyperoptis a Bayesian optimization framework using the TPE a
-    
     Purpose: Demonstrate optimization techniques
     Target: Advanced
     Execution time: 10-30 seconds
@@ -796,8 +788,6 @@ An example of integrating Hyperopt with machine learning libraries.
     # - lightgbm>=4.0.0
     
     """
-    Example: An example of integrating Hyperopt with machine learning lib
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Advanced
     Execution time: 1-5 minutes
@@ -895,8 +885,6 @@ An example of integrating Hyperopt with machine learning libraries.
     # - ray>=2.5.0
     
     """
-    Example: Ray Tuneis a library for distributed hyperparameter optimiza
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Advanced
     Execution time: 1-5 minutes
@@ -965,8 +953,6 @@ ASHA terminates low-performing trials early and concentrates resources on promis
     # - ray>=2.5.0
     
     """
-    Example: ASHA terminates low-performing trials early and concentrates
-    
     Purpose: Demonstrate simulation and statistical methods
     Target: Intermediate
     Execution time: 1-5 minutes
@@ -1165,8 +1151,6 @@ Ray Tune automatically distributes processing across multiple CPUs/GPUs.
     # - ray>=2.5.0
     
     """
-    Example: Ray Tune automatically distributes processing across multipl
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Advanced
     Execution time: 1-5 minutes
@@ -1218,8 +1202,6 @@ Bayesian optimization leverages past trial results to select the next search poi
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Bayesian optimization leverages past trial results to select
-    
     Purpose: Demonstrate machine learning model training and evaluation
     Target: Advanced
     Execution time: 10-30 seconds
@@ -1718,8 +1700,6 @@ Sample Answer
     # - optuna>=3.2.0
     
     """
-    Example: Use Optuna to implement hyperparameter optimization for Ligh
-    
     Purpose: Demonstrate optimization techniques
     Target: Advanced
     Execution time: 1-5 minutes

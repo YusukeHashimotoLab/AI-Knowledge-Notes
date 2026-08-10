@@ -268,8 +268,6 @@ Process monitoring in chemical plants is the most critical task for ensuring pro
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: Explanation: PCA-based monitoring is the most widely used st
-    
     Purpose: Demonstrate data visualization techniques
     Target: Advanced
     Execution time: 1-5 minutes
@@ -414,8 +412,6 @@ Process monitoring in chemical plants is the most critical task for ensuring pro
     # - torch>=2.0.0, <2.3.0
     
     """
-    Example: Explanation: Isolation Forest is an unsupervised learning al
-    
     Purpose: Demonstrate data visualization techniques
     Target: Advanced
     Execution time: 1-5 minutes

@@ -31,8 +31,6 @@ where \\(u(x,t)\\) is the displacement and \\(c\\) is the wave propagation veloc
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Derivation:For a string with tension \(T\) and linear densit
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds

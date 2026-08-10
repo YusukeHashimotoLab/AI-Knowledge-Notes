@@ -1004,8 +1004,6 @@ Train Q-learning and SARSA on the FrozenLake environment with the same hyperpara
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Train Q-learning and SARSA on the FrozenLake environment wit
-    
     Purpose: Demonstrate data visualization techniques
     Target: Beginner to Intermediate
     Execution time: 1-5 minutes
@@ -1031,8 +1029,6 @@ Implement different ε decay patterns (linear decay, exponential decay, step dec
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Implement different ε decay patterns (linear decay, exponent
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
     Execution time: ~5 seconds
@@ -1057,8 +1053,6 @@ Implement Double Q-Learning to prevent overestimation and compare performance wi
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Implement Double Q-Learning to prevent overestimation and co
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
     Execution time: 1-5 minutes
@@ -1083,8 +1077,6 @@ Implement an adaptive learning rate that adjusts based on visit count and compar
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Implement an adaptive learning rate that adjusts based on vi
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
     Execution time: ~5 seconds
@@ -1109,8 +1101,6 @@ Discretize the state space for other OpenAI Gym environments (CartPole-v1, Mount
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Discretize the state space for other OpenAI Gym environments
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
     Execution time: ~5 seconds

@@ -306,8 +306,6 @@ Data acquisition in food processing has dramatically improved with advances in s
     # - seaborn>=0.12.0
     
     """
-    Example: Data acquisition in food processing has dramatically improve
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds

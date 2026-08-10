@@ -102,8 +102,6 @@ Where:
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Important: Generative models learn $P(x|y)$ and $P(y)$, whic
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds
@@ -271,8 +269,6 @@ In other words, the sample mean and sample variance are the MLEs.
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: In other words, the sample mean and sample variance are the 
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds

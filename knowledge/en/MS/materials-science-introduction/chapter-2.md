@@ -377,8 +377,6 @@ Visualizes electronegativity on the periodic table using a heatmap.
     # - seaborn>=0.12.0
     
     """
-    Example: Visualizes electronegativity on the periodic table using a h
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds
@@ -600,8 +598,6 @@ Plots the relationship between bond energy and melting point for representative 
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Plots the relationship between bond energy and melting point
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds
@@ -695,8 +691,6 @@ Visualizes how electrical conductivity differs by orders of magnitude depending 
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Visualizes how electrical conductivity differs by orders of 
-    
     Purpose: Demonstrate data visualization techniques
     Target: Beginner to Intermediate
     Execution time: 2-5 seconds
@@ -779,8 +773,6 @@ Creates a radar chart to quantitatively compare various properties of the four b
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Creates a radar chart to quantitatively compare various prop
-    
     Purpose: Demonstrate data visualization techniques
     Target: Beginner to Intermediate
     Execution time: 2-5 seconds

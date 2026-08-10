@@ -1015,8 +1015,6 @@ Easy **Problem** :Electrical conductivity $\sigma = 1 \times 10^4$ S/m, Hall coe
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: EasyProblem:Electrical conductivity $\sigma = 1 \times 10^4$
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
     Execution time: ~5 seconds
@@ -1133,8 +1131,6 @@ Medium **Problem** :Mobilityが T = 100 K で 5000 cm$^2$/(V·s), 300 K で 1500
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: MediumProblem:Mobilityが T = 100 K で 5000 cm$^2$/(V·s), 300 K
-    
     Purpose: Demonstrate data visualization techniques
     Target: Beginner to Intermediate
     Execution time: ~5 seconds
@@ -1171,8 +1167,6 @@ Hard **Problem** :Hall voltageがmagnetic field B = 0, 0.2, 0.4, 0.6, 0.8, 1.0 T
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: HardProblem:Hall voltageがmagnetic field B = 0, 0.2, 0.4, 0.6
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds

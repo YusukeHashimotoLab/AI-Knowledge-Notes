@@ -1217,8 +1217,6 @@ Apply equal width binning and equal frequency binning to the following data and 
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Apply equal width binning and equal frequency binning to the
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
     Execution time: ~5 seconds

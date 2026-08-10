@@ -263,8 +263,6 @@ Show Answer
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Problem:When the grain diameter of steel changes from 5μm to
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
     Execution time: ~5 seconds
@@ -302,8 +300,6 @@ Show Answer
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Problem:In an Al alloy (G=26GPa, b=0.286nm), precipitate par
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
     Execution time: ~5 seconds
@@ -351,8 +347,6 @@ Show Answer
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Problem:In an Al-4%Cu alloy, when three mechanisms work simu
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds

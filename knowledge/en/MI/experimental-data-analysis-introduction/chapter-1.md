@@ -137,8 +137,6 @@ To ensure reproducibility of analysis code, record the following:
     # - scipy>=1.11.0
     
     """
-    Example: To ensure reproducibility of analysis code, record the follo
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds
@@ -954,8 +952,6 @@ Build an appropriate preprocessing pipeline for the following XRD data (sample).
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: Build an appropriate preprocessing pipeline for the followin
-    
     Purpose: Demonstrate data manipulation and preprocessing
     Target: Beginner to Intermediate
     Execution time: ~5 seconds

@@ -347,8 +347,6 @@ When Magpie features are dimensionally reduced with PCA, the following material 
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: Code Example 1: Basic matminer MagpieFeaturizer Implementati
-    
     Purpose: Demonstrate data manipulation and preprocessing
     Target: Beginner to Intermediate
     Execution time: ~5 seconds
@@ -400,8 +398,6 @@ When Magpie features are dimensionally reduced with PCA, the following material 
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: Code Example 2: Complete 145-Dimensional Feature Generation 
-    
     Purpose: Demonstrate data manipulation and preprocessing
     Target: Beginner to Intermediate
     Execution time: 10-30 seconds
@@ -482,8 +478,6 @@ When Magpie features are dimensionally reduced with PCA, the following material 
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: Code Example 3: PCA Dimensionality Reduction and Visualizati
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds
@@ -584,8 +578,6 @@ When Magpie features are dimensionally reduced with PCA, the following material 
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: Code Example 4: t-SNE Visualization (with perplexity optimiz
-    
     Purpose: Demonstrate data visualization techniques
     Target: Advanced
     Execution time: 2-5 seconds
@@ -680,8 +672,6 @@ When Magpie features are dimensionally reduced with PCA, the following material 
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: Code Example 5: Using Elemental Property Databases (pymatgen
-    
     Purpose: Demonstrate data manipulation and preprocessing
     Target: Beginner to Intermediate
     Execution time: 10-30 seconds
@@ -772,8 +762,6 @@ When Magpie features are dimensionally reduced with PCA, the following material 
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: Code Example 6: Feature Importance Analysis with Random Fore
-    
     Purpose: Demonstrate data visualization techniques
     Target: Advanced
     Execution time: 1-5 minutes
@@ -891,8 +879,6 @@ When Magpie features are dimensionally reduced with PCA, the following material 
     # - seaborn>=0.12.0
     
     """
-    Example: Code Example 7: Feature Distribution by Material Class (seab
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds

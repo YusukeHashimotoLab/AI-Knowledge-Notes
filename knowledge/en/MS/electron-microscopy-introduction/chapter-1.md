@@ -765,8 +765,6 @@ High voltage (300-1000 kV) | Short | High | High | Large
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Problem: Calculate the electron wavelengths at acceleration 
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Intermediate
     Execution time: ~5 seconds
@@ -807,8 +805,6 @@ High voltage (300-1000 kV) | Short | High | High | Large
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Problem: Compare the resolution of optical microscopy (λ=550
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
     Execution time: ~5 seconds
@@ -864,8 +860,6 @@ High voltage (300-1000 kV) | Short | High | High | Large
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Problem: How much electron dose is needed to improve an elec
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
     Execution time: ~5 seconds
@@ -904,8 +898,6 @@ High voltage (300-1000 kV) | Short | High | High | Large
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Problem: Evaluate whether knock-on damage occurs when observ
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
     Execution time: ~5 seconds
@@ -950,8 +942,6 @@ High voltage (300-1000 kV) | Short | High | High | Large
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Problem: Find the spatial frequency of the first CTF zero cr
-    
     Purpose: Demonstrate optimization techniques
     Target: Intermediate
     Execution time: 10-30 seconds

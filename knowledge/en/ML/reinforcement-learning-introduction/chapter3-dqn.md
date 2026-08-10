@@ -1092,8 +1092,6 @@ Method | Problem Solved | Key Idea | Computational Cost
     # - torch>=2.0.0, <2.3.0
     
     """
-    Example: Implementation Example 6: CartPole DQN Complete Implementati
-    
     Purpose: Demonstrate data visualization techniques
     Target: Advanced
     Execution time: 1-5 minutes

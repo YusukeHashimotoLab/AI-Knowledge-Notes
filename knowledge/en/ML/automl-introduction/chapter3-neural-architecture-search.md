@@ -1472,8 +1472,6 @@ Sample Answer
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Complete the following code to search for an image classific
-    
     Purpose: Demonstrate machine learning model training and evaluation
     Target: Advanced
     Execution time: 1-5 minutes

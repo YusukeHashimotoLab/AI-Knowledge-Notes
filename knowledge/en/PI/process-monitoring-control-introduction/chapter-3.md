@@ -277,8 +277,6 @@ Anomaly Detection Method | Characteristics | Advantages | Disadvantages | Applic
     # - scipy>=1.11.0
     
     """
-    Example: Explanation: Rule-based anomaly detection is the simplest me
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds

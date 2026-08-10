@@ -1045,8 +1045,6 @@ Solution Example
     # - shap>=0.42.0
     
     """
-    Example: Using SHAP and LIME, generate explanations for the same samp
-    
     Purpose: Demonstrate machine learning model training and evaluation
     Target: Advanced
     Execution time: 30-60 seconds
@@ -1106,8 +1104,6 @@ Solution Example
     # - shap>=0.42.0
     
     """
-    Example: Using SHAP Dependence Plot, visualize interactions between t
-    
     Purpose: Demonstrate data visualization techniques
     Target: Beginner to Intermediate
     Execution time: 2-5 seconds
@@ -1155,8 +1151,6 @@ Solution Example
     # - shap>=0.42.0
     
     """
-    Example: Mimic the Toyota battery degradation prediction case and per
-    
     Purpose: Demonstrate data visualization techniques
     Target: Advanced
     Execution time: 30-60 seconds

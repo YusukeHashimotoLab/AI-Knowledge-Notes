@@ -247,8 +247,6 @@ Bioresorbability achieves ideal bone regeneration where no permanent foreign mat
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Example 1: Analysis of Fracture Strength Distribution using 
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 5-15 seconds
@@ -450,8 +448,6 @@ Bioresorbability achieves ideal bone regeneration where no permanent foreign mat
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Example 3: Calculation of Activation Energy (from DSC/TG Dat
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds

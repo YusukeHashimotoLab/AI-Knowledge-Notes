@@ -232,8 +232,6 @@ Grain size distributions in actual polycrystalline materials often follow a logn
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Grain size distributions in actual polycrystalline materials
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds
@@ -331,8 +329,6 @@ Plot the relationship between grain size and yield strength using the Hall-Petch
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Plot the relationship between grain size and yield strength 
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds
@@ -558,8 +554,6 @@ Calculate and classify grain boundaries based on Σ values using CSL theory.
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Calculate and classify grain boundaries based on Σ values us
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds

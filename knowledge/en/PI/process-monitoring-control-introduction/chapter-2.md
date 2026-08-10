@@ -78,8 +78,6 @@ Variation Type | Alternative Name | Characteristics | Example Causes | Response
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: 2.2 Code Examples: Control Charts and Process Capability Ana
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 5-15 seconds
@@ -236,8 +234,6 @@ Variation Type | Alternative Name | Characteristics | Example Causes | Response
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Explanation: The X̄-R control chart simultaneously monitors 
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds
@@ -364,8 +360,6 @@ Variation Type | Alternative Name | Characteristics | Example Causes | Response
     # - scipy>=1.11.0
     
     """
-    Example: Explanation: I-MR control chart is used for individual measu
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds
@@ -521,8 +515,6 @@ Variation Type | Alternative Name | Characteristics | Example Causes | Response
     # - matplotlib>=3.7.0
     
     """
-    Example: Explanation: Process capability indices quantitatively evalu
-    
     Purpose: Demonstrate data visualization techniques
     Target: Beginner to Intermediate
     Execution time: 2-5 seconds
@@ -659,8 +651,6 @@ Variation Type | Alternative Name | Characteristics | Example Causes | Response
     # - matplotlib>=3.7.0
     
     """
-    Example: Explanation: CUSUM (Cumulative Sum) control chart efficientl
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds
@@ -798,8 +788,6 @@ Variation Type | Alternative Name | Characteristics | Example Causes | Response
     # - scipy>=1.11.0
     
     """
-    Example: Explanation: EWMA (Exponentially Weighted Moving Average) co
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds
@@ -984,8 +972,6 @@ Variation Type | Alternative Name | Characteristics | Example Causes | Response
     # - matplotlib>=3.7.0
     
     """
-    Example: Explanation: Hotelling's T² control chart is a multivariate 
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds

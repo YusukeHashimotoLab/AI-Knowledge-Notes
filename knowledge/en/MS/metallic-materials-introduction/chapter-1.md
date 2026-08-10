@@ -1436,8 +1436,6 @@ Show solution
     # - scipy>=1.11.0
     
     """
-    Example: Problem:The Fermi energy of copper (Cu) is 7.05 eV. Calculat
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds
@@ -1604,8 +1602,6 @@ Show solution
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Problem:For an FCC metal, identify the slip systems (combina
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds

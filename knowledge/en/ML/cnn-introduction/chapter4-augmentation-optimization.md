@@ -1178,8 +1178,6 @@ Pruning is a technique for reducing model size by removing low-importance weight
     # - torch>=2.0.0, <2.3.0
     
     """
-    Example: Pruning is a technique for reducing model size by removing l
-    
     Purpose: Demonstrate data visualization techniques
     Target: Advanced
     Execution time: 2-5 seconds

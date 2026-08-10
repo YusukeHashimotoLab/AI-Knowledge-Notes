@@ -1452,8 +1452,6 @@ Hard **問題** ：scikit-learnのIsolation Forestを使って、M-H曲線の異
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Hard問題：scikit-learnのIsolation Forestを使って、M-H曲線の異常なデータポイントを検出
-    
     Purpose: Demonstrate data visualization techniques
     Target: Advanced
     Execution time: 2-5 seconds

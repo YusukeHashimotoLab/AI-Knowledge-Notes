@@ -289,8 +289,6 @@ ASE is a Python library that provides unified handling of atomic structure manip
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: ASE is a Python library that provides unified handling of at
-    
     Purpose: Demonstrate data visualization techniques
     Target: Beginner to Intermediate
     Execution time: 2-5 seconds

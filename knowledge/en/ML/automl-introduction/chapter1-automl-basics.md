@@ -966,8 +966,6 @@ Answer Example
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Complete the following code to implement a simple AutoML sys
-    
     Purpose: Demonstrate machine learning model training and evaluation
     Target: Advanced
     Execution time: 1-5 minutes

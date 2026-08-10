@@ -26,8 +26,6 @@ Python Implementation: Basic Properties of Bessel Functions
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: 💻 Code Example 1: Calculation and Visualization of Bessel Fu
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds

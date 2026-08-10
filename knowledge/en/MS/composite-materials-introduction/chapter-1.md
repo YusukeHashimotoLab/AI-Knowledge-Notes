@@ -105,8 +105,6 @@ Calculate the longitudinal and transverse elastic moduli of a unidirectional CFR
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Calculate the longitudinal and transverse elastic moduli of 
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
     Execution time: ~5 seconds
@@ -152,8 +150,6 @@ Where \\(\sigma_m'\\) is the matrix stress at the strain when fiber failure occu
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Example 1.2: Tensile Strength Prediction for Composite Mater
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 1-5 minutes

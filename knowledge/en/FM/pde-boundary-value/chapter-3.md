@@ -62,8 +62,6 @@ Python implementation: Verification of harmonic function properties
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: 💻 Example 3.1: Verification of Harmonic Functions and Maximu
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds

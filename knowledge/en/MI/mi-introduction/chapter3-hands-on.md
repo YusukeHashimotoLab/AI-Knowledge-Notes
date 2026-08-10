@@ -250,8 +250,6 @@ We implement six different machine learning models and compare their performance
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: Overview:The simplest machine learning model. Learns linear 
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 1-5 minutes
@@ -1444,8 +1442,6 @@ Hint Use `ElementProperty` featurizer with `from_preset('magpie')`.  Sample Answ
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: Write code to extract 5+ features from composition"Li2O"usin
-    
     Purpose: Demonstrate data manipulation and preprocessing
     Target: Beginner to Intermediate
     Execution time: 5-10 seconds

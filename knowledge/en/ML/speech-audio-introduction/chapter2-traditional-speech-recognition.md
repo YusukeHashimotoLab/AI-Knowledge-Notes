@@ -1095,8 +1095,6 @@ Solution
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: For a 3-state HMM with the following parameters, calculate t
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
     Execution time: 5-10 seconds
@@ -1194,8 +1192,6 @@ Solution
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Using a GMM with 2 components (K=2), cluster the following 1
-    
     Purpose: Demonstrate data visualization techniques
     Target: Advanced
     Execution time: 2-5 seconds

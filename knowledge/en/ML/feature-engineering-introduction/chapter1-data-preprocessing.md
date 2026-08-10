@@ -1194,8 +1194,6 @@ Sample Answer
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: For the following data, detect outliers using the IQR method
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
     Execution time: ~5 seconds
@@ -1284,8 +1282,6 @@ For the following data, build a complete preprocessing pipeline that includes mi
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: For the following data, build a complete preprocessing pipel
-    
     Purpose: Demonstrate data manipulation and preprocessing
     Target: Beginner to Intermediate
     Execution time: ~5 seconds
@@ -1321,8 +1317,6 @@ Sample Answer
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: For the following data, build a complete preprocessing pipel
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds

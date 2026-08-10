@@ -571,8 +571,6 @@ Misconduct Type | Examples | Consequences
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Code Example 5: Journal Selection Decision Tree (scikit-lear
-    
     Purpose: Demonstrate data visualization techniques
     Target: Beginner to Intermediate
     Execution time: 1-5 minutes
@@ -677,8 +675,6 @@ Misconduct Type | Examples | Consequences
     # - matplotlib>=3.7.0
     
     """
-    Example: Code Example 7: Preprint vs Formal Publication Timeline Comp
-    
     Purpose: Demonstrate data visualization techniques
     Target: Beginner to Intermediate
     Execution time: 2-5 seconds

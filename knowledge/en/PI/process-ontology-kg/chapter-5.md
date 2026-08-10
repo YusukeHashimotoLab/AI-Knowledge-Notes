@@ -1729,8 +1729,6 @@ By reading this chapter, you will be able to:
     # - plotly>=5.14.0
     
     """
-    Example: Code Example 7: Integrated System of API + Reasoning + Visua
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds

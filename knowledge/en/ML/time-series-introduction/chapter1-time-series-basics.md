@@ -995,8 +995,6 @@ Execute an ADF test on the following data and determine its stationarity.
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Execute an ADF test on the following data and determine its 
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
     Execution time: ~5 seconds
@@ -1017,8 +1015,6 @@ Sample Answer
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Execute an ADF test on the following data and determine its 
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds
@@ -1132,8 +1128,6 @@ For the following time series data, perform appropriate preprocessing (missing v
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: For the following time series data, perform appropriate prep
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
     Execution time: ~5 seconds
@@ -1167,8 +1161,6 @@ Sample Answer
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: For the following time series data, perform appropriate prep
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds

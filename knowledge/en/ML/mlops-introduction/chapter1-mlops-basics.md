@@ -1198,8 +1198,6 @@ Improve the following code to implement experiment management following MLOps be
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: Improve the following code to implement experiment managemen
-    
     Purpose: Demonstrate machine learning model training and evaluation
     Target: Advanced
     Execution time: 30-60 seconds

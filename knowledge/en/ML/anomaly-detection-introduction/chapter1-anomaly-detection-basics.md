@@ -314,8 +314,6 @@ In anomaly detection, normal data overwhelmingly outnumber anomalies, making acc
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: In anomaly detection, normal data overwhelmingly outnumber a
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
     Execution time: ~5 seconds

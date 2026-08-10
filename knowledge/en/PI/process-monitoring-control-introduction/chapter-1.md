@@ -118,8 +118,6 @@ From here, we will look at 8 code examples for processing sensor data using Pyth
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: From here, we will look at 8 code examples for processing se
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 5-15 seconds
@@ -205,8 +203,6 @@ From here, we will look at 8 code examples for processing sensor data using Pyth
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Explanation: This code generates simulation data that includ
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 5-15 seconds
@@ -289,8 +285,6 @@ From here, we will look at 8 code examples for processing sensor data using Pyth
     # - matplotlib>=3.7.0
     
     """
-    Example: Explanation: By displaying multiple sensor data on the same 
-    
     Purpose: Demonstrate data visualization techniques
     Target: Beginner to Intermediate
     Execution time: 2-5 seconds
@@ -377,8 +371,6 @@ From here, we will look at 8 code examples for processing sensor data using Pyth
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Explanation: This code demonstrates that when the sampling f
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds
@@ -479,8 +471,6 @@ From here, we will look at 8 code examples for processing sensor data using Pyth
     # - scipy>=1.11.0
     
     """
-    Example: Explanation: Data quality assessment is the first step in pr
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds
@@ -867,8 +857,6 @@ From here, we will look at 8 code examples for processing sensor data using Pyth
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Explanation: This code implements the data logging mechanism
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds

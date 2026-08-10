@@ -765,9 +765,6 @@ Solution
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: Use RDKit to calculate the following molecular descriptors:
-    
-    
     Purpose: Demonstrate data manipulation and preprocessing
     Target: Beginner to Intermediate
     Execution time: ~5 seconds
@@ -822,8 +819,6 @@ Solution
     # - requests>=2.31.0
     
     """
-    Example: Use PubChem's REST API to retrieve information for a specifi
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner
     Execution time: ~5 seconds

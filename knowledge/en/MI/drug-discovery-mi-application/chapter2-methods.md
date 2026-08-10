@@ -993,8 +993,6 @@ View Answer **Recommended Method: Random Forest** **Reasoning:** 1\. **Fit with 
     # - shap>=0.42.0
     
     """
-    Example: Q8: For the following drug discovery project, which machine 
-    
     Purpose: Demonstrate data visualization techniques
     Target: Advanced
     Execution time: 1-5 minutes

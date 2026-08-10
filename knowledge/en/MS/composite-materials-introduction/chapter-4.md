@@ -356,8 +356,6 @@ $$\tau_{\text{ILSS}} = \frac{3P_{\max}}{4bh}$$
     # - scipy>=1.11.0
     
     """
-    Example: Example 4.3: Statistical Analysis of Interlaminar Shear Stre
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds

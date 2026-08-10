@@ -74,8 +74,6 @@ A **vocoder** is a module that generates speech waveforms from Mel-spectrograms.
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Avocoderis a module that generates speech waveforms from Mel
-    
     Purpose: Demonstrate data visualization techniques
     Target: Beginner to Intermediate
     Execution time: 2-5 seconds

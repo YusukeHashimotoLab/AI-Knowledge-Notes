@@ -50,8 +50,6 @@ In fully connected layers, even a slight change in object position within an ima
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: In fully connected layers, even a slight change in object po
-    
     Purpose: Demonstrate data visualization techniques
     Target: Beginner to Intermediate
     Execution time: 2-5 seconds
@@ -665,8 +663,6 @@ In PyTorch, we use the `torch.nn.Conv2d` class to define convolutional layers.
     # - torch>=2.0.0, <2.3.0
     
     """
-    Example: In PyTorch, we use thetorch.nn.Conv2dclass to define convolu
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Advanced
     Execution time: ~5 seconds
@@ -1059,8 +1055,6 @@ We will implement a basic CNN to classify the MNIST dataset (28×28 grayscale ha
     # - torchvision>=0.15.0
     
     """
-    Example: We will implement a basic CNN to classify the MNIST dataset 
-    
     Purpose: Demonstrate neural network implementation
     Target: Advanced
     Execution time: 1-5 minutes

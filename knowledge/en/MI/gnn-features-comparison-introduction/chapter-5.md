@@ -938,8 +938,6 @@ We comprehensively compare the performance of all hybrid methods implemented in 
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: We comprehensively compare the performance of all hybrid met
-    
     Purpose: Demonstrate data visualization techniques
     Target: Beginner to Intermediate
     Execution time: 1-5 minutes

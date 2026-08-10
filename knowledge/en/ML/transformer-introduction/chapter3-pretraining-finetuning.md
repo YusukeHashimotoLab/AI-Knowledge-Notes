@@ -492,8 +492,6 @@ Feature | MLM (BERT-style) | CLM (GPT-style)
     # - transformers>=4.30.0
     
     """
-    Example: Implementation Example 4: Full-Parameter Fine-tuning for Sen
-    
     Purpose: Demonstrate data visualization techniques
     Target: Advanced
     Execution time: 1-5 minutes

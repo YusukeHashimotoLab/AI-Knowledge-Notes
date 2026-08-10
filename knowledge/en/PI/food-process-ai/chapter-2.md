@@ -361,8 +361,6 @@ The appearance quality of food (color, shape, surface condition) is an important
     # - seaborn>=0.12.0
     
     """
-    Example: The appearance quality of food (color, shape, surface condit
-    
     Purpose: Demonstrate data visualization techniques
     Target: Advanced
     Execution time: 1-5 minutes
@@ -530,8 +528,6 @@ Statistical Quality Control (SQC) is a method of monitoring and managing process
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: Statistical Quality Control (SQC) is a method of monitoring 
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds

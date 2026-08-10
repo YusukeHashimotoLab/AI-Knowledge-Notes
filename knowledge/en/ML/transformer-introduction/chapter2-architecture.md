@@ -1572,8 +1572,6 @@ Train models with different head counts (1, 2, 4, 8, 16) and compare performance
     # - torch>=2.0.0, <2.3.0
     
     """
-    Example: Train models with different head counts (1, 2, 4, 8, 16) and
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Advanced
     Execution time: 1-5 minutes
@@ -1599,8 +1597,6 @@ Compare Sin/Cos positional encoding with learnable positional embeddings.
     # - torch>=2.0.0, <2.3.0
     
     """
-    Example: Compare Sin/Cos positional encoding with learnable positiona
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Advanced
     Execution time: 1-5 minutes
@@ -1630,8 +1626,6 @@ Visualize how the Decoder's causal mask affects Attention weights.
     # - torch>=2.0.0, <2.3.0
     
     """
-    Example: Visualize how the Decoder's causal mask affects Attention we
-    
     Purpose: Demonstrate data visualization techniques
     Target: Advanced
     Execution time: 2-5 seconds
@@ -1654,8 +1648,6 @@ Compare translation quality and speed with different beam sizes (1, 3, 5, 10, 20
     # - torch>=2.0.0, <2.3.0
     
     """
-    Example: Compare translation quality and speed with different beam si
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Advanced
     Execution time: ~5 seconds
@@ -1679,8 +1671,6 @@ Compare performance with different Encoder/Decoder layer counts (1, 2, 4, 6, 12)
     # - torch>=2.0.0, <2.3.0
     
     """
-    Example: Compare performance with different Encoder/Decoder layer cou
-    
     Purpose: Demonstrate machine learning model training and evaluation
     Target: Advanced
     Execution time: 1-5 minutes

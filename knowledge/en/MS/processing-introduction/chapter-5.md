@@ -1478,8 +1478,6 @@ analysis結果automaticallyPDFreportor HTML dashboards。
     # - scipy>=1.11.0
     
     """
-    Example: problem：film thicknessdata平均100 nm、標準偏差3 nm、specifications95
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
     Execution time: ~5 seconds
@@ -1530,8 +1528,6 @@ analysis結果automaticallyPDFreportor HTML dashboards。
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: problem：temperature（300, 400, 500°C）andpressure（0.3, 0.5, 0.
-    
     Purpose: Demonstrate data manipulation and preprocessing
     Target: Beginner to Intermediate
     Execution time: ~5 seconds
@@ -1588,8 +1584,6 @@ analysis結果automaticallyPDFreportor HTML dashboards。
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: problem：Isolation Forest with`contamination`parameters0.05, 
-    
     Purpose: Demonstrate machine learning model training and evaluation
     Target: Advanced
     Execution time: ~5 seconds
@@ -1666,8 +1660,6 @@ analysis結果automaticallyPDFreportor HTML dashboards。
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: problem：missing valueswithdataset for、(a)欠損rowsdelete、(b)平均値
-    
     Purpose: Demonstrate machine learning model training and evaluation
     Target: Advanced
     Execution time: 30-60 seconds

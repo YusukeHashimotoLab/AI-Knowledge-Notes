@@ -131,8 +131,6 @@ An $n \times n$ matrix $A$ where $A_{ij} = 1$ if nodes $i$ and $j$ are connected
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: An $n \times n$ matrix $A$ where $A_{ij} = 1$ if nodes $i$ a
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
     Execution time: ~5 seconds
@@ -268,8 +266,6 @@ The number of edges a node has. Represents "connectivity" within the network.
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: The number of edges a node has. Represents "connectivity" wi
-    
     Purpose: Demonstrate data visualization techniques
     Target: Beginner to Intermediate
     Execution time: 2-5 seconds
@@ -399,8 +395,6 @@ A model where edges exist independently between each node pair with probability 
     # - networkx>=3.1.0
     
     """
-    Example: A model where edges exist independently between each node pa
-    
     Purpose: Demonstrate data visualization techniques
     Target: Advanced
     Execution time: 2-5 seconds

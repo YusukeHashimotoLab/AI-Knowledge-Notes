@@ -81,8 +81,6 @@ Pymatgen is a powerful Python library that allows easy manipulation of crystal s
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Pymatgen is a powerful Python library that allows easy manip
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
     Execution time: ~5 seconds

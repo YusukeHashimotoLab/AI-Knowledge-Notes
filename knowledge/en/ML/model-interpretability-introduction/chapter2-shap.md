@@ -299,8 +299,6 @@ $$ \pi_{x}(z') = \frac{(M-1)}{\binom{M}{|z'|} |z'|(M - |z'|)} $$
     # - shap>=0.42.0
     
     """
-    Example: Waterfall plotsdisplay the contribution of each feature from
-    
     Purpose: Demonstrate data visualization techniques
     Target: Advanced
     Execution time: 30-60 seconds
@@ -360,8 +358,6 @@ $$ \pi_{x}(z') = \frac{(M-1)}{\binom{M}{|z'|} |z'|(M - |z'|)} $$
     # - shap>=0.42.0
     
     """
-    Example: Force plotsvisualize single-sample explanations similar to w
-    
     Purpose: Demonstrate data visualization techniques
     Target: Beginner to Intermediate
     Execution time: 2-5 seconds
@@ -401,8 +397,6 @@ $$ \pi_{x}(z') = \frac{(M-1)}{\binom{M}{|z'|} |z'|(M - |z'|)} $$
     # - shap>=0.42.0
     
     """
-    Example: Summary plotsaggregate SHAP values across all samples to vis
-    
     Purpose: Demonstrate data visualization techniques
     Target: Beginner to Intermediate
     Execution time: 2-5 seconds
@@ -482,8 +476,6 @@ $$ \pi_{x}(z') = \frac{(M-1)}{\binom{M}{|z'|} |z'|(M - |z'|)} $$
     # - shap>=0.42.0
     
     """
-    Example: Dependence plotsshow the relationship between a feature's va
-    
     Purpose: Demonstrate data visualization techniques
     Target: Beginner to Intermediate
     Execution time: 2-5 seconds
@@ -533,8 +525,6 @@ $$ \pi_{x}(z') = \frac{(M-1)}{\binom{M}{|z'|} |z'|(M - |z'|)} $$
     # - xgboost>=2.0.0
     
     """
-    Example: TreeExplaineris the most efficient explainer for tree-based 
-    
     Purpose: Demonstrate data visualization techniques
     Target: Beginner to Intermediate
     Execution time: 30-60 seconds
@@ -606,8 +596,6 @@ $$ \pi_{x}(z') = \frac{(M-1)}{\binom{M}{|z'|} |z'|(M - |z'|)} $$
     # - shap>=0.42.0
     
     """
-    Example: LinearExplaineris an analytical explainer for linear models 
-    
     Purpose: Demonstrate data visualization techniques
     Target: Beginner
     Execution time: 30-60 seconds
@@ -662,8 +650,6 @@ $$ \pi_{x}(z') = \frac{(M-1)}{\binom{M}{|z'|} |z'|(M - |z'|)} $$
     # - shap>=0.42.0
     
     """
-    Example: KernelExplainercan be applied to any model (including black-
-    
     Purpose: Demonstrate data visualization techniques
     Target: Advanced
     Execution time: 30-60 seconds
@@ -727,8 +713,6 @@ $$ \pi_{x}(z') = \frac{(M-1)}{\binom{M}{|z'|} |z'|(M - |z'|)} $$
     # - torch>=2.0.0, <2.3.0
     
     """
-    Example: DeepExplaineris an efficient explainer for deep learning mod
-    
     Purpose: Demonstrate data visualization techniques
     Target: Advanced
     Execution time: 1-5 minutes
@@ -978,8 +962,6 @@ The computational cost of SHAP varies greatly depending on the algorithm and mod
     # - shap>=0.42.0
     
     """
-    Example: The computational cost of SHAP varies greatly depending on t
-    
     Purpose: Demonstrate machine learning model training and evaluation
     Target: Advanced
     Execution time: 30-60 seconds
@@ -1056,8 +1038,6 @@ Compute SHAP values for the same dataset and model using both TreeSHAP and Kerne
     # - shap>=0.42.0
     
     """
-    Example: Compute SHAP values for the same dataset and model using bot
-    
     Purpose: Demonstrate data visualization techniques
     Target: Advanced
     Execution time: 2-5 seconds
@@ -1082,8 +1062,6 @@ Create intentionally correlated features and investigate how they are interprete
     # - shap>=0.42.0
     
     """
-    Example: Create intentionally correlated features and investigate how
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Advanced
     Execution time: 1-5 minutes
@@ -1109,8 +1087,6 @@ Compare the distribution of SHAP values between normal and anomalous samples to 
     # - shap>=0.42.0
     
     """
-    Example: Compare the distribution of SHAP values between normal and a
-    
     Purpose: Demonstrate data visualization techniques
     Target: Advanced
     Execution time: 2-5 seconds
@@ -1136,8 +1112,6 @@ Apply SHAP to time series data (e.g., predicting next day from past N days) and 
     # - shap>=0.42.0
     
     """
-    Example: Apply SHAP to time series data (e.g., predicting next day fr
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
     Execution time: ~5 seconds
@@ -1162,8 +1136,6 @@ Compare feature importance by SHAP with Permutation Feature Importance and analy
     # - shap>=0.42.0
     
     """
-    Example: Compare feature importance by SHAP with Permutation Feature 
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
     Execution time: 1-5 minutes

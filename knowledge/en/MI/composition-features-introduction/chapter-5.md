@@ -221,8 +221,6 @@ Utilizing scikit-learn's Pipeline, we create a consistent workflow from data acq
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Utilizing scikit-learn's Pipeline, we create a consistent wo
-    
     Purpose: Demonstrate machine learning model training and evaluation
     Target: Advanced
     Execution time: 1-5 minutes

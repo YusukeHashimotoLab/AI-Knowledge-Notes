@@ -812,8 +812,6 @@ $$ \hat{f}_{x_S}(x_S) = \mathbb{E}_{x_C}[\hat{f}(x_S, x_C)] = \frac{1}{n}\sum_{i
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: ICEvisualizes conditional expectations for each sample and c
-    
     Purpose: Demonstrate data visualization techniques
     Target: Beginner to Intermediate
     Execution time: 2-5 seconds
@@ -956,8 +954,6 @@ $$ \hat{f}_{x_S}(x_S) = \mathbb{E}_{x_C}[\hat{f}(x_S, x_C)] = \frac{1}{n}\sum_{i
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: "If these conditions are met, the same prediction will occur
-    
     Purpose: Demonstrate machine learning model training and evaluation
     Target: Advanced
     Execution time: 30-60 seconds
@@ -1019,8 +1015,6 @@ $$ \hat{f}_{x_S}(x_S) = \mathbb{E}_{x_C}[\hat{f}(x_S, x_C)] = \frac{1}{n}\sum_{i
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: Counterfactual Explanationsshow "what needs to change for th
-    
     Purpose: Demonstrate machine learning model training and evaluation
     Target: Advanced
     Execution time: 30-60 seconds
@@ -1140,8 +1134,6 @@ $$ \hat{f}_{x_S}(x_S) = \mathbb{E}_{x_C}[\hat{f}(x_S, x_C)] = \frac{1}{n}\sum_{i
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: Feature Ablationmeasures the performance change when feature
-    
     Purpose: Demonstrate data visualization techniques
     Target: Advanced
     Execution time: 30-60 seconds
@@ -1487,8 +1479,6 @@ Sample Answer
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: Manually implement Permutation Importance and compare with s
-    
     Purpose: Demonstrate machine learning model training and evaluation
     Target: Advanced
     Execution time: 30-60 seconds
@@ -1661,8 +1651,6 @@ Sample Answer
     # - shap>=0.42.0
     
     """
-    Example: Apply LIME, SHAP, and Permutation Importance to the followin
-    
     Purpose: Demonstrate data visualization techniques
     Target: Advanced
     Execution time: 30-60 seconds

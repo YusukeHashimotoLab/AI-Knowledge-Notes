@@ -966,8 +966,6 @@ Solution Example
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: The following hardness data were obtained from Jominy test: 
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds
@@ -1230,8 +1228,6 @@ Solution Example
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: In factory tempering process, there are variations of temper
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 5-15 seconds

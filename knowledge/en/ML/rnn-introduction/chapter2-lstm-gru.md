@@ -1395,8 +1395,6 @@ Visualize the values of each LSTM gate (forget, input, output) and observe how t
     # - torch>=2.0.0, <2.3.0
     
     """
-    Example: Visualize the values of each LSTM gate (forget, input, outpu
-    
     Purpose: Demonstrate data visualization techniques
     Target: Advanced
     Execution time: 2-5 seconds
@@ -1421,8 +1419,6 @@ Train GRU and LSTM on the same task and compare training curves (loss and accura
     # - torch>=2.0.0, <2.3.0
     
     """
-    Example: Train GRU and LSTM on the same task and compare training cur
-    
     Purpose: Demonstrate data visualization techniques
     Target: Advanced
     Execution time: 1-5 minutes
@@ -1449,8 +1445,6 @@ Compare performance of unidirectional and bidirectional RNN on part-of-speech ta
     # - torch>=2.0.0, <2.3.0
     
     """
-    Example: Compare performance of unidirectional and bidirectional RNN 
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Advanced
     Execution time: ~5 seconds
@@ -1476,8 +1470,6 @@ Compare LSTM and GRU performance at different sequence lengths (10, 50, 100, 200
     # - torch>=2.0.0, <2.3.0
     
     """
-    Example: Compare LSTM and GRU performance at different sequence lengt
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Advanced
     Execution time: ~5 seconds

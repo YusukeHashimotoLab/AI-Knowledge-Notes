@@ -438,8 +438,6 @@ The Girvan-Newman method is a hierarchical approach that removes edges connectin
     # - networkx>=3.1.0
     
     """
-    Example: The Girvan-Newman method is a hierarchical approach that rem
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
     Execution time: ~5 seconds
@@ -533,8 +531,6 @@ Spectral clustering detects communities using eigenvectors of the graph Laplacia
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Spectral clustering detects communities using eigenvectors o
-    
     Purpose: Demonstrate machine learning model training and evaluation
     Target: Advanced
     Execution time: 10-30 seconds
@@ -875,8 +871,6 @@ Exercise 4: Resolution Limit Problem
     # - networkx>=3.1.0
     
     """
-    Example: Problem:Modularity optimization has a "resolution limit" pro
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
     Execution time: ~5 seconds
@@ -900,8 +894,6 @@ Exercise 5: Community Detection in Weighted Networks
     # - networkx>=3.1.0
     
     """
-    Example: Problem:Apply the Louvain method that considers weights to a
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
     Execution time: ~5 seconds

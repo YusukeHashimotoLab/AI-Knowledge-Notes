@@ -31,8 +31,6 @@ $k$: thermal conductivity, $\rho$: density, $c_p$: specific heat
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: $k$: thermal conductivity, $\rho$: density, $c_p$: specific 
-    
     Purpose: Demonstrate data visualization techniques
     Target: Beginner to Intermediate
     Execution time: 2-5 seconds
@@ -218,8 +216,6 @@ We solve the heat conduction equation in a finite domain using the method of sep
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: We solve the heat conduction equation in a finite domain usi
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds

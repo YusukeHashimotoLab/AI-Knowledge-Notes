@@ -81,8 +81,6 @@ Design a cross-product experiment with control factors (inner array L8) and nois
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: Design a cross-product experiment with control factors (inne
-    
     Purpose: Demonstrate data manipulation and preprocessing
     Target: Intermediate
     Execution time: 10-30 seconds
@@ -242,8 +240,6 @@ Calculate the nominal-is-best SN ratio (for product dimensions, etc.).
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: Calculate the nominal-is-best SN ratio (for product dimensio
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds
@@ -374,8 +370,6 @@ Calculate SN ratios for smaller-is-better (defects, errors, etc.) and larger-is-
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: Calculate SN ratios for smaller-is-better (defects, errors, 
-    
     Purpose: Demonstrate data manipulation and preprocessing
     Target: Beginner to Intermediate
     Execution time: 5-10 seconds
@@ -518,8 +512,6 @@ Determine optimal levels of control factors and create SN ratio factor effect pl
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: Determine optimal levels of control factors and create SN ra
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds
@@ -696,8 +688,6 @@ Compare SN ratios between initial and optimal conditions to verify the improveme
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: Compare SN ratios between initial and optimal conditions to 
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds
@@ -1018,8 +1008,6 @@ Appropriately classify control factors and noise factors and assign them to expe
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: Appropriately classify control factors and noise factors and
-    
     Purpose: Demonstrate data manipulation and preprocessing
     Target: Beginner to Intermediate
     Execution time: 10-30 seconds
@@ -1201,8 +1189,6 @@ Fully implement robust design for product thickness in an injection molding proc
     # - seaborn>=0.12.0
     
     """
-    Example: Fully implement robust design for product thickness in an in
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 5-15 seconds

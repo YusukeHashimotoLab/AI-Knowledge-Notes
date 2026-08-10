@@ -314,8 +314,6 @@ Display distillation column temperature, pressure, and flow rate simultaneously.
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: Display distillation column temperature, pressure, and flow 
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds
@@ -380,8 +378,6 @@ Grasp correlation relationships among multiple variables at a glance.
     # - seaborn>=0.12.0
     
     """
-    Example: Grasp correlation relationships among multiple variables at 
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds
@@ -447,8 +443,6 @@ Observe relationships between variables in detail with scatter plots.
     # - seaborn>=0.12.0
     
     """
-    Example: Observe relationships between variables in detail with scatt
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds
@@ -496,8 +490,6 @@ Create interactive graphs with zoom and hover display capabilities in a web brow
     # - plotly>=5.14.0
     
     """
-    Example: Create interactive graphs with zoom and hover display capabi
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds

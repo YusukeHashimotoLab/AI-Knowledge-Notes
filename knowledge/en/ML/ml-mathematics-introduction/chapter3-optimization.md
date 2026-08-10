@@ -247,8 +247,6 @@ $$ \mathbf{x}_{t+1} = \mathbf{x}_t - \alpha \nabla f(\mathbf{x}_t) $$
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Mini-batch Gradient Descent: Gradient calculation with small
-    
     Purpose: Demonstrate data visualization techniques
     Target: Advanced
     Execution time: 1-5 minutes
@@ -1308,8 +1306,6 @@ Sample Solution
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Using gradient descent with learning rate $\alpha = 0.1$ and
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Advanced
     Execution time: ~5 seconds
@@ -1384,8 +1380,6 @@ From equations 1 and 2, $x = y$. Substituting into equation 3: $2x = 1 \Rightarr
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: From equations 1 and 2, $x = y$. Substituting into equation 
-    
     Purpose: Demonstrate data visualization techniques
     Target: Advanced
     Execution time: 1-5 minutes
@@ -1461,8 +1455,6 @@ Sample Solution
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Using Momentum method ($\beta = 0.9$), optimize the Rosenbro
-    
     Purpose: Demonstrate data visualization techniques
     Target: Advanced
     Execution time: 2-5 seconds

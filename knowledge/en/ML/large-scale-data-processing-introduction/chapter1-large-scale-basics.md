@@ -98,8 +98,6 @@ As data size increases, computation time increases non-linearly.
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: As data size increases, computation time increases non-linea
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds
@@ -895,8 +893,6 @@ Parallelize the following code using multiprocessing for data parallelism.
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Parallelize the following code using multiprocessing for dat
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
     Execution time: 5-10 seconds

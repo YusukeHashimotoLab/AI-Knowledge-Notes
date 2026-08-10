@@ -1292,8 +1292,6 @@ Sample Answer
     # - torch>=2.0.0, <2.3.0
     
     """
-    Example: Implement SmoothGrad and investigate how the number of noise
-    
     Purpose: Demonstrate data visualization techniques
     Target: Advanced
     Execution time: 2-5 seconds
@@ -1375,8 +1373,6 @@ Sample Answer
     # - transformers>=4.30.0
     
     """
-    Example: Visualize BERT attention weights and analyze which words eac
-    
     Purpose: Demonstrate data visualization techniques
     Target: Advanced
     Execution time: 1-5 minutes

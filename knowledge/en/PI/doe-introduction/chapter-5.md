@@ -38,8 +38,6 @@ Using pyDOE3 to generate full factorial, fractional factorial, CCD, and Box-Behn
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: Using pyDOE3 to generate full factorial, fractional factoria
-    
     Purpose: Demonstrate data manipulation and preprocessing
     Target: Advanced
     Execution time: 5-10 seconds
@@ -427,8 +425,6 @@ Load experimental data, automatically execute ANOVA, and format results into Dat
     # - scipy>=1.11.0
     
     """
-    Example: Load experimental data, automatically execute ANOVA, and for
-    
     Purpose: Demonstrate machine learning model training and evaluation
     Target: Intermediate
     Execution time: 10-30 seconds
@@ -653,8 +649,6 @@ Using Plotly to create interactive 3D response surfaces that can be rotated and 
     # - plotly>=5.14.0
     
     """
-    Example: Using Plotly to create interactive 3D response surfaces that
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 30-60 seconds
@@ -1059,8 +1053,6 @@ Set probability distributions for noise factors and evaluate robustness through 
     # - scipy>=1.11.0
     
     """
-    Example: Set probability distributions for noise factors and evaluate
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 5-15 seconds
@@ -1283,8 +1275,6 @@ Simultaneously optimize two responses (yield and purity) and search for Pareto o
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Simultaneously optimize two responses (yield and purity) and
-    
     Purpose: Demonstrate data visualization techniques
     Target: Advanced
     Execution time: 10-30 seconds
@@ -1494,8 +1484,6 @@ Execute complete workflow integration from experimental design generation to opt
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: Execute complete workflow integration from experimental desi
-    
     Purpose: Demonstrate data visualization techniques
     Target: Advanced
     Execution time: 30-60 seconds

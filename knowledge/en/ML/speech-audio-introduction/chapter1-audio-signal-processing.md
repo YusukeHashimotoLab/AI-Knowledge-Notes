@@ -404,8 +404,6 @@ The **Fast Fourier Transform (FFT)** is an algorithm for computing DFT efficient
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: TheFast Fourier Transform (FFT)is an algorithm for computing
-    
     Purpose: Demonstrate data visualization techniques
     Target: Beginner to Intermediate
     Execution time: 2-5 seconds
@@ -496,8 +494,6 @@ where $w[n]$ is a window function (Hamming window, Hanning window, etc.).
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: where $w[n]$ is a window function (Hamming window, Hanning w
-    
     Purpose: Demonstrate data visualization techniques
     Target: Beginner to Intermediate
     Execution time: 2-5 seconds
@@ -669,8 +665,6 @@ $$ m = 2595 \log_{10}\left(1 + \frac{f}{700}\right) $$
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: MFCCis the most widely used feature in speech recognition. I
-    
     Purpose: Demonstrate data visualization techniques
     Target: Beginner to Intermediate
     Execution time: 2-5 seconds
@@ -751,8 +745,6 @@ $$ m = 2595 \log_{10}\left(1 + \frac{f}{700}\right) $$
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Chroma Featuresrepresent tonality and chords in music. They 
-    
     Purpose: Demonstrate data visualization techniques
     Target: Beginner to Intermediate
     Execution time: 2-5 seconds
@@ -827,8 +819,6 @@ $$ m = 2595 \log_{10}\left(1 + \frac{f}{700}\right) $$
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Spectral Featurescapture characteristics of frequency distri
-    
     Purpose: Demonstrate data visualization techniques
     Target: Beginner to Intermediate
     Execution time: 2-5 seconds
@@ -1519,8 +1509,6 @@ Complete the following code to extract MFCCs from an audio file and calculate th
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Complete the following code to extract MFCCs from an audio f
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
     Execution time: 10-30 seconds
@@ -1552,8 +1540,6 @@ Solution
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Complete the following code to extract MFCCs from an audio f
-    
     Purpose: Demonstrate data visualization techniques
     Target: Beginner to Intermediate
     Execution time: 2-5 seconds
@@ -1701,8 +1687,6 @@ Solution
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Apply the following data augmentations to an audio file and 
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds

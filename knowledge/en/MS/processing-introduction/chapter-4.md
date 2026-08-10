@@ -1174,8 +1174,6 @@ Epitaxial growth is classified into three modes based on surface energy and latt
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Problem: The growth rate of SiO2CVD was 1 nm/min at 400°C an
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
     Execution time: ~5 seconds
@@ -1216,8 +1214,6 @@ Epitaxial growth is classified into three modes based on surface energy and latt
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Problem: Epitaxially grow Ge0.2Si0.8on Si substrate. The lat
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
     Execution time: 1-5 minutes
@@ -1260,8 +1256,6 @@ Epitaxial growth is classified into three modes based on surface energy and latt
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Problem: A substrate is placed 20 cm directly above an evapo
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
     Execution time: ~5 seconds
@@ -1355,8 +1349,6 @@ Epitaxial growth is classified into three modes based on surface energy and latt
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Problem: Sputtering was performed with Cu target (diameter 1
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
     Execution time: ~5 seconds
@@ -1419,8 +1411,6 @@ Hint: ³GaAs = 0.7 J/m², ³Si = 1.2 J/m², ³interface = 0.8 J/m²
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Problem: For epitaxial growth of GaAs (lattice constant 5.65
-    
     Purpose: Demonstrate neural network implementation
     Target: Beginner to Intermediate
     Execution time: 1-5 minutes

@@ -110,8 +110,6 @@ Recommends optimal journals from research content using decision trees.
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: Recommends optimal journals from research content using deci
-    
     Purpose: Demonstrate machine learning model training and evaluation
     Target: Beginner to Intermediate
     Execution time: 5-10 seconds
@@ -214,8 +212,6 @@ Scores multiple candidate journals and determines optimal submission order.
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: Scores multiple candidate journals and determines optimal su
-    
     Purpose: Demonstrate data manipulation and preprocessing
     Target: Intermediate
     Execution time: 10-30 seconds

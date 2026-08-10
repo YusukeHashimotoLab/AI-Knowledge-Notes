@@ -186,8 +186,6 @@ $$ C_C(v) = \frac{n - 1}{\sum_{u \neq v} d(v, u)} $$
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: Implementation Example: Calculating and Comparing Closeness 
-    
     Purpose: Demonstrate data visualization techniques
     Target: Beginner to Intermediate
     Execution time: 2-5 seconds
@@ -292,8 +290,6 @@ Characteristics of nodes with high betweenness centrality:
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Implementation Example: Betweenness Centrality and Bottlenec
-    
     Purpose: Demonstrate data visualization techniques
     Target: Beginner to Intermediate
     Execution time: 2-5 seconds
@@ -432,8 +428,6 @@ For large networks, computing exact betweenness centrality is computationally ex
     # - networkx>=3.1.0
     
     """
-    Example: For large networks, computing exact betweenness centrality i
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
     Execution time: 5-10 seconds
@@ -650,8 +644,6 @@ Compare multiple centrality measures using data modeled after a real social netw
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: Compare multiple centrality measures using data modeled afte
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds
@@ -1005,8 +997,6 @@ Create a simple network with the following code and calculate betweenness centra
     # - networkx>=3.1.0
     
     """
-    Example: Create a simple network with the following code and calculat
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner
     Execution time: ~5 seconds
@@ -1028,8 +1018,6 @@ Sample Answer
     # - networkx>=3.1.0
     
     """
-    Example: Create a simple network with the following code and calculat
-    
     Purpose: Demonstrate data visualization techniques
     Target: Beginner to Intermediate
     Execution time: 2-5 seconds
@@ -1105,8 +1093,6 @@ Sample Answer
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: Experiment with PageRank damping factor (alpha) values of 0.
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds
@@ -1197,8 +1183,6 @@ For the following network, calculate degree centrality, betweenness centrality, 
     # - networkx>=3.1.0
     
     """
-    Example: For the following network, calculate degree centrality, betw
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner
     Execution time: ~5 seconds
@@ -1219,8 +1203,6 @@ Sample Answer
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: For the following network, calculate degree centrality, betw
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds
@@ -1395,8 +1377,6 @@ Sample Answer
     # - scipy>=1.11.0
     
     """
-    Example: Generate a random graph (Erdos-Renyi model) and a scale-free
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds

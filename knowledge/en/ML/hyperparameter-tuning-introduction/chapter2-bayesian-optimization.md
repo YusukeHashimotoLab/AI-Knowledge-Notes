@@ -787,8 +787,6 @@ Here's a complete example of utilizing Optuna with an actual deep learning model
     # - torch>=2.0.0, <2.3.0
     
     """
-    Example: Here's a complete example of utilizing Optuna with an actual
-    
     Purpose: Demonstrate machine learning model training and evaluation
     Target: Advanced
     Execution time: 1-5 minutes

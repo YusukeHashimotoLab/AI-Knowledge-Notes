@@ -323,8 +323,6 @@ An implementation example of sentiment analysis using BERT. The output of the `[
     # - transformers>=4.30.0
     
     """
-    Example: An implementation example of sentiment analysis using BERT. 
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Advanced
     Execution time: 1-5 minutes
@@ -408,8 +406,6 @@ An example of using BERT for Token Classification (labeling each token).
     # - transformers>=4.30.0
     
     """
-    Example: An example of using BERT for Token Classification (labeling 
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Advanced
     Execution time: 1-5 minutes
@@ -528,8 +524,6 @@ A SQuAD-format question answering system, a representative application of BERT.
     # - transformers>=4.30.0
     
     """
-    Example: A SQuAD-format question answering system, a representative a
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Advanced
     Execution time: 1-5 minutes

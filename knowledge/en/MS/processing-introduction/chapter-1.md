@@ -1031,8 +1031,6 @@ Solution Example
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: After evacuating a vacuum chamber (volume 0.5 m³) to 1 Pa wi
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
     Execution time: ~5 seconds
@@ -1205,8 +1203,6 @@ Solution Example
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Film thickness anomalies (exceeding ±10% of target) occurred
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 5-15 seconds

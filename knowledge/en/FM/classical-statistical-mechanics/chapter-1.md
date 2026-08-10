@@ -237,8 +237,6 @@ Python Implementation: Accuracy Verification of Stirling's Approximation
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: In statistical mechanics, \(N \sim 10^{23}\), so Stirling's 
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds

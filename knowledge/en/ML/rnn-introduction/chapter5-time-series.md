@@ -1780,8 +1780,6 @@ Sample Solution
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Answer the number of windows created and the X, y of the fir
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
     Execution time: ~5 seconds
@@ -1841,8 +1839,6 @@ Sample Solution
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Calculate MAE, RMSE, and MAPE for the following prediction r
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
     Execution time: ~5 seconds

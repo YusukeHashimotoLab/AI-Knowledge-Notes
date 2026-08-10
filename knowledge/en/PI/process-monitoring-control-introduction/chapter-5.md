@@ -252,8 +252,6 @@ In monitoring systems, the following data flow is executed continuously:
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: Explanation: This code designs a process monitoring dashboar
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds
@@ -927,8 +925,6 @@ In monitoring systems, the following data flow is executed continuously:
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: Explanation: This alarm system continuously monitors process
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds
@@ -1486,8 +1482,6 @@ In monitoring systems, the following data flow is executed continuously:
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: Explanation: OEE (Overall Equipment Effectiveness) is one of
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 5-15 seconds

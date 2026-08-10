@@ -252,8 +252,6 @@ Raw Material Blending | Minimize raw material cost | Blending ratio for each raw
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Code Example 4: Visualization of Constraints and Feasible Re
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 1-5 minutes

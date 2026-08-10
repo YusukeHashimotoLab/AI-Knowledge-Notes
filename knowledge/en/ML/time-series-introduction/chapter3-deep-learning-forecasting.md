@@ -1185,8 +1185,6 @@ Using the following sample data, train an LSTM model and compare its forecasting
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Using the following sample data, train an LSTM model and com
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
     Execution time: ~5 seconds
@@ -1215,8 +1213,6 @@ Sample Answer
     # - torch>=2.0.0, <2.3.0
     
     """
-    Example: Using the following sample data, train an LSTM model and com
-    
     Purpose: Demonstrate data visualization techniques
     Target: Advanced
     Execution time: 30-60 seconds

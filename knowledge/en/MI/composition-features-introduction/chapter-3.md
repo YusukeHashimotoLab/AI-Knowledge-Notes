@@ -236,8 +236,6 @@ All Featurizers inherit from `BaseFeaturizer`. The main methods are as follows:
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: All Featurizers inherit fromBaseFeaturizer. The main methods
-    
     Purpose: Demonstrate data manipulation and preprocessing
     Target: Beginner to Intermediate
     Execution time: 5-10 seconds
@@ -488,8 +486,6 @@ Where $\chi_i$ is the electronegativity of element $i$, and $\text{OxState}_i$ i
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: Where $\chi_i$ is the electronegativity of element $i$, and 
-    
     Purpose: Demonstrate data manipulation and preprocessing
     Target: Beginner to Intermediate
     Execution time: 5-10 seconds
@@ -743,8 +739,6 @@ By combining multiple Featurizers, you can build a richer feature set. Using `Mu
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: By combining multiple Featurizers, you can build a richer fe
-    
     Purpose: Demonstrate data manipulation and preprocessing
     Target: Beginner to Intermediate
     Execution time: 5-10 seconds
@@ -853,8 +847,6 @@ When handling large datasets (10,000+ compositions), batch processing optimizati
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: When handling large datasets (10,000+ compositions), batch p
-    
     Purpose: Demonstrate data manipulation and preprocessing
     Target: Advanced
     Execution time: 5-10 seconds

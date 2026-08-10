@@ -617,8 +617,6 @@ Feature | Description | Benefits
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: Model signaturedefines the input/output schema of a model an
-    
     Purpose: Demonstrate machine learning model training and evaluation
     Target: Advanced
     Execution time: 30-60 seconds
@@ -1083,8 +1081,6 @@ Feature | Description | Benefits
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: ONNX (Open Neural Network Exchange)is an open format that en
-    
     Purpose: Demonstrate machine learning model training and evaluation
     Target: Advanced
     Execution time: 30-60 seconds
@@ -1162,8 +1158,6 @@ Feature | Description | Benefits
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: BentoMLis a framework for packaging ML models as production-
-    
     Purpose: Demonstrate machine learning model training and evaluation
     Target: Advanced
     Execution time: 30-60 seconds
@@ -1280,8 +1274,6 @@ Feature | Description | Benefits
     # - torch>=2.0.0, <2.3.0
     
     """
-    Example: TorchScriptis a format for optimizing and serializing PyTorc
-    
     Purpose: Demonstrate neural network implementation
     Target: Advanced
     Execution time: 1-5 minutes
@@ -2132,8 +2124,6 @@ Sample Answer
     # - mlflow>=2.4.0
     
     """
-    Example: Write code to register a model using MLflow Model Registry a
-    
     Purpose: Demonstrate machine learning model training and evaluation
     Target: Advanced
     Execution time: 30-60 seconds
@@ -2214,8 +2204,6 @@ Sample Answer
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: Write code to create a model signature and perform input dat
-    
     Purpose: Demonstrate machine learning model training and evaluation
     Target: Advanced
     Execution time: 30-60 seconds

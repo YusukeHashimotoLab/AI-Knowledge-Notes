@@ -927,8 +927,6 @@ Train LightGBM and CatBoost on the following data and compare their performance.
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: Train LightGBM and CatBoost on the following data and compar
-    
     Purpose: Demonstrate data manipulation and preprocessing
     Target: Beginner to Intermediate
     Execution time: ~5 seconds
@@ -961,8 +959,6 @@ Solution
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: Train LightGBM and CatBoost on the following data and compar
-    
     Purpose: Demonstrate machine learning model training and evaluation
     Target: Intermediate
     Execution time: 1-5 minutes

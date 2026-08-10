@@ -955,8 +955,6 @@ In modern TEM, spherical aberration correctors (Cs-correctors) can bring the sph
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Problem: Calculate the Scherzer focus for a 300 kV TEM (Cs =
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
     Execution time: ~5 seconds
@@ -1005,8 +1003,6 @@ In modern TEM, spherical aberration correctors (Cs-correctors) can bring the sph
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Problem: For a Cu FCC specimen (a = 3.61 Å) [011] zone axis 
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
     Execution time: ~5 seconds
@@ -1101,8 +1097,6 @@ In modern TEM, spherical aberration correctors (Cs-correctors) can bring the sph
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Problem: Compare the point resolution of a 300 kV TEM before
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
     Execution time: ~5 seconds
@@ -1155,8 +1149,6 @@ In modern TEM, spherical aberration correctors (Cs-correctors) can bring the sph
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Problem: Calculate the FFT of a given HRTEM image (512×512 p
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds

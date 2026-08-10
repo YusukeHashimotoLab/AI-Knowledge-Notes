@@ -1177,8 +1177,6 @@ Execute rolling window analysis and anomaly detection on the following sensor da
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Execute rolling window analysis and anomaly detection on the
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
     Execution time: ~5 seconds

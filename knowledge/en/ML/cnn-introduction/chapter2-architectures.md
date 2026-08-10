@@ -224,8 +224,6 @@ Type | Operation | Characteristics | Use Cases
     # - torch>=2.0.0, <2.3.0
     
     """
-    Example: Global Average Pooling (GAP)is a special type of pooling tha
-    
     Purpose: Demonstrate neural network implementation
     Target: Advanced
     Execution time: ~5 seconds
@@ -305,8 +303,6 @@ FC3 (10) | 10 | 850
     # - torch>=2.0.0, <2.3.0
     
     """
-    Example: LeNet-5was developed by Yann LeCun for handwritten digit rec
-    
     Purpose: Demonstrate neural network implementation
     Target: Advanced
     Execution time: 1-5 minutes
@@ -908,8 +904,6 @@ In CNNs, Dropout is typically placed **before fully connected layers**. It's not
     # - torch>=2.0.0, <2.3.0
     
     """
-    Example: In CNNs, Dropout is typically placedbefore fully connected l
-    
     Purpose: Demonstrate neural network implementation
     Target: Advanced
     Execution time: 1-5 minutes
@@ -1340,8 +1334,6 @@ Apply Max Pooling and Average Pooling to the same input and verify the differenc
     # - torch>=2.0.0, <2.3.0
     
     """
-    Example: Apply Max Pooling and Average Pooling to the same input and 
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Advanced
     Execution time: ~5 seconds
@@ -1375,8 +1367,6 @@ Compare Residual blocks with and without Skip Connections to verify differences 
     # - torch>=2.0.0, <2.3.0
     
     """
-    Example: Compare Residual blocks with and without Skip Connections to
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Advanced
     Execution time: ~5 seconds
@@ -1402,8 +1392,6 @@ Train the same network with and without Batch Normalization and compare converge
     # - torchvision>=0.15.0
     
     """
-    Example: Train the same network with and without Batch Normalization 
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Advanced
     Execution time: 1-5 minutes
@@ -1430,8 +1418,6 @@ Vary Dropout probability (p=0.0, 0.3, 0.5, 0.7) and investigate the impact on ov
     # - torch>=2.0.0, <2.3.0
     
     """
-    Example: Vary Dropout probability (p=0.0, 0.3, 0.5, 0.7) and investig
-    
     Purpose: Demonstrate machine learning model training and evaluation
     Target: Advanced
     Execution time: 1-5 minutes
@@ -1456,8 +1442,6 @@ Compare three architectures on CIFAR-10: LeNet-5, VGG-style, and ResNet-style.
     # - torch>=2.0.0, <2.3.0
     
     """
-    Example: Compare three architectures on CIFAR-10: LeNet-5, VGG-style,
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Advanced
     Execution time: 1-5 minutes

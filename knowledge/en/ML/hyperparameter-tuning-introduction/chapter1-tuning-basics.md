@@ -71,8 +71,6 @@ The search space is the range of candidate values for each hyperparameter. Prope
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: The search space is the range of candidate values for each h
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Advanced
     Execution time: 5-10 seconds
@@ -919,8 +917,6 @@ Sample Answer
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Calculate the total number of combinations for the following
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
     Execution time: 1-5 minutes
@@ -1039,8 +1035,6 @@ Sample Answer
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: Implement hyperparameter tuning for RandomForestClassifier o
-    
     Purpose: Demonstrate data visualization techniques
     Target: Advanced
     Execution time: 1-5 minutes

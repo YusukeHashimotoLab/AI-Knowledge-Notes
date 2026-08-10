@@ -699,8 +699,6 @@ Dask Array splits NumPy arrays into chunks and enables parallel processing.
     # - dask>=2023.5.0
     
     """
-    Example: dask.delayedconverts arbitrary Python functions to lazy eval
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
     Execution time: 5-10 seconds
@@ -1307,8 +1305,6 @@ Execute the following code and verify the lazy evaluation mechanism. Explain why
     # - dask>=2023.5.0
     
     """
-    Example: Execute the following code and verify the lazy evaluation me
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner
     Execution time: ~5 seconds
@@ -1333,8 +1329,6 @@ Answer
     # - dask>=2023.5.0
     
     """
-    Example: Execute the following code and verify the lazy evaluation me
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner
     Execution time: ~5 seconds
@@ -1473,8 +1467,6 @@ Answer
     # - dask>=2023.5.0
     
     """
-    Example: Use dask.delayed to execute tasks with the following depende
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
     Execution time: ~5 seconds
@@ -1587,8 +1579,6 @@ Answer
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: Read a large CSV file with Dask DataFrame and perform the fo
-    
     Purpose: Demonstrate data manipulation and preprocessing
     Target: Advanced
     Execution time: 10-30 seconds

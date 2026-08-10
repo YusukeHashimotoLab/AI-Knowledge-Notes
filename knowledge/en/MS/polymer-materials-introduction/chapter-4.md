@@ -878,8 +878,6 @@ Show Answer
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Calculate the molecular weight half-life when the rate const
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
     Execution time: ~5 seconds
@@ -904,8 +902,6 @@ Show Answer
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Calculate the ionic conductivity when Ã0 = 1×10t S/cm, Ea = 
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
     Execution time: ~5 seconds
@@ -947,8 +943,6 @@ Show Answer
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Optimize parameter k in the Korsmeyer-Peppas model (n=0.6) t
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
     Execution time: ~5 seconds

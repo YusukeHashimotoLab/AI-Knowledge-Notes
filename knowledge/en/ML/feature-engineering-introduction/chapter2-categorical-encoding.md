@@ -51,8 +51,6 @@ Many machine learning algorithms (linear regression, neural networks, SVM, etc.)
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: Many machine learning algorithms (linear regression, neural 
-    
     Purpose: Demonstrate data manipulation and preprocessing
     Target: Intermediate
     Execution time: 5-10 seconds
@@ -288,8 +286,6 @@ For high-cardinality categorical variables, One-Hot Encoding generates matrices 
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: For high-cardinality categorical variables, One-Hot Encoding
-    
     Purpose: Demonstrate machine learning model training and evaluation
     Target: Beginner to Intermediate
     Execution time: ~5 seconds
@@ -390,8 +386,6 @@ Requires handling for new categories | Risk of multicollinearity
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Ordinal Encodingis a technique that assigns numerical values
-    
     Purpose: Demonstrate machine learning model training and evaluation
     Target: Beginner to Intermediate
     Execution time: ~5 seconds
@@ -1439,8 +1433,6 @@ Sample Answer
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: For high-cardinality categorical variables (1000 categories)
-    
     Purpose: Demonstrate machine learning model training and evaluation
     Target: Advanced
     Execution time: 1-5 minutes

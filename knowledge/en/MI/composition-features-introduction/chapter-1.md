@@ -148,8 +148,6 @@ For compounds consisting of multiple elements (e.g., Fe₂O₃), properties of e
     # - matplotlib>=3.7.0
     
     """
-    Example: Code Example 2: Elemental Property Extraction and Visualizat
-    
     Purpose: Demonstrate data visualization techniques
     Target: Beginner to Intermediate
     Execution time: 2-5 seconds
@@ -613,8 +611,6 @@ Atomic Coordinates (Precise) | High (Single crystal XRD, neutron diffraction) | 
     # - seaborn>=0.12.0
     
     """
-    Example: Code Example 7: Feature Correlation Analysis (pandas, seabor
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds
@@ -681,8 +677,6 @@ Atomic Coordinates (Precise) | High (Single crystal XRD, neutron diffraction) | 
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: Code Example 8: Simple Linear Regression Model Application (
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 30-60 seconds

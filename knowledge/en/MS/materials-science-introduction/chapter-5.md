@@ -75,8 +75,6 @@ As a basic pymatgen operation, we will create a simple cubic lattice.
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: As a basic pymatgen operation, we will create a simple cubic
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Intermediate
     Execution time: 10-30 seconds
@@ -203,8 +201,6 @@ Load a crystal structure from a CIF file and display detailed information.
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Load a crystal structure from a CIF file and display detaile
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
     Execution time: 10-30 seconds

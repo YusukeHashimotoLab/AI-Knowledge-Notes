@@ -334,8 +334,6 @@ First, create a table organizing basic information about the 14 Bravais lattices
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: First, create a table organizing basic information about the
-    
     Purpose: Demonstrate data manipulation and preprocessing
     Target: Beginner to Intermediate
     Execution time: 1-5 minutes
@@ -830,8 +828,6 @@ Examine symmetry operations of space group 225 (Fm-3m, FCC structure) in detail.
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Examine symmetry operations of space group 225 (Fm-3m, FCC s
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
     Execution time: 10-30 seconds
@@ -1015,8 +1011,6 @@ Calculate equivalent positions generated from a single atomic position by symmet
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Calculate equivalent positions generated from a single atomi
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
     Execution time: 10-30 seconds

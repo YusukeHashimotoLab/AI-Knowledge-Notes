@@ -1284,8 +1284,6 @@ Train GCNs with different numbers of layers (1, 2, 3, 4 layers) on the Cora data
     # - torch>=2.0.0, <2.3.0
     
     """
-    Example: Train GCNs with different numbers of layers (1, 2, 3, 4 laye
-    
     Purpose: Demonstrate data visualization techniques
     Target: Advanced
     Execution time: 1-5 minutes
@@ -1310,8 +1308,6 @@ Try different dropout rates (0.0, 0.2, 0.5, 0.7, 0.9) and investigate changes in
     # - torch>=2.0.0, <2.3.0
     
     """
-    Example: Try different dropout rates (0.0, 0.2, 0.5, 0.7, 0.9) and in
-    
     Purpose: Demonstrate machine learning model training and evaluation
     Target: Advanced
     Execution time: 1-5 minutes
@@ -1335,8 +1331,6 @@ Try different hidden layer dimensions (4, 8, 16, 32, 64, 128) and investigate th
     # - torch>=2.0.0, <2.3.0
     
     """
-    Example: Try different hidden layer dimensions (4, 8, 16, 32, 64, 128
-    
     Purpose: Demonstrate machine learning model training and evaluation
     Target: Advanced
     Execution time: 1-5 minutes
@@ -1363,8 +1357,6 @@ Train GCNs with three methods: symmetric normalization, random walk normalizatio
     # - torch>=2.0.0, <2.3.0
     
     """
-    Example: Train GCNs with three methods: symmetric normalization, rand
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Advanced
     Execution time: 1-5 minutes

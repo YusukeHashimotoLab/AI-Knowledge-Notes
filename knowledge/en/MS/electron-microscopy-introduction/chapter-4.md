@@ -1083,8 +1083,6 @@ The Fourier transform of a projection $P_\theta(x', y')$ of a 3D object $f(x, y,
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Problem: A plasmon peak was observed at 15 eV in an Al EELS 
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
     Execution time: ~5 seconds
@@ -1129,8 +1127,6 @@ The Fourier transform of a projection $P_\theta(x', y')$ of a 3D object $f(x, y,
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Problem: Estimate the minimum number of projections needed t
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
     Execution time: ~5 seconds
@@ -1182,8 +1178,6 @@ The Fourier transform of a projection $P_\theta(x', y')$ of a 3D object $f(x, y,
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Problem: EELS zero-loss peak integrated intensity is 10000 a
-    
     Purpose: Demonstrate data visualization techniques
     Target: Beginner to Intermediate
     Execution time: ~5 seconds

@@ -1788,8 +1788,6 @@ Sample Answer
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Complete the following code to implement a custom sentiment 
-    
     Purpose: Demonstrate machine learning model training and evaluation
     Target: Beginner to Intermediate
     Execution time: 30-60 seconds
@@ -1919,8 +1917,6 @@ Sample Answer
     # - transformers>=4.30.0
     
     """
-    Example: Implement a Retrieval-based QA system. Create a mechanism th
-    
     Purpose: Demonstrate neural network implementation
     Target: Advanced
     Execution time: 1-5 minutes
@@ -2053,8 +2049,6 @@ Sample Answer
     # - transformers>=4.30.0
     
     """
-    Example: Using FastAPI, implement a REST API that provides three func
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Intermediate
     Execution time: 10-20 seconds

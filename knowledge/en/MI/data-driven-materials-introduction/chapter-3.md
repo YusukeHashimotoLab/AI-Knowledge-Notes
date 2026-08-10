@@ -1214,8 +1214,6 @@ Solution Example
     # - optuna>=3.2.0
     
     """
-    Example: Use Optuna to optimize Random Forest hyperparameters. Explor
-    
     Purpose: Demonstrate optimization techniques
     Target: Advanced
     Execution time: 10-30 seconds
@@ -1260,8 +1258,6 @@ Solution Example
     # - lightgbm>=4.0.0
     
     """
-    Example: Build a Stacking Ensemble with three base models (Ridge, Ran
-    
     Purpose: Demonstrate data manipulation and preprocessing
     Target: Advanced
     Execution time: ~5 seconds

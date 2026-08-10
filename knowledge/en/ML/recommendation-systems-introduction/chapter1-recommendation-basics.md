@@ -553,8 +553,6 @@ Version | Ratings | Users | Movies | Use Case
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: The User-Item Matrixis the fundamental data structure for re
-    
     Purpose: Demonstrate data manipulation and preprocessing
     Target: Intermediate
     Execution time: ~5 seconds
@@ -955,8 +953,6 @@ For the following data, build a User-Item matrix, implement temporal splitting (
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: For the following data, build a User-Item matrix, implement 
-    
     Purpose: Demonstrate data manipulation and preprocessing
     Target: Beginner to Intermediate
     Execution time: ~5 seconds
@@ -984,8 +980,6 @@ Solution
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: For the following data, build a User-Item matrix, implement 
-    
     Purpose: Demonstrate data manipulation and preprocessing
     Target: Beginner to Intermediate
     Execution time: 1-5 minutes

@@ -1578,8 +1578,6 @@ Implement functions to calculate IoU and Dice coefficient, and compute both metr
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Implement functions to calculate IoU and Dice coefficient, a
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
     Execution time: ~5 seconds

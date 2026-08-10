@@ -1099,8 +1099,6 @@ Interaction Features | Relationships between variables | Temperature×Pressure, 
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: Code Example 9: Feature Selection Methods (Mutual Informatio
-    
     Purpose: Demonstrate data visualization techniques
     Target: Advanced
     Execution time: 30-60 seconds
@@ -1235,8 +1233,6 @@ Interaction Features | Relationships between variables | Temperature×Pressure, 
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: Code Example 10: Comprehensive Feature Extraction with tsfre
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds

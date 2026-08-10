@@ -71,8 +71,6 @@ Feature | Description | Advantage
     # - torch>=2.0.0, <2.3.0
     
     """
-    Example: The Cora datasetis a citation network of machine learning pa
-    
     Purpose: Demonstrate data visualization techniques
     Target: Advanced
     Execution time: 1-5 minutes

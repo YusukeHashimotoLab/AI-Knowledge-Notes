@@ -806,8 +806,6 @@ Quantitative analysis of particle size distribution from SEM images is important
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Problem: Calculate the secondary electron yield when the sam
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
     Execution time: ~5 seconds
@@ -891,8 +889,6 @@ Quantitative analysis of particle size distribution from SEM images is important
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Problem: Ten particles have diameters of [50, 55, 60, 52, 58
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
     Execution time: ~5 seconds

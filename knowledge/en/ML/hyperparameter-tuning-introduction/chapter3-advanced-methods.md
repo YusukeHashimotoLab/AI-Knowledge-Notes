@@ -414,8 +414,6 @@ Resource efficiency | Poor configs run to completion | Early convergence to good
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Hyperoptis a popular library that implements Tree-structured
-    
     Purpose: Demonstrate optimization techniques
     Target: Advanced
     Execution time: 5-10 seconds
@@ -558,8 +556,6 @@ Method | Surrogate Model | Strengths | Application Scenarios
     # - torch>=2.0.0, <2.3.0
     
     """
-    Example: Ray Tuneis a unified framework for distributed hyperparamete
-    
     Purpose: Demonstrate optimization techniques
     Target: Advanced
     Execution time: 1-5 minutes
@@ -710,8 +706,6 @@ Ray Tune supports distributed execution across multiple machines:
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: Ray Tune supports distributed execution across multiple mach
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Advanced
     Execution time: 1-5 minutes

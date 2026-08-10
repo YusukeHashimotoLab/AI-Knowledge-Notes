@@ -357,8 +357,6 @@ Type | Description | Example | Recommended Approach
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: Code Example 4: Missing Value Detection and Multiple Imputat
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds
@@ -599,8 +597,6 @@ Outliers occur due to various causes including measurement errors, sensor failur
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: Code Example 6: Machine Learning-Based Outlier Detection (Is
-    
     Purpose: Demonstrate data visualization techniques
     Target: Advanced
     Execution time: 2-5 seconds
@@ -974,8 +970,6 @@ Appropriate visualization is essential for understanding the essence of data. Le
     # - seaborn>=0.12.0
     
     """
-    Example: Code Example 9: Multi-dimensional Visualization of Process O
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds

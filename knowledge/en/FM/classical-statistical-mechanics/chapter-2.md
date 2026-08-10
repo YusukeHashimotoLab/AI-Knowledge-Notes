@@ -646,8 +646,6 @@ Python Implementation: Rotational Spectrum of Diatomic Molecules
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Example 2.6: Rotational Partition Function (Diatomic Molecul
-    
     Purpose: Demonstrate data visualization techniques
     Target: Advanced
     Execution time: 2-5 seconds

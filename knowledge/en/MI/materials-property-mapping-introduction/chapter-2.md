@@ -1012,8 +1012,6 @@ UMAP is a state-of-the-art dimensionality reduction technique that is faster tha
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Code Example 15: Animation of Dimensionality Reduction Proce
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds

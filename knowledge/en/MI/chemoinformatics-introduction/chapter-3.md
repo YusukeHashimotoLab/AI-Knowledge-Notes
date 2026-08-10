@@ -679,8 +679,6 @@ Criteria for oral drug-likeness: 1\. Molecular weight ≤ 500 Da 2\. logP ≤ 5 
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Code Example 10: Similar Compound Search from Large-Scale Li
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Intermediate
     Execution time: 10-30 seconds
@@ -788,8 +786,6 @@ In organic synthesis, finding catalysts with higher activity and selectivity is 
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: Code Example 11: Comprehensive Search for Catalyst Candidate
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds

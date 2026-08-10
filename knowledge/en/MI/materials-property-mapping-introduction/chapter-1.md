@@ -243,8 +243,6 @@ Visualizing high-dimensional data directly is challenging:
     # - seaborn>=0.12.0
     
     """
-    Example: Code Example 4: Pair Plot (Multivariate Correlation Visualiz
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds

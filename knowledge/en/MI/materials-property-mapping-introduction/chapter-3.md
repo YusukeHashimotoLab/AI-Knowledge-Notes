@@ -47,8 +47,6 @@ Crystal structures can be naturally represented as graphs:
     # - torch>=2.0.0, <2.3.0
     
     """
-    Example: Code Example 1: PyTorch Geometric Installation and Basic Set
-    
     Purpose: Demonstrate data visualization techniques
     Target: Advanced
     Execution time: 2-5 seconds
@@ -1515,8 +1513,6 @@ SchNet is a physically plausible GNN model using continuous filters.
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Code Example 16: Principal Component Analysis of Embedding V
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds
@@ -1655,8 +1651,6 @@ SchNet is a physically plausible GNN model using continuous filters.
     # - seaborn>=0.12.0
     
     """
-    Example: Code Example 18: Distance Distribution Analysis in Embedding
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds

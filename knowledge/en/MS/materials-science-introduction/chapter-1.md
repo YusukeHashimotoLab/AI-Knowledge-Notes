@@ -320,8 +320,6 @@ Compare the properties of four types of materials (metals, ceramics, polymers, c
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Compare the properties of four types of materials (metals, c
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds
@@ -402,8 +400,6 @@ Plot the relationship between density and tensile strength of representative mat
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Plot the relationship between density and tensile strength o
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds
@@ -516,8 +512,6 @@ Since electrical conductivity of materials differs by orders of magnitude, we pl
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Since electrical conductivity of materials differs by orders
-    
     Purpose: Demonstrate data visualization techniques
     Target: Beginner to Intermediate
     Execution time: 2-5 seconds
@@ -610,8 +604,6 @@ Plot the relationship between melting point and thermal conductivity of material
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Plot the relationship between melting point and thermal cond
-    
     Purpose: Demonstrate data visualization techniques
     Target: Beginner to Intermediate
     Execution time: 2-5 seconds
@@ -700,8 +692,6 @@ Simplify the famous Ashby chart from materials science to learn material selecti
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Simplify the famous Ashby chart from materials science to le
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds

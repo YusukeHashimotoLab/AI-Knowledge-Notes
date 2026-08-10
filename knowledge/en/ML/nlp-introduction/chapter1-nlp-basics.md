@@ -246,8 +246,6 @@ Method | Granularity | Advantages | Disadvantages | Use Cases
     # - nltk>=3.8.0
     
     """
-    Example: Stopwordsare frequently occurring words that are not semanti
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner
     Execution time: ~5 seconds
@@ -300,8 +298,6 @@ Method | Granularity | Advantages | Disadvantages | Use Cases
     # - nltk>=3.8.0
     
     """
-    Example: Stemming: Convert words to their stem (rule-based)Lemmatizat
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner
     Execution time: ~5 seconds
@@ -364,8 +360,6 @@ Method | Granularity | Advantages | Disadvantages | Use Cases
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: One-Hot Encodingrepresents each word as a vector with vocabu
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
     Execution time: 10-30 seconds
@@ -428,8 +422,6 @@ Method | Granularity | Advantages | Disadvantages | Use Cases
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: Bag of Wordsrepresents documents as word occurrence frequenc
-    
     Purpose: Demonstrate machine learning model training and evaluation
     Target: Beginner to Intermediate
     Execution time: ~5 seconds
@@ -636,8 +628,6 @@ $$ \text{IDF}(t) = \log\left(\frac{N}{df(t)}\right) $$
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Word2Vecis a method that learns distributed representations 
-    
     Purpose: Demonstrate neural network implementation
     Target: Advanced
     Execution time: 1-5 minutes
@@ -738,8 +728,6 @@ $$ \text{IDF}(t) = \log\left(\frac{N}{df(t)}\right) $$
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: GloVelearns embeddings using word co-occurrence statistics. 
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
     Execution time: 1-5 minutes
@@ -1379,8 +1367,6 @@ Sample Answer
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: Calculate TF-IDF for the following text and identify the mos
-    
     Purpose: Demonstrate machine learning model training and evaluation
     Target: Beginner to Intermediate
     Execution time: 10-30 seconds
@@ -1620,8 +1606,6 @@ Sample Answer
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Calculate the cosine similarity between two sentences using 
-    
     Purpose: Demonstrate machine learning model training and evaluation
     Target: Advanced
     Execution time: 1-5 minutes

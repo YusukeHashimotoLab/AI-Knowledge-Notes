@@ -831,8 +831,6 @@ In the CALPHAD method, thermodynamic data are stored in **TDB files** (Thermo-Ca
     # - matplotlib>=3.7.0
     
     """
-    Example: In the CALPHAD method, thermodynamic data are stored inTDB f
-    
     Purpose: Demonstrate data visualization techniques
     Target: Advanced
     Execution time: 10-30 seconds

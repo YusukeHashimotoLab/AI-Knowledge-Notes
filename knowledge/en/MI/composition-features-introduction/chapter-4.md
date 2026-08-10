@@ -58,8 +58,6 @@ Here is the basic pattern for integrating matminer Featurizers into scikit-learn
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: Here is the basic pattern for integrating matminer Featurize
-    
     Purpose: Demonstrate machine learning model training and evaluation
     Target: Advanced
     Execution time: 1-5 minutes
@@ -253,8 +251,6 @@ Random Forest achieves high prediction accuracy and overfitting resistance by av
     # - matplotlib>=3.7.0
     
     """
-    Example: Random Forest achieves high prediction accuracy and overfitt
-    
     Purpose: Demonstrate data visualization techniques
     Target: Advanced
     Execution time: 1-5 minutes
@@ -372,8 +368,6 @@ Gradient Boosting is a method that sequentially adds weak learners (shallow deci
     # - xgboost>=2.0.0
     
     """
-    Example: Gradient Boosting is a method that sequentially adds weak le
-    
     Purpose: Demonstrate data visualization techniques
     Target: Advanced
     Execution time: 1-5 minutes
@@ -815,8 +809,6 @@ We execute the Matbench benchmark and evaluate the performance of composition-ba
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: We execute the Matbench benchmark and evaluate the performan
-    
     Purpose: Demonstrate machine learning model training and evaluation
     Target: Advanced
     Execution time: 1-5 minutes
@@ -1195,8 +1187,6 @@ Show sample solution
     # - xgboost>=2.0.0
     
     """
-    Example: Train XGBoostRegressor with default parameters and calculate
-    
     Purpose: Demonstrate machine learning model training and evaluation
     Target: Beginner to Intermediate
     Execution time: 30-60 seconds
@@ -1305,8 +1295,6 @@ Show sample solution
     # - matplotlib>=3.7.0
     
     """
-    Example: Draw learning curves and diagnose overfitting/underfitting. 
-    
     Purpose: Demonstrate data visualization techniques
     Target: Beginner to Intermediate
     Execution time: 1-5 minutes
@@ -1366,8 +1354,6 @@ Show sample solution
     # - shap>=0.42.0
     
     """
-    Example: Calculate SHAP values for a trained Random Forest model and 
-    
     Purpose: Demonstrate data manipulation and preprocessing
     Target: Beginner to Intermediate
     Execution time: ~5 seconds
@@ -1417,8 +1403,6 @@ Show sample solution
     # - xgboost>=2.0.0
     
     """
-    Example: Train three models (Random Forest, XGBoost, MLP) on the same
-    
     Purpose: Demonstrate machine learning model training and evaluation
     Target: Advanced
     Execution time: 30-60 seconds

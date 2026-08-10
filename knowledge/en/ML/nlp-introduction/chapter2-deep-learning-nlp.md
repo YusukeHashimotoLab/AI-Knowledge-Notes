@@ -1495,8 +1495,6 @@ Implement a simple LSTM model with the following code and verify it works with s
     # - Input: integer tensor of (batch_size=4, seq_len=10)
     
     """
-    Example: Implement a simple LSTM model with the following code and ve
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner
     Execution time: ~5 seconds
@@ -1513,8 +1511,6 @@ Sample Answer
     # - torch>=2.0.0, <2.3.0
     
     """
-    Example: Implement a simple LSTM model with the following code and ve
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Advanced
     Execution time: ~5 seconds
@@ -1636,8 +1632,6 @@ Sample Answer
     # - torch>=2.0.0, <2.3.0
     
     """
-    Example: Implement Bahdanau Attention and calculate attention weights
-    
     Purpose: Demonstrate data visualization techniques
     Target: Advanced
     Execution time: 2-5 seconds
@@ -1773,8 +1767,6 @@ Sample Answer
     # - torch>=2.0.0, <2.3.0
     
     """
-    Example: Compare the performance of models using pre-trained embeddin
-    
     Purpose: Demonstrate data visualization techniques
     Target: Advanced
     Execution time: 1-5 minutes

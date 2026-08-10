@@ -53,8 +53,6 @@ Format | Dimension Order | Used by Libraries
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Image shape is typically represented in one of the following
-    
     Purpose: Demonstrate data visualization techniques
     Target: Beginner to Intermediate
     Execution time: 2-5 seconds
@@ -356,8 +354,6 @@ Interpolation Method | Characteristics | Applications
     # - opencv-python>=4.8.0
     
     """
-    Example: Resizingchanges the size of an image. Quality varies dependi
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds
@@ -602,8 +598,6 @@ Interpolation Method | Characteristics | Applications
     # - opencv-python>=4.8.0
     
     """
-    Example: Smoothingremoves noise from images or creates blurring effec
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds
@@ -699,8 +693,6 @@ Interpolation Method | Characteristics | Applications
     # - opencv-python>=4.8.0
     
     """
-    Example: Edge detectionidentifies rapid changes in intensity within a
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds
@@ -794,8 +786,6 @@ Operation | Effect | Applications
     # - opencv-python>=4.8.0
     
     """
-    Example: Morphological operationsare shape processing techniques for 
-    
     Purpose: Demonstrate data visualization techniques
     Target: Advanced
     Execution time: 2-5 seconds
@@ -967,8 +957,6 @@ Operation | Effect | Applications
     # - opencv-python>=4.8.0
     
     """
-    Example: Note: In some versions of OpenCV, SIFT is included in opencv
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds
@@ -1044,8 +1032,6 @@ Operation | Effect | Applications
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: HOGuses histograms of gradient orientations as features. Wid
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds
@@ -1136,8 +1122,6 @@ Method | Formula | Applications
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: In machine learning, proper scaling of image data is importa
-    
     Purpose: Demonstrate data visualization techniques
     Target: Beginner to Intermediate
     Execution time: 1-5 minutes
@@ -1227,8 +1211,6 @@ Method | Formula | Applications
     # - pillow>=10.0.0
     
     """
-    Example: Data augmentationgenerates diverse variations from limited t
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds

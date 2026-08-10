@@ -68,8 +68,6 @@ Design a central composite design for two factors (temperature, pressure), posit
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: Design a central composite design for two factors (temperatu
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds
@@ -242,8 +240,6 @@ Design a Box-Behnken design for three factors and understand the difference from
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: Design a Box-Behnken design for three factors and understand
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds
@@ -402,8 +398,6 @@ Fit a quadratic polynomial model from CCD experimental data and estimate coeffic
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: Fit a quadratic polynomial model from CCD experimental data 
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 30-60 seconds
@@ -677,8 +671,6 @@ Visualize the optimal region in two dimensions using contour plots.
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Visualize the optimal region in two dimensions using contour
-    
     Purpose: Demonstrate data visualization techniques
     Target: Advanced
     Execution time: 30-60 seconds
@@ -814,8 +806,6 @@ Search for factor levels that maximize the response using numerical optimization
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Search for factor levels that maximize the response using nu
-    
     Purpose: Demonstrate machine learning model training and evaluation
     Target: Advanced
     Execution time: 30-60 seconds
@@ -973,8 +963,6 @@ Evaluate model fit using coefficient of determination, adjusted R², and RMSE, a
     # - scipy>=1.11.0
     
     """
-    Example: Evaluate model fit using coefficient of determination, adjus
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 30-60 seconds
@@ -1150,8 +1138,6 @@ Optimize product purity based on reflux ratio and overhead temperature using Cen
     # - seaborn>=0.12.0
     
     """
-    Example: Optimize product purity based on reflux ratio and overhead t
-    
     Purpose: Demonstrate data visualization techniques
     Target: Advanced
     Execution time: 30-60 seconds

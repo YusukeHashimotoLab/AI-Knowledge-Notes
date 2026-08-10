@@ -1093,8 +1093,6 @@ For the following time series data, determine the appropriate ARIMA(p,d,q) order
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: For the following time series data, determine the appropriat
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
     Execution time: ~5 seconds
@@ -1121,8 +1119,6 @@ Sample Answer
     # - scipy>=1.11.0
     
     """
-    Example: For the following time series data, determine the appropriat
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 30-60 seconds
@@ -1282,8 +1278,6 @@ For the following monthly sales data, fit a SARIMA model and forecast the next 1
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: For the following monthly sales data, fit a SARIMA model and
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
     Execution time: ~5 seconds
@@ -1313,8 +1307,6 @@ Sample Answer
     # - scipy>=1.11.0
     
     """
-    Example: For the following monthly sales data, fit a SARIMA model and
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 30-60 seconds

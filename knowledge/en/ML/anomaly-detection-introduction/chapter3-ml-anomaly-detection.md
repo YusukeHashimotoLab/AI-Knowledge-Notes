@@ -1072,8 +1072,6 @@ By combining multiple anomaly detection algorithms, more accurate and stable ano
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: Data Preprocessing → Multiple Model Training → Ensemble → Ev
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 30-60 seconds

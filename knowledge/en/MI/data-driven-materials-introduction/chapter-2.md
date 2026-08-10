@@ -1568,8 +1568,6 @@ Sample Solution
     # - shap>=0.42.0
     
     """
-    Example: Apply four feature selection methods (Filter, Wrapper, Embed
-    
     Purpose: Demonstrate machine learning model training and evaluation
     Target: Advanced
     Execution time: 5-10 seconds

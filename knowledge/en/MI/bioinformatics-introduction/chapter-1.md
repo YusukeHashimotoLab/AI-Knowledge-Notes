@@ -197,8 +197,6 @@ PDB files are text-based and contain atomic coordinates with associated informat
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Example 3: Extracting Atomic Coordinates and Calculating Dis
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
     Execution time: ~5 seconds
@@ -688,8 +686,6 @@ Solution Example
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Analyze the pLDDT scores of an AlphaFold predicted structure
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
     Execution time: ~5 seconds

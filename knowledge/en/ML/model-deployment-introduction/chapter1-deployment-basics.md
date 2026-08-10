@@ -537,8 +537,6 @@ ONNX (Open Neural Network Exchange) is a format compatible across different fram
     # - torch>=2.0.0, <2.3.0
     
     """
-    Example: ONNX (Open Neural Network Exchange) is a format compatible a
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Advanced
     Execution time: ~5 seconds
@@ -606,8 +604,6 @@ A method to optimize PyTorch models for production environments.
     # - torch>=2.0.0, <2.3.0
     
     """
-    Example: A method to optimize PyTorch models for production environme
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Advanced
     Execution time: ~5 seconds

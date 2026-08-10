@@ -36,8 +36,6 @@ This chapter covers Battery MI Implementation Hands. You will learn essential co
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: Example 1: Acquiring Cathode Material Data from Materials Pr
-    
     Purpose: Demonstrate data manipulation and preprocessing
     Target: Beginner to Intermediate
     Execution time: ~5 seconds

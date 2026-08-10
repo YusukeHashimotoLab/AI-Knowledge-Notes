@@ -623,8 +623,6 @@ superconducting transition
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: How to Distinguish First-Order and Second-Order Phase Transi
-    
     Purpose: Demonstrate data visualization techniques
     Target: Advanced
     Execution time: 2-5 seconds
@@ -1081,8 +1079,6 @@ In other words, eutectoid steel consists of approximately 89% ferrite and 11% ce
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: 9. Calculation of Phase Transition Temperatures in Real Mate
-    
     Purpose: Demonstrate data visualization techniques
     Target: Beginner to Intermediate
     Execution time: 2-5 seconds

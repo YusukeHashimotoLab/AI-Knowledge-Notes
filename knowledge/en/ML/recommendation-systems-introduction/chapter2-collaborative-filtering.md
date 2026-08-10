@@ -671,8 +671,6 @@ ALS is a method that alternately optimizes $P$ and $Q$. It is suitable for impli
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: ALS is a method that alternately optimizes $P$ and $Q$. It i
-    
     Purpose: Demonstrate machine learning model training and evaluation
     Target: Intermediate
     Execution time: 30-60 seconds
@@ -1112,8 +1110,6 @@ Sample Answer
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: Using the following MovieLens-style data, build an SVD model
-    
     Purpose: Demonstrate machine learning model training and evaluation
     Target: Beginner to Intermediate
     Execution time: 1-5 minutes

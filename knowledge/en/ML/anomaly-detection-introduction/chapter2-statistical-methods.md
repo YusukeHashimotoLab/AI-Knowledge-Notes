@@ -571,8 +571,6 @@ The **moving average** captures trends in time series data and detects deviation
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Themoving averagecaptures trends in time series data and det
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds
@@ -652,8 +650,6 @@ The **moving average** captures trends in time series data and detects deviation
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: STL decomposition(Seasonal and Trend decomposition using Loe
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds

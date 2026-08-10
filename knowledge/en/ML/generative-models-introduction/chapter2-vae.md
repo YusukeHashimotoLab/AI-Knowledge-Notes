@@ -1374,8 +1374,6 @@ Implement **β-VAE** which introduces a weight $\beta$ to the KL term, and analy
     # - torch>=2.0.0, <2.3.0
     
     """
-    Example: Implementβ-VAEwhich introduces a weight $\beta$ to the KL te
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Advanced
     Execution time: 1-5 minutes
@@ -1402,8 +1400,6 @@ Vary the number of latent dimensions (2, 10, 20, 50, 100) and investigate the tr
     # - torch>=2.0.0, <2.3.0
     
     """
-    Example: Vary the number of latent dimensions (2, 10, 20, 50, 100) an
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Advanced
     Execution time: 1-5 minutes
@@ -1428,8 +1424,6 @@ Implement **Conditional VAE** that takes class labels as conditions.
     # - torch>=2.0.0, <2.3.0
     
     """
-    Example: ImplementConditional VAEthat takes class labels as condition
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Advanced
     Execution time: ~5 seconds
@@ -1453,8 +1447,6 @@ Compare MSE (Mean Squared Error) and BCE (Binary Cross Entropy) as reconstructio
     # - torch>=2.0.0, <2.3.0
     
     """
-    Example: Compare MSE (Mean Squared Error) and BCE (Binary Cross Entro
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Advanced
     Execution time: 1-5 minutes
@@ -1480,8 +1472,6 @@ Implement **KL Annealing** which starts with a small weight for the KL term and 
     # - torch>=2.0.0, <2.3.0
     
     """
-    Example: ImplementKL Annealingwhich starts with a small weight for th
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Advanced
     Execution time: 1-5 minutes

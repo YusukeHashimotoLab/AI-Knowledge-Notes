@@ -1004,8 +1004,6 @@ A **character-level language model** learns text at the character level and pred
     # - torch>=2.0.0, <2.3.0
     
     """
-    Example: Acharacter-level language modellearns text at the character 
-    
     Purpose: Demonstrate neural network implementation
     Target: Advanced
     Execution time: 10-30 seconds

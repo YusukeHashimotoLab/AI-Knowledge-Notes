@@ -744,8 +744,6 @@ Medium **Problem** : A metal sample has resistivity of 0.8 ¼©·cm at T = 100 K
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: MediumProblem: A metal sample has resistivity of 0.8 ¼©·cm a
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
     Execution time: ~5 seconds
@@ -786,8 +784,6 @@ Medium **Problem** : In TLM measurement, for contact spacing $L$ = 1, 2, 3, 4, 5
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: MediumProblem: In TLM measurement, for contact spacing $L$ =
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
     Execution time: ~5 seconds
@@ -825,8 +821,6 @@ Hard **Problem** : A semiconductor sample has resistivity of 1.0 ©·m at T = 30
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: HardProblem: A semiconductor sample has resistivity of 1.0 ©
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
     Execution time: ~5 seconds

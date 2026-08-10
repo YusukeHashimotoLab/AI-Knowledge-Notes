@@ -253,8 +253,6 @@ In food processes, it is necessary to simultaneously optimize multiple objective
     # - matplotlib>=3.7.0
     
     """
-    Example: In food processes, it is necessary to simultaneously optimiz
-    
     Purpose: Demonstrate data visualization techniques
     Target: Advanced
     Execution time: 1-5 minutes

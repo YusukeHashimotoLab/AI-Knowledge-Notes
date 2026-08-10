@@ -1632,8 +1632,6 @@ Solution Example
     # - torchvision>=0.15.0
     
     """
-    Example: Use Faster R-CNN to perform object detection on a custom ima
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Advanced
     Execution time: 1-5 minutes

@@ -49,8 +49,6 @@ Conduct a full factorial experiment (8 runs) with 3 factors (temperature, pressu
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: Conduct a full factorial experiment (8 runs) with 3 factors 
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds
@@ -224,8 +222,6 @@ Evaluate 4 factors using 2^(4-1) half-fraction design (8 runs) and understand co
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: Evaluate 4 factors using 2^(4-1) half-fraction design (8 run
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds
@@ -391,8 +387,6 @@ Statistically compare the performance of 3 types of catalysts and determine sign
     # - seaborn>=0.12.0
     
     """
-    Example: Statistically compare the performance of 3 types of catalyst
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds
@@ -542,8 +536,6 @@ Evaluate main effects of temperature and pressure on yield, and separate the int
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: Evaluate main effects of temperature and pressure on yield, 
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds
@@ -690,8 +682,6 @@ After ANOVA reveals significant differences, identify which pairs of groups diff
     # - seaborn>=0.12.0
     
     """
-    Example: After ANOVA reveals significant differences, identify which 
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds
@@ -846,8 +836,6 @@ Compare distributions for each factor level using box plots and detect outliers.
     # - seaborn>=0.12.0
     
     """
-    Example: Compare distributions for each factor level using box plots 
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds
@@ -1003,8 +991,6 @@ Visualize the contribution ratio of each factor using pie charts and bar graphs.
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: Visualize the contribution ratio of each factor using pie ch
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds
@@ -1157,8 +1143,6 @@ Evaluate 4 factors (temperature, pH, reaction time, catalyst concentration) usin
     # - seaborn>=0.12.0
     
     """
-    Example: Evaluate 4 factors (temperature, pH, reaction time, catalyst
-    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds

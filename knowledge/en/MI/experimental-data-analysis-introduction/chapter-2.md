@@ -1391,8 +1391,6 @@ Perform background removal using the SNIP method and detect peaks in the followi
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Perform background removal using the SNIP method and detect 
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
     Execution time: ~5 seconds

@@ -204,8 +204,6 @@ In materials exploration, Bayesian Optimization is combined as follows:
     # - matplotlib>=3.7.0
     
     """
-    Example: Code Example 2: Building Capacity Prediction Model with Rand
-    
     Purpose: Demonstrate data visualization techniques
     Target: Advanced
     Execution time: 30-60 seconds

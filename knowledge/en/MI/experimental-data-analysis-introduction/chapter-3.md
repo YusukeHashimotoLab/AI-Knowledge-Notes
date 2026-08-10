@@ -514,8 +514,6 @@ Database | Content | License | Access | Citation Requirements
     # - pandas>=2.0.0, <2.2.0
     
     """
-    Example: Code examples5: Calculation of Particle Diameter and Shape P
-    
     Purpose: Demonstrate data visualization techniques
     Target: Beginner to Intermediate
     Execution time: 2-5 seconds
@@ -1534,8 +1532,6 @@ Perform particle detection and particle size distribution analysis on the follow
     # - numpy>=1.24.0, <2.0.0
     
     """
-    Example: Perform particle detection and particle size distribution an
-    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
     Execution time: ~5 seconds
