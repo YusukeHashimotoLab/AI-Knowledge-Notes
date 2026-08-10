@@ -1,0 +1,237 @@
+name: Visual Regression
+
+# Pixel-compares the sampled pages between the previous tip of main and the new
+# one, so a CSS/HTML refactor that is *supposed* to be visually invisible has to
+# prove it. This is the gate for the inline-<style> -> shared-stylesheet
+# migration; see scripts/visual_regression.py for the determinism strategy and
+# scripts/visual_regression_pages.txt for how the 62-page sample was chosen.
+#
+# Scope: the sample only (~62 pages, a few minutes). A full 1,646-page sweep is
+# a manual `--pages all` run — use workflow_dispatch below for that.
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      # Anything that can move a pixel.
+      - 'knowledge/**/*.html'
+      - 'knowledge/**/*.css'
+      - 'endowed/**/*.html'
+      - 'endowed/**/*.css'
+      - 'profile/**/*.html'
+      - 'profile/**/*.css'
+      - 'index.html'
+      - '404.html'
+      - '**/assets/css/**'
+      # The generator whose output is the HTML, plus the harness itself.
+      - 'tools/convert_md_to_html.py'
+      - 'tools/templates/**'
+      - 'scripts/visual_regression.py'
+      - 'scripts/visual_regression_pages.txt'
+      - '.github/workflows/visual-regression.yml'
+  workflow_dispatch:
+    inputs:
+      base:
+        description: 'Base git ref (default: previous commit)'
+        required: false
+        default: 'HEAD~1'
+      pages:
+        description: "Page spec: manifest path, glob, or 'all'"
+        required: false
+        default: 'scripts/visual_regression_pages.txt'
+      threshold:
+        description: 'Max differing-pixel fraction per page'
+        required: false
+        default: '0.0005'
+
+# A second push while a comparison is running makes the first one pointless.
+concurrency:
+  group: visual-regression-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  PLAYWRIGHT_VERSION: '1.62.0'
+
+jobs:
+  visual-regression:
+    name: Visual regression (sample)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    # An intentional restyle (approved design change) declares itself with
+    # [vr-intentional] in the head commit message; pixel diffs are then
+    # expected, so the comparison is skipped rather than reported red.
+    # Never tag a commit that is supposed to be pixel-neutral.
+    if: ${{ github.event_name != 'push' || !contains(github.event.head_commit.message, '[vr-intentional]') }}
+
+    steps:
+      # ------------------------------------------------------------------
+      # Decide whether there is anything to compare against, before paying
+      # for a checkout or a browser download.
+      # ------------------------------------------------------------------
+      - name: Resolve base ref
+        id: refs
+        env:
+          EVENT_BEFORE: ${{ github.event.before }}
+          INPUT_BASE: ${{ github.event.inputs.base }}
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "base=${INPUT_BASE:-HEAD~1}" >> "$GITHUB_OUTPUT"
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+            echo "Manual run, base=${INPUT_BASE:-HEAD~1}"
+            exit 0
+          fi
+          # Branch creation / force-push-from-nothing reports an all-zero SHA:
+          # there is no "before" state, so there is nothing to regress against.
+          case "$EVENT_BEFORE" in
+            ''|0000000000000000000000000000000000000000)
+              echo "skip=true" >> "$GITHUB_OUTPUT"
+              echo "base=" >> "$GITHUB_OUTPUT"
+              echo "github.event.before is empty/all-zeros - skipping."
+              ;;
+            *)
+              echo "skip=false" >> "$GITHUB_OUTPUT"
+              echo "base=$EVENT_BEFORE" >> "$GITHUB_OUTPUT"
+              echo "Comparing $EVENT_BEFORE -> ${{ github.sha }}"
+              ;;
+          esac
+
+      - name: Checkout repository
+        if: steps.refs.outputs.skip != 'true'
+        uses: actions/checkout@v4
+        with:
+          # The harness materialises the base ref with `git worktree add`, so
+          # both commits must actually be in the local object store. Full
+          # history is the only safe option for an arbitrary event.before.
+          fetch-depth: 0
+
+      - name: Verify base ref is present
+        if: steps.refs.outputs.skip != 'true'
+        id: verify
+        run: |
+          set -euo pipefail
+          BASE='${{ steps.refs.outputs.base }}'
+          if git rev-parse --verify --quiet "$BASE^{commit}" >/dev/null; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+            echo "base $BASE = $(git rev-parse "$BASE")"
+          else
+            # Happens after history rewrites; degrade to a warning rather than
+            # failing a push for a reason the author cannot act on.
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::warning title=Visual regression skipped::base ref $BASE is not in this clone (history rewritten?)"
+          fi
+
+      - name: Set up Python 3.11
+        if: steps.verify.outputs.present == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          # cache: 'pip' is safe HERE (unlike link-check.yml's stdlib-only
+          # check-generated-assets job): this job really does run `pip install`,
+          # so ~/.cache/pip exists by the time setup-python's post step tries to
+          # save it. Do not copy this line into a job that installs nothing.
+          cache: 'pip'
+          cache-dependency-path: '.github/workflows/visual-regression.yml'
+
+      - name: Install Python dependencies
+        if: steps.verify.outputs.present == 'true'
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          # Deliberately NOT requirements.txt: the harness is opt-in and needs a
+          # browser, which the rest of the repo's tooling must not depend on.
+          pip install "playwright==${PLAYWRIGHT_VERSION}" "pillow==12.3.0" "numpy==2.5.2"
+          # Guard against the failure this repo already hit once: setup-python's
+          # post step runs `cache save` on ~/.cache/pip and errors out if the
+          # directory does not exist. It does exist here because we just ran a
+          # real install, but assert it (and create it if pip was configured with
+          # a different cache root) so the post step can never be the thing that
+          # reddens a green run.
+          PIP_CACHE_DIR_RESOLVED="$(pip cache dir)"
+          echo "pip cache dir: ${PIP_CACHE_DIR_RESOLVED}"
+          mkdir -p "${PIP_CACHE_DIR_RESOLVED}" "${HOME}/.cache/pip"
+          ls -ld "${PIP_CACHE_DIR_RESOLVED}" "${HOME}/.cache/pip"
+
+      - name: Cache Playwright browsers
+        if: steps.verify.outputs.present == 'true'
+        id: pw-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          # Keyed on the pinned Playwright version: a bump must re-download,
+          # because the bundled Chromium build (and therefore the rendering)
+          # changes with it.
+          key: ${{ runner.os }}-playwright-${{ env.PLAYWRIGHT_VERSION }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+
+      - name: Install Chromium
+        if: steps.verify.outputs.present == 'true'
+        run: |
+          set -euo pipefail
+          # --with-deps installs the shared libraries Chromium needs; it is cheap
+          # and not covered by the browser cache, so it runs on cache hits too.
+          python -m playwright install --with-deps chromium
+
+      - name: Run visual regression
+        if: steps.verify.outputs.present == 'true'
+        id: vr
+        run: |
+          set -euo pipefail
+          python scripts/visual_regression.py \
+            --base '${{ steps.refs.outputs.base }}' \
+            --head '${{ github.sha }}' \
+            --pages '${{ github.event.inputs.pages || 'scripts/visual_regression_pages.txt' }}' \
+            --out visual-regression-report \
+            --workers 4 \
+            --threshold '${{ github.event.inputs.threshold || '0.0005' }}' \
+            --retries 1 \
+            --fail-on-degraded \
+            --tmp-dir "${RUNNER_TEMP}/vr-worktrees" \
+            | tee vr-console.log
+        # The report has to be uploaded even (especially) when this fails.
+        continue-on-error: true
+
+      - name: Summarise
+        if: steps.verify.outputs.present == 'true'
+        run: |
+          set -uo pipefail
+          {
+            echo "## Visual regression"
+            echo
+            echo "\`${{ steps.refs.outputs.base }}\` → \`${{ github.sha }}\`, sampled pages."
+            echo
+            echo '```'
+            tail -n 40 vr-console.log 2>/dev/null || echo '(no console output)'
+            echo '```'
+            echo
+            echo "Full report with side-by-side diff images: **visual-regression-report** artifact."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload report
+        if: steps.verify.outputs.present == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-regression-report
+          path: |
+            visual-regression-report/
+            vr-console.log
+          retention-days: 30
+          if-no-files-found: warn
+
+      - name: Fail on visual differences
+        if: steps.verify.outputs.present == 'true'
+        run: |
+          if [ "${{ steps.vr.outcome }}" != "success" ]; then
+            echo "::error title=Visual regression detected::Pages rendered differently between ${{ steps.refs.outputs.base }} and ${{ github.sha }} (or a page could not be rendered deterministically). Download the visual-regression-report artifact and open index.html."
+            exit 1
+          fi
+          echo "No visual differences above threshold."
+
+      - name: Note skip
+        if: steps.refs.outputs.skip == 'true'
+        run: echo "::notice title=Visual regression skipped::No previous commit to compare against (github.event.before is all-zeros)."

@@ -137,6 +137,83 @@ npx html-validate@8.8.0 -c .htmlvalidate.json knowledge/en/FM/calculus-vector-an
 Markdown linting is not part of CI and has no config in this repo; `npx markdownlint "**/*.md"`
 is available ad hoc but its findings are not gating.
 
+### Visual Regression (CSS/HTML refactors)
+
+`scripts/visual_regression.py` renders the same pages from two git refs with headless
+Chromium and pixel-compares them. Use it whenever a change is *supposed* to be visually
+invisible — above all the inline-`<style>` → shared-stylesheet migration. It is the only
+check in this repo that can prove a refactor did not move anything on screen.
+
+Not in `requirements.txt` on purpose: it needs a browser download, and no other command
+here should depend on that. Keep the venv outside the repo.
+
+```bash
+python3 -m venv /tmp/vr-venv
+/tmp/vr-venv/bin/pip install playwright pillow numpy
+/tmp/vr-venv/bin/python -m playwright install chromium
+
+# working tree vs. last commit — the everyday refactor check
+/tmp/vr-venv/bin/python scripts/visual_regression.py --base HEAD --out /tmp/vr
+
+# two refs, and the full corpus instead of the sample (slow: see below)
+/tmp/vr-venv/bin/python scripts/visual_regression.py \
+  --base main --head refactor/shared-css --pages all --workers 8 --out /tmp/vr-full
+
+# determinism self-check: same ref on both sides must report 0 diffs
+/tmp/vr-venv/bin/python scripts/visual_regression.py --base HEAD --head HEAD --out /tmp/vr-self
+```
+
+Then open `<out>/index.html` — pages sorted diffs-first, with base|head|diff triptychs for
+every mismatch and `results.json` for scripting. Exit code 1 means at least one page moved.
+
+- `--pages` defaults to `scripts/visual_regression_pages.txt`, a 62-page sample covering
+  every template family, all 10 dojo×locale cells, the 14 largest inline-CSS clusters and
+  every client-side renderer. Its header comment documents how the sample was derived and
+  how to re-derive it after a large content batch. `--pages all` sweeps all 1,646 pages.
+- `--head` accepts a ref or the literal `worktree` (default) for uncommitted edits. Base
+  refs are materialised with `git worktree add` into temp dirs; each side is served by its
+  own `http.server` rooted at `wp/`, so `../../assets/...` resolves exactly as in production.
+- Determinism is enforced, not hoped for: animations/transitions/caret are killed by an
+  injected stylesheet, `Math.random` is seeded, and the shutter only opens after
+  `networkidle` + `document.fonts.ready` + MathJax `typesetPromise` + every `.mermaid` div
+  carrying `data-processed` + Prism `.token` spans + a DOM/geometry settling loop. A
+  mismatch is re-shot once (`--retries`) and only reported if it reproduces.
+- **A green run can still be worthless.** If a CDN is unreachable, MathJax/Mermaid fail
+  identically on both sides and the pixels match vacuously. The tool cross-checks what each
+  page asked for against what actually appeared in the DOM and marks any shortfall
+  `DEGRADED`, with a banner in the report. Pass `--fail-on-degraded` (CI does) to make that
+  a hard failure. Never accept a PASS that reports degraded pages. Rehearse the outage to
+  confirm the guard still works — this **must** exit 1 even though the pixels match exactly:
+
+  ```bash
+  /tmp/vr-venv/bin/python scripts/visual_regression.py --base HEAD --head HEAD \
+    --pages knowledge/en/MI/gnn-introduction/chapter-2.html \
+    --block-hosts cdn.jsdelivr.net,cdnjs.cloudflare.com --fail-on-degraded --out /tmp/vr-outage
+  ```
+
+- Tolerances: `--threshold` is the max fraction of differing pixels per page (default
+  0.0005) and `--pixel-delta` the per-channel delta treated as equal (default 8, absorbing
+  subpixel antialiasing). Differing full-page dimensions always fail regardless.
+- `private/**` redirect stubs are excluded from the sample — their `<meta http-equiv=
+  "refresh" content="0; ...">` races the screenshot and cannot be made deterministic.
+- Runtime (measured, `--workers 4`, live CDNs): the 62-page sample takes ~2 min wall
+  (2.0 s/page wall; each page's two renders sum to a median 6.2 s, p90 ~14 s, max 34 s).
+  Extrapolated full corpus: **~55–60 min for all 1,646 pages** — a conservative ceiling,
+  since the sample deliberately picks the heaviest page in each CSS cluster. The slowest
+  pages are the tallest (40,000–83,000 px full-page screenshots). Raise `--workers` on a
+  machine with cores to spare.
+- Cross-origin `<iframe>`s (28 YouTube + 3 Google Maps embeds) are painted over with a flat
+  box by default: their content is outside every readiness signal and flakes — a Maps info
+  card loading on one side and not the other produced a *reproducible* 0.088 % phantom diff
+  during development. The mask keeps the iframe's position and size in the comparison, so a
+  CSS change that moves or resizes an embed still fails. `--no-mask-embeds` opts out.
+
+CI runs the sample on every push to `main` that touches HTML/CSS/templates
+(`.github/workflows/visual-regression.yml`), comparing `github.event.before` →
+`github.sha`, and uploads the report as the `visual-regression-report` artifact. It skips
+when `event.before` is all-zeros (nothing to compare). `workflow_dispatch` takes `base`,
+`pages` and `threshold` inputs for a manual full-corpus sweep.
+
 ## Key Conventions
 
 ### File Naming

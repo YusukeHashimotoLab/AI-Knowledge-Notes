@@ -1,0 +1,192 @@
+# Visual-regression page manifest — representative sample of the 1,646-page corpus
+# ==============================================================================
+# Consumed by: python3 scripts/visual_regression.py --pages scripts/visual_regression_pages.txt
+# Format: one repo-relative page path per line. Everything after '#' is a comment.
+#         The trailing comment on each line records WHY the page is in the sample
+#         and which renderers it exercises, so a future editor can swap a page out
+#         without silently dropping coverage.
+#
+# WHY A SAMPLE AT ALL
+# -------------------
+# The full corpus takes roughly 27x longer than this sample (see the runtime note
+# at the bottom). This list is the CI-sized gate; run `--pages all` by hand before
+# landing a corpus-wide CSS refactor.
+#
+# HOW THIS SAMPLE WAS CHOSEN
+# --------------------------
+# Mechanically, not by taste. Every tracked non-archive *.html file was parsed and
+# fingerprinted on five axes:
+#
+#   1. Template family      — site root / 404, endowed, profile, knowledge landing,
+#                             knowledge start-here, knowledge search, dojo index,
+#                             series index, chapter, standalone MI page.
+#   2. Inline-CSS cluster   — SHA1 of the whitespace-normalised concatenation of
+#                             every <style> block in the page. The corpus contains
+#                             725 pages with NO inline <style> (they rely purely on
+#                             assets/css/knowledge-base.css) plus 280 distinct
+#                             inline-CSS variants. Those 280 variants are what the
+#                             inline-CSS -> shared-CSS migration has to collapse, so
+#                             cluster identity is the single most important axis.
+#   3. Locale               — knowledge/en vs knowledge/jp (different fonts, line
+#                             breaking and text metrics; a CSS change can regress
+#                             one locale only).
+#   4. Dojo                 — FM, MI, ML, MS, PI.
+#   5. Client-side renderer — MathJax, KaTeX, Mermaid, Prism (incl. its theme and
+#                             line-numbers plugin variants), YouTube iframes.
+#
+# Selection rules, applied in order (deterministic, no randomness — regenerating
+# with the same corpus yields the same list):
+#
+#   A. Every template family that has fewer than ~20 members is taken whole or
+#      near-whole: site root, 404, endowed (4 of 6 — the two remaining study-group
+#      pages are near-duplicates of the two taken), profile (4 of 18, covering the
+#      landing + a long list + both locales), all 6 knowledge landing/start-here/
+#      search pages, and ALL 10 dojo indexes (5 dojos x 2 locales) since those carry
+#      the generated statistics blocks.
+#   B. One page from each of the 14 largest inline-CSS clusters, largest first;
+#      within a cluster the page with the most Mermaid diagrams then the most math
+#      wins, so the sampled representative is the hardest one to render.
+#   C. One shared-stylesheet (zero inline <style>) chapter for each of the 10
+#      dojo x locale cells — the "already migrated" baseline the refactor is moving
+#      everything else toward.
+#   D. Renderer top-ups for anything the rules above missed: YouTube embeds (EN+JP),
+#      the most Mermaid-dense page, the most MathJax-dense page, a KaTeX page (a
+#      minority of pages use KaTeX auto-render instead of MathJax), the Prism
+#      line-numbers and okaidia theme variants, a series index of each CSS kind,
+#      and the tallest page in the corpus (exercises the stitched screenshot path).
+#
+# RESULTING COVERAGE (62 pages, 3.8% of the corpus)
+# -------------------------------------------------
+#   locales      31 JP / 29 EN / 2 locale-neutral
+#   dojo cells   10 of 10 (every dojo in both locales)
+#   families     all 10 template families represented
+#   CSS clusters 34 of 280 inline variants sampled, and those 34 clusters plus the
+#                725 shared-stylesheet pages account for 1,206 of 1,646 pages (73%)
+#                of the corpus. The 246 unsampled clusters are all <= 6 pages each.
+#   renderers    26 pages with Mermaid, 22 with display math (MathJax or KaTeX),
+#                10 with Prism, 5 with YouTube iframes
+#
+# DELIBERATELY EXCLUDED
+# ---------------------
+#   private/**            18 meta-refresh redirect stubs. `<meta http-equiv=
+#                         "refresh" content="0; ...">` races the screenshot: the
+#                         shot lands either on the stub or on its target depending
+#                         on timing, so these pages cannot be made deterministic.
+#                         Their redirect targets under profile/ are sampled instead.
+#   **/archive/**         retired content, not deployed.
+#   knowledge/*/assets/** not pages.
+#
+# MAINTENANCE
+# -----------
+# Re-derive the clusters after any large content batch:
+#   python3 - <<'PY'
+#   import re,hashlib,subprocess,collections,os
+#   fs=[f for f in subprocess.run(['git','ls-files','*.html'],capture_output=True,
+#       text=True).stdout.split() if '/archive/' not in f]
+#   c=collections.Counter()
+#   for f in fs:
+#       t=open(f,encoding='utf-8').read()
+#       s=' '.join(re.findall(r'<style[^>]*>(.*?)</style>',t,re.S))
+#       c[hashlib.sha1(re.sub(r'\s+',' ',s).strip().encode()).hexdigest()[:10] if s.strip() else '']+=1
+#   print(len(c),'clusters'); print(c.most_common(20))
+#   PY
+# If a new cluster appears with >10 pages, add one representative here.
+
+# ---------------------------------------------------------------------------
+# A. site chrome and non-knowledge template families
+# ---------------------------------------------------------------------------
+index.html                                                                     # site root landing | inline-css 3651B
+404.html                                                                       # error page | inline-css 2439B
+endowed/en/index.html                                                          # endowed chair, EN | video, inline-css 12862B
+endowed/jp/index.html                                                          # endowed chair, JP | video, inline-css 13363B
+endowed/jp/ai-study-group/index.html                                           # endowed study-group index | inline-css 11781B
+endowed/jp/ai-study-group/flyer-event-02.html                                  # endowed flyer (one-off layout) | inline-css 6942B
+profile/en/index.html                                                          # profile landing EN | inline-css 9353B
+profile/en/publications.html                                                   # profile long list EN | inline-css 7080B
+profile/jp/index.html                                                          # profile landing JP | inline-css 8792B
+profile/jp/research-plans.html                                                 # profile long-form JP | inline-css 6229B
+
+# ---------------------------------------------------------------------------
+# B. knowledge landings, start-here, search, all 10 dojo indexes, standalone pages
+# ---------------------------------------------------------------------------
+knowledge/en/index.html                                                        # knowledge landing EN | inline-css 15800B
+knowledge/en/start-here.html                                                   # knowledge start-here EN | inline-css 5799B
+knowledge/en/search.html                                                       # knowledge search page EN (JS-driven) | inline-css 3790B
+knowledge/jp/index.html                                                        # knowledge landing JP | inline-css 15806B
+knowledge/jp/start-here.html                                                   # knowledge start-here JP | inline-css 5799B
+knowledge/jp/search.html                                                       # knowledge search page JP (JS-driven) | inline-css 3790B
+knowledge/en/FM/index.html                                                     # dojo index (all 10) | no inline css
+knowledge/en/MI/index.html                                                     # dojo index (all 10) | inline-css 204B
+knowledge/en/ML/index.html                                                     # dojo index (all 10) | no inline css
+knowledge/en/MS/index.html                                                     # dojo index (all 10) | no inline css
+knowledge/en/PI/index.html                                                     # dojo index (all 10) | no inline css
+knowledge/jp/FM/index.html                                                     # dojo index (all 10) | inline-css 1577B
+knowledge/jp/MI/index.html                                                     # dojo index (all 10) | inline-css 1801B
+knowledge/jp/ML/index.html                                                     # dojo index (all 10) | inline-css 1577B
+knowledge/jp/MS/index.html                                                     # dojo index (all 10) | inline-css 1577B
+knowledge/jp/PI/index.html                                                     # dojo index (all 10) | inline-css 1577B
+knowledge/en/MI/glossary.html                                                  # standalone MI page (glossary) | inline-css 7437B
+knowledge/jp/MI/roadmap.html                                                   # standalone MI page (roadmap) | inline-css 10276B
+
+# ---------------------------------------------------------------------------
+# C. one representative per largest inline-<style> cluster (the migration targets)
+# ---------------------------------------------------------------------------
+knowledge/jp/ML/generative-models-introduction/chapter3-gan.html               # inline-CSS cluster 284faa733a (shared by 85 pages) | mermaid x8, math x6, inline-css 9113B
+knowledge/jp/PI/ai-agent-process/chapter-5.html                                # inline-CSS cluster 1c4fd4396f (shared by 83 pages) | mermaid x4, prism, inline-css 5608B
+knowledge/jp/MI/materials-applications-introduction/chapter-2.html             # inline-CSS cluster 47118e8c20 (shared by 67 pages) | mermaid x5, math x3, inline-css 11789B
+knowledge/en/MI/gnn-introduction/chapter-2.html                                # inline-CSS cluster 6de14238bb (shared by 45 pages) | mermaid x5, math x28, inline-css 10196B
+knowledge/jp/FM/complex-special-functions/chapter-5.html                       # inline-CSS cluster f50560b33a (shared by 39 pages) | math x14, inline-css 5203B
+knowledge/jp/MI/mlp-introduction/chapter2-fundamentals.html                    # inline-CSS cluster cca3755715 (shared by 27 pages) | mermaid x4, inline-css 10022B
+knowledge/en/ML/pytorch-geometric-introduction/chapter-2.html                  # inline-CSS cluster b30d1ebbc2 (shared by 18 pages) | mermaid x2, math x7, prism, inline-css 9417B
+knowledge/jp/MS/3d-printing-introduction/chapter-1.html                        # inline-CSS cluster cfbf7227e7 (shared by 15 pages) | mermaid x3, inline-css 11573B
+knowledge/jp/FM/classical-statistical-mechanics/chapter-1.html                 # inline-CSS cluster 7e54d1e65b (shared by 15 pages) | inline-css 6391B
+knowledge/jp/ML/supervised-learning-introduction/chapter3-ensemble.html        # inline-CSS cluster 53267426a2 (shared by 13 pages) | mermaid x4, math x3, inline-css 7536B
+knowledge/jp/FM/calculus-vector-analysis/index.html                            # inline-CSS cluster db521506a6 (shared by 13 pages) | inline-css 5857B
+knowledge/jp/MS/composite-materials-introduction/chapter-1.html                # inline-CSS cluster b185342652 (shared by 13 pages) | mermaid x2, math x7, prism, inline-css 1577B
+knowledge/jp/ML/meta-learning-introduction/chapter3-few-shot-methods.html      # inline-CSS cluster 7a7d5f9d84 (shared by 11 pages) | mermaid x4, math x7, inline-css 9325B
+knowledge/en/FM/inferential-bayesian-statistics/chapter-1.html                 # inline-CSS cluster 2951d54095 (shared by 10 pages) | math x8, inline-css 3626B
+
+# ---------------------------------------------------------------------------
+# D. shared-stylesheet chapters — one per dojo x locale (the migration destination)
+# ---------------------------------------------------------------------------
+knowledge/en/FM/calculus-vector-analysis/chapter-1.html                        # shared-CSS chapter, FM EN | math x1, prism, no inline css
+knowledge/en/MI/active-learning-introduction/chapter-1.html                    # shared-CSS chapter, MI EN | mermaid x2, math x10, no inline css
+knowledge/en/ML/ai-agents-introduction/chapter1-agent-basics.html              # shared-CSS chapter, ML EN | mermaid x1, no inline css
+knowledge/en/MS/3d-printing-introduction/chapter-1.html                        # shared-CSS chapter, MS EN | mermaid x3, no inline css
+knowledge/en/PI/ai-agent-process/chapter-1.html                                # shared-CSS chapter, PI EN | mermaid x1, no inline css
+knowledge/jp/MI/mi-global-projects/chapter-1.html                              # shared-CSS chapter, MI JP | mermaid x2, math x1, prism, no inline css
+knowledge/jp/ML/autonomous-driving-introduction/chapter1-ad-fundamentals.html  # shared-CSS chapter, ML JP | mermaid x6, math x1, no inline css
+knowledge/jp/MS/chiral-phonons/chapter-1.html                                  # shared-CSS chapter, MS JP | mermaid x3, math x35, prism, video, no inline css
+knowledge/jp/PI/chemical-plant-ai/chapter-4.html                               # shared-CSS chapter, PI JP | prism, no inline css
+knowledge/en/MI/nimo-introduction/chapter-3.html                               # YouTube embed EN | mermaid x3, video, no inline css
+
+# ---------------------------------------------------------------------------
+# E. client-side renderer top-ups
+# ---------------------------------------------------------------------------
+knowledge/jp/MS/chiral-phonons/chapter-4.html                                  # YouTube embed JP | mermaid x5, math x24, video, no inline css
+knowledge/en/ML/generative-models-introduction/chapter3-gan.html               # Mermaid-heavy | mermaid x8, math x6, no inline css
+knowledge/en/MS/superconductivity-intermediate/chapter-4.html                  # MathJax-heavy | math x50, no inline css
+knowledge/en/MS/supercritical-fluid-introduction/chapter-6.html                # KaTeX renderer instead of MathJax | mermaid x1, math x49, inline-css 1101B
+knowledge/en/MS/crystallography-introduction/chapter-3.html                    # Prism line-numbers plugin | mermaid x1, math x5, prism, no inline css
+knowledge/en/MI/composition-features-introduction/chapter-1.html               # Prism okaidia theme | mermaid x3, math x2, prism, no inline css
+knowledge/en/MI/composition-features-introduction/chapter-2.html               # Prism default theme + shared CSS | mermaid x1, math x11, prism, no inline css
+knowledge/en/FM/calculus-vector-analysis/index.html                            # series index, shared CSS | mermaid x1, no inline css
+knowledge/en/MI/pi-introduction/index.html                                     # series index, inline CSS | mermaid x1, inline-css 9026B
+knowledge/jp/MI/drug-discovery-mi-application/chapter3-hands-on.html           # tallest page in corpus (stitched capture) | math x1, inline-css 11174B
+
+# ---------------------------------------------------------------------------
+# RUNTIME (measured 2026-08-11, Apple-silicon laptop, --workers 4, live CDNs,
+# three consecutive 62-page runs — HEAD vs HEAD, HEAD~1 vs HEAD, and a one-CSS-
+# value sensitivity run):
+#   wall clock            124 s / 134 s / 125 s
+#   wall per page         2.00 / 2.17 / 2.01 s  (both sides, 4-way parallel)
+#   per-page render time  median 6.2 s, p90 13-15 s, max 34 s (sum of both sides)
+#   extrapolated corpus   1,646 pages ~= 55-60 min at --workers 4
+#                         (a conservative ceiling: rule B deliberately picks the
+#                         HARDEST page in each cluster, so this sample is slower
+#                         per page than the corpus average)
+#
+# The slowest pages are simply the tallest ones — 40,000-83,000 px full-page
+# screenshots. Raise --workers on a machine with cores to spare; the harness is
+# I/O and renderer bound, not CPU bound.
+# ---------------------------------------------------------------------------
