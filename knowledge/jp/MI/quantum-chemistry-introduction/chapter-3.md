@@ -22,7 +22,7 @@ chapter_title: "🔬 第3章: 分子軌道法と電子状態計算"
 
 N電子系の電子Hamiltonian（原子単位系）：
 
-\\[ \hat{H}_{el} = \sum_{i=1}^N \left(-\frac{1}{2}\nabla_i^2 - \sum_A \frac{Z_A}{r_{iA}}\right) + \sum_{i
+\\[ \hat{H}_{el} = \sum_{i=1}^N \left(-\frac{1}{2}\nabla_i^2 - \sum_A \frac{Z_A}{r_{iA}}\right) + \sum_{i<j} \frac{1}{r_{ij}} \\]
 
   * 第1項：電子の運動エネルギー
   * 第2項：電子-核間引力

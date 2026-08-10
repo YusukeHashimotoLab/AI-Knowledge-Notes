@@ -555,7 +555,8 @@ DOE、minimal experiments formultiple parameters witheffectsefficientlyinvestiga
 
 RSM、response variable（objective function）andexplanatory variables（parameters） withrelationship2order polynomialmodel using。
 
-$$ y = \beta_0 + \sum_{i=1}^{k} \beta_i x_i + \sum_{i=1}^{k} \beta_{ii} x_i^2 + \sum_{i
+$$ y = \beta_0 + \sum_{i=1}^{k} \beta_i x_i + \sum_{i=1}^{k} \beta_{ii} x_i^2 + \sum_{i<j} \beta_{ij} x_i x_j + \epsilon $$ 
+
 * $y$: response variable（film thickness、stress、quality scoreetc.）
 * $x_i$: explanatory variables（temperature、pressure、poweretc.）
 * $\beta$: regressioncoefficients

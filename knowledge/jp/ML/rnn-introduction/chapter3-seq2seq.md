@@ -126,12 +126,12 @@ DecoderはContext Vector $\mathbf{c}$ を初期状態として、出力系列 $\
 
 数学的表現：
 
-$$ \begin{aligned} \mathbf{s}_0 &= \mathbf{c} \\\ \mathbf{s}_t &= \text{LSTM}(\mathbf{y}_{t-1}, \mathbf{s}_{t-1}) \\\ P(y_t | y_{
+$$ \begin{aligned} \mathbf{s}_0 &= \mathbf{c} \\\ \mathbf{s}_t &= \text{LSTM}(\mathbf{y}_{t-1}, \mathbf{s}_{t-1}) \\\ P(y_t | y_{<t}, \mathbf{x}) &= \text{softmax}(\mathbf{W}_o \mathbf{s}_t + \mathbf{b}_o) \end{aligned} $$
 
 ここで：
 
   * $\mathbf{s}_t$ は時刻 $t$ のDecoder隠れ状態
-  * $y_{
+  * $y_{<t}$ は時刻 $t$ より前の出力系列
   * $\mathbf{W}_o, \mathbf{b}_o$ は出力層のパラメータ
 
 ### Teacher Forcingとは
@@ -578,7 +578,7 @@ $$ \begin{aligned} \mathbf{s}_0 &= \mathbf{c} \\\ \mathbf{s}_t &= \text{LSTM}(\m
 
 アルゴリズム：
 
-$$ y_t = \arg\max_{y} P(y | y_{
+$$ y_t = \arg\max_{y} P(y | y_{<t}, \mathbf{x}) $$
 
   * **利点** ：高速、実装が簡単、メモリ効率が良い
   * **欠点** ：局所最適解に陥る可能性、グローバルに最適な系列を保証しない
@@ -708,11 +708,11 @@ $$ y_t = \arg\max_{y} P(y | y_{
 
 Beam Search のスコア計算：
 
-$$ \text{score}(\mathbf{y}) = \log P(\mathbf{y} | \mathbf{x}) = \sum_{t=1}^{T'} \log P(y_t | y_{
+$$ \text{score}(\mathbf{y}) = \log P(\mathbf{y} | \mathbf{x}) = \sum_{t=1}^{T'} \log P(y_t | y_{<t}, \mathbf{x}) $$
 
 長さ正規化：
 
-$$ \text{score}_{\text{normalized}}(\mathbf{y}) = \frac{1}{T'^{\alpha}} \sum_{t=1}^{T'} \log P(y_t | y_{
+$$ \text{score}_{\text{normalized}}(\mathbf{y}) = \frac{1}{T'^{\alpha}} \sum_{t=1}^{T'} \log P(y_t | y_{<t}, \mathbf{x}) $$
 
 ここで $\alpha$ は長さペナルティ係数（通常0.6〜1.0）です。
 

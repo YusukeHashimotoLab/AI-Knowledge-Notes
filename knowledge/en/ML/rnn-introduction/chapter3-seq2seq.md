@@ -128,12 +128,12 @@ The Decoder uses the Context Vector $\mathbf{c}$ as its initial state and genera
 
 Mathematical expression:
 
-$$ \begin{aligned} \mathbf{s}_0 &= \mathbf{c} \\\ \mathbf{s}_t &= \text{LSTM}(\mathbf{y}_{t-1}, \mathbf{s}_{t-1}) \\\ P(y_t | y_{
+$$ \begin{aligned} \mathbf{s}_0 &= \mathbf{c} \\\ \mathbf{s}_t &= \text{LSTM}(\mathbf{y}_{t-1}, \mathbf{s}_{t-1}) \\\ P(y_t | y_{<t}, \mathbf{x}) &= \text{softmax}(\mathbf{W}_o \mathbf{s}_t + \mathbf{b}_o) \end{aligned} $$
 
 Where:
 
   * $\mathbf{s}_t$ is the Decoder hidden state at time $t$
-  * $y_{
+  * $y_{<t}$ is the output sequence before time $t$
   * $\mathbf{W}_o, \mathbf{b}_o$ are output layer parameters
 
 ### What is Teacher Forcing?
@@ -584,7 +584,7 @@ Method | Training Input | Inference Input | Features
 
 Algorithm:
 
-$$ y_t = \arg\max_{y} P(y | y_{
+$$ y_t = \arg\max_{y} P(y | y_{<t}, \mathbf{x}) $$
 
   * **Advantages** : Fast, simple to implement, memory efficient
   * **Disadvantages** : Can get trapped in local optima, does not guarantee globally optimal sequences
@@ -714,11 +714,11 @@ $$ y_t = \arg\max_{y} P(y | y_{
 
 Beam Search score calculation:
 
-$$ \text{score}(\mathbf{y}) = \log P(\mathbf{y} | \mathbf{x}) = \sum_{t=1}^{T'} \log P(y_t | y_{
+$$ \text{score}(\mathbf{y}) = \log P(\mathbf{y} | \mathbf{x}) = \sum_{t=1}^{T'} \log P(y_t | y_{<t}, \mathbf{x}) $$
 
 Length normalization:
 
-$$ \text{score}_{\text{normalized}}(\mathbf{y}) = \frac{1}{T'^{\alpha}} \sum_{t=1}^{T'} \log P(y_t | y_{
+$$ \text{score}_{\text{normalized}}(\mathbf{y}) = \frac{1}{T'^{\alpha}} \sum_{t=1}^{T'} \log P(y_t | y_{<t}, \mathbf{x}) $$
 
 where $\alpha$ is the length penalty coefficient (typically 0.6-1.0).
 

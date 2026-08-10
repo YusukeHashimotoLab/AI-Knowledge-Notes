@@ -328,7 +328,7 @@ Element | Content
   
 **Loss Function** :
 
-$$ \mathcal{L}_{\text{LM}} = -\sum_{i=1}^{n} \log P(x_i | x_{
+$$ \mathcal{L}_{\text{LM}} = -\sum_{i=1}^{n} \log P(x_i | x_{<i}; \theta) $$
 
 ### 2\. Instruction Tuning
 

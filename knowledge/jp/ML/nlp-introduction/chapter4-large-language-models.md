@@ -283,7 +283,7 @@ $$ P(x_1, x_2, \ldots, x_n) = \prod_{i=1}^{n} P(x_i | x_1, x_2, \ldots, x_{i-1})
   
 **損失関数** ：
 
-$$ \mathcal{L}_{\text{LM}} = -\sum_{i=1}^{n} \log P(x_i | x_{
+$$ \mathcal{L}_{\text{LM}} = -\sum_{i=1}^{n} \log P(x_i | x_{<i}; \theta) $$
 
 ### 2\. Instruction Tuning（指示チューニング）
 
