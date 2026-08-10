@@ -2,14 +2,14 @@
 
 ## What is This?
 
-A complete bidirectional conversion system for managing Markdown and HTML content in the AI Terakoya English knowledge base (`knowledge/en/`).
+A bidirectional conversion system for managing Markdown and HTML content in the AI Terakoya knowledge base. `convert_md_to_html.py` handles both locales (`knowledge/en/`, `knowledge/jp/`); some path forms of `sync_md_html.py` are English-only — see README_MARKDOWN_PIPELINE.md.
 
 ## 3-Minute Setup
 
 ```bash
-# 1. Install dependencies
-cd /Users/yusukehashimoto/Documents/pycharm/AI_Homepage/wp
-pip install markdown pyyaml beautifulsoup4 html2text
+# 1. Install dependencies (one list for the whole repo; Python 3.11 is the reference)
+cd <repo>/wp   # the wp/ directory of your AI_Homepage checkout
+python3 -m pip install -r requirements.txt
 
 # 2. Test the converter
 python3 tools/convert_md_to_html.py --help
@@ -25,10 +25,10 @@ python3 tools/convert_md_to_html.py --help
 
 ```bash
 # Single file
-python3 tools/convert_md_to_html.py knowledge/en/ML/series/chapter-1.md
+python3 tools/convert_md_to_html.py knowledge/en/ML/<series>/chapter-1.md
 
 # Entire series
-python3 tools/convert_md_to_html.py knowledge/en/ML/series/
+python3 tools/convert_md_to_html.py knowledge/en/ML/<series>/
 
 # Entire Dojo
 python3 tools/convert_md_to_html.py ML
@@ -50,13 +50,13 @@ python3 tools/convert_md_to_html.py
 
 ```bash
 # Single file
-python3 tools/html_to_md.py knowledge/en/ML/series/chapter-1.html
+python3 tools/html_to_md.py knowledge/en/ML/<series>/chapter-1.html
 
 # Entire series
-python3 tools/html_to_md.py knowledge/en/ML/series/
+python3 tools/html_to_md.py knowledge/en/ML/<series>/
 
 # With custom output directory
-python3 tools/html_to_md.py knowledge/en/ML/series/ --output-dir backup/
+python3 tools/html_to_md.py knowledge/en/ML/<series>/ --output-dir backup/
 ```
 
 **Features**:
@@ -72,19 +72,19 @@ python3 tools/html_to_md.py knowledge/en/ML/series/ --output-dir backup/
 
 ```bash
 # Auto-detect which file is newer
-python3 tools/sync_md_html.py knowledge/en/ML/series/
+python3 tools/sync_md_html.py knowledge/en/ML/<series>/
 
 # Force Markdown to HTML
-python3 tools/sync_md_html.py knowledge/en/ML/series/ --force-direction md2html
+python3 tools/sync_md_html.py knowledge/en/ML/<series>/ --force-direction md2html
 
 # Force HTML to Markdown
-python3 tools/sync_md_html.py knowledge/en/ML/series/ --force-direction html2md
+python3 tools/sync_md_html.py knowledge/en/ML/<series>/ --force-direction html2md
 
 # Dry run (preview only)
-python3 tools/sync_md_html.py knowledge/en/ML/series/ --dry-run
+python3 tools/sync_md_html.py knowledge/en/ML/<series>/ --dry-run
 
 # Watch mode (auto-sync on file changes)
-python3 tools/sync_md_html.py knowledge/en/ML/series/ --watch
+python3 tools/sync_md_html.py knowledge/en/ML/<series>/ --watch
 ```
 
 **Features**:
@@ -100,16 +100,16 @@ python3 tools/sync_md_html.py knowledge/en/ML/series/ --watch
 
 ```bash
 # 1. Write in Markdown
-vim knowledge/en/ML/transformer-introduction/chapter-6.md
+vim knowledge/en/ML/transformer-introduction/chapter6-advanced-architectures.md
 
 # 2. Generate HTML
-python3 tools/convert_md_to_html.py knowledge/en/ML/transformer-introduction/chapter-6.md
+python3 tools/convert_md_to_html.py knowledge/en/ML/transformer-introduction/chapter6-advanced-architectures.md
 
 # 3. Preview in browser
-open knowledge/en/ML/transformer-introduction/chapter-6.html
+open knowledge/en/ML/transformer-introduction/chapter6-advanced-architectures.html
 
 # 4. Commit Markdown (HTML optional depending on your strategy)
-git add knowledge/en/ML/transformer-introduction/chapter-6.md
+git add knowledge/en/ML/transformer-introduction/chapter6-advanced-architectures.md
 git commit -m "Add transformer chapter 6"
 ```
 
@@ -117,10 +117,10 @@ git commit -m "Add transformer chapter 6"
 
 ```bash
 # 1. Edit HTML
-vim knowledge/en/ML/transformer-introduction/chapter-1.html
+vim knowledge/en/ML/transformer-introduction/chapter1-self-attention.html
 
 # 2. Extract to Markdown
-python3 tools/html_to_md.py knowledge/en/ML/transformer-introduction/chapter-1.html
+python3 tools/html_to_md.py knowledge/en/ML/transformer-introduction/chapter1-self-attention.html
 
 # 3. Now you have both in sync
 ```
@@ -233,9 +233,9 @@ knowledge/en/
 
 ### Issue: "No module named 'markdown'"
 
-**Solution**:
+**Solution**: run from `wp/`
 ```bash
-pip install markdown pyyaml beautifulsoup4 html2text
+python3 -m pip install -r requirements.txt
 ```
 
 ### Issue: Math not rendering
@@ -268,20 +268,20 @@ Not `~~~mermaid` or indented code blocks.
 
 - Full documentation: [README_MARKDOWN_PIPELINE.md](README_MARKDOWN_PIPELINE.md)
 - Examples: [EXAMPLES_MARKDOWN_PIPELINE.md](EXAMPLES_MARKDOWN_PIPELINE.md)
-- Requirements: [requirements-markdown-pipeline.txt](requirements-markdown-pipeline.txt)
+- Requirements: [../requirements.txt](../requirements.txt) — the single dependency list (`requirements-markdown-pipeline.txt` is just a shim that includes it)
 
 ## Next Steps
 
 1. Try converting an existing HTML file to Markdown:
    ```bash
-   python3 tools/html_to_md.py knowledge/en/ML/transformer-introduction/chapter-1.html
+   python3 tools/html_to_md.py knowledge/en/ML/transformer-introduction/chapter1-self-attention.html
    ```
 
 2. Edit the extracted Markdown
 
 3. Regenerate HTML:
    ```bash
-   python3 tools/convert_md_to_html.py knowledge/en/ML/transformer-introduction/chapter-1.md
+   python3 tools/convert_md_to_html.py knowledge/en/ML/transformer-introduction/chapter1-self-attention.md
    ```
 
 4. Start using watch mode for development:
@@ -291,7 +291,7 @@ Not `~~~mermaid` or indented code blocks.
 
 ## Pro Tips
 
-1. **Version Control**: Commit Markdown, generate HTML in CI/CD
+1. **Version Control**: Commit the Markdown source *and* the generated HTML — nothing generates HTML in CI, and every `wp/` change is committed in both repos (see `../../DEPLOYMENT.md`)
 2. **Live Preview**: Use watch mode + local web server
 3. **Batch Operations**: Process entire Dojos at once
 4. **Dry Run First**: Always test with `--dry-run` before bulk operations

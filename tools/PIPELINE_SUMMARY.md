@@ -2,17 +2,18 @@
 
 ## Overview
 
-A production-ready bidirectional conversion pipeline for managing Markdown and HTML content in the AI Terakoya English knowledge base. This system enables efficient content authoring, maintenance, and deployment workflows.
+A bidirectional conversion pipeline for managing Markdown and HTML content in the AI Terakoya knowledge base (both `knowledge/en/` and `knowledge/jp/`). This system enables efficient content authoring and maintenance; it is run by hand, never from CI.
 
 ## What Was Created
 
-### Core Scripts (3 files)
+### Core Scripts
 
-#### 1. `convert_md_to_html.py` (870 lines)
+#### 1. `convert_md_to_html.py`
 **Purpose**: Convert Markdown with YAML frontmatter to production-ready HTML
 
 **Key Features**:
-- English localization (all labels, navigation, footer text)
+- Bilingual localization: labels, navigation and footer text come from a per-locale table
+  (`en`/`jp`), selected by the target path or `--lang`
 - YAML frontmatter extraction and parsing
 - MathJax integration for LaTeX equations
 - Mermaid diagram support via preprocessor
@@ -34,7 +35,7 @@ A production-ready bidirectional conversion pipeline for managing Markdown and H
 - Entire Dojo conversion
 - All Dojos conversion
 
-#### 2. `html_to_md.py` (330 lines)
+#### 2. `html_to_md.py`
 **Purpose**: Extract clean Markdown from HTML files
 
 **Key Features**:
@@ -57,7 +58,7 @@ A production-ready bidirectional conversion pipeline for managing Markdown and H
 - Recovers version and date from `<footer>`
 - Removes navigation, scripts, and styling
 
-#### 3. `sync_md_html.py` (450 lines)
+#### 3. `sync_md_html.py`
 **Purpose**: Bidirectional synchronization with intelligent detection
 
 **Key Features**:
@@ -89,7 +90,7 @@ A production-ready bidirectional conversion pipeline for managing Markdown and H
 
 ### Documentation (4 files)
 
-#### 1. `README_MARKDOWN_PIPELINE.md` (1,200 lines)
+#### 1. `README_MARKDOWN_PIPELINE.md`
 **Comprehensive reference documentation**
 
 **Contents**:
@@ -98,9 +99,8 @@ A production-ready bidirectional conversion pipeline for managing Markdown and H
 - Frontmatter schema specification
 - Supported Markdown syntax reference
 - Workflow recommendations (4 workflows)
-- CI/CD integration examples
-- Pre-commit hooks setup
-- Troubleshooting guide (18 common issues)
+- How this pipeline relates to the repository's actual CI (it is not run there)
+- Troubleshooting guide
 - Advanced usage examples
 - Best practices
 - Custom template modification guide
@@ -115,7 +115,7 @@ A production-ready bidirectional conversion pipeline for managing Markdown and H
 - Security considerations
 - Version control strategies
 
-#### 2. `EXAMPLES_MARKDOWN_PIPELINE.md` (600 lines)
+#### 2. `EXAMPLES_MARKDOWN_PIPELINE.md`
 **Practical usage examples**
 
 **22 Examples Covering**:
@@ -139,7 +139,7 @@ A production-ready bidirectional conversion pipeline for managing Markdown and H
 - Troubleshooting (Examples 16-18)
 - Advanced usage (Examples 19-22)
 
-#### 3. `QUICKSTART_MARKDOWN_PIPELINE.md` (400 lines)
+#### 3. `QUICKSTART_MARKDOWN_PIPELINE.md`
 **Quick reference guide**
 
 **Contents**:
@@ -159,14 +159,14 @@ A production-ready bidirectional conversion pipeline for managing Markdown and H
 - Visual quick reference table
 
 #### 4. `requirements-markdown-pipeline.txt`
-**Python dependencies**
+**Compatibility shim only** — it contains `-r ../requirements.txt`.
 
-**Core Requirements**:
-```
-markdown>=3.4.0          # Markdown processing
-PyYAML>=6.0              # YAML frontmatter parsing
-beautifulsoup4>=4.11.0   # HTML parsing
-html2text>=2020.1.16     # HTML→Markdown conversion
+All dependencies live in `wp/requirements.txt`, the single list for this repository
+(pinned `beautifulsoup4`, `lxml`, `tqdm`, `Markdown`, `PyYAML`, plus `html2text` and
+`watchdog` for the reverse-direction tools). Install from `wp/`:
+
+```bash
+python3 -m pip install -r requirements.txt
 ```
 
 **Optional Requirements**:
@@ -325,33 +325,34 @@ class FilePair:
 5. **Logging**: Clear status of all operations
 
 ### For Deployment
-1. **CI/CD Ready**: Auto-generate HTML from Markdown
-2. **Pre-commit Hooks**: Validate before commit
+1. **Committed output**: HTML is generated locally and committed — GitHub Pages serves the
+   committed files, and no workflow runs these converters
+2. **Verified by CI**: link/anchor checks, generated-asset freshness, unit tests, the Mermaid
+   validator and full-corpus HTML validation run on every push
 3. **Incremental**: Only convert changed files
 4. **Parallel**: Can process multiple series simultaneously
 5. **Production Quality**: Responsive, accessible HTML
 
 ## Testing Performed
 
-### Unit Testing
-- ✅ Markdown to HTML conversion
-- ✅ HTML to Markdown extraction
-- ✅ YAML frontmatter parsing
-- ✅ Math preprocessor
-- ✅ Mermaid preprocessor
-- ✅ Navigation generation
-- ✅ Metadata extraction
-- ✅ Sync detection logic
+### Automated tests (what actually runs)
 
-### Integration Testing
-- ✅ Full round-trip (MD → HTML → MD)
-- ✅ Batch conversion of series
-- ✅ Watch mode functionality
-- ✅ Dry-run mode accuracy
-- ✅ Force direction override
-- ✅ Error handling
+```bash
+cd wp
+python3 -m unittest discover -s scripts -p 'test_*.py'
+```
 
-### Content Testing
+CI runs the same command. The suite covers:
+- `scripts/test_convert_md_to_html.py` — the Markdown converter, including the display-math
+  state machine. Skips itself if `Markdown`/`PyYAML` are not installed, so install
+  `requirements.txt` first.
+- `scripts/test_validate_mermaid.py` — the Mermaid validator.
+- `scripts/test_fix_broken_links.py` — the link fixer (hermetic, uses a temporary tree).
+
+`html_to_md.py`, `batch_html_to_md.py` and `sync_md_html.py` have **no** automated coverage;
+verify them by hand with `--dry-run` and `git diff`.
+
+### Manually verified content handling
 - ✅ LaTeX equations (inline and display)
 - ✅ Mermaid diagrams
 - ✅ Code blocks with syntax highlighting
@@ -470,20 +471,24 @@ class FilePair:
 
 ## File Summary
 
+Line counts as of 2026-08-10 (`wc -l` in `wp/tools/`); they drift, so re-measure rather
+than trusting this table.
+
 | File | Lines | Purpose |
 |------|-------|---------|
-| `convert_md_to_html.py` | 870 | Markdown to HTML conversion |
-| `html_to_md.py` | 330 | HTML to Markdown extraction |
-| `sync_md_html.py` | 450 | Bidirectional synchronization |
-| `README_MARKDOWN_PIPELINE.md` | 1,200 | Full documentation |
-| `EXAMPLES_MARKDOWN_PIPELINE.md` | 600 | Usage examples |
-| `QUICKSTART_MARKDOWN_PIPELINE.md` | 400 | Quick reference |
-| `requirements-markdown-pipeline.txt` | 10 | Dependencies |
-| **Total** | **3,860** | **Complete pipeline** |
+| `convert_md_to_html.py` | 950 | Markdown to HTML conversion (en + jp) |
+| `html_to_md.py` | 386 | HTML to Markdown extraction |
+| `sync_md_html.py` | 533 | Bidirectional synchronization |
+| `batch_html_to_md.py` | 102 | Whole-directory HTML to Markdown wrapper |
+| `validate_mermaid.py` | 532 | Mermaid syntax validator (run by CI) |
+| `README_MARKDOWN_PIPELINE.md` | 758 | Full documentation |
+| `EXAMPLES_MARKDOWN_PIPELINE.md` | 490 | Usage examples |
+| `QUICKSTART_MARKDOWN_PIPELINE.md` | 304 | Quick reference |
+| `requirements-markdown-pipeline.txt` | 7 | Shim including `../requirements.txt` |
 
 ## Conclusion
 
-This pipeline provides a production-ready, well-documented, and thoroughly tested solution for managing Markdown and HTML content in the AI Terakoya English knowledge base. It supports modern authoring workflows, enables efficient content maintenance, and provides clear migration paths for existing content.
+This pipeline manages Markdown and HTML content in the AI Terakoya knowledge base (both locales). Line counts and "success metrics" in this document describe the original 2025 implementation and are not maintained; treat README_MARKDOWN_PIPELINE.md as the current reference and the scripts themselves as the source of truth.
 
 The system is designed to be:
 - **Intuitive**: Clear commands, good defaults

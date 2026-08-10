@@ -19,7 +19,7 @@ Comprehensive link validation script for HTML files in `/knowledge/en/` director
 Requires Python 3.7+ with the following packages:
 
 ```bash
-pip install beautifulsoup4 tqdm
+python3 -m pip install -r requirements.txt   # from wp/ — the single dependency list
 ```
 
 The script will auto-install dependencies if missing.
@@ -28,27 +28,26 @@ The script will auto-install dependencies if missing.
 
 ### Basic Usage
 
+Run from `wp/` and always pass `--path` and `--output`. The built-in defaults still point at a
+machine-specific legacy path (`/Users/.../pycharm/AI_Homepage/wp/knowledge/en`), so a bare
+invocation just prints `Path ... does not exist`.
+
 ```bash
-# Run from project root
-python3 scripts/check_links.py
+python3 scripts/check_links.py --path knowledge/en --output /tmp/lc_en.txt
+python3 scripts/check_links.py --path knowledge/jp --output /tmp/lc_jp.txt
 ```
 
-This generates `linkcheck_en_local.txt` in the project root.
+A healthy run reports `Broken links: 0` and `Missing anchors: 0` — this is exactly what CI
+checks (`.github/workflows/link-check.yml`).
 
-### Custom Paths
+### Auto-fix Mode
 
-```bash
-# Specify custom paths
-python3 scripts/check_links.py \
-  --path /path/to/knowledge/en \
-  --output /path/to/report.txt
-```
-
-### Auto-fix Mode (Coming Soon)
+`--fix-auto` is accepted but does nothing: the handler prints "Auto-fix mode not yet
+implemented." Use `scripts/fix_broken_links.py` for actual repairs (see
+`README_fix_broken_links.md`):
 
 ```bash
-# Automatically fix common patterns
-python3 scripts/check_links.py --fix-auto
+python3 scripts/fix_broken_links.py --dry-run
 ```
 
 ## Output Format
@@ -222,8 +221,11 @@ Finds anchors from:
 ### "Parser not found" error
 
 ```bash
-pip install beautifulsoup4 lxml html5lib
+python3 -m pip install -r requirements.txt
 ```
+
+`check_links.py` parses with the stdlib `html.parser`; `beautifulsoup4` and `lxml` come from
+`requirements.txt`. `html5lib` is not used by this repository.
 
 ### "Permission denied"
 
@@ -234,16 +236,18 @@ chmod +x scripts/check_links.py
 ### "Module not found"
 
 ```bash
-# Run from project root
-cd /Users/yusukehashimoto/Documents/pycharm/AI_Homepage/wp
-python3 scripts/check_links.py
+# Run from wp/ (the site root inside your AI_Homepage checkout)
+cd <repo>/wp
+python3 scripts/check_links.py --path knowledge/en --output /tmp/lc_en.txt
 ```
 
 ## Files
 
 - **Script**: `scripts/check_links.py`
-- **Output**: `linkcheck_en_local.txt`
+- **Output**: whatever you pass to `--output` (CI writes `linkcheck_en_report.txt` /
+  `linkcheck_jp_report.txt`; both patterns are gitignored)
 - **Documentation**: `scripts/README_LINK_CHECKER.md`
+- **Dependencies**: `wp/requirements.txt`
 
 ## Author
 

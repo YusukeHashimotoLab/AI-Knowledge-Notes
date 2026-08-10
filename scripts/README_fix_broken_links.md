@@ -17,7 +17,7 @@
 ## Requirements
 
 ```bash
-pip install beautifulsoup4 lxml tqdm
+python3 -m pip install -r requirements.txt   # from wp/ — the single dependency list
 ```
 
 ## Usage
@@ -317,7 +317,7 @@ Add new fix patterns by:
 
 **Solution**: Install dependencies
 ```bash
-pip install beautifulsoup4 lxml tqdm
+python3 -m pip install -r requirements.txt   # from wp/ — the single dependency list
 ```
 
 ### Issue: "Knowledge directory not found"

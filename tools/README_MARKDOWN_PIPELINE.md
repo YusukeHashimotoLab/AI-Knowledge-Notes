@@ -2,32 +2,41 @@
 
 ## Overview
 
-This pipeline provides comprehensive tools for managing Markdown and HTML content in the AI Terakoya English knowledge base. The system supports bidirectional conversion and synchronization between Markdown source files and production-ready HTML.
+This pipeline provides comprehensive tools for managing Markdown and HTML content in the AI Terakoya knowledge base. The system supports bidirectional conversion and synchronization between Markdown source files and production-ready HTML.
+
+Since 2026-07 there is a single locale-aware converter covering both `knowledge/en/` and `knowledge/jp/` (the former per-locale scripts under `knowledge/jp/` are gone). The reverse-direction tools (`html_to_md.py`, `sync_md_html.py`) are still English-centric in some path forms — see the tables below.
+
+These tools rewrite files in place and are run by hand: no CI workflow invokes them. CI only *verifies* the committed result (`.github/workflows/link-check.yml`, `html-validate.yml`). Preview with `--dry-run` where available and inspect `git diff` before committing.
+
+Run everything from `wp/`.
 
 ## Quick Start
 
 ### Installation
 
-Install required dependencies:
+There is one dependency list for the whole repository, `wp/requirements.txt` (it includes the pipeline's `Markdown`, `PyYAML`, `html2text` and `watchdog`):
 
 ```bash
-pip install markdown pyyaml beautifulsoup4 html2text watchdog
+cd wp
+python3 -m pip install -r requirements.txt
 ```
+
+Python 3.11 is the reference interpreter (CI pins it).
 
 ### Basic Usage
 
 ```bash
 # Convert Markdown to HTML
-python tools/convert_md_to_html.py knowledge/en/ML/transformer-introduction/
+python3 tools/convert_md_to_html.py knowledge/en/ML/transformer-introduction/
 
 # Convert HTML back to Markdown
-python tools/html_to_md.py knowledge/en/ML/transformer-introduction/
+python3 tools/html_to_md.py knowledge/en/ML/transformer-introduction/
 
 # Bidirectional sync (auto-detects which is newer)
-python tools/sync_md_html.py knowledge/en/ML/transformer-introduction/
+python3 tools/sync_md_html.py knowledge/en/ML/transformer-introduction/
 
 # Watch mode for live development
-python tools/sync_md_html.py knowledge/en/ML/transformer-introduction/ --watch
+python3 tools/sync_md_html.py knowledge/en/ML/transformer-introduction/ --watch
 ```
 
 ## Tools Overview
@@ -44,22 +53,26 @@ Converts Markdown files with YAML frontmatter to production-ready HTML with full
 - **Code Highlighting**: Syntax highlighting with language detection
 - **Responsive Design**: Mobile-friendly CSS with professional styling
 - **Navigation Generation**: Automatic previous/next/index links
-- **English Localization**: All labels and text in English
+- **Bilingual Localization**: Labels, navigation text and defaults come from a per-locale table; the locale is taken from `knowledge/<en|jp>/` in the target path, or from `--lang en|jp`
 
 #### Usage
 
+Exactly one positional target plus optional `--lang`. When the target carries no locale (a bare dojo name, or no target at all), the locale falls back to `en` — pass `--lang jp` for Japanese.
+
 ```bash
 # Convert single file
-python tools/convert_md_to_html.py knowledge/en/ML/transformer-introduction/chapter-1.md
+python3 tools/convert_md_to_html.py knowledge/en/ML/transformer-introduction/chapter1-self-attention.md
 
-# Convert entire series
-python tools/convert_md_to_html.py knowledge/en/ML/transformer-introduction/
+# Convert entire series (locale inferred from the path)
+python3 tools/convert_md_to_html.py knowledge/jp/MI/gnn-introduction/
 
 # Convert entire Dojo
-python tools/convert_md_to_html.py ML
+python3 tools/convert_md_to_html.py ML            # English
+python3 tools/convert_md_to_html.py ML --lang jp  # Japanese
 
-# Convert all English content
-python tools/convert_md_to_html.py
+# Convert one whole locale
+python3 tools/convert_md_to_html.py               # all English content
+python3 tools/convert_md_to_html.py --lang jp     # all Japanese content
 ```
 
 #### Frontmatter Schema
@@ -153,16 +166,16 @@ Reverse converter that extracts clean Markdown from HTML files, including automa
 
 ```bash
 # Convert single file
-python tools/html_to_md.py knowledge/en/ML/transformer-introduction/chapter-1.html
+python3 tools/html_to_md.py knowledge/en/ML/transformer-introduction/chapter1-self-attention.html
 
 # Convert entire series
-python tools/html_to_md.py knowledge/en/ML/transformer-introduction/
+python3 tools/html_to_md.py knowledge/en/ML/transformer-introduction/
 
 # Custom output directory
-python tools/html_to_md.py knowledge/en/ML/transformer-introduction/ --output-dir markdown_backup/
+python3 tools/html_to_md.py knowledge/en/ML/transformer-introduction/ --output-dir markdown_backup/
 
 # No backup files
-python tools/html_to_md.py knowledge/en/ML/transformer-introduction/ --no-backup
+python3 tools/html_to_md.py knowledge/en/ML/transformer-introduction/ --no-backup
 ```
 
 #### Extraction Logic
@@ -213,26 +226,38 @@ Intelligent sync tool that detects file modification times and automatically con
 
 ```bash
 # Auto-sync (detects which file is newer)
-python tools/sync_md_html.py knowledge/en/ML/transformer-introduction/
+python3 tools/sync_md_html.py knowledge/en/ML/transformer-introduction/
 
 # Force Markdown to HTML
-python tools/sync_md_html.py knowledge/en/ML/transformer-introduction/ --force-direction md2html
+python3 tools/sync_md_html.py knowledge/en/ML/transformer-introduction/ --force-direction md2html
 
 # Force HTML to Markdown
-python tools/sync_md_html.py knowledge/en/ML/transformer-introduction/ --force-direction html2md
+python3 tools/sync_md_html.py knowledge/en/ML/transformer-introduction/ --force-direction html2md
 
 # Dry run (see what would happen)
-python tools/sync_md_html.py knowledge/en/ML/transformer-introduction/ --dry-run
+python3 tools/sync_md_html.py knowledge/en/ML/transformer-introduction/ --dry-run
 
-# Watch mode for live development
-python tools/sync_md_html.py knowledge/en/ML/transformer-introduction/ --watch
+# Watch mode for live development (requires watchdog)
+python3 tools/sync_md_html.py knowledge/en/ML/transformer-introduction/ --watch
 
-# Sync entire Dojo
-python tools/sync_md_html.py ML
+# Sync entire Dojo — English only, see the note below
+python3 tools/sync_md_html.py ML
 
-# Sync entire knowledge base
-python tools/sync_md_html.py knowledge/en/
+# Sync an entire locale root — English only, see the note below
+python3 tools/sync_md_html.py knowledge/en/
 ```
+
+**Which path forms actually work** (verified against the current script):
+
+| Argument | Behaviour |
+|---|---|
+| A series directory (`knowledge/jp/MI/gnn-introduction/`) | Works for both locales — this is the reliable form |
+| A single `.md`/`.html` file | Works for both locales |
+| A bare dojo name (`ML`) | English only: dojo lookup is hard-coded to `knowledge/en` (`BASE_PATH`) |
+| A locale root (`knowledge/en/`) | Works for `en`; `knowledge/jp/` silently syncs the **English** tree instead — do not use it for `jp` |
+| A dojo *directory* (`knowledge/en/ML/`) | Matches nothing and exits 0 without scanning anything; use the bare dojo name or loop over series |
+
+`sync_md_html.py` resolves `knowledge/en` relative to the current directory, so it must be run from `wp/`.
 
 #### Sync Logic
 
@@ -257,7 +282,7 @@ Watch mode is ideal for development:
 
 ```bash
 # Start watching
-python tools/sync_md_html.py knowledge/en/ML/transformer-introduction/ --watch
+python3 tools/sync_md_html.py knowledge/en/ML/transformer-introduction/ --watch
 
 # Now edit either .md or .html files
 # Changes are automatically synced in the correct direction
@@ -278,12 +303,12 @@ python tools/sync_md_html.py knowledge/en/ML/transformer-introduction/ --watch
 
 1. Write content in Markdown with frontmatter:
    ```bash
-   vim knowledge/en/ML/transformer-introduction/chapter-1.md
+   vim knowledge/en/ML/transformer-introduction/chapter1-self-attention.md
    ```
 
 2. Generate HTML for production:
    ```bash
-   python tools/convert_md_to_html.py knowledge/en/ML/transformer-introduction/chapter-1.md
+   python3 tools/convert_md_to_html.py knowledge/en/ML/transformer-introduction/chapter1-self-attention.md
    ```
 
 3. Preview HTML in browser, iterate on Markdown
@@ -302,12 +327,12 @@ python tools/sync_md_html.py knowledge/en/ML/transformer-introduction/ --watch
 
 1. Edit HTML file directly:
    ```bash
-   vim knowledge/en/ML/transformer-introduction/chapter-1.html
+   vim knowledge/en/ML/transformer-introduction/chapter1-self-attention.html
    ```
 
 2. Extract to Markdown for future maintenance:
    ```bash
-   python tools/html_to_md.py knowledge/en/ML/transformer-introduction/chapter-1.html
+   python3 tools/html_to_md.py knowledge/en/ML/transformer-introduction/chapter1-self-attention.html
    ```
 
 3. Now both are in sync and you can use Workflow 1
@@ -323,7 +348,7 @@ python tools/sync_md_html.py knowledge/en/ML/transformer-introduction/ --watch
 
 1. Start watch mode:
    ```bash
-   python tools/sync_md_html.py knowledge/en/ML/transformer-introduction/ --watch
+   python3 tools/sync_md_html.py knowledge/en/ML/transformer-introduction/ --watch
    ```
 
 2. Edit Markdown in your editor
@@ -344,99 +369,63 @@ python tools/sync_md_html.py knowledge/en/ML/transformer-introduction/ --watch
 
 **Best for:** Converting legacy HTML, bulk updates
 
-1. Extract all HTML to Markdown:
+1. Extract all HTML to Markdown. `html_to_md.py` only looks for `chapter*.html`
+   directly inside the directory you give it (no recursion), so pass one series at a
+   time — a dojo directory converts nothing. Loop if you need the whole dojo:
    ```bash
-   python tools/html_to_md.py knowledge/en/ML/
+   for s in knowledge/en/ML/*/; do python3 tools/html_to_md.py "$s"; done
    ```
 
 2. Review and edit Markdown sources
 
 3. Regenerate all HTML:
    ```bash
-   python tools/convert_md_to_html.py ML
+   python3 tools/convert_md_to_html.py ML
    ```
 
 4. Verify with sync tool:
    ```bash
-   python tools/sync_md_html.py knowledge/en/ML/ --dry-run
+   python3 tools/sync_md_html.py knowledge/en/ML/ --dry-run
    ```
 
 ## Integration with Existing Tools
 
-### Link Checking
+### Link and QA Checks
 
-After converting or syncing, verify links:
+After converting or syncing, run the same checks CI runs. They live in `scripts/`, not
+`tools/`, and the link checker takes `--path`, not a positional argument:
 
 ```bash
-# Check links in converted HTML
-python tools/check_links.py knowledge/en/ML/transformer-introduction/
+# Link + anchor check (require "Broken links: 0" and "Missing anchors: 0")
+python3 scripts/check_links.py --path knowledge/en --output /tmp/lc_en.txt
 
-# Fix broken links automatically
-python tools/fix_broken_links.py knowledge/en/ML/transformer-introduction/
+# Report link problems the fixer can repair; --base-dir defaults to the cwd, so run from wp/
+python3 scripts/fix_broken_links.py --dry-run
+python3 scripts/fix_broken_links.py             # apply (writes .bak backups)
+python3 scripts/fix_broken_links.py --restore   # undo
 
-# Re-sync after fixes
-python tools/sync_md_html.py knowledge/en/ML/transformer-introduction/ --force-direction html2md
+# Mermaid syntax, unit tests
+python3 tools/validate_mermaid.py knowledge/jp
+python3 -m unittest discover -s scripts -p 'test_*.py'
+
+# Re-sync after fixes touched the HTML
+python3 tools/sync_md_html.py knowledge/en/ML/transformer-introduction/ --force-direction html2md
 ```
 
-### CI/CD Integration
+Generated data (dojo/landing stats, search index, sitemap) must be refreshed after adding or
+removing chapters, or CI fails: `python3 scripts/update_index_stats.py --write`,
+`python3 scripts/build_search_index.py`, `python3 scripts/build_sitemap.py`.
 
-Example GitHub Actions workflow:
+### CI/CD
 
-```yaml
-name: Build Documentation
+This pipeline is **not** wired into CI, by design: HTML is committed, and generating it inside a
+workflow would fight the dual-commit deploy flow described in the root `DEPLOYMENT.md`. The two
+workflows that do exist (`.github/workflows/link-check.yml`, `.github/workflows/html-validate.yml`)
+only validate what has been committed — link/anchor checks, generated-asset freshness,
+`scripts/test_*.py`, the Mermaid validator, and full-corpus HTML validation. Run the converters
+locally and commit their output.
 
-on:
-  push:
-    paths:
-      - 'knowledge/en/**/*.md'
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.9'
-
-      - name: Install dependencies
-        run: |
-          pip install markdown pyyaml beautifulsoup4 html2text
-
-      - name: Convert Markdown to HTML
-        run: |
-          python tools/convert_md_to_html.py knowledge/en/
-
-      - name: Check links
-        run: |
-          python tools/check_links.py knowledge/en/
-
-      - name: Commit generated HTML
-        run: |
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
-          git add knowledge/en/**/*.html
-          git commit -m "Auto-generate HTML from Markdown" || exit 0
-          git push
-```
-
-### Pre-commit Hooks
-
-Example `.pre-commit-config.yaml`:
-
-```yaml
-repos:
-  - repo: local
-    hooks:
-      - id: markdown-to-html
-        name: Convert Markdown to HTML
-        entry: python tools/convert_md_to_html.py
-        language: system
-        files: '^knowledge/en/.*\.md$'
-        pass_filenames: true
-```
+There are no pre-commit hooks configured in this repository.
 
 ## Troubleshooting
 
@@ -511,7 +500,7 @@ code_examples: "5"             # ⚠ Works but should be integer
 
 ```bash
 # Re-generate from Markdown if available
-python tools/convert_md_to_html.py knowledge/en/ML/series/chapter-1.md
+python3 tools/convert_md_to_html.py knowledge/en/ML/<series>/chapter-1.md
 
 # Or manually clean HTML structure before extraction
 ```
@@ -520,10 +509,10 @@ python tools/convert_md_to_html.py knowledge/en/ML/series/chapter-1.md
 
 **Problem:** `watchdog` import error
 
-**Solution:** Install the optional dependency:
+**Solution:** Install the repository's dependency list, which includes `watchdog`:
 
 ```bash
-pip install watchdog
+python3 -m pip install -r requirements.txt
 ```
 
 #### 7. **File Permissions Errors**
@@ -534,10 +523,10 @@ pip install watchdog
 
 ```bash
 # Fix permissions
-chmod 644 knowledge/en/ML/series/*.html
+chmod 644 knowledge/en/ML/<series>/*.html
 
 # Or use sudo (not recommended)
-sudo python tools/convert_md_to_html.py knowledge/en/ML/series/
+sudo python3 tools/convert_md_to_html.py knowledge/en/ML/<series>/
 ```
 
 ### Debugging
@@ -554,10 +543,10 @@ Or use verbose mode:
 
 ```bash
 # Run with Python -v flag
-python -v tools/convert_md_to_html.py knowledge/en/ML/series/
+python3 -v tools/convert_md_to_html.py knowledge/en/ML/<series>/
 
 # Check for import issues
-python -c "import markdown; import yaml; import bs4; import html2text; print('All dependencies OK')"
+python3 -c "import markdown, yaml, bs4, html2text; print('All dependencies OK')"
 ```
 
 ## Advanced Usage
@@ -618,13 +607,13 @@ Process specific patterns:
 
 ```bash
 # Convert all transformer-related chapters
-find knowledge/en -path "*/transformer*/chapter*.md" -exec python tools/convert_md_to_html.py {} \;
+find knowledge/en -path "*/transformer*/chapter*.md" -exec python3 tools/convert_md_to_html.py {} \;
 
 # Extract all chapter-1 files
-find knowledge/en -name "chapter-1.html" -exec python tools/html_to_md.py {} \;
+find knowledge/en -name "chapter-1.html" -exec python3 tools/html_to_md.py {} \;
 
 # Sync all ML Dojo series
-find knowledge/en/ML -type d -name "*-introduction" -exec python tools/sync_md_html.py {} \;
+find knowledge/en/ML -type d -name "*-introduction" -exec python3 tools/sync_md_html.py {} \;
 ```
 
 ### Programmatic Usage
@@ -642,11 +631,11 @@ series_path = Path("knowledge/en/ML/transformer-introduction")
 convert_chapter(series_path, "chapter-1.md")
 
 # Extract programmatically
-html_path = Path("knowledge/en/ML/transformer-introduction/chapter-1.html")
+html_path = Path("knowledge/en/ML/transformer-introduction/chapter1-self-attention.html")
 convert_html_file(html_path)
 
 # Sync programmatically
-pair = FilePair(Path("knowledge/en/ML/transformer-introduction/chapter-1.md"))
+pair = FilePair(Path("knowledge/en/ML/transformer-introduction/chapter1-self-attention.md"))
 sync_file_pair(pair, force_direction='md2html')
 ```
 
@@ -718,17 +707,18 @@ knowledge/en/
 ### 5. Testing Before Deployment
 
 ```bash
-# 1. Dry run to check what would change
-python tools/sync_md_html.py knowledge/en/ML/ --dry-run
+# 1. Dry run to check what would change (bare dojo name — a dojo directory matches nothing)
+python3 tools/sync_md_html.py ML --dry-run
 
-# 2. Run link checker
-python tools/check_links.py knowledge/en/ML/
+# 2. Convert with logging
+python3 tools/convert_md_to_html.py ML > conversion.log 2>&1
 
-# 3. Convert with logging
-python tools/convert_md_to_html.py knowledge/en/ML/ > conversion.log 2>&1
+# 3. Run the link checker (scripts/, --path)
+python3 scripts/check_links.py --path knowledge/en --output /tmp/lc_en.txt
 
-# 4. Validate HTML (optional)
-find knowledge/en -name "*.html" -exec tidy -q -e {} \;
+# 4. Validate HTML the way CI does — copy the .htmlvalidate.json block out of
+#    .github/workflows/html-validate.yml first
+npx html-validate@8.8.0 -c .htmlvalidate.json knowledge/en/ML/transformer-introduction/index.html
 ```
 
 ## Support and Contributing
@@ -738,7 +728,7 @@ find knowledge/en -name "*.html" -exec tidy -q -e {} \;
 1. Check this documentation
 2. Review error logs carefully
 3. Test with minimal examples
-4. Check Python version (requires 3.8+)
+4. Check Python version (3.11 is the reference version used by CI)
 
 ### Contributing Improvements
 
