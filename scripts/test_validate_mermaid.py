@@ -5,6 +5,8 @@ Unit tests for tools/validate_mermaid.py
 Covers the path-handling fix (F-01) and the Mermaid block extraction/validation
 behaviour:
   - zero-error run on valid diagrams
+  - single-line ``<div class="mermaid">...</div>`` blocks (they must be captured
+    and validated, and must not swallow the markup that follows)
   - error run reports the correct count and a non-zero exit/return code
   - relative-path invocation (the original crash scenario)
   - absolute-path invocation
@@ -119,6 +121,61 @@ class TestZeroErrorRuns(unittest.TestCase):
             self.assertEqual(v.total_diagrams, 2)
 
 
+class TestSingleLineDiv(unittest.TestCase):
+    """Regression: a diagram whose <div> opens and closes on ONE line.
+
+    The original line-based extractor used if/elif so a line containing both
+    ``<div class="mermaid">`` and ``</div>`` only ever matched the "opening"
+    branch: the block was opened, never closed, its content was never captured
+    and following markup was swallowed as diagram text. Single-line diagrams
+    were therefore never validated.
+    """
+
+    def test_single_line_div_is_extracted_and_validated(self):
+        with tempfile.TemporaryDirectory() as td:
+            f = _write(td, "single.html", VALID_INLINE + "\n<h3>Next section</h3>")
+            v = MermaidValidator(Path(td))
+            blocks = v.extract_mermaid_blocks(f.read_text(encoding="utf-8"), f)
+            self.assertEqual(len(blocks), 1)
+            # Content is the diagram only - the following <h3> is NOT swallowed.
+            self.assertEqual(blocks[0][1], "flowchart TD; A[Start]--&gt;B[End]")
+            self.assertNotIn("<h3>", blocks[0][1])
+            self.assertEqual(v.errors, [])
+
+    def test_broken_single_line_div_is_reported(self):
+        """A single-line diagram with no diagram type must raise an error."""
+        with tempfile.TemporaryDirectory() as td:
+            _write(td, "bad_single.html", BROKEN_NO_TYPE + "\n<p>after</p>")
+            v = MermaidValidator(Path(td))
+            _run_quiet(v.validate_all, Path(td))
+            self.assertEqual(v.total_diagrams, 1)
+            self.assertEqual(len(v.errors), 1)
+            self.assertEqual(v.errors[0]['type'], 'syntax_error')
+
+    def test_several_single_line_divs_all_counted(self):
+        with tempfile.TemporaryDirectory() as td:
+            body = "\n".join([
+                VALID_INLINE,
+                '<p>prose between diagrams</p>',
+                '<div class="mermaid">sequenceDiagram; A->>B: hi</div>',
+                VALID_MULTILINE,
+            ])
+            _write(td, "many.html", body)
+            v = MermaidValidator(Path(td))
+            _run_quiet(v.validate_all, Path(td))
+            self.assertEqual(v.total_diagrams, 3)
+            self.assertEqual(v.errors, [])
+
+    def test_unclosed_div_still_reported(self):
+        """An opening tag with no </div> is a genuine unclosed block."""
+        with tempfile.TemporaryDirectory() as td:
+            _write(td, "unclosed.html", '<div class="mermaid">\nflowchart TD\n  A --> B')
+            v = MermaidValidator(Path(td))
+            _run_quiet(v.validate_all, Path(td))
+            self.assertEqual(len(v.errors), 1)
+            self.assertEqual(v.errors[0]['type'], 'unclosed_block')
+
+
 class TestErrorRuns(unittest.TestCase):
     """Broken diagrams must be counted and surface a non-zero exit code."""
 
@@ -223,7 +280,8 @@ def run_tests():
     """Run all tests (used when executing this file directly)."""
     loader = unittest.TestLoader()
     suite = unittest.TestSuite()
-    for tc in (TestZeroErrorRuns, TestErrorRuns, TestPathInvocation, TestNoHtml):
+    for tc in (TestZeroErrorRuns, TestSingleLineDiv, TestErrorRuns,
+               TestPathInvocation, TestNoHtml):
         suite.addTests(loader.loadTestsFromTestCase(tc))
     runner = unittest.TextTestRunner(verbosity=2)
     result = runner.run(suite)

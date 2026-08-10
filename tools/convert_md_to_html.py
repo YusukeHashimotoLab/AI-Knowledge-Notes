@@ -458,7 +458,59 @@ HTML_FOOTER_TEMPLATE = '''
 
 
 class MathPreprocessor(Preprocessor):
-    """Preprocessor to protect math blocks from Markdown emphasis processing."""
+    r"""Preprocessor to protect math blocks from Markdown emphasis processing.
+
+    Underscores inside LaTeX math must not be seen by Markdown's emphasis
+    parser, so they are escaped to ``\_`` before the block/inline parsers run.
+    Two rules keep that escaping confined to actual math:
+
+    1. A line that opens ``$$`` *and* closes it again on the same line is a
+       *self-contained* display equation, e.g. ``$$ S = QK^T $$`` or
+       ``$$\oint_C f(z) dz = 0$$ where $f(z)$ is analytic``. Its equation body is
+       protected, any trailing prose is treated as prose, and the "inside display
+       math" state is NOT flipped - the previous implementation toggled the flag
+       once for such a line and never back, so every following line (prose *and*
+       code) was treated as math and had its underscores escaped, corrupting
+       Python examples in the output. Only a line with a single, unmatched ``$$``
+       opens a multi-line display block.
+    2. Fenced code blocks are skipped entirely. This preprocessor is registered
+       at priority 200 while ``fenced_code`` registers its own preprocessor at
+       priority 25, so the fences are still raw Markdown lines here and would
+       otherwise be math-processed.
+    3. A blank line ends an open display block. Markdown would split a ``$$``
+       block containing a blank line into separate paragraphs (which MathJax
+       cannot render anyway), so this costs nothing for valid content and keeps a
+       truncated equation in the source - e.g. ``$$ P(y_t | y_{`` with the rest
+       of the line lost - from putting the remainder of the document into math
+       mode.
+    """
+
+    # Fenced code block delimiter: three or more backticks or tildes, optionally
+    # followed by an info string (``` ```python ```). A closing fence is a run of
+    # the same character, at least as long, with nothing after it.
+    FENCE_RE = re.compile(r'^(?P<fence>`{3,}|~{3,})(?P<info>.*)$')
+
+    # Math spans inside a prose line. The ``$$...$$`` alternative comes first so
+    # that mid-line display math is matched as a whole rather than as two
+    # adjacent ``$`` delimiters.
+    INLINE_MATH_RE = re.compile(r'(\$\$[^$]+\$\$|\$[^$]+\$)')
+
+    @staticmethod
+    def _escape_underscores(text: str) -> str:
+        """Escape underscores so Markdown does not read them as emphasis."""
+        return text.replace('_', r'\_')
+
+    @classmethod
+    def _protect_inline_math(cls, text: str) -> str:
+        """Escape underscores inside inline ``$...$`` / ``$$...$$`` spans only."""
+        parts = cls.INLINE_MATH_RE.split(text)
+        protected_parts = []
+        for part in parts:
+            if part.startswith('$') and part.endswith('$') and len(part) > 2:
+                protected_parts.append(cls._escape_underscores(part))
+            else:
+                protected_parts.append(part)
+        return ''.join(protected_parts)
 
     def run(self, lines: List[str]) -> List[str]:
         """
@@ -472,29 +524,73 @@ class MathPreprocessor(Preprocessor):
         """
         new_lines = []
         in_display_math = False
+        fence = None  # active fence marker while inside a fenced code block
 
         for line in lines:
-            # Check for display math delimiters ($$...$$)
-            if line.strip().startswith('$$'):
-                in_display_math = not in_display_math
+            stripped = line.strip()
+            fence_match = self.FENCE_RE.match(stripped)
+
+            # --- Fenced code blocks: emit verbatim, never math-process ------
+            if fence is not None:
+                if (fence_match
+                        and fence_match.group('fence')[0] == fence[0]
+                        and len(fence_match.group('fence')) >= len(fence)
+                        and not fence_match.group('info').strip()):
+                    fence = None  # closing fence
                 new_lines.append(line)
-            elif in_display_math:
-                # Protect underscores in math mode by escaping them
-                # This prevents Markdown from treating _ as emphasis
-                protected_line = line.replace('_', r'\_')
-                new_lines.append(protected_line)
-            else:
-                # Also protect inline math $...$
-                # Use regex to find and protect inline math
-                parts = re.split(r'(\$[^$]+\$)', line)
-                protected_parts = []
-                for part in parts:
-                    if part.startswith('$') and part.endswith('$') and len(part) > 2:
-                        # This is inline math - protect underscores
-                        protected_parts.append(part.replace('_', r'\_'))
-                    else:
-                        protected_parts.append(part)
-                new_lines.append(''.join(protected_parts))
+                continue
+            if fence_match:
+                fence = fence_match.group('fence')  # opening fence
+                new_lines.append(line)
+                continue
+
+            # --- Inside a multi-line display block --------------------------
+            if in_display_math:
+                end = line.find('$$')
+                if not stripped:
+                    # Blank line: the block cannot continue past a paragraph
+                    # break, so treat it as closed (guards against a truncated
+                    # equation swallowing the rest of the document).
+                    in_display_math = False
+                    new_lines.append(line)
+                elif end == -1:
+                    new_lines.append(self._escape_underscores(line))
+                else:
+                    # Closing delimiter: math up to it, normal text after it.
+                    in_display_math = False
+                    new_lines.append(
+                        self._escape_underscores(line[:end])
+                        + '$$'
+                        + self._protect_inline_math(line[end + 2:])
+                    )
+                continue
+
+            # --- Display math starting at the beginning of the line ---------
+            if stripped.startswith('$$'):
+                open_at = line.find('$$')
+                body_at = open_at + 2
+                close_at = line.find('$$', body_at)
+                head = line[:body_at]  # indentation + opening '$$'
+                if close_at >= body_at:
+                    # Self-contained equation: protect the body, keep any trailing
+                    # text as prose, and do NOT flip the state.
+                    new_lines.append(
+                        head
+                        + self._escape_underscores(line[body_at:close_at])
+                        + '$$'
+                        + self._protect_inline_math(line[close_at + 2:])
+                    )
+                else:
+                    # Unmatched '$$': opening delimiter of a multi-line block. Any
+                    # content on the same line is already math.
+                    in_display_math = True
+                    new_lines.append(
+                        head + self._escape_underscores(line[body_at:])
+                    )
+                continue
+
+            # --- Plain prose: protect inline math spans only ----------------
+            new_lines.append(self._protect_inline_math(line))
 
         return new_lines
 
