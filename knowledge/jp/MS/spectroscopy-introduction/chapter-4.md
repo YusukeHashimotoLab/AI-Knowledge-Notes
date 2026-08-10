@@ -56,7 +56,7 @@ JP | [EN](<../../../en/MS/spectroscopy-introduction/chapter-4.html>) | Last sync
             style A1 fill:#e3f2fd
             style A2 fill:#fff3e0
             style B1 fill:#fce4ec
-        
+    ```
     4.1.3 ストークス散乱とアンチストークス散乱の強度比
     アンチストークス散乱は振動励起状態の分子からのみ生じるため、その強度はストークス散乱より弱くなります。強度比はボルツマン分布に従います。
     

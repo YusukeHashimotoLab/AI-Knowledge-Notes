@@ -35,7 +35,7 @@ chapter_title: "第6章: Python実践：分光データ解析ワークフロー"
             style F fill:#e8f5e9
             style G fill:#fce4ec
             style H fill:#ffe0b2
-        
+    ```
     コード例1: 汎用スペクトルデータローダークラス
     import numpy as np
     import pandas as pd

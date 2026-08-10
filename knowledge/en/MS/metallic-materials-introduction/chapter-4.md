@@ -183,7 +183,17 @@ A CCT diagram shows transformations during continuous cooling and more closely r
     
     
     ```mermaid
-    graph TD A[Austenitizing850-950C] -->B{Cooling Rate} B -->|Rapid CoolingWater Quench| C[MartensiteMaximum Hardness] B -->|Medium CoolingOil Quench| D[BainiteIntermediate Hardness] B -->|Slow CoolingFurnace Cool| E[Ferrite+PearliteSoft] C -->F[Tempering150-650C] F -->G[Tempered MartensiteHigh Strength+Toughness] style A fill:#f093fb style C fill:#f5576c style G fill:#4ade80
+    graph TD
+        A[Austenitizing850-950C] --> B{Cooling Rate}
+        B -->|Rapid CoolingWater Quench| C[MartensiteMaximum Hardness]
+        B -->|Medium CoolingOil Quench| D[BainiteIntermediate Hardness]
+        B -->|Slow CoolingFurnace Cool| E[Ferrite+PearliteSoft]
+        C --> F[Tempering150-650C]
+        F --> G[Tempered MartensiteHigh Strength+Toughness]
+
+        style A fill:#f093fb
+        style C fill:#f5576c
+        style G fill:#4ade80
     ```
 
 **Code Example 5: Simplified TTT Diagram Visualization**

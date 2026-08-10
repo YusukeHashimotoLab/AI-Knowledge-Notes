@@ -41,7 +41,15 @@ $$F = C - P + 1 = 2 - P + 1 = 3 - P$$
     
     
     ```mermaid
-    flowchart TD A[Gibbs Phase Rule: F = C - P + 2] -->B[Binary system at constant pressure] B -->C[F = 3 - P] C -->D[Single-phase region P=1] C -->E[Two-phase coexistence P=2] C -->F[Three-phase coexistence point P=3] D -->G[F = 2: Temperature and Composition variable] E -->H[F = 1: When temperature is fixed, composition is determined] F -->I[F = 0: Both temperature and composition are fixed]
+    flowchart TD
+        A[Gibbs Phase Rule: F = C - P + 2] --> B[Binary system at constant pressure]
+        B --> C[F = 3 - P]
+        C --> D[Single-phase region P=1]
+        C --> E[Two-phase coexistence P=2]
+        C --> F[Three-phase coexistence point P=3]
+        D --> G[F = 2: Temperature and Composition variable]
+        E --> H[F = 1: When temperature is fixed, composition is determined]
+        F --> I[F = 0: Both temperature and composition are fixed]
     ```
 
 ### 2.1.2 Basic Elements of Phase Diagrams

@@ -341,7 +341,7 @@ $$\lambda \approx d_p \left(\sqrt{\frac{\pi}{4V_p}} - 1\right)$$
                                 style A fill:#e1f5ff
                                 style F fill:#ffe1e1
                                 style I fill:#c8e6c9
-                        
+    ```
     3.3.2 最適粒子サイズ・分率の設計
     
                             Orowan強化を最大化するには、粒子間距離を最小化する必要があります。

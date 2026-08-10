@@ -194,7 +194,7 @@ XPSでは、半球型静電分析器（Hemispherical Analyzer）が広く使用�
             style D fill:#e8f5e9
             style E fill:#f3e5f5
             style F fill:#ffe0b2
-        
+    ```
     
     分析器のパラメータ
     

@@ -578,7 +578,7 @@ Gradient Boostingは、弱学習器（浅い決定木）を逐次的に追加し
                     style D fill:#ffccbc
                     style E fill:#ffe0b2
                     style F fill:#b3e5fc
-                
+    ```
     
     
     
