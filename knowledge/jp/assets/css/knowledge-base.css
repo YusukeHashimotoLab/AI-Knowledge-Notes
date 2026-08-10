@@ -1,41 +1,252 @@
 /**
  * AI Terakoya Knowledge Base - Common Stylesheet
- * Version: 2.0.0
- * Date: 2025-11-16
+ * Version: 3.0.0-draft  ("v2" of the shared-sheet plan)
+ * Date: 2026-08-11
+ * Locale: JP  (identical to knowledge-base-v2.css except --font-body, below)
  * Description: Shared styles for all Dojo chapters (FM, MI, ML, MS, PI)
- * Update: Added index page specific styles and CSS variables
+ *
+ * ============================================================================
+ * PROVENANCE — how every value in this file was chosen
+ * ============================================================================
+ * This sheet is the previous shared sheet (v2.0.0, "Theme A": periwinkle #667eea
+ * h2 / #764ba2 h3 / no domain colour) rebased onto "Theme B" — the de-facto theme
+ * carried by the inline <style> blocks of the un-migrated pages.
+ *
+ * Theme B was not eyeballed, it was measured. Every knowledge/**\/*.html page was
+ * parsed, its inline <style> blocks flattened to (at-rule context, selector,
+ * property) -> value, and each pair counted by the number of pages that carry it:
+ *
+ *     knowledge pages                        1,602
+ *       with inline <style>  (Theme B)         895   <- the measured corpus, N
+ *       shared sheet only    (Theme A)         688   <- what this file restyles now
+ *       neither                                 19
+ *
+ * ADOPTION RULE: a (selector, property) pair present on >= 40% of the 895
+ * inline-styled pages is adopted here at its MODAL inline value.
+ *     237 pairs cleared 40%, spread over 58 selectors.
+ * Each adopted declaration carries a trailing "B nn.n%" marker = the share of the
+ * 895 pages that declare it. Declarations with no marker are inherited unchanged from
+ * Theme A (no >= 40% inline evidence either way, so the incumbent value stands).
+ *
+ * NEW SELECTORS (19) that Theme A did not have and Theme B does:
+ *   li, h4, a, a:hover, pre, code, pre code, blockquote, details, summary,
+ *   .mermaid, .meta, .navigation, .header-content, .disclaimer li::before, and
+ *   inside @media (max-width: 768px): .meta, .navigation, h3, table.
+ *
+ * DELIBERATE DEVIATIONS FROM THE MECHANICAL RULE (7, all documented inline):
+ *   1. `body { background: #f5f5f5 }` (B 42.1%, weak modal 208/377) is NOT
+ *      adopted: it directly contradicts `body { background-color: var(--color-bg) }`
+ *      (B 53.7%, modal 479/481 = #ffffff), which has more support and agrees with
+ *      Theme A. Higher-support pair wins; see section 1.
+ *   2. --link-color / --link-hover keep the Theme A periwinkle pair. They only
+ *      drive index-page CTA components (.chapter-link, .topic-tag, .back-link,
+ *      .learning-path, .info-box) for which the inline corpus has NO >= 40%
+ *      evidence, and Theme B itself keeps #667eea for `.breadcrumb a`. Prose
+ *      links (`a`) do adopt Theme B's --color-link. See section 0.
+ *   3. Section 16 "AI Terakoya Image Styles" is DELETED (0 pages used
+ *      .hero-with-image / .domain-header-with-image; it also carried a
+ *      contradictory ML accent #4facfe that the inline corpus does not support).
+ *      Tombstone kept in place so the numbering stays stable.
+ *   4. DARK-CONTEXT GUARD FOR <header> / .chapter-header. Theme B's `p`/`a`
+ *      colour rules are type selectors and therefore beat `header{color:white}`
+ *      by inheritance. Verified in a browser at HEAD: inline-styled pages
+ *      ALREADY render their header `.subtitle` at rgb(45,55,72) on the coloured
+ *      gradient — a live Theme B bug — while Theme A pages correctly render
+ *      rgb(255,255,255). 618 of the 688 Theme A pages have a <p class="subtitle">
+ *      in their header. Guarded in section 2 instead of propagated.
+ *   5. DARK-CONTEXT GUARD FOR .code-block / .code-example / .output. Found by
+ *      the visual-regression run: 121 Theme A pages (512 blocks) nest a bare
+ *      <pre> inside a container that paints its own #1e1e1e surface, so the new
+ *      generic `pre` background would cover the dark surface and leave #d4d4d4
+ *      text on #f8f9fa. Guarded in section 6.
+ *   6. WCAG AA CONTRAST FIX FOR .locale-link — the one place where the corpus'
+ *      own modal is inaccessible. `.locale-link { color: #f093fb }` (B 66.3%,
+ *      581/593) sits on its own .locale-switcher gradient, so the real rendered
+ *      background is #f8f9fa → #e9ecef: 1.94:1 at the light stop and 1.72:1 at
+ *      the dark stop, i.e. a WCAG AA failure for normal text on every page with
+ *      a switcher. Fixed by darkening WITHIN THE SAME ACCENT FAMILY — hue and
+ *      saturation kept bit-exact (HSL 293.7°, 92.9%), only lightness moves:
+ *        L 78.0% -> 38.8%  #f093fb -> #ac07bf   5.01:1 on #e9ecef, 5.63:1 on #f8f9fa
+ *        :hover  L 31.0%   #d07be8 -> #880698   7.01:1 on #e9ecef, 6.63:1 on the
+ *                          rgba(240,147,251,.1) hover wash (#eae3f0 composited)
+ *      The obvious one-liner `color: var(--color-link)` was rejected: #3182ce is
+ *      only 3.40:1 on #e9ecef, so it would not have fixed the failure either.
+ *      See section 15.
+ *   7. HOVER-STATE GUARDS. The new `a:hover` (specificity 0,1,1) outranks a
+ *      colour set by one class or by two type selectors, so it repaints
+ *      #2c5aa0 link-blue over the accent gradient on hover for `.nav-button`
+ *      (0,1,0) and for the deviation-4 `header a` guard (0,0,2). Both get an
+ *      explicit hover colour. Sections 2 and 8.
+ *
+ * Deviations 4, 5 and 7 are the three places where a literal reading of the
+ * corpus would have shipped a defect, and 6 is the one place where the corpus
+ * itself is inaccessible. They are the reason this draft came with a pixel-diff
+ * run attached rather than a code review.
+ *
+ * DOMAIN ACCENT THEMING: see section 0b. Chosen mechanism is canonical-URL
+ * sniffing via :has(), because the corpus has no other reliable hook —
+ * 1,592 of 1,602 knowledge pages have a bare `<body>`, 1,483 have a class-less
+ * `<header>`, and there are no data-* attributes; but 1,600 of 1,602 (and
+ * 688 of 688 Theme A pages) carry a <link rel="canonical"> whose path encodes
+ * locale and dojo. Zero page edits required.
+ * ============================================================================
  */
 
 /* ========================================
    0. CSS Variables
+   ========================================
+   Two vocabularies are live in this codebase: Theme A's (--primary-color,
+   --link-color, ...) and Theme B's (--color-primary, --color-link, ...). Theme B
+   is canonical here; every Theme A name is kept as an alias so that BOTH resolve
+   and no legacy rule — in this file or in a page's surviving inline block —
+   silently falls back to an unset custom property.
    ======================================== */
 
 :root {
-    /* Primary Colors */
-    --primary-gradient-start: #667eea;
-    --primary-gradient-end: #764ba2;
-    --primary-color: #2c3e50;
-    --secondary-color: #3498db;
-    --accent-color: #e74c3c;
+    /* ---- Theme B canonical tokens (values = inline-corpus modals) ---- */
 
-    /* Background Colors */
-    --bg-color: #ffffff;
+    /* Colour */
+    --color-primary: #2c3e50;              /* B 54.4%  (483/487) */
+    --color-primary-dark: #1a252f;         /* B 53.3%  (473/477) */
+    --color-accent: #7b2cbf;               /* B 54.5%  (310/488) - MI/ML/FM default, see 0b */
+    --color-accent-light: #9d4edd;         /* B 54.4%  (313/487) */
+    --color-bg: #ffffff;                   /* B 54.5%  (488/488) */
+    --color-bg-alt: #f7fafc;               /* B 53.5%  (479/479) */
+    --color-code-bg: #f8f9fa;              /* B 54.2%  (485/485) */
+    --color-text: #2d3748;                 /* B 54.5%  (480/488) */
+    --color-text-light: #4a5568;           /* B 53.3%  (476/477) */
+    --color-border: #e2e8f0;               /* B 54.5%  (480/488) */
+    --color-link: #3182ce;                 /* B 53.3%  (313/477) */
+    --color-link-hover: #2c5aa0;           /* B 53.0%  (313/474) */
+
+    /* Type */
+    /* JP LOCALE OVERRIDE - the only difference from the EN sheet.
+       The JP inline corpus' own modal --font-body is the same Latin stack as EN
+       (310 pages) with CJK-bearing variants in the minority (36 pages). Rather
+       than pick the minority stack, the CJK families are APPENDED to the modal
+       Latin stack - the exact shape used by the 7-page jp variant. Because they
+       sit after Arial, Latin glyph selection is bit-identical to the EN sheet
+       (zero pixel change for Latin runs) while CJK text stops falling through to
+       whatever the platform default happens to be. */
+    --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+                 "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+                                           /* B(jp) 54.4% base + CJK tail */
+    --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+                                           /* B 53.3%  (474/477) */
+
+    /* Space & shape */
+    --spacing-xs: 0.5rem;                  /* B 53.3%  (477/477) */
+    --spacing-sm: 1rem;                    /* B 53.4%  (478/478) */
+    --spacing-md: 1.5rem;                  /* B 53.7%  (481/481) */
+    --spacing-lg: 2rem;                    /* B 53.7%  (481/481) */
+    --spacing-xl: 3rem;                    /* B 53.7%  (481/481) */
+    --border-radius: 8px;                  /* B 53.6%  (480/480) */
+    --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);  /* B 53.1%  (475/475) */
+
+    /* ---- Theme A aliases (kept so legacy rules keep resolving) ---- */
+
+    /* The header/chapter-card gradient is now the domain accent pair, so these
+       two aliases are what makes domain theming reach the index templates. */
+    --primary-gradient-start: var(--color-accent);
+    --primary-gradient-end: var(--color-accent-light);
+
+    --primary-color: var(--color-primary);       /* was #2c3e50 - unchanged */
+    --secondary-color: #3498db;                  /* no Theme B counterpart */
+    --accent-color: #e74c3c;                     /* semantic "danger", not the domain accent */
+
+    --bg-color: var(--color-bg);                 /* was #ffffff - unchanged */
     --bg-gray: #f5f5f5;
-    --bg-light: #f8f9fa;
+    --bg-light: var(--color-code-bg);            /* was #f8f9fa - unchanged */
 
-    /* Text Colors */
-    --text-color: #333333;
-    --text-muted: #666666;
+    --text-color: var(--color-text);             /* #333333 -> #2d3748 */
+    --text-muted: var(--color-text-light);       /* #666666 -> #4a5568 */
 
-    /* Border & Link Colors */
-    --border-color: #e0e0e0;
+    --border-color: var(--color-border);         /* #e0e0e0 -> #e2e8f0 */
+
+    /* Deviation 2: index-page CTA components stay periwinkle (no >=40% evidence). */
     --link-color: #667eea;
     --link-hover: #764ba2;
 
-    /* Code Colors */
-    --code-bg-light: #f5f5f5;
+    --code-bg-light: var(--color-code-bg);
     --code-bg-dark: #1e1e1e;
     --code-text: #d4d4d4;
+}
+
+/* ========================================
+   0b. Domain Accent Theming
+   ========================================
+   Theme B colour-codes the five dojos through --color-accent/-light, which feed
+   the header gradient, the h2 underline, .nav-button, blockquote and
+   .current-locale. Measured distribution over the inline corpus:
+
+       MI  #7b2cbf / #9d4edd   129 pages   MS  #f093fb / #f5576c   163 pages
+       ML  #7b2cbf / #9d4edd   180 pages   PI  #11998e / #38ef7d     4 pages
+       FM  #7b2cbf / #9d4edd     1 page
+
+   MECHANISM — why canonical sniffing and not a body class:
+     * body class          1,592 / 1,602 pages have a bare <body>. Only 10 pages
+                           carry body.dojo-*. Using it as the primary hook means
+                           editing ~1,592 pages, which is the very cost this
+                           shared sheet exists to avoid.
+     * <header> class      1,483 / 1,602 have no class on <header>; the 8 variants
+                           that exist (hero, series-header, ...) do not encode dojo.
+     * breadcrumb href     present, but the dojo link is one of four sibling <a>s
+                           and its position varies; matching it needs a positional
+                           guess.
+     * per-dojo CSS file   would need a second <link> in ~1,592 pages - same cost
+                           as the body class, plus an extra request per page.
+     * canonical URL       1,600 / 1,602 pages (688/688 Theme A pages) carry
+                           <link rel="canonical"> whose path is
+                           /knowledge/<locale>/<DOJO>/... - a 100%-accurate,
+                           already-present, generator-maintained dojo label.
+                           :has() reads it with zero page edits.  <-- CHOSEN
+
+   Both hooks are wired. The explicit body class does not need extra specificity
+   to win: custom properties inherit, and a declaration on <body> is closer to
+   every styled element than one on <html>, so body.dojo-* always overrides the
+   sniffed value for that page's subtree.
+
+   Fallback: browsers without :has() (pre-2022 Safari/Chrome, Firefox < 121)
+   simply keep the :root default, i.e. every dojo renders in the MI/ML purple
+   that 45% of the corpus already uses. Degradation is a missing distinction,
+   never a broken page.
+   ======================================== */
+
+/* MI / ML / FM are the :root default; stated explicitly so the set is auditable. */
+html:has(link[rel="canonical"][href*="/MI/"]),
+html:has(link[rel="canonical"][href*="/ML/"]),
+html:has(link[rel="canonical"][href*="/FM/"]) {
+    --color-accent: #7b2cbf;
+    --color-accent-light: #9d4edd;
+}
+
+html:has(link[rel="canonical"][href*="/MS/"]) {
+    --color-accent: #f093fb;
+    --color-accent-light: #f5576c;
+}
+
+html:has(link[rel="canonical"][href*="/PI/"]) {
+    --color-accent: #11998e;
+    --color-accent-light: #38ef7d;
+}
+
+/* Explicit, generator-friendly hook. Preferred for any NEW page; wins over the
+   sniffed value by inheritance proximity, not by specificity. */
+body.dojo-mi,
+body.dojo-ml,
+body.dojo-fm {
+    --color-accent: #7b2cbf;
+    --color-accent-light: #9d4edd;
+}
+
+body.dojo-ms {
+    --color-accent: #f093fb;
+    --color-accent-light: #f5576c;
+}
+
+body.dojo-pi {
+    --color-accent: #11998e;
+    --color-accent-light: #38ef7d;
 }
 
 /* ========================================
@@ -43,16 +254,20 @@
    ======================================== */
 
 * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
+    margin: 0;                             /* B 94.9%  (849/849) */
+    padding: 0;                            /* B 94.9%  (849/849) */
+    box-sizing: border-box;                /* B 94.9%  (849/849) */
 }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    line-height: 1.8;
-    color: var(--text-color);
-    background: var(--bg-color);
+    font-family: var(--font-body);         /* B 96.0%  (487/859) */
+    font-size: 16px;                       /* B 53.3%  (477/477) */
+    line-height: 1.7;                      /* B 96.0%  (479/859) - was 1.8 */
+    color: var(--color-text);              /* B 96.0%  (488/859) */
+    background-color: var(--color-bg);     /* B 53.7%  (479/481) */
+    /* NOT adopted: `background: #f5f5f5` (B 42.1%, modal only 208/377). It
+       contradicts the higher-support background-color pair above. See
+       deviation 1 in the file header. */
 }
 
 /* ========================================
@@ -60,62 +275,115 @@ body {
    ======================================== */
 
 header {
-    background: linear-gradient(135deg, var(--primary-gradient-start) 0%, var(--primary-gradient-end) 100%);
-    color: white;
-    padding: 2rem 1.5rem;
+    background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+                                           /* B 94.1%  (475/842) - domain-coded, see 0b */
+    color: white;                          /* B 92.1%  (824/824) */
+    padding: var(--spacing-xl) var(--spacing-md);  /* B 92.1%  (481/824) */
+    margin-bottom: var(--spacing-xl);      /* B 65.8%  (480/589) - was 0 */
+    box-shadow: var(--box-shadow);         /* B 65.9%  (468/590) */
     text-align: center;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    margin-bottom: 0;
 }
 
-h1 {
-    font-size: 2rem;
-    margin-bottom: 0.5rem;
-    font-weight: 700;
+.header-content {                          /* NEW selector */
+    max-width: 900px;                      /* B 53.7%  (480/481) */
+    margin: 0 auto;                        /* B 53.7%  (481/481) */
 }
 
-.subtitle {
-    opacity: 0.95;
-    font-size: 1.1rem;
-    margin-top: 0.5rem;
+/* ---- DEVIATION 4: dark-context guard for the header ----------------------
+   The measured `p { color: var(--color-text) }` (B 50.9%) and
+   `a { color: var(--color-link) }` (B 65.8%) are type selectors, so they beat
+   `header { color: white }` by inheritance and repaint anything inside the
+   gradient header in dark navy / link blue.
+
+   This is a REAL, PRE-EXISTING Theme B BUG, verified in the browser at HEAD:
+   on inline-styled pages `.subtitle` inside <header> already computes to
+   rgb(45,55,72) on the coloured gradient, while Theme A pages correctly compute
+   rgb(255,255,255). Adopting Theme B verbatim would spread the bug to the 618
+   Theme A pages that put a <p class="subtitle"> in their header (plus 6 with an
+   <a> in the header). Guarded here rather than propagated; the guard also fixes
+   the inline pages the moment they drop their <style> block. */
+header p,
+header li,
+header .subtitle,
+header .meta,
+header .meta-item,
+header .series-meta {
+    color: inherit;
 }
 
-.breadcrumb {
-    background: #f7fafc;
-    padding: 0.75rem 1rem;
-    border-bottom: 1px solid #e2e8f0;
-    margin-bottom: 0;
-    font-size: 0.9rem;
-}
-
-.breadcrumb-content {
-    max-width: 900px;
-    margin: 0 auto;
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-}
-
-.breadcrumb a {
-    color: var(--link-color);
-    text-decoration: none;
-    transition: color 0.2s;
-}
-
-.breadcrumb a:hover {
-    color: var(--link-hover);
+header a,
+header a:hover {                           /* :hover needed - see deviation 7 */
+    color: inherit;
     text-decoration: underline;
 }
 
+h1 {
+    font-size: 2rem;                       /* B 90.5%  (712/810) */
+    font-weight: 700;                      /* B 65.3%  (582/584) */
+    line-height: 1.2;                      /* B 53.0%  (464/474) */
+    margin-bottom: var(--spacing-sm);      /* B 91.4%  (477/818) */
+}
+
+.subtitle {
+    font-size: 1.1rem;                     /* B 70.5%  (619/631) */
+    font-weight: 400;                      /* B 52.2%  (467/467) */
+    opacity: 0.95;                         /* B 81.3%  (531/728) */
+    margin-bottom: var(--spacing-md);      /* B 60.2%  (478/539) */
+    margin-top: 0.5rem;
+}
+
+.meta {                                    /* NEW selector */
+    display: flex;                         /* B 65.9%  (590/590) */
+    flex-wrap: wrap;                       /* B 65.9%  (590/590) */
+    gap: var(--spacing-md);                /* B 65.9%  (481/590) */
+    font-size: 0.9rem;                     /* B 65.9%  (582/590) */
+    opacity: 0.9;                          /* B 64.7%  (474/579) */
+}
+
+.meta-item {
+    display: flex;                         /* B 52.5%  (470/470) */
+    align-items: center;                   /* B 52.5%  (470/470) */
+    gap: 0.3rem;                           /* B 52.5%  (469/470) */
+}
+
+.breadcrumb {
+    background: #f7fafc;                   /* B 69.6%  (623/623) */
+    padding: 0.75rem 1rem;                 /* B 81.9%  (623/733) */
+    border-bottom: 1px solid #e2e8f0;      /* B 69.8%  (623/625) */
+    margin-bottom: 0;
+    font-size: 0.9rem;                     /* B 91.7%  (819/821) */
+}
+
+.breadcrumb-content {
+    max-width: 900px;                      /* B 73.0%  (653/653) */
+    margin: 0 auto;                        /* B 73.0%  (653/653) */
+    display: flex;                         /* B 69.5%  (622/622) */
+    align-items: center;                   /* B 69.5%  (622/622) */
+    flex-wrap: wrap;                       /* B 68.9%  (617/617) */
+    gap: 0.5rem;                           /* B 69.5%  (622/622) */
+}
+
+/* Theme B keeps the periwinkle pair for breadcrumbs specifically — this is the
+   evidence behind deviation 2. */
+.breadcrumb a {
+    color: #667eea;                        /* B 91.8%  (694/822) */
+    text-decoration: none;                 /* B 85.5%  (758/765) */
+    transition: color 0.2s;                /* B 66.4%  (594/594) */
+}
+
+.breadcrumb a:hover {
+    color: #764ba2;                        /* B 67.8%  (595/607) */
+    text-decoration: underline;            /* B 75.3%  (674/674) */
+}
+
 .breadcrumb-separator {
-    color: #a0aec0;
-    margin: 0 0.25rem;
+    color: #a0aec0;                        /* B 72.8%  (622/652) */
+    margin: 0 0.25rem;                     /* B 71.7%  (612/642) */
 }
 
 .breadcrumb-current {
-    color: #4a5568;
-    font-weight: 500;
+    color: #4a5568;                        /* B 72.6%  (622/650) */
+    font-weight: 500;                      /* B 72.5%  (649/649) */
 }
 
 /* ========================================
@@ -123,11 +391,14 @@ h1 {
    ======================================== */
 
 .container {
-    max-width: 900px;
-    margin: 2rem auto;
-    padding: 0 1rem;
+    max-width: 900px;                      /* B 89.4%  (672/800) */
+    margin: 0 auto;                        /* B 89.4%  (591/800) - was `2rem auto` */
+    padding: 0 var(--spacing-md) var(--spacing-xl);  /* B 89.3%  (477/799) - was `0 1rem` */
 }
 
+/* No >= 40% inline evidence: Theme A's white content card is retained verbatim.
+   96% of Theme A pages and 95% of Theme B pages carry .content, but only 10% of
+   the inline corpus styles it, so the incumbent wins. */
 .content {
     background: white;
     padding: 2.5rem;
@@ -141,28 +412,71 @@ h1 {
    ======================================== */
 
 h2 {
-    color: #667eea;
-    margin: 2rem 0 1rem 0;
-    padding-bottom: 0.5rem;
-    border-bottom: 2px solid #e0e0e0;
+    color: var(--color-primary);           /* B 91.7%  (487/821) - was #667eea */
+    font-size: 1.75rem;                    /* B 70.3%  (583/629) */
+    margin-top: var(--spacing-xl);         /* B 68.4%  (477/612) */
+    margin-bottom: var(--spacing-md);      /* B 68.6%  (480/614) */
+    padding-bottom: var(--spacing-xs);     /* B 88.9%  (473/796) */
+    border-bottom: 3px solid var(--color-accent);
+                                           /* B 88.9%  (480/796) - was 2px solid #e0e0e0 */
 }
 
 h3 {
-    color: #764ba2;
-    margin: 1.5rem 0 0.8rem 0;
+    color: var(--color-primary);           /* B 91.7%  (476/821) - was #764ba2 */
+    font-size: 1.4rem;                     /* B 70.3%  (605/629) */
+    margin-top: var(--spacing-lg);         /* B 68.4%  (477/612) */
+    margin-bottom: var(--spacing-sm);      /* B 67.3%  (471/602) */
+}
+
+h4 {                                       /* NEW selector */
+    color: var(--color-primary-dark);      /* B 75.8%  (440/678) */
+    font-size: 1.1rem;                     /* B 64.4%  (449/576) */
+    margin-top: var(--spacing-md);         /* B 64.0%  (450/573) */
+    margin-bottom: var(--spacing-sm);      /* B 64.0%  (447/573) */
 }
 
 p {
-    margin-bottom: 1rem;
+    color: var(--color-text);              /* B 50.9%  (454/456) */
+    margin-bottom: var(--spacing-md);      /* B 81.1%  (475/726) */
 }
 
 ul, ol {
-    margin-left: 1.5rem;
-    margin-bottom: 1rem;
+    margin-left: var(--spacing-lg);        /* B 75.8%  (467/678) - was 1.5rem */
+    margin-bottom: var(--spacing-md);      /* B 77.7%  (473/695) */
+}
+
+li {                                       /* NEW selector */
+    color: var(--color-text);              /* B 50.5%  (452/452) */
+    margin-bottom: var(--spacing-xs);      /* B 79.1%  (471/708) */
+}
+
+a {                                        /* NEW selector */
+    color: var(--color-link);              /* B 65.8%  (467/589) */
+    text-decoration: none;                 /* B 64.5%  (577/577) */
+    transition: color 0.2s;                /* B 61.5%  (541/550) */
+}
+
+a:hover {                                  /* NEW selector */
+    color: var(--color-link-hover);        /* B 60.8%  (438/544) */
+    text-decoration: underline;            /* B 61.3%  (549/549) */
+}
+
+blockquote {                               /* NEW selector */
+    margin: var(--spacing-md) 0;           /* B 51.1%  (397/457) */
+    padding: var(--spacing-md);            /* B 43.2%  (387/387) */
+    padding-left: var(--spacing-md);       /* B 50.6%  (393/453) */
+    border-left: 4px solid var(--color-accent);   /* B 51.1%  (397/457) - domain-coded */
+    border-radius: var(--border-radius);   /* B 43.2%  (387/387) */
+    background-color: var(--color-bg-alt); /* B 43.2%  (387/387) */
+    color: var(--color-text-light);        /* B 50.6%  (393/453) */
+    font-style: italic;                    /* B 50.6%  (453/453) */
 }
 
 /* ========================================
    5. Content Boxes (Definition, Theorem, Example)
+   ========================================
+   No pair here clears 40% (each box class appears on 9-17% of the inline corpus
+   and the inline values match Theme A's anyway), so all five are unchanged.
    ======================================== */
 
 .definition {
@@ -207,7 +521,36 @@ ul, ol {
 
 /* ========================================
    6. Code Blocks & Examples
+   ========================================
+   `pre`, `code` and `pre code` are new (Theme A only styled the .code-* helper
+   classes). The helper classes themselves stay: 6-10% inline support, and they
+   are the dark-on-light variants a chapter opts into deliberately.
    ======================================== */
+
+pre {                                      /* NEW selector */
+    padding: var(--spacing-md);            /* B 73.0%  (432/653) */
+    margin-bottom: var(--spacing-md);      /* B 55.2%  (424/494) */
+    border: 1px solid var(--color-border); /* B 57.0%  (428/510) */
+    border-radius: var(--border-radius);   /* B 72.3%  (431/647) */
+    background-color: var(--color-code-bg);/* B 48.0%  (425/430) */
+    font-family: var(--font-mono);         /* B 47.0%  (419/421) */
+    font-size: 0.9rem;                     /* B 47.8%  (426/428) */
+    line-height: 1.5;                      /* B 47.2%  (417/422) */
+    overflow-x: auto;                      /* B 73.0%  (653/653) */
+}
+
+code {                                     /* NEW selector */
+    padding: 0.2em 0.4em;                  /* B 57.7%  (419/516) */
+    border-radius: 3px;                    /* B 57.7%  (508/516) */
+    background-color: var(--color-code-bg);/* B 46.1%  (411/413) */
+    font-family: var(--font-mono);         /* B 74.1%  (446/663) */
+    font-size: 0.9em;                      /* B 73.4%  (529/657) */
+}
+
+pre code {                                 /* NEW selector */
+    padding: 0;                            /* B 57.4%  (514/514) */
+    background-color: transparent;         /* B 45.9%  (411/411) */
+}
 
 .code-title {
     background: #667eea;
@@ -244,11 +587,60 @@ ul, ol {
     white-space: pre-wrap;
 }
 
-.code-block code {
+/* ---- DEVIATION 5: dark-context guard for the code containers -------------
+   Caught by the visual-regression run, not by reading: 121 of the 688 Theme A
+   pages (512 blocks, concentrated in en/MS 39, en/FM 27, jp/MS 26) use the
+   markup
+
+       <div class="code-block"><div class="code-header">..</div>
+         <pre><code class="language-python">..</code></pre></div>
+
+   The container paints #1e1e1e and sets color #d4d4d4; the inner <pre> was
+   unstyled and simply sat on it. The new generic `pre` rule paints
+   var(--color-code-bg) (#f8f9fa) INSIDE that container while the text keeps
+   inheriting #d4d4d4 — light grey on near-white, i.e. the code becomes
+   unreadable. jp/MS/spintronics-advanced/chapter-2.html was the 81.5%-diff
+   outlier that exposed it.
+
+   These rules keep every self-painting code container in charge of its own
+   surface. They must stay AFTER the generic `pre`/`code` rules. */
+.code-block pre,
+.code-example pre,
+.output pre,
+.output-box pre {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+}
+
+.code-block code,
+.code-example code {
+    padding: 0;
+    background-color: transparent;
+    color: inherit;
     font-family: 'Courier New', monospace;
     font-size: 0.9rem;
     line-height: 1.6;
     white-space: pre-wrap;
+}
+
+/* A handful of pages put prose, lists or a table inside a dark code container
+   (3 + 2 + 1 pages). `p`/`li`/`th`/`td` now carry explicit dark colours, so they
+   need the same hands-off treatment. */
+.code-block p,
+.code-block li,
+.code-block a,
+.code-block th,
+.code-block td,
+.code-example p,
+.code-example li,
+.code-example a {
+    color: inherit;
+    background: transparent;
 }
 
 .output {
@@ -277,21 +669,25 @@ ul, ol {
    ======================================== */
 
 table {
-    width: 100%;
-    border-collapse: collapse;
+    width: 100%;                           /* B 85.7%  (767/767) */
+    border-collapse: collapse;             /* B 85.7%  (767/767) */
     margin: 1.5rem 0;
+    margin-bottom: var(--spacing-md);      /* B 58.0%  (458/519) */
+    font-size: 0.95rem;                    /* B 49.6%  (438/444) */
 }
 
 th, td {
-    padding: 0.8rem;
-    text-align: left;
-    border: 1px solid #ddd;
+    padding: var(--spacing-sm);            /* B 85.4%  (466/764) - was 0.8rem */
+    text-align: left;                      /* B 85.4%  (764/764) */
+    border: 1px solid var(--color-border); /* B 81.8%  (462/732) - was 1px solid #ddd */
 }
 
+/* Theme B's header row is a light tinted band with dark text, not a solid
+   periwinkle band with white text. */
 th {
-    background: #667eea;
-    color: white;
-    font-weight: 600;
+    background-color: var(--color-bg-alt); /* B 51.1%  (443/457) - was #667eea */
+    color: var(--color-primary);           /* B 81.1%  (440/726) - was white */
+    font-weight: 600;                      /* B 74.5%  (664/667) */
 }
 
 tr:nth-child(even) {
@@ -300,29 +696,44 @@ tr:nth-child(even) {
 
 /* ========================================
    8. Navigation Buttons
+   ========================================
+   Three container class names are in use across the corpus — .navigation (904
+   pages), .nav-buttons (430), .chapter-nav (52) — for one component. They are
+   unified here: .navigation carries the measured Theme B declarations and the
+   other two are aliases of it, so a page keeps working whichever name its
+   generator emitted.
    ======================================== */
 
-.nav-buttons {
-    display: flex;
-    justify-content: space-between;
-    margin: 2rem 0;
-    gap: 1rem;
+.navigation,                               /* NEW selector */
+.nav-buttons,
+.chapter-nav {
+    display: flex;                         /* B 50.3%  (450/450) */
+    justify-content: space-between;        /* B 50.3%  (433/450) */
+    gap: var(--spacing-md);                /* B 46.4%  (373/415) */
+    margin: var(--spacing-xl) 0;           /* B 41.9%  (372/375) */
+    padding-top: var(--spacing-lg);        /* B 48.5%  (427/434) */
+    border-top: 2px solid var(--color-border);  /* B 48.9%  (402/438) */
 }
 
 .nav-button {
-    padding: 0.8rem 1.5rem;
-    background: var(--link-color);
-    color: white;
+    flex: 1;                               /* B 41.1%  (368/368) */
+    padding: var(--spacing-md);            /* B 76.0%  (356/680) - was 0.8rem 1.5rem */
+    background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+                                           /* B 74.7%  (450/669) - was flat --link-color */
+    color: white;                          /* B 76.0%  (680/680) */
+    text-align: center;                    /* B 43.0%  (385/385) */
     text-decoration: none;
-    border-radius: 6px;
-    font-weight: 600;
-    transition: all 0.3s ease;
+    border-radius: var(--border-radius);   /* B 76.0%  (461/680) */
+    box-shadow: var(--box-shadow);         /* B 42.2%  (372/378) */
+    font-weight: 600;                      /* B 75.4%  (632/675) */
+    transition: transform 0.2s, box-shadow 0.2s;  /* B 63.9%  (437/572) */
 }
 
 .nav-button:hover {
-    background: var(--link-hover);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    color: white;                          /* re-asserted over `a:hover` - deviation 7 */
+    transform: translateY(-2px);           /* B 62.5%  (559/559) */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);   /* B 59.9%  (367/536) */
+    text-decoration: none;                 /* B 47.9%  (429/429) */
 }
 
 /* ========================================
@@ -330,15 +741,20 @@ tr:nth-child(even) {
    ======================================== */
 
 footer {
-    background: #2c3e50;
-    color: white;
-    text-align: center;
-    padding: 2rem 1rem;
-    margin-top: 3rem;
+    background-color: var(--color-bg-alt); /* B 48.7%  (403/436) - was #2c3e50 */
+    color: var(--color-text-light);        /* B 90.3%  (414/808) - was white */
+    border-top: 1px solid var(--color-border);    /* B 59.0%  (401/528) */
+    text-align: center;                    /* B 90.2%  (807/807) */
+    padding: var(--spacing-lg) var(--spacing-md); /* B 91.4%  (422/818) */
+    margin-top: var(--spacing-xl);         /* B 89.3%  (449/799) */
+    font-size: 0.9rem;                     /* B 57.3%  (513/513) */
 }
 
+/* Theme A's footer link colour was picked for a dark navy footer. The footer is
+   now a light band, so the link colour has to move with it or it is unreadable;
+   `a`'s own colour (section 4) is the measured Theme B value. */
 footer a {
-    color: #67c7f5;
+    color: var(--color-link);
     text-decoration: none;
 }
 
@@ -356,15 +772,29 @@ footer a:hover {
     }
 
     h1 {
-        font-size: 1.5rem;
+        font-size: 1.5rem;                 /* B 87.7%  (492/785) */
     }
 
     h2 {
-        font-size: 1.3rem;
+        font-size: 1.4rem;                 /* B 66.1%  (540/592) - was 1.3rem */
     }
 
-    .nav-buttons {
-        flex-direction: column;
+    h3 {                                   /* NEW selector */
+        font-size: 1.2rem;                 /* B 44.4%  (379/397) */
+    }
+
+    table {                                /* NEW selector */
+        font-size: 0.85rem;                /* B 42.7%  (319/382) */
+    }
+
+    .meta {                                /* NEW selector */
+        font-size: 0.85rem;                /* B 47.4%  (423/424) */
+    }
+
+    .navigation,                           /* NEW selector */
+    .nav-buttons,
+    .chapter-nav {
+        flex-direction: column;            /* B 47.4%  (424/424) */
     }
 
     .nav-button {
@@ -415,7 +845,8 @@ footer a:hover {
     }
 
     .code-example,
-    .code-block {
+    .code-block,
+    pre {
         font-size: 0.8rem;
         padding: 1rem;
     }
@@ -460,16 +891,24 @@ footer a:hover {
         padding: 0;
     }
 
+    .navigation,
     .nav-buttons,
+    .chapter-nav,
     footer {
         display: none;
     }
 
     .code-example,
-    .code-block {
+    .code-block,
+    pre {
         border: 1px solid #ccc;
         background: #f5f5f5;
         color: #000;
+    }
+
+    details {
+        border: none;
+        padding: 0;
     }
 }
 
@@ -499,82 +938,94 @@ footer a:hover {
 
 /* ========================================
    15. Locale Switcher Styles
+   ========================================
+   ACCESSIBILITY (deviation 6): the measured modal `.locale-link { color:
+   #f093fb }` (B 66.3%, 581/593) is 1.94:1 / 1.72:1 against the two stops of the
+   .locale-switcher gradient below — a WCAG AA failure. The link and its hover
+   are darkened within the same accent family (hue 293.7° and saturation 92.9%
+   unchanged, lightness 78.0% -> 38.8% / 31.0%); ratios are stated at each
+   declaration. Nothing else in this section is recoloured.
    ======================================== */
 
-/* Main locale switcher container */
 .locale-switcher {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 1rem;
+    display: flex;                         /* B 67.7%  (588/606) */
+    align-items: center;                   /* B 65.7%  (588/588) */
+    gap: 0.5rem;                           /* B 65.7%  (588/588) */
+    padding: 0.5rem 1rem;                  /* B 75.9%  (637/679) */
     background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-    border-radius: 6px;
-    font-size: 0.9rem;
-    margin-bottom: 1rem;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+                                           /* B 71.1%  (579/636) */
+    border-radius: 6px;                    /* B 70.9%  (599/635) */
+    font-size: 0.9rem;                     /* B 72.8%  (612/652) */
+    margin-bottom: 1rem;                   /* B 64.9%  (581/581) */
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);     /* B 67.3%  (581/602) */
 }
 
-/* Current locale indicator */
 .current-locale {
-    font-weight: 600;
-    color: var(--color-accent, #7b2cbf);
+    display: flex;                         /* B 63.8%  (571/571) */
+    align-items: center;                   /* B 63.8%  (571/571) */
+    gap: 0.25rem;                          /* B 63.8%  (571/571) */
+    font-weight: 600;                      /* B 65.9%  (588/590) */
+    color: #7b2cbf;                        /* B 65.7%  (581/588) */
 }
 
-/* Separator between locales */
 .locale-separator {
-    color: var(--color-border, #cbd5e0);
-    font-weight: 300;
+    color: #adb5bd;                        /* B 66.1%  (581/592) - was var(--color-border) */
+    font-weight: 300;                      /* B 63.8%  (571/571) */
 }
 
-/* Active locale link */
 .locale-link {
-    color: var(--color-link, #3182ce);
-    text-decoration: none;
-    transition: color 0.2s, transform 0.2s;
-    font-weight: 500;
+    display: flex;                         /* B 63.8%  (571/571) */
+    align-items: center;                   /* B 63.8%  (571/571) */
+    gap: 0.25rem;                          /* B 63.8%  (571/571) */
+    padding: 0.2rem 0.5rem;                /* B 65.1%  (581/583) */
+    border-radius: 4px;                    /* B 65.1%  (581/583) */
+    color: #ac07bf;                        /* B modal #f093fb darkened for WCAG AA:
+                                              same H 293.7deg / S 92.9%, L 78.0% -> 38.8%.
+                                              5.01:1 on #e9ecef, 5.63:1 on #f8f9fa (AA) */
+    text-decoration: none;                 /* B 66.3%  (593/593) */
+    font-weight: 500;                      /* B 65.4%  (581/585) */
+    transition: all 0.2s ease;             /* B 64.0%  (571/573) */
 }
 
 .locale-link:hover {
-    color: var(--color-link-hover, #2c5aa0);
-    text-decoration: underline;
+    color: #880698;                        /* B modal #d07be8 darkened to match: L 31.0%.
+                                              7.01:1 on #e9ecef, 6.63:1 on the hover wash */
+    background: rgba(240, 147, 251, 0.1);  /* B 65.1%  (581/583) */
     transform: translateY(-1px);
+    text-decoration: underline;
 }
 
-/* Disabled locale link (when translation not available) */
 .locale-link.disabled {
-    color: var(--color-text-light, #a0aec0);
+    color: var(--color-text-light);
     cursor: not-allowed;
     pointer-events: none;
 }
 
-/* Sync date metadata */
 .locale-meta {
-    font-size: 0.8rem;
-    color: var(--color-text-light, #718096);
-    margin-left: auto;
+    font-size: 0.85rem;                    /* B 65.8%  (571/589) - was 0.8rem */
+    color: #868e96;                        /* B 65.8%  (571/589) */
+    font-style: italic;                    /* B 64.1%  (574/574) */
+    margin-left: auto;                     /* B 65.1%  (571/583) */
     opacity: 0.8;
 }
 
-/* Mobile responsive adjustments */
 @media (max-width: 768px) {
     .locale-switcher {
-        font-size: 0.85rem;
-        padding: 0.4rem 0.8rem;
+        font-size: 0.85rem;                /* B 63.8%  (571/571) */
+        padding: 0.4rem 0.8rem;            /* B 63.8%  (571/571) */
     }
 
     .locale-meta {
-        display: none; /* Hide sync date on mobile */
+        display: none;                     /* B 63.8%  (571/571) */
     }
 }
 
-/* Print styles - hide locale switcher */
 @media print {
     .locale-switcher {
         display: none;
     }
 }
 
-/* High contrast mode support */
 @media (prefers-contrast: high) {
     .locale-switcher {
         border: 2px solid currentColor;
@@ -582,6 +1033,7 @@ footer a:hover {
     }
 
     .locale-link {
+        color: var(--color-link-hover);
         text-decoration: underline;
     }
 }
@@ -590,7 +1042,6 @@ footer a:hover {
    13. Accessibility Enhancements
    ======================================== */
 
-/* Skip to main content link */
 .skip-to-main {
     position: absolute;
     left: -9999px;
@@ -600,19 +1051,18 @@ footer a:hover {
 .skip-to-main:focus {
     left: 0;
     top: 0;
-    background: #667eea;
+    background: var(--color-accent);
     color: white;
     padding: 1rem;
 }
 
-/* Focus indicators */
 a:focus,
-button:focus {
-    outline: 2px solid #667eea;
+button:focus,
+summary:focus {
+    outline: 2px solid var(--color-accent);
     outline-offset: 2px;
 }
 
-/* High contrast mode support */
 @media (prefers-contrast: high) {
     body {
         background: white;
@@ -629,7 +1079,6 @@ button:focus {
     }
 }
 
-/* Reduced motion support */
 @media (prefers-reduced-motion: reduce) {
     * {
         animation: none !important;
@@ -639,9 +1088,11 @@ button:focus {
 
 /* ========================================
    14. Index Page Specific Styles
+   ========================================
+   Driven by --link-color / the gradient aliases, so these components pick up the
+   domain accent through section 0 without any of their own rules changing.
    ======================================== */
 
-/* Series Meta (Header badges) */
 .series-meta {
     display: flex;
     gap: 1.5rem;
@@ -658,7 +1109,6 @@ button:focus {
     gap: 0.3rem;
 }
 
-/* Chapter Cards */
 .chapters {
     margin-top: 3rem;
 }
@@ -701,6 +1151,14 @@ button:focus {
     flex: 1;
 }
 
+/* Same dark-context guard as <header> (deviation 4): .chapter-header is a
+   coloured gradient band and 2 pages put a <p> in it. */
+.chapter-header p,
+.chapter-header a,
+.chapter-header li {
+    color: inherit;
+}
+
 .chapter-body {
     padding: 1.5rem;
 }
@@ -711,7 +1169,6 @@ button:focus {
     margin-bottom: 1.5rem;
 }
 
-/* Topic Tags */
 .chapter-topics {
     display: flex;
     flex-wrap: wrap;
@@ -728,7 +1185,6 @@ button:focus {
     font-weight: 500;
 }
 
-/* Chapter Metadata */
 .chapter-meta {
     display: flex;
     gap: 1.5rem;
@@ -738,13 +1194,6 @@ button:focus {
     margin-bottom: 1rem;
 }
 
-.meta-item {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-}
-
-/* Chapter Link */
 .chapter-link {
     display: inline-block;
     padding: 0.7rem 1.5rem;
@@ -758,11 +1207,11 @@ button:focus {
 
 .chapter-link:hover {
     background: var(--link-hover);
+    color: white;
     transform: translateX(4px);
     text-decoration: none;
 }
 
-/* Learning Path Section */
 .learning-path {
     background: #f0f7ff;
     border-left: 4px solid var(--link-color);
@@ -776,7 +1225,6 @@ button:focus {
     margin-top: 0;
 }
 
-/* Objectives Section */
 .objectives {
     background: #f3e5f5;
     border-left: 4px solid var(--primary-gradient-end);
@@ -795,7 +1243,6 @@ button:focus {
     margin-bottom: 0;
 }
 
-/* Prerequisites Section */
 .prereq {
     background: #fff3e0;
     border-left: 4px solid #ff9800;
@@ -809,7 +1256,6 @@ button:focus {
     margin-top: 0;
 }
 
-/* Introduction Section */
 .intro {
     margin-bottom: 3rem;
 }
@@ -818,7 +1264,6 @@ button:focus {
     color: var(--primary-color);
 }
 
-/* Back Link */
 .back-link {
     display: inline-flex;
     align-items: center;
@@ -835,7 +1280,6 @@ button:focus {
     text-decoration: none;
 }
 
-/* Info Box (General) */
 .info-box {
     background: var(--bg-light);
     border-left: 4px solid var(--link-color);
@@ -854,31 +1298,60 @@ button:focus {
     margin-bottom: 0;
 }
 
-/* Disclaimer Section */
+/* ---- Disclaimer ---- */
+
 .disclaimer {
-    max-width: 900px;
-    margin: 3rem auto 2rem;
-    padding: 1.5rem;
-    background: var(--bg-light);
-    border-left: 4px solid #6c757d;
-    border-radius: 4px;
+    max-width: 900px;                      /* B 50.9%  (450/456) */
+    margin: 2rem auto;                     /* B 51.6%  (446/462) - was `3rem auto 2rem` */
+    padding: 1.5rem;                       /* B 52.2%  (452/467) */
+    background: #f8f9fa;                   /* B 51.5%  (446/461) */
+    border-left: 4px solid #6c757d;        /* B 49.8%  (446/446) */
+    border-radius: 4px;                    /* B 52.0%  (446/465) */
 }
 
 .disclaimer h3 {
-    color: var(--primary-color);
+    color: #495057;                        /* B 51.4%  (446/460) - was var(--primary-color) */
+    font-size: 1.1rem;                     /* B 50.6%  (445/453) */
     margin-top: 0;
-    margin-bottom: 1rem;
+    margin-bottom: 1rem;                   /* B 50.9%  (446/456) */
 }
 
 .disclaimer ul {
-    margin-left: 1.5rem;
+    list-style: none;                      /* B 49.8%  (446/446) */
+    padding-left: 0;                       /* B 50.7%  (446/454) */
+    margin-left: 0;
     margin-bottom: 0;
-    line-height: 1.8;
 }
 
 .disclaimer li {
-    margin-bottom: 0.8rem;
+    position: relative;                    /* B 49.8%  (446/446) */
+    padding: 0.5rem 0;                     /* B 49.8%  (433/446) */
+    padding-left: 1.5rem;                  /* B 48.4%  (433/433) */
+    margin-bottom: 0;
+    color: #6c757d;                        /* B 50.3%  (446/450) */
+    font-size: 0.9rem;                     /* B 50.5%  (450/452) */
+    line-height: 1.6;                      /* B 47.8%  (426/428) */
 }
+
+.disclaimer li::before {                   /* NEW selector */
+    /* Modal value is the literal U+26A0 U+FE0F emoji (413/445); written escaped so
+       the sheet renders identically no matter what charset the host serves it as. */
+    content: "\26A0\FE0F";                 /* B 49.7%  (413/445) */
+    position: absolute;                    /* B 49.7%  (445/445) */
+    left: 0;                               /* B 49.7%  (445/445) */
+}
+
+/* ========================================
+   16. AI Terakoya Image Styles  -- DELETED in v2
+   ========================================
+   .hero-with-image, .domain-header-with-image and the five
+   .domain-header-<dojo>.domain-header-with-image overlays had 0 users across all
+   1,602 knowledge pages (EN-only section; the JP sheet never had it). Its ML
+   overlay also asserted a blue accent (#4facfe/#00f2fe) that the inline corpus
+   contradicts — ML measures as purple (#7b2cbf, 180 pages). Domain colour now
+   lives in section 0b. Header retained so section numbers stay stable across
+   the two sheets and the git history.
+   ======================================== */
 
 /* ========================================
    17. Video Embeds (Responsive)
@@ -904,8 +1377,33 @@ button:focus {
 .video-note {
     max-width: 800px;
     margin: 0 auto 1.5rem;
-    color: var(--text-muted);
+    color: var(--color-text-light);
     font-size: 0.9rem;
     font-style: italic;
     text-align: center;
+}
+
+/* ========================================
+   18. Diagrams & Disclosure  (new in v2)
+   ======================================== */
+
+.mermaid {                                 /* NEW selector */
+    margin: var(--spacing-lg) 0;           /* B 58.7%  (367/525) */
+    padding: var(--spacing-md);            /* B 58.9%  (387/527) */
+    border-radius: var(--border-radius);   /* B 58.9%  (386/527) */
+    background-color: var(--color-bg-alt); /* B 42.7%  (352/382) */
+    text-align: center;                    /* B 54.7%  (490/490) */
+}
+
+details {                                  /* NEW selector */
+    padding: var(--spacing-md);            /* B 47.5%  (348/425) */
+    border: 1px solid var(--color-border); /* B 46.5%  (357/416) */
+    border-radius: var(--border-radius);   /* B 47.5%  (350/425) */
+}
+
+summary {                                  /* NEW selector */
+    padding: var(--spacing-md);            /* B 43.4%  (308/388) */
+    color: var(--color-primary);           /* B 47.6%  (348/426) */
+    font-weight: 600;                      /* B 48.4%  (433/433) */
+    cursor: pointer;                       /* B 48.4%  (433/433) */
 }
