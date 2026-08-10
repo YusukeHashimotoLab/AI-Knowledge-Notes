@@ -559,7 +559,7 @@ $$W_{i \to f} = \frac{2\pi}{\hbar} |\langle f | \hat{H}' | i \rangle|^2 \rho(E_f
     def transition_dipole_moment(n_i, n_f, x, alpha=1.0):
         """
         調和振動子間の遷移双極子モーメント積分
-        mu_fi = 
+        mu_fi = <f|x|i>
         """
         psi_i = harmonic_oscillator_wavefunction(x, n_i, alpha)
         psi_f = harmonic_oscillator_wavefunction(x, n_f, alpha)
@@ -601,7 +601,7 @@ $$W_{i \to f} = \frac{2\pi}{\hbar} |\langle f | \hat{H}' | i \rangle|^2 \rho(E_f
     ax2.set_title('|Transition Dipole Moment| Matrix', fontsize=12, fontweight='bold')
     ax2.set_xticks(range(n_max))
     ax2.set_yticks(range(n_max))
-    plt.colorbar(im, ax=ax2, label='||')
+    plt.colorbar(im, ax=ax2, label='|<f|x|i>|')
     
     # 左下：許容遷移 (Delta n = +1) の可視化
     ax3 = axes[1, 0]
@@ -660,7 +660,7 @@ $$W_{i \to f} = \frac{2\pi}{\hbar} |\langle f | \hat{H}' | i \rangle|^2 \rho(E_f
     print()
     print("選択則: Delta n = +/- 1 のみ許容")
     print()
-    print(f"{'遷移':<15} {'||':<15} {'許容/禁制':<15}")
+    print(f"{'遷移':<15} {'|<f|x|i>|':<15} {'許容/禁制':<15}")
     print("-" * 45)
     for n_i in range(4):
         for n_f in range(4):

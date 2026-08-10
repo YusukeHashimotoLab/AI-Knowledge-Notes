@@ -294,8 +294,8 @@ Extract information about process equipment.
     
     # Query 1: Basic information for all reactors
     query1 = """
-    PREFIX proc: 
-    PREFIX rdfs: 
+    PREFIX proc: <http://example.org/process/>
+    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
     
     SELECT ?reactor ?label ?temp ?press
     WHERE {
@@ -314,8 +314,8 @@ Extract information about process equipment.
     
     # Query 2: Conditional search (temperature > 340°C and pressure > 4bar)
     query2 = """
-    PREFIX proc: 
-    PREFIX rdfs: 
+    PREFIX proc: <http://example.org/process/>
+    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
     
     SELECT ?label ?temp ?press
     WHERE {
@@ -334,7 +334,7 @@ Extract information about process equipment.
     
     # Query 3: Aggregation (average temperature, maximum pressure)
     query3 = """
-    PREFIX proc: 
+    PREFIX proc: <http://example.org/process/>
     
     SELECT (AVG(?temp) AS ?avgTemp) (MAX(?press) AS ?maxPress) (COUNT(?reactor) AS ?count)
     WHERE {
@@ -452,8 +452,8 @@ Represent process flow diagrams as RDF graphs.
     
     # Path exploration with SPARQL
     query = """
-    PREFIX proc: 
-    PREFIX rdfs: 
+    PREFIX proc: <http://example.org/process/>
+    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
     
     SELECT ?source_label ?target_label
     WHERE {
@@ -544,9 +544,9 @@ Structure chemical substance property data using RDF.
     
     # ===== SPARQL Query: Substances with boiling point ≤ 80°C =====
     query = """
-    PREFIX chem: 
-    PREFIX prop: 
-    PREFIX rdfs: 
+    PREFIX chem: <http://example.org/chemistry/>
+    PREFIX prop: <http://example.org/property/>
+    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
     
     SELECT ?name ?formula ?bp
     WHERE {
@@ -565,9 +565,9 @@ Structure chemical substance property data using RDF.
     
     # Molecular weight comparison
     query2 = """
-    PREFIX chem: 
-    PREFIX prop: 
-    PREFIX rdfs: 
+    PREFIX chem: <http://example.org/chemistry/>
+    PREFIX prop: <http://example.org/property/>
+    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
     
     SELECT ?name ?mw
     WHERE {

@@ -522,7 +522,6 @@ One of the major advantages of attention is that you can visually confirm which 
     print("✓ Off-diagonal distribution: Language pairs with different word order (e.g., English-Japanese)")
     print("✓ Distribution across multiple words: One-to-many, many-to-one word correspondences")
     print("✓ Concentration on EOS symbol: Clear sentence-final processing")
-    </eos></eos></eos></eos></eos></eos></eos></eos>
 
 ### 4.4.2 Statistical Analysis of Attention Weights
     
@@ -792,7 +791,6 @@ One of the major advantages of attention is that you can visually confirm which 
     print(f"\nSample attention weights (target_len={TARGET_LEN}, source_len={SOURCE_LEN}):")
     print(f"Shape: {sample_attention.shape}")
     print(f"Sum at each time step: {sample_attention.sum(axis=1)}")  # Should all be 1.0
-    </sos>
 
 **Output** :
     
@@ -827,7 +825,7 @@ One of the major advantages of attention is that you can visually confirm which 
             # Forward pass
             outputs, _ = model(source, target, teacher_forcing_ratio=0.5)
     
-            # Loss calculation (excluding  token)
+            # Loss calculation (excluding <sos> token)
             output_dim = outputs.shape[-1]
             outputs_flat = outputs[:, 1:].reshape(-1, output_dim)
             target_flat = target[:, 1:].reshape(-1)

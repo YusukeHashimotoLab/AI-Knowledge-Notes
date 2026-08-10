@@ -727,7 +727,7 @@ SnSe (single crystal)| 0.5| 2.6 (923K)| Under research
     print("- Absorption coefficient α(ω)")
     print("- Refractive index n(ω)")
     print("- Reflectivity R(ω)")
-    print("\nOutput file: vasprun.xml ( tag)")
+    print("\nOutput file: vasprun.xml (<dielectricfunction> tag)")
     
 
 ### Calculation of Thermal Properties from Phonons
@@ -911,7 +911,7 @@ SnSe (single crystal)| 0.5| 2.6 (923K)| Under research
 
   1. HSE06 functional (GGA-PBE underestimates bandgap)
   2. k-points: 16×16×16 (Gamma-centered), NBANDS: 2x default (include high-energy conduction band states)
-  3. Read <dielectricfunction> from vasprun.xml, calculate absorption coefficient α(ω) from ε₂(ω): $\alpha = 2\omega\kappa/c$, where κ is derived from ε₂
+  3. Read &lt;dielectricfunction&gt; from vasprun.xml, calculate absorption coefficient α(ω) from ε₂(ω): $\alpha = 2\omega\kappa/c$, where κ is derived from ε₂
 
 ## References
 

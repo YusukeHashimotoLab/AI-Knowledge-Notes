@@ -341,7 +341,7 @@ graph TD A[フォノニック結晶] --> B[1次元
     
                     if G_diff == 0:
                         # 対角成分
-                        # フーリエ係数 <1/rho> と 
+                        # フーリエ係数 <1/rho> と <c>
                         inv_rho_avg = (d_A/rho_A + d_B/rho_B) / a
                         c_avg = (d_A*c_A + d_B*c_B) / a
     

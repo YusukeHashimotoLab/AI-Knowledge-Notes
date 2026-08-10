@@ -292,8 +292,8 @@ SPARQLはRDFグラフに対するクエリ言語です。SQLに似た構文で�
     
     # クエリ1: すべての反応器の基本情報
     query1 = """
-    PREFIX proc: 
-    PREFIX rdfs: 
+    PREFIX proc: <http://example.org/process/>
+    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
     
     SELECT ?reactor ?label ?temp ?press
     WHERE {
@@ -312,8 +312,8 @@ SPARQLはRDFグラフに対するクエリ言語です。SQLに似た構文で�
     
     # クエリ2: 条件付き検索（温度 > 340°C かつ 圧力 > 4bar）
     query2 = """
-    PREFIX proc: 
-    PREFIX rdfs: 
+    PREFIX proc: <http://example.org/process/>
+    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
     
     SELECT ?label ?temp ?press
     WHERE {
@@ -332,7 +332,7 @@ SPARQLはRDFグラフに対するクエリ言語です。SQLに似た構文で�
     
     # クエリ3: 集約（平均温度、最大圧力）
     query3 = """
-    PREFIX proc: 
+    PREFIX proc: <http://example.org/process/>
     
     SELECT (AVG(?temp) AS ?avgTemp) (MAX(?press) AS ?maxPress) (COUNT(?reactor) AS ?count)
     WHERE {
@@ -450,8 +450,8 @@ CSTR反応器: 350.0°C, 5.0bar
     
     # SPARQLで経路探索
     query = """
-    PREFIX proc: 
-    PREFIX rdfs: 
+    PREFIX proc: <http://example.org/process/>
+    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
     
     SELECT ?source_label ?target_label
     WHERE {
@@ -542,9 +542,9 @@ CSTR反応器: 350.0°C, 5.0bar
     
     # ===== SPARQLクエリ: 沸点が80°C以下の物質 =====
     query = """
-    PREFIX chem: 
-    PREFIX prop: 
-    PREFIX rdfs: 
+    PREFIX chem: <http://example.org/chemistry/>
+    PREFIX prop: <http://example.org/property/>
+    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
     
     SELECT ?name ?formula ?bp
     WHERE {
@@ -563,9 +563,9 @@ CSTR反応器: 350.0°C, 5.0bar
     
     # 分子量の比較
     query2 = """
-    PREFIX chem: 
-    PREFIX prop: 
-    PREFIX rdfs: 
+    PREFIX chem: <http://example.org/chemistry/>
+    PREFIX prop: <http://example.org/property/>
+    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
     
     SELECT ?name ?mw
     WHERE {

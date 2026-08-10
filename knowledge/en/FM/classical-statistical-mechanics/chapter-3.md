@@ -133,11 +133,11 @@ Python Implementation: Chemical Potential of an Ideal Gas
     
     # Particle number fluctuation
     ax4 = axes[1, 1]
-    # <(ΔN)²> = k_B T (∂<n>/∂μ) = <n> (ideal gas)
-    fluctuation_ratio = 1 / np.sqrt(n_range * V_molar)  # σ_N / <n> = 1/√<n>
+    # <(ΔN)²> = k_B T (∂<N>/∂μ) = <N> (ideal gas)
+    fluctuation_ratio = 1 / np.sqrt(n_range * V_molar)  # σ_N / <N> = 1/√<N>
     ax4.loglog(n_range / 1e25, fluctuation_ratio, 'm-', linewidth=2)
     ax4.set_xlabel('Number density (10²⁵ m⁻³)')
-    ax4.set_ylabel('σ_N / <n>')
+    ax4.set_ylabel('σ_N / <N>')
     ax4.set_title('Relative Fluctuation')
     ax4.grid(True, alpha=0.3, which='both')
     
@@ -159,9 +159,8 @@ Python Implementation: Chemical Potential of an Ideal Gas
     print(f"Chemical potential: μ = {mu_std:.6e} J")
     print(f"                  μ/(k_B T) = {mu_std/(k_B*T_std):.4f}")
     print(f"Fugacity: z = {fugacity(mu_std, T_std, k_B):.6e}")
-    print(f"\nRelative fluctuation: σ_N/<n> = 1/√<n> = {1/np.sqrt(N_molar):.6e}")
+    print(f"\nRelative fluctuation: σ_N/<N> = 1/√<N> = {1/np.sqrt(N_molar):.6e}")
     print(f"            = {1/np.sqrt(N_molar):.2e} (extremely small)")
-    </n></n></n></n></n></n></n>
 
 ## 💻 Example 3.2: Langmuir Adsorption Isotherm
 

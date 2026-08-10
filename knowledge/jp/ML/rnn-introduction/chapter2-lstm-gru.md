@@ -845,15 +845,15 @@ $$ \begin{align} r_t &= \sigma(W_r [h_{t-1}, x_t] + b_r) \quad &\text{(リセッ
     # 語彙を構築（頻度上位10,000語）
     vocab = build_vocab_from_iterator(
         yield_tokens(IMDB(split='train')),
-        specials=['', ''],
+        specials=['<unk>', '<pad>'],
         max_tokens=10000
     )
-    vocab.set_default_index(vocab[''])
+    vocab.set_default_index(vocab['<unk>'])
     
     print("=== IMDbデータセットの準備 ===")
     print(f"語彙サイズ: {len(vocab)}")
-    print(f"トークンのインデックス: {vocab['']}")
-    print(f"トークンのインデックス: {vocab['']}")
+    print(f"<pad>トークンのインデックス: {vocab['<pad>']}")
+    print(f"<unk>トークンのインデックス: {vocab['<unk>']}")
     
     # サンプルのトークン化
     sample_text = "This movie is great!"
@@ -897,7 +897,7 @@ $$ \begin{align} r_t &= \sigma(W_r [h_{t-1}, x_t] + b_r) \quad &\text{(リセッ
         texts, labels = zip(*batch)
     
         # パディング
-        texts_padded = pad_sequence(texts, batch_first=True, padding_value=vocab[''])
+        texts_padded = pad_sequence(texts, batch_first=True, padding_value=vocab['<pad>'])
         labels = torch.stack(labels)
     
         return texts_padded, labels
@@ -938,7 +938,7 @@ $$ \begin{align} r_t &= \sigma(W_r [h_{t-1}, x_t] + b_r) \quad &\text{(リセッ
             super(LSTMSentimentClassifier, self).__init__()
     
             # 埋め込み層
-            self.embedding = nn.Embedding(vocab_size, embedding_dim, padding_idx=vocab[''])
+            self.embedding = nn.Embedding(vocab_size, embedding_dim, padding_idx=vocab['<pad>'])
     
             # LSTM層
             self.lstm = nn.LSTM(
@@ -1224,7 +1224,7 @@ $$ \begin{align} r_t &= \sigma(W_r [h_{t-1}, x_t] + b_r) \quad &\text{(リセッ
             scheduler.step(val_loss)
     
     print("=== ベストプラクティス ===")
-    print("1. padding_idxを指定してを学習対象外に")
+    print("1. padding_idxを指定して<pad>を学習対象外に")
     print("2. 双方向LSTMで文脈を完全把握")
     print("3. Dropoutで過学習を防止")
     print("4. 勾配クリッピングで勾配爆発を防止")

@@ -695,7 +695,7 @@ SnSe（単結晶）| 0.5| 2.6（923K）| 研究中
     print("- 吸収係数 α(ω)")
     print("- 屈折率 n(ω)")
     print("- 反射率 R(ω)")
-    print("\n出力ファイル: vasprun.xml （タグ）")
+    print("\n出力ファイル: vasprun.xml （<dielectricfunction>タグ）")
     
 
 ### フォノンによる熱物性の計算
@@ -879,7 +879,7 @@ SnSe（単結晶）| 0.5| 2.6（923K）| 研究中
 
   1. HSE06汎関数（GGA-PBEはバンドギャップを過小評価）
   2. k点: 16×16×16（Γ中心）、NBANDS: デフォルトの2倍（伝導帯の高エネルギー状態も含める）
-  3. vasprun.xmlからを読み、ε₂(ω)から吸収係数α(ω)を計算：$\alpha = 2\omega\kappa/c$、$\kappa$はε₂から導出
+  3. vasprun.xmlから&lt;dielectricfunction&gt;を読み、ε₂(ω)から吸収係数α(ω)を計算：$\alpha = 2\omega\kappa/c$、$\kappa$はε₂から導出
 
 ## 参考文献
 

@@ -448,7 +448,6 @@ $$ \begin{align} f_t &= \sigma(W_f \cdot [h_{t-1}, x_t] + b_f) \quad \text{(Forg
             print(f"\nSentence: '{sent}'")
             print(f"Prediction: {sentiment}")
             print(f"Probability: {torch.softmax(output, dim=1).numpy()}")
-    </pad>
 
 **Output** :
     
@@ -736,7 +735,6 @@ Seq2Seq consists of two main components:
         output = model(source, target, teacher_forcing_ratio=0.0)
         print(f"\nInput shape: {source.shape}")
         print(f"Output shape: {output.shape}")
-    </sos>
 
 **Output** :
     
@@ -855,7 +853,6 @@ Method | Advantages | Disadvantages
             print(f"Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}")
     
     print("\nTraining completed!")
-    </pad></eos></sos></eos></sos></eos></sos></eos></sos>
 
 **Output** :
     

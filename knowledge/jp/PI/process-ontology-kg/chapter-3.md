@@ -186,8 +186,8 @@ Pump: 1個
     
     # SPARQLクエリで接続を取得
     query = """
-    PREFIX proc: 
-    PREFIX rdfs: 
+    PREFIX proc: <http://example.org/process/>
+    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
     
     SELECT ?source ?target ?stream ?flowrate ?composition
     WHERE {
@@ -344,8 +344,8 @@ SEP-301 → R-101: 55 kg/h (リサイクル)
     
     # SPARQLクエリでデータ確認
     query = """
-    PREFIX data: 
-    PREFIX rdf: 
+    PREFIX data: <http://example.org/sensor/>
+    PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
     
     SELECT ?sensor ?location ?type ?value ?unit
     WHERE {
@@ -539,8 +539,8 @@ P&ID（配管計装図）の文字情報から装置接続をパースします�
     # 装置リスト
     print("\n=== 装置一覧 ===")
     query_eq = """
-    PREFIX proc: 
-    PREFIX rdfs: 
+    PREFIX proc: <http://example.org/process/>
+    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
     
     SELECT ?eq ?label
     WHERE {
@@ -554,7 +554,7 @@ P&ID（配管計装図）の文字情報から装置接続をパースします�
     # リサイクルストリーム
     print("\n=== リサイクルストリーム ===")
     query_recycle = """
-    PREFIX proc: 
+    PREFIX proc: <http://example.org/process/>
     
     SELECT ?stream
     WHERE {
@@ -663,8 +663,8 @@ P&ID（配管計装図）の文字情報から装置接続をパースします�
     # ===== SPARQLクエリ：温度の統計 =====
     
     query_stats = """
-    PREFIX sensor: 
-    PREFIX xsd: 
+    PREFIX sensor: <http://example.org/sensor/>
+    PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
     
     SELECT (AVG(?value) AS ?avgTemp) (MIN(?value) AS ?minTemp) (MAX(?value) AS ?maxTemp)
     WHERE {
@@ -682,8 +682,8 @@ P&ID（配管計装図）の文字情報から装置接続をパースします�
     # ===== 異常値検出（閾値ベース） =====
     
     query_anomaly = """
-    PREFIX sensor: 
-    PREFIX time: 
+    PREFIX sensor: <http://example.org/sensor/>
+    PREFIX time: <http://www.w3.org/2006/time#>
     
     SELECT ?timestamp ?value
     WHERE {
@@ -803,7 +803,7 @@ Timestamp TE-101_degC PE-101_bar FE-101_kgh
     # ===== 統計分析クエリ =====
     
     query_monthly_stats = """
-    PREFIX perf: 
+    PREFIX perf: <http://example.org/performance/>
     
     SELECT
         (AVG(?conv) AS ?avgConversion)
@@ -832,7 +832,7 @@ Timestamp TE-101_degC PE-101_bar FE-101_kgh
     # ===== 低性能日の検出 =====
     
     query_low_performance = """
-    PREFIX perf: 
+    PREFIX perf: <http://example.org/performance/>
     
     SELECT ?date ?conv ?yield
     WHERE {
@@ -998,9 +998,9 @@ Date R101_Conversion R101_Yield
     
     # クエリ1: 装置の完全情報（マスター + 運転状態）
     query_complete = """
-    PREFIX proc: 
-    PREFIX maint: 
-    PREFIX rdfs: 
+    PREFIX proc: <http://example.org/process/>
+    PREFIX maint: <http://example.org/maintenance/>
+    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
     
     SELECT ?id ?name ?manufacturer ?temp ?press ?eff
     WHERE {
@@ -1023,7 +1023,7 @@ Date R101_Conversion R101_Yield
     
     # クエリ2: プロセスフロー（接続 + 流量）
     query_flow = """
-    PREFIX proc: 
+    PREFIX proc: <http://example.org/process/>
     
     SELECT ?source ?target ?flowrate
     WHERE {

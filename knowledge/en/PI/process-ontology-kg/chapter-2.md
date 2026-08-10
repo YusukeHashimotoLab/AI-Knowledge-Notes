@@ -917,8 +917,8 @@ Represent a complete chemical plant using ontology and execute advanced queries 
     
     # Query 1: Equipment with efficiency >= 90%
     query1 = """
-    PREFIX onto: 
-    PREFIX rdfs: 
+    PREFIX onto: <http://example.org/chemicalplant.owl#>
+    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
     
     SELECT ?equipment ?label ?efficiency
     WHERE {
@@ -935,8 +935,8 @@ Represent a complete chemical plant using ontology and execute advanced queries 
     
     # Query 2: Equipment with temperature >= 350K
     query2 = """
-    PREFIX onto: 
-    PREFIX rdfs: 
+    PREFIX onto: <http://example.org/chemicalplant.owl#>
+    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
     
     SELECT ?label ?temp ?press
     WHERE {
@@ -959,8 +959,8 @@ Represent a complete chemical plant using ontology and execute advanced queries 
     
     # Query 3: Reactor statistics
     query3 = """
-    PREFIX onto: 
-    PREFIX rdf: 
+    PREFIX onto: <http://example.org/chemicalplant.owl#>
+    PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
     
     SELECT (AVG(?temp) AS ?avgTemp) (AVG(?eff) AS ?avgEff) (COUNT(?reactor) AS ?count)
     WHERE {

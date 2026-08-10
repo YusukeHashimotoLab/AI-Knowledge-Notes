@@ -1081,8 +1081,8 @@ $$ \text{Mask}_{ij} = \begin{cases} 0 & \text{if } i < j \text{ (未来のトー
             tgt = self.tgt_sentences[idx]
     
             # トークンIDに変換
-            src_ids = [self.src_vocab.get(w, self.src_vocab['']) for w in src.split()]
-            tgt_ids = [self.tgt_vocab.get(w, self.tgt_vocab['']) for w in tgt.split()]
+            src_ids = [self.src_vocab.get(w, self.src_vocab['<unk>']) for w in src.split()]
+            tgt_ids = [self.tgt_vocab.get(w, self.tgt_vocab['<unk>']) for w in tgt.split()]
     
             return torch.tensor(src_ids), torch.tensor(tgt_ids)
     
@@ -1098,7 +1098,7 @@ $$ \text{Mask}_{ij} = \begin{cases} 0 & \text{if } i < j \text{ (未来のトー
         most_common = word_counts.most_common(max_vocab_size - 4)  # 特殊トークン分を除く
     
         # 語彙辞書作成
-        vocab = {'': 0, '': 1, '': 2, '': 3}
+        vocab = {'<pad>': 0, '<sos>': 1, '<eos>': 2, '<unk>': 3}
         for word, _ in most_common:
             vocab[word] = len(vocab)
     
@@ -1157,8 +1157,8 @@ $$ \text{Mask}_{ij} = \begin{cases} 0 & \text{if } i < j \text{ (未来のトー
         src_batch, tgt_batch = zip(*batch)
     
         # パディング
-        src_padded = pad_sequence(src_batch, batch_first=True, padding_value=src_vocab[''])
-        tgt_padded = pad_sequence(tgt_batch, batch_first=True, padding_value=tgt_vocab[''])
+        src_padded = pad_sequence(src_batch, batch_first=True, padding_value=src_vocab['<pad>'])
+        tgt_padded = pad_sequence(tgt_batch, batch_first=True, padding_value=tgt_vocab['<pad>'])
     
         return src_padded, tgt_padded
     
@@ -1186,12 +1186,12 @@ $$ \text{Mask}_{ij} = \begin{cases} 0 & \text{if } i < j \text{ (未来のトー
             src, tgt = src.to(device), tgt.to(device)
     
             # ターゲットを入力と教師データに分割
-            tgt_input = tgt[:, :-1]  # を除く
-            tgt_output = tgt[:, 1:]  # を除く
+            tgt_input = tgt[:, :-1]  # <eos>を除く
+            tgt_output = tgt[:, 1:]  # <sos>を除く
     
             # マスク作成
             src_mask, tgt_mask = create_masks(src, tgt_input,
-                                             src_vocab[''], tgt_vocab[''])
+                                             src_vocab['<pad>'], tgt_vocab['<pad>'])
     
             # Forward
             optimizer.zero_grad()
@@ -1241,7 +1241,7 @@ $$ \text{Mask}_{ij} = \begin{cases} 0 & \text{if } i < j \text{ (未来のトー
     )
     
     # 損失関数とオプティマイザ
-    criterion = nn.CrossEntropyLoss(ignore_index=tgt_vocab[''])
+    criterion = nn.CrossEntropyLoss(ignore_index=tgt_vocab['<pad>'])
     optimizer = optim.Adam(model.parameters(), lr=0.0001, betas=(0.9, 0.98), eps=1e-9)
     
     # 訓練
@@ -1264,7 +1264,7 @@ $$ \text{Mask}_{ij} = \begin{cases} 0 & \text{if } i < j \text{ (未来のトー
     
         # ソース文をトークンIDに変換
         src_tokens = src_sentence.split()
-        src_ids = [src_vocab.get(w, src_vocab['']) for w in src_tokens]
+        src_ids = [src_vocab.get(w, src_vocab['<unk>']) for w in src_tokens]
         src = torch.tensor(src_ids).unsqueeze(0).to(device)  # (1, src_len)
     
         # ソースマスク
@@ -1274,19 +1274,19 @@ $$ \text{Mask}_{ij} = \begin{cases} 0 & \text{if } i < j \text{ (未来のトー
         with torch.no_grad():
             generated = generate_greedy(
                 model, src, src_mask, max_len,
-                start_token=tgt_vocab[''],
-                end_token=tgt_vocab['']
+                start_token=tgt_vocab['<sos>'],
+                end_token=tgt_vocab['<eos>']
             )
     
         # トークンIDを単語に変換
         idx_to_word = {v: k for k, v in tgt_vocab.items()}
-        translated = [idx_to_word.get(idx.item(), '') for idx in generated[0]]
+        translated = [idx_to_word.get(idx.item(), '<unk>') for idx in generated[0]]
     
-        # とを除去
-        if translated[0] == '':
+        # <sos>と<eos>を除去
+        if translated[0] == '<sos>':
             translated = translated[1:]
-        if '' in translated:
-            eos_idx = translated.index('')
+        if '<eos>' in translated:
+            eos_idx = translated.index('<eos>')
             translated = translated[:eos_idx]
     
         return ' '.join(translated)

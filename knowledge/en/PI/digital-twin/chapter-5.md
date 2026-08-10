@@ -488,7 +488,7 @@ Enable access to digital twins through standard RESTful APIs.
                     return jsonify({'message': 'Token is missing'}), 401
     
                 try:
-                    # "Bearer " format
+                    # "Bearer <token>" format
                     token = token.split()[1] if ' ' in token else token
                     data = jwt.decode(token, self.app.config['SECRET_KEY'],
                                      algorithms=['HS256'])

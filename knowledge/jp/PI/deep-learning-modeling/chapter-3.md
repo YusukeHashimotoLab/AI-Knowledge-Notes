@@ -103,7 +103,7 @@ $$(I * K)(i, j) = \sum_m \sum_n I(i+m, j+n) \cdot K(m, n)$$
     
     # 出力例:
     # Output shape: torch.Size([8, 3])
-    # Class probabilities (sample 1): tensor([0.3456, 0.4123, 0.2421], grad_fn=)
+    # Class probabilities (sample 1): tensor([0.3456, 0.4123, 0.2421], grad_fn=<SoftmaxBackward>)
     # Total parameters: 40,363,971
     
 

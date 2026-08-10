@@ -969,7 +969,6 @@ Role of each gate:
     print(f"\nSample: '{sample_text}'")
     print(f"Tokens: {tokens}")
     print(f"Indices: {indices}")
-    </unk></unk></pad></pad></unk></pad></unk>
 
 ### Dataset Class
     
@@ -1045,7 +1044,6 @@ Role of each gate:
     print(f"Batch size: {texts.shape[0]}")
     print(f"Sequence length (max): {texts.shape[1]}")
     print(f"Labels: {labels[:5]}")
-    </pad>
 
 ### LSTM Sentiment Analysis Model
     
@@ -1130,7 +1128,6 @@ Role of each gate:
     
     total_params = sum(p.numel() for p in model.parameters())
     print(f"\nTotal parameters: {total_params:,}")
-    </pad>
 
 ### Training Loop
     
@@ -1383,7 +1380,6 @@ Uncertain | Try both | High task dependency
     print("3. Dropout to prevent overfitting")
     print("4. Gradient clipping to prevent gradient explosion")
     print("5. Learning rate scheduler to improve optimization")
-    </pad>
 
 * * *
 

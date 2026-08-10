@@ -996,7 +996,7 @@ chapter_title: "第6章: Python実践：分光データ解析ワークフロー"
                 mode='lines',
                 name='Spectrum',
                 line=dict(color='blue', width=2),
-                hovertemplate='%{x:.2f}%{y:.3f}'
+                hovertemplate='%{x:.2f}<br>%{y:.3f}<extra></extra>'
             ))
     
             fig.update_layout(
@@ -1039,7 +1039,7 @@ chapter_title: "第6章: Python実践：分光データ解析ワークフロー"
                     mode='lines',
                     name=label,
                     line=dict(color=color, width=2),
-                    hovertemplate=f'{label}%{{x:.2f}}%{{y:.3f}}'
+                    hovertemplate=f'{label}<br>%{{x:.2f}}<br>%{{y:.3f}}<extra></extra>'
                 ))
     
             fig.update_layout(
@@ -1079,14 +1079,14 @@ chapter_title: "第6章: Python実践：分光データ解析ワークフロー"
                 mode='lines',
                 name='Spectrum',
                 line=dict(color='blue', width=2),
-                hovertemplate='%{x:.2f}%{y:.3f}'
+                hovertemplate='%{x:.2f}<br>%{y:.3f}<extra></extra>'
             ))
     
             # ピーク
             if peaks:
                 peak_x = [p.position for p in peaks]
                 peak_y = [p.height for p in peaks]
-                peak_info = [f"Position: {p.position:.2f}Height: {p.height:.3f}FWHM: {p.width:.2f}"
+                peak_info = [f"Position: {p.position:.2f}<br>Height: {p.height:.3f}<br>FWHM: {p.width:.2f}"
                             for p in peaks]
     
                 fig.add_trace(go.Scatter(
@@ -1096,7 +1096,7 @@ chapter_title: "第6章: Python実践：分光データ解析ワークフロー"
                     name=f'Peaks (n={len(peaks)})',
                     marker=dict(color='red', size=12, symbol='diamond'),
                     text=peak_info,
-                    hovertemplate='%{text}'
+                    hovertemplate='%{text}<extra></extra>'
                 ))
     
             fig.update_layout(

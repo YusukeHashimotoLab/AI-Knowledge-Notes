@@ -148,7 +148,7 @@ subtitle: SPARQL API、可視化、文書自動生成、推薦システム、完
         }), 200
     
     
-    @app.route('/api/equipment/', methods=['GET'])
+    @app.route('/api/equipment/<eq_id>', methods=['GET'])
     def get_equipment_details(eq_id):
         """
         特定機器の詳細情報を取得

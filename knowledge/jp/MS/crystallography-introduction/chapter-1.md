@@ -548,7 +548,7 @@ $$a = b = c, \quad \alpha = \beta = \gamma = 90°$$
         marker=dict(size=10, color='#f093fb',
                     line=dict(color='black', width=2)),
         name='格子点',
-        hovertemplate='座標: (%{x:.2f}, %{y:.2f}, %{z:.2f})'
+        hovertemplate='座標: (%{x:.2f}, %{y:.2f}, %{z:.2f})<extra></extra>'
     ))
     
     # 軸ラベル
@@ -836,7 +836,7 @@ $$a = b = c, \quad \alpha = \beta = \gamma = 90°$$
         marker=dict(size=5, color='#f093fb',
                     line=dict(color='black', width=1)),
         name='格子点',
-        hovertemplate='座標: (%{x:.1f}, %{y:.1f}, %{z:.1f})'
+        hovertemplate='座標: (%{x:.1f}, %{y:.1f}, %{z:.1f})<extra></extra>'
     ))
     
     # 単位格子の辺を描画（最初の単位格子のみ）

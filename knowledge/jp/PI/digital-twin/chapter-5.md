@@ -486,7 +486,7 @@ subtitle: 研究から本番運用へ：実践的なデプロイメント戦略
                     return jsonify({'message': 'Token is missing'}), 401
     
                 try:
-                    # "Bearer " 形式
+                    # "Bearer <token>" 形式
                     token = token.split()[1] if ' ' in token else token
                     data = jwt.decode(token, self.app.config['SECRET_KEY'],
                                      algorithms=['HS256'])

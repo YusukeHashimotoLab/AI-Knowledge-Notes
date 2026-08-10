@@ -2017,7 +2017,7 @@ MLflowとDVCを組み合わせた完全な機械学習ワークフローを設�
     dvc exp show
     
     # 6. 最良の実験を適用
-    dvc exp apply 
+    dvc exp apply <experiment-name>
     git add .
     git commit -m "Apply best experiment"
     

@@ -603,7 +603,7 @@ Define metrics to measure RAG system quality and performance.
                 "accuracy_score": <1-5>,
                 "relevance_score": <1-5>,
                 "completeness_score": <1-5>,
-                "reasoning": ""
+                "reasoning": "<reason>"
             }}
             """
     

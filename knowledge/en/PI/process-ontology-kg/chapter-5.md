@@ -287,7 +287,6 @@ By reading this chapter, you will be able to:
     # if __name__ == '__main__':
     #     init_knowledge_graph()
     #     app.run(debug=True, port=5000)
-    </eq_id>
 
 **Output Example:**
     

@@ -211,9 +211,8 @@ Python Implementation: Visualizing the Boltzmann Distribution
         avg_E = np.sum(P * E_levels)
         print(f"\nT = {T} K:")
         print(f"  Partition function Z = {Z:.4f}")
-        print(f"  Average energy <e> = {avg_E/1e-21:.4f} × 10⁻²¹ J")
+        print(f"  Average energy <E> = {avg_E/1e-21:.4f} × 10⁻²¹ J")
         print(f"  Ground state occupation P(E=0) = {P[0]:.4f}")
-    </e>
 
 ## 💻 Example 1.3: Stirling's Approximation
 

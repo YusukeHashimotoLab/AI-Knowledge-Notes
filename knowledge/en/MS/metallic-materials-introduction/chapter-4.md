@@ -165,7 +165,91 @@ Precipitates hinder dislocation motion and improve strength (Orowan mechanism, s
     Dependencies: None
     """
     
-    import numpy as np import matplotlib.pyplot as plt def age_hardening_curve(time, H0, H_max, k_peak, k_over, t_peak): """ age hardeningCurve of moderuization（simplifiedal equation） Parameters: ----------- time: array-like agingtime [hours] H0: float initialHardness（Quenching） [HV] H_max: float MaximumHardness（pi kaging） [HV] k_peak: float hardizationrateParameter k_over: float excessagingsoftizationrateParameter t_peak: float pi kagingtime [hours] Returns: -------- hardness: array-like Hardness [HV] """ # pi kagingto of hardization H_peak = H0 + (H_max - H0) * (1 - np.exp(-k_peak * time)) # excessagingbysoftization H_over = H_max - (H_max - H0) * 0.3 * (1 - np.exp(-k_over * (time - t_peak))) # timeby hardness = np.where(time<t_peak, #="" 'green',="" 'h_max':="" 'k--',="" 'k_over':="" 'k_peak':="" 'o',="" 'red']="" 't_peak':="" (1="" (2024)',="" (95="" (at="" (peak:="" (rapid="" )="" *="" +="" -="" 0.01,="" 0.03,="" 0.05,="" 0.08,="" 0.15,="" 0.1～1000time="" 0.30,="" 1-2="" 1000)="" 125,="" 135,="" 140,="" 15="" 150)="" 150:="" 15},="" 175,="" 175-190°c,="" 175:="" 175°c,="" 200:="" 200]="" 3,="" 300)="" 495-505°c,="" 50},="" 5}="" 6))="" 70)="" 70,="" 8-12="" [hours]',="" [hv]',="" age="" aging_temps="[150," aging（room="" aging）="" al-cu="" al-cualloy（2024system）="" alloy="" alpha="0.3)" at="" bbox_inches="tight" code="" color="color," colors="['blue'," colors):="" cooling="" curves="" decrease="" differentagingtemperature="" dpi="300," fontsize="14)" for="" h_over)="" h_peak,="" hardening="" hardeningsimulation="" hardizationdo="" hardness="age_hardening_curve(time," hardness,="" hardness:="" heat="" high="" hours")="" hours)")<="" hv="" in="" is="" ization+="" k="" kagingpoint="" khardness="" label="Natural Aging (25°C)" linewidth="2," ma="" markersize="10)" natural_aging="70" natural_aging,="" np.exp(-0.005="" of="" p="params[temp]" p['h0'],="" p['h_max'],="" p['k_over'],="" p['k_peak'],="" p['t_peak'])="" params="{" peak="" pi="" plt.figure(figsize="(12," plt.grid(true,="" plt.legend(fontsize="10)" plt.plot(p['t_peak'],="" plt.savefig('age_hardening.png',="" plt.semilogx(time,="" plt.show()="" plt.tight_layout()="" plt.title('age="" plt.xlabel('aging="" plt.xlim(0.1,="" plt.ylabel('hardness="" plt.ylim(60,="" print("="Recommended" print("aging:="" print("quenching:="" print(f"expected="" recommendedcondition="" return="" rt)")="" simulation="" solution="" t6="" t6treatment（="" temp,="" temperature="" temperature、25°c）="" time="" time))="" to="" treatment=") print(" treatment:="" water="" zip(aging_temps,="" {'h0':="" {p["h_max"]}="" {p["t_peak"]}h)')="" }="" ~135="" °c="" 、pi=""></t_peak,>
+    import numpy as np
+    import matplotlib.pyplot as plt
+
+    def age_hardening_curve(time, H0, H_max, k_peak, k_over, t_peak):
+        """
+        Modelling the age hardening curve (simple empirical expression)
+
+        Parameters:
+        -----------
+        time : array-like
+            Aging time [hours]
+        H0 : float
+            Initial hardness (as-quenched) [HV]
+        H_max : float
+            Maximum hardness (peak aging) [HV]
+        k_peak : float
+            Hardening rate parameter
+        k_over : float
+            Over-aging softening rate parameter
+        t_peak : float
+            Peak aging time [hours]
+
+        Returns:
+        --------
+        hardness : array-like
+            Hardness [HV]
+        """
+        # Hardening up to peak aging
+        H_peak = H0 + (H_max - H0) * (1 - np.exp(-k_peak * time))
+
+        # Softening caused by over-aging
+        H_over = H_max - (H_max - H0) * 0.3 * (1 - np.exp(-k_over * (time - t_peak)))
+
+        # Switch between the two regimes by time
+        hardness = np.where(time < t_peak, H_peak, H_over)
+        return hardness
+
+    # Age hardening simulation for an Al-Cu alloy (2024 series)
+    time = np.logspace(-1, 3, 300)  # 0.1 to 1000 hours
+
+    # Simulation at different aging temperatures
+    aging_temps = [150, 175, 200]  # °C
+    colors = ['blue', 'green', 'red']
+
+    # The higher the temperature, the faster the hardening but the lower the peak hardness
+    params = {
+        150: {'H0': 70, 'H_max': 140, 'k_peak': 0.05, 'k_over': 0.01, 't_peak': 50},
+        175: {'H0': 70, 'H_max': 135, 'k_peak': 0.15, 'k_over': 0.03, 't_peak': 15},
+        200: {'H0': 70, 'H_max': 125, 'k_peak': 0.30, 'k_over': 0.08, 't_peak': 5}
+    }
+
+    plt.figure(figsize=(12, 6))
+
+    for temp, color in zip(aging_temps, colors):
+        p = params[temp]
+        hardness = age_hardening_curve(time, p['H0'], p['H_max'],
+                                         p['k_peak'], p['k_over'], p['t_peak'])
+        plt.semilogx(time, hardness, color=color, linewidth=2,
+                     label=f'{temp}°C (Peak: {p["H_max"]} HV at {p["t_peak"]}h)')
+
+        # Mark the peak aging point
+        plt.plot(p['t_peak'], p['H_max'], 'o', color=color, markersize=10)
+
+    # Add natural aging (room temperature, 25°C)
+    natural_aging = 70 + (95 - 70) * (1 - np.exp(-0.005 * time))
+    plt.semilogx(time, natural_aging, 'k--', linewidth=2,
+                 label='Natural Aging (25°C)')
+
+    plt.xlabel('Aging Time [hours]', fontsize=12)
+    plt.ylabel('Hardness [HV]', fontsize=12)
+    plt.title('Age Hardening Curves for Al-Cu Alloy (2024)', fontsize=14)
+    plt.legend(fontsize=10)
+    plt.grid(True, alpha=0.3)
+    plt.xlim(0.1, 1000)
+    plt.ylim(60, 150)
+    plt.tight_layout()
+    plt.savefig('age_hardening.png', dpi=300, bbox_inches='tight')
+    plt.show()
+
+    # Recommended conditions for T6 treatment (solution treatment + artificial aging)
+    print("=== Recommended T6 Heat Treatment ===")
+    print("Solution Treatment: 495-505°C, 1-2 hours")
+    print("Quenching: Water (rapid cooling to RT)")
+    print("Aging: 175-190°C, 8-12 hours")
+    print(f"Expected Peak Hardness: ~135 HV (at 175°C, 15 hours)")
 
 ### 4.4.2 Precipitate Evolution and Strengthening Mechanisms
 
@@ -285,7 +369,75 @@ Click to Show/Hide Solution
     Dependencies: None
     """
     
-    import numpy as np def calculate_ms_temperature(C, Mn=0, Ni=0, Cr=0): """ Martensitetransformation startTemperatureMs of Calculation（Andrewsequation） Ms = 539 - 423*C - 30.4*Mn - 17.7*Ni - 12.1*Cr """ Ms = 539 - 423*C - 30.4*Mn - 17.7*Ni - 12.1*Cr return Ms # Steel of izationstudyComposition C_content = 0.6 # wt% Mn_content = 0.8 # wt% Ni_content = 0 Cr_content = 0 # MsTemperature of Calculation Ms_temp = calculate_ms_temperature(C_content, Mn_content, Ni_content, Cr_content) print("=== Steel Composition ===") print(f"C: {C_content} wt%, Mn: {Mn_content} wt%, Ni: {Ni_content} wt%, Cr: {Cr_content} wt%") print(f"\n=== Martensite Start Temperature ===") print(f"Ms = 539 - 423×{C_content} - 30.4×{Mn_content} - 17.7×{Ni_content} - 12.1×{Cr_content}") print(f"Ms = {Ms_temp:.1f}°C") # MfTemperature of （ al Ms - 215°C） Mf_temp = Ms_temp - 215 print(f"Mf (estimated) ≈ {Mf_temp:.1f}°C") # water cooling of case quench_temp_water = 20 # °C print(f"\n=== Water Quenching (to {quench_temp_water}°C) ===") if quench_temp_water<ms_temp: #="" (extremely="" (high="" (mixed)")="" (negative="lowers" (not="" (slightly="" (to="" ({ms_temp:.1f}°c)")="" ({quench_temp_oil}°c)="" ({quench_temp_water}°c)="" ({quench_temp_water}°c)<ms="" +="" 1-2="" 1.="" 200-400°c,="" 30-60="" 820-850°c,="" after="" alloyelement="" alloying="" at="" austenite="" austenitizing:="" avoid="" bainite="" bainite")="" better="" brittle)")="" brittleness,="" but="" case="" code="" completemartensite（simplified="" cooling="" cooling)=") if quench_temp_oil<Ms_temp: # oil cooling is water coolingthan for、one Pearlite/Bainitetransformation of possibleity print(f" cracking)")="" during="" elements="" else:="" expected="" final="" full="" hard="" hardness="" hardness)")="" hardness:="" heat="" higher="" hours")="" hrc="" hrc")="" improves="" influence="" lower="" martensite="" martensite")="" martensite_fraction="100" may="" min")="" ms=") elements = {'C': -423, 'Mn': -30.4, 'Ni': -17.7, 'Cr': -12.1} for elem, coeff in elements.items(): print(f" ms)")<="" mstemperature="" occurs="" of="" oil="" on="" pearlite="" per="" possible="" print(f"="" print(f"2.="" print(f"3.="" print(f"\n="Effect" print(f"final="" print(f"→="" quench="" quench)")="" quench_temp_oil="60" quenching="" quenching")="" quenching:="" rate:="" recommended)")="" recommendedheat="" reduces="" retained="" slow="" slower="" structure:="" temperature="" temperatures")="" tempering:="" than="" then="" to="" toughness="" toughness")="" transform="" transformation="" treatment=") print(f" water="" wt%="" {coeff:.1f}°c="" {elem}:="" {quench_temp_oil}°c,="" ~45-55="" ~50-55="" ~60-65="" ~{martensite_fraction:.0f}%="" °c="" →="" ≥="" ）=""></ms_temp:>
+    import numpy as np
+
+    def calculate_ms_temperature(C, Mn=0, Ni=0, Cr=0):
+        """
+        Martensite start temperature Ms (Andrews equation)
+        Ms = 539 - 423*C - 30.4*Mn - 17.7*Ni - 12.1*Cr
+        """
+        Ms = 539 - 423*C - 30.4*Mn - 17.7*Ni - 12.1*Cr
+        return Ms
+
+    # Chemical composition of the steel
+    C_content = 0.6   # wt%
+    Mn_content = 0.8  # wt%
+    Ni_content = 0
+    Cr_content = 0
+
+    # Ms temperature
+    Ms_temp = calculate_ms_temperature(C_content, Mn_content, Ni_content, Cr_content)
+
+    print("=== Steel Composition ===")
+    print(f"C: {C_content} wt%, Mn: {Mn_content} wt%, Ni: {Ni_content} wt%, Cr: {Cr_content} wt%")
+    print(f"\n=== Martensite Start Temperature ===")
+    print(f"Ms = 539 - 423×{C_content} - 30.4×{Mn_content} - 17.7×{Ni_content} - 12.1×{Cr_content}")
+    print(f"Ms = {Ms_temp:.1f}°C")
+
+    # Mf temperature estimate (empirically Ms - 215°C)
+    Mf_temp = Ms_temp - 215
+    print(f"Mf (estimated) ≈ {Mf_temp:.1f}°C")
+
+    # Water quenching
+    quench_temp_water = 20  # °C
+    print(f"\n=== Water Quenching (to {quench_temp_water}°C) ===")
+    if quench_temp_water < Ms_temp:
+        martensite_fraction = 100  # Fully martensitic (simplified estimate)
+        print(f"Final temperature ({quench_temp_water}°C) < Ms ({Ms_temp:.1f}°C)")
+        print(f"→ Martensite transformation occurs during quenching")
+        print(f"→ Expected structure: ~{martensite_fraction:.0f}% Martensite (high hardness)")
+        print(f"→ Hardness: ~60-65 HRC (extremely hard but brittle)")
+    else:
+        print(f"Final temperature ({quench_temp_water}°C) ≥ Ms ({Ms_temp:.1f}°C)")
+        print(f"→ Austenite retained (not recommended)")
+
+    # Oil quenching
+    quench_temp_oil = 60  # °C
+    print(f"\n=== Oil Quenching (to {quench_temp_oil}°C, then slow cooling) ===")
+    if quench_temp_oil < Ms_temp:
+        # Oil cools more slowly than water, so partial pearlite/bainite transformation is possible
+        print(f"Cooling rate: Slower than water quenching")
+        print(f"→ Possible pearlite/bainite transformation at higher temperatures")
+        print(f"→ Final structure: Martensite + Bainite (mixed)")
+        print(f"→ Hardness: ~50-55 HRC (slightly lower than water quench)")
+        print(f"→ Better toughness than full martensite")
+    else:
+        print(f"Final temperature ({quench_temp_oil}°C) ≥ Ms ({Ms_temp:.1f}°C)")
+        print(f"→ Austenite may transform to pearlite/bainite")
+
+    # Recommended heat treatment
+    print(f"\n=== Recommended Heat Treatment ===")
+    print(f"1. Austenitizing: 820-850°C, 30-60 min")
+    print(f"2. Quenching: Oil quench (to avoid cracking)")
+    print(f"3. Tempering: 200-400°C, 1-2 hours")
+    print(f"   → Reduces brittleness, improves toughness")
+    print(f"   → Hardness after tempering: ~45-55 HRC")
+
+    # Effect of alloying elements on the Ms temperature
+    print(f"\n=== Effect of Alloying Elements on Ms ===")
+    elements = {'C': -423, 'Mn': -30.4, 'Ni': -17.7, 'Cr': -12.1}
+    for elem, coeff in elements.items():
+        print(f"{elem}: {coeff:.1f}°C per wt% (negative = lowers Ms)")
 
 **Expected output** :
     
@@ -347,7 +499,120 @@ Click to Show/Hide Solution
     Dependencies: None
     """
     
-    import numpy as np import matplotlib.pyplot as plt from scipy.interpolate import interp1d # Experimental Data data = { 150: {'time': [10, 50, 200], 'hardness': [120, 140, 135]}, 175: {'time': [3, 15, 50], 'hardness': [120, 135, 125]}, 200: {'time': [1, 5, 20], 'hardness': [115, 125, 115]} } # MaximumHardness and pi ktime of determination print("=== Age Hardening Analysis ===") print(f"{'Temp [°C]':<12} {'Max Hardness [HV]':<20} {'Peak Time [h]':<15}") print("-" * 50) results = {} for temp, values in data.items(): times = np.array(values['time']) hardness = np.array(values['hardness']) max_hardness = np.max(hardness) peak_time = times[np.argmax(hardness)] results[temp] = {'max_hardness': max_hardness, 'peak_time': peak_time} print(f"{temp:<12} {max_hardness:<20} {peak_time:<15}") # recommendedcondition of determination print("\n=== Recommendation ===") best_temp = max(results, key=lambda x: results[x]['max_hardness']) print(f"Best temperature: {best_temp}°C") print(f"Maximum hardness: {results[best_temp]['max_hardness']} HV") print(f"Time to peak: {results[best_temp]['peak_time']} hours") # Practical recommended（formation ity also ） print("\n=== Practical Recommendation (T6 Treatment) ===") print(f"Option 1 (Maximum hardness): {best_temp}°C, {results[best_temp]['peak_time']} hours") print(f" → Highest hardness ({results[best_temp]['max_hardness']} HV)") print(f" → Suitable for maximum strength applications") print(f"\nOption 2 (Balanced): 175°C, 15 hours") print(f" → Good hardness (135 HV, ~96% of max)") print(f" → Shorter processing time (3.3× faster than 150°C)") print(f" → Better productivity") print(f"\nOption 3 (Rapid): 200°C, 5 hours") print(f" → Moderate hardness (125 HV, ~89% of max)") print(f" → Very fast processing (10× faster than 150°C)") print(f" → Suitable for rapid production") # age hardeningCurve of Plot fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5)) # Figure: Experimental Data and Curve colors = {150: 'blue', 175: 'green', 200: 'red'} for temp, values in data.items(): times = np.array(values['time']) hardness = np.array(values['hardness']) # （cubic spline） time_interp = np.linspace(times[0], times[-1], 100) f_interp = interp1d(times, hardness, kind='quadratic', fill_value='extrapolate') hardness_interp = f_interp(time_interp) ax1.plot(time_interp, hardness_interp, color=colors[temp], linewidth=2, label=f'{temp}°C', alpha=0.7) ax1.plot(times, hardness, 'o', color=colors[temp], markersize=8) # pi kpoint ma k peak_idx = np.argmax(hardness) ax1.plot(times[peak_idx], hardness[peak_idx], '*', color=colors[temp], markersize=15, markeredgecolor='black', markeredgewidth=1) ax1.set_xlabel('Aging Time [hours]', fontsize=12) ax1.set_ylabel('Hardness [HV]', fontsize=12) ax1.set_title('Age Hardening Curves for Al-Cu Alloy', fontsize=14) ax1.legend(fontsize=11) ax1.grid(True, alpha=0.3) ax1.set_xscale('log') # Figure: MaximumHardness and time of Relation temps_list = sorted(results.keys()) max_hardness_list = [results[t]['max_hardness'] for t in temps_list] peak_time_list = [results[t]['peak_time'] for t in temps_list] ax2_twin = ax2.twinx() ax2.plot(temps_list, max_hardness_list, 'bo-', linewidth=2, markersize=10, label='Max Hardness') ax2_twin.plot(temps_list, peak_time_list, 'rs-', linewidth=2, markersize=10, label='Peak Time') ax2.set_xlabel('Aging Temperature [°C]', fontsize=12) ax2.set_ylabel('Maximum Hardness [HV]', fontsize=12, color='blue') ax2_twin.set_ylabel('Time to Peak [hours]', fontsize=12, color='red') ax2.tick_params(axis='y', labelcolor='blue') ax2_twin.tick_params(axis='y', labelcolor='red') ax2.set_title('Temperature vs. Max Hardness & Peak Time', fontsize=14) ax2.grid(True, alpha=0.3) plt.tight_layout() plt.savefig('age_hardening_analysis.png', dpi=300, bbox_inches='tight') plt.show() # excessaging of evaluate print("\n=== Over-aging Analysis ===") for temp in [150, 175, 200]: hardness_data = data[temp]['hardness'] if hardness_data[-1]<max(hardness_data): (loss="{loss}" *="" -="" 100="" code="" detected="" else:="" hardness_data[-1]="" hv,="" in="" loss="max(hardness_data)" loss_pct="(loss" max(hardness_data))="" no="" observed="" over-aging="" print(f"{temp}°c:="" range")<="" time="" {loss_pct:.1f}%)")=""></max(hardness_data):>
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from scipy.interpolate import interp1d
+
+    # Experimental data
+    data = {
+        150: {'time': [10, 50, 200], 'hardness': [120, 140, 135]},
+        175: {'time': [3, 15, 50], 'hardness': [120, 135, 125]},
+        200: {'time': [1, 5, 20], 'hardness': [115, 125, 115]}
+    }
+
+    # Determine the maximum hardness and the peak time
+    print("=== Age Hardening Analysis ===")
+    print(f"{'Temp [°C]':<12} {'Max Hardness [HV]':<20} {'Peak Time [h]':<15}")
+    print("-" * 50)
+
+    results = {}
+    for temp, values in data.items():
+        times = np.array(values['time'])
+        hardness = np.array(values['hardness'])
+
+        max_hardness = np.max(hardness)
+        peak_time = times[np.argmax(hardness)]
+
+        results[temp] = {'max_hardness': max_hardness, 'peak_time': peak_time}
+
+        print(f"{temp:<12} {max_hardness:<20} {peak_time:<15}")
+
+    # Determine the recommended conditions
+    print("\n=== Recommendation ===")
+    best_temp = max(results, key=lambda x: results[x]['max_hardness'])
+    print(f"Best temperature: {best_temp}°C")
+    print(f"Maximum hardness: {results[best_temp]['max_hardness']} HV")
+    print(f"Time to peak: {results[best_temp]['peak_time']} hours")
+
+    # Practical recommendation (productivity also taken into account)
+    print("\n=== Practical Recommendation (T6 Treatment) ===")
+    print(f"Option 1 (Maximum hardness): {best_temp}°C, {results[best_temp]['peak_time']} hours")
+    print(f"  → Highest hardness ({results[best_temp]['max_hardness']} HV)")
+    print(f"  → Suitable for maximum strength applications")
+
+    print(f"\nOption 2 (Balanced): 175°C, 15 hours")
+    print(f"  → Good hardness (135 HV, ~96% of max)")
+    print(f"  → Shorter processing time (3.3× faster than 150°C)")
+    print(f"  → Better productivity")
+
+    print(f"\nOption 3 (Rapid): 200°C, 5 hours")
+    print(f"  → Moderate hardness (125 HV, ~89% of max)")
+    print(f"  → Very fast processing (10× faster than 150°C)")
+    print(f"  → Suitable for rapid production")
+
+    # Plot the age hardening curves
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+
+    # Left panel: experimental data and interpolated curves
+    colors = {150: 'blue', 175: 'green', 200: 'red'}
+    for temp, values in data.items():
+        times = np.array(values['time'])
+        hardness = np.array(values['hardness'])
+
+        # Interpolation (cubic spline)
+        time_interp = np.linspace(times[0], times[-1], 100)
+        f_interp = interp1d(times, hardness, kind='quadratic', fill_value='extrapolate')
+        hardness_interp = f_interp(time_interp)
+
+        ax1.plot(time_interp, hardness_interp, color=colors[temp], linewidth=2,
+                 label=f'{temp}°C', alpha=0.7)
+        ax1.plot(times, hardness, 'o', color=colors[temp], markersize=8)
+
+        # Mark the peak point
+        peak_idx = np.argmax(hardness)
+        ax1.plot(times[peak_idx], hardness[peak_idx], '*', color=colors[temp],
+                 markersize=15, markeredgecolor='black', markeredgewidth=1)
+
+    ax1.set_xlabel('Aging Time [hours]', fontsize=12)
+    ax1.set_ylabel('Hardness [HV]', fontsize=12)
+    ax1.set_title('Age Hardening Curves for Al-Cu Alloy', fontsize=14)
+    ax1.legend(fontsize=11)
+    ax1.grid(True, alpha=0.3)
+    ax1.set_xscale('log')
+
+    # Right panel: relation between maximum hardness and the time to reach it
+    temps_list = sorted(results.keys())
+    max_hardness_list = [results[t]['max_hardness'] for t in temps_list]
+    peak_time_list = [results[t]['peak_time'] for t in temps_list]
+
+    ax2_twin = ax2.twinx()
+    ax2.plot(temps_list, max_hardness_list, 'bo-', linewidth=2, markersize=10,
+             label='Max Hardness')
+    ax2_twin.plot(temps_list, peak_time_list, 'rs-', linewidth=2, markersize=10,
+                  label='Peak Time')
+
+    ax2.set_xlabel('Aging Temperature [°C]', fontsize=12)
+    ax2.set_ylabel('Maximum Hardness [HV]', fontsize=12, color='blue')
+    ax2_twin.set_ylabel('Time to Peak [hours]', fontsize=12, color='red')
+    ax2.tick_params(axis='y', labelcolor='blue')
+    ax2_twin.tick_params(axis='y', labelcolor='red')
+    ax2.set_title('Temperature vs. Max Hardness & Peak Time', fontsize=14)
+    ax2.grid(True, alpha=0.3)
+
+    plt.tight_layout()
+    plt.savefig('age_hardening_analysis.png', dpi=300, bbox_inches='tight')
+    plt.show()
+
+    # Evaluate over-aging
+    print("\n=== Over-aging Analysis ===")
+    for temp in [150, 175, 200]:
+        hardness_data = data[temp]['hardness']
+        if hardness_data[-1] < max(hardness_data):
+            loss = max(hardness_data) - hardness_data[-1]
+            loss_pct = (loss / max(hardness_data)) * 100
+            print(f"{temp}°C: Over-aging detected (loss = {loss} HV, {loss_pct:.1f}%)")
+        else:
+            print(f"{temp}°C: No over-aging in observed time range")
 
 **Expected output** :
     
@@ -379,7 +644,146 @@ Click to Show/Hide Solution
     Dependencies: None
     """
     
-    import numpy as np import matplotlib.pyplot as plt # TTTFigure of Parameter Ms_temp = 220 # Martensitetransformation startTemperature [°C] pearlite_nose = {'temp': 550, 'time': 1} # Pearliteno zu [°C, s] bainite_nose = {'temp': 350, 'time': 10} # Bainiteno zu [°C, s] # Coolingshinario scenarios = { 'a': {'cool_time': 1, 'cool_to': 550, 'hold_temp': 550, 'hold_time': 10}, 'b': {'cool_time': 0.1, 'cool_to': 200, 'hold_temp': None, 'hold_time': 0}, 'c': {'cool_time': 10, 'cool_to': 350, 'hold_temp': 350, 'hold_time': 100} } def predict_structure(scenario_name, scenario): """ TTTFigure Microstructure Prediction """ print(f"\n=== Scenario {scenario_name.upper()} ===") print(f"Cooling: {scenario['cool_time']}s to {scenario['cool_to']}°C") if scenario['hold_temp']: print(f"Holding: {scenario['hold_temp']}°C for {scenario['hold_time']}s") cool_time = scenario['cool_time'] cool_to = scenario['cool_to'] hold_temp = scenario['hold_temp'] hold_time = scenario['hold_time'] # Cooling of transformation if cool_to == pearlite_nose['temp'] and cool_time>= pearlite_nose['time']: print(f"→ Crosses pearlite nose during cooling") print(f"→ Partial pearlite transformation likely") partial_pearlite = True else: partial_pearlite = False # holding of transformation if hold_temp == pearlite_nose['temp'] and hold_time>= pearlite_nose['time']: print(f"→ Isothermal holding at pearlite nose temperature") print(f"→ COMPLETE pearlite transformation") structure = "100% Pearlite" hardness = "~20-25 HRC (soft, ductile)" elif hold_temp == bainite_nose['temp'] and hold_time>= bainite_nose['time']: print(f"→ Isothermal holding at bainite nose temperature") print(f"→ COMPLETE bainite transformation") structure = "100% Bainite" hardness = "~40-50 HRC (moderate hardness, good toughness)" elif cool_to<ms_temp "="*70) print(" #="" 'b',="" 'b-',="" 'c']:="" 'co-',="" 'hardness':="" 'ko-',="" 'mo-',="" 'r-',="" (bainite):="" (balanced="" (high="" (martensite):="" (maximum="" (np.log10(time="" (pearlite):="" ({ms_temp}°c)")="" )="" *="" +="" ,="" 150="" 1e4)="" 200)="" 200]="" 250,="" 350,="" 350]="" 4,="" 400,="" 500)="" 550,="" 550]="" 727)="" 8))="" 80="" 900)="" =="" ="*70)="" ['a',="" [s]',="" [°c]',="" a="" alpha="0.3," analyze="" and="" applications=") print(" ax="plt.subplots(figsize=(12," ax.axhline(y="Ms_temp," ax.grid(true,="" ax.legend(fontsize="11," ax.plot(time_a,="" ax.plot(time_b,="" ax.plot(time_c,="" ax.semilogx(time,="" ax.set_title('ttt="" ax.set_xlabel('time="" ax.set_xlim(0.1,="" ax.set_ylabel('temperature="" ax.set_ylim(0,="" b="" b_start="np.clip(B_start," b_start,="" bainite_nose['time']))**2="" bainitetransformationcurve="" bbox_inches="tight" bearings="" below="" c="" code="" color="green" cool_time_a="" cool_time_a,="" cool_time_c="" cool_time_c,="" cooling="" cooling")="" coolingcurve="" cutting="" diagram="" dpi="300," ductility,="" eachshinario="" else:="" eutectoid="" fig,="" fontsize="15," fontweight="bold" for="" gears,="" hardness="" hardness)")="" hardness}="" hardness】:="" hold_temp="" hold_time_a="scenarios['a']['hold_time']" hold_time_a]="" hold_time_c="scenarios['c']['hold_time']" hold_time_c]="" if="" in="" intermediate="" is="" label="Scenario C" linestyle="-" linewidth="2.5," loc="upper right" markersize="8," martensite="" ms="" name="" name,="" none:="" number）="" of="" p_start="np.clip(P_start," p_start,="" partial_pearlite:="" paths="" pearlite_nose['time']))**2="" pearlitetransformationcurve（simplifiedc="" plot="" plt.savefig('ttt_scenarios.png',="" plt.show()="" plt.tight_layout()="" prediction="" print("-"*70)="" print("\n="Recommended" print("\n"="" print("scenario="" print(f"\n【predicted="" print(f"{'scenario':<12}="" print(f"{name.upper():<12}="" print(f"→="" print(f"【expected="" rails,="" rapid="" ratiocomparisontable="" recommendeduse="" resistance)")="" result="" results=") print(" results[name]="{'structure':" return="" ropes="" scenario="" scenario)="" scenarios.items():="" scenarios['b']['cool_time']]="" shinario="" simplifiedplot（conceptfigure）="" springs="" steel',="" structure="" structure,="" structure】:="" temp_a="[850," temp_a,="" temp_b="[850," temp_b,="" temp_c="[850," temp_c,="" time="np.logspace(-1," time_a="[0," time_b="[0," time_c="[0," tools,="" toughness)")<="" transformation")="" tttfigure="" wear="" which="both" wire="" {'hardness':<20}")="" {'structure':<35}="" {hardness}")="" {ms_temp}°c')="" {results[name]['hardness']:<20}")="" {results[name]['structure']:<35}="" {structure}")="" （="" ）=""></ms_temp>
+    import numpy as np
+    import matplotlib.pyplot as plt
+
+    # TTT diagram parameters
+    Ms_temp = 220  # Martensite start temperature [°C]
+    pearlite_nose = {'temp': 550, 'time': 1}      # Pearlite nose [°C, s]
+    bainite_nose = {'temp': 350, 'time': 10}      # Bainite nose [°C, s]
+
+    # Cooling scenarios
+    scenarios = {
+        'a': {'cool_time': 1, 'cool_to': 550, 'hold_temp': 550, 'hold_time': 10},
+        'b': {'cool_time': 0.1, 'cool_to': 200, 'hold_temp': None, 'hold_time': 0},
+        'c': {'cool_time': 10, 'cool_to': 350, 'hold_temp': 350, 'hold_time': 100}
+    }
+
+    def predict_structure(scenario_name, scenario):
+        """
+        Predict the microstructure from the TTT diagram
+        """
+        print(f"\n=== Scenario {scenario_name.upper()} ===")
+        print(f"Cooling: {scenario['cool_time']}s to {scenario['cool_to']}°C")
+        if scenario['hold_temp']:
+            print(f"Holding: {scenario['hold_temp']}°C for {scenario['hold_time']}s")
+
+        cool_time = scenario['cool_time']
+        cool_to = scenario['cool_to']
+        hold_temp = scenario['hold_temp']
+        hold_time = scenario['hold_time']
+
+        # Transformation during cooling
+        if cool_to == pearlite_nose['temp'] and cool_time >= pearlite_nose['time']:
+            print(f"→ Crosses pearlite nose during cooling")
+            print(f"→ Partial pearlite transformation likely")
+            partial_pearlite = True
+        else:
+            partial_pearlite = False
+
+        # Transformation during isothermal holding
+        if hold_temp == pearlite_nose['temp'] and hold_time >= pearlite_nose['time']:
+            print(f"→ Isothermal holding at pearlite nose temperature")
+            print(f"→ COMPLETE pearlite transformation")
+            structure = "100% Pearlite"
+            hardness = "~20-25 HRC (soft, ductile)"
+
+        elif hold_temp == bainite_nose['temp'] and hold_time >= bainite_nose['time']:
+            print(f"→ Isothermal holding at bainite nose temperature")
+            print(f"→ COMPLETE bainite transformation")
+            structure = "100% Bainite"
+            hardness = "~40-50 HRC (moderate hardness, good toughness)"
+
+        elif cool_to < Ms_temp and hold_temp is None:
+            print(f"→ Rapid cooling below Ms ({Ms_temp}°C)")
+            print(f"→ Martensite transformation")
+            structure = "~100% Martensite"
+            hardness = "~63-65 HRC (very hard, brittle)"
+
+        else:
+            print(f"→ Intermediate cooling")
+            if partial_pearlite:
+                structure = "Pearlite + Martensite (mixed)"
+                hardness = "~35-45 HRC"
+            else:
+                structure = "Bainite + Martensite (mixed)"
+                hardness = "~50-55 HRC"
+
+        print(f"\n【Predicted Structure】: {structure}")
+        print(f"【Expected Hardness】: {hardness}")
+
+        return structure, hardness
+
+    # Analyze each scenario
+    results = {}
+    for name, scenario in scenarios.items():
+        structure, hardness = predict_structure(name, scenario)
+        results[name] = {'structure': structure, 'hardness': hardness}
+
+    # Comparison table of results
+    print("\n" + "="*70)
+    print("=== SUMMARY: Structure Prediction Results ===")
+    print("="*70)
+    print(f"{'Scenario':<12} {'Structure':<35} {'Hardness':<20}")
+    print("-"*70)
+    for name in ['a', 'b', 'c']:
+        print(f"{name.upper():<12} {results[name]['structure']:<35} {results[name]['hardness']:<20}")
+
+    # Simplified TTT diagram plot (conceptual)
+    fig, ax = plt.subplots(figsize=(12, 8))
+
+    # Time axis (logarithmic)
+    time = np.logspace(-1, 4, 200)
+
+    # Pearlite transformation curve (simplified C-curve)
+    P_start = 550 + 150 * (np.log10(time / pearlite_nose['time']))**2
+    P_start = np.clip(P_start, 400, 727)
+
+    # Bainite transformation curve
+    B_start = 350 + 80 * (np.log10(time / bainite_nose['time']))**2
+    B_start = np.clip(B_start, 250, 500)
+
+    ax.semilogx(time, P_start, 'r-', linewidth=2, label='Pearlite Start')
+    ax.semilogx(time, B_start, 'b-', linewidth=2, label='Bainite Start')
+    ax.axhline(y=Ms_temp, color='green', linestyle='-', linewidth=2.5, label=f'Ms = {Ms_temp}°C')
+
+    # Plot the cooling curve for each scenario
+    # Scenario A
+    cool_time_a = scenarios['a']['cool_time']
+    hold_time_a = scenarios['a']['hold_time']
+    time_a = [0, cool_time_a, cool_time_a + hold_time_a]
+    temp_a = [850, 550, 550]
+    ax.plot(time_a, temp_a, 'ko-', linewidth=2.5, markersize=8, label='Scenario A', alpha=0.7)
+
+    # Scenario B
+    time_b = [0, scenarios['b']['cool_time']]
+    temp_b = [850, 200]
+    ax.plot(time_b, temp_b, 'mo-', linewidth=2.5, markersize=8, label='Scenario B', alpha=0.7)
+
+    # Scenario C
+    cool_time_c = scenarios['c']['cool_time']
+    hold_time_c = scenarios['c']['hold_time']
+    time_c = [0, cool_time_c, cool_time_c + hold_time_c]
+    temp_c = [850, 350, 350]
+    ax.plot(time_c, temp_c, 'co-', linewidth=2.5, markersize=8, label='Scenario C', alpha=0.7)
+
+    ax.set_xlabel('Time [s]', fontsize=13)
+    ax.set_ylabel('Temperature [°C]', fontsize=13)
+    ax.set_title('TTT Diagram and Cooling Paths for Eutectoid Steel', fontsize=15, fontweight='bold')
+    ax.legend(fontsize=11, loc='upper right')
+    ax.grid(True, alpha=0.3, which='both')
+    ax.set_xlim(0.1, 1e4)
+    ax.set_ylim(0, 900)
+
+    plt.tight_layout()
+    plt.savefig('ttt_scenarios.png', dpi=300, bbox_inches='tight')
+    plt.show()
+
+    # Recommended applications
+    print("\n=== Recommended Applications ===")
+    print("Scenario A (Pearlite): Rails, wire ropes (high ductility, wear resistance)")
+    print("Scenario B (Martensite): Cutting tools, bearings (maximum hardness)")
+    print("Scenario C (Bainite): Gears, springs (balanced hardness and toughness)")
 
 **Expected output** :
     

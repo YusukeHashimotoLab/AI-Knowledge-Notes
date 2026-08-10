@@ -1006,7 +1006,7 @@ Tc予測の計算（Python） コピー
             """
             Eliashberg関数 α²F(ω)
     
-            簡略化: α²F(ω) = N(EF) *  * F(ω)
+            簡略化: α²F(ω) = N(EF) * <g²> * F(ω)
             """
             g_squared = (self.g_avg * self.eV)**2  # J²
             F = self.phonon_dos(omega)

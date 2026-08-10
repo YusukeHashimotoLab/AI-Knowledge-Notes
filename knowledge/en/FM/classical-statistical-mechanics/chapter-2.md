@@ -153,7 +153,7 @@ Python Implementation: Thermodynamics of Harmonic Oscillator
     E_low = average_energy(omega, T_low, hbar, k_B)
     C_low = heat_capacity(omega, T_low, hbar, k_B)
     print(f"  T = {T_low:.2f} K")
-    print(f"  <e> ≈ {E_low/(hbar*omega):.4f} ℏω (≈ zero-point energy)")
+    print(f"  <E> ≈ {E_low/(hbar*omega):.4f} ℏω (≈ zero-point energy)")
     print(f"  C ≈ {C_low/k_B:.6f} k_B (exponentially decaying)\n")
     
     print("High-temperature limit (T >> θ):")
@@ -161,9 +161,8 @@ Python Implementation: Thermodynamics of Harmonic Oscillator
     E_high = average_energy(omega, T_high, hbar, k_B)
     C_high = heat_capacity(omega, T_high, hbar, k_B)
     print(f"  T = {T_high:.2f} K")
-    print(f"  <e> ≈ {E_high/(k_B*T_high):.4f} k_B T (classical)")
+    print(f"  <E> ≈ {E_high/(k_B*T_high):.4f} k_B T (classical)")
     print(f"  C ≈ {C_high/k_B:.4f} k_B (equipartition theorem)")
-    </e></e>
 
 ## Example 2.2: Equipartition Theorem
 
@@ -265,10 +264,9 @@ Python Implementation: Verification of Equipartition Theorem (Monte Carlo Method
         theoretical_KE = 1.5 * k_B * T
         error = abs(avg_KE - theoretical_KE) / theoretical_KE * 100
         print(f"T = {T} K:")
-        print(f"  Simulation: <ke> = {avg_KE:.6e} J")
+        print(f"  Simulation: <KE> = {avg_KE:.6e} J")
         print(f"  Theory: (3/2)k_B T = {theoretical_KE:.6e} J")
         print(f"  Error: {error:.2f}%\n")
-    </ke>
 
 ## Example 2.3: Two-Level System and Schottky Heat Capacity
 
@@ -687,7 +685,7 @@ Python Implementation: Rotational Spectrum of Diatomic Molecules
         """Rotational heat capacity"""
         Z = rotational_partition_function(T, B, J_max)
     
-        # Calculate <e>
+        # Calculate <E>
         E_avg = 0
         for J in range(J_max):
             g_J = 2 * J + 1
@@ -695,7 +693,7 @@ Python Implementation: Rotational Spectrum of Diatomic Molecules
             E_avg += g_J * E_J * np.exp(-E_J / T)
         E_avg /= Z
     
-        # Calculate <e²>
+        # Calculate <E²>
         E2_avg = 0
         for J in range(J_max):
             g_J = 2 * J + 1
@@ -703,7 +701,7 @@ Python Implementation: Rotational Spectrum of Diatomic Molecules
             E2_avg += g_J * E_J**2 * np.exp(-E_J / T)
         E2_avg /= Z
     
-        # C = d<e>/dT = (<e²> - <e>²) / (k_B T²)
+        # C = d<E>/dT = (<E²> - <E>²) / (k_B T²)
         C_rot = (E2_avg - E_avg**2) / T**2
         return C_rot * k_B
     
@@ -791,7 +789,6 @@ Python Implementation: Rotational Spectrum of Diatomic Molecules
     print("High-temperature limit (T >> θ_rot):")
     print("  Z_rot ≈ T/θ_rot")
     print("  C_rot ≈ k_B (classical)")
-    </e></e²></e></e²></e>
 
 ## Example 2.7: Partition Function of Ideal Gas
 

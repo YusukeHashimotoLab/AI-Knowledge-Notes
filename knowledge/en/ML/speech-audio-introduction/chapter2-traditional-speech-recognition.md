@@ -961,7 +961,7 @@ $$ \hat{W} = \arg\max_W \left[\log P(X|W) + \lambda \log P(W)\right] $$
                 lm_scores = {}
                 for word in acoustic_scores.keys():
                     # Bigram probability
-                    prev_word = previous_words[-1] if previous_words else '~~'
+                    prev_word = previous_words[-1] if previous_words else '<s>'
                     lm_scores[word] = np.log(self.language_model.probability(prev_word, word))
             else:
                 lm_scores = {word: 0 for word in acoustic_scores.keys()}
@@ -979,7 +979,7 @@ $$ \hat{W} = \arg\max_W \left[\log P(X|W) + \lambda \log P(W)\right] $$
     
     print("\n=== Language Model Integration ===")
     print("By combining acoustic and language scores,")
-    print("recognition accuracy can be improved with context consideration")~~
+    print("recognition accuracy can be improved with context consideration")
 
 * * *
 

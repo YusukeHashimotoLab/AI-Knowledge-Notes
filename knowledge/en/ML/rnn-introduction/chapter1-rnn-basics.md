@@ -975,7 +975,7 @@ Class | Features | Use Cases
     tensor([[0.5234, 0.4766],
             [0.4892, 0.5108],
             [0.5123, 0.4877],
-            [0.4956, 0.5044]], grad_fn=)
+            [0.4956, 0.5044]], grad_fn=<SoftmaxBackward0>)
     
     Total parameters: 529,410
       Breakdown:

@@ -336,7 +336,7 @@ $$ \begin{align} f_t &= \sigma(W_f \cdot [h_{t-1}, x_t] + b_f) \quad \text{(忘�
     # 簡単な語彙の構築
     words = set(" ".join(sentences).split())
     word_to_idx = {word: i+1 for i, word in enumerate(words)}  # 0はパディング用
-    word_to_idx[''] = 0
+    word_to_idx['<PAD>'] = 0
     
     vocab_size = len(word_to_idx)
     print(f"語彙サイズ: {vocab_size}")
@@ -623,7 +623,7 @@ Seq2Seqは2つの主要コンポーネントから構成されます：
             # Encoderで入力を処理
             hidden, cell = self.encoder(source)
     
-            # Decoderの最初の入力（トークン）
+            # Decoderの最初の入力（<SOS>トークン）
             decoder_input = target[:, 0].unsqueeze(1)
     
             for t in range(1, target_len):
@@ -705,10 +705,10 @@ Seq2Seqは2つの主要コンポーネントから構成されます：
     ]
     
     ja_sentences = [
-        " 私 は 学生 です ",
-        " 彼 は 教師 です ",
-        " 彼女 は 猫 が 好き です ",
-        " 私たち は 英語 を 勉強 します "
+        "<SOS> 私 は 学生 です <EOS>",
+        "<SOS> 彼 は 教師 です <EOS>",
+        "<SOS> 彼女 は 猫 が 好き です <EOS>",
+        "<SOS> 私たち は 英語 を 勉強 します <EOS>"
     ]
     
     # 語彙の構築
@@ -717,7 +717,7 @@ Seq2Seqは2つの主要コンポーネントから構成されます：
     
     en_vocab = {word: i+1 for i, word in enumerate(en_words)}
     ja_vocab = {word: i+1 for i, word in enumerate(ja_words)}
-    ja_vocab[''] = 0
+    ja_vocab['<PAD>'] = 0
     
     en_vocab_size = len(en_vocab) + 1
     ja_vocab_size = len(ja_vocab) + 1

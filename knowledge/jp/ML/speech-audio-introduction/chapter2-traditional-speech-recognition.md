@@ -600,7 +600,7 @@ $$ P_{\text{KN}}(w_i | w_{i-1}) = \frac{\max(C(w_{i-1}, w_i) - \delta, 0)}{C(w_{
             """
             for sentence in corpus:
                 # 開始・終了タグを追加
-                words = ['~~'] + sentence + ['~~ ']
+                words = ['<s>'] + sentence + ['</s>']
     
                 for word in words:
                     self.vocab.add(word)
@@ -625,7 +625,7 @@ $$ P_{\text{KN}}(w_i | w_{i-1}) = \frac{\max(C(w_{i-1}, w_i) - \delta, 0)}{C(w_{
             """
             文の確率を計算
             """
-            words = ['~~'] + sentence + ['~~ ']
+            words = ['<s>'] + sentence + ['</s>']
             prob = 1.0
     
             for w1, w2 in zip(words[:-1], words[1:]):
@@ -641,7 +641,7 @@ $$ P_{\text{KN}}(w_i | w_{i-1}) = \frac{\max(C(w_{i-1}, w_i) - \delta, 0)}{C(w_{
             n_words = 0
     
             for sentence in test_corpus:
-                words = ['~~'] + sentence + ['~~ ']
+                words = ['<s>'] + sentence + ['</s>']
                 n_words += len(words) - 1
     
                 for w1, w2 in zip(words[:-1], words[1:]):
@@ -917,7 +917,7 @@ $$ \hat{W} = \arg\max_W \left[\log P(X|W) + \lambda \log P(W)\right] $$
                 lm_scores = {}
                 for word in acoustic_scores.keys():
                     # バイグラム確率
-                    prev_word = previous_words[-1] if previous_words else '~~'
+                    prev_word = previous_words[-1] if previous_words else '<s>'
                     lm_scores[word] = np.log(self.language_model.probability(prev_word, word))
             else:
                 lm_scores = {word: 0 for word in acoustic_scores.keys()}
@@ -935,7 +935,7 @@ $$ \hat{W} = \arg\max_W \left[\log P(X|W) + \lambda \log P(W)\right] $$
     
     print("\n=== 言語モデル統合 ===")
     print("音響スコアと言語スコアを組み合わせることで、")
-    print("文脈を考慮した認識精度の向上が可能です")~~
+    print("文脈を考慮した認識精度の向上が可能です")
 
 * * *
 

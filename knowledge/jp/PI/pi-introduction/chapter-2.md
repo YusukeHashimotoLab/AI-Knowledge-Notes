@@ -1010,8 +1010,7 @@ Scaling** | $x' = \frac{x - Q_{med}}{Q_{75} - Q_{25}}$ | 外れ値に頑健 | �
                    mode='lines',
                    name='Temperature',
                    line=dict(color='#11998e', width=1.5),
-                   hovertemplate='%{x}  
-    Temp: %{y:.2f}°C'),
+                   hovertemplate='%{x}<br>Temp: %{y:.2f}°C<extra></extra>'),
         row=1, col=1
     )
     fig.add_hline(y=175, line_dash="dash", line_color="red",
@@ -1023,8 +1022,7 @@ Scaling** | $x' = \frac{x - Q_{med}}{Q_{75} - Q_{25}}$ | 外れ値に頑健 | �
                    mode='lines',
                    name='Pressure',
                    line=dict(color='#f59e0b', width=1.5),
-                   hovertemplate='%{x}  
-    Pressure: %{y:.3f} MPa'),
+                   hovertemplate='%{x}<br>Pressure: %{y:.3f} MPa<extra></extra>'),
         row=2, col=1
     )
     
@@ -1034,8 +1032,7 @@ Scaling** | $x' = \frac{x - Q_{med}}{Q_{75} - Q_{25}}$ | 外れ値に頑健 | �
                    mode='lines',
                    name='Flow Rate',
                    line=dict(color='#7b2cbf', width=1.5),
-                   hovertemplate='%{x}  
-    Flow: %{y:.2f} m³/h'),
+                   hovertemplate='%{x}<br>Flow: %{y:.2f} m³/h<extra></extra>'),
         row=3, col=1
     )
     
@@ -1045,8 +1042,7 @@ Scaling** | $x' = \frac{x - Q_{med}}{Q_{75} - Q_{25}}$ | 外れ値に頑健 | �
                    mode='lines',
                    name='Purity',
                    line=dict(color='#10b981', width=1.5),
-                   hovertemplate='%{x}  
-    Purity: %{y:.2f}%'),
+                   hovertemplate='%{x}<br>Purity: %{y:.2f}%<extra></extra>'),
         row=4, col=1
     )
     fig.add_hrect(y0=97.5, y1=99.0, line_width=0, fillcolor="green", opacity=0.1,

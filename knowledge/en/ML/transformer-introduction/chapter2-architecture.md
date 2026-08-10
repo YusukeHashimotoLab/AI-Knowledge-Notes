@@ -1203,7 +1203,6 @@ $$ \text{Mask}_{ij} = \begin{cases} 0 & \text{if } i < j \text{ (future tokens)}
     print(f"Source ID: {src_sample.tolist()}")
     print(f"Target: {tgt_sentences[0]}")
     print(f"Target ID: {tgt_sample.tolist()}")
-    </unk></eos></sos></pad></unk></unk>
 
 ### Training Loop Implementation
     
@@ -1316,7 +1315,6 @@ $$ \text{Mask}_{ij} = \begin{cases} 0 & \text{if } i < j \text{ (future tokens)}
         print(f"Epoch {epoch+1}/{num_epochs} - Loss: {loss:.4f}")
     
     print("\nTraining complete!")
-    </pad></pad></pad></sos></eos></pad></pad>
 
 ### Translation Inference
     
@@ -1377,7 +1375,6 @@ $$ \text{Mask}_{ij} = \begin{cases} 0 & \text{if } i < j \text{ (future tokens)}
         print()
     
     print("→ Not perfect due to small dataset, but basic translation functionality implemented")
-    </eos></eos></sos></eos></sos></unk></eos></sos></unk>
 
 * * *
 

@@ -1644,8 +1644,8 @@ class TranslationDataset(Dataset):
         tgt = self.tgt_sentences[idx]
 
         # トークンIDに変換
-        src_ids = [self.src_vocab.get(w, self.src_vocab['<unk>']) for w in src.split()]
-        tgt_ids = [self.tgt_vocab.get(w, self.tgt_vocab['<unk>']) for w in tgt.split()]
+        src_ids = [self.src_vocab.get(w, self.src_vocab['&lt;unk&gt;']) for w in src.split()]
+        tgt_ids = [self.tgt_vocab.get(w, self.tgt_vocab['&lt;unk&gt;']) for w in tgt.split()]
 
         return torch.tensor(src_ids), torch.tensor(tgt_ids)
 
@@ -1661,7 +1661,7 @@ def build_vocab(sentences, max_vocab_size=10000):
     most_common = word_counts.most_common(max_vocab_size - 4)  # 特殊トークン分を除く
 
     # 語彙辞書作成
-    vocab = {'<pad>': 0, '<sos>': 1, '<eos>': 2, '<unk>': 3}
+    vocab = {'&lt;pad&gt;': 0, '&lt;sos&gt;': 1, '&lt;eos&gt;': 2, '&lt;unk&gt;': 3}
     for word, _ in most_common:
         vocab[word] = len(vocab)
 
@@ -1719,8 +1719,8 @@ def collate_fn(batch, src_vocab, tgt_vocab):
     src_batch, tgt_batch = zip(*batch)
 
     # パディング
-    src_padded = pad_sequence(src_batch, batch_first=True, padding_value=src_vocab['<pad>'])
-    tgt_padded = pad_sequence(tgt_batch, batch_first=True, padding_value=tgt_vocab['<pad>'])
+    src_padded = pad_sequence(src_batch, batch_first=True, padding_value=src_vocab['&lt;pad&gt;'])
+    tgt_padded = pad_sequence(tgt_batch, batch_first=True, padding_value=tgt_vocab['&lt;pad&gt;'])
 
     return src_padded, tgt_padded
 
@@ -1748,12 +1748,12 @@ def train_epoch(model, dataloader, optimizer, criterion, src_vocab, tgt_vocab, d
         src, tgt = src.to(device), tgt.to(device)
 
         # ターゲットを入力と教師データに分割
-        tgt_input = tgt[:, :-1]  # <eos>を除く
-        tgt_output = tgt[:, 1:]  # <sos>を除く
+        tgt_input = tgt[:, :-1]  # &lt;eos&gt;を除く
+        tgt_output = tgt[:, 1:]  # &lt;sos&gt;を除く
 
         # マスク作成
         src_mask, tgt_mask = create_masks(src, tgt_input,
-                                         src_vocab['<pad>'], tgt_vocab['<pad>'])
+                                         src_vocab['&lt;pad&gt;'], tgt_vocab['&lt;pad&gt;'])
 
         # Forward
         optimizer.zero_grad()
@@ -1803,7 +1803,7 @@ loader = DataLoader(
 )
 
 # 損失関数とオプティマイザ
-criterion = nn.CrossEntropyLoss(ignore_index=tgt_vocab['<pad>'])
+criterion = nn.CrossEntropyLoss(ignore_index=tgt_vocab['&lt;pad&gt;'])
 optimizer = optim.Adam(model.parameters(), lr=0.0001, betas=(0.9, 0.98), eps=1e-9)
 
 # 訓練
@@ -1825,7 +1825,7 @@ def translate(model, src_sentence, src_vocab, tgt_vocab, device, max_len=50):
 
     # ソース文をトークンIDに変換
     src_tokens = src_sentence.split()
-    src_ids = [src_vocab.get(w, src_vocab['<unk>']) for w in src_tokens]
+    src_ids = [src_vocab.get(w, src_vocab['&lt;unk&gt;']) for w in src_tokens]
     src = torch.tensor(src_ids).unsqueeze(0).to(device)  # (1, src_len)
 
     # ソースマスク
@@ -1835,19 +1835,19 @@ def translate(model, src_sentence, src_vocab, tgt_vocab, device, max_len=50):
     with torch.no_grad():
         generated = generate_greedy(
             model, src, src_mask, max_len,
-            start_token=tgt_vocab['<sos>'],
-            end_token=tgt_vocab['<eos>']
+            start_token=tgt_vocab['&lt;sos&gt;'],
+            end_token=tgt_vocab['&lt;eos&gt;']
         )
 
     # トークンIDを単語に変換
     idx_to_word = {v: k for k, v in tgt_vocab.items()}
-    translated = [idx_to_word.get(idx.item(), '<unk>') for idx in generated[0]]
+    translated = [idx_to_word.get(idx.item(), '&lt;unk&gt;') for idx in generated[0]]
 
-    # <sos>と<eos>を除去
-    if translated[0] == '<sos>':
+    # &lt;sos&gt;と&lt;eos&gt;を除去
+    if translated[0] == '&lt;sos&gt;':
         translated = translated[1:]
-    if '<eos>' in translated:
-        eos_idx = translated.index('<eos>')
+    if '&lt;eos&gt;' in translated:
+        eos_idx = translated.index('&lt;eos&gt;')
         translated = translated[:eos_idx]
 
     return ' '.join(translated)

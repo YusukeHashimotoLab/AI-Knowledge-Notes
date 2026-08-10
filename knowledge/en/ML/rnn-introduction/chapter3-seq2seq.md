@@ -150,7 +150,7 @@ Method | Training Input | Inference Input | Features
     ```mermaid
     graph LR
         subgraph Training["Training: Teacher Forcing"]
-            T1[""] --> TD1[Decoder]
+            T1["&lt;sos&gt;"] --> TD1[Decoder]
             TD1 --> TP1[Prediction: I]
             T2[Truth: I] --> TD2[Decoder]
             TD2 --> TP2[Prediction: love]
@@ -159,7 +159,7 @@ Method | Training Input | Inference Input | Features
         end
     
         subgraph Inference["Inference: Autoregressive"]
-            I1[""] --> ID1[Decoder]
+            I1["&lt;sos&gt;"] --> ID1[Decoder]
             ID1 --> IP1[Prediction: I]
             IP1 --> ID2[Decoder]
             ID2 --> IP2[Prediction: love]
@@ -405,7 +405,7 @@ Method | Training Input | Inference Input | Features
             # Process input sequence with Encoder
             hidden, cell = self.encoder(src)
     
-            # First input to Decoder is  token
+            # First input to Decoder is <sos> token
             input = trg[:, 0]
     
             # Execute Decoder at each timestep
@@ -486,8 +486,8 @@ Method | Training Input | Inference Input | Features
     
             # Reshape output: [batch_size, trg_len, output_dim] -> [batch_size * trg_len, output_dim]
             output_dim = output.shape[-1]
-            output = output[:, 1:].reshape(-1, output_dim)  # Exclude 
-            trg = trg[:, 1:].reshape(-1)  # Exclude 
+            output = output[:, 1:].reshape(-1, output_dim)  # Exclude <sos>
+            trg = trg[:, 1:].reshape(-1)  # Exclude <sos>
     
             # Calculate loss
             loss = criterion(output, trg)
@@ -612,7 +612,7 @@ $$ y_t = \arg\max_{y} P(y | y_{<t}, \mathbf{x}) $$
             # Process input with Encoder
             hidden, cell = model.encoder(src)
     
-            # Start with  token
+            # Start with <sos> token
             SOS_token = 1
             EOS_token = 2
     
@@ -626,7 +626,7 @@ $$ y_t = \arg\max_{y} P(y | y_{<t}, \mathbf{x}) $$
                 # Select most probable token
                 top1 = output.argmax(1)
     
-                # End if  token
+                # End if <eos> token
                 if top1.item() == EOS_token:
                     break
     
@@ -645,13 +645,13 @@ $$ y_t = \arg\max_{y} P(y | y_{<t}, \mathbf{x}) $$
     print(f"Input sentence: {src_sentence}")
     
     # Simulated vocabulary dictionaries
-    src_vocab = {'': 0, '': 1, '': 2, 'I': 3, 'love': 4, 'artificial': 5, 'intelligence': 6}
-    trg_vocab = {'': 0, '': 1, '': 2, 'I': 3, 'love': 4, 'artificial': 5, 'intelligence': 6, 'very': 7, 'much': 8, 'it': 9}
+    src_vocab = {'<pad>': 0, '<sos>': 1, '<eos>': 2, 'I': 3, 'love': 4, 'artificial': 5, 'intelligence': 6}
+    trg_vocab = {'<pad>': 0, '<sos>': 1, '<eos>': 2, 'I': 3, 'love': 4, 'artificial': 5, 'intelligence': 6, 'very': 7, 'much': 8, 'it': 9}
     trg_vocab_inv = {v: k for k, v in trg_vocab.items()}
     
     # Tokenization (actual implementation would use tokenizer)
-    src_indices = [src_vocab[''], src_vocab['I'], src_vocab['love'],
-                   src_vocab['artificial'], src_vocab['intelligence'], src_vocab['']]
+    src_indices = [src_vocab['<sos>'], src_vocab['I'], src_vocab['love'],
+                   src_vocab['artificial'], src_vocab['intelligence'], src_vocab['<eos>']]
     src_tensor = torch.tensor([src_indices]).to(device)
     
     # Greedy Search inference
@@ -659,7 +659,7 @@ $$ y_t = \arg\max_{y} P(y | y_{<t}, \mathbf{x}) $$
     
     # Decode (simulated output)
     output_indices_demo = [3, 4, 5, 6, 7, 8, 9]  # Instead of actual inference result
-    output_sentence = ' '.join([trg_vocab_inv.get(idx, '') for idx in output_indices_demo])
+    output_sentence = ' '.join([trg_vocab_inv.get(idx, '<unk>') for idx in output_indices_demo])
     
     print(f"Output sentence: {output_sentence}")
     print(f"\nGreedy Search characteristics:")
@@ -690,7 +690,7 @@ $$ y_t = \arg\max_{y} P(y | y_{<t}, \mathbf{x}) $$
     
     ```mermaid
     graph TD
-        Start[""] --> T1A[I-0.5]
+        Start["&lt;sos&gt;"] --> T1A[I-0.5]
         Start --> T1B[We-0.8]
         Start --> T1C[They-1.2]
     
@@ -760,7 +760,7 @@ where $\alpha$ is the length penalty coefficient (typically 0.6-1.0).
                 candidates = []
     
                 for score, seq, h, c in beams:
-                    # Add to completed list if sequence ends with 
+                    # Add to completed list if sequence ends with <eos>
                     if seq[-1] == EOS_token:
                         completed_sequences.append((score, seq))
                         continue
@@ -817,8 +817,8 @@ where $\alpha$ is the length penalty coefficient (typically 0.6-1.0).
     print(f"Length normalization coefficient: 0.7\n")
     
     # Simulated output
-    output_sequence_demo = [1, 3, 4, 5, 6, 7, 8, 9, 2]  #  I love artificial intelligence very much it 
-    output_sentence = ' '.join([trg_vocab_inv.get(idx, '') for idx in output_sequence_demo[1:-1]])
+    output_sequence_demo = [1, 3, 4, 5, 6, 7, 8, 9, 2]  # <sos> I love artificial intelligence very much it <eos>
+    output_sentence = ' '.join([trg_vocab_inv.get(idx, '<unk>') for idx in output_sequence_demo[1:-1]])
     
     print(f"Best sequence: {output_sentence}")
     print(f"Normalized score: -0.85 (simulated)\n")
@@ -892,14 +892,14 @@ Application | Recommended Method | Reason
             """Tokenize sentence"""
             # Would use spaCy or MeCab in practice
             tokens = sentence.lower().split()
-            indices = [vocab.get(token, vocab['']) for token in tokens]
-            return [vocab['']] + indices + [vocab['']]
+            indices = [vocab.get(token, vocab['<unk>']) for token in tokens]
+            return [vocab['<sos>']] + indices + [vocab['<eos>']]
     
         def detokenize(self, indices):
             """Convert indices back to sentence"""
-            tokens = [self.trg_vocab_inv.get(idx, '') for idx in indices]
-            # Remove , , 
-            tokens = [t for t in tokens if t not in ['', '', '']]
+            tokens = [self.trg_vocab_inv.get(idx, '<unk>') for idx in indices]
+            # Remove <sos>, <eos>, <pad>
+            tokens = [t for t in tokens if t not in ['<sos>', '<eos>', '<pad>']]
             return ' '.join(tokens)
     
         def translate(self, sentence, method='beam', beam_width=5):
@@ -929,7 +929,7 @@ Application | Recommended Method | Reason
                 output_indices, score = beam_search_decode(
                     self.model, src_tensor, self.trg_vocab, beam_width=beam_width
                 )
-                output_indices = output_indices[1:-1]  # Remove , 
+                output_indices = output_indices[1:-1]  # Remove <sos>, <eos>
     
             # Detokenize
             translation = self.detokenize(output_indices)
@@ -941,14 +941,14 @@ Application | Recommended Method | Reason
     
     # Extended vocabulary dictionary (for demo)
     src_vocab_demo = {
-        '': 0, '': 1, '': 2, '': 3,
+        '<pad>': 0, '<sos>': 1, '<eos>': 2, '<unk>': 3,
         'i': 4, 'love': 5, 'artificial': 6, 'intelligence': 7,
         'machine': 8, 'learning': 9, 'is': 10, 'amazing': 11,
         'deep': 12, 'neural': 13, 'networks': 14, 'are': 15, 'powerful': 16
     }
     
     trg_vocab_demo = {
-        '': 0, '': 1, '': 2, '': 3,
+        '<pad>': 0, '<sos>': 1, '<eos>': 2, '<unk>': 3,
         'I': 4, 'love': 5, 'artificial': 6, 'intelligence': 7, 'very': 8, 'much': 9, 'indeed': 10,
         'machine': 11, 'learning': 12, 'amazing': 13, 'deep': 14,
         'neural': 15, 'networks': 16, 'powerful': 17

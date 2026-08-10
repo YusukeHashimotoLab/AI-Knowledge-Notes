@@ -36,7 +36,7 @@ The central difference has \\( O(h^2) \\) accuracy, which is higher than the \\(
     # - Python 3.9+
     # - matplotlib>=3.7.0
     
-    <code>import numpy as np
+    import numpy as np
     import matplotlib.pyplot as plt
     
     def forward_difference(f, x, h):
@@ -96,7 +96,6 @@ The central difference has \\( O(h^2) \\) accuracy, which is higher than the \\(
     print(f"  Forward difference: {forward_difference(f, x0, h):.8f} (error: {abs(forward_difference(f, x0, h) - exact_value):.2e})")
     print(f"  Backward difference: {backward_difference(f, x0, h):.8f} (error: {abs(backward_difference(f, x0, h) - exact_value):.2e})")
     print(f"  Central difference: {central_difference(f, x0, h):.8f} (error: {abs(central_difference(f, x0, h) - exact_value):.2e})")
-    </code>
 
 Evaluation point: x = π/4 ≈ 0.7854 Exact value: f'(x) = cos(π/4) ≈ 0.70710678 h = 1e-4 Results for Forward difference: 0.70710178 (error: 5.00e-06) Backward difference: 0.70710178 (error: 5.00e-06) Central difference: 0.70710678 (error: 5.00e-12)
 

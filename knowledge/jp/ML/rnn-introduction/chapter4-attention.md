@@ -469,8 +469,8 @@ Attentionの最大の利点の1つは、モデルがどの入力単語に注目�
     print("=== Attention Visualization Example: Machine Translation ===\n")
     
     # 例: "I love deep learning" → "私は深層学習が好きです"
-    source_tokens = ['I', 'love', 'deep', 'learning', '']
-    target_tokens = ['私は', '深層', '学習が', '好きです', '']
+    source_tokens = ['I', 'love', 'deep', 'learning', '<EOS>']
+    target_tokens = ['私は', '深層', '学習が', '好きです', '<EOS>']
     
     # 模擬的なAttention重み行列（実際のモデルから取得する値）
     # 各行が各出力トークン生成時のAttention分布を表す
@@ -479,7 +479,7 @@ Attentionの最大の利点の1つは、モデルがどの入力単語に注目�
         [0.05, 0.08, 0.70, 0.12, 0.05],  # "深層" を生成時 → "deep" に強く注目
         [0.03, 0.05, 0.15, 0.72, 0.05],  # "学習が" を生成時 → "learning" に強く注目
         [0.05, 0.75, 0.08, 0.07, 0.05],  # "好きです" を生成時 → "love" に強く注目
-        [0.05, 0.05, 0.05, 0.05, 0.80],  # "" を生成時 → "" に強く注目
+        [0.05, 0.05, 0.05, 0.05, 0.80],  # "<EOS>" を生成時 → "<EOS>" に強く注目
     ])
     
     visualize_attention(attention_matrix, source_tokens, target_tokens,
@@ -488,8 +488,8 @@ Attentionの最大の利点の1つは、モデルがどの入力単語に注目�
     # より複雑な例
     print("\n=== 長文翻訳でのAttentionパターン ===\n")
     
-    source_long = ['The', 'cat', 'sat', 'on', 'the', 'mat', '']
-    target_long = ['その', '猫が', 'マットの', '上に', '座った', '']
+    source_long = ['The', 'cat', 'sat', 'on', 'the', 'mat', '<EOS>']
+    target_long = ['その', '猫が', 'マットの', '上に', '座った', '<EOS>']
     
     # 語順が異なる場合のAttention
     attention_long = np.array([
@@ -498,7 +498,7 @@ Attentionの最大の利点の1つは、モデルがどの入力単語に注目�
         [0.05, 0.05, 0.05, 0.05, 0.10, 0.68, 0.02],  # "マットの" → "mat"
         [0.05, 0.05, 0.10, 0.75, 0.02, 0.02, 0.01],  # "上に" → "on"
         [0.05, 0.10, 0.70, 0.05, 0.05, 0.03, 0.02],  # "座った" → "sat"
-        [0.02, 0.02, 0.02, 0.02, 0.02, 0.02, 0.88],  # "" → ""
+        [0.02, 0.02, 0.02, 0.02, 0.02, 0.02, 0.88],  # "<EOS>" → "<EOS>"
     ])
     
     visualize_attention(attention_long, source_long, target_long,
@@ -717,7 +717,7 @@ Attentionの最大の利点の1つは、モデルがどの入力単語に注目�
             # Encoder
             encoder_outputs, hidden = self.encoder(source)
     
-            # Decoder初期入力（トークン）
+            # Decoder初期入力（<SOS>トークン）
             decoder_input = target[:, 0].unsqueeze(1)  # [batch, 1]
     
             # Decoder各時刻
@@ -810,7 +810,7 @@ Attentionの最大の利点の1つは、モデルがどの入力単語に注目�
             # Forward pass
             outputs, _ = model(source, target, teacher_forcing_ratio=0.5)
     
-            # Loss計算（トークンを除く）
+            # Loss計算（<SOS>トークンを除く）
             output_dim = outputs.shape[-1]
             outputs_flat = outputs[:, 1:].reshape(-1, output_dim)
             target_flat = target[:, 1:].reshape(-1)

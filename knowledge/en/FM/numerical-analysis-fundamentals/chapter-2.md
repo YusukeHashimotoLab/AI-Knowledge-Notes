@@ -275,7 +275,7 @@ Convergence condition: \\( A \\) If matrix is diagonally dominant, convergence i
     # - Python 3.9+
     # - matplotlib>=3.7.0
     
-    <code>def jacobi_method(A, b, x0=None, max_iter=1000, tol=1e-10):
+    def jacobi_method(A, b, x0=None, max_iter=1000, tol=1e-10):
         """
         Iterative Solution Using Jacobi Method
     
@@ -379,7 +379,6 @@ Convergence condition: \\( A \\) If matrix is diagonally dominant, convergence i
     plt.show()
     
     print(f"\nNumber of iterations to convergence: {len(history_jacobi)}")
-    </code>
 
 ============================================================ Iterative Solution Using Jacobi Method ============================================================ Coefficient matrix A: [[10. -1. 2. 0.] [-1. 11. -1. 3.] [ 2. -1. 10. -1.] [ 0. 3. -1. 8.]] For right-hand side vector b: [ 6. 25. -11. 15.] Checking diagonal dominance: Row1: |a_11| = 10.0 > Σ|a_1j| = 3.0 (diagonally dominant) Row2: |a_22| = 11.0 > Σ|a_2j| = 5.0 (diagonally dominant) Row3: |a_33| = 10.0 > Σ|a_3j| = 4.0 (diagonally dominant) Row4: |a_44| = 8.0 > Σ|a_4j| = 4.0 (diagonally dominant) Jacobi method: 25iterations to converge Solution x (Jacobi method): [ 1. 2. -1. 1.] Solution x (exact): [ 1. 2. -1. 1.] error: 5.45e-11 Residual: 6.22e-11 Number of iterations to convergence: 25
 

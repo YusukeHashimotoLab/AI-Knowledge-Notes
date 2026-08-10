@@ -148,7 +148,7 @@ $$ \begin{aligned} \mathbf{s}_0 &= \mathbf{c} \\\ \mathbf{s}_t &= \text{LSTM}(\m
     ```mermaid
     graph LR
         subgraph Training["訓練時: Teacher Forcing"]
-            T1[""] --> TD1[Decoder]
+            T1["&lt;SOS&gt;"] --> TD1[Decoder]
             TD1 --> TP1[予測: 私]
             T2[正解: 私] --> TD2[Decoder]
             TD2 --> TP2[予測: は]
@@ -157,7 +157,7 @@ $$ \begin{aligned} \mathbf{s}_0 &= \mathbf{c} \\\ \mathbf{s}_t &= \text{LSTM}(\m
         end
     
         subgraph Inference["推論時: Autoregressive"]
-            I1[""] --> ID1[Decoder]
+            I1["&lt;SOS&gt;"] --> ID1[Decoder]
             ID1 --> IP1[予測: 私]
             IP1 --> ID2[Decoder]
             ID2 --> IP2[予測: は]
@@ -399,7 +399,7 @@ $$ \begin{aligned} \mathbf{s}_0 &= \mathbf{c} \\\ \mathbf{s}_t &= \text{LSTM}(\m
             # Encoderで入力系列を処理
             hidden, cell = self.encoder(src)
     
-            # Decoderの最初の入力はトークン
+            # Decoderの最初の入力は<SOS>トークン
             input = trg[:, 0]
     
             # 各タイムステップでDecoderを実行
@@ -480,8 +480,8 @@ $$ \begin{aligned} \mathbf{s}_0 &= \mathbf{c} \\\ \mathbf{s}_t &= \text{LSTM}(\m
     
             # 出力を整形: [batch_size, trg_len, output_dim] -> [batch_size * trg_len, output_dim]
             output_dim = output.shape[-1]
-            output = output[:, 1:].reshape(-1, output_dim)  # を除外
-            trg = trg[:, 1:].reshape(-1)  # を除外
+            output = output[:, 1:].reshape(-1, output_dim)  # <SOS>を除外
+            trg = trg[:, 1:].reshape(-1)  # <SOS>を除外
     
             # 損失計算
             loss = criterion(output, trg)
@@ -606,7 +606,7 @@ $$ y_t = \arg\max_{y} P(y | y_{<t}, \mathbf{x}) $$
             # Encoderで入力を処理
             hidden, cell = model.encoder(src)
     
-            # トークンから開始
+            # <SOS>トークンから開始
             SOS_token = 1
             EOS_token = 2
     
@@ -620,7 +620,7 @@ $$ y_t = \arg\max_{y} P(y | y_{<t}, \mathbf{x}) $$
                 # 最も確率の高いトークンを選択
                 top1 = output.argmax(1)
     
-                # トークンなら終了
+                # <EOS>トークンなら終了
                 if top1.item() == EOS_token:
                     break
     
@@ -639,13 +639,13 @@ $$ y_t = \arg\max_{y} P(y | y_{<t}, \mathbf{x}) $$
     print(f"入力文: {src_sentence}")
     
     # 仮の語彙辞書
-    src_vocab = {'': 0, '': 1, '': 2, 'I': 3, 'love': 4, 'artificial': 5, 'intelligence': 6}
-    trg_vocab = {'': 0, '': 1, '': 2, '私': 3, 'は': 4, '人工': 5, '知能': 6, 'が': 7, '好き': 8, 'です': 9}
+    src_vocab = {'<pad>': 0, '<sos>': 1, '<eos>': 2, 'I': 3, 'love': 4, 'artificial': 5, 'intelligence': 6}
+    trg_vocab = {'<pad>': 0, '<sos>': 1, '<eos>': 2, '私': 3, 'は': 4, '人工': 5, '知能': 6, 'が': 7, '好き': 8, 'です': 9}
     trg_vocab_inv = {v: k for k, v in trg_vocab.items()}
     
     # トークン化（実際にはtokenizerを使用）
-    src_indices = [src_vocab[''], src_vocab['I'], src_vocab['love'],
-                   src_vocab['artificial'], src_vocab['intelligence'], src_vocab['']]
+    src_indices = [src_vocab['<sos>'], src_vocab['I'], src_vocab['love'],
+                   src_vocab['artificial'], src_vocab['intelligence'], src_vocab['<eos>']]
     src_tensor = torch.tensor([src_indices]).to(device)
     
     # Greedy Search推論
@@ -653,7 +653,7 @@ $$ y_t = \arg\max_{y} P(y | y_{<t}, \mathbf{x}) $$
     
     # デコード（仮の出力）
     output_indices_demo = [3, 4, 5, 6, 7, 8, 9]  # 実際の推論結果の代わり
-    output_sentence = ' '.join([trg_vocab_inv.get(idx, '') for idx in output_indices_demo])
+    output_sentence = ' '.join([trg_vocab_inv.get(idx, '<unk>') for idx in output_indices_demo])
     
     print(f"出力文: {output_sentence}")
     print(f"\nGreedy Searchの特性:")
@@ -684,7 +684,7 @@ $$ y_t = \arg\max_{y} P(y | y_{<t}, \mathbf{x}) $$
     
     ```mermaid
     graph TD
-        Start[""] --> T1A[私-0.5]
+        Start["&lt;SOS&gt;"] --> T1A[私-0.5]
         Start --> T1B[僕-0.8]
         Start --> T1C[俺-1.2]
     
@@ -754,7 +754,7 @@ $$ \text{score}_{\text{normalized}}(\mathbf{y}) = \frac{1}{T'^{\alpha}} \sum_{t=
                 candidates = []
     
                 for score, seq, h, c in beams:
-                    # 系列がで終了していれば完了リストに追加
+                    # 系列が<EOS>で終了していれば完了リストに追加
                     if seq[-1] == EOS_token:
                         completed_sequences.append((score, seq))
                         continue
@@ -811,8 +811,8 @@ $$ \text{score}_{\text{normalized}}(\mathbf{y}) = \frac{1}{T'^{\alpha}} \sum_{t=
     print(f"長さ正規化係数: 0.7\n")
     
     # 仮の出力
-    output_sequence_demo = [1, 3, 4, 5, 6, 7, 8, 9, 2]  #  私 は 人工 知能 が 好き です 
-    output_sentence = ' '.join([trg_vocab_inv.get(idx, '') for idx in output_sequence_demo[1:-1]])
+    output_sequence_demo = [1, 3, 4, 5, 6, 7, 8, 9, 2]  # <sos> 私 は 人工 知能 が 好き です <eos>
+    output_sentence = ' '.join([trg_vocab_inv.get(idx, '<unk>') for idx in output_sequence_demo[1:-1]])
     
     print(f"最良系列: {output_sentence}")
     print(f"正規化スコア: -0.85（仮定）\n")
@@ -886,14 +886,14 @@ $$ \text{score}_{\text{normalized}}(\mathbf{y}) = \frac{1}{T'^{\alpha}} \sum_{t=
             """文章をトークン化"""
             # 実際にはspaCyやMeCabを使用
             tokens = sentence.lower().split()
-            indices = [vocab.get(token, vocab['']) for token in tokens]
-            return [vocab['']] + indices + [vocab['']]
+            indices = [vocab.get(token, vocab['<unk>']) for token in tokens]
+            return [vocab['<sos>']] + indices + [vocab['<eos>']]
     
         def detokenize(self, indices):
             """インデックスを文章に戻す"""
-            tokens = [self.trg_vocab_inv.get(idx, '') for idx in indices]
-            # , , を除去
-            tokens = [t for t in tokens if t not in ['', '', '']]
+            tokens = [self.trg_vocab_inv.get(idx, '<unk>') for idx in indices]
+            # <sos>, <eos>, <pad>を除去
+            tokens = [t for t in tokens if t not in ['<sos>', '<eos>', '<pad>']]
             return ''.join(tokens)  # 日本語は空白なし
     
         def translate(self, sentence, method='beam', beam_width=5):
@@ -923,7 +923,7 @@ $$ \text{score}_{\text{normalized}}(\mathbf{y}) = \frac{1}{T'^{\alpha}} \sum_{t=
                 output_indices, score = beam_search_decode(
                     self.model, src_tensor, self.trg_vocab, beam_width=beam_width
                 )
-                output_indices = output_indices[1:-1]  # , を除去
+                output_indices = output_indices[1:-1]  # <sos>, <eos>を除去
     
             # デトークン化
             translation = self.detokenize(output_indices)
@@ -935,14 +935,14 @@ $$ \text{score}_{\text{normalized}}(\mathbf{y}) = \frac{1}{T'^{\alpha}} \sum_{t=
     
     # 拡張された語彙辞書（デモ用）
     src_vocab_demo = {
-        '': 0, '': 1, '': 2, '': 3,
+        '<pad>': 0, '<sos>': 1, '<eos>': 2, '<unk>': 3,
         'i': 4, 'love': 5, 'artificial': 6, 'intelligence': 7,
         'machine': 8, 'learning': 9, 'is': 10, 'amazing': 11,
         'deep': 12, 'neural': 13, 'networks': 14, 'are': 15, 'powerful': 16
     }
     
     trg_vocab_demo = {
-        '': 0, '': 1, '': 2, '': 3,
+        '<pad>': 0, '<sos>': 1, '<eos>': 2, '<unk>': 3,
         '私': 4, 'は': 5, '人工': 6, '知能': 7, 'が': 8, '好き': 9, 'です': 10,
         '機械': 11, '学習': 12, '素晴らしい': 13, 'ディープ': 14,
         'ニューラル': 15, 'ネットワーク': 16, '強力': 17

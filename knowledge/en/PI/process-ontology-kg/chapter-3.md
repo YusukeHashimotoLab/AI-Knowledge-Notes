@@ -188,8 +188,8 @@ Automatically extract connection relationships between equipment from material f
     
     # Get connections via SPARQL query
     query = """
-    PREFIX proc: 
-    PREFIX rdfs: 
+    PREFIX proc: <http://example.org/process/>
+    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
     
     SELECT ?source ?target ?stream ?flowrate ?composition
     WHERE {
@@ -346,8 +346,8 @@ Implement a general-purpose conversion function from DataFrame to RDF.
     
     # Verify data with SPARQL query
     query = """
-    PREFIX data: 
-    PREFIX rdf: 
+    PREFIX data: <http://example.org/sensor/>
+    PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
     
     SELECT ?sensor ?location ?type ?value ?unit
     WHERE {
@@ -541,8 +541,8 @@ Parse equipment connections from P&ID (Piping and Instrumentation Diagram) text 
     # Equipment list
     print("\n=== Equipment List ===")
     query_eq = """
-    PREFIX proc: 
-    PREFIX rdfs: 
+    PREFIX proc: <http://example.org/process/>
+    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
     
     SELECT ?eq ?label
     WHERE {
@@ -556,7 +556,7 @@ Parse equipment connections from P&ID (Piping and Instrumentation Diagram) text 
     # Recycle streams
     print("\n=== Recycle Streams ===")
     query_recycle = """
-    PREFIX proc: 
+    PREFIX proc: <http://example.org/process/>
     
     SELECT ?stream
     WHERE {
@@ -665,8 +665,8 @@ Represent time-series sensor data in RDF while preserving temporal information.
     # ===== SPARQL query: Temperature statistics =====
     
     query_stats = """
-    PREFIX sensor: 
-    PREFIX xsd: 
+    PREFIX sensor: <http://example.org/sensor/>
+    PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
     
     SELECT (AVG(?value) AS ?avgTemp) (MIN(?value) AS ?minTemp) (MAX(?value) AS ?maxTemp)
     WHERE {
@@ -684,8 +684,8 @@ Represent time-series sensor data in RDF while preserving temporal information.
     # ===== Anomaly detection (threshold-based) =====
     
     query_anomaly = """
-    PREFIX sensor: 
-    PREFIX time: 
+    PREFIX sensor: <http://example.org/sensor/>
+    PREFIX time: <http://www.w3.org/2006/time#>
     
     SELECT ?timestamp ?value
     WHERE {
@@ -805,7 +805,7 @@ Integrate past operational performance data as time-series properties.
     # ===== Statistical analysis query =====
     
     query_monthly_stats = """
-    PREFIX perf: 
+    PREFIX perf: <http://example.org/performance/>
     
     SELECT
         (AVG(?conv) AS ?avgConversion)
@@ -834,7 +834,7 @@ Integrate past operational performance data as time-series properties.
     # ===== Low performance day detection =====
     
     query_low_performance = """
-    PREFIX perf: 
+    PREFIX perf: <http://example.org/performance/>
     
     SELECT ?date ?conv ?yield
     WHERE {
@@ -1000,9 +1000,9 @@ Build a comprehensive knowledge graph that integrates all data sources.
     
     # Query 1: Complete equipment information (master + operating state)
     query_complete = """
-    PREFIX proc: 
-    PREFIX maint: 
-    PREFIX rdfs: 
+    PREFIX proc: <http://example.org/process/>
+    PREFIX maint: <http://example.org/maintenance/>
+    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
     
     SELECT ?id ?name ?manufacturer ?temp ?press ?eff
     WHERE {
@@ -1025,7 +1025,7 @@ Build a comprehensive knowledge graph that integrates all data sources.
     
     # Query 2: Process flow (connection + flow rate)
     query_flow = """
-    PREFIX proc: 
+    PREFIX proc: <http://example.org/process/>
     
     SELECT ?source ?target ?flowrate
     WHERE {

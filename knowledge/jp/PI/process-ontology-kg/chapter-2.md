@@ -915,8 +915,8 @@ Feed → P-101 → R-101 → HX-201 → SEP-301 → Product
     
     # クエリ1: 効率90%以上の装置
     query1 = """
-    PREFIX onto: 
-    PREFIX rdfs: 
+    PREFIX onto: <http://example.org/chemicalplant.owl#>
+    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
     
     SELECT ?equipment ?label ?efficiency
     WHERE {
@@ -933,8 +933,8 @@ Feed → P-101 → R-101 → HX-201 → SEP-301 → Product
     
     # クエリ2: 温度350K以上の装置
     query2 = """
-    PREFIX onto: 
-    PREFIX rdfs: 
+    PREFIX onto: <http://example.org/chemicalplant.owl#>
+    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
     
     SELECT ?label ?temp ?press
     WHERE {
@@ -957,8 +957,8 @@ Feed → P-101 → R-101 → HX-201 → SEP-301 → Product
     
     # クエリ3: 反応器の統計
     query3 = """
-    PREFIX onto: 
-    PREFIX rdf: 
+    PREFIX onto: <http://example.org/chemicalplant.owl#>
+    PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
     
     SELECT (AVG(?temp) AS ?avgTemp) (AVG(?eff) AS ?avgEff) (COUNT(?reactor) AS ?count)
     WHERE {
