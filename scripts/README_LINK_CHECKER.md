@@ -28,14 +28,19 @@ The script will auto-install dependencies if missing.
 
 ### Basic Usage
 
-Run from `wp/` and always pass `--path` and `--output`. The built-in defaults still point at a
-machine-specific legacy path (`/Users/.../pycharm/AI_Homepage/wp/knowledge/en`), so a bare
-invocation just prints `Path ... does not exist`.
+Both defaults are derived from the script's own location, so a bare invocation works from any
+cwd in any checkout: it scans `<wp>/knowledge/en` and writes `<wp>/linkcheck_en_local.txt`
+(the `linkcheck*.txt` pattern is gitignored).
 
 ```bash
+python3 scripts/check_links.py                                   # en, default report path
 python3 scripts/check_links.py --path knowledge/en --output /tmp/lc_en.txt
 python3 scripts/check_links.py --path knowledge/jp --output /tmp/lc_jp.txt
 ```
+
+Note that `--output` has its own default: passing only `--path knowledge/jp` writes the Japanese
+report to `<wp>/linkcheck_en_local.txt`, so pass `--output` too whenever you scan a non-`en`
+tree.
 
 A healthy run reports `Broken links: 0` and `Missing anchors: 0` — this is exactly what CI
 checks (`.github/workflows/link-check.yml`).

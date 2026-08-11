@@ -482,13 +482,19 @@ def main():
     """Main execution"""
     import argparse
 
+    # Defaults are derived from this file's location so a bare invocation works
+    # from any cwd in any checkout (they used to be hard-coded absolute paths to
+    # a machine that no longer exists). WEB_ROOT is `wp/`, the web root.
+    WEB_ROOT = Path(__file__).resolve().parent.parent
+
     parser = argparse.ArgumentParser(description='Check links in HTML files')
     parser.add_argument('--path', type=str,
-                       default='/Users/yusukehashimoto/Documents/pycharm/AI_Homepage/wp/knowledge/en',
-                       help='Base path to scan')
+                       default=str(WEB_ROOT / 'knowledge' / 'en'),
+                       help='Base path to scan (default: <wp>/knowledge/en)')
     parser.add_argument('--output', type=str,
-                       default='/Users/yusukehashimoto/Documents/pycharm/AI_Homepage/wp/linkcheck_en_local.txt',
-                       help='Output report file')
+                       default=str(WEB_ROOT / 'linkcheck_en_local.txt'),
+                       help='Output report file '
+                            '(default: <wp>/linkcheck_en_local.txt, gitignored)')
     parser.add_argument('--fix-auto', action='store_true',
                        help='Automatically fix common patterns')
 
