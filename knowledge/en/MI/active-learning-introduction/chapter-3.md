@@ -63,7 +63,121 @@ where, $$ Z = \frac{\mu(x) - f^*}{\sigma(x)} $$
 **Code Example 1: Implementation of Expected Improvement**
     
     
-    __PROTECTED_CODE_0__
+    import numpy as np
+    from scipy.stats import norm
+    
+    def expected_improvement(
+        X,
+        X_sample,
+        Y_sample,
+        gpr,
+        xi=0.01
+    ):
+        """
+        Expected Improvement acquisition function
+    
+        Parameters:
+        -----------
+        X : array
+            Candidate points
+        X_sample : array
+            Existing sample points
+        Y_sample : array
+            Values of the existing samples
+        gpr : GaussianProcessRegressor
+            Trained Gaussian process model
+        xi : float
+            Exploitation-Exploration trade-off
+    
+        Returns:
+        --------
+        ei : array
+            Expected Improvement score
+        """
+        # Predicted mean and standard deviation
+        mu, sigma = gpr.predict(X, return_std=True)
+        mu_sample = gpr.predict(X_sample)
+    
+        # Current best value
+        mu_sample_opt = np.max(mu_sample)
+    
+        # Handling of the case where the standard deviation is 0
+        with np.errstate(divide='warn'):
+            imp = mu - mu_sample_opt - xi
+            Z = imp / sigma
+            ei = imp * norm.cdf(Z) + sigma * norm.pdf(Z)
+            ei[sigma == 0.0] = 0.0
+    
+        return ei
+    
+    
+    # Usage example: 1D optimization problem
+    from sklearn.gaussian_process import GaussianProcessRegressor
+    from sklearn.gaussian_process.kernels import RBF, ConstantKernel as C
+    import matplotlib.pyplot as plt
+    
+    # Objective function (treated as unknown)
+    def objective_function(x):
+        """1D function to be optimized"""
+        return -(x - 2) ** 2 + 5 + np.sin(5 * x)
+    
+    # Initial samples
+    X_sample = np.array([[0.5], [2.5], [4.0]])
+    Y_sample = objective_function(X_sample.ravel())
+    
+    # Training the Gaussian process model
+    kernel = C(1.0, (1e-3, 1e3)) * RBF(1.0, (1e-2, 1e2))
+    gpr = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=10, alpha=1e-6)
+    gpr.fit(X_sample, Y_sample)
+    
+    # Generating candidate points
+    X_candidates = np.linspace(0, 5, 1000).reshape(-1, 1)
+    
+    # Computing EI
+    ei_values = expected_improvement(X_candidates, X_sample, Y_sample, gpr, xi=0.01)
+    
+    # Selecting the next sample point
+    next_sample_idx = np.argmax(ei_values)
+    next_sample = X_candidates[next_sample_idx]
+    
+    print(f"Next sample point: x = {next_sample[0]:.3f}")
+    print(f"EI value: {ei_values[next_sample_idx]:.4f}")
+    print(f"Current best value: {np.max(Y_sample):.3f}")
+    
+    # Visualization
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8))
+    
+    # Top: prediction by the Gaussian process
+    mu, sigma = gpr.predict(X_candidates, return_std=True)
+    ax1.plot(X_candidates, objective_function(X_candidates.ravel()), 'r--', label='True function', alpha=0.5)
+    ax1.plot(X_candidates, mu, 'b-', label='Predicted mean')
+    ax1.fill_between(X_candidates.ravel(), mu - 1.96 * sigma, mu + 1.96 * sigma, alpha=0.2, label='95% confidence interval')
+    ax1.scatter(X_sample, Y_sample, c='red', s=100, marker='o', label='Existing samples', zorder=5)
+    ax1.scatter(next_sample, gpr.predict(next_sample), c='green', s=150, marker='*', label='Next sample', zorder=6)
+    ax1.set_xlabel('x')
+    ax1.set_ylabel('f(x)')
+    ax1.set_title('Prediction by the Gaussian process')
+    ax1.legend()
+    ax1.grid(True, alpha=0.3)
+    
+    # Bottom: Expected Improvement
+    ax2.plot(X_candidates, ei_values, 'g-', linewidth=2)
+    ax2.scatter(next_sample, ei_values[next_sample_idx], c='green', s=150, marker='*', label='Max EI point', zorder=5)
+    ax2.axvline(next_sample[0], color='green', linestyle='--', alpha=0.5)
+    ax2.set_xlabel('x')
+    ax2.set_ylabel('EI(x)')
+    ax2.set_title('Expected Improvement acquisition function')
+    ax2.legend()
+    ax2.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.savefig('ei_acquisition.png', dpi=150, bbox_inches='tight')
+    plt.show()
+    
+    # Example output:
+    # Next sample point: x = 3.742
+    # EI value: 0.8523
+    # Current best value: 5.891
 
 #### 2\. Probability of Improvement (PI)
 
@@ -78,7 +192,81 @@ $$ = \Phi\left(\frac{\mu(x) - f^* - \xi}{\sigma(x)}\right) $$
 **Code Example 2: Implementation of Probability of Improvement**
     
     
-    __PROTECTED_CODE_1__
+    def probability_of_improvement(
+        X,
+        X_sample,
+        Y_sample,
+        gpr,
+        xi=0.01
+    ):
+        """
+        Probability of Improvement acquisition function
+    
+        Parameters:
+        -----------
+        (Same as Expected Improvement)
+    
+        Returns:
+        --------
+        pi : array
+            Probability of Improvement score
+        """
+        mu, sigma = gpr.predict(X, return_std=True)
+        mu_sample = gpr.predict(X_sample)
+        mu_sample_opt = np.max(mu_sample)
+    
+        with np.errstate(divide='warn'):
+            Z = (mu - mu_sample_opt - xi) / sigma
+            pi = norm.cdf(Z)
+            pi[sigma == 0.0] = 0.0
+    
+        return pi
+    
+    
+    # Usage example: comparison of PI and EI
+    # (Uses the GPR model and candidate points defined in the previous code example)
+    
+    # Computing PI
+    pi_values = probability_of_improvement(X_candidates, X_sample, Y_sample, gpr, xi=0.01)
+    
+    # Selecting the next sample point
+    next_sample_pi_idx = np.argmax(pi_values)
+    next_sample_pi = X_candidates[next_sample_pi_idx]
+    
+    print(f"PI selected point: x = {next_sample_pi[0]:.3f}, PI value = {pi_values[next_sample_pi_idx]:.4f}")
+    print(f"EI selected point: x = {next_sample[0]:.3f}, EI value = {ei_values[next_sample_idx]:.4f}")
+    
+    # Visualizing the comparison of EI and PI
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+    
+    # Left: Expected Improvement
+    ax1.plot(X_candidates, ei_values, 'g-', linewidth=2, label='EI')
+    ax1.scatter(next_sample, ei_values[next_sample_idx], c='green', s=150, marker='*', label=f'Max EI: x={next_sample[0]:.2f}', zorder=5)
+    ax1.axvline(next_sample[0], color='green', linestyle='--', alpha=0.5)
+    ax1.set_xlabel('x')
+    ax1.set_ylabel('EI(x)')
+    ax1.set_title('Expected Improvement')
+    ax1.legend()
+    ax1.grid(True, alpha=0.3)
+    
+    # Right: Probability of Improvement
+    ax2.plot(X_candidates, pi_values, 'purple', linewidth=2, label='PI')
+    ax2.scatter(next_sample_pi, pi_values[next_sample_pi_idx], c='purple', s=150, marker='*', label=f'Max PI: x={next_sample_pi[0]:.2f}', zorder=5)
+    ax2.axvline(next_sample_pi[0], color='purple', linestyle='--', alpha=0.5)
+    ax2.set_xlabel('x')
+    ax2.set_ylabel('PI(x)')
+    ax2.set_title('Probability of Improvement')
+    ax2.legend()
+    ax2.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.savefig('pi_vs_ei.png', dpi=150, bbox_inches='tight')
+    plt.show()
+    
+    # Example output:
+    # PI selected point: x = 3.789, PI value = 0.8912
+    # EI selected point: x = 3.742, EI value = 0.8523
+    # (PI maximizes the probability of improvement, EI maximizes the expected amount of improvement)
 
 #### 3\. Upper Confidence Bound (UCB)
 
@@ -91,7 +279,84 @@ $$ = \Phi\left(\frac{\mu(x) - f^* - \xi}{\sigma(x)}\right) $$
 **Code Example 3: Implementation of UCB**
     
     
-    __PROTECTED_CODE_2__
+    def upper_confidence_bound(
+        X,
+        gpr,
+        kappa=2.0
+    ):
+        """
+        Upper Confidence Bound acquisition function
+    
+        Parameters:
+        -----------
+        X : array
+            Candidate points
+        gpr : GaussianProcessRegressor
+            Trained Gaussian process model
+        kappa : float
+            Exploration parameter
+    
+        Returns:
+        --------
+        ucb : array
+            UCB score
+        """
+        mu, sigma = gpr.predict(X, return_std=True)
+        return mu + kappa * sigma
+    
+    
+    # Usage example: effect of the kappa parameter
+    # (Uses the GPR model and candidate points defined in the previous code example)
+    
+    # Computing UCB for different kappa values
+    kappa_values = [0.5, 1.0, 2.0, 3.0]
+    ucb_results = {}
+    
+    for kappa in kappa_values:
+        ucb_vals = upper_confidence_bound(X_candidates, gpr, kappa=kappa)
+        next_idx = np.argmax(ucb_vals)
+        ucb_results[kappa] = {
+            'values': ucb_vals,
+            'next_x': X_candidates[next_idx][0],
+            'ucb_score': ucb_vals[next_idx]
+        }
+        print(f"kappa={kappa}: next sample point x={ucb_results[kappa]['next_x']:.3f}, UCB={ucb_results[kappa]['ucb_score']:.3f}")
+    
+    # Visualization: effect of kappa
+    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+    axes = axes.ravel()
+    
+    for idx, kappa in enumerate(kappa_values):
+        ax = axes[idx]
+        ucb_vals = ucb_results[kappa]['values']
+        next_x = ucb_results[kappa]['next_x']
+    
+        # Prediction by the Gaussian process
+        mu, sigma = gpr.predict(X_candidates, return_std=True)
+    
+        # Visualizing UCB
+        ax.plot(X_candidates, mu, 'b-', label='Predicted mean μ(x)', linewidth=2)
+        ax.plot(X_candidates, ucb_vals, 'r-', label=f'UCB (κ={kappa})', linewidth=2)
+        ax.fill_between(X_candidates.ravel(), mu - 2*sigma, mu + 2*sigma, alpha=0.2, color='blue', label='±2σ')
+        ax.scatter(X_sample, Y_sample, c='black', s=100, marker='o', label='Existing samples', zorder=5)
+        ax.scatter(next_x, ucb_results[kappa]['ucb_score'], c='red', s=150, marker='*', label='Next sample', zorder=6)
+        ax.axvline(next_x, color='red', linestyle='--', alpha=0.5)
+        ax.set_xlabel('x')
+        ax.set_ylabel('f(x)')
+        ax.set_title(f'UCB with κ={kappa}')
+        ax.legend(loc='best', fontsize=8)
+        ax.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.savefig('ucb_kappa_comparison.png', dpi=150, bbox_inches='tight')
+    plt.show()
+    
+    # Example output:
+    # kappa=0.5: next sample point x=2.456, UCB=6.123
+    # kappa=1.0: next sample point x=3.215, UCB=6.789
+    # kappa=2.0: next sample point x=3.892, UCB=7.456
+    # kappa=3.0: next sample point x=4.123, UCB=8.234
+    # (The larger kappa is, the more explorative; the smaller, the more exploitative)
 
 #### 4\. Thompson Sampling
 
@@ -104,7 +369,97 @@ $$ x^* = \arg\max_{x \in \mathcal{X}} f(x) $$
 **Code Example 4: Implementation of Thompson Sampling**
     
     
-    __PROTECTED_CODE_3__
+    def thompson_sampling(
+        X,
+        gpr
+    ):
+        """
+        Thompson Sampling
+    
+        Parameters:
+        -----------
+        X : array
+            Candidate points
+        gpr : GaussianProcessRegressor
+            Trained Gaussian process model
+    
+        Returns:
+        --------
+        sample : array
+            Sampled function values
+        """
+        # Sampling from the Gaussian process
+        mu, cov = gpr.predict(X, return_cov=True)
+    
+        # Adding diagonal terms for numerical stability of the covariance matrix
+        cov_stable = cov + 1e-6 * np.eye(cov.shape[0])
+        sample = np.random.multivariate_normal(mu, cov_stable)
+    
+        return sample
+    
+    
+    # Usage example: probabilistic exploration with Thompson Sampling
+    # (Uses the GPR model and candidate points defined in the previous code example)
+    
+    # Sampling multiple times to decide the next point
+    n_samples = 5
+    np.random.seed(42)
+    
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 10))
+    
+    # Top: multiple Thompson Sampling draws
+    mu, sigma = gpr.predict(X_candidates, return_std=True)
+    ax1.plot(X_candidates, objective_function(X_candidates.ravel()), 'r--', label='True function', alpha=0.5, linewidth=2)
+    ax1.plot(X_candidates, mu, 'b-', label='Predicted mean', linewidth=2)
+    ax1.fill_between(X_candidates.ravel(), mu - 1.96 * sigma, mu + 1.96 * sigma, alpha=0.2, label='95% confidence interval')
+    ax1.scatter(X_sample, Y_sample, c='red', s=100, marker='o', label='Existing samples', zorder=5)
+    
+    selected_points = []
+    for i in range(n_samples):
+        # Drawing a sample with Thompson Sampling
+        ts_sample = thompson_sampling(X_candidates, gpr)
+    
+        # Selecting the maximum of the sample
+        next_idx = np.argmax(ts_sample)
+        next_x = X_candidates[next_idx][0]
+        selected_points.append(next_x)
+    
+        # Plotting the sample
+        ax1.plot(X_candidates, ts_sample, alpha=0.4, linewidth=1, label=f'Sample {i+1}')
+        ax1.scatter(next_x, ts_sample[next_idx], s=80, marker='x', zorder=4)
+    
+    ax1.set_xlabel('x')
+    ax1.set_ylabel('f(x)')
+    ax1.set_title('Thompson Sampling: multiple draws from the Gaussian process')
+    ax1.legend(loc='upper left', fontsize=8, ncol=2)
+    ax1.grid(True, alpha=0.3)
+    
+    # Bottom: histogram of the selected points
+    ax2.hist(selected_points, bins=20, alpha=0.7, color='green', edgecolor='black')
+    ax2.axvline(np.mean(selected_points), color='red', linestyle='--', linewidth=2, label=f'Mean: {np.mean(selected_points):.2f}')
+    ax2.set_xlabel('x')
+    ax2.set_ylabel('Selection frequency')
+    ax2.set_title(f'Distribution of points selected by Thompson Sampling (n={n_samples})')
+    ax2.legend()
+    ax2.grid(True, alpha=0.3, axis='y')
+    
+    plt.tight_layout()
+    plt.savefig('thompson_sampling.png', dpi=150, bbox_inches='tight')
+    plt.show()
+    
+    # Selecting the most frequently chosen point as the next sample
+    from collections import Counter
+    most_common = Counter(np.round(selected_points, 2)).most_common(1)[0]
+    print(f"Thompson Sampling results ({n_samples} trials):")
+    print(f"  Selected points: {selected_points}")
+    print(f"  Most frequent point: x = {most_common[0]:.2f} ({most_common[1]} occurrences)")
+    print(f"  Mean selected point: x = {np.mean(selected_points):.3f}")
+    
+    # Example output:
+    # Thompson Sampling results (5 trials):
+    #   Selected points: [3.89, 3.72, 4.01, 3.78, 3.95]
+    #   Most frequent point: x = 3.89 (2 occurrences)
+    #   Mean selected point: x = 3.870
 
 * * *
 
@@ -128,7 +483,254 @@ $$ x^* = \arg\max_{x \in \mathcal{X}} f(x) $$
 **Code Example 5: Implementation of Multi-Objective Optimization (BoTorch)**
     
     
-    __PROTECTED_CODE_4__
+    import torch
+    from botorch.models import SingleTaskGP
+    from botorch.models.transforms.outcome import Standardize
+    from botorch.fit import fit_gpytorch_mll
+    from botorch.acquisition.multi_objective import qExpectedHypervolumeImprovement
+    from botorch.utils.multi_objective.box_decompositions.dominated import DominatedPartitioning
+    from botorch.optim import optimize_acqf
+    from botorch.utils.multi_objective.pareto import is_non_dominated
+    from gpytorch.mlls import ExactMarginalLogLikelihood
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d import Axes3D
+    
+    # Device configuration
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    dtype = torch.double
+    
+    # Definition of the multi-objective optimization problem (2 objectives)
+    def multi_objective_function(x):
+        """
+        Two-objective optimization problem
+        Objective 1: minimize f1(x) = x1^2 + x2^2
+        Objective 2: minimize f2(x) = (x1-1)^2 + (x2-1)^2
+        The Pareto optimal solutions are expressed as a linear combination of x1 and x2
+    
+        Parameters:
+        -----------
+        x : torch.Tensor, shape (n, 2)
+            Input points
+    
+        Returns:
+        --------
+        y : torch.Tensor, shape (n, 2)
+            The two objective function values (returned as negatives for maximization)
+        """
+        f1 = x[:, 0]**2 + x[:, 1]**2
+        f2 = (x[:, 0] - 1)**2 + (x[:, 1] - 1)**2
+    
+        # BoTorch assumes maximization, so a minimization problem is negated
+        return torch.stack([-f1, -f2], dim=-1)
+    
+    
+    # Generating the initial samples
+    def generate_initial_data(n=6):
+        """Generate the initial data"""
+        train_x = torch.rand(n, 2, device=device, dtype=dtype) * 2 - 1  # range [-1, 1]
+        train_y = multi_objective_function(train_x)
+        return train_x, train_y
+    
+    
+    # Building the multi-objective Gaussian process model
+    def initialize_model(train_x, train_y):
+        """
+        Build independent GP models for the two objectives
+    
+        Parameters:
+        -----------
+        train_x : torch.Tensor
+            Training data (n, 2)
+        train_y : torch.Tensor
+            Objective function values (n, 2)
+    
+        Returns:
+        --------
+        model : SingleTaskGP
+            Trained GP model
+        """
+        model = SingleTaskGP(
+            train_x,
+            train_y,
+            outcome_transform=Standardize(m=train_y.shape[-1])  # Standardize each objective
+        )
+        mll = ExactMarginalLogLikelihood(model.likelihood, model)
+        fit_gpytorch_mll(mll)
+        return model
+    
+    
+    # Optimization of the EHVI acquisition function
+    def optimize_ehvi_and_get_observation(model, train_y, bounds):
+        """
+        Optimize the Expected Hypervolume Improvement acquisition function
+    
+        Parameters:
+        -----------
+        model : SingleTaskGP
+            Trained model
+        train_y : torch.Tensor
+            Existing objective function values
+        bounds : torch.Tensor
+            Bounds of the search space (2, 2)
+    
+        Returns:
+        --------
+        new_x : torch.Tensor
+            Next sample point
+        """
+        # Set the reference point (slightly worse than the worst value of every objective)
+        ref_point = train_y.min(dim=0).values - 0.1
+    
+        # Computing the Pareto front
+        pareto_mask = is_non_dominated(train_y)
+        pareto_y = train_y[pareto_mask]
+    
+        # Box decomposition (for hypervolume computation)
+        partitioning = DominatedPartitioning(ref_point=ref_point, Y=pareto_y)
+    
+        # Definition of the EHVI acquisition function
+        acq_func = qExpectedHypervolumeImprovement(
+            model=model,
+            ref_point=ref_point,
+            partitioning=partitioning,
+        )
+    
+        # Maximizing the acquisition function
+        candidates, _ = optimize_acqf(
+            acq_function=acq_func,
+            bounds=bounds,
+            q=1,  # Select one point at a time
+            num_restarts=10,
+            raw_samples=128,
+        )
+    
+        return candidates.detach()
+    
+    
+    # Bayesian Optimization loop
+    def run_bo_loop(n_iterations=10):
+        """
+        Run multi-objective Bayesian optimization
+    
+        Parameters:
+        -----------
+        n_iterations : int
+            Number of optimization iterations
+    
+        Returns:
+        --------
+        train_x : torch.Tensor
+            All sample points
+        train_y : torch.Tensor
+            All objective function values
+        """
+        # Bounds of the search space
+        bounds = torch.tensor([[-1.0, -1.0], [1.0, 1.0]], device=device, dtype=dtype)
+    
+        # Initial data
+        train_x, train_y = generate_initial_data(n=6)
+    
+        print("Starting multi-objective Bayesian optimization")
+        print(f"Initial data: {train_x.shape[0]} points")
+    
+        for iteration in range(n_iterations):
+            # Training the model
+            model = initialize_model(train_x, train_y)
+    
+            # Obtaining the next sample point
+            new_x = optimize_ehvi_and_get_observation(model, train_y, bounds)
+            new_y = multi_objective_function(new_x)
+    
+            # Appending to the data
+            train_x = torch.cat([train_x, new_x])
+            train_y = torch.cat([train_y, new_y])
+    
+            # Updating the Pareto front
+            pareto_mask = is_non_dominated(train_y)
+            n_pareto = pareto_mask.sum().item()
+    
+            print(f"Iteration {iteration + 1}: new point = {new_x.squeeze().cpu().numpy()}, Pareto solutions = {n_pareto}")
+    
+        return train_x, train_y
+    
+    
+    # Execution and visualization
+    torch.manual_seed(42)
+    final_x, final_y = run_bo_loop(n_iterations=15)
+    
+    # Extracting the Pareto front
+    pareto_mask = is_non_dominated(final_y)
+    pareto_x = final_x[pareto_mask].cpu().numpy()
+    pareto_y = final_y[pareto_mask].cpu().numpy()
+    non_pareto_y = final_y[~pareto_mask].cpu().numpy()
+    
+    # Visualization
+    fig = plt.figure(figsize=(15, 5))
+    
+    # Left: input space
+    ax1 = fig.add_subplot(131)
+    ax1.scatter(final_x[:, 0].cpu(), final_x[:, 1].cpu(), c='blue', s=50, alpha=0.6, label='All samples')
+    ax1.scatter(pareto_x[:, 0], pareto_x[:, 1], c='red', s=100, marker='*', label='Pareto solutions', zorder=5)
+    ax1.set_xlabel('x1')
+    ax1.set_ylabel('x2')
+    ax1.set_title('Sample distribution in the input space')
+    ax1.legend()
+    ax1.grid(True, alpha=0.3)
+    
+    # Center: objective space (Pareto front)
+    ax2 = fig.add_subplot(132)
+    ax2.scatter(non_pareto_y[:, 0], non_pareto_y[:, 1], c='blue', s=50, alpha=0.6, label='Non-Pareto solutions')
+    ax2.scatter(pareto_y[:, 0], pareto_y[:, 1], c='red', s=100, marker='*', label='Pareto front', zorder=5)
+    # Connect the Pareto front with a line
+    sorted_idx = np.argsort(pareto_y[:, 0])
+    ax2.plot(pareto_y[sorted_idx, 0], pareto_y[sorted_idx, 1], 'r--', alpha=0.5, linewidth=2)
+    ax2.set_xlabel('Objective 1: -f1(x)')
+    ax2.set_ylabel('Objective 2: -f2(x)')
+    ax2.set_title('Pareto front in the objective space')
+    ax2.legend()
+    ax2.grid(True, alpha=0.3)
+    
+    # Right: 3D visualization (relationship between inputs and objective)
+    ax3 = fig.add_subplot(133, projection='3d')
+    ax3.scatter(final_x[:, 0].cpu(), final_x[:, 1].cpu(), final_y[:, 0].cpu(),
+                c='blue', s=30, alpha=0.6, label='Objective 1')
+    ax3.scatter(pareto_x[:, 0], pareto_x[:, 1], pareto_y[:, 0],
+                c='red', s=80, marker='*', label='Pareto solutions (Objective 1)', zorder=5)
+    ax3.set_xlabel('x1')
+    ax3.set_ylabel('x2')
+    ax3.set_zlabel('Objective 1: -f1(x)')
+    ax3.set_title('Relationship between the input space and Objective 1')
+    ax3.legend()
+    
+    plt.tight_layout()
+    plt.savefig('multi_objective_bo.png', dpi=150, bbox_inches='tight')
+    plt.show()
+    
+    # Printing the results
+    print("\nOptimization complete")
+    print(f"Total number of samples: {final_x.shape[0]}")
+    print(f"Number of Pareto solutions: {pareto_mask.sum().item()}")
+    print(f"\nObjective function values on the Pareto front:")
+    for i, (y1, y2) in enumerate(pareto_y):
+        print(f"  Solution {i+1}: f1={-y1:.4f}, f2={-y2:.4f}")
+    
+    # Example output:
+    # Starting multi-objective Bayesian optimization
+    # Initial data: 6 points
+    # Iteration 1: new point = [0.123 0.456], Pareto solutions = 4
+    # Iteration 2: new point = [-0.234 0.789], Pareto solutions = 5
+    # ...
+    # Iteration 15: new point = [0.512 0.487], Pareto solutions = 8
+    #
+    # Optimization complete
+    # Total number of samples: 21
+    # Number of Pareto solutions: 8
+    #
+    # Objective function values on the Pareto front:
+    #   Solution 1: f1=0.0123, f2=1.2345
+    #   Solution 2: f1=0.3456, f2=0.8901
+    #   Solution 3: f1=0.6789, f2=0.4567
+    #   ...
 
 * * *
 
