@@ -80,6 +80,16 @@ Advanced 185-210 min 5 Chapters, 36 Examples
 
 [Start →](<quantum-computing-introduction/index.html>)
 
+🔧
+
+Introduction to Quantum Hardware
+
+Quantum hardware as a materials problem: superconducting qubits, trapped ions, neutral atoms, photons, semiconductor spins and topological modes, each traced from its Hamiltonian to the material that limits it — two-level-system defects in surface oxide, the dielectric participation ratio, electrode noise, isotopic purity — with every mechanism verified numerically in NumPy
+
+Advanced 215-240 min 5 Chapters, 33 Examples
+
+[Start →](<quantum-hardware-introduction/index.html>)
+
 🔥 Statistical Mechanics and Thermodynamics Series (4 Series)
 
 📕

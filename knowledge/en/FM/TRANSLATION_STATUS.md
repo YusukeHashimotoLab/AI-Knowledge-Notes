@@ -2,17 +2,17 @@
 
 **Dojo**: Fundamental Mathematics & Physics
 **Generated**: 2026-07-04
-**Total Series**: 14
-**Total Files**: 80 (14 index + 66 chapters)
-**Complete Series** (index + chapters): 14/14
+**Total Series**: 15
+**Total Files**: 86 (15 index + 71 chapters)
+**Complete Series** (index + chapters): 15/15
 
 ---
 
 ## Summary Statistics
 
-- **Series Translated**: 14/14 (100%)
-- **Index Pages**: 14/14 (100%)
-- **Total Chapter Files**: 66
+- **Series Translated**: 15/15 (100%)
+- **Index Pages**: 15/15 (100%)
+- **Total Chapter Files**: 71
 - **Average Chapters per Series**: 4.7
 
 ---
@@ -249,7 +249,25 @@
 
 ---
 
-### 14. Introduction to Quantum Mechanics | Fundamentals of Mathematics Dojo - AI Terakoya ✅
+### 14. 🔧 Introduction to Quantum Hardware - AI Terakoya ✅
+
+**Directory**: `quantum-hardware-introduction`
+**Location**: `/FM/quantum-hardware-introduction/`
+**Files**: 6 total (1 index + 5 chapters)
+**Last Update**: 2026-08-13
+
+- ✅ `index.html` - Series overview page
+
+**Chapters** (5):
+- ✅ `chapter-1.html`
+- ✅ `chapter-2.html`
+- ✅ `chapter-3.html`
+- ✅ `chapter-4.html`
+- ✅ `chapter-5.html`
+
+---
+
+### 15. Introduction to Quantum Mechanics | Fundamentals of Mathematics Dojo - AI Terakoya ✅
 
 **Directory**: `quantum-mechanics`
 **Location**: `/FM/quantum-mechanics/`

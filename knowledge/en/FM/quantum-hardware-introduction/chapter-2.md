@@ -1,0 +1,1586 @@
+---
+title: "Chapter 2: Superconducting Qubits"
+chapter_title: "Chapter 2: Superconducting Qubits"
+subtitle: ⚛️ From the Josephson Effect to the Transmon, and Why the Last Three Nanometres Set the Coherence Time
+reading_time: 45-50 minutes
+difficulty: Advanced
+code_examples: 7
+exercises: 6
+---
+
+🌐 EN | [🇯🇵 JP](<../../../jp/FM/quantum-hardware-introduction/chapter-2.html>) | Last sync: 2026-08-13
+
+[Fundamental Mathematics Dojo](<../index.html>) > [Introduction to Quantum Hardware](<index.html>) > Chapter 2
+
+A superconducting qubit is a lithographically patterned electrical circuit, a few hundred micrometres across, that behaves like an atom. Nothing about that is obvious, and the point of this chapter is to make it quantitative: which circuit, why it has to be nonlinear, how one dimensionless ratio decides everything about its spectrum, and — the part that occupies the second half — why its coherence time is a statement about the amorphous oxide on its surfaces rather than about circuit design.
+
+The chapter is built around one calculation you should be able to do yourself by the end. The transmon Hamiltonian is a particle in a cosine potential, and in the Cooper-pair charge basis it is a tridiagonal matrix that fits in ten lines of NumPy. Diagonalizing it gives the transition frequency, the anharmonicity, and the charge dispersion, and the way those three quantities trade off against each other as $E_J/E_C$ is varied *is* the design space of the entire platform. Everything else in the chapter — control, readout, two-qubit gates, decoherence — is a consequence of the numbers that come out of that matrix.
+
+The superconductivity itself is taken as given here. If the Cooper pair, the order parameter, and the gap are not yet familiar, the [Introduction to Superconductivity](<../../MS/superconductivity-introduction/index.html>) course in the Materials Science Dojo develops them. The algorithms that run on these devices are the subject of the sister course, [Introduction to Quantum Computing](<../quantum-computing-introduction/index.html>): where that course says "assume a gate is applied," this chapter says what the gate costs. The quantum mechanics of a particle in a periodic potential, which is literally the transmon problem, is in [Introduction to Quantum Mechanics](<../quantum-mechanics/index.html>).
+
+**Units and conventions.** Throughout this chapter energies are quoted as frequencies, $E/h$, in GHz — so "$E_C/h = 250$ MHz" and "$E_C = 250$ MHz" mean the same thing, and a Hamiltonian written in GHz is understood to be divided by $h$. Angular frequencies carry an explicit $2\pi$: $\omega_{01} = 2\pi f_{01}$. We set $\hbar = 1$ inside every simulation and restore SI units only when a laboratory quantity (a capacitance, a resistance, a temperature) is needed. $T_1$, $T_2$ and $T_2^\ast$ keep the definitions fixed in Chapter 1.
+
+## Learning Objectives
+
+After completing this chapter, you will be able to:
+
+  * State the two Josephson relations, compute $E_J$ from a junction's normal-state resistance through the Ambegaokar-Baratoff formula, and compute $E_C$ from its total capacitance
+  * Explain why a harmonic LC circuit cannot be a qubit, and why the Josephson inductance is the cheapest available nonlinearity
+  * Write the transmon Hamiltonian in the Cooper-pair charge basis, diagonalize it numerically, and read off $f_{01}$, the anharmonicity $\alpha$, and the charge dispersion
+  * Explain the transmon trade-off quantitatively: charge dispersion falls exponentially in $\sqrt{E_J/E_C}$ while anharmonicity falls only as a power law
+  * Estimate the leakage of a single-qubit gate from its duration and the anharmonicity, and explain what the DRAG correction fixes
+  * Compute the dispersive shift $\chi$ by exact diagonalization, explain why the standard two-level formula is quantitatively wrong for a transmon, and state the Purcell and measurement-dephasing trade-offs
+  * Locate the $|11\rangle$-$|20\rangle$ avoided crossing that makes a CZ gate, compute the static $ZZ$ interaction, and find the coupler frequency at which an exchange interaction switches off
+  * Explain the cross-resonance mechanism, write down its effective $ZX$ rate, and show why it turns qubit-frequency targeting into a fabrication-yield problem
+  * Carry out a participation-ratio analysis of dielectric loss, decide when a two-level-defect bath is a continuum and when it is a few discrete defects, and put numbers on the quasiparticle contribution to $T_1$
+
+* * *
+
+## 2.1 Superconductivity and the Josephson Effect
+
+### One macroscopic degree of freedom
+
+A superconductor below its critical temperature is described, for our purposes, by a single complex order parameter $\psi = |\psi| e^{i\varphi}$. The magnitude is set by the material and is not a dynamical variable at the energies we care about; the *phase* $\varphi$ is. That is the whole reason superconducting circuits can be quantum: an object containing $10^{23}$ electrons has one collective degree of freedom that is not thermally scrambled, because there is an energy gap $\Delta$ protecting it.
+
+For aluminium, the workhorse junction material, $T_c \approx 1.2$ K gives a BCS gap $\Delta = 1.764\,k_B T_c \approx 180\ \mu\mathrm{eV}$, or $\Delta/h \approx 44$ GHz. Two numbers follow immediately and both will matter later: the pair-breaking threshold is $2\Delta/h \approx 88$ GHz, and $\Delta/k_B \approx 2.1$ K, so a dilution refrigerator at 20 mK sits a hundred times below the gap.
+
+### The two Josephson relations
+
+Put a thin insulating barrier — for aluminium, its own oxide, two or three nanometres of amorphous AlO$_x$ — between two superconductors. Cooper pairs tunnel coherently, and the tunnelling is governed by the phase difference $\varphi$ across the barrier:
+
+$$ I = I_c \sin\varphi, \qquad V = \frac{\Phi_0}{2\pi}\frac{d\varphi}{dt}, \qquad \Phi_0 = \frac{h}{2e} $$
+
+The first relation says a supercurrent flows with no voltage. The second says a voltage makes the phase wind. Together they make the junction a *nonlinear inductor*: differentiating the first and substituting the second gives $V = L_J(\varphi)\, dI/dt$ with
+
+$$ L_J(\varphi) = \frac{\Phi_0}{2\pi I_c \cos\varphi} $$
+
+an inductance that depends on the current through it. That dependence is the entire reason superconducting qubits exist, and Section 2.2 explains why.
+
+Integrating $\int I V\, dt$ gives the energy stored in the junction, $-E_J\cos\varphi$, with
+
+$$ E_J = \frac{\Phi_0 I_c}{2\pi} = \frac{\hbar I_c}{2e} $$
+
+the **Josephson energy**. It is a cosine potential in the phase, exactly like a pendulum, and the qubit is a quantum pendulum.
+
+### From fabrication parameters to $E_J$
+
+$I_c$ is not something one dials directly; what the fabrication controls is the oxide. The Ambegaokar-Baratoff relation connects the critical current at $T = 0$ to the junction's *normal-state* resistance $R_n$ — the resistance the same junction would have with the superconductivity switched off:
+
+$$ I_c R_n = \frac{\pi \Delta}{2e} \quad \Longrightarrow \quad \frac{E_J}{h} = \frac{\Delta}{8 e^2 R_n} $$
+
+This is a remarkably useful formula, because $R_n$ can be measured at room temperature on a test junction, before the wafer ever goes into a refrigerator. And $R_n$ itself is set by the tunnel barrier: $R_n = (RA)/A$, where the resistance-area product $RA$ depends exponentially on the barrier thickness and hence on the oxidation dose, and $A$ is the junction area.
+
+The other energy scale is electrostatic. Charging the island by one Cooper pair costs
+
+$$ E_C = \frac{e^2}{2C} $$
+
+with $C$ the total capacitance shunting the junction. Note the convention: $E_C$ is written with $e$, not $2e$, so a Cooper pair costs $4E_C$ — which is why the factor 4 appears in the Hamiltonian below.
+
+### Code Example 1: The Two Energy Scales
+
+Everything in this chapter is a function of $E_J$ and $E_C$. This example computes both from fabrication parameters for a range of junction areas, then reads the calculation backwards to design a junction for a target spectrum.
+
+```python
+"""Chapter 2, Example 1: the two energy scales of a Josephson circuit."""
+import numpy as np
+
+# --- SI constants -------------------------------------------------------
+h = 6.62607015e-34          # J s
+hbar = h / (2 * np.pi)
+e = 1.602176634e-19         # C
+kB = 1.380649e-23           # J / K
+Phi0 = h / (2 * e)          # magnetic flux quantum, 2.068e-15 Wb
+
+# --- aluminium as the junction material ---------------------------------
+Tc = 1.20                                  # K, thin-film Al
+Delta = 1.764 * kB * Tc                    # BCS gap at T = 0
+print("Aluminium electrodes:")
+print(f"  Tc            = {Tc:.2f} K")
+print(f"  Delta         = {Delta / e * 1e6:.1f} ueV = {Delta / h / 1e9:.2f} GHz x h")
+print(f"  2Delta/h      = {2 * Delta / h / 1e9:.1f} GHz "
+      f"(photons above this break Cooper pairs)")
+print(f"  Delta/kB      = {Delta / kB * 1e3:.1f} mK")
+print()
+
+# --- junction: normal-state resistance from the area --------------------
+# Al/AlOx/Al tunnel junctions are specified by the resistance-area product,
+# which the oxidation dose (pressure x time) sets exponentially.
+RA = 700.0        # Ohm um^2, a representative resistance-area product
+C_specific = 45.0  # fF / um^2, specific capacitance of a ~2 nm AlOx barrier
+C_shunt = 75.0     # fF, the deliberate shunt capacitance of a transmon
+
+print(f"Resistance-area product  RA   = {RA:.0f} Ohm um^2")
+print(f"Specific capacitance     c    = {C_specific:.0f} fF/um^2")
+print(f"Shunt capacitance        Cs   = {C_shunt:.0f} fF")
+print()
+
+header = (f"{'A (um^2)':>9}{'Rn (kOhm)':>11}{'Ic (nA)':>9}{'EJ/h (GHz)':>12}"
+          f"{'C (fF)':>8}{'EC/h (MHz)':>12}{'EJ/EC':>8}"
+          f"{'w01/2pi (GHz)':>14}{'alpha/2pi (MHz)':>16}")
+print(header)
+print("-" * len(header))
+for A in [0.010, 0.020, 0.040, 0.070, 0.120, 0.200]:
+    Rn = RA / A                              # Ohm
+    Ic = np.pi * Delta / (2 * e * Rn)        # Ambegaokar-Baratoff at T = 0
+    EJ = hbar * Ic / (2 * e)                 # = Phi0 Ic / 2pi
+    C = (C_shunt + C_specific * A) * 1e-15   # F
+    EC = e**2 / (2 * C)
+    w01 = np.sqrt(8 * EJ * EC) - EC          # leading transmon result
+    print(f"{A:>9.3f}{Rn / 1e3:>11.1f}{Ic * 1e9:>9.1f}{EJ / h / 1e9:>12.2f}"
+          f"{C * 1e15:>8.1f}{EC / h / 1e6:>12.1f}{EJ / EC:>8.1f}"
+          f"{w01 / h / 1e9:>14.3f}{-EC / h / 1e6:>16.1f}")
+
+# --- the same numbers read backwards: design from a target spectrum -----
+print()
+f01_target = 5.0e9    # Hz
+alpha_target = -250e6  # Hz
+EC = -h * alpha_target                       # alpha = -EC
+EJ = (h * f01_target + EC)**2 / (8 * EC)
+C = e**2 / (2 * EC)
+Ic = 2 * e * EJ / hbar
+Rn = np.pi * Delta / (2 * e * Ic)
+print(f"Design target: f01 = {f01_target / 1e9:.1f} GHz, "
+      f"alpha/2pi = {alpha_target / 1e6:.0f} MHz")
+print(f"  -> EC/h = {EC / h / 1e6:.1f} MHz, EJ/h = {EJ / h / 1e9:.2f} GHz, "
+      f"EJ/EC = {EJ / EC:.1f}")
+print(f"  -> C = {C * 1e15:.1f} fF, Ic = {Ic * 1e9:.1f} nA, "
+      f"Rn = {Rn / 1e3:.1f} kOhm, A = {RA / (Rn / 1e3) / 1e3:.4f} um^2")
+print()
+
+# --- why the circuit must be cold ---------------------------------------
+for T in [4.0, 0.100, 0.020]:
+    nbar = 1.0 / (np.exp(h * f01_target / (kB * T)) - 1.0)
+    print(f"  T = {T * 1e3:>7.1f} mK: kBT/h = {kB * T / h / 1e9:>8.2f} GHz, "
+          f"thermal occupation of a 5 GHz mode = {nbar:.3e}")
+```
+
+```text
+Aluminium electrodes:
+  Tc            = 1.20 K
+  Delta         = 182.4 ueV = 44.11 GHz x h
+  2Delta/h      = 88.2 GHz (photons above this break Cooper pairs)
+  Delta/kB      = 2116.8 mK
+
+Resistance-area product  RA   = 700 Ohm um^2
+Specific capacitance     c    = 45 fF/um^2
+Shunt capacitance        Cs   = 75 fF
+
+ A (um^2)  Rn (kOhm)  Ic (nA)  EJ/h (GHz)  C (fF)  EC/h (MHz)   EJ/EC w01/2pi (GHz) alpha/2pi (MHz)
+---------------------------------------------------------------------------------------------------
+    0.010       70.0      4.1        2.03    75.5       256.7     7.9         1.787          -256.7
+    0.020       35.0      8.2        4.07    75.9       255.2    15.9         2.626          -255.2
+    0.040       17.5     16.4        8.13    76.8       252.2    32.2         3.799          -252.2
+    0.070       10.0     28.7       14.23    78.2       247.9    57.4         5.064          -247.9
+    0.120        5.8     49.1       24.40    80.4       240.9   101.3         6.616          -240.9
+    0.200        3.5     81.9       40.66    84.0       230.6   176.3         8.430          -230.6
+
+Design target: f01 = 5.0 GHz, alpha/2pi = -250 MHz
+  -> EC/h = 250.0 MHz, EJ/h = 13.78 GHz, EJ/EC = 55.1
+  -> C = 77.5 fF, Ic = 27.7 nA, Rn = 10.3 kOhm, A = 0.0678 um^2
+
+  T =  4000.0 mK: kBT/h =    83.35 GHz, thermal occupation of a 5 GHz mode = 1.617e+01
+  T =   100.0 mK: kBT/h =     2.08 GHz, thermal occupation of a 5 GHz mode = 9.981e-02
+  T =    20.0 mK: kBT/h =     0.42 GHz, thermal occupation of a 5 GHz mode = 6.156e-06
+```
+
+**What to notice.** A junction of area $0.07\ \mu\mathrm{m}^2$ — about $260 \times 260$ nm, which is a routine electron-beam lithography feature — gives $R_n = 10\ \mathrm{k\Omega}$, $I_c = 29$ nA and $E_J/h = 14$ GHz. Sub-micron junctions carry nanoamps, not milliamps.
+
+$E_C$ barely moves down the table (257 to 231 MHz), because the shunt capacitance of 75 fF dominates the junction's own few fF. That is deliberate: the designer sets $E_C$ with a large lithographically defined capacitor and $E_J$ with a small junction, so the two knobs are nearly independent. Meanwhile $E_J/E_C$ sweeps from 8 to 176 across the same table — a factor of 22 from a factor of 20 in area.
+
+The design line inverts the leading-order relations $\omega_{01} \approx \sqrt{8E_JE_C} - E_C$ and $\alpha \approx -E_C$ to hit $f_{01} = 5$ GHz and $\alpha = -250$ MHz, and lands on $E_J/E_C = 55$, $C = 78$ fF, $R_n = 10\ \mathrm{k\Omega}$. Those are the parameters used for every numerical example in the rest of the chapter. Example 2 will show that the *exact* spectrum of that design has $\alpha = -285$ MHz rather than $-250$ MHz, which is the first lesson about asymptotic formulas.
+
+Finally the temperature rows. A 5 GHz mode at 20 mK has a thermal occupation of $6 \times 10^{-6}$: the qubit is genuinely in its ground state, which is what makes a 5 GHz transition usable as a qubit and a 5 MHz one useless. At 100 mK the occupation is already 10%, and at 4 K the mode holds 16 photons. The refrigerator is not a convenience.
+
+* * *
+
+## 2.2 From an LC Circuit to an Artificial Atom
+
+### Why the harmonic oscillator fails
+
+Quantize a plain LC circuit — a capacitor and a linear inductor — and you get a harmonic oscillator: levels evenly spaced by $\hbar\omega = \hbar/\sqrt{LC}$. It is a perfectly good quantum system, and it is a useless qubit, for a reason that has nothing to do with coherence.
+
+A qubit must be addressable. Driving the $0 \to 1$ transition means applying a field at $\omega_{01}$; if $\omega_{12} = \omega_{01}$ exactly, the same field drives $1 \to 2$ just as strongly, and the state leaks out of the computational subspace immediately. Worse, the harmonic oscillator's matrix elements grow as $\sqrt{n+1}$, so the leakage is *faster* than the intended transition. No pulse shape can fix a system with no anharmonicity, because there is no frequency at which the qubit transition and the leakage transition differ.
+
+What is needed is a definite **anharmonicity**
+
+$$ \alpha = \omega_{12} - \omega_{01} $$
+
+large enough that a pulse of bandwidth $1/\tau$ can address $0 \to 1$ without touching $1 \to 2$. This immediately sets a speed limit, $\tau \gtrsim 1/|\alpha|$, which Section 2.4 makes quantitative.
+
+### The circuit Hamiltonian
+
+Replace the linear inductor by a Josephson junction. The circuit has one degree of freedom, the phase $\varphi$ across the junction, whose conjugate momentum is the number $n$ of Cooper pairs that have crossed it, with $[\varphi, n] = i$. The Hamiltonian is kinetic-plus-potential:
+
+$$ H = 4E_C (\hat{n} - n_g)^2 - E_J \cos\hat{\varphi} $$
+
+The first term is the charging energy of $\hat{n}$ excess pairs, offset by $n_g$, the **offset charge** — a continuous, uncontrolled parameter set by stray charges in the substrate and on the surfaces. It drifts, it jumps, and it is the single largest problem of the early charge qubits.
+
+The second term is the cosine potential. This is exactly the Hamiltonian of a quantum pendulum, with $4E_C$ playing the role of $\hbar^2/2m$ (so $E_C$ is an inverse mass: a large capacitance is a heavy particle) and $E_J$ the gravitational torque.
+
+### Why the charge basis
+
+In the charge basis $\lbrace |n\rangle \rbrace$, $n \in \mathbb{Z}$, the Hamiltonian is tridiagonal. The charging term is diagonal, and the cosine is a nearest-neighbour hop, because $e^{\pm i\varphi}$ shifts the Cooper-pair number by one:
+
+$$ \cos\hat{\varphi} = \tfrac{1}{2}\sum_n \left( |n\rangle\langle n+1| + |n+1\rangle\langle n| \right) $$
+
+So
+
+$$ H = \sum_n 4E_C (n - n_g)^2 |n\rangle\langle n| - \frac{E_J}{2}\sum_n \left( |n\rangle\langle n+1| + |n+1\rangle\langle n| \right) $$
+
+Truncating at $|n| \le n_\mathrm{cut}$ gives a real symmetric matrix of size $2n_\mathrm{cut}+1$ that `numpy.linalg.eigvalsh` diagonalizes instantly. There is no approximation in this beyond the truncation, and the truncation converges fast, because the ground state of a deep cosine well is localized in phase and therefore spread over only a few charge states — the rms Cooper-pair number is $\sigma_n = (E_J/32E_C)^{1/4}$, which is close to 1 for a transmon.
+
+This is worth pausing on, because it is the reason a materials researcher should feel at home here. The transmon problem is the Mathieu equation, the same problem as an electron in a one-dimensional periodic potential. $E_J/E_C$ plays the role of the ratio of lattice depth to recoil energy; the offset charge $n_g$ plays the role of crystal momentum; and the **charge dispersion**, the $n_g$-dependence of the energy levels, is literally the bandwidth of a Bloch band. Everything you know about tight-binding bandwidths narrowing exponentially with barrier height applies here without modification, and Section 2.3 uses it.
+
+* * *
+
+## 2.3 The Transmon
+
+### One ratio decides everything
+
+The transmon is the choice $E_J/E_C \gg 1$, typically 30 to 100. Nothing else changes — same Hamiltonian, same junction — only the shunt capacitance is made large. What that buys, and what it costs, is the content of this section.
+
+In the deep-well limit the cosine can be expanded about its minimum, $-E_J\cos\varphi \approx -E_J + \frac{1}{2}E_J\varphi^2 - \frac{1}{24}E_J\varphi^4$, and perturbation theory in the quartic term gives
+
+$$ E_m \approx -E_J + \sqrt{8E_JE_C}\left(m + \tfrac{1}{2}\right) - \frac{E_C}{12}\left(6m^2 + 6m + 3\right) $$
+
+from which
+
+$$ \omega_{01} \approx \sqrt{8E_JE_C} - E_C, \qquad \alpha \approx -E_C $$
+
+The anharmonicity is just the charging energy, with a minus sign: the transmon is a *weakly* anharmonic oscillator, and the level spacing decreases as you go up.
+
+The relative anharmonicity, though, is the quantity that matters for gates, and it is small:
+
+$$ \frac{|\alpha|}{\omega_{01}} \approx \left(\frac{E_C}{8E_J}\right)^{1/2} $$
+
+falling only as the inverse square root of $E_J/E_C$. Hold that thought against what happens to the charge dispersion.
+
+### Code Example 2: Diagonalizing the Cosine Potential
+
+This is the central calculation of the chapter. Ten lines build the matrix; the rest is reading numbers off it.
+
+```python
+"""Chapter 2, Example 2: the transmon spectrum by numerical diagonalization
+in the charge basis.  Units: all energies in GHz (i.e. E/h), hbar = 1."""
+import numpy as np
+
+
+def transmon_hamiltonian(EJ, EC, ng, ncut):
+    """H = 4 EC (n - ng)^2 - EJ cos(phi), in the charge basis |n>, |n| <= ncut.
+
+    cos(phi) = (sum_n |n><n+1| + |n+1><n|) / 2 because exp(+-i phi) shifts the
+    Cooper-pair number by one.  Energies are returned in the units of EJ, EC.
+    """
+    n = np.arange(-ncut, ncut + 1)
+    H = np.diag(4.0 * EC * (n - ng) ** 2)
+    off = -0.5 * EJ * np.ones(2 * ncut)
+    H += np.diag(off, 1) + np.diag(off, -1)
+    return H
+
+
+def levels(EJ, EC, ng=0.0, ncut=40, m=5):
+    """Lowest m eigenvalues, ascending."""
+    return np.linalg.eigvalsh(transmon_hamiltonian(EJ, EC, ng, ncut))[:m]
+
+
+# --- convergence in the charge-basis cutoff -----------------------------
+EC = 0.250        # GHz
+EJ = 13.78        # GHz  -> EJ/EC = 55.1, the design of Example 1
+print("Convergence of the lowest three levels in the charge cutoff "
+      "(EJ/EC = %.1f):" % (EJ / EC))
+print(f"{'ncut':>6}{'E0 (GHz)':>14}{'E1 (GHz)':>14}{'E2 (GHz)':>14}")
+prev = None
+for ncut in [3, 5, 8, 12, 20, 40, 80]:
+    ev = levels(EJ, EC, 0.0, ncut, 3)
+    tag = "" if prev is None else f"   (change {np.abs(ev - prev).max():.2e})"
+    print(f"{ncut:>6}{ev[0]:>14.9f}{ev[1]:>14.9f}{ev[2]:>14.9f}{tag}")
+    prev = ev
+print()
+
+# --- the spectrum as a function of EJ/EC --------------------------------
+header = (f"{'EJ/EC':>8}{'EJ/h (GHz)':>12}{'f01 (GHz)':>11}{'f12 (GHz)':>11}"
+          f"{'alpha (MHz)':>13}{'alpha_r':>9}{'f01 asym':>10}{'sigma_n':>9}")
+print(header)
+print("-" * len(header))
+for ratio in [1, 2, 5, 10, 20, 30, 50, 55.1, 80, 100, 200]:
+    EJv = ratio * EC
+    ev = levels(EJv, EC, 0.0, 60, 4)
+    f01, f12 = ev[1] - ev[0], ev[2] - ev[1]
+    alpha = f12 - f01
+    asym = np.sqrt(8 * EJv * EC) - EC
+    sigma_n = (EJv / (32.0 * EC)) ** 0.25      # rms Cooper-pair number
+    print(f"{ratio:>8.1f}{EJv:>12.3f}{f01:>11.4f}{f12:>11.4f}"
+          f"{alpha * 1e3:>13.2f}{alpha / f01:>9.4f}{asym:>10.4f}{sigma_n:>9.3f}")
+print()
+
+# --- how good is alpha = -EC ? -----------------------------------------
+# Write alpha = -EC (1 + c x) with x = sqrt(EC/(8 EJ)) and extract c.
+print(f"{'EJ/EC':>8}{'alpha (MHz)':>13}{'alpha/(-EC)':>13}{'x':>10}"
+      f"{'c = (ratio-1)/x':>17}")
+for ratio in [50, 100, 200, 500, 1000, 4000, 10000]:
+    EJv = ratio * EC
+    ev = levels(EJv, EC, 0.0, 200, 4)
+    alpha = (ev[2] - ev[1]) - (ev[1] - ev[0])
+    x = np.sqrt(EC / (8.0 * EJv))
+    c = (alpha / (-EC) - 1.0) / x
+    print(f"{ratio:>8.0f}{alpha * 1e3:>13.3f}{alpha / (-EC):>13.6f}"
+          f"{x:>10.5f}{c:>17.4f}")
+print(f"  the extracted coefficient converges to 9/4 = {9 / 4:.4f}, i.e. "
+      f"alpha = -EC (1 + (9/4) sqrt(EC/8EJ))")
+print()
+```
+
+```text
+Convergence of the lowest three levels in the charge cutoff (EJ/EC = 55.1):
+  ncut      E0 (GHz)      E1 (GHz)      E2 (GHz)
+     3 -11.186301005  -5.975514766  -0.620698615
+     5 -11.219172795  -6.232363041  -1.526194000   (change 9.05e-01)
+     8 -11.219226505  -6.233183480  -1.532004857   (change 5.81e-03)
+    12 -11.219226505  -6.233183482  -1.532004878   (change 2.07e-08)
+    20 -11.219226505  -6.233183482  -1.532004878   (change 1.07e-13)
+    40 -11.219226505  -6.233183482  -1.532004878   (change 2.45e-13)
+    80 -11.219226505  -6.233183482  -1.532004878   (change 2.64e-12)
+
+   EJ/EC  EJ/h (GHz)  f01 (GHz)  f12 (GHz)  alpha (MHz)  alpha_r  f01 asym  sigma_n
+-----------------------------------------------------------------------------------
+     1.0       0.250     1.0252     0.0304      -994.81  -0.9703    0.4571    0.420
+     2.0       0.500     1.0930     0.1136      -979.47  -0.8961    0.7500    0.500
+     5.0       1.250     1.4114     0.5301      -881.25  -0.6244    1.3311    0.629
+    10.0       2.500     1.9749     1.3374      -637.46  -0.3228    1.9861    0.748
+    20.0       5.000     2.8887     2.5249      -363.82  -0.1259    2.9123    0.889
+    30.0       7.500     3.6034     3.2943      -309.09  -0.0858    3.6230    0.984
+    50.0      12.500     4.7355     4.4482      -287.31  -0.0607    4.7500    1.118
+    55.1      13.775     4.9851     4.7002      -284.87  -0.0571    4.9988    1.146
+    80.0      20.000     6.0635     5.7861      -277.39  -0.0457    6.0746    1.257
+   100.0      25.000     6.8113     6.5374      -273.87  -0.0402    6.8211    1.330
+   200.0      50.000     9.7433     9.4774      -265.91  -0.0273    9.7500    1.581
+
+   EJ/EC  alpha (MHz)  alpha/(-EC)         x  c = (ratio-1)/x
+      50     -287.306     1.149223   0.05000           2.9845
+     100     -273.874     1.095494   0.03536           2.7010
+     200     -265.911     1.063643   0.02500           2.5457
+     500     -259.589     1.038358   0.01581           2.4260
+    1000     -256.627     1.026507   0.01118           2.3709
+    4000     -253.226     1.012905   0.00559           2.3084
+   10000     -252.021     1.008084   0.00354           2.2865
+  the extracted coefficient converges to 9/4 = 2.2500, i.e. alpha = -EC (1 + (9/4) sqrt(EC/8EJ))
+```
+
+**What to notice.** The convergence table settles the truncation question once. At $E_J/E_C = 55$, going from $n_\mathrm{cut} = 8$ to 12 changes the lowest three levels by $2 \times 10^{-8}$ GHz, and beyond that nothing moves except at the $10^{-13}$ level of floating-point noise. Twelve charge states are enough for a transmon; three are not, and the $n_\mathrm{cut} = 3$ row is wrong in the second decimal place. Always run this test before trusting a truncated basis.
+
+The main table is the design space. Reading down the $\alpha$ column: at $E_J/E_C = 1$ the anharmonicity is $-995$ MHz, four times the charging energy and comparable with $f_{01}$ itself — this is the Cooper-pair box, a strongly anharmonic system. By $E_J/E_C = 55$ the anharmonicity has collapsed to $-285$ MHz, close to $-E_C = -250$ MHz, and the relative anharmonicity is 5.7%. The asymptotic $\sqrt{8E_JE_C} - E_C$ tracks the exact $f_{01}$ to better than 0.3% by $E_J/E_C = 50$ and is off by a factor of two at $E_J/E_C = 1$.
+
+The $\sigma_n$ column shows why the charge basis is efficient: even at $E_J/E_C = 200$ the ground state spans only about $\pm 1.6$ Cooper pairs.
+
+The last table extracts the next order in the anharmonicity. Writing $\alpha = -E_C(1 + c\sqrt{E_C/8E_J})$ and solving for $c$ at increasing $E_J/E_C$ gives 2.98, 2.70, 2.55, 2.43, 2.37, 2.31, 2.29 — visibly converging to $9/4$. That correction is not a detail: at the design point $E_J/E_C = 55$ the exact $|\alpha| = 284.87$ MHz exceeds $E_C = 250$ MHz by 13.9% (the $9/4$ term alone accounts for 11.3% of it), and that is exactly why the Example 1 design targeting $\alpha = -250$ MHz produced a device with $\alpha = -285$ MHz. Designing a real transmon means iterating on the exact diagonalization, not the asymptotic formula. Exercise 1 asks you to do that.
+
+### Charge dispersion: the exponential payoff
+
+Now the other half of the trade. The $n_g$-dependence of the levels is a Bloch bandwidth, and like any tight-binding bandwidth it is set by tunnelling through a barrier — here, phase slips over the top of the cosine. The asymptotic result (Koch and co-workers, 2007) is
+
+$$ \epsilon_m \simeq (-1)^m E_C \frac{2^{4m+5}}{m!}\sqrt{\frac{2}{\pi}} \left(\frac{E_J}{2E_C}\right)^{\frac{m}{2}+\frac{3}{4}} e^{-\sqrt{8E_J/E_C}} $$
+
+where $\epsilon_m = E_m(n_g = 1/2) - E_m(n_g = 0)$. The controlling factor is $e^{-\sqrt{8E_J/E_C}}$, which falls off a cliff.
+
+That is the transmon's entire argument. Sensitivity to offset charge — the thing that made the Cooper-pair box useless — is suppressed *exponentially* in $\sqrt{E_J/E_C}$, while the anharmonicity you sacrifice is only a power law. You pay a little and you buy a lot.
+
+### Code Example 3: Charge Dispersion and What It Costs in Coherence
+
+```python
+"""Chapter 2, Example 3: charge dispersion, and what it costs in coherence.
+Energies in GHz (E/h).  The Cooper-pair box and the transmon are the same
+Hamiltonian at two values of one dimensionless number."""
+import numpy as np
+from math import factorial
+
+
+def levels(EJ, EC, ng, ncut=60, m=3):
+    n = np.arange(-ncut, ncut + 1)
+    H = np.diag(4.0 * EC * (n - ng) ** 2)
+    off = -0.5 * EJ * np.ones(2 * ncut)
+    H += np.diag(off, 1) + np.diag(off, -1)
+    return np.linalg.eigvalsh(H)[:m]
+
+
+def dispersion_01(EJ, EC):
+    """Peak-to-peak excursion of f01 over one period of the offset charge."""
+    ng = np.linspace(0.0, 0.5, 51)
+    f01 = np.array([levels(EJ, EC, g)[1] - levels(EJ, EC, g)[0] for g in ng])
+    return f01.max() - f01.min(), f01
+
+
+def eps_asymptotic(m, EJ, EC):
+    """Koch et al. asymptotic charge dispersion of level m (magnitude)."""
+    return (EC * 2.0 ** (4 * m + 5) / factorial(m) * np.sqrt(2.0 / np.pi)
+            * (EJ / (2.0 * EC)) ** (m / 2.0 + 0.75)
+            * np.exp(-np.sqrt(8.0 * EJ / EC)))
+
+
+EC = 0.250          # GHz
+sigma_ng = 1.0e-3   # rms offset-charge fluctuation, in units of 2e
+
+header = (f"{'EJ/EC':>8}{'f01 (GHz)':>11}{'pk-pk of f01':>16}"
+          f"{'|eps0|+|eps1| asym':>21}{'exp(-sqrt(8EJ/EC))':>21}")
+print(header)
+print("-" * len(header))
+rows = []
+for ratio in [1, 2, 5, 10, 20, 30, 40, 55.1, 70, 100]:
+    EJ = ratio * EC
+    pp, f01 = dispersion_01(EJ, EC)
+    # eps_m alternates in sign, so the 0-1 excursion is |eps_0| + |eps_1|
+    asym = eps_asymptotic(1, EJ, EC) + eps_asymptotic(0, EJ, EC)
+    print(f"{ratio:>8.1f}{f01.mean():>11.4f}{pp * 1e9:>13.3e} Hz"
+          f"{asym * 1e9:>18.3e} Hz{np.exp(-np.sqrt(8 * ratio)):>21.3e}")
+    rows.append((ratio, pp))
+print()
+
+# --- what the dispersion does to T2 at the sweet spot -------------------
+# Near ng = 0 the transition frequency is flat to first order, so slow charge
+# noise enters at second order: f01(ng) ~ fbar - (eps/2) cos(2 pi ng), hence
+# d2f/dng2 = 2 pi^2 eps.  The rate must be built from the ANGULAR frequency,
+# Gamma_phi ~ (1/2) |d2 omega01/dng2| sigma^2 = 2 pi^3 eps sigma^2, which is
+# 2 pi larger than the same expression written with f instead of omega.
+print(f"Second-order charge dephasing at the ng = 0 sweet spot, "
+      f"sigma_ng = {sigma_ng:.0e} (2e):")
+print(f"{'EJ/EC':>8}{'pk-pk (Hz)':>14}{'Gamma_phi (1/s)':>18}{'T_phi':>16}")
+for ratio, pp in rows:
+    if ratio < 10:
+        continue   # at EJ/EC ~ 1 the dispersion exceeds f01 itself
+    pp_hz = pp * 1e9
+    gamma = 2.0 * np.pi ** 3 * pp_hz * sigma_ng ** 2
+    if gamma > 1e-12:
+        t = 1.0 / gamma
+        unit = (f"{t * 1e6:.2f} us" if t < 1e-3 else
+                f"{t * 1e3:.2f} ms" if t < 1.0 else f"{t:.3e} s")
+    else:
+        unit = "inf"
+    print(f"{ratio:>8.1f}{pp_hz:>14.3e}{gamma:>18.3e}{unit:>16}")
+print()
+
+# --- the price: the anharmonicity you gave up --------------------------
+print(f"{'EJ/EC':>8}{'pk-pk/f01':>13}{'|alpha|/f01':>13}"
+      f"{'|alpha| (MHz)':>15}")
+for ratio in [5, 20, 55.1, 100, 200]:
+    EJ = ratio * EC
+    ev = levels(EJ, EC, 0.0, 60, 3)
+    f01, alpha = ev[1] - ev[0], (ev[2] - ev[1]) - (ev[1] - ev[0])
+    pp, _ = dispersion_01(EJ, EC)
+    print(f"{ratio:>8.1f}{pp / f01:>13.3e}{abs(alpha) / f01:>13.3e}"
+          f"{abs(alpha) * 1e3:>15.2f}")
+```
+
+```text
+   EJ/EC  f01 (GHz)    pk-pk of f01   |eps0|+|eps1| asym   exp(-sqrt(8EJ/EC))
+-----------------------------------------------------------------------------
+     1.0     0.5848    7.762e+08 Hz         2.762e+09 Hz            5.911e-02
+     2.0     0.7426    6.007e+08 Hz         1.987e+09 Hz            1.832e-02
+     5.0     1.2638    2.683e+08 Hz         5.980e+08 Hz            1.792e-03
+    10.0     1.9428    6.281e+07 Hz         1.024e+08 Hz            1.305e-04
+    20.0     2.8865    4.353e+06 Hz         5.946e+06 Hz            3.210e-06
+    30.0     3.6032    4.481e+05 Hz         5.730e+05 Hz            1.870e-07
+    40.0     4.2056    6.052e+04 Hz         7.457e+04 Hz            1.703e-08
+    55.1     4.9851    4.172e+03 Hz         4.970e+03 Hz            7.619e-10
+    70.0     5.6541    3.980e+02 Hz         4.640e+02 Hz            5.281e-11
+   100.0     6.8113    6.280e+00 Hz         7.128e+00 Hz            5.204e-13
+
+Second-order charge dephasing at the ng = 0 sweet spot, sigma_ng = 1e-03 (2e):
+   EJ/EC    pk-pk (Hz)   Gamma_phi (1/s)           T_phi
+    10.0     6.281e+07         3.895e+03       256.74 us
+    20.0     4.353e+06         2.699e+02         3.70 ms
+    30.0     4.481e+05         2.779e+01        35.98 ms
+    40.0     6.052e+04         3.753e+00       266.46 ms
+    55.1     4.172e+03         2.587e-01     3.865e+00 s
+    70.0     3.980e+02         2.468e-02     4.052e+01 s
+   100.0     6.280e+00         3.894e-04     2.568e+03 s
+
+   EJ/EC    pk-pk/f01  |alpha|/f01  |alpha| (MHz)
+     5.0    1.901e-01    6.244e-01         881.25
+    20.0    1.507e-03    1.259e-01         363.82
+    55.1    8.370e-07    5.715e-02         284.87
+   100.0    9.220e-10    4.021e-02         273.87
+   200.0    1.881e-13    2.729e-02         265.91
+```
+
+**What to notice.** The peak-to-peak excursion of $f_{01}$ over the offset charge falls from 776 MHz at $E_J/E_C = 1$ to 6.3 Hz at $E_J/E_C = 100$: eight orders of magnitude for a factor of 100 in one ratio. The asymptotic formula reproduces the exact numbers to 10-20%, which is respectable for a leading-order result and confirms that the mechanism is the one identified.
+
+At the small-ratio end the language of "dephasing" breaks down entirely: at $E_J/E_C = 1$ the dispersion (776 MHz) exceeds $f_{01}$ (585 MHz) itself, so the offset charge does not perturb the qubit, it *defines* it. Even at $E_J/E_C = 5$ the dispersion is 268 MHz against $f_{01} = 1264$ MHz, a 19% modulation of the qubit frequency, which is still no one's idea of a perturbation. Rows below $E_J/E_C = 10$ are excluded from the dephasing table for that reason.
+
+At the sweet spot $n_g = 0$ the transition frequency is flat to first order, so slowly fluctuating offset charge enters at second order. Taking $f_{01}(n_g) \approx \bar{f} - (\epsilon/2)\cos 2\pi n_g$ gives $\partial^2 f_{01}/\partial n_g^2 = 2\pi^2\epsilon$ and hence a pure-dephasing rate $\Gamma_\varphi \approx \tfrac{1}{2}\left|\partial^2\omega_{01}/\partial n_g^2\right|\sigma_{n_g}^2 = 2\pi^3\epsilon\,\sigma_{n_g}^2$ — note that the rate is built from the angular frequency, which is where the extra $2\pi$ comes from. With $\sigma_{n_g} = 10^{-3}$ Cooper pairs the implied $T_\varphi$ runs from 0.26 ms at $E_J/E_C = 10$ to $2.6\times10^3$ s at $E_J/E_C = 100$. Read these as ratios rather than predictions — real charge noise is $1/f$, and the rms depends on the measurement bandwidth — but the ratios are the point. Somewhere between $E_J/E_C = 20$ and 40, charge noise stops being the thing that limits a superconducting qubit and something else takes over. The rest of this chapter is about that something else.
+
+The final table states the trade in one place. Going from $E_J/E_C = 20$ to 100, the relative charge dispersion falls by seven orders of magnitude and the relative anharmonicity falls by a factor of three. That asymmetry is the transmon.
+
+* * *
+
+## 2.4 Control and Readout
+
+### Driving the qubit
+
+A microwave tone applied to the qubit's capacitor adds $H_d = \Omega(t)\cos(\omega_d t + \phi)\,\hat{n}$ to the Hamiltonian. In the frame rotating at $\omega_d$ and within the rotating-wave approximation, the qubit block becomes a Bloch-sphere rotation whose angle is $\int \Omega\, dt$ and whose axis is set by the drive phase $\phi$. Gates are calibrated pulse areas. Nothing more exotic than that is going on.
+
+What makes it non-trivial is that the transmon is not a two-level system. The $1 \to 2$ transition sits only $|\alpha|$ away and has a matrix element about $\sqrt{2}$ times larger. A pulse of duration $\tau$ has a bandwidth $\sim 1/\tau$; if that overlaps $|\alpha|$, population leaks to $|2\rangle$, and the leaked population is not merely an error, it is an error *outside* the computational space, which no two-level error model and no standard error-correcting code handles.
+
+The standard fix is DRAG (Derivative Removal by Adiabatic Gate): drive the in-phase component with the intended envelope $\Omega_x(t)$ and simultaneously drive the quadrature with its derivative,
+
+$$ \Omega_y(t) = -\frac{\dot{\Omega}_x(t)}{2\alpha} $$
+
+which cancels the leading leakage amplitude and the leading phase error together. Example 4 verifies both claims numerically.
+
+### Code Example 4: The Anharmonicity Is the Speed Limit
+
+```python
+"""Chapter 2, Example 4: the anharmonicity is the speed limit.
+A pi pulse on the exact transmon spectrum, with and without the derivative
+(DRAG) correction.  Frequencies in GHz, times in ns; hbar = 1."""
+import numpy as np
+from scipy.linalg import expm
+
+TWOPI = 2.0 * np.pi
+
+
+def transmon_eigen(EJ, EC, ncut=60, m=5):
+    """Eigenenergies (GHz, relative to the ground state) and the charge
+    operator of a transmon, both in the transmon eigenbasis."""
+    n = np.arange(-ncut, ncut + 1)
+    H = np.diag(4.0 * EC * n ** 2.0)
+    off = -0.5 * EJ * np.ones(2 * ncut)
+    H += np.diag(off, 1) + np.diag(off, -1)
+    E, V = np.linalg.eigh(H)
+    nop = V[:, :m].conj().T @ np.diag(n.astype(float)) @ V[:, :m]
+    return E[:m] - E[0], nop
+
+
+EJ, EC = 13.775, 0.250
+E, nop = transmon_eigen(EJ, EC)
+m = len(E)
+f01 = E[1]
+alpha = (E[2] - E[1]) - E[1]
+print(f"EJ/h = {EJ:.3f} GHz, EC/h = {EC:.3f} GHz, EJ/EC = {EJ / EC:.1f}")
+print(f"f01 = {f01:.4f} GHz, alpha/2pi = {alpha * 1e3:.2f} MHz")
+for j in range(m - 1):
+    print(f"  j = {j} -> {j + 1}: |n| = {abs(nop[j, j + 1]):.4f},"
+          f"  ratio to the 0-1 element = {abs(nop[j, j + 1] / nop[0, 1]):.4f},"
+          f"  sqrt(j+1) = {np.sqrt(j + 1):.4f}")
+print()
+
+# --- rotating frame at the drive frequency, RWA --------------------------
+# Lowering part of the charge operator, normalized so that a constant envelope
+# Omega_x drives the 0-1 transition at Rabi frequency Omega_x.
+N = np.zeros((m, m), dtype=complex)
+for j in range(m - 1):
+    N[j, j + 1] = abs(nop[j, j + 1] / nop[0, 1])
+detune = np.array([E[j] - j * f01 for j in range(m)])   # 0, 0, alpha, ...
+H0 = TWOPI * np.diag(detune)
+Ax = TWOPI * 0.5 * (N + N.conj().T)
+Ay = TWOPI * 0.5 * 1j * (N.conj().T - N)
+print("rotating-frame level detunings E_j - j f01 (GHz):", np.round(detune, 5))
+print()
+
+IDENT = np.eye(m, dtype=complex)
+XGATE = np.array([[0, 1], [1, 0]], dtype=complex)
+
+
+def pi_pulse(tau, nstep=3000, drag=0.0):
+    """Propagator, peak Rabi frequency and leakage of a Gaussian pi pulse."""
+    t = np.linspace(0.0, tau, nstep + 1)
+    sig = tau / 4.0
+    env = np.exp(-((t - tau / 2.0) ** 2) / (2.0 * sig ** 2)) - np.exp(-2.0)
+    # rotation angle = 2 pi int Omega_x dt  ->  calibrate the integral to 1/2
+    ox = 0.5 * env / np.trapezoid(env, t)
+    oy = -drag * np.gradient(ox, t) / (TWOPI * 2.0 * alpha) if drag else 0.0 * ox
+    U = np.eye(m, dtype=complex)
+    dt = t[1] - t[0]
+    for k in range(nstep):
+        H = H0 + 0.5 * (ox[k] + ox[k + 1]) * Ax + 0.5 * (oy[k] + oy[k + 1]) * Ay
+        U = expm(-1j * H * dt) @ U
+    leak = max(float(np.sum(np.abs((U @ psi)[2:]) ** 2)) for psi in
+               [IDENT[0], IDENT[1], (IDENT[0] + IDENT[1]) / np.sqrt(2)])
+    Uq = U[:2, :2]
+    # average gate fidelity of the qubit block against X, global phase free
+    err = 1.0 - (abs(np.trace(XGATE.conj().T @ Uq)) ** 2
+                 + np.trace(Uq.conj().T @ Uq).real) / 6.0
+    return ox.max(), leak, err
+
+
+print(f"{'tau (ns)':>9}{'peak Omega/2pi (MHz)':>22}{'|alpha| tau':>13}"
+      f"{'leakage':>12}{'gate error':>12}")
+for tau in [4.0, 6.0, 8.0, 12.0, 16.0, 20.0, 30.0, 40.0]:
+    peak, leak, err = pi_pulse(tau)
+    print(f"{tau:>9.1f}{peak * 1e3:>22.1f}{abs(alpha) * tau:>13.2f}"
+          f"{leak:>12.3e}{err:>12.3e}")
+print()
+
+print(f"{'tau (ns)':>9}{'leakage (plain)':>17}{'leakage (DRAG)':>16}"
+      f"{'ratio':>9}{'error (plain)':>15}{'error (DRAG)':>14}")
+for tau in [4.0, 6.0, 8.0, 10.0, 12.0, 16.0, 20.0, 30.0]:
+    _, l0, e0 = pi_pulse(tau)
+    _, l1, e1 = pi_pulse(tau, drag=1.0)
+    print(f"{tau:>9.1f}{l0:>17.3e}{l1:>16.3e}{l0 / l1:>8.1f}x"
+          f"{e0:>15.3e}{e1:>14.3e}")
+print()
+```
+
+```text
+EJ/h = 13.775 GHz, EC/h = 0.250 GHz, EJ/EC = 55.1
+f01 = 4.9851 GHz, alpha/2pi = -284.87 MHz
+  j = 0 -> 1: |n| = 1.1161,  ratio to the 0-1 element = 1.0000,  sqrt(j+1) = 1.0000
+  j = 1 -> 2: |n| = 1.5320,  ratio to the 0-1 element = 1.3726,  sqrt(j+1) = 1.4142
+  j = 2 -> 3: |n| = 1.8098,  ratio to the 0-1 element = 1.6215,  sqrt(j+1) = 1.7321
+  j = 3 -> 4: |n| = 1.9955,  ratio to the 0-1 element = 1.7878,  sqrt(j+1) = 2.0000
+
+rotating-frame level detunings E_j - j f01 (GHz): [ 0.       0.      -0.28487 -0.8867  -1.87922]
+
+ tau (ns)  peak Omega/2pi (MHz)  |alpha| tau     leakage  gate error
+      4.0                 233.5         1.14   2.669e-01   2.914e-01
+      6.0                 155.7         1.71   3.123e-02   6.181e-02
+      8.0                 116.8         2.28   2.092e-04   1.925e-02
+     12.0                  77.8         3.42   1.290e-04   8.508e-03
+     16.0                  58.4         4.56   4.718e-05   4.715e-03
+     20.0                  46.7         5.70   3.117e-05   2.998e-03
+     30.0                  31.1         8.55   3.752e-06   1.323e-03
+     40.0                  23.4        11.39   9.701e-07   7.425e-04
+
+ tau (ns)  leakage (plain)  leakage (DRAG)    ratio  error (plain)  error (DRAG)
+      4.0        2.669e-01       7.193e-02     3.7x      2.914e-01     7.774e-02
+      6.0        3.123e-02       8.356e-03     3.7x      6.181e-02     9.667e-03
+      8.0        2.092e-04       3.611e-05     5.8x      1.925e-02     4.491e-04
+     10.0        5.714e-04       1.385e-04     4.1x      1.246e-02     2.551e-04
+     12.0        1.290e-04       3.317e-05     3.9x      8.508e-03     1.247e-04
+     16.0        4.718e-05       1.089e-05     4.3x      4.715e-03     4.580e-05
+     20.0        3.117e-05       7.297e-06     4.3x      2.998e-03     2.266e-05
+     30.0        3.752e-06       8.969e-07     4.2x      1.323e-03     7.220e-06
+```
+
+**What to notice.** The charge matrix elements are close to the harmonic $\sqrt{j+1}$ but not equal to it: the $1 \to 2$ element is 1.3726 times the $0 \to 1$ element rather than $\sqrt{2} = 1.4142$, a 3% difference. That 3% is harmless here and decidedly not harmless in Example 5.
+
+The first table is the speed limit made explicit. At $\tau = 4$ ns the peak Rabi frequency is 234 MHz — comparable to $|\alpha|$ — and 27% of the population ends up outside the qubit subspace. The gate is not merely inaccurate; it does not exist. By $\tau = 20$ ns the leakage is $3 \times 10^{-5}$ and by 40 ns it is $10^{-6}$. The useful figure of merit is $|\alpha|\tau$: it needs to be about 5 or more, which for $|\alpha| = 285$ MHz means $\tau \gtrsim 18$ ns. That single inequality is why superconducting single-qubit gates are tens of nanoseconds long and not one nanosecond long.
+
+The leakage is not monotonic — 8 ns is better than 10 ns. That is real, and it is coherent-leakage interference: population that leaves $|1\rangle$ during the first half of the pulse can be driven back during the second half, and at particular durations the return is nearly complete. Pulse-timing recipes that exploit this are standard practice.
+
+The gate error behaves differently from the leakage, and this is the part worth understanding. At $\tau = 20$ ns the leakage is $3 \times 10^{-5}$ but the gate error is $3 \times 10^{-3}$ — a hundred times larger. The excess is a *phase* error: the virtual excursion through $|2\rangle$ shifts the qubit frequency during the pulse, and the accumulated phase is not accounted for. DRAG cancels it. In the second table DRAG improves the leakage by a factor of about four, and the gate error by a factor of 130 at 20 ns ($3 \times 10^{-3} \to 2.3 \times 10^{-5}$). The leakage improvement is what DRAG is named for; the phase improvement is what makes it indispensable.
+
+### Dispersive readout
+
+The qubit is measured through a microwave resonator coupled to it. With $H = \omega_r a^\dagger a + H_\mathrm{transmon} + g(a + a^\dagger)\hat{n}/n_{01}$ and the qubit far detuned from the resonator ($|\Delta| = |\omega_{01} - \omega_r| \gg g$), no energy is exchanged; instead the resonator frequency shifts by $\pm\chi$ depending on the qubit state. Probing the resonator and measuring the phase of the reflected tone reads out the qubit without ever exciting it. For a genuine two-level system,
+
+$$ \chi = \frac{g^2}{\Delta} $$
+
+and for a transmon the standard correction that accounts for the third level is
+
+$$ \chi = \frac{g^2 \alpha}{\Delta(\Delta + \alpha)} $$
+
+Example 5 shows that this expression, which appears in every review, is 26% low for a realistic transmon — and, more interestingly, *why*.
+
+Two costs come with the coupling. The resonator's decay rate $\kappa$ leaks back to the qubit through the same coupling, giving **Purcell decay** $\Gamma_P = \kappa (g/\Delta)^2$; and while the readout tone is on, the photons that carry information about the qubit out to the amplifier necessarily dephase it. The second is not a defect. A projective $Z$ measurement is *supposed* to destroy the phase coherence; the requirement is only that the dephasing rate not exceed the information-gain rate, which at the quantum limit it does not.
+
+### Code Example 5: Circuit QED in Numbers
+
+```python
+"""Chapter 2, Example 5: circuit QED numbers -- the dispersive shift by exact
+diagonalization, the Purcell limit, and the readout trade-off.
+Frequencies in GHz; hbar = 1."""
+import numpy as np
+
+TWOPI = 2.0 * np.pi
+
+
+def transmon_eigen(EJ, EC, ncut=60, m=6):
+    n = np.arange(-ncut, ncut + 1)
+    H = np.diag(4.0 * EC * n ** 2.0)
+    off = -0.5 * EJ * np.ones(2 * ncut)
+    H += np.diag(off, 1) + np.diag(off, -1)
+    E, V = np.linalg.eigh(H)
+    nop = V[:, :m].conj().T @ np.diag(n.astype(float)) @ V[:, :m]
+    return E[:m] - E[0], nop
+
+
+def dressed(EJ, EC, fr, g, mq=6, nph=6):
+    """Diagonalize H = fr a^dag a + sum_j E_j |j><j| + g (a + a^dag) n/n01
+    and label each eigenvalue by the bare state it overlaps most."""
+    E, nop = transmon_eigen(EJ, EC, m=mq)
+    nred = np.real(nop) / np.real(nop[0, 1])
+    a = np.diag(np.sqrt(np.arange(1, nph)), 1)
+    Iq, Ip = np.eye(mq), np.eye(nph)
+    H = (np.kron(np.diag(E), Ip) + np.kron(Iq, fr * (a.conj().T @ a))
+         + g * np.kron(nred, a + a.conj().T))
+    w, V = np.linalg.eigh(H)
+    lab = {}
+    for j in range(mq):
+        for n in range(nph):
+            bare = np.kron(np.eye(mq)[j], np.eye(nph)[n])
+            lab[(j, n)] = w[int(np.argmax(np.abs(V.conj().T @ bare)))]
+    return lab
+
+
+EJ, EC = 13.775, 0.250
+E0, nop0 = transmon_eigen(EJ, EC)
+f01, f12 = E0[1], E0[2] - E0[1]
+alpha = f12 - f01
+r = abs(nop0[1, 2] / nop0[0, 1])       # exact 1-2 / 0-1 coupling ratio
+g = 0.100                              # GHz
+print(f"transmon: f01 = {f01:.4f} GHz, f12 = {f12:.4f} GHz, "
+      f"alpha/2pi = {alpha * 1e3:.2f} MHz")
+print(f"coupling: g/2pi = {g * 1e3:.0f} MHz, "
+      f"exact g12/g01 = {r:.4f} (harmonic value sqrt(2) = {np.sqrt(2):.4f})")
+print()
+
+header = (f"{'fr':>7}{'Delta (MHz)':>13}{'exact (MHz)':>13}"
+          f"{'RWA, exact g12':>16}{'RWA, g12=sqrt2 g':>18}")
+print(header)
+print("-" * len(header))
+for fr in [6.0, 6.5, 7.0, 8.0, 9.0]:
+    lab = dressed(EJ, EC, fr, g)
+    exact = (lab[(1, 1)] - lab[(1, 0)]) - (lab[(0, 1)] - lab[(0, 0)])
+    A = g ** 2 / (fr - f01)
+    B = g ** 2 / (fr - f12)
+    rwa_exact = -2.0 * A + r ** 2 * B
+    D = f01 - fr
+    rwa_std = 2.0 * g ** 2 * alpha / (D * (D + alpha))
+    print(f"{fr:>7.2f}{D * 1e3:>13.1f}{exact * 1e3:>13.3f}"
+          f"{rwa_exact * 1e3:>16.3f}{rwa_std * 1e3:>18.3f}")
+print()
+
+# --- why chi is delicate: it is a difference of two large terms ----------
+fr = 7.0
+A = g ** 2 / (fr - f01)
+B = g ** 2 / (fr - f12)
+print(f"At fr = {fr:.1f} GHz the shift is a near-cancellation:")
+print(f"  the 0-1 term       g^2/(fr - f01)     = {A * 1e3:>8.3f} MHz "
+      f"(enters twice, with opposite signs)")
+print(f"  the 1-2 term  (g12/g01)^2 g^2/(fr-f12) = "
+      f"{r ** 2 * B * 1e3:>8.3f} MHz")
+print(f"  sum: 2chi = -2 x {A * 1e3:.3f} + {r ** 2 * B * 1e3:.3f} = "
+      f"{(-2 * A + r ** 2 * B) * 1e3:.3f} MHz")
+print(f"  replacing the exact ratio {r:.4f} by sqrt(2) changes the 1-2 term by "
+      f"{(2 - r ** 2) * B * 1e3:.3f} MHz,")
+print(f"  i.e. by {abs((2 - r ** 2) * B / (-2 * A + r ** 2 * B)) * 100:.0f}% "
+      f"of 2chi itself")
+print()
+
+lab = dressed(EJ, EC, fr, g)
+two_chi = (lab[(1, 1)] - lab[(1, 0)]) - (lab[(0, 1)] - lab[(0, 0)])
+chi = two_chi / 2.0
+print(f"Dressed frequencies at fr = {fr:.1f} GHz, g/2pi = {g * 1e3:.0f} MHz:")
+print(f"  bare f01                   = {f01:.5f} GHz")
+print(f"  dressed f01                = {lab[(1, 0)] - lab[(0, 0)]:.5f} GHz  "
+      f"(Lamb shift {((lab[(1, 0)] - lab[(0, 0)]) - f01) * 1e3:+.3f} MHz)")
+print(f"  resonator in |0>           = {lab[(0, 1)] - lab[(0, 0)]:.5f} GHz")
+print(f"  resonator in |1>           = {lab[(1, 1)] - lab[(1, 0)]:.5f} GHz")
+print(f"  2chi/2pi                   = {two_chi * 1e3:.3f} MHz")
+print()
+
+# --- Purcell decay ------------------------------------------------------
+D = f01 - fr
+print(f"Purcell limit T1 = Delta^2/(kappa g^2) at Delta/2pi = {D * 1e3:.0f} MHz:")
+for kappa in [1e-3, 2e-3, 5e-3]:
+    gamma = TWOPI * kappa * (g / D) ** 2      # 1/ns
+    print(f"  kappa/2pi = {kappa * 1e3:>5.1f} MHz: 1/kappa = "
+          f"{1.0 / (TWOPI * kappa):>7.1f} ns, Purcell T1 = "
+          f"{1.0 / gamma / 1e3:>7.2f} us, |2chi|/kappa = "
+          f"{abs(two_chi) / kappa:>5.2f}")
+print()
+
+# --- the readout trade-off ---------------------------------------------
+nbar = 5.0
+print(f"{'kappa (MHz)':>13}{'|2chi|/kappa':>14}{'|a0|':>8}{'|a1|':>8}"
+      f"{'|a0-a1|':>10}{'angle (deg)':>13}{'Gamma_phi (MHz)':>17}{'1/kappa (ns)':>14}")
+for kappa in [1.0e-3, abs(two_chi), 4.0e-3, 10.0e-3]:
+    eps = np.sqrt(nbar) * np.sqrt((kappa / 2.0) ** 2 + chi ** 2)
+    a0 = eps / (kappa / 2.0 + 1j * chi)
+    a1 = eps / (kappa / 2.0 - 1j * chi)
+    # dephasing = rate at which distinguishable photons leak into the line
+    gphi = kappa * abs(a0 - a1) ** 2 / 2.0
+    print(f"{kappa * 1e3:>13.3f}{abs(two_chi) / kappa:>14.2f}{abs(a0):>8.3f}"
+          f"{abs(a1):>8.3f}{abs(a0 - a1):>10.3f}"
+          f"{np.degrees(abs(np.angle(a0 / a1))):>13.1f}{gphi * 1e3:>17.3f}"
+          f"{1.0 / (TWOPI * kappa):>14.1f}")
+print(f"  (the small-chi limit of Gamma_phi is 8 chi^2 nbar/kappa; at "
+      f"kappa = |2chi| it becomes kappa nbar)")
+print()
+kappa = abs(two_chi)
+print(f"Matched point kappa = |2chi| = {kappa * 1e3:.3f} MHz:")
+print(f"  the two pointer states are 90 deg apart in phase, "
+      f"separation {np.sqrt(2 * nbar):.3f} in units of the vacuum amplitude")
+print(f"  qubit dephasing during readout: T_phi = "
+      f"{1.0 / (TWOPI * kappa * nbar):.1f} ns -- fast, which is exactly what a "
+      f"projective Z measurement should do")
+print(f"  ring-down 1/kappa = {1.0 / (TWOPI * kappa):.1f} ns is the floor on "
+      f"the readout duration")
+print(f"  the same kappa gives a Purcell T1 of "
+      f"{1.0 / (TWOPI * kappa * (g / D) ** 2) / 1e3:.1f} us")
+```
+
+```text
+transmon: f01 = 4.9851 GHz, f12 = 4.7002 GHz, alpha/2pi = -284.87 MHz
+coupling: g/2pi = 100 MHz, exact g12/g01 = 1.3726 (harmonic value sqrt(2) = 1.4142)
+
+     fr  Delta (MHz)  exact (MHz)  RWA, exact g12  RWA, g12=sqrt2 g
+-------------------------------------------------------------------
+   6.00      -1014.9       -5.006          -5.211            -4.319
+   6.50      -1514.9       -2.644          -2.734            -2.090
+   7.00      -2014.9       -1.670          -1.733            -1.230
+   8.00      -3014.9       -0.875          -0.924            -0.573
+   9.00      -4014.9       -0.557          -0.600            -0.330
+
+At fr = 7.0 GHz the shift is a near-cancellation:
+  the 0-1 term       g^2/(fr - f01)     =    4.963 MHz (enters twice, with opposite signs)
+  the 1-2 term  (g12/g01)^2 g^2/(fr-f12) =    8.193 MHz
+  sum: 2chi = -2 x 4.963 + 8.193 = -1.733 MHz
+  replacing the exact ratio 1.3726 by sqrt(2) changes the 1-2 term by 0.504 MHz,
+  i.e. by 29% of 2chi itself
+
+Dressed frequencies at fr = 7.0 GHz, g/2pi = 100 MHz:
+  bare f01                   = 4.98509 GHz
+  dressed f01                = 4.97936 GHz  (Lamb shift -5.731 MHz)
+  resonator in |0>           = 7.00412 GHz
+  resonator in |1>           = 7.00245 GHz
+  2chi/2pi                   = -1.670 MHz
+
+Purcell limit T1 = Delta^2/(kappa g^2) at Delta/2pi = -2015 MHz:
+  kappa/2pi =   1.0 MHz: 1/kappa =   159.2 ns, Purcell T1 =   64.61 us, |2chi|/kappa =  1.67
+  kappa/2pi =   2.0 MHz: 1/kappa =    79.6 ns, Purcell T1 =   32.31 us, |2chi|/kappa =  0.84
+  kappa/2pi =   5.0 MHz: 1/kappa =    31.8 ns, Purcell T1 =   12.92 us, |2chi|/kappa =  0.33
+
+  kappa (MHz)  |2chi|/kappa    |a0|    |a1|   |a0-a1|  angle (deg)  Gamma_phi (MHz)  1/kappa (ns)
+        1.000          1.67   2.236   2.236     3.837        118.2            7.361         159.2
+        1.670          1.00   2.236   2.236     3.162         90.0            8.351          95.3
+        4.000          0.42   2.236   2.236     1.723         45.3            5.938          39.8
+       10.000          0.17   2.236   2.236     0.737         19.0            2.714          15.9
+  (the small-chi limit of Gamma_phi is 8 chi^2 nbar/kappa; at kappa = |2chi| it becomes kappa nbar)
+
+Matched point kappa = |2chi| = 1.670 MHz:
+  the two pointer states are 90 deg apart in phase, separation 3.162 in units of the vacuum amplitude
+  qubit dephasing during readout: T_phi = 19.1 ns -- fast, which is exactly what a projective Z measurement should do
+  ring-down 1/kappa = 95.3 ns is the floor on the readout duration
+  the same kappa gives a Purcell T1 of 38.7 us
+```
+
+**What to notice.** The exact $2\chi$ at $f_r = 7$ GHz is $-1.670$ MHz. The standard transmon formula gives $-1.230$ MHz — 26% low. Perturbation theory with the exact matrix elements gives $-1.733$ MHz, much closer. The near-cancellation block explains the whole discrepancy: $2\chi$ is the difference between a $0$-$1$ contribution of $-9.93$ MHz and a $1$-$2$ contribution of $+8.19$ MHz. It is a small residue of two large and nearly equal numbers, so a 6% change in the squared matrix element ratio ($1.3726^2$ against $2$) moves $2\chi$ by 29%.
+
+The lesson generalizes well beyond this example. When a quantity is a near-cancellation, the accuracy of the *inputs* matters far more than the order of the perturbation theory. This is exactly the situation for the static $ZZ$ interaction in Example 6, and it is why circuit-QED design is done by numerical diagonalization of the full circuit rather than with closed-form formulas.
+
+The Purcell table is a hard constraint. At $g/2\pi = 100$ MHz and $\Delta/2\pi = -2$ GHz the coupling ratio is $g/\Delta = 1/20$, so $\kappa/2\pi = 5$ MHz — a fast, comfortable readout — caps $T_1$ at 13 $\mu$s. That is far below what the materials in Section 2.6 would allow, so an unfiltered readout resonator throws away most of the available coherence. The fix is a **Purcell filter**: a band-stop element between resonator and output line, transparent at $\omega_r$ and opaque at $\omega_{01}$, which decouples $\kappa$ from $\Gamma_P$ and makes the table's trade-off negotiable rather than binding.
+
+The readout table shows the compromise directly, but read the columns carefully, because they do not peak together. The *pointer-state separation* is largest at small $\kappa$ — 3.837 vacuum amplitudes at $\kappa/2\pi = 1$ MHz against 3.162 at the matched point and 0.737 at 10 MHz — since a narrow resonator has time to respond fully to the shift. What peaks near $\kappa = |2\chi|$ is the *rate*: $\Gamma_\varphi = \kappa|a_0-a_1|^2/2$, the rate at which distinguishable photons leave the resonator, is 8.351 MHz there against 7.361 MHz at $\kappa/2\pi = 1$ MHz and 5.938 MHz at 4 MHz. At the quantum limit that rate *is* the measurement rate, so the matched point maximizes information per unit time rather than separation. Make $\kappa$ much larger and the resonator responds too fast to resolve the shift at all (only $19^\circ$ of phase difference at $\kappa/2\pi = 10$ MHz); much smaller and the ring-down time $1/\kappa$ makes each measurement slow. Matched readout here gives a 95 ns floor on the readout duration and a 39 $\mu$s Purcell limit — the two numbers a designer trades against each other.
+
+* * *
+
+## 2.5 Two-Qubit Gates
+
+### Exchange and the two-excitation manifold
+
+Couple two transmons capacitively and, in the single-excitation subspace, the coupling looks like an exchange interaction: $|10\rangle$ and $|01\rangle$ hybridize with splitting $2J$. On resonance the excitation swaps back and forth, giving an iSWAP in a time $1/(4J)$. That is one family of two-qubit gates.
+
+The more widely used family lives one excitation higher. The states $|11\rangle$ and $|20\rangle$ are separated by the anharmonicity, and they cross when the qubit detuning equals $\alpha$. At that crossing they hybridize with a gap $\approx 2\sqrt{2}\,g$, and a controlled phase can be accumulated either by parking at the crossing or by an adiabatic excursion towards it. Only $|11\rangle$ is affected, which is exactly what a CZ gate needs.
+
+The same avoided crossing produces an unwanted by-product. Because the anharmonicity is negative, $|20\rangle$ and $|02\rangle$ lie *below* $|11\rangle$ — at zero detuning by exactly $|\alpha|$ — and second-order repulsion from a state below pushes $|11\rangle$ *up*, giving a static interaction
+
+$$ \zeta = \left(E_{11} - E_{10} - E_{01} + E_{00}\right) \approx 2g^2\left(\frac{1}{\Delta - \alpha} - \frac{1}{\Delta + \alpha}\right) $$
+
+which at $\Delta = 0$ reduces to $\zeta \approx -4g^2/\alpha > 0$ for $\alpha < 0$: $+351$ kHz from this formula, and $+331$ kHz from the exact diagonalization in Example 6. It is a $ZZ$ term that is always on. It accumulates a spurious conditional phase during every idle period and every single-qubit gate, and since it depends on the state of the neighbour it is a correlated error — the kind error correction handles worst.
+
+### Tunable couplers
+
+The remedy is to make the coupling itself switchable, and the trick is interference. Insert a third circuit — a coupler transmon, off-resonant from both qubits — between the two qubits, and keep a small direct capacitance as well. There are now two exchange paths: direct, and virtual via the coupler. Their amplitudes have opposite signs when the coupler sits above the qubits, so
+
+$$ J_\mathrm{eff} \approx J_{12} + \frac{g_1 g_2}{f_q - f_c} $$
+
+vanishes at one coupler frequency. Idle there; detune the coupler to gate. The qubits themselves never move, which matters because moving a qubit's frequency means moving it through whatever spectator resonances are nearby.
+
+### Code Example 6: Coupling, ZZ, and Switching It Off
+
+```python
+"""Chapter 2, Example 6: two-qubit coupling.  The |11>-|20> avoided crossing
+that makes a CZ gate, the static ZZ interaction that is its by-product, and a
+tunable coupler that switches the exchange off.  Frequencies in GHz; hbar = 1."""
+import numpy as np
+from functools import reduce, lru_cache
+
+TWOPI = 2.0 * np.pi
+EC = 0.250          # GHz, the same charging energy for every transmon here
+
+
+@lru_cache(maxsize=None)
+def transmon(EJ, EC, ncut=30, m=4):
+    """Level energies (GHz, ground state at zero) and the reduced charge
+    operator n/n01 of one transmon, truncated to m levels."""
+    n = np.arange(-ncut, ncut + 1)
+    H = np.diag(4.0 * EC * n ** 2.0)
+    off = -0.5 * EJ * np.ones(2 * ncut)
+    H += np.diag(off, 1) + np.diag(off, -1)
+    E, V = np.linalg.eigh(H)
+    nop = np.real(V[:, :m].conj().T @ np.diag(n.astype(float)) @ V[:, :m])
+    return E[:m] - E[0], nop / nop[0, 1]
+
+
+@lru_cache(maxsize=None)
+def EJ_for(f01, EC=EC):
+    """Josephson energy that puts the 0-1 transition at f01 (bisection)."""
+    lo, hi = 0.5 * EC, 400.0 * EC
+    for _ in range(60):
+        mid = 0.5 * (lo + hi)
+        lo, hi = (mid, hi) if transmon(mid, EC, 30, 2)[0][1] < f01 else (lo, mid)
+    return 0.5 * (lo + hi)
+
+
+def coupled(fs, couplings, m=4):
+    """Diagonalize a set of capacitively coupled transmons.
+
+    couplings: {(i, j): g} adds g (n_i/n01_i)(n_j/n01_j).
+    Returns (eigenvalues, eigenvectors, m) with the bare basis in row-major
+    order, so bare state (j0, j1, ...) is column ravel_multi_index(...).
+    """
+    data = [transmon(EJ_for(f), EC, 30, m) for f in fs]
+    eyes = [np.eye(m)] * len(fs)
+
+    def at(k, A):
+        mats = list(eyes)
+        mats[k] = A
+        return reduce(np.kron, mats)
+
+    H = sum(at(k, np.diag(data[k][0])) for k in range(len(fs)))
+    for (i, j), g in couplings.items():
+        H = H + g * (at(i, data[i][1]) @ at(j, data[j][1]))
+    w, V = np.linalg.eigh(H)
+    return w, V, m
+
+
+def manifold(w, V, m, bare_states):
+    """Dressed energies of the states that live mostly in span(bare_states).
+
+    Returned in ascending order.  This is degeneracy-safe, unlike labelling
+    each bare state by its nearest dressed state one at a time.
+    """
+    nsys = len(bare_states[0])
+    cols = [int(np.ravel_multi_index(b, [m] * nsys)) for b in bare_states]
+    weight = np.sum(np.abs(V[cols, :]) ** 2, axis=0)
+    keep = np.argsort(weight)[::-1][:len(cols)]
+    return np.sort(w[keep])
+
+
+def one(w, V, m, bare):
+    return manifold(w, V, m, [bare])[0]
+
+
+g12, f1 = 0.005, 5.000
+E1, _ = transmon(EJ_for(f1), EC, 30, 4)
+alpha = (E1[2] - E1[1]) - E1[1]
+print(f"  qubit 1 at {f1:.3f} GHz, alpha/2pi = {alpha * 1e3:.2f} MHz")
+print()
+print(f"{'f2 (GHz)':>10}{'detuning (MHz)':>16}{'2J (MHz)':>11}"
+      f"{'zeta = ZZ (kHz)':>18}{'zeta formula (kHz)':>20}")
+for f2 in [4.60, 4.75, 4.90, 5.00, 5.25, 5.40]:
+    w, V, m = coupled([f1, f2], {(0, 1): g12})
+    e_single = manifold(w, V, m, [(1, 0), (0, 1)])
+    E00 = one(w, V, m, (0, 0))
+    E11 = one(w, V, m, (1, 1))
+    zeta = E11 - e_single.sum() + E00
+    D = f1 - f2
+    zf = (2.0 * g12 ** 2 * (1.0 / (D - alpha) - 1.0 / (D + alpha))
+          if abs(D) > 1e-9 else -4.0 * g12 ** 2 / alpha)
+    print(f"{f2:>10.3f}{D * 1e3:>16.1f}{np.diff(e_single)[0] * 1e3:>11.4f}"
+          f"{zeta * 1e6:>18.2f}{zf * 1e6:>20.2f}")
+print()
+w, V, m = coupled([f1, f1], {(0, 1): g12})
+J = np.diff(manifold(w, V, m, [(1, 0), (0, 1)]))[0] / 2.0
+print(f"On resonance: 2J/2pi = {2 * J * 1e3:.4f} MHz (bare g12/2pi = "
+      f"{g12 * 1e3:.1f} MHz), iSWAP time 1/(4J) = {1.0 / (4 * J) :.1f} ns")
+print()
+
+print("The |11>-|20> avoided crossing: a CZ gate.  It closes when "
+      f"f2 = f1 + alpha = {f1 + alpha:.4f} GHz.")
+print(f"{'f2 (GHz)':>10}{'E11 - E20 (MHz)':>18}{'gap (MHz)':>12}")
+best = (1e9, None)
+for f2 in [4.65, 4.70, 4.715, 4.73, 4.78]:
+    w, V, m = coupled([f1, f2], {(0, 1): g12})
+    pair = manifold(w, V, m, [(1, 1), (2, 0)])
+    gap = np.diff(pair)[0]
+    E11b, E20b = f1 + f2, 2 * f1 + alpha
+    print(f"{f2:>10.3f}{(E11b - E20b) * 1e3:>18.1f}{gap * 1e3:>12.4f}")
+    best = min(best, (gap, f2))
+print(f"  minimum gap {best[0] * 1e3:.4f} MHz near f2 = {best[1]:.3f} GHz; "
+      f"2 sqrt(2) g12 = {2 * np.sqrt(2) * g12 * 1e3:.4f} MHz")
+# At the crossing the two states are degenerate, so H = (gap/2) sigma_x in the
+# {|11>, |20>} pair: the population returns to |11> only after a full period
+# 1/gap, and it is then multiplied by -1.  Half that time, 1/(2 gap), is the
+# worst case, not the gate: it transfers all of |11> into |20>.
+print(f"  a conditional phase of pi needs one full period 1/gap = "
+      f"{1.0 / best[0]:.1f} ns at the crossing")
+print(f"  (at 1/(2 x gap) = {1.0 / (2 * best[0]):.1f} ns the population is "
+      f"entirely in |20> instead)")
+print()
+
+g1 = g2 = 0.100
+cpl = {(0, 1): g1, (1, 2): g2, (0, 2): g12}
+
+
+def Jeff(fc, m=3):
+    w, V, mm = coupled([f1, fc, f1], cpl, m=m)
+    lo, hi = manifold(w, V, mm, [(1, 0, 0), (0, 0, 1)])
+    # the symmetric combination sits above the antisymmetric one when J > 0
+    cols = [int(np.ravel_multi_index(b, [mm] * 3))
+            for b in [(1, 0, 0), (0, 0, 1)]]
+    wgt = np.sum(np.abs(V[cols, :]) ** 2, axis=0)
+    keep = np.argsort(wgt)[::-1][:2]
+    top = keep[np.argmax(w[keep])]
+    sym = np.sign(V[cols[0], top] * V[cols[1], top])
+    return sym * (hi - lo) / 2.0
+
+
+print(f"{'fc (GHz)':>10}{'fq - fc (MHz)':>15}{'J_eff (MHz)':>14}"
+      f"{'formula (MHz)':>15}")
+for fc in [5.8, 6.4, 6.9, 7.1, 7.4, 8.0, 9.0]:
+    print(f"{fc:>10.2f}{(f1 - fc) * 1e3:>15.1f}{Jeff(fc) * 1e3:>14.4f}"
+          f"{(g12 + g1 * g2 / (f1 - fc)) * 1e3:>15.4f}")
+print()
+
+lo, hi = 6.2, 7.8
+slo = np.sign(Jeff(lo))
+for _ in range(40):
+    mid = 0.5 * (lo + hi)
+    lo, hi = (mid, hi) if np.sign(Jeff(mid)) == slo else (lo, mid)
+fc_off = 0.5 * (lo + hi)
+print(f"Exchange switches off at fc = {fc_off:.5f} GHz "
+      f"(two-level formula f_q + g1 g2/g12 = {f1 + g1 * g2 / g12:.5f} GHz)")
+for fc, tag in [(fc_off, "off  "), (6.400, "on   ")]:
+    w, V, m = coupled([f1, fc, f1], cpl, m=3)
+    e1 = manifold(w, V, m, [(1, 0, 0), (0, 0, 1)])
+    zeta = one(w, V, m, (1, 0, 1)) - e1.sum() + one(w, V, m, (0, 0, 0))
+    print(f"  fc = {fc:.5f} GHz [{tag}]: 2|J_eff| = "
+          f"{abs(np.diff(e1)[0]) * 1e6:>10.3f} kHz, ZZ = {zeta * 1e6:>9.2f} kHz")
+print()
+```
+
+```text
+  qubit 1 at 5.000 GHz, alpha/2pi = -284.74 MHz
+
+  f2 (GHz)  detuning (MHz)   2J (MHz)   zeta = ZZ (kHz)  zeta formula (kHz)
+     4.600           400.0   400.1249           -339.23             -360.78
+     4.750           250.0   250.1999           1391.43             1532.80
+     4.900           100.0   100.4987            376.67              400.61
+     5.000             0.0    10.0000            330.83              351.20
+     5.250          -250.0   250.1999           1473.36             1532.80
+     5.400          -400.0   400.1250           -329.54             -360.78
+
+On resonance: 2J/2pi = 10.0000 MHz (bare g12/2pi = 5.0 MHz), iSWAP time 1/(4J) = 50.0 ns
+
+The |11>-|20> avoided crossing: a CZ gate.  It closes when f2 = f1 + alpha = 4.7153 GHz.
+  f2 (GHz)   E11 - E20 (MHz)   gap (MHz)
+     4.650             -65.3     66.6169
+     4.700             -15.3     20.4667
+     4.715              -0.3     13.7280
+     4.730              14.7     20.2029
+     4.780              64.7     66.2691
+  minimum gap 13.7280 MHz near f2 = 4.715 GHz; 2 sqrt(2) g12 = 14.1421 MHz
+  a conditional phase of pi needs one full period 1/gap = 72.8 ns at the crossing
+  (at 1/(2 x gap) = 36.4 ns the population is entirely in |20> instead)
+
+  fc (GHz)  fq - fc (MHz)   J_eff (MHz)  formula (MHz)
+      5.80         -800.0       -8.1246        -7.5000
+      6.40        -1400.0       -2.9699        -2.1429
+      6.90        -1900.0       -1.0854        -0.2632
+      7.10        -2100.0       -0.5754         0.2381
+      7.40        -2400.0        0.0352         0.8333
+      8.00        -3000.0        0.9016         1.6667
+      9.00        -4000.0        1.7877         2.5000
+
+Exchange switches off at fc = 7.38047 GHz (two-level formula f_q + g1 g2/g12 = 7.00000 GHz)
+  fc = 7.38047 GHz [off  ]: 2|J_eff| =      0.000 kHz, ZZ =     -0.31 kHz
+  fc = 6.40000 GHz [on   ]: 2|J_eff| =   5939.792 kHz, ZZ =     53.51 kHz
+```
+
+**What to notice.** On resonance the numerically extracted $2J$ is exactly 10.000 MHz for a bare $g_{12}/2\pi = 5$ MHz, as it must be, giving an iSWAP time of 50 ns. The static $ZZ$ is 331 kHz there against the formula's 351 kHz — the formula is 6% high, again because $\zeta$ is a near-cancellation. Note the non-monotonic behaviour: $\zeta$ peaks near a detuning of 250 MHz (1.4 MHz, four times its on-resonance value) and changes sign by 400 MHz. The peak is the $|11\rangle$-$|20\rangle$ resonance at $\Delta = -\alpha = 285$ MHz, where the perturbative expression diverges and the exact calculation does not.
+
+The avoided-crossing scan finds the gap minimum at $f_2 = 4.715$ GHz $= f_1 + \alpha$, with a minimum gap of 13.728 MHz. The harmonic expectation $2\sqrt{2}g_{12} = 14.142$ MHz is 3% high, and the discrepancy is precisely the matrix-element ratio 1.3726 from Example 4 — $2 \times 1.3726 \times 5 = 13.726$ MHz. The exact numbers are all consistent with each other, which is the point of doing it this way.
+
+The conditional-phase time deserves care, because the obvious answer is off by a factor of two. At the crossing the two states are degenerate, so in the $\lbrace|11\rangle, |20\rangle\rbrace$ pair the Hamiltonian is $(\mathrm{gap}/2)\,\sigma_x$ and the population oscillates fully between them with period $1/\mathrm{gap}$. Parking there for half a period, $1/(2\,\mathrm{gap}) = 36.4$ ns, transfers *all* of $|11\rangle$ into $|20\rangle$ — the worst possible outcome, complete leakage. Only after a full period, $1/\mathrm{gap} = 72.8$ ns, is the population back in $|11\rangle$, and it returns multiplied by $-1$: that is the $\pi$ conditional phase. In practice one does not park at the crossing at all but makes an adiabatic excursion towards it, which accumulates the same phase with a bounded leakage; the 72.8 ns is the floor that excursion has to respect.
+
+Part B is the tunable coupler. $J_\mathrm{eff}$ crosses zero at $f_c = 7.380$ GHz, where the residual exchange is below a kHz and the residual $ZZ$ is $-0.31$ kHz. At $f_c = 6.400$ GHz the same circuit has $2J_\mathrm{eff} = 5.94$ MHz and $ZZ = 53.5$ kHz. That is an on/off ratio of several thousand in the exchange interaction, obtained by moving one auxiliary circuit by a gigahertz.
+
+The two-level formula predicts the off point at $f_q + g_1g_2/g_{12} = 7.000$ GHz, 380 MHz away from the truth. The error comes from the coupler's own higher levels and from the counter-rotating terms that the formula drops — and 380 MHz is not a small miss when the calibration has to be exact. Note also that the coupler contributes a $ZZ$ term of its own with the opposite sign, which is why the numerically computed $ZZ$ at $f_c = 6.4$ GHz (53.5 kHz) is well below the $4J_\mathrm{eff}^2/|\alpha| = 124$ kHz that a bare direct coupling of that strength would give. That partial cancellation, and the existence of nearby frequencies where both $J$ and $ZZ$ are small, is a genuine advantage of the architecture and could not have been found without diagonalizing the whole circuit.
+
+### Cross-resonance: a gate with no tunable anything
+
+The tunable coupler buys its on/off ratio with hardware: an extra circuit, an extra flux line, an extra bias to calibrate and an extra flux-noise dephasing channel per pair. There is a second family that buys nothing at all. Leave the qubits fixed in frequency, leave a small static capacitive coupling permanently on, and make the gate out of the drive instead: **drive the control qubit at the *target's* frequency**. That is the cross-resonance gate, and it is the reason a processor of fixed-frequency transmons with no tunable elements anywhere can still entangle.
+
+Why it works is a two-line argument in the language of Section 2.4. The drive is far off-resonant for the qubit it is applied to — detuned by $\Delta = f_1 - f_2$, typically a hundred megahertz or more — so it barely excites the control. But the static exchange $J$ hybridizes the two qubits, so the operator the drive couples to is not purely the control's: to first order in $J/\Delta$ it contains a piece of the target. The drive therefore reaches the target *through* the control, and — this is the whole point — the amplitude with which it arrives depends on the state of the control, because the control's own ladder is anharmonic. A control in $|0\rangle$ passes the drive on via $|10\rangle$; a control in $|1\rangle$ passes it on via $|20\rangle$, with matrix elements larger by the factor $r = |n_{12}/n_{01}| = 1.3726$ of Example 4 and a detuning $\Delta + \alpha$ instead of $\Delta$. Two different amplitudes for two control states is, by definition, a $ZX$ interaction.
+
+The second-order matrix elements are worth writing out, because they are the whole gate. Let $\Omega$ be the drive amplitude expressed as the Rabi frequency it would produce on resonance, and work in the frame rotating at the target frequency, where $|00\rangle$ and $|01\rangle$ are degenerate and so are $|10\rangle$ and $|11\rangle$. The effective couplings within each degenerate pair are
+
+$$ t_0 = -\frac{J\Omega}{2\Delta}, \qquad t_1 = \frac{J\Omega}{2\Delta} - \frac{r^2 J\Omega}{2(\Delta + \alpha)} $$
+
+— for $t_0$ the single path $|00\rangle \to |10\rangle \to |01\rangle$, and for $t_1$ two paths, $|10\rangle \to |20\rangle \to |11\rangle$ and $|10\rangle \to |01\rangle \to |11\rangle$. Writing the effective qubit Hamiltonian as $H_\mathrm{eff} = c_{IX}\,IX + c_{ZX}\,ZX + \ldots$, the half-sum and half-difference give
+
+$$ c_{IX} = -\frac{r^2 J\Omega}{4(\Delta+\alpha)}, \qquad c_{ZX} = \frac{J\Omega}{4}\left(\frac{r^2}{\Delta+\alpha} - \frac{2}{\Delta}\right) $$
+
+and setting $r^2 \to 2$, its harmonic value, collapses the second expression to the form usually quoted, $c_{ZX} = -J\Omega\alpha/[2\Delta(\Delta+\alpha)]$.
+
+Put the chapter's own numbers in. Take two transmons with $\alpha/2\pi = -284.87$ MHz, a static exchange $J/2\pi = 3$ MHz, a control–target detuning $\Delta/2\pi = 100$ MHz and a drive $\Omega/2\pi = 20$ MHz. The formulas give $c_{IX} = +0.153$ MHz and $c_{ZX} = -0.453$ MHz; the harmonic version of $c_{ZX}$ gives $-0.462$ MHz, 2% larger, because $r^2 = 1.884$ rather than 2. Numerical diagonalization of the same five-level-per-qubit model, exactly as in Example 6, returns $c_{IX} = +0.153$ MHz and $c_{ZX} = -0.435$ MHz. The perturbative result is 4% high at this drive amplitude and 1% high at $\Omega/2\pi = 10$ MHz, but 62% high at $\Omega/2\pi = 80$ MHz: the $ZX$ rate *saturates* with drive power, which is why calibration of a cross-resonance gate is an experiment rather than a formula.
+
+Those coefficients are directly measurable. Since $c_{IX}$ and $c_{ZX}$ have opposite signs here, the target's Rabi rate is $2|c_{IX} + c_{ZX}| = 0.56$ MHz with the control in $|0\rangle$ and $2|c_{IX} - c_{ZX}| = 1.18$ MHz with the control in $|1\rangle$ — a conditional drive, which is already almost a CNOT. Mapping "almost" onto "exactly" is what the two standard refinements do:
+
+  * **Echo.** Run the drive at $+\Omega$, apply a $\pi$ pulse to the control, run it at $-\Omega$, and undo the $\pi$ pulse. Reversing the drive phase flips the sign of every term linear in $\Omega$, and the control flip flips the sign of every term containing $Z$; $IX$ therefore changes sign once and cancels, while $ZX$ changes sign twice and survives. The echoed gate is a clean $ZX$ rotation, and it removes the static $ZZ$ and the control's Stark shift along with $IX$. What remains, $\exp[-i\,2\pi c_{ZX} t\,ZX]$, is locally equivalent to CNOT at $t = 1/(8|c_{ZX}|) = 288$ ns with the numbers above — an order of magnitude slower than the coupler gate, which is the price of having no knob.
+  * **Rotary.** Add a weak continuous drive on the *target* at its own frequency, alternating in sign, during the cross-resonance pulse. It does not affect $ZX$, but it echoes away residual $IX$, $IY$ and — importantly for a real lattice — the unwanted interactions with *spectator* qubits that happen to be near the target in frequency.
+
+And then the fabrication problem, which is where this subsection has been heading. Both the rate and the errors are functions of $\Delta$, and $\Delta$ is not adjustable: it is decided when the junctions are oxidized. Three conditions have to be avoided at once. If $|\Delta|$ is too small the qubits hybridize and neither addressing nor a clean $ZX$ survives. If $\Delta = -\alpha = 285$ MHz the drive is exactly resonant with the control's $1\to2$ transition — equivalently $|11\rangle$ and $|20\rangle$ are degenerate — and $c_{IX}$ and $c_{ZX}$ both diverge in the formula while the true rate collapses: numerical diagonalization at $\Delta/2\pi = 300$ MHz gives $c_{ZX} = 0.76$ MHz against the formula's 1.77 MHz, and the missing amplitude has gone into leakage. And if $\Delta = -\alpha/2 = 142$ MHz the drive two-photon-excites the control from $|0\rangle$ to $|2\rangle$, which the $ZX$ rate does not even notice but which destroys the gate. The usable window between 0 and 142 MHz is therefore a few tens of megahertz wide — and each qubit sits in several such windows simultaneously, one per neighbour and one per spectator.
+
+Now compare that with what fabrication delivers. From Example 1, $f_{01} + E_C = \sqrt{8E_JE_C}$, so $\delta f_{01} \approx \tfrac{1}{2}(f_{01}+E_C)\,\delta E_J/E_J$, and Ambegaokar-Baratoff makes $E_J \propto 1/R_n$: a 2% spread in the tunnel barrier's resistance-area product — which is a good day for a wafer — becomes a 52 MHz spread in qubit frequency. The frequency windows a cross-resonance architecture needs are *narrower than the as-fabricated scatter*. That single comparison explains a whole research programme: why junction reproducibility (oxidation dose, barrier uniformity, ageing) is reported as a headline number, why post-fabrication frequency trimming exists at all, and why the choice between a tunable coupler and cross-resonance is not a choice between two circuits but between two failure modes — calibration complexity and flux noise on one side, fabrication yield on the other. Which brings us to the material itself.
+
+* * *
+
+## 2.6 The Materials Science of Decoherence
+
+This is the section the course exists for. Everything above is circuit design, and circuit design is understood. What is not understood — what is the active research frontier and where materials science contributes directly — is why a device whose Hamiltonian we can write down to eight digits has a coherence time that varies by an order of magnitude between nominally identical fabrication runs, and drifts over hours in a single device.
+
+The short answer: because $T_1$ is not a property of the circuit. It is a property of a few nanometres of amorphous oxide.
+
+### Loss as a weighted sum
+
+An energy relaxation rate is a quality factor: $T_1 = Q/\omega_{01}$. For dielectric loss, $Q$ follows from a rule that is almost embarrassingly simple. Each lossy region $i$ of the device stores a fraction $p_i$ of the total electric-field energy — its **participation ratio** — and dissipates in proportion to its loss tangent $\tan\delta_i$:
+
+$$ \frac{1}{Q} = \sum_i p_i \tan\delta_i, \qquad \sum_i p_i = 1 $$
+
+This is the workhorse of superconducting-qubit materials engineering, and it says something important: a region with a terrible loss tangent is harmless if the field does not go there, and a region with an excellent loss tangent dominates the budget if it holds all the field.
+
+The relevant lossy regions of a planar qubit are three interfaces, each a few nanometres of amorphous oxide with $\tan\delta \sim 10^{-3}$:
+
+  * **metal-substrate (MS)**: the interface between the deposited film and the wafer, containing whatever was on the wafer surface when deposition began
+  * **metal-air (MA)**: the native oxide grown on top of the film when the wafer left the vacuum chamber
+  * **substrate-air (SA)**: the exposed substrate in the gaps, oxidized and contaminated by processing
+
+and the bulk substrate, with a loss tangent four to five orders of magnitude better ($10^{-7}$ for high-resistivity silicon, $10^{-8}$ for sapphire, against $2\times10^{-3}$ for the oxides) but a participation ratio of nearly one.
+
+Getting $p_i$ right for a real geometry means a finite-element electrostatic simulation with thin-layer meshing, which is genuinely delicate — the layers are three to four orders of magnitude thinner than the features (3 nm against a 20 $\mu$m electrode). But the *scaling* can be derived in two lines, and the scaling is what design decisions rest on. Normal displacement is continuous across the interface, so the field inside a layer of permittivity $\epsilon_i$ on a substrate of permittivity $\epsilon_s$ is enhanced by $\epsilon_s/\epsilon_i$, and the energy density ratio is $\epsilon_s/\epsilon_i$. The layer occupies a fraction of order $t/w$ of the volume where the field lives, with $t$ the layer thickness and $w$ the electrode or gap scale. Hence
+
+$$ p_\mathrm{surface} \sim \frac{\epsilon_s}{\epsilon_i}\cdot\frac{t}{w} $$
+
+Three consequences, all verified experimentally: **thinner oxide is better** (linear in $t$), **bigger is better** (inverse in $w$ — the origin of large-footprint qubit designs), and **a higher-permittivity interfacial layer is better**, because it screens itself.
+
+### Quasiparticles
+
+The second $T_1$ channel is not dielectric at all. A single unpaired electron — a **quasiparticle** — tunnelling across the junction can absorb the qubit's energy. Parameterizing the quasiparticle density by $x_{qp}$, the fraction of electrons not paired, the standard result is
+
+$$ \Gamma_{qp} = \frac{\omega_{01}}{\pi} x_{qp} \sqrt{\frac{2\Delta}{\hbar\omega_{01}}} $$
+
+In thermal equilibrium $x_{qp} = \sqrt{2\pi k_BT/\Delta}\,e^{-\Delta/k_BT}$, which at 20 mK is about $10^{-47}$ — utterly negligible, forty orders of magnitude below anything that could matter. What is *measured* in real devices is a temperature-independent floor around $10^{-8}$ to $10^{-6}$. The quasiparticles are not thermal. They are generated by stray infrared photons above the pair-breaking threshold $2\Delta/h$, by cosmic rays and ambient radioactivity depositing energy in the substrate, and by phonon bursts. Every one of those is an engineering problem — shielding, absorptive filtering, phonon traps, gap engineering, normal-metal quasiparticle traps — rather than a physics limit.
+
+### Code Example 7: The $T_1$ Budget
+
+```python
+"""Chapter 2, Example 7: the T1 budget as a materials problem.
+(a) participation-ratio analysis of dielectric loss, (b) how many two-level
+defects are actually resonant with the qubit, (c) quasiparticles."""
+import numpy as np
+
+h = 6.62607015e-34
+hbar = h / (2 * np.pi)
+e = 1.602176634e-19
+kB = 1.380649e-23
+eps0 = 8.8541878128e-12
+DEBYE = 3.33564e-30      # C m
+
+f01 = 5.0e9              # Hz
+w01 = 2 * np.pi * f01
+
+# =======================================================================
+# (a) participation ratios and the loss budget
+# =======================================================================
+# Scaling model.  A surface layer of thickness t and permittivity eps_i on a
+# substrate of permittivity eps_s carries a field enhanced by eps_s/eps_i
+# (normal D is continuous), and occupies a fraction ~ t/w of the volume in
+# which the field lives, w being the electrode/gap scale.  The three surface
+# layers are given weights summing to one; real numbers come from a
+# finite-element simulation with thin-layer meshing, but the SCALING -- linear
+# in t, inverse in w, inverse in eps_i -- is what design decisions rest on.
+eps_s = 11.45            # silicon
+LAYERS = [   # name, weight, thickness (nm), eps_r, loss tangent
+    ("metal-substrate (MS)", 0.50, 3.0, 10.0, 2.0e-3),
+    ("metal-air       (MA)", 0.25, 3.0, 10.0, 2.0e-3),
+    ("substrate-air   (SA)", 0.25, 3.0, 10.0, 2.0e-3),
+]
+
+
+def budget(w_um, layers=LAYERS, tan_bulk=1.0e-7, p_junction=0.0,
+           tan_junction=2.0e-3):
+    """Inverse quality factor and its breakdown for an electrode scale w."""
+    rows, p_surf, inv_q = [], 0.0, 0.0
+    for name, wt, t_nm, eps_i, td in layers:
+        p = wt * (eps_s / eps_i) * (t_nm * 1e-3 / w_um)
+        p_surf += p
+        inv_q += p * td
+        rows.append((name, p, td, p * td))
+    p_bulk = 1.0 - p_surf - p_junction
+    rows.append(("substrate bulk      ", p_bulk, tan_bulk, p_bulk * tan_bulk))
+    inv_q += p_bulk * tan_bulk
+    if p_junction:
+        rows.append(("junction barrier    ", p_junction, tan_junction,
+                     p_junction * tan_junction))
+        inv_q += p_junction * tan_junction
+    return inv_q, rows
+
+
+inv_q, rows = budget(20.0)
+print(f"{'region':>22}{'participation p':>17}{'tan delta':>12}"
+      f"{'p tan delta':>14}{'share':>8}")
+for name, p, td, c in rows:
+    print(f"{name:>22}{p:>17.3e}{td:>12.1e}{c:>14.3e}{c / inv_q * 100:>7.1f}%")
+print(f"{'total':>22}{'':>17}{'':>12}{inv_q:>14.3e}")
+print(f"  Q = {1.0 / inv_q:.3e},  T1 = Q/omega01 = "
+      f"{1.0 / inv_q / w01 * 1e6:.1f} us")
+print()
+
+print(f"{'w (um)':>8}{'sum p_surface':>15}{'1/Q':>12}{'Q':>12}{'T1 (us)':>10}")
+for wum in [1.0, 5.0, 20.0, 50.0, 100.0, 300.0]:
+    iq, rr = budget(wum)
+    psurf = sum(r[1] for r in rr[:3])
+    print(f"{wum:>8.1f}{psurf:>15.3e}{iq:>12.3e}{1.0 / iq:>12.3e}"
+          f"{1.0 / iq / w01 * 1e6:>10.1f}")
+print(f"  bulk-limited ceiling: Q = 1e7, T1 = {1e7 / w01 * 1e6:.0f} us")
+print()
+
+print(f"{'t (nm)':>8}{'tan delta':>12}{'1/Q':>12}{'T1 (us)':>10}   note")
+cases = [(3.0, 2.0e-3, "as-deposited amorphous oxide"),
+         (3.0, 5.0e-4, "cleaned or encapsulated interface"),
+         (1.0, 2.0e-3, "thinner native oxide (e.g. Ta2O5)"),
+         (0.5, 2.0e-4, "the optimistic limit of both")]
+for t_nm, td, note in cases:
+    lay = [(n, wt, t_nm, ei, td) for n, wt, _, ei, _ in LAYERS]
+    iq, _ = budget(20.0, layers=lay)
+    print(f"{t_nm:>8.1f}{td:>12.1e}{iq:>12.3e}{1.0 / iq / w01 * 1e6:>10.1f}"
+          f"   {note}")
+print()
+
+for name, tanb in [("high-resistivity Si", 1.0e-7), ("sapphire", 1.0e-8)]:
+    iq, _ = budget(20.0, tan_bulk=tanb)
+    print(f"  {name:<22} tan delta_bulk = {tanb:.0e}: T1 = "
+          f"{1.0 / iq / w01 * 1e6:>6.1f} us "
+          f"(bulk-only ceiling {1.0 / tanb / w01 * 1e6:>7.0f} us)")
+print()
+
+# =======================================================================
+# (b) but is the junction barrier a continuum?
+# =======================================================================
+A_J, t_J = 0.070, 2.0            # um^2, nm
+C_J = 45.0 * A_J                 # fF, at 45 fF/um^2
+C_tot = 77.5                     # fF, from the design of Example 1
+p_J = C_J / C_tot
+print(f"(b) The junction barrier: C_J = {C_J:.2f} fF of C = {C_tot:.1f} fF, "
+      f"so p_J = {p_J:.4f}")
+iq, rows = budget(20.0, p_junction=p_J)
+print(f"    Treating it as a continuum with tan delta = 2e-3 gives "
+      f"p_J tan delta = {p_J * 2e-3:.3e},")
+print(f"    hence T1 = {1.0 / iq / w01 * 1e6:.2f} us -- two orders of magnitude "
+      f"below what is observed.")
+print()
+
+# TLS density of states implied by a loss tangent, for a dipole moment d:
+#   tan delta = pi P0 d^2 / (3 eps0 eps_r)
+d_tls = 1.0 * DEBYE
+tan_ox, eps_ox = 2.0e-3, 10.0
+P0 = 3.0 * eps0 * eps_ox * tan_ox / (np.pi * d_tls ** 2)   # per J per m^3
+print(f"    tan delta = {tan_ox:.0e} with d = 1 Debye implies "
+      f"P0 = {P0:.3e} /J/m^3")
+print(f"    = {P0 * h * 1e9 * 1e-18:.3e} defects per GHz per um^3")
+print()
+print(f"{'region':>26}{'volume (um^3)':>15}{'N in 1 MHz':>13}"
+      f"{'N in 1 GHz':>13}")
+for name, V_um3 in [("transmon junction barrier", A_J * t_J * 1e-3),
+                    ("1990s-style large junction", 10.0 * 2.0 * 1e-3),
+                    ("shunt-capacitor surface   ", 1.0e4 * 3.0 * 1e-3)]:
+    V = V_um3 * 1e-18
+    n_mhz = P0 * V * h * 1e6
+    n_ghz = P0 * V * h * 1e9
+    print(f"{name:>26}{V_um3:>15.3e}{n_mhz:>13.3e}{n_ghz:>13.3e}")
+V_cross = 1.0 / (P0 * h * 1e6) * 1e18
+print(f"    crossover volume (one defect per MHz): {V_cross:.3f} um^3")
+print()
+
+# =======================================================================
+# (c) quasiparticles
+# =======================================================================
+Tc = 1.20
+Delta = 1.764 * kB * Tc
+print(f"(c) Quasiparticles in aluminium: Delta = {Delta / e * 1e6:.1f} ueV, "
+      f"2Delta/h = {2 * Delta / h / 1e9:.1f} GHz")
+
+
+def T1_qp(x_qp):
+    g = (w01 / np.pi) * x_qp * np.sqrt(2.0 * Delta / (hbar * w01))
+    return 1.0 / g
+
+
+print()
+print(f"{'T (mK)':>9}{'Delta/kBT':>11}{'x_qp thermal':>15}{'T1_qp':>14}")
+for T in [20e-3, 100e-3, 150e-3, 200e-3, 300e-3]:
+    x = np.sqrt(2 * np.pi * kB * T / Delta) * np.exp(-Delta / (kB * T))
+    t1 = T1_qp(x)
+    unit = (f"{t1 * 1e6:.2f} us" if t1 < 1e-3 else
+            f"{t1 * 1e3:.2f} ms" if t1 < 1.0 else f"{t1:.2e} s")
+    print(f"{T * 1e3:>9.0f}{Delta / (kB * T):>11.2f}{x:>15.3e}{unit:>14}")
+x20 = (np.sqrt(2 * np.pi * kB * 0.020 / Delta)
+       * np.exp(-Delta / (kB * 0.020)))
+print()
+print(f"    thermal x_qp at 20 mK = {x20:.1e}, i.e. "
+      f"{np.log10(1e-7 / x20):.0f} orders of magnitude below the observed floor")
+# x_qp is defined as a fraction of the ELECTRONS, whose density is 2 n_cp, so
+# the quasiparticle count is x_qp (2 n_cp) V and the number of broken pairs is
+# half of that.  Both are printed to keep the two apart.
+n_cp = 4.0e6     # Cooper pairs per um^3 in Al
+V_film = 1.0e4 * 0.1     # um^3, a 100 x 100 um pad, 100 nm thick
+print(f"{'x_qp':>10}{'T1_qp':>12}{'N_qp in the film':>20}{'broken pairs':>15}")
+for x in [1e-8, 1e-7, 1e-6, 1e-5]:
+    print(f"{x:>10.0e}{T1_qp(x) * 1e6:>10.1f} us"
+          f"{x * 2 * n_cp * V_film:>20.2f}{x * n_cp * V_film:>15.2f}")
+print(f"    (film volume {V_film:.0f} um^3, Cooper-pair density "
+      f"{n_cp:.0e} /um^3, electron density {2 * n_cp:.0e} /um^3)")
+print()
+E_dep = 1.0e6 * e        # a 1 MeV energy deposit in the substrate
+print(f"      one 1 MeV deposit, if a fraction 0.5 ends up breaking pairs, "
+      f"makes ~{0.5 * E_dep / (2 * Delta):.1e} quasiparticles")
+print(f"      a single photon above 2Delta/h = {2 * Delta / h / 1e9:.0f} GHz "
+      f"breaks one pair, and a warm surface in the line of sight supplies them:")
+# Wien's displacement law has a different peak per unit frequency than per unit
+# wavelength: nu_max = 2.821 kB T / h, NOT c / lambda_max.  What matters for
+# pair breaking is the photon flux above 2Delta/h, so integrate it as well.
+f_thr = 2.0 * Delta / h
+x = np.linspace(1e-6, 60.0, 600001)
+flux_all = np.trapezoid(x ** 2 / np.expm1(x), x)
+for T in [4.0, 0.8]:
+    fpk = 2.821 * kB * T / h
+    x0 = h * f_thr / (kB * T)
+    xs = x[x >= x0]
+    frac = np.trapezoid(xs ** 2 / np.expm1(xs), xs) / flux_all
+    print(f"        {T:>4.1f} K surface: Wien peak per unit frequency "
+          f"{fpk / 1e9:>6.1f} GHz = {fpk / f_thr:>5.2f} x (2Delta/h); "
+          f"{frac * 100:>5.2f}% of the photon flux is above threshold")
+```
+
+```text
+                region  participation p   tan delta   p tan delta   share
+  metal-substrate (MS)        8.588e-05     2.0e-03     1.718e-07   38.7%
+  metal-air       (MA)        4.294e-05     2.0e-03     8.588e-08   19.4%
+  substrate-air   (SA)        4.294e-05     2.0e-03     8.588e-08   19.4%
+  substrate bulk              9.998e-01     1.0e-07     9.998e-08   22.5%
+                 total                                  4.435e-07
+  Q = 2.255e+06,  T1 = Q/omega01 = 71.8 us
+
+  w (um)  sum p_surface         1/Q           Q   T1 (us)
+     1.0      3.435e-03   6.970e-06   1.435e+05       4.6
+     5.0      6.870e-04   1.474e-06   6.785e+05      21.6
+    20.0      1.718e-04   4.435e-07   2.255e+06      71.8
+    50.0      6.870e-05   2.374e-07   4.212e+06     134.1
+   100.0      3.435e-05   1.687e-07   5.928e+06     188.7
+   300.0      1.145e-05   1.229e-07   8.137e+06     259.0
+  bulk-limited ceiling: Q = 1e7, T1 = 318 us
+
+  t (nm)   tan delta         1/Q   T1 (us)   note
+     3.0     2.0e-03   4.435e-07      71.8   as-deposited amorphous oxide
+     3.0     5.0e-04   1.859e-07     171.3   cleaned or encapsulated interface
+     1.0     2.0e-03   2.145e-07     148.4   thinner native oxide (e.g. Ta2O5)
+     0.5     2.0e-04   1.057e-07     301.1   the optimistic limit of both
+
+  high-resistivity Si    tan delta_bulk = 1e-07: T1 =   71.8 us (bulk-only ceiling     318 us)
+  sapphire               tan delta_bulk = 1e-08: T1 =   90.0 us (bulk-only ceiling    3183 us)
+
+(b) The junction barrier: C_J = 3.15 fF of C = 77.5 fF, so p_J = 0.0406
+    Treating it as a continuum with tan delta = 2e-3 gives p_J tan delta = 8.129e-05,
+    hence T1 = 0.39 us -- two orders of magnitude below what is observed.
+
+    tan delta = 2e-03 with d = 1 Debye implies P0 = 1.520e+46 /J/m^3
+    = 1.007e+04 defects per GHz per um^3
+
+                    region  volume (um^3)   N in 1 MHz   N in 1 GHz
+ transmon junction barrier      1.400e-04    1.410e-03    1.410e+00
+1990s-style large junction      2.000e-02    2.014e-01    2.014e+02
+shunt-capacitor surface         3.000e+01    3.021e+02    3.021e+05
+    crossover volume (one defect per MHz): 0.099 um^3
+
+(c) Quasiparticles in aluminium: Delta = 182.4 ueV, 2Delta/h = 88.2 GHz
+
+   T (mK)  Delta/kBT   x_qp thermal         T1_qp
+       20     105.84      2.637e-47    9.03e+35 s
+      100      21.17      3.492e-10      68.17 ms
+      150      14.11      4.961e-07      47.99 us
+      200      10.58      1.951e-05       1.22 us
+      300       7.06      8.136e-04       0.03 us
+
+    thermal x_qp at 20 mK = 2.6e-47, i.e. 40 orders of magnitude below the observed floor
+      x_qp       T1_qp    N_qp in the film   broken pairs
+     1e-08    2380.8 us               80.00          40.00
+     1e-07     238.1 us              800.00         400.00
+     1e-06      23.8 us             8000.00        4000.00
+     1e-05       2.4 us            80000.00       40000.00
+    (film volume 1000 um^3, Cooper-pair density 4e+06 /um^3, electron density 8e+06 /um^3)
+
+      one 1 MeV deposit, if a fraction 0.5 ends up breaking pairs, makes ~1.4e+09 quasiparticles
+      a single photon above 2Delta/h = 88 GHz breaks one pair, and a warm surface in the line of sight supplies them:
+         4.0 K surface: Wien peak per unit frequency  235.1 GHz =  2.67 x (2Delta/h); 83.85% of the photon flux is above threshold
+         0.8 K surface: Wien peak per unit frequency   47.0 GHz =  0.53 x (2Delta/h);  8.51% of the photon flux is above threshold
+```
+
+**What to notice, part (a).** At the nominal design — $w = 20\ \mu$m, 3 nm of oxide, $\tan\delta = 2\times10^{-3}$, silicon — the three surfaces contribute 77% of the loss with a combined participation ratio of $1.7 \times 10^{-4}$, and the bulk substrate contributes the remaining 23% with a participation ratio of essentially 1. $Q = 2.3\times10^6$ and $T_1 = 72\ \mu$s. Those are the right orders of magnitude for a planar transmon, from a two-line scaling model.
+
+The geometry scan is the design lever. $T_1$ rises from 4.6 $\mu$s at $w = 1\ \mu$m to 134 $\mu$s at $w = 50\ \mu$m, linearly in $w$ as predicted, and then saturates: by $w = 300\ \mu$m the surfaces contribute less than the bulk and further growth buys nothing. The ceiling is $Q = 1/\tan\delta_\mathrm{bulk} = 10^7$, or $T_1 = 318\ \mu$s on silicon. There is a real cost to spending that lever — a 300 $\mu$m qubit couples to more spectators, has a lower self-resonance, and takes more chip area — but the physics is unambiguous: dilute the field.
+
+The interface table quantifies the other lever. Reducing the loss tangent by 4$\times$ (a cleaner or encapsulated interface) takes $T_1$ from 72 to 171 $\mu$s; reducing the thickness from 3 nm to 1 nm takes it to 148 $\mu$s; doing both takes it to 301 $\mu$s, at which point the bulk dominates. This is why the choice of superconductor is a materials question and not a convenience: niobium grows a thick oxide with several suboxide phases, tantalum grows a thin, stable, single-phase Ta$_2$O$_5$, and titanium nitride can be grown nearly oxide-free. The relevant property is not the critical temperature; it is the oxide.
+
+The substrate row shows the ceiling moving: sapphire's better bulk loss tangent raises $T_1$ from 72 to 90 $\mu$s at these surfaces, and raises the ceiling from 318 to 3183 $\mu$s. Sapphire only pays once the surfaces are good enough to see it.
+
+**What to notice, part (b).** Here the model breaks, instructively. The junction's own AlO$_x$ barrier holds $p_J = C_J/C = 4\%$ of the field — 236 times the combined participation ratio of the three surfaces ($1.718\times10^{-4}$). Treating it as a continuum with the same loss tangent predicts $T_1 = 0.39\ \mu$s. Real transmons are two orders of magnitude better than that, so the continuum picture cannot apply to the junction.
+
+Counting resolves it. A loss tangent implies a two-level-defect density of states, through $\tan\delta = \pi P_0 d^2 / 3\epsilon_0\epsilon_r$ with $d$ the defect dipole moment; taking $d = 1$ Debye gives $P_0 \approx 10^4$ defects per GHz per $\mu$m$^3$. Now multiply by volumes. The junction barrier, $0.07\ \mu\mathrm{m}^2 \times 2$ nm $= 1.4\times10^{-4}\ \mu$m$^3$, contains $1.4\times10^{-3}$ defects per MHz of bandwidth — that is, essentially never one resonant with the qubit. The shunt capacitor's surface oxide, 30 $\mu$m$^3$, contains 300 per MHz: a smooth continuum. The crossover is at about $0.1\ \mu$m$^3$.
+
+That single number explains the transmon's geometry. **Make the junction small enough that its defects are discrete and usually off-resonant; make the capacitor large enough that its surface participation is tiny.** The row for a 1990s-style large junction (10 $\mu$m$^2$, as used in phase qubits) shows the other side: 200 defects per GHz, dense enough that spectroscopy shows a forest of avoided crossings, which is exactly what was observed and exactly what motivated shrinking the junction.
+
+The discrete regime also explains a phenomenon the continuum model cannot: **$T_1$ fluctuates**. A device whose loss is dominated by a handful of near-resonant defects has a $T_1$ that changes when those defects move, and they do move, on timescales of minutes to hours, as their environments shift. A single $T_1$ number for a superconducting qubit is a summary statistic of a distribution, not a constant.
+
+**What to notice, part (c).** The thermal quasiparticle table makes the case by absurdity: at 20 mK, $x_{qp} = 2.6\times10^{-47}$ and $T_1^{qp} = 10^{35}$ s. At 150 mK, $x_{qp} = 5\times10^{-7}$ gives $T_1^{qp} = 48\ \mu$s, comparable with the dielectric limit — so a refrigerator running warm at 150 mK would be quasiparticle-limited. The exponential is brutal in both directions.
+
+The non-equilibrium table converts the observed $x_{qp}$ into two intelligible quantities: $x_{qp} = 10^{-7}$ means $T_1^{qp} = 238\ \mu$s and about 800 unpaired electrons — 400 broken pairs — in the whole 1000 $\mu$m$^3$ aluminium film. Eight hundred electrons, because $x_{qp}$ counts a fraction of the electrons and the electron density is twice the Cooper-pair density. That is the entire population whose management is the subject of an active subfield.
+
+Where they come from is a shielding problem with numbers attached. A single photon above 88 GHz breaks a pair, and the blackbody spectrum of a 4 K surface peaks — per unit frequency, at $2.821k_BT/h$, which is *not* $c/\lambda_\mathrm{max}$ — at 235 GHz, 2.67 times the threshold, with 84% of its photon flux above it. A 4 K stage in the line of sight of the qubit is a pair-breaking lamp, which is why the wiring runs through absorptive filters and light-tight enclosures rather than merely cold ones. A 0.8 K surface peaks at 47 GHz, *below* the threshold — but the exponential tail still puts 8.5% of its photons above 88 GHz, so a still-hall or a still-plate surface in the line of sight is not safe either, merely dimmer. That is the useful lesson: what matters is the flux above $2\Delta/h$, not where the peak sits. And a single 1 MeV energy deposit in the substrate — an ambient gamma, a cosmic-ray muon — liberates of order $10^9$ quasiparticles at once, which is why these events show up as correlated, chip-wide error bursts. Correlated errors are the failure mode that surface codes assume does not happen.
+
+### The pattern
+
+Step back from the numbers and one structure is visible in all of it. The transmon Hamiltonian is known exactly. The circuit parameters are designed to a percent. And the coherence time is set by:
+
+  * the thickness and loss tangent of oxide layers nobody deposited on purpose,
+  * the number of two-level defects that happen to be resonant this hour,
+  * the number of unpaired electrons that a stray photon made,
+  * the last surface treatment before the wafer went into vacuum.
+
+None of that is in the Hamiltonian. All of it is materials science, and it is where the improvement in coherence times has actually come from — not from better circuit topologies, whose basic family has been stable since the transmon replaced the charge qubit, but from cleaner interfaces, better substrates, different superconductors, and better shielding. Chapter 3 will find the same pattern in a completely different physical system, and the fact that it *is* the same pattern is the argument of this course.
+
+* * *
+
+## Exercises
+
+Work through these with the code from this chapter in front of you. Solutions follow each question.
+
+#### Exercise 1: Designing to the Exact Spectrum
+
+Example 1 designed a junction from the asymptotic formulas and Example 2 found that the resulting device has $\alpha = -285$ MHz rather than the intended $-250$ MHz. (a) Using the numerical diagonalization, find the $(E_J, E_C)$ that gives $f_{01} = 5.000$ GHz and $\alpha = -250.0$ MHz exactly. (b) What capacitance and normal-state resistance does that require? (c) Why is $E_C$ smaller than 250 MHz in the answer?
+
+<details><summary>Solution</summary>
+<p>(a) Two equations in two unknowns; a two-dimensional Newton iteration on the output of <code>levels</code> converges in a few steps. The answer is \(E_C/h = 223.1\) MHz and \(E_J/h = 15.35\) GHz, i.e. \(E_J/E_C = 68.8\), which reproduces \(f_{01} = 5.000000\) GHz and \(\alpha = -250.000\) MHz. Use the analytic guess as the starting point and the correction \(\alpha \simeq -E_C(1 + (9/4)\sqrt{E_C/8E_J})\) to check: with \(E_J/E_C = 68.8\), \((9/4)\sqrt{1/550} = 0.096\), so \(\alpha \approx -223 \times 1.096 = -244\) MHz — close, and the residual 6 MHz is why the numerical solve is needed. Note how far this sits from the Example 1 design: \(E_J\) has to rise from 13.78 to 15.35 GHz, because lowering \(E_C\) to get the anharmonicity right would otherwise drag \(f_{01} = \sqrt{8E_JE_C} - E_C\) down with it. Landing on \(E_C = 219\) MHz and \(E_J = 14.4\) GHz instead gives \(f_{01} = 4.793\) GHz — 207 MHz low, and a qubit at the wrong frequency is a qubit that collides with its neighbours.</p>
+<p>(b) \(C = e^2/2E_C = 86.8\) fF, and \(E_J/h = 15.35\) GHz gives \(R_n = \Delta/(8e^2 E_J/h) = 9.27\ \mathrm{k\Omega}\), i.e. a junction area of \(RA/R_n = 0.0755\ \mu\mathrm{m}^2\) at the \(700\ \Omega\,\mu\mathrm{m}^2\) resistance-area product of Example 1. Both are ordinary numbers, and both moved: the capacitor grew by 12% and the junction by 11% relative to the Example 1 design.</p>
+<p>(c) Because \(|\alpha| &gt; E_C\) always, by the \(9/4\) correction of Example 2. To land at \(|\alpha| = 250\) MHz you must aim below it. Anyone who designs from \(\alpha = -E_C\) alone will systematically overshoot the anharmonicity — by 9.6% at \(E_J/E_C = 69\) and 13.9% at \(E_J/E_C = 55\).</p>
+</details>
+
+#### Exercise 2: How Much Does the Exponential Buy?
+
+(a) Using Example 3, by what factor does the charge dispersion of $f_{01}$ fall when $E_J/E_C$ goes from 20 to 40? From 40 to 80? (b) Show that both factors are approximately what $e^{-\sqrt{8E_J/E_C}}$ predicts. (c) A colleague proposes $E_J/E_C = 300$ to make charge noise irrelevant forever. What breaks?
+
+<details><summary>Solution</summary>
+<p>(a) From 20 to 40: \(4.353\times10^6 \to 6.052\times10^4\) Hz, a factor of 72. From 40 to 80 the table does not have the second point, but extrapolating the printed trend (70 gives 398 Hz) the factor is again of order \(10^2\).</p>
+<p>(b) \(\sqrt{8 \times 20} = 12.65\) and \(\sqrt{8 \times 40} = 17.89\), so the exponential ratio is \(e^{5.24} = 189\). The observed 72 is smaller because the prefactor \((E_J/2E_C)^{5/4}\) grows in the opposite direction, by a factor \(2^{1.25} = 2.4\); \(189/2.4 = 79\), which matches. The exponential dominates but the prefactor is not negligible.</p>
+<p>(c) The anharmonicity, and the frequency that comes with it. At \(E_J/E_C = 300\) with \(E_C = 250\) MHz the exact diagonalization gives \(|\alpha| = 262.7\) MHz on an \(f_{01} = 11.99\) GHz qubit, so the relative anharmonicity has fallen to 2.19%. Two things break. First, the frequency: 12 GHz is a problem in itself — harder wiring, more spectator modes, and the qubit crowds the readout resonator. Second, the ladder becomes nearly harmonic. Note that the well does <em>not</em> run out of bound states — the opposite happens, because the number of levels below the barrier top grows as \(\sqrt{E_J/2E_C}\): counting eigenvalues below \(+E_J\) gives 7 bound levels at \(E_J/E_C = 55\) and 15 at 300. That is precisely the trouble. More levels in the same well means smaller gaps between them, and with a 2% relative anharmonicity a pulse short enough to be useful has a bandwidth comparable with \(|\alpha|\), so leakage into \(|2\rangle\) returns as the binding constraint of Example 4. The transmon does not stop being an artificial atom by losing its levels; it stops being addressable by gaining them. In practice \(E_J/E_C\) between 30 and 100 is where the two constraints leave room.</p>
+</details>
+
+#### Exercise 3: Reading the Purcell Constraint Backwards
+
+A design requires a readout in 200 ns with $|2\chi|/\kappa = 1$, and a Purcell-limited $T_1$ of at least 500 $\mu$s. Using the relations of Example 5 with $g/2\pi = 100$ MHz: (a) what $\kappa$ does the readout time imply? (b) What detuning $\Delta$ does the Purcell requirement then impose? (c) Is the required $\chi$ achievable at that detuning, and what does the answer tell you about Purcell filters?
+
+<details><summary>Solution</summary>
+<p>(a) The ring-down floor is \(1/\kappa\), so 200 ns needs \(\kappa/2\pi \gtrsim 0.8\) MHz. Take \(\kappa/2\pi = 0.8\) MHz.</p>
+<p>(b) \(T_1 = \Delta^2/(\kappa g^2)\) with \(T_1 = 500\ \mu\)s gives \(\Delta^2 = 500\times10^{-6} \times 2\pi \times 0.8\times10^6 \times (2\pi \times 10^8)^2/(2\pi)\)... it is cleaner in the frequency form: \(T_1 = 1/[2\pi\kappa (g/\Delta)^2]\), so \((g/\Delta)^2 = 1/(2\pi \kappa T_1) = 1/(2\pi \times 0.8\times10^6 \times 5\times10^{-4}) = 3.98\times10^{-4}\), giving \(g/\Delta = 0.020\) and \(\Delta/2\pi = 5.0\) GHz.</p>
+<p>(c) At \(\Delta/2\pi = 5\) GHz the exact calculation of Example 5 extrapolates to \(|2\chi| \approx 0.36\) MHz (the trend of the table: \(2\chi\) falls roughly as \(1/\Delta^2\)), which is well below the 0.8 MHz that \(|2\chi| = \kappa\) demands. The three requirements are mutually inconsistent without a filter. With a Purcell filter, \(\Gamma_P\) is suppressed by the filter's rejection at \(\omega_{01}\) — typically one to two orders of magnitude — so \(\Delta\) can be brought back to 1.5-2 GHz where \(\chi\) is large enough. This is the calculation that makes the Purcell filter mandatory rather than optional, and it is worth doing before believing any readout design.</p>
+</details>
+
+#### Exercise 4: Where Is the ZZ Sweet Spot?
+
+Using Example 6 part A: (a) $\zeta$ changes sign between detunings of 250 and 400 MHz. Find the crossing numerically. (b) Explain the sign change physically. (c) Why is a $\zeta$ sweet spot less useful than it sounds?
+
+<details><summary>Solution</summary>
+<p>(a) Bisect <code>zeta</code> on \(f_2 \in [4.60, 4.75]\) GHz. The zero sits near \(f_2 = 4.66\) GHz, i.e. a detuning of about 340 MHz — just above \(|\alpha| = 285\) MHz.</p>
+<p>(b) The two terms of \(\zeta \approx 2g^2[1/(\Delta-\alpha) - 1/(\Delta+\alpha)]\) come from repulsion by \(|20\rangle\) and by \(|02\rangle\). With \(\alpha &lt; 0\), one denominator passes through zero at \(\Delta = -\alpha\) and the corresponding term changes sign, so the sum does too somewhere beyond that resonance. Physically, on one side of the \(|11\rangle\)-\(|20\rangle\) resonance the doubly excited state pushes \(|11\rangle\) down and on the other side it pushes it up.</p>
+<p>(c) Because the sweet spot is at a specific detuning, and detuning is a resource you need for other things — frequency crowding, avoiding spectator collisions, addressing. A fixed-frequency processor cannot put every pair at its \(\zeta\) sweet spot simultaneously. It is also narrow: near the resonance \(\zeta\) varies by MHz per 10 MHz of detuning, so the frequency targeting would have to be far better than fabrication allows. The tunable coupler of part B solves the same problem with a knob instead of a coincidence, which is why it won.</p>
+</details>
+
+#### Exercise 5: A Participation-Ratio Budget
+
+A qubit shows $T_1 = 30\ \mu$s at $f_{01} = 5$ GHz. The design has $w = 10\ \mu$m and the surfaces are believed to carry 3 nm of oxide. (a) What total surface loss $\sum p_i\tan\delta_i$ does this imply? (b) If the participation model of Example 7 is right, what loss tangent does that require? (c) Two candidate fixes: double $w$, or halve the oxide thickness. Which gives more, and which is easier?
+
+<details><summary>Solution</summary>
+<p>(a) \(Q = \omega_{01}T_1 = 2\pi\times5\times10^9 \times 3\times10^{-5} = 9.4\times10^5\), so \(1/Q = 1.06\times10^{-6}\). Subtracting the bulk contribution \(10^{-7}\) leaves \(9.6\times10^{-7}\) for the surfaces.</p>
+<p>(b) At \(w = 10\ \mu\)m and \(t = 3\) nm the model gives \(\sum p_i = 3.435\times10^{-4}\), so \(\tan\delta = 9.6\times10^{-7}/3.435\times10^{-4} = 2.8\times10^{-3}\) — slightly worse than the nominal \(2\times10^{-3}\), which is a believable result for an uncleaned interface and a signal that the loss is where the model says it is.</p>
+<p>(c) Both are a factor of two in \(\sum p_i\), so both roughly double \(T_1\) to 60 \(\mu\)s (a little less, because the bulk becomes a larger share). They differ entirely in cost. Doubling \(w\) is a layout change with knock-on effects on frequency crowding, chip area and stray coupling, but it is deterministic. Halving the oxide is a process change — a different superconductor, an in-situ clean, an encapsulation layer — that may not be controllable at all and may bring new problems. In practice both were pursued, and the geometric route was exhausted first because it was the one under the designer's control.</p>
+</details>
+
+#### Exercise 6: Discrete or Continuum?
+
+Using the defect density from Example 7(b): (a) what volume of oxide contains one defect within 100 kHz of the qubit frequency? (b) A qubit's $T_1$ is observed to jump between two values, hours apart. Is that consistent with a continuum bath? (c) Why did shrinking the junction help so much?
+
+<details><summary>Solution</summary>
+<p>(a) \(V = 1/(P_0 h \Delta f)\) with \(\Delta f = 10^5\) Hz gives ten times the printed crossover volume for 1 MHz, i.e. about \(1\ \mu\mathrm{m}^3\). Below a cubic micron of lossy oxide there is typically no defect within a qubit linewidth.</p>
+<p>(b) No. A continuum bath gives a fixed loss tangent and hence a fixed \(T_1\); its fluctuations average out because many defects contribute. Switching between two values is the signature of one or a few strongly coupled defects moving in and out of resonance, i.e. the discrete regime — which points at a small volume with high field participation, and the junction is the obvious suspect.</p>
+<p>(c) Two reasons at once. The participation ratio \(p_J = C_J/C\) fell, because a smaller junction has a smaller capacitance while the shunt capacitor was made larger. And the number of defects in the barrier fell below one per qubit linewidth, so the barrier moved from the continuum regime (where its 4% participation and \(10^{-3}\) loss tangent would cap \(T_1\) below a microsecond) into the discrete regime, where most of the time no defect is resonant at all. The first is a factor; the second is a change of mechanism. Example 7(b) puts numbers on both.</p>
+</details>
+
+* * *
+
+## Summary
+
+### Key Takeaways
+
+**1\. Two energy scales, one ratio**
+
+  * $E_J = \hbar I_c/2e$ comes from the junction through Ambegaokar-Baratoff, $E_J/h = \Delta/8e^2R_n$; $E_C = e^2/2C$ comes from the shunt capacitance. A 0.07 $\mu$m$^2$ aluminium junction gives $E_J/h = 14$ GHz, $I_c = 29$ nA.
+  * The design point $f_{01} = 5$ GHz, $\alpha = -250$ MHz needs $E_J/E_C \approx 55$, $C = 78$ fF, $R_n = 10\ \mathrm{k\Omega}$.
+  * A 5 GHz mode at 20 mK is thermally occupied to $6\times10^{-6}$; at 100 mK, to 10%. The refrigerator is part of the qubit.
+
+**2\. The transmon is a quantum pendulum, solved by a tridiagonal matrix**
+
+  * $H = 4E_C(\hat{n}-n_g)^2 - E_J\cos\hat{\varphi}$ is tridiagonal in the Cooper-pair basis; 12 charge states suffice at $E_J/E_C = 55$, 3 do not.
+  * $\omega_{01} \approx \sqrt{8E_JE_C} - E_C$ is good to 0.3% by $E_J/E_C = 50$; $\alpha \approx -E_C$ is 13.9% off there, and the next-order asymptotic result is $\alpha \simeq -E_C(1 + (9/4)\sqrt{E_C/8E_J})$, whose coefficient was extracted numerically and converges to $9/4$ by $E_J/E_C = 10^4$.
+  * It is the Mathieu problem: $n_g$ is crystal momentum, charge dispersion is a Bloch bandwidth.
+
+**3\. The trade-off is exponential against polynomial**
+
+  * Charge dispersion falls as $e^{-\sqrt{8E_J/E_C}}$: 776 MHz at $E_J/E_C = 1$, 6 Hz at 100.
+  * Relative anharmonicity falls only as $\sqrt{E_C/8E_J}$: 62% at $E_J/E_C = 5$, 4% at 100.
+  * Somewhere near $E_J/E_C = 30$ charge noise stops being the limit. That is the whole design argument.
+
+**4\. Gates are limited by the anharmonicity, readout by a near-cancellation**
+
+  * Leakage needs $|\alpha|\tau \gtrsim 5$, so tens of nanoseconds; DRAG cuts leakage 4$\times$ and gate error 130$\times$ at 20 ns, because most of the error is phase, not leakage.
+  * $2\chi$ is the residue of two nearly equal terms, so the standard transmon formula is 26% wrong and exact diagonalization is not optional.
+  * $\kappa$ appears in three places with opposite signs: readout speed, Purcell decay, measurement dephasing. A Purcell filter is what makes the three compatible.
+
+**5\. Two-qubit gates live in the two-excitation manifold**
+
+  * $|11\rangle$-$|20\rangle$ crosses at detuning $\alpha$ with gap $2\times1.3726\,g$ (not $2\sqrt{2}g$); a $\pi$ conditional phase takes one full period $1/\mathrm{gap} = 73$ ns at $g/2\pi = 5$ MHz, and half that time leaves the population in $|20\rangle$ instead.
+  * The same crossing gives an always-on $ZZ$ of a few hundred kHz, positive because $|20\rangle$ lies below $|11\rangle$ when $\alpha < 0$ — a correlated error.
+  * A tunable coupler nulls the exchange by interference at $f_c = 7.38$ GHz, on/off ratio in the thousands; the two-level formula misplaces that point by 380 MHz.
+  * Cross-resonance needs no tunable element: driving the control at the target's frequency gives $c_{ZX} = (J\Omega/4)[r^2/(\Delta+\alpha) - 2/\Delta]$, which is $-0.45$ MHz at $J/2\pi = 3$ MHz, $\Omega/2\pi = 20$ MHz, $\Delta/2\pi = 100$ MHz — an echoed CNOT in 288 ns. Its collisions at $\Delta = 0$, $-\alpha/2$ and $-\alpha$ leave frequency windows narrower than the 52 MHz scatter a 2% spread in $R_n$ produces.
+
+**6\. $T_1$ is a materials number**
+
+  * $1/Q = \sum_i p_i \tan\delta_i$; three nanometre-scale oxide interfaces with $p \sim 10^{-4}$ and $\tan\delta \sim 2\times10^{-3}$ give $T_1 \approx 70\ \mu$s, with the bulk substrate setting a 318 $\mu$s ceiling on silicon.
+  * $p_\mathrm{surface} \sim (\epsilon_s/\epsilon_i)(t/w)$: thinner oxide, larger features, higher-permittivity interface. Geometry is worth a factor of 30 between $w = 1$ and 50 $\mu$m.
+  * The junction barrier holds 4% of the field but is not a continuum: $10^{-3}$ defects per MHz against 300 for the capacitor surface, crossing over at $0.1\ \mu$m$^3$. That is why small junctions and big capacitors work, and why $T_1$ fluctuates.
+  * Quasiparticles: thermal $x_{qp}$ at 20 mK is $10^{-47}$; observed is $10^{-7}$, about 800 unpaired electrons (400 broken pairs) in the film. A 4 K surface puts 84% of its photon flux above the 88 GHz pair-breaking threshold and a 0.8 K surface still 8.5%, and a single 1 MeV deposit makes $10^9$ quasiparticles at once.
+
+**Practical implications**
+
+  * Report $E_J/E_C$, not just $f_{01}$ and $\alpha$; the ratio is what determines the physics.
+  * Check basis truncation numerically before quoting any circuit spectrum.
+  * Distrust closed-form expressions for near-cancelling quantities ($\chi$, $\zeta$); diagonalize.
+  * Read any single $T_1$ as a sample from a fluctuating distribution, and ask what the geometry, the interface treatment and the shielding were.
+
+### Where This Leads
+
+Chapter 3 changes almost everything. The qubit becomes a single ion in vacuum, identical to every other ion of its species, with coherence times of seconds rather than microseconds and no fabrication variability at all. The trap is a set of electrodes rather than a circuit, the gate is a laser pulse rather than a microwave pulse, and the two-qubit interaction is mediated by a shared vibrational mode rather than a capacitance — which gives all-to-all connectivity for free, and gate times a thousand times longer as the price.
+
+What does not change is the pattern. The stability of the trap is a Mathieu-equation problem we will solve numerically instead of looking up; the gate is a geometric phase we will verify against an exact Magnus expansion; and the leading obstacle to scaling is a heating rate set by fluctuating patches on the last few nanometres of the electrode surface. Different platform, different physics, same bottleneck.
+
+[← Chapter 1: What Makes a Good Qubit](<chapter-1.html>) [Chapter 3: Trapped Ions →](<chapter-3.html>)
+
+### Disclaimer
+
+  * This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical warranty, etc.).
+  * This content and accompanying code examples are provided "AS IS" without any warranty, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.
+  * The material parameters, loss tangents, defect densities and noise levels quoted in this chapter are representative literature-scale values used for educational estimates. Verify against primary sources before using them in a proposal or a paper.
+  * The author and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.
+  * To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.
+  * The content may be changed, updated, or discontinued without notice.
+  * The copyright and license of this content are subject to the stated conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.

@@ -80,6 +80,16 @@ subtitle: Fundamentals of Mathematics & Physics for Materials Informatics
 
 [開始 →](<quantum-computing-introduction/index.html>)
 
+🔧
+
+量子ハードウェア入門
+
+材料の問題としての量子ハードウェア。超伝導量子ビット、イオントラップ、中性原子、光子・半導体スピン・トポロジカル方式を、ハミルトニアンからコヒーレンスを律速する材料 — 表面酸化膜中の2準位系欠陥、誘電損失の参加率、電極表面ノイズ、同位体純度 — まで辿り、各機構をNumPyで数値的に検証する
+
+上級 215-240分 5章・33例
+
+[開始 →](<quantum-hardware-introduction/index.html>)
+
 🔥 統計力学・熱力学シリーズ（4シリーズ）
 
 📕
