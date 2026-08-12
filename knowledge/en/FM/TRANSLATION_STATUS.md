@@ -2,17 +2,17 @@
 
 **Dojo**: Fundamental Mathematics & Physics
 **Generated**: 2026-07-04
-**Total Series**: 13
-**Total Files**: 74 (13 index + 61 chapters)
-**Complete Series** (index + chapters): 13/13
+**Total Series**: 14
+**Total Files**: 80 (14 index + 66 chapters)
+**Complete Series** (index + chapters): 14/14
 
 ---
 
 ## Summary Statistics
 
-- **Series Translated**: 13/13 (100%)
-- **Index Pages**: 13/13 (100%)
-- **Total Chapter Files**: 61
+- **Series Translated**: 14/14 (100%)
+- **Index Pages**: 14/14 (100%)
+- **Total Chapter Files**: 66
 - **Average Chapters per Series**: 4.7
 
 ---
@@ -213,7 +213,25 @@
 
 ---
 
-### 12. Introduction to Quantum Field Theory | Fundamentals Mathematics - AI Terakoya ✅
+### 12. ⚛️ Introduction to Quantum Computing - AI Terakoya ✅
+
+**Directory**: `quantum-computing-introduction`
+**Location**: `/FM/quantum-computing-introduction/`
+**Files**: 6 total (1 index + 5 chapters)
+**Last Update**: 2026-08-12
+
+- ✅ `index.html` - Series overview page
+
+**Chapters** (5):
+- ✅ `chapter-1.html`
+- ✅ `chapter-2.html`
+- ✅ `chapter-3.html`
+- ✅ `chapter-4.html`
+- ✅ `chapter-5.html`
+
+---
+
+### 13. Introduction to Quantum Field Theory | Fundamentals Mathematics - AI Terakoya ✅
 
 **Directory**: `quantum-field-theory-introduction`
 **Location**: `/FM/quantum-field-theory-introduction/`
@@ -231,7 +249,7 @@
 
 ---
 
-### 13. Introduction to Quantum Mechanics | Fundamentals of Mathematics Dojo - AI Terakoya ✅
+### 14. Introduction to Quantum Mechanics | Fundamentals of Mathematics Dojo - AI Terakoya ✅
 
 **Directory**: `quantum-mechanics`
 **Location**: `/FM/quantum-mechanics/`

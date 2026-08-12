@@ -70,6 +70,16 @@ subtitle: Fundamentals of Mathematics & Physics for Materials Informatics
 
 [開始 →](<quantum-mechanics/index.html>)
 
+⚛️
+
+量子コンピューティング入門
+
+材料・化学研究のための量子コンピューティング。量子ビットとゲート、電子構造問題への変分量子固有値ソルバー（VQE）、NISQ時代の現実的な評価まで、シミュレータをNumPyだけで自作しながら学ぶ（量子SDK不要）
+
+上級 185-210分 5章・36例
+
+[開始 →](<quantum-computing-introduction/index.html>)
+
 🔥 統計力学・熱力学シリーズ（4シリーズ）
 
 📕

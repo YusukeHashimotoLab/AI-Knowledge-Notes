@@ -70,6 +70,16 @@ Intermediate 90-110 min 5 Chapters, 35 Examples
 
 [Start →](<quantum-mechanics/index.html>)
 
+⚛️
+
+Introduction to Quantum Computing
+
+Quantum computing for materials and chemistry research: qubits and gates, the variational quantum eigensolver applied to electronic structure, and a realistic assessment of NISQ-era limits — with every simulator built from scratch in NumPy, no quantum SDK required
+
+Advanced 185-210 min 5 Chapters, 36 Examples
+
+[Start →](<quantum-computing-introduction/index.html>)
+
 🔥 Statistical Mechanics and Thermodynamics Series (4 Series)
 
 📕
