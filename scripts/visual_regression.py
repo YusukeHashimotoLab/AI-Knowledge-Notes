@@ -243,7 +243,25 @@ CHROMIUM_ARGS = [
     "--disable-renderer-backgrounding",
     "--disable-features=PaintHolding,LazyImageLoading,LazyFrameLoading",
     "--hide-scrollbars",
-    "--deterministic-mode",
+    # These five are what headless Chromium expands `--deterministic-mode` into,
+    # *minus* `--enable-begin-frame-control`. Do not put `--deterministic-mode`
+    # back: it implies begin-frame-control, which hands frame production to the
+    # DevTools `HeadlessExperimental.beginFrame` domain. Playwright never drives
+    # that domain, so the compositor produces no frame and *every* screenshot
+    # hangs until its timeout — on Linux this made all 62 pages, on both sides,
+    # fail with `Page.screenshot: Timeout 30000ms exceeded` right after the
+    # "fonts loaded" step. It went unnoticed during development because the flag
+    # is inert on macOS (the Mac headless platform never wires up the external
+    # BeginFrameSource), so the same build screenshots fine there.
+    # Isolated in a Linux container against Chromium 151.0.7922.34: base flags
+    # alone 0.03 s/shot, +begin-frame-control 15 s timeout, +the five below
+    # 0.03 s/shot with byte-identical PNGs. Screenshot digests are also identical
+    # on macOS and Linux with and without these five, so they cost nothing.
+    "--run-all-compositor-stages-before-draw",
+    "--disable-new-content-rendering-timeout",
+    "--disable-image-animation-resync",
+    "--disable-threaded-animation",
+    "--disable-checker-imaging",
 ]
 
 # Applied before any page script runs, in every frame.
