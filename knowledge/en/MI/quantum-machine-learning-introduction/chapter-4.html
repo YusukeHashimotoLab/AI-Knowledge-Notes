@@ -1,0 +1,1759 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 4: Variational Quantum Models - AI Terakoya</title>
+
+    <link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+    <style>
+        /* page-specific residual: the rules the shared sheet does not provide.
+           Everything else that used to live here is now in knowledge-base.css;
+           re-declaring it would only risk drifting out of sync with the sheet. */
+        details { background-color: var(--color-bg-alt); margin-bottom: var(--spacing-md) }
+        summary { user-select: none; margin: calc(-1 * var(--spacing-md)); border-radius: var(--border-radius) }
+        summary:hover {
+            /* accent wash; the literal is the FM/MI/ML purple and is the fallback
+               for engines without color-mix() (Chrome <111 / Safari <16.2). */
+            background-color: rgba(123, 44, 191, 0.1);
+            background-color: color-mix(in srgb, var(--color-accent) 10%, transparent);
+        }
+        details[open] summary { margin-bottom: var(--spacing-md); border-bottom: 1px solid var(--color-border) }
+        .learning-objectives {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: var(--spacing-lg);
+            border-radius: var(--border-radius);
+            border-left: 4px solid var(--color-accent);
+            margin-bottom: var(--spacing-xl);
+        }
+        .learning-objectives h2 { margin-top: 0; border-bottom: none }
+        @media (max-width: 768px) {
+            th { padding: var(--spacing-xs) }
+            td { padding: var(--spacing-xs) }
+        }
+    </style>
+
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+
+    <!-- MathJax for LaTeX equation rendering -->
+    <script>
+        MathJax = {
+            tex: {
+                // The HTML must carry a DOUBLE backslash before ( ) [ ] so the
+                // JS string is backslash-paren; a single one collapses to a bare
+                // paren and turns every prose parenthesis into a math delimiter
+                // (non-raw Python template: 4 backslashes -> 2 in HTML -> 1 in JS).
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" id="MathJax-script" async></script>
+</head>
+<body class="dojo-mi">
+    <header>
+        <div class="header-content">
+            <h1>Chapter 4: Variational Quantum Models</h1>
+            <p class="subtitle">Circuits That Learn, the Gradients That Train Them, and an Honest Comparison With a Network of the Same Size</p>
+            <div class="meta">
+                <span class="meta-item">📖 Reading Time: 45-50 minutes</span>
+                <span class="meta-item">📊 Difficulty: Advanced</span>
+                <span class="meta-item">💻 Code Examples: 7</span>
+                <span class="meta-item">📝 Exercises: 5</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+<p>🌐 EN | <a href="../../../jp/MI/quantum-machine-learning-introduction/chapter-4.html">🇯🇵 JP</a> | Last sync: 2026-08-13</p>
+<p><a href="../index.html">Materials Informatics Dojo</a> &gt; <a href="index.html">Introduction to Quantum Machine Learning</a> &gt; Chapter 4</p>
+<p>Chapters 2 and 3 built a quantum model in one shot: choose an encoding, write down the kernel it induces, solve a linear system. Nothing was trained. This chapter trains something. A variational quantum circuit — a VQC — carries parameters of its own, and those parameters are fitted to data by gradient descent, exactly as the weights of a neural network are.</p>
+<p>That makes the VQC the closest thing in quantum machine learning to a familiar object, and it is where most of the field's activity, and most of its overclaiming, lives. The apparatus is already in place: the sister course's <a href="../../FM/quantum-computing-introduction/index.html">Introduction to Quantum Computing</a> built a variational eigensolver in its Chapter 3, and a VQC is a VQE whose cost function is a sum of residuals instead of an energy. The circuit is the same, the gradient rule is the same, the classical optimiser is the same.</p>
+<p>So this chapter can spend its effort on the two questions that matter and that the literature usually skips. First: does it work? The answer is measured here against a NumPy neural network of the same parameter count, trained with the same optimiser, selected by the same protocol, on the same 40 points — and the answer is published whichever way it comes out. Second: what breaks as the model is scaled up? The barren plateau of the sister course reappears, with an extra ingredient — the cost is now an average over data as well as over parameters — and it can be measured to three significant figures on a laptop.</p>
+<h2>Learning Objectives</h2>
+<p>After completing this chapter, you will be able to:</p>
+<ul>
+<li>Decompose a variational quantum model into its three independent design choices — encoding, variational block, read-out — and state which property of the model each one controls</li>
+<li>Write the correspondence between VQE and VQC precisely enough to reuse the sister course's machinery unchanged, and identify the one place where the two genuinely differ</li>
+<li>Derive the parameter-shift rule from the fact that a single-parameter expectation value is a pure first harmonic, and explain why it is preferred to finite differences on hardware rather than merely equivalent to them</li>
+<li>Detect <em>silent</em> parameters — circuit angles with identically zero gradient — and explain their existence from the Clifford pullback of the read-out observable</li>
+<li>Run a comparison against a classical model that would survive a hostile referee: matched parameter counts, one optimiser, one selection protocol, every restart reported</li>
+<li>Measure the dependence of gradient variance on width, depth, read-out locality and entanglement, and convert a measured decay rate into a shot budget at 30 and 50 qubits</li>
+<li>Explain why a VQC's capacity and its expressivity cannot be tuned independently, and what that implies for regularization</li>
+</ul>
+<h3>Conventions</h3>
+<p><strong>Qubit ordering, gates and the simulator</strong> follow the sister course exactly: qubit 0 is the leftmost and most significant bit, and the functions of its Chapter 2 simulator that this chapter needs are re-listed verbatim in Code Example 1 so that this chapter is self-contained. <code>sample()</code> is deliberately omitted: nothing here draws measurement outcomes, and every shot count is arithmetic rather than simulation. Rotations use the half-angle convention $R_y(\theta) = \exp(-i\theta Y/2)$, so $R_y(\theta)$ rotates the Bloch vector by $\theta$ radians and the amplitudes carry $\cos(\theta/2)$.</p>
+<p><strong>The data set</strong> is the synthetic composition-descriptor set defined in Chapter 1 and reproduced byte-for-byte in Code Example 1: 60 points, four descriptors in $[0,1]$, a smooth nonlinear target with mild noise, train on the first 40 rows and test on the last 20. Every number in this chapter comes from that set and that split.</p>
+<p><strong>Frequencies of a descriptor</strong> are quoted in cycles per unit of $x$. An encoding gate $R_y(\pi x)$ contributes $\cos(\pi x/2)$ to an amplitude, which is a quarter of a cycle over the unit interval, and the <em>products</em> of amplitudes that make up an expectation value therefore carry harmonics in multiples of $1/2$. This factor of two is the same trap the sister course warns about; every factor of $\pi$ in the code below is explicit for the same reason.</p>
+<hr />
+<h2>4.1 From a Ground State to a Data Set</h2>
+<h3>The VQE, recalled in three parts</h3>
+<p>The variational eigensolver of the sister course has exactly three moving parts.</p>
+<ol>
+<li>A <strong>parameterised state</strong> $|\psi(\boldsymbol\theta)\rangle = U(\boldsymbol\theta)|0\cdots0\rangle$, produced by a circuit whose gate angles are the parameters.</li>
+<li>A <strong>fixed observable</strong> $H$, measured on that state to give a single real number $E(\boldsymbol\theta) = \langle\psi(\boldsymbol\theta)|H|\psi(\boldsymbol\theta)\rangle$.</li>
+<li>A <strong>classical optimiser</strong> that minimises $E$ over $\boldsymbol\theta$, calling the quantum device as a black-box function evaluator.</li>
+</ol>
+<p>A variational quantum model changes one thing: the state is allowed to depend on an input as well as on the parameters, and the cost is a sum over many inputs rather than a single expectation value.</p>
+<p>$$
+\text{VQE:}\quad E(\boldsymbol\theta) = \langle\psi(\boldsymbol\theta)|H|\psi(\boldsymbol\theta)\rangle \cr
+\text{VQC:}\quad f(\mathbf{x};\boldsymbol\theta) = \sum_q w_q\,\langle\psi(\mathbf{x},\boldsymbol\theta)|Z_q|\psi(\mathbf{x},\boldsymbol\theta)\rangle + b,\qquad
+\mathcal{L}(\boldsymbol\theta,\mathbf{w},b) = \frac{1}{N}\sum_{i=1}^{N}\bigl(f(\mathbf{x}_i;\boldsymbol\theta) - y_i\bigr)^2
+$$</p>
+<p>The correspondence is close enough to be worth tabulating, because everything in the left column has already been built.</p>
+<table>
+<thead>
+<tr>
+<th>In the VQE of the computing course</th>
+<th>In a VQC</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ansatz $U(\boldsymbol\theta)$</td>
+<td>The same circuit, with encoding gates interleaved</td>
+</tr>
+<tr>
+<td>Hamiltonian $H$, a sum of Pauli strings</td>
+<td>Read-out observables, usually a few single-qubit $Z_q$</td>
+</tr>
+<tr>
+<td>One energy per parameter set</td>
+<td>One expectation value per data point, $N$ per cost evaluation</td>
+</tr>
+<tr>
+<td>Cost = the energy</td>
+<td>Cost = mean squared residual over the data</td>
+</tr>
+<tr>
+<td>Parameter-shift gradients</td>
+<td>Identical, applied inside the sum over data</td>
+</tr>
+<tr>
+<td>Convergence target: chemical accuracy</td>
+<td>Convergence target: generalization to unseen data</td>
+</tr>
+<tr>
+<td>Failure mode: barren plateau, measurement wall</td>
+<td>Both of those, plus overfitting</td>
+</tr>
+</tbody>
+</table>
+<p>The last row is the only real difference, and it is a large one. A VQE has no test set: the energy it minimises is the quantity of interest, and a lower number is unambiguously better. A VQC's training loss is <em>not</em> the quantity of interest, and a lower training loss is routinely worse. Section 4.5 measures exactly that.</p>
+<h3>Three design choices, three different jobs</h3>
+<p>A VQC is built from three parts, and confusing their roles is the most common source of wasted effort in this subject.</p>
+<p><strong>The encoding</strong> determines <em>which functions the model can represent at all</em>. Chapter 2 established that a data re-uploading circuit produces a truncated Fourier series in the descriptors, with a frequency support fixed by the encoding gates and the number of re-uploads. No choice of variational parameters can create a frequency the encoding did not supply. If the target has structure at a frequency outside the support, the model cannot fit it, and no amount of training will help.</p>
+<p><strong>The variational block</strong> determines <em>which functions inside that span are reachable</em>, and how the reachable set is parameterised. This is where the trainable angles live, and it is what the optimiser moves. A block that is too shallow reaches only a thin subset of the span; a block that is too deep reaches all of it and cannot be trained, for reasons Section 4.4 measures.</p>
+<p><strong>The read-out</strong> determines <em>trainability and shot cost</em>. Measuring one local observable per qubit is cheap and gives gradients of order one. Measuring a projector onto a single basis state — a global observable — costs an exponential in the number of qubits, in gradient magnitude and therefore in shots. This is not a minor implementation detail; it is the difference between a model that trains and a model that does not.</p>
+<p>The circuit used throughout this chapter interleaves all three, one layer at a time: re-upload the descriptors, entangle with a ring of CNOTs, then apply two trainable rotations per qubit. Three layers on four qubits gives 24 angles; four read-out weights and one offset bring the model to 29 trainable parameters.</p>
+<h3>Code Example 1: The Simulator and the Data Set</h3>
+<p>Everything below runs in one Python session with NumPy and nothing else. The simulator is the one built in Chapter 2 of the sister course; the functions this chapter needs are re-listed without modification so that it stands alone, with <code>sample()</code> left out because nothing here draws outcomes. The data set is the one defined in Chapter 1 of this course, reproduced exactly, including its seed.</p>
+<pre><code class="language-python">&quot;&quot;&quot;Chapter 4 setup, in one block: the mini-simulator of the sister course,
+re-listed verbatim (minus sample(), which nothing here needs), and the synthetic
+materials dataset of Chapter 1.
+
+The simulator is the one built in Introduction to Quantum Computing, Chapter 2
+(big-endian: qubit 0 = leftmost = most significant). Nothing but NumPy.
+&quot;&quot;&quot;
+import numpy as np
+
+# ---- single-qubit gates -------------------------------------------------
+I2 = np.eye(2, dtype=complex)
+X = np.array([[0, 1], [1, 0]], dtype=complex)
+Y = np.array([[0, -1j], [1j, 0]], dtype=complex)
+Z = np.array([[1, 0], [0, -1]], dtype=complex)
+H = np.array([[1, 1], [1, -1]], dtype=complex) / np.sqrt(2)
+S = np.array([[1, 0], [0, 1j]], dtype=complex)
+T = np.array([[1, 0], [0, np.exp(1j * np.pi / 4)]], dtype=complex)
+
+
+def rx(theta):
+    c, s = np.cos(theta / 2), np.sin(theta / 2)
+    return np.array([[c, -1j * s], [-1j * s, c]], dtype=complex)
+
+
+def ry(theta):
+    c, s = np.cos(theta / 2), np.sin(theta / 2)
+    return np.array([[c, -s], [s, c]], dtype=complex)
+
+
+def rz(theta):
+    e = np.exp(-1j * theta / 2)
+    return np.array([[e, 0], [0, np.conj(e)]], dtype=complex)
+
+
+# ---- states -------------------------------------------------------------
+def ket(bits: str) -&gt; np.ndarray:
+    &quot;&quot;&quot;'01' -&gt; the 4-dimensional basis state |01&gt; (big-endian).&quot;&quot;&quot;
+    n = len(bits)
+    psi = np.zeros(2 ** n, dtype=complex)
+    psi[int(bits, 2)] = 1.0
+    return psi
+
+
+def apply_gate(state, U, targets, n):
+    &quot;&quot;&quot;Apply the 2^k x 2^k unitary U to the listed target qubits of an n-qubit state.&quot;&quot;&quot;
+    k = len(targets)
+    psi = state.reshape([2] * n)          # 1. view as an n-index tensor
+    psi = np.moveaxis(psi, targets, range(k))   # 2. bring targets to the front
+    rest = psi.shape[k:]
+    psi = psi.reshape(2 ** k, -1)         # 3. flatten and multiply
+    psi = U @ psi
+    psi = psi.reshape(list((2,) * k) + list(rest))
+    psi = np.moveaxis(psi, range(k), targets)   # 4. put the axes back
+    return psi.reshape(-1)
+
+
+CNOT4 = np.array([[1, 0, 0, 0],
+                  [0, 1, 0, 0],
+                  [0, 0, 0, 1],
+                  [0, 0, 1, 0]], dtype=complex)
+
+
+def cnot(state, control, target, n):
+    &quot;&quot;&quot;CNOT with the given control and target; any pair of qubits, any order.&quot;&quot;&quot;
+    return apply_gate(state, CNOT4, [control, target], n)
+
+
+def probs(state):
+    &quot;&quot;&quot;Born-rule probabilities of all 2^n outcomes.&quot;&quot;&quot;
+    return np.abs(state) ** 2
+
+
+PAULI = {'I': I2, 'X': X, 'Y': Y, 'Z': Z}
+
+
+def expval(state, pauli, coeff_map=None):
+    &quot;&quot;&quot;Expectation value of a Pauli string such as 'ZZ', 'XI' (one character per qubit).
+
+    If coeff_map is given, the result is multiplied by coeff_map[pauli], so that a
+    whole Hamiltonian is one line:  sum(expval(psi, p, terms) for p in terms).
+    &quot;&quot;&quot;
+    n = len(pauli)
+    phi = state.copy()
+    for q, ch in enumerate(pauli):
+        if ch != 'I':
+            phi = apply_gate(phi, PAULI[ch], [q], n)
+    val = np.vdot(state, phi).real
+    if coeff_map is not None:
+        val *= coeff_map.get(pauli, 1.0)
+    return val
+
+
+# ---- the dataset, identical in every chapter of this course --------------
+def make_materials_dataset(n=60, seed=7):
+    &quot;&quot;&quot;Synthetic composition-descriptor -&gt; formation-energy-like regression set.
+    4 descriptors in [0,1]; smooth nonlinear target + mild noise. Deterministic.&quot;&quot;&quot;
+    rng = np.random.default_rng(seed)
+    X = rng.uniform(0.0, 1.0, (n, 4))
+    y = (np.sin(np.pi * X[:, 0]) * np.cos(np.pi * X[:, 1])
+         + 0.5 * X[:, 2]**2 - 0.3 * X[:, 3]
+         + 0.05 * rng.standard_normal(n))
+    return X, y
+
+
+Xall, yall = make_materials_dataset()
+Xtr, ytr = Xall[:40], yall[:40]      # train = first 40 rows
+Xte, yte = Xall[40:], yall[40:]      # test  = last 20 rows
+
+print(&quot;Synthetic materials dataset (shared by every chapter of this course)&quot;)
+print(&quot;-&quot; * 70)
+print(f&quot;  descriptors           {Xall.shape[1]}&quot;)
+print(f&quot;  train / test          {len(ytr)} / {len(yte)}&quot;)
+print(f&quot;  y range               [{yall.min():.4f}, {yall.max():.4f}]&quot;)
+print(f&quot;  y mean / std          {yall.mean():.4f} / {yall.std():.4f}&quot;)
+print(f&quot;  train y mean / std    {ytr.mean():.4f} / {ytr.std():.4f}&quot;)
+print(f&quot;  test  y mean / std    {yte.mean():.4f} / {yte.std():.4f}&quot;)
+
+print(&quot;\nThe two baselines every later number must beat&quot;)
+print(&quot;-&quot; * 70)
+mse_const = np.mean((yte - ytr.mean()) ** 2)
+A = np.hstack([Xtr, np.ones((len(Xtr), 1))])
+coef = np.linalg.lstsq(A, ytr, rcond=None)[0]
+pred_lin = np.hstack([Xte, np.ones((len(Xte), 1))]) @ coef
+mse_lin = np.mean((yte - pred_lin) ** 2)
+print(f&quot;  predict the training mean     test MSE = {mse_const:.4f}&quot;)
+print(f&quot;  ordinary least squares        test MSE = {mse_lin:.4f}&quot;)
+print(f&quot;  irreducible noise floor       MSE      = {0.05**2:.4f}&quot;)
+
+print(&quot;\nFirst three rows, as a materials table would print them&quot;)
+print(&quot;-&quot; * 70)
+print(f&quot;  {'x1':&gt;8}{'x2':&gt;8}{'x3':&gt;8}{'x4':&gt;8}{'y':&gt;10}&quot;)
+for i in range(3):
+    print(&quot;  &quot; + &quot;&quot;.join(f&quot;{v:8.4f}&quot; for v in Xall[i]) + f&quot;{yall[i]:10.4f}&quot;)
+</code></pre>
+<pre><code class="language-text">Synthetic materials dataset (shared by every chapter of this course)
+----------------------------------------------------------------------
+  descriptors           4
+  train / test          40 / 20
+  y range               [-1.2198, 1.2142]
+  y mean / std          -0.0336 / 0.5446
+  train y mean / std    -0.0883 / 0.5585
+  test  y mean / std    0.0759 / 0.4978
+
+The two baselines every later number must beat
+----------------------------------------------------------------------
+  predict the training mean     test MSE = 0.2747
+  ordinary least squares        test MSE = 0.0465
+  irreducible noise floor       MSE      = 0.0025
+
+First three rows, as a materials table would print them
+----------------------------------------------------------------------
+        x1      x2      x3      x4         y
+    0.6251  0.8972  0.7757  0.2252   -0.6472
+    0.3002  0.8736  0.0053  0.8212   -0.9934
+    0.7971  0.4679  0.3030  0.2784   -0.0502
+</code></pre>
+<p><strong>What to look for.</strong> Two baselines are established before any quantum model is written, and they are the reason this chapter can reach an honest verdict at all. Predicting the training mean gives a test MSE of 0.2747 — that is the number a model must beat to have learned anything. Ordinary least squares, five parameters, gives 0.0465, which is a factor of six better. That second number is uncomfortable and it is supposed to be: the target contains $\sin(\pi x_1)\cos(\pi x_2)$, which is strongly nonlinear, and yet a linear fit captures most of the variance because $\cos(\pi x_2)$ is nearly linear on $[0,1]$ and $\sin(\pi x_1)$ contributes mostly its mean. Any comparison that omits the linear baseline will make both nonlinear models look better than they are, and omitting it is common.</p>
+<p>The noise floor is 0.0025. No model can do better than that, and the distance between 0.0465 and 0.0025 is the entire space in which the rest of this chapter competes.</p>
+<h3>Code Example 2: The VQC Regressor</h3>
+<pre><code class="language-python">&quot;&quot;&quot;The variational quantum circuit as a regression model.
+Continues from Example 1 (same session).
+&quot;&quot;&quot;
+N_QUBITS = 4          # one qubit per descriptor
+N_LAYERS = 3          # encode, entangle, rotate -- three times
+LOCAL_Z = [''.join('Z' if i == q else 'I' for i in range(N_QUBITS))
+           for q in range(N_QUBITS)]
+
+
+def vqc_state(x, theta, layers=N_LAYERS):
+    &quot;&quot;&quot;Data re-uploading VQC. Per layer: re-upload x, entangle, then rotate.&quot;&quot;&quot;
+    n = len(x)
+    psi = ket('0' * n)
+    k = 0
+    for _ in range(layers):
+        for q in range(n):                                  # encoding layer
+            psi = apply_gate(psi, ry(np.pi * x[q]), [q], n)
+        for q in range(n):                                  # entangling ring
+            psi = cnot(psi, q, (q + 1) % n, n)
+        for q in range(n):                                  # variational layer
+            psi = apply_gate(psi, rz(theta[k]), [q], n); k += 1
+            psi = apply_gate(psi, ry(theta[k]), [q], n); k += 1
+    return psi
+
+
+def n_theta(layers=N_LAYERS, n=N_QUBITS):
+    &quot;&quot;&quot;Number of circuit angles: two rotations per qubit per layer.&quot;&quot;&quot;
+    return 2 * n * layers
+
+
+def vqc_features(x, theta, layers=N_LAYERS):
+    &quot;&quot;&quot;The measured quantities: &lt;Z_q&gt; on every qubit. Each lies in [-1, +1].&quot;&quot;&quot;
+    psi = vqc_state(x, theta, layers)
+    return np.array([expval(psi, p) for p in LOCAL_Z])
+
+
+def unpack(params, n=N_QUBITS):
+    &quot;&quot;&quot;params = [circuit angles ..., w_0..w_{n-1}, b].&quot;&quot;&quot;
+    return params[:-(n + 1)], params[-(n + 1):-1], params[-1]
+
+
+def vqc_predict(X, params, layers=N_LAYERS):
+    &quot;&quot;&quot;Model output: y_hat = sum_q w_q &lt;Z_q&gt; + b.&quot;&quot;&quot;
+    theta, w, b = unpack(params)
+    return np.array([w @ vqc_features(x, theta, layers) + b for x in X])
+
+
+rng = np.random.default_rng(11)
+theta0 = rng.uniform(0, 2 * np.pi, n_theta())
+params0 = np.concatenate([theta0, np.full(N_QUBITS, 0.5), [0.0]])
+
+print(&quot;VQC regressor: structure and parameter budget&quot;)
+print(&quot;-&quot; * 74)
+print(f&quot;  qubits                              {N_QUBITS}&quot;)
+print(f&quot;  layers (encode + entangle + rotate) {N_LAYERS}&quot;)
+print(f&quot;  circuit angles                      {n_theta()}&quot;)
+print(f&quot;  read-out weights w_q and offset b   {N_QUBITS + 1}&quot;)
+print(f&quot;  trainable parameters, total         {len(params0)}&quot;)
+gates = N_LAYERS * (N_QUBITS + N_QUBITS + 2 * N_QUBITS)
+print(f&quot;  gates per forward pass              {gates}&quot;
+      f&quot;  ({N_LAYERS} x ({N_QUBITS} Ry encode + {N_QUBITS} CNOT&quot;
+      f&quot; + {2*N_QUBITS} rotations))&quot;)
+print(f&quot;  state dimension                     {2**N_QUBITS}&quot;)
+print(f&quot;  observables measured per forward    {N_QUBITS} (all local, weight 1)&quot;)
+
+print(&quot;\nThe same object seen as a VQE (Chapter 3 of the computing course)&quot;)
+print(&quot;-&quot; * 74)
+print(&quot;  VQE:  E(theta)   = &lt;psi(theta)| H |psi(theta)&gt;,  H fixed, minimise over theta&quot;)
+print(&quot;  VQC:  f(x,theta) = sum_q w_q &lt;psi(x,theta)| Z_q |psi(x,theta)&gt; + b,  one such&quot;)
+print(&quot;        expectation value per data point, and the loss sums over the data set.&quot;)
+print(&quot;  The circuit, the parameter-shift gradient and the classical optimiser are&quot;)
+print(&quot;  identical. Only the cost function changed: from one energy to 40 residuals.&quot;)
+
+print(&quot;\nEvery angle must actually move the output: silent-parameter check&quot;)
+print(&quot;-&quot; * 74)
+probe = np.random.default_rng(3).uniform(0, 1, (6, N_QUBITS))
+sens = np.zeros(n_theta())
+for xq in probe:
+    for k in range(n_theta()):
+        tp = theta0.copy(); tp[k] += np.pi / 2
+        tm = theta0.copy(); tm[k] -= np.pi / 2
+        d = 0.5 * (vqc_features(xq, tp) - vqc_features(xq, tm))
+        sens[k] = max(sens[k], np.abs(d).max())
+print(f&quot;  angles with identically zero effect on every &lt;Z_q&gt;: &quot;
+      f&quot;{int(np.sum(sens &lt; 1e-12))} of {n_theta()}&quot;)
+print(f&quot;  smallest / largest sensitivity: {sens.min():.4f} / {sens.max():.4f}&quot;)
+print(&quot;  Ordering matters here. Rotate-then-entangle with a single global read-out&quot;)
+print(&quot;  leaves five of these angles provably silent, because a Clifford ring pulls&quot;)
+print(&quot;  a Pauli-Z string back to another Pauli-Z string with smaller support.&quot;)
+
+print(&quot;\nThe model is a bounded trigonometric function of the descriptors&quot;)
+print(&quot;-&quot; * 74)
+print(f&quot;  {'x1':&gt;6}{'&lt;Z0&gt;':&gt;11}{'&lt;Z1&gt;':&gt;11}{'&lt;Z2&gt;':&gt;11}{'&lt;Z3&gt;':&gt;11}{'y_hat':&gt;11}&quot;)
+base = np.array([0.5, 0.5, 0.5, 0.5])
+for xv in np.linspace(0.0, 1.0, 6):
+    xq = base.copy(); xq[0] = xv
+    z = vqc_features(xq, theta0)
+    print(f&quot;  {xv:6.2f}&quot; + &quot;&quot;.join(f&quot;{v:11.6f}&quot; for v in z)
+          + f&quot;{params0[-5:-1] @ z + params0[-1]:11.6f}&quot;)
+
+pred = vqc_predict(Xtr[:5], params0)
+print(&quot;\nUntrained output on the first five training rows&quot;)
+print(&quot;-&quot; * 74)
+print(f&quot;  {'y':&gt;10}{'y_hat':&gt;10}{'residual':&gt;12}&quot;)
+for a, b_ in zip(ytr[:5], pred):
+    print(f&quot;  {a:10.4f}{b_:10.4f}{a-b_:12.4f}&quot;)
+print(f&quot;\n  untrained train MSE = {np.mean((ytr - vqc_predict(Xtr, params0))**2):.4f}&quot;)
+print(f&quot;  |&lt;Z_q&gt;| &lt;= 1 always, so the w_q set the reachable output range. With all&quot;)
+print(f&quot;  w_q = 0.5 the model cannot exceed 2.0 in absolute value; the target reaches&quot;)
+print(f&quot;  {yall.max():.4f}. The read-out weights are not decoration, they are required.&quot;)
+</code></pre>
+<pre><code class="language-text">VQC regressor: structure and parameter budget
+--------------------------------------------------------------------------
+  qubits                              4
+  layers (encode + entangle + rotate) 3
+  circuit angles                      24
+  read-out weights w_q and offset b   5
+  trainable parameters, total         29
+  gates per forward pass              48  (3 x (4 Ry encode + 4 CNOT + 8 rotations))
+  state dimension                     16
+  observables measured per forward    4 (all local, weight 1)
+
+The same object seen as a VQE (Chapter 3 of the computing course)
+--------------------------------------------------------------------------
+  VQE:  E(theta)   = &lt;psi(theta)| H |psi(theta)&gt;,  H fixed, minimise over theta
+  VQC:  f(x,theta) = sum_q w_q &lt;psi(x,theta)| Z_q |psi(x,theta)&gt; + b,  one such
+        expectation value per data point, and the loss sums over the data set.
+  The circuit, the parameter-shift gradient and the classical optimiser are
+  identical. Only the cost function changed: from one energy to 40 residuals.
+
+Every angle must actually move the output: silent-parameter check
+--------------------------------------------------------------------------
+  angles with identically zero effect on every &lt;Z_q&gt;: 0 of 24
+  smallest / largest sensitivity: 0.0216 / 0.7969
+  Ordering matters here. Rotate-then-entangle with a single global read-out
+  leaves five of these angles provably silent, because a Clifford ring pulls
+  a Pauli-Z string back to another Pauli-Z string with smaller support.
+
+The model is a bounded trigonometric function of the descriptors
+--------------------------------------------------------------------------
+      x1       &lt;Z0&gt;       &lt;Z1&gt;       &lt;Z2&gt;       &lt;Z3&gt;      y_hat
+    0.00   0.257407  -0.051145  -0.077532   0.089633   0.109182
+    0.20   0.132006  -0.036863  -0.035678  -0.126665  -0.033600
+    0.40   0.015148  -0.188992   0.068246  -0.276723  -0.191161
+    0.60   0.014283  -0.307693   0.123274  -0.354712  -0.262424
+    0.80   0.064278  -0.146170   0.040597  -0.297564  -0.169430
+    1.00   0.057372   0.239214  -0.054612  -0.212931   0.014522
+
+Untrained output on the first five training rows
+--------------------------------------------------------------------------
+           y     y_hat    residual
+     -0.6472   -0.1992     -0.4480
+     -0.9934    0.2215     -1.2149
+     -0.0502   -0.2025      0.1522
+      0.0615    0.0270      0.0344
+     -0.0772   -0.2147      0.1375
+
+  untrained train MSE = 0.3553
+  |&lt;Z_q&gt;| &lt;= 1 always, so the w_q set the reachable output range. With all
+  w_q = 0.5 the model cannot exceed 2.0 in absolute value; the target reaches
+  1.2142. The read-out weights are not decoration, they are required.
+</code></pre>
+<p><strong>What to look for.</strong> Three things.</p>
+<p>The <strong>read-out weights are not optional</strong>. Every $\langle Z_q\rangle$ lies in $[-1,+1]$, so a model that reads out four of them with unit weight cannot produce an output outside $[-4,4]$ — and with the initial $w_q = 0.5$ it cannot exceed 2. The target reaches 1.2142. A VQC without a trainable output scale is a model with a hard-coded output range, and fitting a target whose range differs from that is impossible in principle. The scale and offset are two of the 29 parameters, and the parameter count reported for any VQC should include them.</p>
+<p>The <strong>silent-parameter check is not a formality</strong>. Zero of the 24 angles are silent in this circuit, which is the result of one specific ordering decision. Reverse it — rotate first and then entangle, with a single $\langle Z_0\rangle$ read-out instead of four local ones — and five of the 24 angles become provably silent, with identically zero gradient at every input and every parameter value. The reason is worth understanding because it generalizes. A CNOT ring is a Clifford circuit, so conjugating a Pauli string through it gives another Pauli string. Pulling $Z_0$ back through the ring <code>cnot(0,1), cnot(1,2), cnot(2,3), cnot(3,0)</code> gives $Z_1Z_2Z_3$, which acts as the identity on qubit 0 — so both final-layer rotations on qubit 0 do nothing at all. And a diagonal observable commutes with $R_z$, so the final-layer $R_z$ on every qubit does nothing either. Five angles, five parameters that appear in the parameter count and contribute nothing to the model. Exercise 2 reproduces the count.</p>
+<p>The <strong>model is a bounded trigonometric function</strong>, not a universal approximator with a squashing nonlinearity. The scan over $x_1$ shows all four read-outs moving smoothly and staying well inside $[-1,1]$; the untrained model's output range is a fraction of the target's. This is a different function class from a tanh network, and Section 4.5 returns to what that means for capacity.</p>
+<hr />
+<h2>4.2 Training Without a Backward Pass</h2>
+<h3>Why backpropagation does not apply</h3>
+<p>A neural network's gradient is cheap because the forward pass leaves a trail: every intermediate activation is stored, and the chain rule walks back through it in one pass, at a cost comparable to the forward pass itself. That trick requires reading intermediate states. On quantum hardware there are no intermediate states to read. Measuring a qubit collapses it; there is no way to inspect $|\psi\rangle$ halfway through a circuit and then continue. Whatever gradient rule a VQC uses must be built out of complete circuit evaluations, each one run from scratch.</p>
+<p>There is a second, subtler point. On a <em>simulator</em>, backpropagation through a circuit is perfectly possible — the state vector is right there in memory, and automatic differentiation through the linear algebra works. Every framework offers it, and it is much faster than the alternative. But a gradient computed that way is not obtainable on hardware, so a paper that reports training curves obtained by simulator backpropagation has not demonstrated a trainable quantum model; it has demonstrated a classical model with a quantum-shaped parameterisation. The rule below is the one that survives the transition to hardware, which is why this chapter uses it even though it is slower.</p>
+<h3>The parameter-shift rule</h3>
+<p>Fix all parameters except one, $\theta$, appearing in a single gate $R_y(\theta) = \exp(-i\theta Y/2)$. Because $Y^2 = I$,</p>
+<p>$$
+R_y(\theta) = \cos(\theta/2)\,I - i\sin(\theta/2)\,Y
+$$</p>
+<p>so the expectation value of any observable $O$ on the resulting state is a quadratic form in $\cos(\theta/2)$ and $\sin(\theta/2)$ — which is to say, a linear combination of $1$, $\cos\theta$ and $\sin\theta$:</p>
+<p>$$
+f(\theta) = \langle O\rangle_\theta = a + b\cos\theta + c\sin\theta
+$$</p>
+<p>for constants $a, b, c$ that depend on everything except $\theta$. This is the whole content of the rule. Any function of that form obeys an exact two-point identity: shifting by $\pm\pi/2$ and subtracting,</p>
+<p>$$
+\frac{f(\theta + \pi/2) - f(\theta - \pi/2)}{2}
+= \frac{(a - b\sin\theta + c\cos\theta) - (a + b\sin\theta - c\cos\theta)}{2}
+= -b\sin\theta + c\cos\theta
+= f'(\theta)
+$$</p>
+<p>The derivative is obtained <em>exactly</em> from two evaluations of the same circuit at shifted angles. No limit is taken, nothing is divided by a small number, and the identity holds at every $\theta$, not only asymptotically. The same argument works for any generator $G$ with $G^2 = I$ — $R_x$, $R_z$, and the two-qubit $\exp(-i\theta\, Z\otimes Z/2)$ all obey the identical rule, which Exercise 1 verifies. Generators with more than two distinct eigenvalues need more terms, and the four-term rules in the literature are derived the same way from a higher harmonic content.</p>
+<p>The read-out weights $w_q$ and the offset $b$ are classical parameters sitting outside the circuit, so their derivatives are the ordinary ones:</p>
+<p>$$
+\frac{\partial\mathcal{L}}{\partial w_q} = \frac{2}{N}\sum_i r_i\,\langle Z_q\rangle_i,\qquad
+\frac{\partial\mathcal{L}}{\partial b} = \frac{2}{N}\sum_i r_i,\qquad
+r_i = f(\mathbf{x}_i;\boldsymbol\theta) - y_i
+$$</p>
+<p>and the circuit angles pick up the chain rule through the read-out:</p>
+<p>$$
+\frac{\partial\mathcal{L}}{\partial\theta_k} = \frac{2}{N}\sum_i r_i \sum_q w_q\,
+\frac{\langle Z_q\rangle_i^{\theta_k + \pi/2} - \langle Z_q\rangle_i^{\theta_k - \pi/2}}{2}
+$$</p>
+<h3>Code Example 3: The Parameter-Shift Rule, Verified, and What a Gradient Costs</h3>
+<pre><code class="language-python">&quot;&quot;&quot;The parameter-shift rule, verified, and the true cost of one gradient.
+Continues from Examples 1 and 2 (same session).
+&quot;&quot;&quot;
+
+
+def mse_loss(params, X, y, layers=N_LAYERS):
+    return float(np.mean((vqc_predict(X, params, layers) - y) ** 2))
+
+
+def vqc_grad(params, X, y, layers=N_LAYERS):
+    &quot;&quot;&quot;Exact gradient of the MSE loss: circuit angles by parameter shift, read-out
+    weights analytically. Returns (gradient, number of circuit evaluations).&quot;&quot;&quot;
+    theta, w, b = unpack(params)
+    Zf = np.array([vqc_features(x, theta, layers) for x in X])   # (N, n_qubits)
+    resid = (Zf @ w + b) - y
+    g = np.zeros_like(params)
+    evals = len(X)
+    for k in range(len(theta)):
+        tp = theta.copy(); tp[k] += np.pi / 2
+        tm = theta.copy(); tm[k] -= np.pi / 2
+        Zp = np.array([vqc_features(x, tp, layers) for x in X])
+        Zm = np.array([vqc_features(x, tm, layers) for x in X])
+        evals += 2 * len(X)
+        dZ = 0.5 * (Zp - Zm)                    # d&lt;Z_q&gt;/dtheta_k, exactly
+        g[k] = np.mean(2.0 * resid * (dZ @ w))
+    g[-(N_QUBITS + 1):-1] = 2.0 * (resid @ Zf) / len(X)
+    g[-1] = np.mean(2.0 * resid)
+    return g, evals
+
+
+g_ps, n_evals = vqc_grad(params0, Xtr, ytr)
+
+print(&quot;Parameter shift against finite differences, on the real loss&quot;)
+print(&quot;-&quot; * 78)
+print(f&quot;  {'k':&gt;3}{'parameter shift':&gt;18}{'central diff h=1e-2':&gt;22}&quot;
+      f&quot;{'central diff h=1e-6':&gt;22}&quot;)
+for k in [0, 7, 15, 23, 24, 28]:
+    row = []
+    for h in (1e-2, 1e-6):
+        pp = params0.copy(); pp[k] += h
+        pm = params0.copy(); pm[k] -= h
+        row.append((mse_loss(pp, Xtr, ytr) - mse_loss(pm, Xtr, ytr)) / (2 * h))
+    tag = {24: &quot; (w_0)&quot;, 28: &quot; (b)&quot;}.get(k, &quot;&quot;)
+    print(f&quot;  {k:&gt;3}{g_ps[k]:18.9f}{row[0]:22.9f}{row[1]:22.9f}{tag}&quot;)
+
+err = []
+for k in range(len(params0)):
+    pp = params0.copy(); pp[k] += 1e-6
+    pm = params0.copy(); pm[k] -= 1e-6
+    err.append(abs(g_ps[k]
+                   - (mse_loss(pp, Xtr, ytr) - mse_loss(pm, Xtr, ytr)) / 2e-6))
+print(f&quot;\n  max |shift rule - central difference(1e-6)| over all &quot;
+      f&quot;{len(params0)} parameters: {max(err):.3e}&quot;)
+print(&quot;  The shift rule is not an approximation. The two evaluations sit pi/2 apart,&quot;)
+print(&quot;  so nothing is divided by a small number and no noise is amplified.&quot;)
+
+print(&quot;\nWhat one gradient step costs&quot;)
+print(&quot;-&quot; * 78)
+print(f&quot;  training points N                     {len(Xtr)}&quot;)
+print(f&quot;  circuit angles                         {n_theta()}&quot;)
+print(f&quot;  circuit evaluations per step          {n_evals}&quot;
+      f&quot;   ( N + 2 N n_theta )&quot;)
+print(f&quot;  gates simulated per step              {n_evals * 48}&quot;)
+print(&quot;  A classical network of the same size gets its entire gradient from one&quot;)
+print(&quot;  backward pass, at a cost of order the forward pass. The factor 2 n_theta is&quot;)
+print(&quot;  intrinsic to parameter shift, and on hardware each evaluation is many shots:&quot;)
+for shots in (100, 1000, 10000):
+    print(f&quot;    {shots:5d} shots per expectation value -&gt; &quot;
+          f&quot;{n_evals * shots:&gt;12,} shots per gradient step&quot;)
+print(&quot;\n  That is the measurement wall of Section 3.6 of the computing course in a&quot;)
+print(&quot;  machine-learning costume. Every comparison in this chapter therefore fixes&quot;)
+print(&quot;  the number of gradient *steps* and reports the shot cost separately: the two&quot;)
+print(&quot;  models take the same number of steps, they do not cost the same.&quot;)
+</code></pre>
+<pre><code class="language-text">Parameter shift against finite differences, on the real loss
+------------------------------------------------------------------------------
+    k   parameter shift   central diff h=1e-2   central diff h=1e-6
+    0       0.057748778           0.057748283           0.057748778
+    7       0.029954645           0.029954150           0.029954645
+   15       0.054176427           0.054175479           0.054176427
+   23      -0.056156170          -0.056155160          -0.056156170
+   24       0.117487432           0.117487432           0.117487432 (w_0)
+   28       0.119945446           0.119945446           0.119945446 (b)
+
+  max |shift rule - central difference(1e-6)| over all 29 parameters: 6.525e-11
+  The shift rule is not an approximation. The two evaluations sit pi/2 apart,
+  so nothing is divided by a small number and no noise is amplified.
+
+What one gradient step costs
+------------------------------------------------------------------------------
+  training points N                     40
+  circuit angles                         24
+  circuit evaluations per step          1960   ( N + 2 N n_theta )
+  gates simulated per step              94080
+  A classical network of the same size gets its entire gradient from one
+  backward pass, at a cost of order the forward pass. The factor 2 n_theta is
+  intrinsic to parameter shift, and on hardware each evaluation is many shots:
+      100 shots per expectation value -&gt;      196,000 shots per gradient step
+     1000 shots per expectation value -&gt;    1,960,000 shots per gradient step
+    10000 shots per expectation value -&gt;   19,600,000 shots per gradient step
+
+  That is the measurement wall of Section 3.6 of the computing course in a
+  machine-learning costume. Every comparison in this chapter therefore fixes
+  the number of gradient *steps* and reports the shot cost separately: the two
+  models take the same number of steps, they do not cost the same.
+</code></pre>
+<p><strong>What to look for.</strong> The shift rule agrees with a central difference at $h = 10^{-6}$ to $6.5\times10^{-11}$ across all 29 parameters, which is the accumulated round-off of the finite difference, not an error in the rule. At $h = 10^{-2}$ the finite difference is already wrong in the seventh decimal place. On a noiseless simulator that hardly matters — take $h$ small and move on. On hardware it is decisive: each expectation value carries a statistical error of order $10^{-2}$ at a thousand shots, and dividing that by $2h = 2\times10^{-6}$ multiplies the error by $5\times10^5$. The parameter-shift rule divides by nothing, so the noise in the gradient is the noise in two expectation values and no worse.</p>
+<p>The cost table is the number to remember. One full-batch gradient step needs $N + 2 N n_\theta = 1960$ circuit evaluations. At a thousand shots each — modest for a chemistry experiment, generous for a machine-learning one — that is 1.96 million shots for a single gradient step, and the 120 steps of Section 4.3 come to 235 million. The matched classical network gets its entire gradient from one backward pass. This asymmetry is not a detail to be optimised away by better software; it is the structure of the method. Mini-batching reduces $N$, and stochastic approximation methods such as SPSA replace the $2n_\theta$ factor with a constant at the price of a noisy gradient direction, but nothing removes the fact that a quantum gradient is assembled from separate experiments while a classical one is not.</p>
+<hr />
+<h2>4.3 The Comparison, and the Rules It Must Obey</h2>
+<p>This is the section the course exists for, so the rules come first, before any number.</p>
+<p><strong>Rule 1 — identical data and identical split.</strong> Both models see the same 40 training rows and are evaluated on the same 20 test rows. No resampling, no reshuffling, no choosing the split after seeing results.</p>
+<p><strong>Rule 2 — one optimiser.</strong> The same Adam implementation, the same $\beta_1, \beta_2, \epsilon$, the same number of steps. Not "Adam for the network and a hand-tuned schedule for the circuit".</p>
+<p><strong>Rule 3 — matched parameter counts, with the mismatch stated.</strong> The VQC has 29 trainable parameters. The two networks have 25 and 31, bracketing it. If the VQC wins against the 25 and loses against the 31, that is reported as an ambiguous result, not as a win.</p>
+<p><strong>Rule 4 — identical hyperparameter search.</strong> Every model gets the same learning-rate grid and the same early-stopping rule, selected on a validation split carved out of the <em>training</em> set. The test set is touched exactly once, at the end, for every model.</p>
+<p><strong>Rule 5 — every restart reported.</strong> Three random initialisations per model, so nine training runs, and every one of them printed with its four numbers — train and test loss at the selected stopping step and at step 120. The median is quoted; the individual runs are visible so that a reader can see the spread and check that the median is not carrying a lucky run. The initialisation is uniform on $[0,2\pi)$ for the circuit angles, which is the standard choice and also the one a barren plateau is a statement about; identity-block initialisation is not tried anywhere in this chapter, and the numbers below are therefore numbers for a randomly initialised circuit.</p>
+<p>Rule 3 deserves one honest caveat. Parameter count is the right currency here because it is the quantity a reader can check, but it is not a perfect measure of capacity, and it flatters neither side consistently. A network weight is an unbounded real number entering a nonlinear function; a circuit angle is a periodic variable whose effect on the output is bounded by construction. There is no exchange rate between the two. What can be said is that if two models with the same number of adjustable numbers, the same optimiser and the same selection protocol give very different test errors, the difference is a property of the model class and not of the accounting.</p>
+<h3>Code Example 4: The Classical Opponent, and One Protocol for Both</h3>
+<pre><code class="language-python">&quot;&quot;&quot;The classical opponent, one optimiser for both, and one selection protocol.
+Continues from Examples 1, 2 and 3 (same session).
+&quot;&quot;&quot;
+
+
+# ---- a matched-size classical network, NumPy only ------------------------
+def mlp_shapes(h, d=N_QUBITS):
+    return [(d, h), (h,), (h, 1), (1,)]
+
+
+def mlp_nparams(h, d=N_QUBITS):
+    return d * h + h + h + 1
+
+
+def mlp_unpack(params, h, d=N_QUBITS):
+    i, out = 0, []
+    for shape in mlp_shapes(h, d):
+        size = int(np.prod(shape))
+        out.append(params[i:i + size].reshape(shape))
+        i += size
+    return out
+
+
+def mlp_predict(X, params, h):
+    W1, b1, W2, b2 = mlp_unpack(params, h)
+    return (np.tanh(X @ W1 + b1) @ W2 + b2).ravel()
+
+
+def mlp_loss(params, X, y, h):
+    return float(np.mean((mlp_predict(X, params, h) - y) ** 2))
+
+
+def mlp_grad(params, X, y, h):
+    &quot;&quot;&quot;Exact gradient by backpropagation: one forward and one backward pass.&quot;&quot;&quot;
+    W1, b1, W2, b2 = mlp_unpack(params, h)
+    Zh = np.tanh(X @ W1 + b1)
+    pred = (Zh @ W2 + b2).ravel()
+    r = 2.0 * (pred - y) / len(y)
+    gW2 = Zh.T @ r[:, None]
+    gb2 = np.array([r.sum()])
+    dZ = r[:, None] @ W2.T * (1.0 - Zh ** 2)
+    return np.concatenate([(X.T @ dZ).ravel(), dZ.sum(axis=0),
+                           gW2.ravel(), gb2.ravel()])
+
+
+# ---- one optimiser, used by both models ----------------------------------
+def adam(grad_fn, params, steps, lr, record=None):
+    &quot;&quot;&quot;Plain Adam. `record` is called as record(step, params) if given.&quot;&quot;&quot;
+    p = params.copy()
+    m = np.zeros_like(p)
+    v = np.zeros_like(p)
+    b1, b2, eps = 0.9, 0.999, 1e-8
+    if record is not None:
+        record(0, p)
+    for t in range(1, steps + 1):
+        g = grad_fn(p)
+        m = b1 * m + (1 - b1) * g
+        v = b2 * v + (1 - b2) * g ** 2
+        p = p - lr * (m / (1 - b1 ** t)) / (np.sqrt(v / (1 - b2 ** t)) + eps)
+        if record is not None:
+            record(t, p)
+    return p
+
+
+def init_vqc(seed, layers=N_LAYERS, y0=None):
+    # Angles drawn uniformly on [0, 2 pi). This is the standard choice and it is
+    # also the plateau-prone one: a barren plateau is a statement about RANDOM
+    # parameters. Identity-block initialisation -- setting the variational layers
+    # to the identity so that training starts outside the plateau -- is the usual
+    # mitigation, and it is NOT tried anywhere in this chapter. Every VQC number
+    # below is therefore a number for a randomly initialised circuit, which is the
+    # honest scope of the comparison and not a claim about the best possible one.
+    r = np.random.default_rng(seed)
+    return np.concatenate([r.uniform(0, 2 * np.pi, n_theta(layers)),
+                           r.normal(0, 0.5, N_QUBITS),
+                           [ytr.mean() if y0 is None else y0]])
+
+
+def init_mlp(seed, h, y0=None):
+    r = np.random.default_rng(seed)
+    W1 = r.normal(0, 1.0 / np.sqrt(N_QUBITS), (N_QUBITS, h))
+    W2 = r.normal(0, 1.0 / np.sqrt(h), (h, 1))
+    return np.concatenate([W1.ravel(), np.zeros(h), W2.ravel(),
+                           [ytr.mean() if y0 is None else y0]])
+
+
+# ---- the model-selection protocol, identical for every model -------------
+H_SMALL, H_LARGE = 4, 5
+MODELS = ('VQC', f'MLP h={H_SMALL}', f'MLP h={H_LARGE}')
+MAX_STEPS = 120
+GRID = (0.02, 0.05, 0.10, 0.20, 0.40)
+VAL = np.arange(30, 40)                      # last 10 training rows held out
+FIT = np.arange(0, 30)
+
+
+def train_curve(name, params0, Xa, ya, Xb, yb, lr, steps=MAX_STEPS):
+    &quot;&quot;&quot;Train on (Xa, ya); record the loss on (Xa, ya) and (Xb, yb) each step.
+
+    The held-out predictions are kept as well, at every step, so that R6's paired
+    bootstrap can be computed at whatever stopping step the protocol later picks
+    without re-training anything.
+    &quot;&quot;&quot;
+    hist, preds = [], []
+    if name == 'VQC':
+        def rec(t, p):
+            q = vqc_predict(Xb, p)
+            hist.append((t, mse_loss(p, Xa, ya), float(np.mean((q - yb) ** 2))))
+            preds.append(q)
+        pf = adam(lambda q: vqc_grad(q, Xa, ya)[0], params0, steps, lr, record=rec)
+    else:
+        h = int(name.split('=')[1])
+
+        def rec(t, p):
+            q = mlp_predict(Xb, p, h)
+            hist.append((t, mlp_loss(p, Xa, ya, h), float(np.mean((q - yb) ** 2))))
+            preds.append(q)
+        pf = adam(lambda q: mlp_grad(q, Xa, ya, h), params0, steps, lr, record=rec)
+    return pf, np.array(hist), np.array(preds)
+
+
+def init_of(name, seed, y0):
+    return (init_vqc(seed, y0=y0) if name == 'VQC'
+            else init_mlp(seed, int(name.split('=')[1]), y0=y0))
+
+
+print(&quot;Parameter counts: the classical opponent is not handed an advantage&quot;)
+print(&quot;-&quot; * 78)
+print(f&quot;  {'VQC, ' + str(N_LAYERS) + ' layers, ' + str(N_QUBITS) + ' qubits':&lt;34}&quot;
+      f&quot;{len(params0):&gt;4} parameters&quot;)
+for h in (H_SMALL, H_LARGE):
+    print(f&quot;  {'MLP 4-' + str(h) + '-1 with tanh':&lt;34}{mlp_nparams(h):&gt;4} parameters&quot;)
+print(f&quot;  The two networks bracket the VQC ({mlp_nparams(H_SMALL)} &lt; {len(params0)}&quot;
+      f&quot; &lt; {mlp_nparams(H_LARGE)}), so no verdict&quot;)
+print(&quot;  can turn on a parameter-count technicality.&quot;)
+
+print(&quot;\nSelection protocol, applied identically to all three models&quot;)
+print(&quot;-&quot; * 78)
+print(f&quot;  fit on training rows 1-30, validate on rows 31-40, test set untouched&quot;)
+print(f&quot;  learning rate from {GRID}, stopping step from 0..{MAX_STEPS}&quot;)
+print(f&quot;  {'model':&lt;12}{'lr':&gt;7}{'best val MSE':&gt;15}{'at step':&gt;9}&quot;
+      f&quot;{'val MSE at 120':&gt;16}&quot;)
+chosen = {}
+for name in MODELS:
+    rows = []
+    for lr in GRID:
+        y0 = ytr[FIT].mean()
+        _, hist, _ = train_curve(name, init_of(name, 101, y0), Xtr[FIT], ytr[FIT],
+                                 Xtr[VAL], ytr[VAL], lr)
+        i = int(np.argmin(hist[:, 2]))
+        rows.append((lr, hist[i, 2], int(hist[i, 0]), hist[-1, 2]))
+    j = int(np.argmin([r[1] for r in rows]))
+    chosen[name] = (rows[j][0], rows[j][2])
+    for k, (lr, vb, st, vend) in enumerate(rows):
+        mark = &quot;  &lt;- chosen&quot; if k == j else &quot;&quot;
+        print(f&quot;  {name if k == 0 else '':&lt;12}{lr:7.2f}{vb:15.4f}{st:9d}&quot;
+              f&quot;{vend:16.4f}{mark}&quot;)
+print(&quot;\n  The stopping step is part of the protocol, not an afterthought: read the&quot;)
+print(&quot;  last column against the third. Two of the three models are markedly worse&quot;)
+print(&quot;  at step 120 than at their best step, and the VQC is the worst offender.&quot;)
+</code></pre>
+<pre><code class="language-text">Parameter counts: the classical opponent is not handed an advantage
+------------------------------------------------------------------------------
+  VQC, 3 layers, 4 qubits             29 parameters
+  MLP 4-4-1 with tanh                 25 parameters
+  MLP 4-5-1 with tanh                 31 parameters
+  The two networks bracket the VQC (25 &lt; 29 &lt; 31), so no verdict
+  can turn on a parameter-count technicality.
+
+Selection protocol, applied identically to all three models
+------------------------------------------------------------------------------
+  fit on training rows 1-30, validate on rows 31-40, test set untouched
+  learning rate from (0.02, 0.05, 0.1, 0.2, 0.4), stopping step from 0..120
+  model            lr   best val MSE  at step  val MSE at 120
+  VQC            0.02         0.1917       91          0.2056
+                 0.05         0.2378       22          0.4983
+                 0.10         0.2206       25          0.4655
+                 0.20         0.1657       22          0.1962  &lt;- chosen
+                 0.40         0.2741        2          0.6451
+  MLP h=4        0.02         0.0518       50          0.0603
+                 0.05         0.0509       24          0.0567
+                 0.10         0.0273      120          0.0273  &lt;- chosen
+                 0.20         0.0438       43          0.0780
+                 0.40         0.0839       56          0.1673
+  MLP h=5        0.02         0.0498       36          0.0758
+                 0.05         0.0470       20          0.0824  &lt;- chosen
+                 0.10         0.0520       13          0.1078
+                 0.20         0.0511       29          0.0615
+                 0.40         0.0722       41          0.0915
+
+  The stopping step is part of the protocol, not an afterthought: read the
+  last column against the third. Two of the three models are markedly worse
+  at step 120 than at their best step, and the VQC is the worst offender.
+</code></pre>
+<p><strong>What to look for.</strong> The selection table is more informative than the verdict it produces. Read the "best val MSE" column against the "val MSE at 120" column. For the VQC at $\text{lr} = 0.05$, validation error at its best step is 0.2378 and at step 120 it is 0.4983 — the model spends the second half of its budget getting worse by a factor of two. At $\text{lr} = 0.40$ the best validation error arrives at step 2 and the model is 2.4 times worse by the end. The network shows the same pattern more mildly, and at $\text{lr} = 0.10$ it does not overfit within the budget at all, which is why that setting wins for it.</p>
+<p>The best validation MSE any VQC configuration reaches is 0.1657. The best any network reaches is 0.0273 — a factor of six. That gap is measured before the test set is looked at, on data the models were selected with, under a protocol that treats them identically. Whatever the test set says next, it is not going to reverse a factor of six.</p>
+<h3>Code Example 5: Learning Curves, and the Verdict</h3>
+<pre><code class="language-python">&quot;&quot;&quot;The head-to-head, with honest learning curves.
+Continues from Examples 1, 2, 3 and 4 (same session).
+&quot;&quot;&quot;
+SEEDS = (101, 202, 303)
+curves, finals, runs_by = {}, {}, {}
+for name in MODELS:
+    lr, stop = chosen[name]
+    runs = [train_curve(name, init_of(name, s, ytr.mean()), Xtr, ytr, Xte, yte, lr)
+            for s in SEEDS]
+    runs_by[name] = runs
+    curves[name] = np.mean([r[1] for r in runs], axis=0)
+    finals[name] = [(r[1][stop, 1], r[1][stop, 2], r[1][-1, 1], r[1][-1, 2])
+                    for r in runs]
+
+print(f&quot;Learning curves: {MAX_STEPS} Adam steps, mean over {len(SEEDS)} restarts&quot;)
+print(&quot;-&quot; * 92)
+head = f&quot;  {'step':&gt;5}&quot;
+for name in MODELS:
+    head += f&quot;{name + ' tr':&gt;15}{name + ' te':&gt;15}&quot;
+print(head)
+for t in (0, 5, 10, 20, 30, 40, 60, 80, 100, 120):
+    row = f&quot;  {t:&gt;5}&quot;
+    for name in MODELS:
+        row += f&quot;{curves[name][t, 1]:15.4f}{curves[name][t, 2]:15.4f}&quot;
+    print(row)
+print(&quot;\n  Selected stopping step: &quot; + &quot;,  &quot;.join(
+    f&quot;{name} at {chosen[name][1]} (lr {chosen[name][0]:g})&quot; for name in MODELS))
+
+print(&quot;\nEvery restart, so nothing hides behind a lucky initial point&quot;)
+print(&quot;-&quot; * 92)
+print(f&quot;  {'model':&lt;12}{'seed':&gt;6}{'train@stop':&gt;12}{'test@stop':&gt;12}&quot;
+      f&quot;{'train@120':&gt;12}{'test@120':&gt;12}&quot;)
+for name in MODELS:
+    for s, row in zip(SEEDS, finals[name]):
+        print(f&quot;  {name:&lt;12}{s:&gt;6}&quot; + &quot;&quot;.join(f&quot;{v:12.4f}&quot; for v in row))
+    med = np.median(np.array(finals[name]), axis=0)
+    print(f&quot;  {name:&lt;12}{'median':&gt;6}&quot; + &quot;&quot;.join(f&quot;{v:12.4f}&quot; for v in med))
+
+print(&quot;\nThe verdict, against the baselines of Code Example 1&quot;)
+print(&quot;-&quot; * 92)
+print(f&quot;  {'model':&lt;28}{'params':&gt;8}{'train MSE':&gt;12}{'test MSE':&gt;12}{'vs OLS':&gt;10}&quot;)
+rows = [(&quot;predict the training mean&quot;, 1, np.mean((ytr - ytr.mean()) ** 2), mse_const),
+        (&quot;ordinary least squares&quot;, 5, np.mean((A @ coef - ytr) ** 2), mse_lin)]
+for name in MODELS:
+    npar = len(params0) if name == 'VQC' else mlp_nparams(int(name.split('=')[1]))
+    med = np.median(np.array(finals[name]), axis=0)
+    rows.append((name + &quot; (early stopped)&quot;, npar, med[0], med[1]))
+for nm, npar, tr, te in rows:
+    print(f&quot;  {nm:&lt;28}{npar:&gt;8}{tr:12.4f}{te:12.4f}{te/mse_lin:10.2f}x&quot;)
+print(f&quot;  {'irreducible noise floor':&lt;28}{'-':&gt;8}{0.05**2:12.4f}{0.05**2:12.4f}&quot;
+      f&quot;{0.05**2/mse_lin:10.2f}x&quot;)
+
+vq = np.median(np.array(finals['VQC']), axis=0)
+cl = min((np.median(np.array(finals[m]), axis=0) for m in MODELS if m != 'VQC'),
+         key=lambda r: r[1])
+print(&quot;\nWhat this says&quot;)
+print(&quot;-&quot; * 92)
+if vq[1] &lt; cl[1]:
+    print(f&quot;  The VQC generalises better here: test MSE {vq[1]:.4f} against {cl[1]:.4f}.&quot;)
+else:
+    print(f&quot;  The VQC loses. Test MSE {vq[1]:.4f} against the best matched network's&quot;)
+    print(f&quot;  {cl[1]:.4f}: a factor {vq[1]/cl[1]:.2f} worse, on identical data, an&quot;)
+    print(f&quot;  identical optimiser, an identical selection protocol and a slightly&quot;)
+    print(f&quot;  larger parameter budget.&quot;)
+print(f&quot;  Both nonlinear models are compared against five-parameter linear regression&quot;)
+print(f&quot;  ({mse_lin:.4f}), which the VQC also loses to. Omitting that row would have&quot;)
+print(&quot;  produced a much more flattering story, and omitting it is common.&quot;)
+print(f&quot;  Cost of the {MAX_STEPS} steps: {MAX_STEPS * 1960:,} circuit evaluations for the&quot;)
+print(f&quot;  VQC against {MAX_STEPS} backward passes for each network -- about 1,960:1 in&quot;)
+print(&quot;  arithmetic, and far worse than that in wall-clock time on real hardware.&quot;)
+print(&quot;\n  Read the train columns as well. The VQC reaches the *lowest training* loss of&quot;)
+print(&quot;  the three at step 120 and the *highest test* loss: it is not underfitting, it&quot;)
+print(&quot;  is fitting 40 points with 24 trigonometric angles and generalising badly. That&quot;)
+print(&quot;  is the expected NISQ-era outcome on classical tabular data, and it is what the&quot;)
+print(&quot;  concentration and dequantization arguments of Chapter 5 predict.&quot;)
+
+
+# ---- R6: the difference, with a paired interval on the same 20 rows ---------
+def paired_bootstrap_mse(y_true, pred_a, pred_b, B=10000, seed=0, alpha=0.05):
+    &quot;&quot;&quot;95% interval for MSE(a) - MSE(b), resampling the SAME test rows for both.
+
+    Chapter 1's R6, applied here rather than promised. Pairing removes the
+    variance contributed by which rows landed in the test set, which on 20 rows
+    dominates everything else.
+    &quot;&quot;&quot;
+    rng = np.random.default_rng(seed)
+    y_true = np.asarray(y_true)
+    pa, pb = np.asarray(pred_a), np.asarray(pred_b)
+    m = len(y_true)
+    d = np.empty(B)
+    for b in range(B):
+        i = rng.integers(0, m, m)
+        d[b] = (np.mean((y_true[i] - pa[i]) ** 2)
+                - np.mean((y_true[i] - pb[i]) ** 2))
+    return (float(d.mean()), float(np.quantile(d, alpha / 2)),
+            float(np.quantile(d, 1 - alpha / 2)))
+
+
+def median_run_pred(name):
+    &quot;&quot;&quot;Test predictions of the restart whose test MSE at the stopping step is the
+    median of the three -- the same run the verdict table quotes.&quot;&quot;&quot;
+    stop = chosen[name][1]
+    te = [r[1][stop, 2] for r in runs_by[name]]
+    return runs_by[name][int(np.argsort(te)[len(te) // 2])][2][stop]
+
+
+PRED = {name: median_run_pred(name) for name in MODELS}
+PRED['ordinary least squares'] = pred_lin
+PRED['predict the training mean'] = np.full(len(yte), ytr.mean())
+
+print(&quot;\nR6: the same differences, with a paired bootstrap interval&quot;)
+print(&quot;-&quot; * 92)
+print(&quot;  10,000 resamples of the same 20 test rows for both arms; median restart each.&quot;)
+print(f&quot;  {'MSE(A) - MSE(B)':&lt;48}{'mean':&gt;10}{'95% interval':&gt;21}{'verdict':&gt;12}&quot;)
+for a, b in [('VQC', f'MLP h={H_SMALL}'),
+             ('VQC', f'MLP h={H_LARGE}'),
+             ('VQC', 'ordinary least squares'),
+             (f'MLP h={H_SMALL}', 'ordinary least squares'),
+             ('VQC', 'predict the training mean')]:
+    m_, lo, hi = paired_bootstrap_mse(yte, PRED[a], PRED[b])
+    v = &quot;A better&quot; if hi &lt; 0.0 else (&quot;B better&quot; if lo &gt; 0.0 else &quot;no call&quot;)
+    print(f&quot;  {a + '  -  ' + b:&lt;48}{m_:+10.4f}   [{lo:+.4f}, {hi:+.4f}]{v:&gt;12}&quot;)
+print(&quot;  A factor of 3.87 is a ratio of two point estimates on 20 rows. The interval&quot;)
+print(&quot;  is what R6 asks for, and it is what the verdict has to rest on.&quot;)
+</code></pre>
+<pre><code class="language-text">Learning curves: 120 Adam steps, mean over 3 restarts
+--------------------------------------------------------------------------------------------
+   step         VQC tr         VQC te     MLP h=4 tr     MLP h=4 te     MLP h=5 tr     MLP h=5 te
+      0         0.3552         0.2712         0.9507         0.8026         0.4322         0.3717
+      5         0.1135         0.1375         0.2753         0.2938         0.1991         0.2424
+     10         0.0694         0.1333         0.1568         0.1385         0.1137         0.1247
+     20         0.0370         0.1476         0.0944         0.0938         0.0684         0.0771
+     30         0.0238         0.1691         0.0606         0.0590         0.0563         0.0572
+     40         0.0142         0.2027         0.0519         0.0531         0.0528         0.0530
+     60         0.0080         0.2503         0.0468         0.0443         0.0487         0.0484
+     80         0.0070         0.2768         0.0413         0.0389         0.0462         0.0463
+    100         0.0065         0.2853         0.0332         0.0295         0.0433         0.0429
+    120         0.0059         0.2939         0.0269         0.0245         0.0397         0.0391
+
+  Selected stopping step: VQC at 22 (lr 0.2),  MLP h=4 at 120 (lr 0.1),  MLP h=5 at 20 (lr 0.05)
+
+Every restart, so nothing hides behind a lucky initial point
+--------------------------------------------------------------------------------------------
+  model         seed  train@stop   test@stop   train@120    test@120
+  VQC            101      0.0232      0.0893      0.0074      0.1375
+  VQC            202      0.0445      0.2490      0.0054      0.3992
+  VQC            303      0.0376      0.0925      0.0047      0.3450
+  VQC         median      0.0376      0.0925      0.0054      0.3450
+  MLP h=4        101      0.0212      0.0164      0.0212      0.0164
+  MLP h=4        202      0.0135      0.0239      0.0135      0.0239
+  MLP h=4        303      0.0461      0.0333      0.0461      0.0333
+  MLP h=4     median      0.0212      0.0239      0.0212      0.0239
+  MLP h=5        101      0.0733      0.0794      0.0420      0.0450
+  MLP h=5        202      0.0684      0.0773      0.0388      0.0363
+  MLP h=5        303      0.0635      0.0747      0.0383      0.0362
+  MLP h=5     median      0.0684      0.0773      0.0388      0.0363
+
+The verdict, against the baselines of Code Example 1
+--------------------------------------------------------------------------------------------
+  model                         params   train MSE    test MSE    vs OLS
+  predict the training mean          1      0.3120      0.2747      5.91x
+  ordinary least squares             5      0.0521      0.0465      1.00x
+  VQC (early stopped)               29      0.0376      0.0925      1.99x
+  MLP h=4 (early stopped)           25      0.0212      0.0239      0.51x
+  MLP h=5 (early stopped)           31      0.0684      0.0773      1.66x
+  irreducible noise floor            -      0.0025      0.0025      0.05x
+
+What this says
+--------------------------------------------------------------------------------------------
+  The VQC loses. Test MSE 0.0925 against the best matched network's
+  0.0239: a factor 3.87 worse, on identical data, an
+  identical optimiser, an identical selection protocol and a slightly
+  larger parameter budget.
+  Both nonlinear models are compared against five-parameter linear regression
+  (0.0465), which the VQC also loses to. Omitting that row would have
+  produced a much more flattering story, and omitting it is common.
+  Cost of the 120 steps: 235,200 circuit evaluations for the
+  VQC against 120 backward passes for each network -- about 1,960:1 in
+  arithmetic, and far worse than that in wall-clock time on real hardware.
+
+  Read the train columns as well. The VQC reaches the *lowest training* loss of
+  the three at step 120 and the *highest test* loss: it is not underfitting, it
+  is fitting 40 points with 24 trigonometric angles and generalising badly. That
+  is the expected NISQ-era outcome on classical tabular data, and it is what the
+  concentration and dequantization arguments of Chapter 5 predict.
+
+R6: the same differences, with a paired bootstrap interval
+--------------------------------------------------------------------------------------------
+  10,000 resamples of the same 20 test rows for both arms; median restart each.
+  MSE(A) - MSE(B)                                       mean         95% interval     verdict
+  VQC  -  MLP h=4                                    +0.0687   [+0.0200, +0.1256]    B better
+  VQC  -  MLP h=5                                    +0.0154   [-0.0265, +0.0620]     no call
+  VQC  -  ordinary least squares                     +0.0463   [+0.0012, +0.1011]    B better
+  MLP h=4  -  ordinary least squares                 -0.0224   [-0.0431, -0.0038]    A better
+  VQC  -  predict the training mean                  -0.1823   [-0.3516, -0.0361]    A better
+  A factor of 3.87 is a ratio of two point estimates on 20 rows. The interval
+  is what R6 asks for, and it is what the verdict has to rest on.
+</code></pre>
+<p><strong>What to look for.</strong> The learning curves say the same thing three ways.</p>
+<p><strong>The VQC trains well and generalizes badly.</strong> By the end of the 120-step budget it has the lowest training loss of the three models and the highest test loss. Two tables report that and they report different statistics, so it is worth keeping them apart: the learning-curve table averages the three restarts, giving 0.0059 training against 0.0269 and 0.0397, and 0.2939 test against 0.0245 and 0.0391; the restart table quotes the <em>median</em>, 0.0054 and 0.3450 for the VQC. The medians are what the verdict table uses. That is not underfitting and it is not a failure of the optimiser — the circuit is fitting 40 points with 24 trigonometric angles and a four-component linear read-out, and it is fitting them to the noise. A training loss 4.6 times below its competitors' with a test loss 12 times above them is a model that has learned the training set, not the function. Early stopping rescues part of that, which is why the verdict table uses the early-stopped numbers, but it does not close the gap.</p>
+<p><strong>The verdict is only half robust to the parameter-count question, and the paired intervals are what show it.</strong> The VQC's loss to the 25-parameter network is resolvable: the interval on MSE(VQC) $-$ MSE(MLP $h{=}4$) is $[+0.020, +0.126]$, entirely above zero. Its loss to the 31-parameter network is not: $[-0.027, +0.062]$, a <em>no call</em>. So Rule 3's ambiguous case does arise after all, and it arises only once R6 is applied — which is exactly why R6 is a rule and not a courtesy. Two further intervals fix the position. The VQC does beat the trivial baseline, $[-0.352, -0.036]$, so it has learned something rather than nothing; and it loses to five-parameter linear regression by a margin that only just clears zero, $[+0.001, +0.101]$. The accurate headline is therefore the conjunction rather than the ratio: <em>the VQC is beaten by a closed-form linear fit and by the smaller of the two matched networks, and is indistinguishable from the larger one.</em> That is a weaker claim than "a factor of 3.87", and it is the one the data support.</p>
+<p><strong>Linear regression is the honest yardstick, and it is not embarrassed.</strong> Five parameters, closed form, no iterations, test MSE 0.0465. Only one of the three iterative models beats it — the 25-parameter network, at 0.0239. The VQC does not, at 0.0925, and neither does the larger network at 0.0773, whose validation split happened to stop it early at a bad point. Any presentation of this experiment that showed only the VQC and the larger network could have described the result as "comparable performance at matched parameter count", which would be true and useless. The linear row is what stops that reading.</p>
+<p>None of this is evidence that quantum models cannot learn. It is evidence about one model class, on one kind of data, at one scale — and that evidence is exactly what a materials researcher deciding where to spend a year needs. The circumstances under which the verdict could change are specific, and Chapter 5 takes them one at a time: an encoding whose frequency support matches the target's structure, a target with a group symmetry the circuit shares, or data that is quantum to begin with.</p>
+<hr />
+<h2>4.4 Barren Plateaus, Now With Data</h2>
+<h3>What the sister course established</h3>
+<p>Section 3.6 of <a href="../../FM/quantum-computing-introduction/chapter-3.html">Introduction to Quantum Computing</a> measured the effect directly: for a deep, unstructured ansatz on $n$ qubits with random parameters, the variance of a gradient component decays geometrically in $n$, and since resolving a gradient of typical size $g$ needs $O(1/g^2)$ shots, an exponentially small gradient is an exponentially large measurement cost. Optimisation does not fail loudly. The loss simply stops moving, and every step is indistinguishable from noise.</p>
+<p>Three things change when the same circuit is used for machine learning, and all three can be measured.</p>
+<p><strong>The average now runs over data as well as parameters.</strong> A VQE's cost is one number, so the plateau statement is about the distribution of $\partial E/\partial\theta_k$ over random $\boldsymbol\theta$. A VQC's cost is an average over inputs, so the relevant statement is about the distribution over random $\boldsymbol\theta$ <em>and</em> random $\mathbf{x}$. The encoding gates are themselves rotations, and randomising the input randomises them, which can only help the circuit approach a scrambling one. In practice the extra average does not rescue anything, and Code Example 6 shows the decay rates are the same order as the sister course's.</p>
+<p><strong>The read-out is a free choice, and a consequential one.</strong> A VQE's observable is dictated by the physics: the Hamiltonian is what it is. A VQC's read-out is chosen by the modeller, and the choice between a local $\langle Z_0\rangle$ and a global projector is worth a factor of two per qubit in the decay rate — which is to say, everything.</p>
+<p><strong>Expressivity is now the goal, not a means.</strong> A VQE wants to reach one particular state, the ground state, and a structured ansatz that reaches only the physically relevant sector is an advantage. A VQC wants a rich function class, which pushes towards deeper and more entangling circuits — directly into the plateau. The trade-off is sharper here than in chemistry.</p>
+<h3>Code Example 6: Depth, Read-Out Locality and Entanglement, Measured</h3>
+<pre><code class="language-python">&quot;&quot;&quot;Barren plateaus as they appear in QML: depth, read-out locality, entanglement.
+Continues from Example 1 (same session).
+&quot;&quot;&quot;
+
+
+def qml_state(x, theta, n, layers, entangle=True):
+    &quot;&quot;&quot;The circuit of Code Example 2, at arbitrary width and depth.&quot;&quot;&quot;
+    psi = ket('0' * n)
+    k = 0
+    for _ in range(layers):
+        for q in range(n):
+            psi = apply_gate(psi, ry(np.pi * x[q]), [q], n)
+        if entangle:
+            for q in range(n):
+                psi = cnot(psi, q, (q + 1) % n, n)
+        for q in range(n):
+            psi = apply_gate(psi, rz(theta[k]), [q], n); k += 1
+            psi = apply_gate(psi, ry(theta[k]), [q], n); k += 1
+    return psi
+
+
+def readout(psi, n, kind):
+    &quot;&quot;&quot;Two read-outs. 'local': &lt;Z_0&gt;. 'global': the probability of |00...0&gt;,
+    which is the expectation of a projector supported on all n qubits.&quot;&quot;&quot;
+    if kind == 'local':
+        return expval(psi, 'Z' + 'I' * (n - 1))
+    return float(probs(psi)[0])
+
+
+def shot_var(r, kind):
+    &quot;&quot;&quot;Variance of ONE shot of the read-out, which is what sets the shot cost.
+
+    &lt;Z_0&gt; is the mean of +-1 outcomes, so its single-shot variance is 1 - &lt;Z&gt;^2.
+    The all-zero probability is estimated by counting one bitstring, so its
+    single-shot variance is the Bernoulli p(1 - p) -- and for a scrambling circuit
+    p ~ 2^-n, which makes that variance exponentially small as well.
+    &quot;&quot;&quot;
+    return 1.0 - r * r if kind == 'local' else r * (1.0 - r)
+
+
+def grad_sample(rng, n, layers, kind, entangle=True, samples=120):
+    &quot;&quot;&quot;One gradient component AND the read-out's own single-shot variance, sampled
+    over random angles and random inputs.
+
+    The component is always the Ry angle on qubit 0 in the middle layer, so the
+    four variants below differ only in what they are meant to differ in.
+    &quot;&quot;&quot;
+    npar = 2 * n * layers
+    k = (layers // 2) * (2 * n) + 1
+    g = np.empty(samples)
+    v = np.empty(2 * samples)
+    for s in range(samples):
+        theta = rng.uniform(0, 2 * np.pi, npar)
+        x = rng.uniform(0.0, 1.0, n)
+        tp = theta.copy(); tp[k] += np.pi / 2
+        tm = theta.copy(); tm[k] -= np.pi / 2
+        rp = readout(qml_state(x, tp, n, layers, entangle), n, kind)
+        rm = readout(qml_state(x, tm, n, layers, entangle), n, kind)
+        g[s] = 0.5 * (rp - rm)
+        v[2 * s], v[2 * s + 1] = shot_var(rp, kind), shot_var(rm, kind)
+    return g, float(v.mean())
+
+
+VARIANTS = [
+    (&quot;shallow L=2, local, ring&quot;, lambda n: 2,     'local',  True),
+    (&quot;deep L=3n, local, ring&quot;,   lambda n: 3 * n, 'local',  True),
+    (&quot;deep L=3n, global, ring&quot;,    lambda n: 3 * n, 'global', True),
+    (&quot;deep L=3n, local, no ring&quot;,      lambda n: 3 * n, 'local',  False),
+]
+NS = list(range(2, 9))
+
+print(&quot;Gradient variance of a data-dependent cost, averaged over angles AND inputs&quot;)
+print(&quot;-&quot; * 100)
+print(f&quot;  {'variant':&lt;26}&quot; + &quot;&quot;.join(f&quot;{f'n={n}':&gt;10}&quot; for n in NS))
+table, shotvar = {}, {}
+for label, depth, kind, ent in VARIANTS:
+    row, vrow = [], []
+    for n in NS:
+        g, v = grad_sample(np.random.default_rng(1000 + n), n, depth(n), kind, ent)
+        row.append(g.var()); vrow.append(v)
+    table[label] = np.array(row)
+    shotvar[label] = np.array(vrow)
+    print(f&quot;  {label:&lt;26}&quot; + &quot;&quot;.join(f&quot;{v:10.3e}&quot; for v in row))
+
+print(&quot;\nRatio from one qubit to the next -- the shape of the decay, not a fit&quot;)
+print(&quot;-&quot; * 100)
+print(f&quot;  {'variant':&lt;26}&quot; + &quot;&quot;.join(f&quot;{f'{n}-&gt;{n+1}':&gt;10}&quot; for n in NS[:-1]))
+for label, v in table.items():
+    print(f&quot;  {label:&lt;26}&quot; + &quot;&quot;.join(f&quot;{v[i+1]/v[i]:10.3f}&quot;
+                                    for i in range(len(v) - 1)))
+
+print(&quot;\nExponential fits, Var ~ c r^n&quot;)
+print(&quot;-&quot; * 100)
+ns = np.array(NS, dtype=float)
+print(f&quot;  {'variant':&lt;26}{'r (n=2..8)':&gt;13}{'r (n=5..8)':&gt;13}&quot;
+      f&quot;{'decay/qubit (n=5..8)':&gt;22}&quot;)
+for label, v in table.items():
+    r_all = np.exp(np.polyfit(ns, np.log(v), 1)[0])
+    r_tail = np.exp(np.polyfit(ns[3:], np.log(v[3:]), 1)[0])
+    print(f&quot;  {label:&lt;26}{r_all:13.4f}{r_tail:13.4f}{1/r_tail:22.2f}x&quot;)
+
+print(&quot;\nThe read-out's own single-shot variance v -- the other half of the cost&quot;)
+print(&quot;-&quot; * 100)
+print(f&quot;  {'variant':&lt;26}&quot; + &quot;&quot;.join(f&quot;{f'n={n}':&gt;10}&quot; for n in NS))
+for label, v in shotvar.items():
+    print(f&quot;  {label:&lt;26}&quot; + &quot;&quot;.join(f&quot;{x:10.3e}&quot; for x in v))
+
+print(&quot;\nShots per evaluation to bring the shot noise down to std(g):  S = v / Var(g)&quot;)
+print(&quot;-&quot; * 100)
+print(f&quot;  {'variant':&lt;26}&quot; + &quot;&quot;.join(f&quot;{f'n={n}':&gt;13}&quot; for n in (2, 4, 6, 8))
+      + f&quot;{'growth/qubit':&gt;15}&quot;)
+for label, v in table.items():
+    S = shotvar[label] / v
+    r = np.exp(np.polyfit(ns[3:], np.log(S[3:]), 1)[0])
+    print(f&quot;  {label:&lt;26}&quot;
+          + &quot;&quot;.join(f&quot;{S[n-2]:13,.0f}&quot; for n in (2, 4, 6, 8)) + f&quot;{r:14.2f}x&quot;)
+
+print(&quot;\nWhat this measures&quot;)
+print(&quot;-&quot; * 100)
+print(&quot;  Depth. The shallow circuit's ratios drift towards 1 as n grows: qubit 0's&quot;)
+print(&quot;  light cone stops growing, so widening the register stops mattering. The deep&quot;)
+print(&quot;  circuit's ratios stay near a constant well below 1 -- a true geometric decay.&quot;)
+print(&quot;  Read-out. The global projector's gradient variance decays twice as fast per&quot;)
+print(&quot;  qubit as the local one's -- but its single-shot variance p(1-p) ~ 2^-n decays&quot;)
+print(&quot;  too, and the shot cost is v/Var, not 1/Var. Measured that way the two&quot;)
+print(&quot;  read-outs cost the same order of shots and grow at the same ~2x per qubit.&quot;)
+print(&quot;  At L = 3n both circuits are deep enough to concentrate on their own, so this&quot;)
+print(&quot;  experiment does not isolate the locality effect; the theorem that recommends&quot;)
+print(&quot;  local read-outs is about SHALLOW circuits, and neither variant here is one.&quot;)
+print(&quot;  Entanglement. Without the CNOT ring the circuit is a product of independent&quot;)
+print(&quot;  single-qubit models: the variance is flat in n, and so is the expressivity.&quot;)
+print(&quot;  Trainability and expressivity are traded against each other, not stacked.&quot;)
+</code></pre>
+<pre><code class="language-text">Gradient variance of a data-dependent cost, averaged over angles AND inputs
+----------------------------------------------------------------------------------------------------
+  variant                          n=2       n=3       n=4       n=5       n=6       n=7       n=8
+  shallow L=2, local, ring   1.989e-01 1.098e-01 4.585e-02 2.817e-02 9.398e-03 7.665e-03 6.333e-03
+  deep L=3n, local, ring     1.303e-01 7.367e-02 3.176e-02 1.599e-02 8.622e-03 3.928e-03 1.846e-03
+  deep L=3n, global, ring    1.701e-02 6.777e-03 1.479e-03 5.499e-04 1.088e-04 2.963e-05 8.121e-06
+  deep L=3n, local, no ring  2.367e-01 2.548e-01 2.469e-01 2.486e-01 2.621e-01 2.285e-01 2.229e-01
+
+Ratio from one qubit to the next -- the shape of the decay, not a fit
+----------------------------------------------------------------------------------------------------
+  variant                         2-&gt;3      3-&gt;4      4-&gt;5      5-&gt;6      6-&gt;7      7-&gt;8
+  shallow L=2, local, ring       0.552     0.418     0.614     0.334     0.816     0.826
+  deep L=3n, local, ring         0.566     0.431     0.503     0.539     0.456     0.470
+  deep L=3n, global, ring        0.398     0.218     0.372     0.198     0.272     0.274
+  deep L=3n, local, no ring      1.077     0.969     1.007     1.054     0.872     0.975
+
+Exponential fits, Var ~ c r^n
+----------------------------------------------------------------------------------------------------
+  variant                      r (n=2..8)   r (n=5..8)  decay/qubit (n=5..8)
+  shallow L=2, local, ring         0.5401       0.6262                  1.60x
+  deep L=3n, local, ring           0.4907       0.4837                  2.07x
+  deep L=3n, global, ring          0.2724       0.2479                  4.03x
+  deep L=3n, local, no ring        0.9880       0.9546                  1.05x
+
+The read-out's own single-shot variance v -- the other half of the cost
+----------------------------------------------------------------------------------------------------
+  variant                          n=2       n=3       n=4       n=5       n=6       n=7       n=8
+  shallow L=2, local, ring   8.003e-01 8.892e-01 9.537e-01 9.718e-01 9.906e-01 9.923e-01 9.936e-01
+  deep L=3n, local, ring     7.969e-01 8.708e-01 9.280e-01 9.716e-01 9.831e-01 9.919e-01 9.965e-01
+  deep L=3n, global, ring    1.531e-01 9.810e-02 5.369e-02 3.349e-02 1.517e-02 7.867e-03 3.969e-03
+  deep L=3n, local, no ring  6.541e-01 6.315e-01 6.426e-01 6.431e-01 6.440e-01 6.734e-01 6.653e-01
+
+Shots per evaluation to bring the shot noise down to std(g):  S = v / Var(g)
+----------------------------------------------------------------------------------------------------
+  variant                             n=2          n=4          n=6          n=8   growth/qubit
+  shallow L=2, local, ring              4           21          105          157          1.61x
+  deep L=3n, local, ring                6           29          114          540          2.09x
+  deep L=3n, global, ring               9           36          139          489          1.99x
+  deep L=3n, local, no ring             3            3            2            3          1.06x
+
+What this measures
+----------------------------------------------------------------------------------------------------
+  Depth. The shallow circuit's ratios drift towards 1 as n grows: qubit 0's
+  light cone stops growing, so widening the register stops mattering. The deep
+  circuit's ratios stay near a constant well below 1 -- a true geometric decay.
+  Read-out. The global projector's gradient variance decays twice as fast per
+  qubit as the local one's -- but its single-shot variance p(1-p) ~ 2^-n decays
+  too, and the shot cost is v/Var, not 1/Var. Measured that way the two
+  read-outs cost the same order of shots and grow at the same ~2x per qubit.
+  At L = 3n both circuits are deep enough to concentrate on their own, so this
+  experiment does not isolate the locality effect; the theorem that recommends
+  local read-outs is about SHALLOW circuits, and neither variant here is one.
+  Entanglement. Without the CNOT ring the circuit is a product of independent
+  single-qubit models: the variance is flat in n, and so is the expressivity.
+  Trainability and expressivity are traded against each other, not stacked.
+</code></pre>
+<p><strong>What to look for.</strong> Four variants, four different stories, all from the same circuit family.</p>
+<p><strong>Depth creates the plateau; width alone does not.</strong> The shallow circuit's qubit-to-qubit ratios start near 0.5 and drift to 0.83 by $n = 8$: qubit 0's light cone stops growing after two layers of CNOT ring, so adding a ninth qubit far from it changes almost nothing. Its tail fit is $1.60\times$ per qubit and still falling towards 1. The deep circuit's ratios stay near 0.48 across the whole range — a genuine geometric decay, $2.07\times$ per added qubit, with no sign of saturating.</p>
+<p><strong>A global read-out shrinks the gradient twice as fast — and costs no more shots.</strong> Replacing $\langle Z_0\rangle$ with the probability of the all-zero string, a projector supported on every qubit, takes the <em>variance</em> decay from $2.07\times$ to $4.03\times$ per qubit. That is the number usually quoted and it is only half of the accounting. Shot cost is $v/\mathrm{Var}$, where $v$ is the variance of a single shot, and for the all-zero probability a shot is a <em>bit</em>: $v = p(1-p)$, with $p \sim 2^{-n}$ for a scrambling circuit. So the numerator shrinks at about $2\times$ per qubit too, and the middle table measures exactly that — $v$ falling from $0.15$ at two qubits to $4.0\times10^{-3}$ at eight, while the local read-out's own $v$ <em>rises</em>, from $0.80$ to $1.00$, as $\langle Z_0\rangle$ concentrates on zero. Divide the one by the other and the two read-outs cost 540 and 489 shots per evaluation at eight qubits — the global one marginally <em>cheaper</em>, not 227 times dearer — and both grow at about $2\times$ per qubit.</p>
+<p>The design rule that says "read out locally" is not thereby refuted; it is rescoped, and the scope is the point. The theorem behind it (Cerezo and co-workers on cost-function-dependent barren plateaus) is about <strong>shallow</strong> circuits, where a local cost keeps polynomially decaying gradients while a global cost concentrates exponentially. Both deep variants above have $L = 3n$ layers, which is deep enough that the circuit concentrates on its own account; once it does, the read-out no longer decides the regime, and this experiment cannot separate the two effects because it never runs a shallow circuit with a global read-out. Use local read-outs in the shallow structured circuits where they are known to help, and do not expect them to rescue a deep unstructured ansatz — that is what the measurement supports, and it is less than the usual formulation claims.</p>
+<p><strong>Entanglement is what is being paid for.</strong> Delete the CNOT ring and the variance becomes flat in $n$: $1.05\times$ per qubit, three shots to resolve at every width. The circuit is now a product of independent single-qubit models, perfectly trainable and exactly as expressive as four independent single-variable functions — which is to say, not a model of anything interacting. Trainability and expressivity are traded here, not stacked. Chapter 5 turns that observation into a formal problem: a circuit shallow enough and local enough to train is usually also simple enough to simulate classically, and a model with a cheap classical surrogate has no quantum advantage to claim.</p>
+<h3>What is done about it in practice</h3>
+<p>The mitigations are real but each has a cost, and it is worth being explicit about what each one gives up.</p>
+<ul>
+<li><strong>Local read-outs.</strong> Measure single-qubit observables rather than global projectors. This is free, and for a shallow or structured circuit it is the difference between a polynomially and an exponentially decaying gradient. Code Example 6 shows what it does <em>not</em> buy: once the circuit is deep enough to concentrate by itself, the global projector's smaller single-shot variance cancels its faster gradient decay and the shot cost per component is the same.</li>
+<li><strong>Shallow, structured circuits.</strong> Restrict depth, or restrict the circuit to a symmetry sector matched to the problem — the equivariant-circuit programme. This works, at the price of the expressivity that motivated the quantum model. The honest question is then whether the restricted class is still hard to simulate classically.</li>
+<li><strong>Informed initialisation.</strong> Start near an identity circuit, or near a known good solution, so that the optimiser begins outside the plateau. This is the chemistry course's Hartree-Fock trick and it works for the same reason: a plateau is a statement about <em>random</em> parameters, not about all parameters. For a machine-learning problem there is usually no analogue of Hartree-Fock to start from.</li>
+<li><strong>Layerwise training.</strong> Train one layer at a time, freezing the rest. Delays the onset; does not remove it.</li>
+</ul>
+<p>Notice what is absent from the list: better hardware. The variances in Code Example 6 were computed on an exact, noiseless simulator. A barren plateau is a property of the circuit and the cost function, not of the device, and no improvement in error rates or coherence times moves any number in that table. Noise makes plateaus worse — the sister course's <a href="../../FM/quantum-computing-introduction/chapter-5.html">Chapter 5</a> covers noise-induced barren plateaus — but the effect measured here exists in a perfect machine.</p>
+<hr />
+<h2>4.5 Overfitting, and Why Capacity and Expressivity Are Welded Together</h2>
+<h3>The frequency picture, and what it costs</h3>
+<p>Chapter 2 established the rule in its own units: $L$ encoding gates whose generator is a Pauli over two — $Z/2$ there, $Y/2$ here, and only the eigenvalue spacing enters — give the frequency set $\Omega = \lbrace -L, \ldots, L\rbrace$ in the <em>rotation angle</em>. Here the angle is $\pi x_q$, so the same statement reads: with $L$ layers of $R_y(\pi x_q)$ encoding, the expectation values available to the read-out contain harmonics in $x_q$ at multiples of $1/2$ cycle per unit descriptor, up to $L/2$. Exercise 4 measures the spectrum directly and finds exactly that, with $10^{-16}$ of power above the ceiling. The target's $\sin(\pi x_1)$ sits at $1/2$ cycle, so a single layer suffices to represent the structure that matters.</p>
+<p>Here is the problem. In a neural network, capacity and function class are adjusted by different knobs: widening a layer adds parameters without changing the family of functions the network can express, and changing the activation changes the family without changing the count. In a VQC of this form there is one knob. Adding a layer adds eight parameters <em>and</em> raises the maximum harmonic by half a cycle, simultaneously. There is no way to say "more parameters, same smoothness" — the natural axis of the model couples the two.</p>
+<p>That coupling has a direct consequence for regularization. The standard classical remedies do not have obvious quantum analogues: there is no weight decay on an angle, because angles are periodic and $\theta = 0$ is not a preferred point; there is no dropout on a gate that is a unitary. What is left is early stopping, restricting depth, and validation — which is exactly the protocol of Section 4.3, and which is the reason that protocol was written down before any model was trained.</p>
+<h3>Code Example 7: Capacity Against Generalization</h3>
+<pre><code class="language-python">&quot;&quot;&quot;Capacity against generalisation, for both model families.
+Continues from Examples 1, 2, 3, 4 and 5 (same session).
+&quot;&quot;&quot;
+SWEEP_STEPS = 60
+SWEEP_SEEDS = (101, 202)
+
+
+def vqc_sweep(layers):
+    tr, te = [], []
+    for s in SWEEP_SEEDS:
+        p0 = init_vqc(s, layers=layers, y0=ytr.mean())
+        pf = adam(lambda q: vqc_grad(q, Xtr, ytr, layers)[0], p0,
+                  SWEEP_STEPS, chosen['VQC'][0])
+        tr.append(mse_loss(pf, Xtr, ytr, layers))
+        te.append(mse_loss(pf, Xte, yte, layers))
+    return np.mean(tr), np.mean(te)
+
+
+def mlp_sweep(h):
+    tr, te = [], []
+    for s in SWEEP_SEEDS:
+        pf = adam(lambda q: mlp_grad(q, Xtr, ytr, h), init_mlp(s, h, ytr.mean()),
+                  SWEEP_STEPS, chosen[f'MLP h={H_SMALL}'][0])
+        tr.append(mlp_loss(pf, Xtr, ytr, h))
+        te.append(mlp_loss(pf, Xte, yte, h))
+    return np.mean(tr), np.mean(te)
+
+
+print(f&quot;Capacity sweep: {SWEEP_STEPS} steps, {len(SWEEP_SEEDS)} restarts averaged,&quot;
+      f&quot; 40 training points&quot;)
+print(&quot;-&quot; * 82)
+print(f&quot;  {'model':&lt;24}{'params':&gt;8}{'max harmonic':&gt;14}{'train MSE':&gt;12}&quot;
+      f&quot;{'test MSE':&gt;12}{'test/train':&gt;12}&quot;)
+vq = []
+for L in (1, 2, 3, 4):
+    a, b_ = vqc_sweep(L)
+    npar = n_theta(L) + N_QUBITS + 1
+    vq.append((L, npar, a, b_))
+    print(f&quot;  {'VQC, L = ' + str(L):&lt;24}{npar:&gt;8}{L/2:&gt;14.1f}&quot;
+          f&quot;{a:12.4f}{b_:12.4f}{b_/a:12.2f}&quot;)
+print()
+ml = []
+for h in (2, 3, 4, 6, 8, 12):
+    a, b_ = mlp_sweep(h)
+    ml.append((h, mlp_nparams(h), a, b_))
+    print(f&quot;  {'MLP 4-' + str(h) + '-1':&lt;24}{mlp_nparams(h):&gt;8}{'-':&gt;14}&quot;
+          f&quot;{a:12.4f}{b_:12.4f}{b_/a:12.2f}&quot;)
+
+print(&quot;\nBest test MSE reached by each family, and where -- an ORACLE row: the&quot;)
+print(&quot;capacity is picked on the test set here, so this is a ceiling, not a selection&quot;)
+print(&quot;-&quot; * 82)
+iv = int(np.argmin([r[3] for r in vq]))
+im = int(np.argmin([r[3] for r in ml]))
+print(f&quot;  VQC        {vq[iv][0]} layers, {vq[iv][1]:&gt;2} parameters &quot;
+      f&quot;-&gt; test MSE {vq[iv][3]:.4f}&quot;)
+print(f&quot;  MLP        h = {ml[im][0]}, {ml[im][1]:&gt;2} parameters &quot;
+      f&quot;-&gt; test MSE {ml[im][3]:.4f}&quot;)
+print(f&quot;  OLS        5 parameters              -&gt; test MSE {mse_lin:.4f}&quot;)
+print(f&quot;  mean of y  1 parameter               -&gt; test MSE {mse_const:.4f}&quot;)
+
+print(&quot;\nSensitivity to capacity, stated as numbers&quot;)
+print(&quot;-&quot; * 82)
+vt = np.array([r[3] for r in vq]); vr = np.array([r[2] for r in vq])
+mt = np.array([r[3] for r in ml]); mr = np.array([r[2] for r in ml])
+print(f&quot;  {'family':&lt;12}{'params spanned':&gt;16}{'train MSE range':&gt;20}&quot;
+      f&quot;{'test MSE range':&gt;20}{'test/train max':&gt;16}&quot;)
+print(f&quot;  {'VQC':&lt;12}{f'{vq[0][1]}-{vq[-1][1]}':&gt;16}&quot;
+      f&quot;{f'{vr.max():.4f}-{vr.min():.4f}':&gt;20}&quot;
+      f&quot;{f'{vt.min():.4f}-{vt.max():.4f}':&gt;20}{max(t/r for t, r in zip(vt, vr)):16.1f}&quot;)
+print(f&quot;  {'MLP':&lt;12}{f'{ml[0][1]}-{ml[-1][1]}':&gt;16}&quot;
+      f&quot;{f'{mr.max():.4f}-{mr.min():.4f}':&gt;20}&quot;
+      f&quot;{f'{mt.min():.4f}-{mt.max():.4f}':&gt;20}{max(t/r for t, r in zip(mt, mr)):16.1f}&quot;)
+print(f&quot;  VQC test MSE spread over the sweep: {vt.max()/vt.min():.2f}x&quot;)
+print(f&quot;  MLP test MSE spread over the sweep: {mt.max()/mt.min():.2f}x&quot;)
+print(&quot;\nWhat the sweep shows&quot;)
+print(&quot;-&quot; * 82)
+print(&quot;  The two families do not respond to capacity in the same way at all. The&quot;)
+print(&quot;  network's test error is flat to within a factor of 1.6 across a 5.6-fold range&quot;)
+print(&quot;  of parameter count, and its test/train ratio never leaves the neighbourhood of&quot;)
+print(&quot;  1: at this data size, adding width to a tanh network is nearly free. The VQC's&quot;)
+print(&quot;  test error is best at two layers and then rises monotonically while its&quot;)
+print(&quot;  training error keeps falling, and its test/train ratio reaches 70.&quot;)
+print(&quot;  Two features of the quantum curve are specific to it. First, the 'max harmonic'&quot;)
+print(&quot;  column: adding a layer adds parameters AND frequency content at once, so&quot;)
+print(&quot;  capacity and expressivity cannot be tuned separately the way a network's width&quot;)
+print(&quot;  and depth can. Second, the VQC buys training loss at a far worse exchange rate&quot;)
+print(&quot;  in test loss -- which is the definition of overfitting, not of an inductive&quot;)
+print(&quot;  bias matched to the problem. Depth is therefore the hyperparameter to spend a&quot;)
+print(&quot;  validation budget on, and reporting one depth reports one point of a curve.&quot;)
+</code></pre>
+<pre><code class="language-text">Capacity sweep: 60 steps, 2 restarts averaged, 40 training points
+----------------------------------------------------------------------------------
+  model                     params  max harmonic   train MSE    test MSE  test/train
+  VQC, L = 1                    13           0.5      0.2204      0.4775        2.17
+  VQC, L = 2                    21           1.0      0.0234      0.1661        7.11
+  VQC, L = 3                    29           1.5      0.0088      0.2212       25.12
+  VQC, L = 4                    37           2.0      0.0049      0.3433       69.70
+
+  MLP 4-2-1                     13             -      0.0543      0.0525        0.97
+  MLP 4-3-1                     19             -      0.0477      0.0390        0.82
+  MLP 4-4-1                     25             -      0.0459      0.0488        1.06
+  MLP 4-6-1                     37             -      0.0372      0.0333        0.89
+  MLP 4-8-1                     49             -      0.0475      0.0399        0.84
+  MLP 4-12-1                    73             -      0.0453      0.0433        0.96
+
+Best test MSE reached by each family, and where -- an ORACLE row: the
+capacity is picked on the test set here, so this is a ceiling, not a selection
+----------------------------------------------------------------------------------
+  VQC        2 layers, 21 parameters -&gt; test MSE 0.1661
+  MLP        h = 6, 37 parameters -&gt; test MSE 0.0333
+  OLS        5 parameters              -&gt; test MSE 0.0465
+  mean of y  1 parameter               -&gt; test MSE 0.2747
+
+Sensitivity to capacity, stated as numbers
+----------------------------------------------------------------------------------
+  family        params spanned     train MSE range      test MSE range  test/train max
+  VQC                    13-37       0.2204-0.0049       0.1661-0.4775            69.7
+  MLP                    13-73       0.0543-0.0372       0.0333-0.0525             1.1
+  VQC test MSE spread over the sweep: 2.88x
+  MLP test MSE spread over the sweep: 1.58x
+
+What the sweep shows
+----------------------------------------------------------------------------------
+  The two families do not respond to capacity in the same way at all. The
+  network's test error is flat to within a factor of 1.6 across a 5.6-fold range
+  of parameter count, and its test/train ratio never leaves the neighbourhood of
+  1: at this data size, adding width to a tanh network is nearly free. The VQC's
+  test error is best at two layers and then rises monotonically while its
+  training error keeps falling, and its test/train ratio reaches 70.
+  Two features of the quantum curve are specific to it. First, the 'max harmonic'
+  column: adding a layer adds parameters AND frequency content at once, so
+  capacity and expressivity cannot be tuned separately the way a network's width
+  and depth can. Second, the VQC buys training loss at a far worse exchange rate
+  in test loss -- which is the definition of overfitting, not of an inductive
+  bias matched to the problem. Depth is therefore the hyperparameter to spend a
+  validation budget on, and reporting one depth reports one point of a curve.
+</code></pre>
+<p><strong>What to look for.</strong> The two families do not respond to capacity in the same way at all, and the difference is larger than the gap in their best scores. Across a 5.6-fold range of parameter count the network's test error moves by a factor of 1.58, from 0.0333 to 0.0525, and its test/train ratio never leaves the neighbourhood of 1 — at 40 points, adding width to a tanh network is nearly free. The VQC's test error is best at two layers, 0.1661, and then rises monotonically to 0.3433 at four layers <em>while its training error keeps falling</em> to 0.0049; the test/train ratio reaches 69.7. The VQC is not merely worse here, it is far more sensitive to a hyperparameter choice.</p>
+<p>The <code>max harmonic</code> column explains part of why. The VQC's four rows are not four capacities of one model class; they are four <em>different function classes</em>, each with a different smoothness prior, and the parameter count moves with the smoothness. A materials researcher used to choosing model complexity independently of the function family being fitted has to give that up. In practice this means the number of layers is the single most important hyperparameter of a VQC, it must be selected on validation data, and a paper that reports one depth without a sweep has reported one point of a curve whose shape it did not measure.</p>
+<h3>What would have to be true for a VQC to win here</h3>
+<p>It is worth stating the conditions positively, because "quantum models lost this benchmark" is a much weaker statement than the field's enthusiasm or its critics usually allow.</p>
+<ul>
+<li><strong>The target's structure would have to match the circuit's.</strong> The encoding fixes a frequency support and the entangling pattern fixes which cross-terms are cheap. A target built from exactly those terms would favour the VQC, and constructing such targets is how most positive results in the literature are produced. That is legitimate as a proof of principle and worthless as evidence about materials data.</li>
+<li><strong>The symmetry would have to be shared.</strong> If the physical problem is invariant under a group and the circuit is equivariant under the same group, the model gets a genuine inductive bias that a generic network lacks. This is the most promising direction in the field and it is an active research area rather than a tool.</li>
+<li><strong>There would have to be more data than parameters, by a lot.</strong> At 40 points and 29 parameters, everything overfits and the comparison is dominated by regularization rather than by model class. Nothing in this chapter establishes what happens at $10^4$ points, and the honest reason is that the parameter-shift budget makes that experiment expensive: 1960 circuit evaluations per step becomes 490,000.</li>
+<li><strong>The data would have to be quantum.</strong> This is the one condition that changes the argument in kind rather than in degree, and it is the subject of Chapter 5.</li>
+</ul>
+<hr />
+<h2>Exercises</h2>
+<h4>Exercise 1: The Shift Rule Beyond $R_y$</h4>
+<ol>
+<li>Using $f(\theta) = a + b\cos\theta + c\sin\theta$, verify algebraically that $\bigl[f(\theta+\pi/2) - f(\theta-\pi/2)\bigr]/2 = f'(\theta)$, and state where the assumption $G^2 = I$ entered.</li>
+<li>Verify numerically, at $\theta = 0.7$, that the two-term rule is exact for $\langle Z\rangle$ on $R_y(\theta)|0\rangle$.</li>
+<li>Show that the same two-term rule holds for the two-qubit gate $\exp(-i\theta\,Z\otimes Z/2)$, and explain why.</li>
+<li>A gate generated by $G$ with eigenvalues $\lbrace 0, 1, 2\rbrace$ needs more than two evaluations. Without deriving the coefficients, say how many distinct frequencies appear in $f(\theta)$ and therefore how many shifted evaluations are needed.</li>
+</ol>
+<details>
+<summary>Solution</summary>
+
+<p><strong>1.</strong> \(f(\theta \pm \pi/2) = a \mp b\sin\theta \pm c\cos\theta\), so half the difference is \(-b\sin\theta + c\cos\theta\), which is exactly \(f'(\theta)\). The assumption \(G^2 = I\) entered when we claimed \(f\) contains only the frequencies \(0\) and \(1\): with \(G^2 = I\) the gate is \(\cos(\theta/2)I - i\sin(\theta/2)G\), so \(\langle O\rangle\) is quadratic in \(\cos(\theta/2), \sin(\theta/2)\), and the double-angle identities collapse that to \(1, \cos\theta, \sin\theta\) with nothing higher.</p>
+
+<p><strong>2.</strong> \(\langle Z\rangle = \cos\theta\) exactly, so the derivative is \(-\sin(0.7) = -0.644217687238\), and the shift rule returns the same twelve digits.</p>
+
+<p><strong>3.</strong> \((Z\otimes Z)^2 = I\), so the argument of part 1 applies verbatim; the number of qubits the generator acts on is irrelevant. The code below checks it against a central difference and agrees to \(7\times10^{-11}\), the finite-difference round-off.</p>
+
+<p><strong>4.</strong> Eigenvalue differences \(\lbrace 0, \pm 1, \pm 2\rbrace\) give frequencies \(0, 1, 2\) in \(\theta\), i.e. five real coefficients \((a, b_1, c_1, b_2, c_2)\). Four shifted evaluations suffice for the derivative — hence the four-term shift rules used for gates such as a controlled rotation, whose generator has three distinct eigenvalues.</p>
+
+
+<pre><code class="language-python">&quot;&quot;&quot;Exercise 1. Continues from Example 1 (same session).&quot;&quot;&quot;
+th = 0.7
+
+
+def f_ry(t):
+    return expval(apply_gate(ket('0'), ry(t), [0], 1), 'Z')
+
+
+print(f&quot;Ry:  shift rule {0.5*(f_ry(th+np.pi/2) - f_ry(th-np.pi/2)):.12f}&quot;
+      f&quot;   exact -sin(theta) {-np.sin(th):.12f}&quot;)
+
+
+def rzz(t):
+    &quot;&quot;&quot;exp(-i t ZZ / 2), diagonal because ZZ is.&quot;&quot;&quot;
+    return np.diag(np.exp(-1j * t / 2 * np.array([1, -1, -1, 1])))
+
+
+def f_zz(t):
+    psi = apply_gate(apply_gate(ket('00'), H, [0], 2), H, [1], 2)
+    return expval(apply_gate(psi, rzz(t), [0, 1], 2), 'XI')
+
+
+print(f&quot;ZZ:  shift rule {0.5*(f_zz(th+np.pi/2) - f_zz(th-np.pi/2)):.12f}&quot;
+      f&quot;   central diff  {(f_zz(th+1e-6) - f_zz(th-1e-6))/2e-6:.12f}&quot;)
+</code></pre>
+
+
+
+<pre><code class="language-text">Ry:  shift rule -0.644217687238   exact -sin(theta) -0.644217687238
+ZZ:  shift rule -0.644217687238   central diff  -0.644217687307
+</code></pre>
+
+
+</details>
+
+<h4>Exercise 2: Counting Silent Angles</h4>
+<p>Build the variant of the Code Example 2 circuit in which each layer is <em>encode, rotate, entangle</em> — the entangling ring last — and read out only $\langle Z_0\rangle$.</p>
+<ol>
+<li>How many of the 24 angles have identically zero gradient?</li>
+<li>Identify each one as (layer, qubit, gate type).</li>
+<li>Explain each from the Clifford pullback of $Z_0$ through the ring <code>cnot(0,1), cnot(1,2), cnot(2,3), cnot(3,0)</code>.</li>
+<li>Which of the two orderings would you use, and what does the answer imply about reported parameter counts in the literature?</li>
+</ol>
+<details>
+<summary>Solution</summary>
+
+<p><strong>1-2.</strong> Five, all in the last layer: \((2,0,R_y)\), \((2,0,R_z)\), \((2,1,R_z)\), \((2,2,R_z)\), \((2,3,R_z)\).</p>
+
+<p><strong>3.</strong> Undo the ring in reverse order on the observable. <code>cnot(3,0)</code> maps \(Z_0 \to Z_0Z_3\); <code>cnot(2,3)</code> maps \(Z_3 \to Z_2Z_3\), giving \(Z_0Z_2Z_3\); <code>cnot(1,2)</code> gives \(Z_0Z_1Z_2Z_3\); <code>cnot(0,1)</code> maps \(Z_1 \to Z_0Z_1\) and the two \(Z_0\) factors cancel, leaving \(Z_1Z_2Z_3\). That effective observable is the identity on qubit 0, so both final rotations on qubit 0 are invisible — two silent angles. It is also diagonal, and \(R_z\) commutes with any product of \(Z\)s, so the final \(R_z\) on each of the other three qubits is invisible too — three more.</p>
+
+<p><strong>4.</strong> Use the ordering of Code Example 2 (encode, entangle, rotate) with per-qubit read-outs, which has no silent angles. The implication is that a reported parameter count is an upper bound on a VQC's capacity and can overstate it substantially — here by 21% — and that the check costs one loop over parameters and should be run on any new ansatz before its parameter count is quoted.</p>
+
+
+<pre><code class="language-python">&quot;&quot;&quot;Exercise 2. Continues from Example 1 (same session).&quot;&quot;&quot;
+
+
+def state_rotate_then_entangle(x, theta, layers=3):
+    &quot;&quot;&quot;Per layer: encode, rotate, THEN entangle -- the ordering to avoid.&quot;&quot;&quot;
+    n = len(x)
+    psi = ket('0' * n)
+    k = 0
+    for _ in range(layers):
+        for q in range(n):
+            psi = apply_gate(psi, ry(np.pi * x[q]), [q], n)
+        for q in range(n):
+            psi = apply_gate(psi, ry(theta[k]), [q], n); k += 1
+            psi = apply_gate(psi, rz(theta[k]), [q], n); k += 1
+        for q in range(n):
+            psi = cnot(psi, q, (q + 1) % n, n)
+    return psi
+
+
+rg = np.random.default_rng(5)
+th0 = rg.uniform(0, 2 * np.pi, 24)
+silent = []
+for k in range(24):
+    biggest = 0.0
+    for xq in rg.uniform(0, 1, (8, 4)):
+        tp = th0.copy(); tp[k] += np.pi / 2
+        tm = th0.copy(); tm[k] -= np.pi / 2
+        biggest = max(biggest,
+                      abs(expval(state_rotate_then_entangle(xq, tp), 'ZIII')
+                          - expval(state_rotate_then_entangle(xq, tm), 'ZIII')) / 2)
+    if biggest &lt; 1e-12:
+        silent.append(k)
+print(f&quot;silent angles: {len(silent)} of 24 -&gt; indices {silent}&quot;)
+print(&quot;as (layer, qubit, gate): &quot; + &quot;, &quot;.join(
+    f&quot;({k//8}, {(k%8)//2}, {'Ry' if k % 2 == 0 else 'Rz'})&quot; for k in silent))
+</code></pre>
+
+
+
+<pre><code class="language-text">silent angles: 5 of 24 -&gt; indices [16, 17, 19, 21, 23]
+as (layer, qubit, gate): (2, 0, Ry), (2, 0, Rz), (2, 1, Rz), (2, 2, Rz), (2, 3, Rz)
+</code></pre>
+
+
+</details>
+
+<h4>Exercise 3: When Shot Noise Eats the Gradient</h4>
+<p>Each expectation value is estimated from $S$ shots, so $\langle Z_q\rangle$ carries a variance of at most $1/S$.</p>
+<ol>
+<li>Show that the shot-noise variance of one circuit-angle gradient component is $\dfrac{4}{N^2}\Bigl(\sum_i r_i^2\Bigr)\Bigl(\sum_q w_q^2\Bigr)\dfrac{1}{2S}$, stating the independence assumptions used.</li>
+<li>Evaluate the constant for the untrained parameters of Code Example 2, and find the $S$ at which the signal-to-noise ratio of a typical component reaches 1 and 10.</li>
+<li>The residuals shrink during training. What does that do to the required $S$, and what does it imply about the loss a fixed shot budget can reach?</li>
+<li>Multiply your $S$ for SNR $= 10$ by the 1960 circuit evaluations per step and the 120 steps. Compare with a device running at $10^4$ circuit repetitions per second.</li>
+</ol>
+<details>
+<summary>Solution</summary>
+
+<p><strong>1.</strong> Each shifted evaluation is an independent experiment, so \(\mathrm{Var}[\tfrac{1}{2}(z^+ - z^-)] = \tfrac{1}{4}(\sigma^2 + \sigma^2) = \sigma^2/2\) with \(\sigma^2 \le 1/S\). Summing the chain rule \(g_k = \frac{2}{N}\sum_i r_i \sum_q w_q \,\mathrm{d}z_{iq}\) over independent data points and qubits gives the stated result. Treating the \(2Nn_\theta\) evaluations as independent is the assumption; correlating them by reusing shots would reduce the variance somewhat.</p>
+
+<p><strong>2.</strong> The constant is 0.017765, so \(\sigma(g) = \sqrt{0.017765/S}\) against a typical \(|g| = 0.031468\). SNR 1 at \(S \approx 18\), SNR 10 at \(S \approx 1800\).</p>
+
+<p><strong>3.</strong> \(\sum_i r_i^2\) is \(N\) times the training MSE, so \(\sigma(g) \propto \sqrt{L/S}\): the gradient's noise falls only as the square root of the loss. The other half of the mechanism is what makes the conclusion bite. \(L\) does not fall to zero — it bottoms out at the data's own noise floor \(L_{\min}\) — so \(\sigma(g)\) bottoms out with it at \(\sqrt{L_{\min}/S}\), while the true gradient vanishes linearly in the distance to the minimum and the excess loss \(L - L_{\min}\) vanishes quadratically in it. Setting \(|g| = \sigma(g)\) therefore leaves a neighbourhood of the minimum inside which every step is indistinguishable from noise, and the excess loss at its edge is of order \(L_{\min}/S\): the achievable training loss approaches its floor as \(1/S\) and not faster, however many steps are taken. This is the mechanism behind the plateaus seen in hardware VQC training runs that a simulator does not reproduce.</p>
+
+<p><strong>4.</strong> \(1800 \times 1960 \times 120 = 4.23\times10^{8}\) circuit repetitions, which at \(10^4\) per second is 11.8 hours of continuous device time — for 40 data points, 29 parameters, and a model that loses to linear regression. Wall-clock on shared hardware, including queueing and calibration, would be considerably longer.</p>
+
+
+<pre><code class="language-python">&quot;&quot;&quot;Exercise 3. Continues from Examples 1, 2 and 3 (same session).&quot;&quot;&quot;
+g, _ = vqc_grad(params0, Xtr, ytr)
+typical = np.abs(g[:n_theta()]).mean()
+theta_, w_, b_ = unpack(params0)
+Zf = np.array([vqc_features(x, theta_) for x in Xtr])
+resid = (Zf @ w_ + b_) - ytr
+const = 4.0 / len(Xtr) ** 2 * np.sum(resid ** 2) * np.sum(w_ ** 2) * 0.5
+print(f&quot;mean |dL/dtheta| over the {n_theta()} angles: {typical:.6f}&quot;)
+print(f&quot;Var[g] = (4/N^2) (sum_i r_i^2)(sum_q w_q^2)/(2S) = {const:.6f} / S&quot;)
+print(f&quot;  {'S':&gt;9}{'sigma(g)':&gt;12}{'SNR':&gt;9}&quot;)
+for S in (10, 100, 1000, 10000, 100000):
+    sg = np.sqrt(const / S)
+    print(f&quot;  {S:&gt;9}{sg:12.6f}{typical/sg:9.2f}&quot;)
+S1 = int(np.ceil(const / typical ** 2))
+print(f&quot;SNR = 1 at S ~ {S1:,} shots per expectation value; SNR = 10 needs&quot;
+      f&quot; {100*S1:,}&quot;)
+print(f&quot;one training run at SNR = 10: {100*S1:,} x 1960 x 120 =&quot;
+      f&quot; {100*S1*1960*120:,} circuit repetitions&quot;)
+print(f&quot;at 1e4 repetitions per second that is {100*S1*1960*120/1e4/3600:.1f} hours&quot;)
+</code></pre>
+
+
+
+<pre><code class="language-text">mean |dL/dtheta| over the 24 angles: 0.031468
+Var[g] = (4/N^2) (sum_i r_i^2)(sum_q w_q^2)/(2S) = 0.017765 / S
+          S    sigma(g)      SNR
+         10    0.042148     0.75
+        100    0.013328     2.36
+       1000    0.004215     7.47
+      10000    0.001333    23.61
+     100000    0.000421    74.66
+SNR = 1 at S ~ 18 shots per expectation value; SNR = 10 needs 1,800
+one training run at SNR = 10: 1,800 x 1960 x 120 = 423,360,000 circuit repetitions
+at 1e4 repetitions per second that is 11.8 hours
+</code></pre>
+
+
+</details>
+
+<h4>Exercise 4: Reading the Frequency Support Off the Model</h4>
+<ol>
+<li>For $L = 1, 2, 3$, sample $\langle Z_0\rangle$ as a function of $x_1$ alone over two periods and take the FFT. Which harmonics are present?</li>
+<li>State the rule connecting $L$ to the maximum harmonic, and explain it from the half-angle convention.</li>
+<li>The target contains $\sin(\pi x_1)$. At which harmonic does that sit, and what is the smallest $L$ that can represent it?</li>
+<li>Given part 3, why does $L = 1$ not win the sweep in Code Example 7?</li>
+</ol>
+<details>
+<summary>Solution</summary>
+
+<p><strong>1-2.</strong> \(L = 1\) contains harmonics 0 and 0.5; \(L = 2\) adds 1.0; \(L = 3\) adds 1.5. The maximum harmonic is \(L/2\) cycles per unit \(x\). Each encoding gate \(R_y(\pi x)\) contributes \(\cos(\pi x/2)\) and \(\sin(\pi x/2)\) to the amplitudes, i.e. a quarter cycle; an expectation value is quadratic in amplitudes, so a single layer reaches half a cycle, and \(L\) layers multiply \(L\) such factors.</p>
+
+<p><strong>3.</strong> \(\sin(\pi x_1)\) has period 2 in \(x_1\), so it sits at 0.5 cycles per unit and \(L = 1\) already contains it.</p>
+
+<p><strong>4.</strong> Containing a frequency is not the same as being able to fit the whole target. With one layer the model has 8 angles and only the lowest harmonic in every descriptor, and it cannot simultaneously represent the \(0.5x_3^2\) term, the product structure \(\sin(\pi x_1)\cos(\pi x_2)\) and the offset. Two layers is the best compromise in the sweep. The lesson is that the frequency support is a necessary condition, not a sufficient one; the variational block still has to reach the right point inside the span.</p>
+
+
+<pre><code class="language-python">&quot;&quot;&quot;Exercise 4. Continues from Examples 1 and 2 (same session).&quot;&quot;&quot;
+base = np.array([0.4, 0.55, 0.2, 0.7])
+for L in (1, 2, 3):
+    grid = np.arange(64) / 64.0 * 2.0          # two periods of x1
+    th = np.random.default_rng(4).uniform(0, 2 * np.pi, n_theta(L))
+    vals = np.array([vqc_features(np.where(np.arange(4) == 0, t, base), th, L)[0]
+                     for t in grid])
+    amp = np.abs(np.fft.rfft(vals)) / len(grid)
+    present = &quot;  &quot;.join(f&quot;{j/2:.1f}:{amp[j]:.4f}&quot; for j in range(6) if amp[j] &gt; 1e-10)
+    print(f&quot;L = {L}:  harmonics present -&gt; {present}&quot;
+          f&quot;   power above {L/2:.1f}: {np.sum(amp[L+1:]**2)**0.5:.2e}&quot;)
+print(&quot;the target's sin(pi x1) sits at 0.5 cycles per unit x1&quot;)
+</code></pre>
+
+
+
+<pre><code class="language-text">L = 1:  harmonics present -&gt; 0.0:0.0742  0.5:0.0329   power above 0.5: 1.09e-16
+L = 2:  harmonics present -&gt; 0.0:0.2490  0.5:0.0273  1.0:0.0336   power above 1.0: 9.42e-17
+L = 3:  harmonics present -&gt; 0.0:0.0708  0.5:0.1185  1.0:0.1030  1.5:0.0291   power above 1.5: 1.08e-16
+the target's sin(pi x1) sits at 0.5 cycles per unit x1
+</code></pre>
+
+
+</details>
+
+<h4>Exercise 5: Extrapolating a Plateau</h4>
+<p>Take the tail fits of Code Example 6: variance $\sim 0.4837^n$ for the local read-out and $\sim 0.2479^n$ for the global one, with single-shot variances $v \approx 1$ and $v \approx 2^{-n}$ respectively.</p>
+<ol>
+<li>Estimate the shots needed to resolve one gradient component at $n = 10, 20, 30, 50$ for each read-out, using $S = v/\mathrm{Var}$.</li>
+<li>Convert to wall-clock at $10^4$ circuit repetitions per second, in years.</li>
+<li>At what $n$ does each read-out cross one hour of device time for a single gradient component?</li>
+<li>A proposal states that a 50-qubit VQC will be trained once error rates improve tenfold. What is wrong with the reasoning?</li>
+</ol>
+<details>
+<summary>Solution</summary>
+
+<p><strong>1-2.</strong> See the table. Local read-out: \(1.4\times10^{3}\) shots at \(n=10\), \(2.9\times10^{9}\) at \(n=30\), \(5.9\times10^{15}\) at \(n=50\) — the last being about \(1.9\times10^{4}\) years at \(10^4\) shots per second. Global read-out: \(1.1\times10^{3}\), \(1.4\times10^{9}\) and \(1.7\times10^{15}\) at the same widths, i.e. \(5.4\times10^{3}\) years at fifty qubits. The two are within a factor of four of each other everywhere, and the global one is the cheaper. Dropping the \(v = 2^{-n}\) factor would have made the global read-out look \(10^{15}\) times worse at \(n = 50\), which is the arithmetic to avoid.</p>
+
+<p><strong>3.</strong> One hour is \(3.6\times10^{7}\) shots. Shots grow as \((1/0.4837)^n = 2.067^n\) locally and as \((2\times0.2479)^{-n} = 2.017^n\) globally, so the crossings are \(n = 24.0\) and \(n = 24.8\): the same place, to within one qubit. And that is one gradient <em>component</em>; a full gradient needs \(2n_\theta\) of them.</p>
+
+<p><strong>4.</strong> Error rates are irrelevant to this obstruction. Every number above came from an exact, noiseless simulator: the variance decay is a property of the circuit's randomness and the observable's support, not of the hardware. A tenfold improvement in error rates buys a longer circuit, which for an unstructured ansatz makes the plateau deeper, not shallower. The reasoning confuses a hardware limitation with a mathematical one, and it is the single most common error in this area.</p>
+
+
+<pre><code class="language-python">&quot;&quot;&quot;Exercise 5. NumPy only; the two decay rates are the tail fits of Code Example 6.&quot;&quot;&quot;
+import numpy as np
+SEC_PER_YEAR = 3.15576e7
+# S = v / Var(g). For &lt;Z_0&gt; the single-shot variance v is ~1; for the all-zero
+# projector it is p(1 - p) ~ 2^-n, which cancels one factor of two per qubit.
+for r, vfun, name in ((0.4837, lambda n: 1.0, &quot;local read-out &quot;),
+                      (0.2479, lambda n: 2.0 ** -n, &quot;global read-out&quot;)):
+    print(f&quot;{name}: Var ~ {r:.4f}^n,  v = {'1' if vfun(1) == 1.0 else '2^-n'}&quot;)
+    print(f&quot;  {'n':&gt;4}{'Var':&gt;12}{'v':&gt;12}{'shots':&gt;12}&quot;
+          f&quot;{'seconds at 1e4/s':&gt;19}{'years':&gt;12}&quot;)
+    for n in (10, 20, 24, 30, 50):
+        var = r ** n
+        shots = vfun(n) / var
+        print(f&quot;  {n:&gt;4}{var:12.2e}{vfun(n):12.2e}{shots:12.2e}{shots/1e4:19.2e}&quot;
+              f&quot;{shots/1e4/SEC_PER_YEAR:12.2e}&quot;)
+    eff = r if vfun(1) == 1.0 else r / vfun(1)     # shots ~ (1/eff)^n
+    n_hour = np.log(3.6e7) / np.log(1.0 / eff)
+    print(f&quot;  shots grow as {1/eff:.4f}^n; one hour of device time is reached at&quot;
+          f&quot; n = {n_hour:.1f}  (for ONE gradient component)&quot;)
+</code></pre>
+
+
+
+<pre><code class="language-text">local read-out : Var ~ 0.4837^n,  v = 1
+     n         Var           v       shots   seconds at 1e4/s       years
+    10    7.01e-04    1.00e+00    1.43e+03           1.43e-01    4.52e-09
+    20    4.91e-07    1.00e+00    2.03e+06           2.03e+02    6.45e-06
+    24    2.69e-08    1.00e+00    3.72e+07           3.72e+03    1.18e-04
+    30    3.45e-10    1.00e+00    2.90e+09           2.90e+05    9.20e-03
+    50    1.69e-16    1.00e+00    5.90e+15           5.90e+11    1.87e+04
+  shots grow as 2.0674^n; one hour of device time is reached at n = 24.0  (for ONE gradient component)
+global read-out: Var ~ 0.2479^n,  v = 2^-n
+     n         Var           v       shots   seconds at 1e4/s       years
+    10    8.77e-07    9.77e-04    1.11e+03           1.11e-01    3.53e-09
+    20    7.68e-13    9.54e-07    1.24e+06           1.24e+02    3.93e-06
+    24    2.90e-15    5.96e-08    2.05e+07           2.05e+03    6.51e-05
+    30    6.73e-19    9.31e-10    1.38e+09           1.38e+05    4.38e-03
+    50    5.17e-31    8.88e-16    1.72e+15           1.72e+11    5.44e+03
+  shots grow as 2.0169^n; one hour of device time is reached at n = 24.8  (for ONE gradient component)
+</code></pre>
+
+
+</details>
+
+<hr />
+<h2>Summary</h2>
+<h3>Key Takeaways</h3>
+<p><strong>1. A VQC is a VQE with a data-dependent cost</strong></p>
+<ul>
+<li>Same circuit, same parameter-shift gradients, same classical optimiser; the observable becomes a read-out and the energy becomes a sum of residuals.</li>
+<li>The one genuine difference is that a VQE's cost <em>is</em> the objective while a VQC's training loss is not, so a lower training loss can be worse — and in Code Example 5, it is.</li>
+<li>Encoding fixes what the model can represent, the variational block fixes what is reachable inside that, the read-out fixes trainability. Three choices, three jobs, and they are routinely confused.</li>
+</ul>
+<p><strong>2. Parameter shift is exact, and expensive</strong></p>
+<ul>
+<li>For any generator with $G^2 = I$, the expectation value is $a + b\cos\theta + c\sin\theta$, and two evaluations $\pi/2$ apart give the derivative exactly — verified to $6.5\times10^{-11}$ against a finite difference.</li>
+<li>The cost is $N + 2Nn_\theta$ circuit evaluations per step: 1960 here, 235 million shots for the 120-step run at 1000 shots each, against 120 backward passes for the classical model.</li>
+<li>Simulator backpropagation is not a substitute. It gives a gradient that hardware cannot produce, and a training curve obtained that way does not demonstrate a trainable quantum model.</li>
+</ul>
+<p><strong>3. Parameter counts can lie, and the check is cheap</strong></p>
+<ul>
+<li>Reversing two lines of the circuit makes five of 24 angles silent — identically zero gradient at every input — because a Clifford ring pulls $Z_0$ back to $Z_1Z_2Z_3$ and $R_z$ commutes with diagonal observables.</li>
+<li>A quoted parameter count is an upper bound on capacity. Run the sensitivity loop of Code Example 2 before quoting one.</li>
+<li>Read-out weights and offsets are parameters too, and a VQC without them has a hard-coded output range.</li>
+</ul>
+<p><strong>4. On this data, the quantum model loses, and the reason is not the hardware</strong></p>
+<ul>
+<li>Under matched parameter counts (29 against 25 and 31), one optimiser, one selection protocol and three reported restarts, the early-stopped VQC's median test MSE is 0.0925 against 0.0239 for the best matched network — a factor of 3.87, with a paired bootstrap interval of $[+0.020, +0.126]$, so that loss is resolvable.</li>
+<li>Against the <em>larger</em> matched network (31 parameters, 0.0773) the same interval is $[-0.027, +0.062]$: a tie. R6 turns "loses to both networks" into "loses to one and ties the other", which is the honest form of the result.</li>
+<li>By the end of the budget it has the <em>lowest</em> training loss and the <em>highest</em> test loss of the three, 0.0059 against 0.2939: it overfits 40 points, which is the expected NISQ-era outcome on classical tabular data.</li>
+<li>The VQC also loses to five-parameter linear regression at 0.0465, which only the 25-parameter network beats. Dropping the linear row would have made the result look like a tie.</li>
+</ul>
+<p><strong>5. Barren plateaus are a property of the circuit, not the device</strong></p>
+<ul>
+<li>Measured decay of gradient variance per added qubit: $1.60\times$ shallow, $2.07\times$ deep with a local read-out, $4.03\times$ deep with a global read-out, $1.05\times$ with the entangling ring deleted.</li>
+<li>The global read-out's extra factor buys no extra <em>shots</em>, because the all-zero probability's own single-shot variance $p(1-p)\sim2^{-n}$ decays with it: measured shot costs at eight qubits are 540 local against 489 global, and both grow at about $2\times$ per qubit. The rule "read out locally" belongs to shallow circuits; at $L = 3n$ the circuit concentrates on its own and the read-out no longer decides the regime.</li>
+<li>Depth creates it, entanglement is what is being paid for — and the product circuit that trains perfectly is a product of single-variable models.</li>
+<li>Every one of those numbers came from an exact noiseless simulator. Better error rates change none of them.</li>
+</ul>
+<p><strong>6. Capacity and expressivity share one knob</strong></p>
+<ul>
+<li>$L$ layers give harmonics up to $L/2$ cycles per unit descriptor <em>and</em> $8L$ parameters. There is no "more parameters, same smoothness" direction.</li>
+<li>The classical regularizers do not port: no weight decay on a periodic angle, no dropout on a unitary. What remains is depth selection, early stopping and a validation split.</li>
+<li>Depth is therefore the most important hyperparameter of a VQC, and a single-depth result is one point on a curve whose shape was not measured.</li>
+</ul>
+<p><strong>Practical implications</strong></p>
+<ul>
+<li>Fix the protocol before training anything: split, optimiser, parameter budget, hyperparameter grid, number of restarts. Writing it down afterwards is how honest people produce dishonest benchmarks.</li>
+<li>Always include a linear baseline and a predict-the-mean baseline. If the quantum model does not beat both, nothing else in the comparison matters.</li>
+<li>Report shots and circuit evaluations alongside accuracy. An advantage is a ratio, and the denominator here is five to six orders of magnitude.</li>
+<li>Treat any claim of the form "this will work once the hardware improves" as requiring proof that the obstruction is a hardware one. For plateaus and for concentration, it is not.</li>
+</ul>
+<p>Chapter 5 turns the argument around. If the quantum model's function class can be written down explicitly — and for a shallow, local circuit it can — then a classical model with the same function class should match it. The next chapter builds two such surrogates, measures how close they get, assembles a checklist for reading advantage claims, and states as precisely as this course can manage what would have to change for the answer to be different.</p>
+<p><a href="chapter-3.html">← Chapter 3: Quantum Kernel Methods</a> <a href="chapter-5.html">Chapter 5: An Honest Assessment →</a></p>
+<h3>Disclaimer</h3>
+<ul>
+<li>This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical warranty, etc.).</li>
+<li>This content and accompanying code examples are provided "AS IS" without any warranty, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
+<li>All performance comparisons in this chapter are measured on one synthetic 60-point data set with one architecture and one optimiser; they characterise that experiment and must not be read as a general ranking of quantum against classical machine learning.</li>
+<li>The author and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.</li>
+<li>To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+<li>The content may be changed, updated, or discontinued without notice.</li>
+<li>The copyright and license of this content are subject to the stated conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.</li>
+</ul><div class="navigation">
+    <a href="chapter-3.html" class="nav-button">← Previous Chapter</a>
+    <a href="index.html" class="nav-button">Back to Series Index</a>
+    <a href="chapter-5.html" class="nav-button">Next Chapter →</a>
+</div>
+    </main>
+
+    <footer>
+        <p><strong>Created by</strong>: AI Terakoya Content Team</p>
+        <p><strong>Supervised by</strong>: Dr. Yusuke Hashimoto (Tohoku University)</p>
+        <p><strong>Version</strong>: 1.0 | <strong>Created</strong>: 2025-01-01</p>
+        <p><strong>License</strong>: Creative Commons BY 4.0</p>
+        <p>© 2025 AI Terakoya. All rights reserved.</p>
+    </footer>
+</body>
+</html>

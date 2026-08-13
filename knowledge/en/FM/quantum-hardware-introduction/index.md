@@ -236,6 +236,7 @@ The conventions are fixed in Chapter 1 and never changed, so that code and formu
 ### Related Series
 
   * [Introduction to Quantum Computing](<../quantum-computing-introduction/index.html>) — the algorithms half of this pair
+  * [Introduction to Quantum Machine Learning](<../../MI/quantum-machine-learning-introduction/index.html>) — the MI-side application, and an honest measurement of whether it beats a classical baseline
   * [Introduction to Quantum Mechanics](<../quantum-mechanics/index.html>) — two-level systems, the harmonic oscillator, perturbation theory
   * [Introduction to Superconductivity](<../../MS/superconductivity-introduction/index.html>) — Cooper pairing and the Josephson effect in full
   * [Introduction to Spintronics](<../../MS/spintronics-introduction/index.html>) — spin transport, exchange, and magnetic materials

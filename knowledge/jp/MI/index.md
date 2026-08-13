@@ -144,7 +144,7 @@ DFT・分子動力学・フォノン計算の基礎から実践まで
 
 [開始 →](<./computational-materials-basics-introduction/index.html>)
 
-🚀 発展シリーズ - 最新AI技術（6シリーズ）
+🚀 発展シリーズ - 最新AI技術（7シリーズ）
 
 📕
 
@@ -205,6 +205,16 @@ Active Learning入門
 中級〜上級 100-120分 4章・28例
 
 [開始 →](<./active-learning-introduction/index.html>)
+
+📕
+
+量子機械学習入門
+
+量子モデルは材料データで古典ベースラインに勝てるのか — 符号化・量子カーネル・変分量子回路をNumPyだけで実装し、統一プロトコルで古典ベースラインと比較。指数的集中とdequantizationまで扱う誠実な評価
+
+中級〜上級 220-245分 5章・32例
+
+[開始 →](<./quantum-machine-learning-introduction/index.html>)
 
 🏭 産業応用シリーズ（5シリーズ）
 

@@ -1,0 +1,1659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 3: Quantum Kernel Methods - AI Terakoya</title>
+
+    <link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+    <style>
+        /* page-specific residual: the rules the shared sheet does not provide.
+           Everything else that used to live here is now in knowledge-base.css;
+           re-declaring it would only risk drifting out of sync with the sheet. */
+        details { background-color: var(--color-bg-alt); margin-bottom: var(--spacing-md) }
+        summary { user-select: none; margin: calc(-1 * var(--spacing-md)); border-radius: var(--border-radius) }
+        summary:hover {
+            /* accent wash; the literal is the FM/MI/ML purple and is the fallback
+               for engines without color-mix() (Chrome <111 / Safari <16.2). */
+            background-color: rgba(123, 44, 191, 0.1);
+            background-color: color-mix(in srgb, var(--color-accent) 10%, transparent);
+        }
+        details[open] summary { margin-bottom: var(--spacing-md); border-bottom: 1px solid var(--color-border) }
+        .learning-objectives {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: var(--spacing-lg);
+            border-radius: var(--border-radius);
+            border-left: 4px solid var(--color-accent);
+            margin-bottom: var(--spacing-xl);
+        }
+        .learning-objectives h2 { margin-top: 0; border-bottom: none }
+        @media (max-width: 768px) {
+            th { padding: var(--spacing-xs) }
+            td { padding: var(--spacing-xs) }
+        }
+    </style>
+
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+
+    <!-- MathJax for LaTeX equation rendering -->
+    <script>
+        MathJax = {
+            tex: {
+                // The HTML must carry a DOUBLE backslash before ( ) [ ] so the
+                // JS string is backslash-paren; a single one collapses to a bare
+                // paren and turns every prose parenthesis into a math delimiter
+                // (non-raw Python template: 4 backslashes -> 2 in HTML -> 1 in JS).
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" id="MathJax-script" async></script>
+</head>
+<body class="dojo-mi">
+    <header>
+        <div class="header-content">
+            <h1>Chapter 3: Quantum Kernel Methods</h1>
+            <p class="subtitle">The Fidelity Kernel, Its Shot Budget, Exponential Concentration, and an Honest Comparison Against a Radial Basis Function</p>
+            <div class="meta">
+                <span class="meta-item">📖 Reading Time: 45-50 minutes</span>
+                <span class="meta-item">📊 Difficulty: Advanced</span>
+                <span class="meta-item">💻 Code Examples: 7</span>
+                <span class="meta-item">📝 Exercises: 5</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+<p>🌐 EN | <a href="../../../jp/MI/quantum-machine-learning-introduction/chapter-3.html">🇯🇵 JP</a> | Last sync: 2026-08-13</p>
+<p><a href="../index.html">Materials Informatics Dojo</a> &gt; <a href="index.html">Introduction to Quantum Machine Learning</a> &gt; Chapter 3</p>
+<p>Chapter 2 ended with a demotion that turns out to be a gift. A quantum model with a fixed encoding and a trained observable is a linear model in the space of density matrices, so it is a kernel method — and the kernel, $k(x,x') = |\langle\phi(x)|\phi(x')\rangle|^2$, is the only thing about the quantum device that the learning problem can see. This chapter takes that seriously and follows it all the way down.</p>
+<p>The payoff is that quantum kernel methods are the one corner of quantum machine learning where the theory is finished. There is a closed-form solution, there is a well-understood generalisation theory, there is a proof-shaped statement about which feature maps are hard to simulate classically, and there is a sharp negative result — <strong>exponential concentration</strong> — that says what goes wrong as the register grows and by how much. No variational optimisation, no barren-plateau folklore, no hyperparameter that has to be tuned by hope. That makes it the right place to run the comparison this course exists to run.</p>
+<p>So we run it. Section 3.7 puts a quantum kernel and a radial basis function kernel on the same 40 training rows, selects every hyperparameter by cross-validation on the training set alone, and touches the 20 test rows exactly once. The result is printed as it came out, and it is not the result the promotional literature would choose. Explaining <em>why</em> it came out that way — and what would have to be different for the answer to change — is the actual content of the chapter, and it is worth more than a win would have been.</p>
+<p>Two quantitative results here are worth carrying away even if quantum hardware never becomes relevant to your work. The first is that the inversion test beats the swap test by a factor of $2^n$ in shot cost, for a reason that generalises to every fidelity estimation problem. The second is the concentration exponent: the standard deviation of a fidelity kernel falls by a measured factor of 0.5 to 0.56 per added qubit, which turns "quantum kernels do not scale" from a slogan into a number you can put in a budget.</p>
+<h2>Learning Objectives</h2>
+<p>After completing this chapter, you will be able to:</p>
+<ul>
+<li>Derive the kernel ridge regression solution $\alpha = (K + \lambda I)^{-1}(y - \bar{y})$ from the primal ridge problem using the push-through identity, and implement it in NumPy without a machine-learning library</li>
+<li>Construct an entangling feature map whose kernel has no known closed form, and verify that the inversion test $P(0\cdots0) = |\langle 0|U^\dagger(x')U(x)|0\rangle|^2$ returns the same number as the state overlap</li>
+<li>Compare the shot cost of the inversion test and the swap test and show that the former is cheaper by $1/k \approx 2^n$</li>
+<li>Compute the shot budget for an $N \times N$ kernel matrix at a target precision, and derive the regularisation floor $\lambda \gtrsim 2\sqrt{N}\sqrt{\bar{k}(1-\bar{k})/S}$ that shot noise imposes</li>
+<li>State and numerically verify the exponential concentration of the fidelity kernel: $\mathbb{E}[k] = 2^{-n}$ and $\mathrm{Var}[k] \approx 2^{-2n}$ for Haar-random feature maps, and measure the decay exponent for a real feature map at several depths</li>
+<li>Run a like-for-like comparison of quantum and classical kernels under one protocol, report it whatever it says, and identify the specific properties of the dataset that produced the outcome</li>
+<li>Explain how a projected kernel removes the concentration, measure that it does, and explain why removing the concentration did not improve the prediction</li>
+</ul>
+<hr />
+<h2>3.1 The Kernel Trick, and the Quantum Version of It</h2>
+<h3>Twenty lines of revision</h3>
+<p>Take a model that is linear in a feature map, $f(x) = w \cdot \varphi(x)$, and fit it by penalised least squares on $N$ samples:</p>
+<p>$$ J(w) = \lVert \Phi w - y \rVert^2 + \lambda \lVert w \rVert^2, \qquad \Phi_{i\cdot} = \varphi(x_i)^{\top} $$</p>
+<p>Setting the gradient to zero gives $w = (\Phi^{\top}\Phi + \lambda I)^{-1}\Phi^{\top} y$, which requires inverting a matrix the size of the feature space. The <strong>push-through identity</strong> moves the inverse to the other side. From the trivial equality $\Phi^{\top}(\Phi\Phi^{\top} + \lambda I) = (\Phi^{\top}\Phi + \lambda I)\Phi^{\top}$ it follows that</p>
+<p>$$ (\Phi^{\top}\Phi + \lambda I)^{-1}\Phi^{\top} = \Phi^{\top}(\Phi\Phi^{\top} + \lambda I)^{-1} $$</p>
+<p>so that $w = \Phi^{\top}\alpha$ with $\alpha = (K + \lambda I)^{-1} y$ and $K = \Phi\Phi^{\top}$, an $N \times N$ matrix of inner products. The prediction never touches $w$:</p>
+<p>$$ f(x^\ast) = \varphi(x^\ast)\cdot w = \sum_{i=1}^{N} \alpha_i \, \big\langle \varphi(x^\ast), \varphi(x_i)\big\rangle = \sum_{i=1}^{N} \alpha_i \, k(x^\ast, x_i) $$</p>
+<p><strong>Only inner products are ever needed.</strong> The feature space may be enormous or infinite-dimensional; the computation is $N \times N$. That is the kernel trick, and it is the reason a quantum feature map is usable at all: nobody has to extract $2^n$ amplitudes, only one number per pair of samples.</p>
+<h3>The fidelity kernel</h3>
+<p>For a quantum feature map the features are density matrices, $\rho(x) = |\phi(x)\rangle\langle\phi(x)|$, and the natural inner product is the Hilbert-Schmidt one. That gives</p>
+<p>$$ k(x,x') = \mathrm{Tr}\left[\rho(x)\rho(x')\right] = \left|\langle\phi(x)|\phi(x')\rangle\right|^2 $$</p>
+<p>known as the <strong>fidelity kernel</strong> because for pure states the trace overlap is the state fidelity. It is a legitimate kernel for free: it is a Gram matrix of vectors in a real inner product space, hence symmetric and positive semidefinite for every dataset, with no condition on the circuit. It is also normalised, $k(x,x) = 1$, and bounded, $0 \le k \le 1$.</p>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Statement</th>
+<th>Consequence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Symmetry</td>
+<td>$k(x,x') = k(x',x)$</td>
+<td>one measurement per unordered pair</td>
+</tr>
+<tr>
+<td>Normalisation</td>
+<td>$k(x,x) = 1$</td>
+<td>the diagonal is known without measuring</td>
+</tr>
+<tr>
+<td>Positivity</td>
+<td>$K \succeq 0$ exactly</td>
+<td>no need to repair the matrix, until shot noise arrives</td>
+</tr>
+<tr>
+<td>Range</td>
+<td>$0 \le k \le 1$</td>
+<td>it is a probability, hence estimable by counting</td>
+</tr>
+<tr>
+<td>Invariance</td>
+<td>unaffected by a global phase or a final unitary common to both arguments</td>
+<td>the last layer of the circuit is free to choose</td>
+</tr>
+</tbody>
+</table>
+<p>The last row deserves emphasis because it constrains the design space: appending any $x$-independent unitary $V$ to the feature map leaves $k$ unchanged, since $|\langle\phi|V^\dagger V|\phi'\rangle| = |\langle\phi|\phi'\rangle|$. A fidelity kernel therefore depends on the encoding and nothing else — there are no trainable parameters in it at all. Everything trainable lives in $\alpha$, and $\alpha$ is a linear solve.</p>
+<h3>Why an entangling map</h3>
+<p>Chapter 2 established that all three standard encodings give kernels with closed forms: a delta function, a product of cosines, a squared cosine similarity. A kernel with a closed form is a classical kernel, whatever hardware evaluated it. To get a kernel that is plausibly hard to compute classically the feature map must do something a product circuit cannot, and the standard construction inserts data-dependent two-qubit phases.</p>
+<p>Write $\phi_j(x) = b\,\pi x_j$ for the single-qubit angles and $\phi_{jk}(x) = (\pi - \phi_j)(\pi - \phi_k)$ for the pair angles, and define the diagonal unitary</p>
+<p>$$ U_\Phi(x) = \exp\left(-i\left[\sum_{j} \phi_j(x)\, Z_j + \sum_{j&lt;k} \phi_{jk}(x)\, Z_j Z_k\right]\right) $$</p>
+<p>The feature map is $r$ repetitions of a Hadamard layer followed by $U_\Phi$:</p>
+<p>$$ |\phi(x)\rangle = \left[U_\Phi(x)\, H^{\otimes n}\right]^{r} |0\cdots0\rangle $$</p>
+<p>Two implementation facts make this practical. The single-qubit part is one $R_z(2\phi_j)$ per qubit, since $R_z(2\phi) = e^{-i\phi Z}$. The pair part is the compilation trick from the sister course: $e^{-i\phi Z_jZ_k} = \mathrm{CNOT}_{jk}\,R_z^{(k)}(2\phi)\,\mathrm{CNOT}_{jk}$. So the circuit is $2r\binom{n}{2}$ CNOTs and $r\left(2n + \binom{n}{2}\right)$ single-qubit gates — concretely, for $n = 4$ and $r = 2$, the 52 operations, 24 CNOTs and 28 single-qubit gates that Code Example 2 counts.</p>
+<p>The reason to believe this is classically hard is a diagonal-circuit hardness argument: circuits of the form "Hadamard layer, diagonal phase, Hadamard layer, measure" are <strong>instantaneous quantum polynomial-time</strong> (IQP) circuits, and exactly sampling their output distributions is hard for classical computers under standard complexity assumptions. The honest caveat, which Chapter 5 develops, is that <em>hard to sample</em> is not the same as <em>hard to estimate to the precision a learning problem needs</em>, and the gap between those two statements is where most of the dequantization results live.</p>
+<p><strong>The parameter $b$ is the bandwidth of Chapter 2</strong>, carried through unchanged, and it is the only knob in the whole construction. It will do more work in this chapter than any other quantity.</p>
+<hr />
+<h2>3.2 Measuring a Kernel</h2>
+<h3>The inversion test</h3>
+<p>A fidelity is not an observable, so it has to be turned into a probability. The cheapest way uses no extra qubits at all. Prepare $|\phi(x)\rangle$, then apply the <em>inverse</em> of the circuit that prepares $|\phi(x')\rangle$, then measure everything:</p>
+<p>$$ P(0\cdots 0) = \left|\langle 0\cdots0 | U^\dagger(x')\, U(x) | 0\cdots0\rangle\right|^2 = \left|\langle \phi(x')|\phi(x)\rangle\right|^2 = k(x,x') $$</p>
+<p>The all-zeros outcome probability <em>is</em> the kernel entry. Cost: $n$ qubits, twice the depth of the feature map, and one classical counter.</p>
+<p><div class="mermaid">
+graph LR
+    Z["|0...0&gt;"] --&gt; A["U(x)<br/>feature map"]
+    A --&gt; B["U-dagger(x')<br/>inverse map"]
+    B --&gt; M["measure<br/>all qubits"]
+    M --&gt; C["count 0...0<br/>k-hat = c / S"]
+    style Z fill:#e2e8f0,stroke:#94a3b8,color:#334155
+    style A fill:#667eea,stroke:#764ba2,stroke-width:2px,color:#fff
+    style B fill:#667eea,stroke:#764ba2,stroke-width:2px,color:#fff
+    style M fill:#f6ad55,stroke:#dd6b20,color:#1a202c
+    style C fill:#48bb78,stroke:#2f855a,color:#fff
+</div></p>
+<h3>The swap test, and why it is worse</h3>
+<p>The textbook alternative prepares both states on separate registers plus one ancilla, and uses a controlled swap. The ancilla's outcome probability is</p>
+<p>$$ P(\text{ancilla} = 0) = \frac{1 + |\langle\phi|\phi'\rangle|^2}{2} = \frac{1 + k}{2}, \qquad \hat{k} = 2\hat{P} - 1 $$</p>
+<p>It needs $2n + 1$ qubits and a controlled swap on $n$ pairs, which is expensive, but the decisive objection is statistical. Compare the variances of the two estimators at $S$ shots:</p>
+<p>$$ \mathrm{Var}\big[\hat{k}_{\text{inv}}\big] = \frac{k(1-k)}{S}, \qquad \mathrm{Var}\big[\hat{k}_{\text{swap}}\big] = 4 \cdot \frac{P(1-P)}{S} = \frac{1 - k^2}{S} $$</p>
+<p>For the small kernel values that matter — and Section 3.6 shows that $k \sim 2^{-n}$ is the generic case — the ratio is</p>
+<p>$$ \frac{\mathrm{Var}[\hat{k}_{\text{swap}}]}{\mathrm{Var}[\hat{k}_{\text{inv}}]} = \frac{1-k^2}{k(1-k)} \approx \frac{1}{k} \approx 2^{n} $$</p>
+<p>An exponential factor, from a choice of subroutine. At $n = 20$ the swap test needs a million times as many shots for the same error bar. Everything in this chapter uses the inversion test, and the general lesson — <em>estimate a small probability by counting a rare outcome, not by measuring a bounded observable whose variance does not shrink with the signal</em> — recurs throughout quantum estimation.</p>
+<h3>The shot budget, in advance</h3>
+<p>$\hat{k}$ is a binomial proportion, so its standard error is $\sqrt{k(1-k)/S}$ and reaching a target $\varepsilon$ costs</p>
+<p>$$ S = \frac{k(1-k)}{\varepsilon^2} $$</p>
+<p>shots <strong>per matrix entry</strong>. A training set of $N$ samples has $N(N-1)/2$ distinct off-diagonal entries — the diagonal is known to be 1 — so the total is</p>
+<p>$$ S_{\text{total}} = \frac{N(N-1)}{2}\cdot\frac{\bar{k}(1-\bar{k})}{\varepsilon^2} \;\sim\; \frac{N^2 \bar{k}}{2\varepsilon^2} $$</p>
+<p>Quadratic in the sample count and inverse-quadratic in the precision. Code Example 4 tabulates it; the headline is that a 4,000-sample training set at $\varepsilon = 0.01$ is about $4.7\times10^9$ shots, and there is no way to amortise it because every pair is a different circuit.</p>
+<hr />
+<h2>3.3 Building It</h2>
+<h3>Code Example 1: The Mini-Simulator, Re-listed</h3>
+<p>The same ninety-nine lines as Chapter 2 and as <a href="../../FM/quantum-computing-introduction/index.html">Introduction to Quantum Computing</a> Chapter 2, repeated so that this chapter stands alone. Big-endian ordering, qubit 0 leftmost and most significant.</p>
+<pre><code class="language-python">&quot;&quot;&quot;Minimal state-vector simulator (big-endian: qubit 0 = leftmost = most significant).
+
+Save this file as qcsim.py; every later example does `from qcsim import *`.
+&quot;&quot;&quot;
+import numpy as np
+
+# ---- single-qubit gates -------------------------------------------------
+I2 = np.eye(2, dtype=complex)
+X = np.array([[0, 1], [1, 0]], dtype=complex)
+Y = np.array([[0, -1j], [1j, 0]], dtype=complex)
+Z = np.array([[1, 0], [0, -1]], dtype=complex)
+H = np.array([[1, 1], [1, -1]], dtype=complex) / np.sqrt(2)
+S = np.array([[1, 0], [0, 1j]], dtype=complex)
+T = np.array([[1, 0], [0, np.exp(1j * np.pi / 4)]], dtype=complex)
+
+
+def rx(theta):
+    c, s = np.cos(theta / 2), np.sin(theta / 2)
+    return np.array([[c, -1j * s], [-1j * s, c]], dtype=complex)
+
+
+def ry(theta):
+    c, s = np.cos(theta / 2), np.sin(theta / 2)
+    return np.array([[c, -s], [s, c]], dtype=complex)
+
+
+def rz(theta):
+    e = np.exp(-1j * theta / 2)
+    return np.array([[e, 0], [0, np.conj(e)]], dtype=complex)
+
+
+# ---- states -------------------------------------------------------------
+def ket(bits: str) -&gt; np.ndarray:
+    &quot;&quot;&quot;'01' -&gt; the 4-dimensional basis state |01&gt; (big-endian).&quot;&quot;&quot;
+    n = len(bits)
+    psi = np.zeros(2 ** n, dtype=complex)
+    psi[int(bits, 2)] = 1.0
+    return psi
+
+
+def apply_gate(state, U, targets, n):
+    &quot;&quot;&quot;Apply the 2^k x 2^k unitary U to the listed target qubits of an n-qubit state.&quot;&quot;&quot;
+    k = len(targets)
+    psi = state.reshape([2] * n)          # 1. view as an n-index tensor
+    psi = np.moveaxis(psi, targets, range(k))   # 2. bring targets to the front
+    rest = psi.shape[k:]
+    psi = psi.reshape(2 ** k, -1)         # 3. flatten and multiply
+    psi = U @ psi
+    psi = psi.reshape(list((2,) * k) + list(rest))
+    psi = np.moveaxis(psi, range(k), targets)   # 4. put the axes back
+    return psi.reshape(-1)
+
+
+CNOT4 = np.array([[1, 0, 0, 0],
+                  [0, 1, 0, 0],
+                  [0, 0, 0, 1],
+                  [0, 0, 1, 0]], dtype=complex)
+
+
+def cnot(state, control, target, n):
+    &quot;&quot;&quot;CNOT with the given control and target; any pair of qubits, any order.&quot;&quot;&quot;
+    return apply_gate(state, CNOT4, [control, target], n)
+
+
+def probs(state):
+    &quot;&quot;&quot;Born-rule probabilities of all 2^n outcomes.&quot;&quot;&quot;
+    return np.abs(state) ** 2
+
+
+def sample(state, shots, seed=None):
+    &quot;&quot;&quot;Simulated measurement: {bitstring: count}.&quot;&quot;&quot;
+    n = int(np.log2(state.size))
+    rng = np.random.default_rng(seed)
+    idx = rng.choice(state.size, size=shots, p=probs(state))
+    out = {}
+    for i in idx:
+        b = format(i, f'0{n}b')
+        out[b] = out.get(b, 0) + 1
+    return dict(sorted(out.items()))
+
+
+PAULI = {'I': I2, 'X': X, 'Y': Y, 'Z': Z}
+
+
+def expval(state, pauli, coeff_map=None):
+    &quot;&quot;&quot;Expectation value of a Pauli string such as 'ZZ', 'XI' (one character per qubit).
+
+    If coeff_map is given, the result is multiplied by coeff_map[pauli], so that a
+    whole Hamiltonian is one line:  sum(expval(psi, p, terms) for p in terms).
+    &quot;&quot;&quot;
+    n = len(pauli)
+    phi = state.copy()
+    for q, ch in enumerate(pauli):
+        if ch != 'I':
+            phi = apply_gate(phi, PAULI[ch], [q], n)
+    val = np.vdot(state, phi).real
+    if coeff_map is not None:
+        val *= coeff_map.get(pauli, 1.0)
+    return val
+</code></pre>
+<h3>Code Example 2: The Feature Map, the Kernel, and the Inversion Test</h3>
+<p>The feature map is built as a <strong>list of gates</strong> rather than as a sequence of calls, for one reason: the inversion test needs its adjoint, and a gate list can be reversed and conjugated in three lines. That is the only piece of machinery here that is not in the simulator already.</p>
+<pre><code class="language-python">&quot;&quot;&quot;Chapter 3, Example 2: the quantum kernel and how it is measured.&quot;&quot;&quot;
+import numpy as np
+from qcsim import *
+
+def make_materials_dataset(n=60, seed=7):
+    &quot;&quot;&quot;Synthetic composition-descriptor -&gt; formation-energy-like regression set.
+    4 descriptors in [0,1]; smooth nonlinear target + mild noise. Deterministic.&quot;&quot;&quot;
+    rng = np.random.default_rng(seed)
+    X = rng.uniform(0.0, 1.0, (n, 4))
+    y = (np.sin(np.pi * X[:, 0]) * np.cos(np.pi * X[:, 1])
+         + 0.5 * X[:, 2]**2 - 0.3 * X[:, 3]
+         + 0.05 * rng.standard_normal(n))
+    return X, y
+
+
+def zz_ops(x, reps=2, bandwidth=1.0):
+    &quot;&quot;&quot;Gate list of the entangling feature map, in application order.
+
+    Per repetition: H on every qubit, Rz(2*phi_j) on every qubit, then for every
+    pair a CNOT-Rz-CNOT sandwich realising exp(-i*phi_jk*Z_j Z_k). The data enter
+    as phi_j = bandwidth * pi * x_j and phi_jk = (pi - phi_j)(pi - phi_k).
+    &quot;&quot;&quot;
+    n = len(x)
+    phi = bandwidth * np.pi * np.asarray(x)
+    ops = []
+    for _ in range(reps):
+        ops += [(H, [j]) for j in range(n)]
+        ops += [(rz(2.0 * phi[j]), [j]) for j in range(n)]
+        for j in range(n):
+            for k in range(j + 1, n):
+                ang = 2.0 * (np.pi - phi[j]) * (np.pi - phi[k])
+                ops += [(CNOT4, [j, k]), (rz(ang), [k]), (CNOT4, [j, k])]
+    return ops
+
+
+def run_ops(psi, ops, n, dagger=False):
+    &quot;&quot;&quot;Apply a gate list, or its adjoint (reversed order, each gate conjugated).&quot;&quot;&quot;
+    if dagger:
+        for U, t in reversed(ops):
+            psi = apply_gate(psi, U.conj().T, t, n)
+    else:
+        for U, t in ops:
+            psi = apply_gate(psi, U, t, n)
+    return psi
+
+
+def feature_state(x, reps=2, bandwidth=1.0):
+    &quot;&quot;&quot;|phi(x)&gt; = U(x)|0...0&gt;.&quot;&quot;&quot;
+    n = len(x)
+    return run_ops(ket('0' * n), zz_ops(x, reps, bandwidth), n)
+
+
+def qkernel(x, xp, reps=2, bandwidth=1.0):
+    &quot;&quot;&quot;Exact quantum kernel |&lt;phi(x')|phi(x)&gt;|^2 from the two state vectors.&quot;&quot;&quot;
+    return float(abs(np.vdot(feature_state(xp, reps, bandwidth),
+                             feature_state(x, reps, bandwidth))) ** 2)
+
+
+def qkernel_inversion(x, xp, reps=2, bandwidth=1.0):
+    &quot;&quot;&quot;Same number by the inversion test: P(all zeros) after U^dag(x') U(x).&quot;&quot;&quot;
+    n = len(x)
+    psi = run_ops(ket('0' * n), zz_ops(x, reps, bandwidth), n)
+    psi = run_ops(psi, zz_ops(xp, reps, bandwidth), n, dagger=True)
+    return float(probs(psi)[0])
+
+
+def gram(A, B, reps=2, bandwidth=1.0):
+    &quot;&quot;&quot;Kernel matrix between two lists of inputs, from the state vectors.&quot;&quot;&quot;
+    SA = np.array([feature_state(v, reps, bandwidth) for v in A])
+    SB = np.array([feature_state(v, reps, bandwidth) for v in B])
+    return np.abs(SA.conj() @ SB.T) ** 2
+
+
+X, y = make_materials_dataset()
+
+print(&quot;The entangling feature map on 4 qubits, 2 repetitions&quot;)
+print(&quot;-&quot; * 70)
+ops = zz_ops(X[0])
+ncnot = sum(1 for U, t in ops if U.shape[0] == 4)
+print(f&quot;  gate operations        = {len(ops)}&quot;)
+print(f&quot;  two-qubit (CNOT) gates = {ncnot}&quot;)
+print(f&quot;  single-qubit gates     = {len(ops) - ncnot}&quot;)
+psi = feature_state(X[0])
+print(f&quot;  state dimension = {psi.size},  norm = {np.linalg.norm(psi):.12f}&quot;)
+print(f&quot;  entangled? Schmidt values across qubits 01 | 23 = &quot;
+      f&quot;{np.round(np.linalg.svd(psi.reshape(4, 4), compute_uv=False), 4)}&quot;)
+
+print(&quot;\nQuantum kernel: state overlap vs the inversion test&quot;)
+print(&quot;-&quot; * 70)
+print(f&quot;  {'pair':&gt;8} {'|&lt;phi|phi&gt;|^2':&gt;14} {'inversion test':&gt;15} {'difference':&gt;12}&quot;)
+for i, j in [(0, 0), (0, 1), (0, 2), (1, 3), (5, 17), (23, 39)]:
+    a, b = qkernel(X[i], X[j]), qkernel_inversion(X[i], X[j])
+    print(f&quot;  ({i:2d},{j:2d}) {a:14.9f} {b:15.9f} {a - b:12.2e}&quot;)
+
+print(&quot;\nThe inversion test with a finite number of shots (pair 0,2; k = &quot;
+      f&quot;{qkernel(X[0], X[2]):.6f})&quot;)
+print(&quot;-&quot; * 70)
+n = 4
+psi = run_ops(ket('0000'), zz_ops(X[0]), n)
+psi = run_ops(psi, zz_ops(X[2]), n, dagger=True)
+kex = probs(psi)[0]
+print(f&quot;  {'shots':&gt;8} {'counts of 0000':&gt;15} {'k_hat':&gt;10} {'error':&gt;10} &quot;
+      f&quot;{'sqrt(k(1-k)/S)':&gt;15}&quot;)
+for S in [100, 1000, 10000, 100000]:
+    c = sample(psi, S, seed=1234).get('0000', 0)
+    kh = c / S
+    print(f&quot;  {S:8d} {c:15d} {kh:10.5f} {kh - kex:+10.5f} &quot;
+          f&quot;{np.sqrt(kex * (1 - kex) / S):15.5f}&quot;)
+
+print(&quot;\nKernel matrix statistics on the 40 training points&quot;)
+print(&quot;-&quot; * 70)
+print(f&quot;  {'reps':&gt;5} {'bandwidth':&gt;10} {'mean off-diag':&gt;14} {'std':&gt;9} &quot;
+      f&quot;{'max off-diag':&gt;13} {'eff. dim':&gt;9}&quot;)
+for reps, b in [(2, 1.0), (1, 1.0), (2, 0.3), (1, 0.1)]:
+    K = gram(X[:40], X[:40], reps, b)
+    off = K[~np.eye(40, dtype=bool)]
+    w = np.linalg.eigvalsh(K).real.clip(0.0)
+    print(f&quot;  {reps:5d} {b:10.2f} {off.mean():14.6f} {off.std():9.6f} &quot;
+          f&quot;{off.max():13.6f} {w.sum()**2 / np.sum(w**2):9.3f}&quot;)
+print(f&quot;  a delta kernel would have mean 0 and effective dimension 40;&quot;)
+print(f&quot;  1/2^n = {1/16:.6f} is where a Haar-random feature map would sit&quot;)
+</code></pre>
+<pre><code class="language-text">The entangling feature map on 4 qubits, 2 repetitions
+----------------------------------------------------------------------
+  gate operations        = 52
+  two-qubit (CNOT) gates = 24
+  single-qubit gates     = 28
+  state dimension = 16,  norm = 1.000000000000
+  entangled? Schmidt values across qubits 01 | 23 = [0.9071 0.4028 0.1107 0.052 ]
+
+Quantum kernel: state overlap vs the inversion test
+----------------------------------------------------------------------
+      pair  |&lt;phi|phi&gt;|^2  inversion test   difference
+  ( 0, 0)    1.000000000     1.000000000    -2.22e-16
+  ( 0, 1)    0.057599079     0.057599079     4.16e-17
+  ( 0, 2)    0.005100473     0.005100473     1.73e-17
+  ( 1, 3)    0.028266909     0.028266909    -1.04e-17
+  ( 5,17)    0.015034384     0.015034384    -1.21e-17
+  (23,39)    0.044235998     0.044235998    -9.02e-17
+
+The inversion test with a finite number of shots (pair 0,2; k = 0.005100)
+----------------------------------------------------------------------
+     shots  counts of 0000      k_hat      error  sqrt(k(1-k)/S)
+       100               1    0.01000   +0.00490         0.00712
+      1000               9    0.00900   +0.00390         0.00225
+     10000              62    0.00620   +0.00110         0.00071
+    100000             518    0.00518   +0.00008         0.00023
+
+Kernel matrix statistics on the 40 training points
+----------------------------------------------------------------------
+   reps  bandwidth  mean off-diag       std  max off-diag  eff. dim
+      2       1.00       0.067288  0.065205      0.528816    29.798
+      1       1.00       0.066491  0.068570      0.495660    29.503
+      2       0.30       0.101818  0.096190      0.558679    22.661
+      1       0.10       0.335889  0.181500      0.923509     5.984
+  a delta kernel would have mean 0 and effective dimension 40;
+  1/2^n = 0.062500 is where a Haar-random feature map would sit
+</code></pre>
+<p><strong>What to notice.</strong> The inversion test and the state overlap agree to $10^{-16}$ on every pair tested, including the trivial pair $(0,0)$ where both return exactly 1. This is a real check, not a tautology: the two computations share no code path — one takes an inner product of two independently prepared vectors, the other runs a circuit twice as deep and reads off a single probability.</p>
+<p>The shot table is the first appearance of the chapter's central difficulty. The exact kernel entry for the pair $(0,2)$ is $k = 0.0051$. With 100 shots we observe <strong>one</strong> count of <code>0000</code>, giving $\hat{k} = 0.01$, which is off by a factor of two; the predicted standard error at that shot count is 0.0071, i.e. larger than the quantity being measured. Only at $10^5$ shots is the estimate good to two significant figures. A small kernel entry is a rare event, and rare events are expensive.</p>
+<p>The last table is the one to remember. At the conventional settings — two repetitions, bandwidth 1 — the mean off-diagonal kernel entry on the training set is 0.0673, against $1/2^n = 0.0625$ for a Haar-random feature map on four qubits. <strong>The kernel has already collapsed onto its random-state value at four qubits.</strong> Its effective dimension is 29.8 out of 40, which is Chapter 2's diagnosis of a near-delta kernel and a prediction that it will memorise rather than generalise. Turning the bandwidth down to 0.1 with one repetition raises the mean off-diagonal to 0.336 and drops the effective dimension to 6.0 — a usable kernel. Both are the same feature map.</p>
+<hr />
+<h2>3.4 Kernel Ridge Regression, in Closed Form</h2>
+<h3>The estimator, stated completely</h3>
+<p>Three details separate the formula in Section 3.1 from a usable estimator, and all three are choices that must be reported.</p>
+<p><strong>Centring.</strong> An unpenalised intercept is standard, and the cheapest way to get one is to subtract the training mean from the labels, fit, and add it back:</p>
+<p>$$ \alpha = (K + \lambda I)^{-1}(y - \bar{y}\,\mathbf{1}), \qquad \hat{f}(x^\ast) = \bar{y} + \sum_i \alpha_i\, k(x^\ast, x_i) $$</p>
+<p>Without this, the penalty $\lambda\lVert w\rVert^2$ shrinks the prediction toward zero rather than toward the mean of the data, and the $\lambda \to \infty$ limit is wrong.</p>
+<p><strong>The two limits.</strong> At $\lambda \to 0$ the solution interpolates: $K\alpha = y - \bar{y}$ exactly, so the training residual is zero and the model is a pure memoriser. At $\lambda \to \infty$, $\alpha \to 0$ and $\hat{f} \to \bar{y}$, the constant predictor. Every useful model lives strictly between, and $\lambda$ is not a nuisance parameter but the model's capacity control.</p>
+<p><strong>The solve, not the inverse.</strong> <code>np.linalg.solve(K + lam*I, y - mu)</code> uses an LU factorisation and is both faster and better conditioned than forming the inverse. For $K$ symmetric positive definite a Cholesky factorisation is better still; at $N = 40$ it does not matter, at $N = 4000$ it does.</p>
+<h3>Why this is the right estimator for this course</h3>
+<p>Kernel ridge regression is the <em>only</em> model used in this chapter, applied identically to every kernel, and that is deliberate. Support vector machines, Gaussian processes and kernel ridge regression all consume a Gram matrix; choosing among them adds a confound to a comparison whose whole purpose is to isolate the effect of the kernel. Kernel ridge regression has the additional virtue of a closed form, so there is no optimiser, no initialisation, no convergence criterion, and no way for an implementation difference to masquerade as a scientific result. A referee can re-derive every number in Section 3.7 from the Gram matrices with one linear solve.</p>
+<h3>Code Example 3: The Solver, and Three Checks On It</h3>
+<p>Fourteen lines for the estimator, and then three independent verifications: against explicit ridge regression in the 256-dimensional feature space, against textbook radial basis function regression, and against the two analytic limits.</p>
+<pre><code class="language-python">&quot;&quot;&quot;Chapter 3, Example 3: kernel ridge regression in closed form.
+Continues from Example 2 (same session).&quot;&quot;&quot;
+
+def krr_fit(K, y, lam):
+    &quot;&quot;&quot;Closed form: alpha = (K + lam I)^-1 (y - mean), plus the stored mean.&quot;&quot;&quot;
+    mu = float(y.mean())
+    alpha = np.linalg.solve(K + lam * np.eye(K.shape[0]), y - mu)
+    return alpha, mu
+
+
+def krr_predict(Ks, alpha, mu):
+    &quot;&quot;&quot;Ks[i, j] = k(x*_i, x_j) against the training set.&quot;&quot;&quot;
+    return Ks @ alpha + mu
+
+
+def rbf_gram(A, B, gamma):
+    &quot;&quot;&quot;Classical RBF kernel exp(-gamma ||a - b||^2), for the comparisons below.&quot;&quot;&quot;
+    d2 = np.sum(A**2, 1)[:, None] + np.sum(B**2, 1)[None, :] - 2.0 * A @ B.T
+    return np.exp(-gamma * d2)
+
+
+def rmse(a, b):
+    return float(np.sqrt(np.mean((a - b) ** 2)))
+
+
+def cv_rmse(K, y, lam, nfold=5):
+    &quot;&quot;&quot;Pooled k-fold CV error, using only sub-blocks of the training kernel.&quot;&quot;&quot;
+    m = len(y)
+    idx = np.arange(m)
+    err = []
+    for f in range(nfold):
+        te = idx[f::nfold]
+        tr = np.setdiff1d(idx, te)
+        al, mu = krr_fit(K[np.ix_(tr, tr)], y[tr], lam)
+        err.append(krr_predict(K[np.ix_(te, tr)], al, mu) - y[te])
+    return float(np.sqrt(np.mean(np.concatenate(err) ** 2)))
+
+
+def r2(pred, true):
+    return float(1.0 - np.sum((pred - true) ** 2) / np.sum((true - true.mean()) ** 2))
+
+
+X, y = make_materials_dataset()
+Xtr, ytr, Xte, yte = X[:40], y[:40], X[40:], y[40:]
+Ktr = gram(Xtr, Xtr)
+Kte = gram(Xte, Xtr)
+
+print(&quot;Closed-form KRR is one linear solve&quot;)
+print(&quot;-&quot; * 74)
+print(f&quot;  K_train {Ktr.shape}, K_test {Kte.shape}; feature map reps = 2, bandwidth = 1&quot;)
+print(f&quot;  {'lambda':&gt;10} {'||alpha||':&gt;10} {'train RMSE':&gt;11} {'test RMSE':&gt;10} {'test R^2':&gt;9}&quot;)
+for lam in [1e-8, 1e-6, 1e-4, 1e-2, 1e-1, 1.0, 10.0, 100.0]:
+    al, mu = krr_fit(Ktr, ytr, lam)
+    print(f&quot;  {lam:10.0e} {np.linalg.norm(al):10.3f} &quot;
+          f&quot;{rmse(krr_predict(Ktr, al, mu), ytr):11.4f} &quot;
+          f&quot;{rmse(krr_predict(Kte, al, mu), yte):10.4f} &quot;
+          f&quot;{r2(krr_predict(Kte, al, mu), yte):9.4f}&quot;)
+print(f&quot;  predict-the-mean baseline: test RMSE {rmse(np.full(20, ytr.mean()), yte):.4f}, &quot;
+      f&quot;R^2 {r2(np.full(20, ytr.mean()), yte):+.4f}&quot;)
+print(&quot;  -&gt; at every lambda the default quantum kernel is WORSE than the mean.&quot;)
+
+print(&quot;\nThe same solver with the bandwidth knob of Chapter 2 turned down&quot;)
+print(&quot;-&quot; * 74)
+print(f&quot;  {'reps':&gt;5} {'bandwidth':&gt;10} {'best lambda':&gt;12} {'train RMSE':&gt;11} &quot;
+      f&quot;{'test RMSE':&gt;10} {'test R^2':&gt;9}&quot;)
+grid = np.logspace(-8, 2, 41)
+for reps, b in [(2, 1.0), (2, 0.3), (1, 0.2), (1, 0.1), (1, 0.05)]:
+    Ka, Kb = gram(Xtr, Xtr, reps, b), gram(Xte, Xtr, reps, b)
+    best = min((rmse(krr_predict(Kb, *krr_fit(Ka, ytr, l)), yte), l) for l in grid)
+    al, mu = krr_fit(Ka, ytr, best[1])
+    print(f&quot;  {reps:5d} {b:10.2f} {best[1]:12.1e} &quot;
+          f&quot;{rmse(krr_predict(Ka, al, mu), ytr):11.4f} {best[0]:10.4f} &quot;
+          f&quot;{r2(krr_predict(Kb, al, mu), yte):9.4f}&quot;)
+print(&quot;  (lambda picked on the test set here, to expose the ceiling; Example 6&quot;)
+print(&quot;   redoes this honestly with cross-validation on the training set only.)&quot;)
+
+print(&quot;\nCheck 1: the dual solution equals explicit ridge in feature space&quot;)
+print(&quot;-&quot; * 74)
+
+
+def rho_features(psi):
+    &quot;&quot;&quot;Vectorised |phi&gt;&lt;phi|, scaled so that dot products equal the kernel.&quot;&quot;&quot;
+    R = np.outer(psi.conj(), psi)
+    D = R.shape[0]
+    iu = np.triu_indices(D, 1)
+    return np.concatenate([R[np.diag_indices(D)].real,
+                           np.sqrt(2.0) * R[iu].real,
+                           np.sqrt(2.0) * R[iu].imag])
+
+
+Ptr = np.array([rho_features(feature_state(v)) for v in Xtr])
+Pte = np.array([rho_features(feature_state(v)) for v in Xte])
+print(f&quot;  feature dimension = {Ptr.shape[1]}  (D^2 real numbers with D = 16)&quot;)
+print(f&quot;  max |Ptr Ptr^T - K_train| = {np.max(np.abs(Ptr @ Ptr.T - Ktr)):.2e}&quot;)
+lam = 1e-3
+al, mu = krr_fit(Ktr, ytr, lam)
+w = np.linalg.solve(Ptr.T @ Ptr + lam * np.eye(Ptr.shape[1]), Ptr.T @ (ytr - mu))
+print(f&quot;  primal vs dual test predictions, max difference = &quot;
+      f&quot;{np.max(np.abs((Pte @ w + mu) - krr_predict(Kte, al, mu))):.2e}&quot;)
+print(f&quot;  ||w||^2 = {w @ w:.6f}   alpha^T K alpha = {al @ Ktr @ al:.6f}&quot;)
+
+print(&quot;\nCheck 2: the same routine reproduces textbook RBF regression&quot;)
+print(&quot;-&quot; * 74)
+for gamma in [0.5, 1.0, 2.0, 4.0]:
+    Kr, Krt = rbf_gram(Xtr, Xtr, gamma), rbf_gram(Xte, Xtr, gamma)
+    al, mu = krr_fit(Kr, ytr, 1e-3)
+    print(f&quot;  gamma = {gamma:4.1f}: train RMSE {rmse(krr_predict(Kr, al, mu), ytr):.4f}&quot;
+          f&quot;   test RMSE {rmse(krr_predict(Krt, al, mu), yte):.4f}&quot;
+          f&quot;   R^2 {r2(krr_predict(Krt, al, mu), yte):+.4f}&quot;)
+
+print(&quot;\nCheck 3: the two limits of the regularisation path&quot;)
+print(&quot;-&quot; * 74)
+al, mu = krr_fit(Ktr, ytr, 1e-12)
+print(f&quot;  lambda -&gt; 0 interpolates the training labels: &quot;
+      f&quot;train RMSE = {rmse(krr_predict(Ktr, al, mu), ytr):.2e}&quot;)
+al, mu = krr_fit(Ktr, ytr, 1e6)
+print(f&quot;  lambda -&gt; infinity returns the training mean: prediction spread &quot;
+      f&quot;{np.std(krr_predict(Kte, al, mu)):.2e}, mean {mu:+.6f}&quot;)
+</code></pre>
+<pre><code class="language-text">Closed-form KRR is one linear solve
+--------------------------------------------------------------------------
+  K_train (40, 40), K_test (20, 40); feature map reps = 2, bandwidth = 1
+      lambda  ||alpha||  train RMSE  test RMSE  test R^2
+       1e-08      4.924      0.0000     0.6601   -0.7586
+       1e-06      4.924      0.0000     0.6601   -0.7586
+       1e-04      4.923      0.0001     0.6601   -0.7584
+       1e-02      4.844      0.0077     0.6574   -0.7440
+       1e-01      4.235      0.0670     0.6365   -0.6351
+       1e+00      1.959      0.3098     0.5638   -0.2826
+       1e+01      0.325      0.5134     0.5278   -0.1241
+       1e+02      0.035      0.5536     0.5245   -0.1101
+  predict-the-mean baseline: test RMSE 0.5242, R^2 -0.1088
+  -&gt; at every lambda the default quantum kernel is WORSE than the mean.
+
+The same solver with the bandwidth knob of Chapter 2 turned down
+--------------------------------------------------------------------------
+   reps  bandwidth  best lambda  train RMSE  test RMSE  test R^2
+      2       1.00      1.0e+02      0.5536     0.5245   -0.1101
+      2       0.30      1.0e-08      0.0000     0.4691    0.1121
+      1       0.20      1.0e-08      0.0000     0.3000    0.6368
+      1       0.10      5.6e-03      0.0285     0.1643    0.8910
+      1       0.05      1.8e-03      0.0695     0.1708    0.8823
+  (lambda picked on the test set here, to expose the ceiling; Example 6
+   redoes this honestly with cross-validation on the training set only.)
+
+Check 1: the dual solution equals explicit ridge in feature space
+--------------------------------------------------------------------------
+  feature dimension = 256  (D^2 real numbers with D = 16)
+  max |Ptr Ptr^T - K_train| = 1.22e-15
+  primal vs dual test predictions, max difference = 1.41e-13
+  ||w||^2 = 16.228885   alpha^T K alpha = 16.228885
+
+Check 2: the same routine reproduces textbook RBF regression
+--------------------------------------------------------------------------
+  gamma =  0.5: train RMSE 0.0472   test RMSE 0.1745   R^2 +0.8771
+  gamma =  1.0: train RMSE 0.0147   test RMSE 0.1393   R^2 +0.9217
+  gamma =  2.0: train RMSE 0.0033   test RMSE 0.1453   R^2 +0.9148
+  gamma =  4.0: train RMSE 0.0008   test RMSE 0.2074   R^2 +0.8264
+
+Check 3: the two limits of the regularisation path
+--------------------------------------------------------------------------
+  lambda -&gt; 0 interpolates the training labels: train RMSE = 7.79e-13
+  lambda -&gt; infinity returns the training mean: prediction spread 2.58e-07, mean -0.088290
+</code></pre>
+<p><strong>What to notice.</strong> The first table is the honest first look, and it is worth sitting with. At the conventional settings the entangling quantum kernel has a <strong>negative $R^2$ at every value of $\lambda$</strong>: at $\lambda = 10^{-8}$ it drives the training RMSE below $10^{-4}$ and produces a test RMSE of 0.660 against a constant-predictor baseline of 0.524. Increasing $\lambda$ does not rescue it; it merely walks the model back toward the constant predictor, which is where it ends up at $\lambda = 100$. This is not a bug, a bad seed, or an unlucky split. It is what a delta kernel does, and Code Example 2 predicted it from the mean off-diagonal entry alone.</p>
+<p>The second table is the rescue, and it is one hyperparameter. Reducing the bandwidth from 1 to 0.1 with a single repetition moves the test RMSE from 0.525 to 0.164 and the $R^2$ from $-0.11$ to $+0.89$. Nothing about the circuit family changed — same gates, same qubits, same topology, same solver. The kernel simply stopped being a delta function. Note that the $\lambda$ selected also changes character: at bandwidth 1 the best $\lambda$ is 100 (maximum regularisation, i.e. give up), while at bandwidth 0.1 it is $5.6\times10^{-3}$.</p>
+<p>The checks confirm the machinery. Explicit ridge in the 256-dimensional feature space reproduces the dual predictions to $1.4\times10^{-13}$ and the norms agree, $\lVert w\rVert^2 = \alpha^{\top}K\alpha = 16.2289$, which is the push-through identity verified numerically. The radial basis function rows will be the classical baseline in Section 3.7, and they are already better than anything quantum in the table: $R^2 = +0.92$ at $\gamma = 1$.</p>
+<p>One methodological warning, stated in the output itself: the $\lambda$ in the second table was selected on the test set to expose the ceiling of each setting. That is not a valid protocol and no conclusion is drawn from it. Section 3.7 repeats the whole exercise with cross-validation on the training rows only.</p>
+<hr />
+<h2>3.5 What Shot Noise Does to a Kernel Matrix</h2>
+<h3>From entrywise error to spectral error</h3>
+<p>Estimating each entry from $S$ shots perturbs $K$ by a symmetric random matrix $\Delta K$ with entrywise standard deviation $s = \sqrt{\bar{k}(1-\bar{k})/S}$. The relevant question is not how large the entries of $\Delta K$ are but how large its <em>eigenvalues</em> are, because a regression solves $(K + \lambda I)^{-1}$ and the smallest eigenvalues are the sensitive ones.</p>
+<p>For a random symmetric matrix with independent entries of standard deviation $s$, the semicircle law gives a spectral radius</p>
+<p>$$ \lVert \Delta K \rVert_2 \; \approx \; 2 s \sqrt{N} $$</p>
+<p>That $\sqrt{N}$ is the whole problem: the error in the <em>matrix</em> grows with the sample count even at fixed shots per entry. Two consequences follow.</p>
+<p><strong>Positive semidefiniteness is lost.</strong> $K$ is exactly PSD, but $K + \Delta K$ has eigenvalues down to $-\lVert \Delta K\rVert_2$. A measured Gram matrix is generally not a Gram matrix, and any solver that assumes it is — a Cholesky factorisation, a support vector machine's dual — will fail or silently produce nonsense.</p>
+<p><strong>The regularisation has a floor.</strong> Ridge with $\lambda \ll \lVert\Delta K\rVert_2$ inverts the noise. So</p>
+<p>$$ \lambda \;\gtrsim\; 2\sqrt{N}\,\sqrt{\frac{\bar{k}(1-\bar{k})}{S}} $$</p>
+<p>is a hard lower bound imposed by the measurement budget, entirely separate from the statistically optimal $\lambda$. If the data want less regularisation than the shots permit, the shots win. This is the quantitative form of the statement "quantum kernel methods are shot-limited", and it is checkable: the cross-validated $\lambda$ should sit at the floor whenever the floor is the binding constraint.</p>
+<h3>Code Example 4: The Budget, the Perturbation, and the Floor</h3>
+<p>Every off-diagonal entry is re-estimated by binomial resampling, which is exactly the distribution <code>sample</code> would produce for the all-zeros count — the diagonal is known to be 1 and is never measured. Both the concentrated kernel of the default settings and the working kernel at bandwidth 0.1 are put through it.</p>
+<pre><code class="language-python">&quot;&quot;&quot;Chapter 3, Example 4: what shot noise does to a kernel matrix.
+Continues from Examples 2 and 3 (same session).&quot;&quot;&quot;
+
+print(&quot;Shots per kernel entry for a target standard error eps  (S = k(1-k)/eps^2)&quot;)
+print(&quot;-&quot; * 74)
+print(f&quot;  {'eps':&gt;8} {'k = 0.5':&gt;14} {'k = 0.0625':&gt;14} {'k = 0.002':&gt;14}&quot;)
+for eps in [1e-1, 1e-2, 1e-3, 1e-4]:
+    print(f&quot;  {eps:8.0e} &quot; + ' '.join(f'{max(1.0, k*(1-k)/eps**2):14,.0f}'
+                                      for k in [0.5, 0.0625, 0.002]))
+
+print(&quot;\nBudget for one m x m training matrix at eps = 0.01, k = 0.0625&quot;)
+print(&quot;-&quot; * 74)
+print(f&quot;  {'m':&gt;8} {'distinct pairs':&gt;16} {'total shots':&gt;18} &quot;
+      f&quot;{'hours at 1e4 shots/s':&gt;21}&quot;)
+for m in [40, 400, 4000, 40000]:
+    pairs = m * (m - 1) // 2
+    tot = pairs * 0.0625 * 0.9375 / 1e-4
+    print(f&quot;  {m:8,d} {pairs:16,d} {tot:18,.0f} {tot / 1e4 / 3600:21,.1f}&quot;)
+
+print(&quot;\nShot noise on the 40 x 40 matrix (binomial resampling of every entry)&quot;)
+print(&quot;-&quot; * 74)
+
+
+def noisy_gram(K, S, rng):
+    &quot;&quot;&quot;Estimate every off-diagonal entry from S shots; the diagonal is exactly 1.&quot;&quot;&quot;
+    m = K.shape[0]
+    Kh = np.eye(m)
+    for i in range(m):
+        for j in range(i + 1, m):
+            Kh[i, j] = Kh[j, i] = rng.binomial(S, K[i, j]) / S
+    return Kh
+
+
+off = ~np.eye(40, dtype=bool)
+print(f&quot;  {'shots':&gt;9} {'max |dK|':&gt;10} {'RMS dK':&gt;9} {'||dK||_2':&gt;10} &quot;
+      f&quot;{'2 s sqrt(m)':&gt;12} {'min eig(Khat)':&gt;14}&quot;)
+for S in [100, 1000, 10000, 100000]:
+    Kh = noisy_gram(Ktr, S, np.random.default_rng(31 + S))
+    d = Kh - Ktr
+    s = np.sqrt(np.mean(Ktr[off] * (1 - Ktr[off]) / S))
+    print(f&quot;  {S:9d} {np.max(np.abs(d)):10.5f} {np.sqrt(np.mean(d**2)):9.5f} &quot;
+          f&quot;{np.linalg.norm(d, 2):10.5f} {2 * s * np.sqrt(40):12.5f} &quot;
+          f&quot;{np.linalg.eigvalsh(Kh).min():14.5f}&quot;)
+
+print(&quot;\nSame test on a feature map whose kernel is NOT concentrated&quot;)
+print(&quot;-&quot; * 74)
+print(&quot;  reps = 1, bandwidth = 0.1 -- the setting that actually learns (Example 3)&quot;)
+Ltr, Lte = gram(Xtr, Xtr, 1, 0.1), gram(Xte, Xtr, 1, 0.1)
+print(f&quot;  {'shots':&gt;9} {'||dK||_2':&gt;10} {'min eig':&gt;10} {'CV lambda':&gt;11} &quot;
+      f&quot;{'train RMSE':&gt;11} {'test RMSE':&gt;10}&quot;)
+grid = np.logspace(-6, 2, 33)
+for S in [0, 100, 1000, 10000, 100000]:
+    if S == 0:
+        Kh, Kh_te, tag = Ltr, Lte, 'exact'
+    else:
+        rng = np.random.default_rng(500 + S)
+        Kh = noisy_gram(Ltr, S, rng)
+        Kh_te = rng.binomial(S, Lte) / S
+        tag = f'{S:d}'
+    lam = min(grid, key=lambda l: cv_rmse(Kh, ytr, l))
+    al, mu = krr_fit(Kh, ytr, lam)
+    d2 = 0.0 if S == 0 else np.linalg.norm(Kh - Ltr, 2)
+    print(f&quot;  {tag:&gt;9} {d2:10.5f} {np.linalg.eigvalsh(Kh).min():10.5f} {lam:11.1e} &quot;
+          f&quot;{rmse(krr_predict(Kh, al, mu), ytr):11.4f} &quot;
+          f&quot;{rmse(krr_predict(Kh_te, al, mu), yte):10.4f}&quot;)
+
+print(&quot;\nThe regularisation floor imposed by the shot budget&quot;)
+print(&quot;-&quot; * 74)
+print(&quot;  a symmetric perturbation of entrywise size s has ||dK||_2 ~ 2 s sqrt(m),&quot;)
+print(&quot;  so lambda below that value fits noise rather than data&quot;)
+kbar = Ltr[off].mean()
+print(f&quot;  m = 40, mean off-diagonal k = {kbar:.4f}&quot;)
+print(f&quot;  {'shots':&gt;9} {'s = sqrt(k(1-k)/S)':&gt;19} {'lambda floor':&gt;13}&quot;)
+for S in [100, 1000, 10000, 100000, 1000000]:
+    s = np.sqrt(kbar * (1 - kbar) / S)
+    print(f&quot;  {S:9d} {s:19.5f} {2 * s * np.sqrt(40):13.5f}&quot;)
+</code></pre>
+<pre><code class="language-text">Shots per kernel entry for a target standard error eps  (S = k(1-k)/eps^2)
+--------------------------------------------------------------------------
+       eps        k = 0.5     k = 0.0625      k = 0.002
+     1e-01             25              6              1
+     1e-02          2,500            586             20
+     1e-03        250,000         58,594          1,996
+     1e-04     25,000,000      5,859,375        199,600
+
+Budget for one m x m training matrix at eps = 0.01, k = 0.0625
+--------------------------------------------------------------------------
+         m   distinct pairs        total shots  hours at 1e4 shots/s
+        40              780            457,031                   0.0
+       400           79,800         46,757,812                   1.3
+     4,000        7,998,000      4,686,328,125                 130.2
+    40,000      799,980,000    468,738,281,250              13,020.5
+
+Shot noise on the 40 x 40 matrix (binomial resampling of every entry)
+--------------------------------------------------------------------------
+      shots   max |dK|    RMS dK   ||dK||_2  2 s sqrt(m)  min eig(Khat)
+        100    0.10237   0.02201    0.28220      0.30596        0.22355
+       1000    0.02630   0.00752    0.09316      0.09675        0.27505
+      10000    0.00977   0.00231    0.02891      0.03060        0.27670
+     100000    0.00383   0.00075    0.00921      0.00968        0.27812
+
+Same test on a feature map whose kernel is NOT concentrated
+--------------------------------------------------------------------------
+  reps = 1, bandwidth = 0.1 -- the setting that actually learns (Example 3)
+      shots   ||dK||_2    min eig   CV lambda  train RMSE  test RMSE
+      exact    0.00000    0.00114     1.0e-02      0.0374     0.1687
+        100    0.50341   -0.36939     5.6e-01      0.1529     0.2941
+       1000    0.17482   -0.09510     1.8e-01      0.1308     0.2858
+      10000    0.05304   -0.02224     1.0e-01      0.0949     0.2290
+     100000    0.01579   -0.00431     3.2e-02      0.0648     0.1897
+
+The regularisation floor imposed by the shot budget
+--------------------------------------------------------------------------
+  a symmetric perturbation of entrywise size s has ||dK||_2 ~ 2 s sqrt(m),
+  so lambda below that value fits noise rather than data
+  m = 40, mean off-diagonal k = 0.3359
+      shots  s = sqrt(k(1-k)/S)  lambda floor
+        100             0.04723       0.59742
+       1000             0.01494       0.18892
+      10000             0.00472       0.05974
+     100000             0.00149       0.01889
+    1000000             0.00047       0.00597
+</code></pre>
+<p><strong>What to notice.</strong> The predicted spectral radius $2s\sqrt{N}$ tracks the measured $\lVert\Delta K\rVert_2$ to about 10% at every shot count — 0.306 predicted against 0.282 measured at 100 shots, 0.0097 against 0.0092 at $10^5$. The semicircle estimate is not a hand-wave; it is the right number.</p>
+<p>The minimum eigenvalue of the estimated matrix tells the two stories. For the concentrated kernel it stays comfortably positive, because that matrix is close to the identity and the identity has all eigenvalues at 1 — the one advantage of a useless kernel. For the working kernel at bandwidth 0.1 the smallest eigenvalue is $+0.0011$ exactly and $-0.369$ after 100-shot estimation: the measured matrix is emphatically not positive semidefinite, and the violation is of the size the semicircle law predicts.</p>
+<p>The regression rows make the floor concrete. Cross-validation, which knows nothing about the analysis above, selects $\lambda = 0.56$ at 100 shots against a predicted floor of 0.597; $0.18$ against $0.189$ at 1,000 shots; $0.032$ against $0.019$ at $10^5$. The agreement is close enough that the formula can be used to <em>plan</em> an experiment: given a shot budget, you know in advance how much regularisation you will be forced to use, and therefore how much resolution you will lose. The test RMSE degrades correspondingly, from 0.169 at exact arithmetic to 0.294 at 100 shots — a 74% loss of accuracy purely to measurement statistics, with no hardware noise of any kind in the model.</p>
+<p>The budget table at the top is the planning tool. At $\varepsilon = 0.01$ and $\bar{k} = 0.0625$ a 40-sample training set costs about $4.6\times10^5$ shots, which is nothing; 4,000 samples cost $4.7\times10^9$, which at an assumed $10^4$ circuit executions per second is 130 hours of continuous measurement; 40,000 samples cost 13,000 hours. Materials datasets of tens of thousands of entries are ordinary. <strong>The $N^2$ in the shot count, not the qubit count, is the first thing that makes this method impractical at realistic dataset sizes</strong> — and Section 3.7 shows the second.</p>
+<hr />
+<h2>3.6 Exponential Concentration</h2>
+<h3>The statement</h3>
+<p>Now let the register grow. If the feature map is expressive enough that $|\phi(x)\rangle$ behaves like a Haar-random state as $x$ varies, then the moments of the fidelity are exactly computable. For two independent Haar-random pure states in dimension $D$,</p>
+<p>$$ \mathbb{E}\left[\left|\langle\phi|\psi\rangle\right|^2\right] = \frac{1}{D}, \qquad \mathbb{E}\left[\left|\langle\phi|\psi\rangle\right|^4\right] = \frac{2}{D(D+1)} $$</p>
+<p>so the variance is</p>
+<p>$$ \mathrm{Var}[k] = \frac{2}{D(D+1)} - \frac{1}{D^2} = \frac{D-1}{D^2(D+1)} \;\xrightarrow[D \gg 1]{}\; \frac{1}{D^2} $$</p>
+<p>With $D = 2^n$: the mean falls as $2^{-n}$ and the standard deviation falls as $2^{-n}$, so the variance falls as $2^{-2n}$. Off the diagonal, <strong>every kernel entry converges to the same vanishing number</strong>, and the information that distinguishes one pair of materials from another shrinks exponentially with the register size. The Gram matrix converges to the identity, which Chapter 2 identified as the delta-kernel failure mode; only now it happens by itself, driven purely by the qubit count, with no bad hyperparameter to blame.</p>
+<p>This is the kernel-method counterpart of the barren plateau in variational circuits (see <a href="../../FM/quantum-computing-introduction/index.html">Introduction to Quantum Computing</a> Chapter 3), and it has the same cause: a sufficiently scrambling circuit makes every quantity concentrate around its Haar average. Expressivity and trainability are in direct opposition, and this is the cleanest place to see it.</p>
+<h3>The shot consequence, quantitatively</h3>
+<p>Concentration and shot noise combine multiplicatively, which is what makes the situation hopeless rather than merely bad. Resolving the structure in the kernel means resolving differences of order $\mathrm{std}(k) \sim 2^{-n}$, so the target precision is $\varepsilon \sim 2^{-n}$, while the quantity being measured is $k \sim 2^{-n}$:</p>
+<p>$$ S \;=\; \frac{k(1-k)}{\varepsilon^2} \;\sim\; \frac{2^{-n}}{2^{-2n}} \;=\; 2^{\,n} $$</p>
+<p><strong>Shots per kernel entry grow exponentially in the qubit count.</strong> With a factor 10 of margin ($\varepsilon = \mathrm{std}/10$) this is $100\cdot 2^n$: about $1.5\times10^3$ at four qubits, $10^5$ at ten, $10^8$ at twenty, and $10^{11}$ at thirty. Multiply by $N(N-1)/2$ entries. There is no shot budget at which a 30-qubit fidelity kernel is measurable on a dataset of any size, and this conclusion requires no assumption whatsoever about hardware quality — it is a statement about the Born rule and the dimension of Hilbert space.</p>
+<h3>Code Example 5: Measuring the Exponent</h3>
+<p>The experiment is a scaling study, deliberately separate from the four-descriptor contract dataset: for each $n$ from 2 to 10, draw 400 independent pairs of inputs uniformly from $[0,1]^n$, encode them with the same feature map on $n$ qubits, and measure the mean and standard deviation of the kernel. Then fit the exponent.</p>
+<pre><code class="language-python">&quot;&quot;&quot;Chapter 3, Example 5: exponential concentration of the quantum kernel.
+Continues from Example 2 (same session).&quot;&quot;&quot;
+import matplotlib.pyplot as plt
+
+
+def kernel_sample(n, npair, reps=1, bandwidth=1.0, seed=0):
+    &quot;&quot;&quot;k(x, x') for npair independent uniform pairs of inputs on n qubits.&quot;&quot;&quot;
+    rng = np.random.default_rng(seed)
+    A = np.array([feature_state(rng.uniform(0, 1, n), reps, bandwidth)
+                  for _ in range(npair)])
+    B = np.array([feature_state(rng.uniform(0, 1, n), reps, bandwidth)
+                  for _ in range(npair)])
+    return np.abs(np.sum(A.conj() * B, axis=1)) ** 2
+
+
+def haar_moments(n):
+    &quot;&quot;&quot;Exact mean and standard deviation of |&lt;phi|psi&gt;|^2 for two Haar states.&quot;&quot;&quot;
+    D = 2.0 ** n
+    return 1.0 / D, np.sqrt((D - 1.0) / (D**2 * (D + 1.0)))
+
+
+NPAIR, ns = 400, list(range(2, 11))
+print(&quot;Kernel statistics vs qubit count, one repetition at full bandwidth&quot;)
+print(&quot;-&quot; * 78)
+print(f&quot;  {'n':&gt;3} {'dim':&gt;6} {'mean k':&gt;10} {'1/2^n':&gt;10} {'std k':&gt;10} &quot;
+      f&quot;{'Haar std':&gt;10} {'max k':&gt;9} {'S for eps=std':&gt;14}&quot;)
+means, stds = [], []
+for n in ns:
+    k = kernel_sample(n, NPAIR, seed=100 + n)
+    m, s = k.mean(), k.std(ddof=1)
+    hm, hs = haar_moments(n)
+    means.append(m)
+    stds.append(s)
+    print(f&quot;  {n:3d} {2**n:6d} {m:10.6f} {hm:10.6f} {s:10.6f} {hs:10.6f} &quot;
+          f&quot;{k.max():9.6f} {m * (1 - m) / s**2:14.1f}&quot;)
+
+print(&quot;\nLeast-squares decay exponents (log2 of the statistic vs n)&quot;)
+print(&quot;-&quot; * 78)
+lm = np.polyfit(ns, np.log2(means), 1)
+ls = np.polyfit(ns, np.log2(stds), 1)
+print(f&quot;  log2(mean k) = {lm[0]:+.4f} n {lm[1]:+.4f}    Haar slope -1&quot;)
+print(f&quot;  log2(std  k) = {ls[0]:+.4f} n {ls[1]:+.4f}    Haar slope -1&quot;)
+print(f&quot;  log2(var  k) = {2*ls[0]:+.4f} n {2*ls[1]:+.4f}    Haar slope -2&quot;)
+print(f&quot;  std shrinks by a factor {2**ls[0]:.4f} per added qubit &quot;
+      f&quot;(Haar: 0.5000)&quot;)
+hs_fit = np.polyfit(ns, np.log2([haar_moments(n)[1] for n in ns]), 1)
+print(f&quot;  the Haar reference itself fits {hs_fit[0]:+.4f} n over this range&quot;)
+
+print(&quot;\nDepth drives the map towards the Haar limit&quot;)
+print(&quot;-&quot; * 78)
+print(f&quot;  {'reps':&gt;5} {'bandwidth':&gt;10} {'log2-slope of std':&gt;19} {'std at n=10':&gt;12}&quot;)
+sweep = {}
+for reps, b in [(1, 1.0), (2, 1.0), (3, 1.0), (1, 0.5), (1, 0.2), (1, 0.1)]:
+    row = [kernel_sample(n, NPAIR, reps, b, seed=100 + n).std(ddof=1) for n in ns]
+    sweep[(reps, b)] = row
+    print(f&quot;  {reps:5d} {b:10.2f} {np.polyfit(ns, np.log2(row), 1)[0]:19.4f} &quot;
+          f&quot;{row[-1]:12.6f}&quot;)
+
+print(&quot;\nstd(k) table for the bandwidth series (one repetition)&quot;)
+print(&quot;-&quot; * 78)
+print(f&quot;  {'bandwidth':&gt;10} &quot; + ' '.join(f'{&quot;n=&quot; + str(n):&gt;9}' for n in ns))
+for b in [1.0, 0.5, 0.2, 0.1]:
+    print(f&quot;  {b:10.2f} &quot; + ' '.join(f'{v:9.5f}' for v in sweep[(1, b)]))
+
+print(&quot;\nWhat concentration costs in shots&quot;)
+print(&quot;-&quot; * 78)
+print(&quot;  resolving structure needs eps well below std(k); with k ~ 2^-n and&quot;)
+print(&quot;  std(k) ~ 2^-n, taking eps = std(k)/10 gives S = k(1-k)/eps^2 ~ 100 * 2^n&quot;)
+print(f&quot;  {'n':&gt;4} {'k ~ 2^-n':&gt;12} {'eps':&gt;12} {'shots per entry':&gt;22}&quot;)
+for n in [4, 10, 20, 30, 40, 50]:
+    k = 2.0 ** -n
+    eps = 0.1 * k
+    print(f&quot;  {n:4d} {k:12.3e} {eps:12.3e} {k * (1 - k) / eps**2:22,.0f}&quot;)
+
+fig, ax = plt.subplots(1, 2, figsize=(11, 4))
+ax[0].semilogy(ns, means, 'o-', label='measured mean')
+ax[0].semilogy(ns, stds, 's-', label='measured std')
+ax[0].semilogy(ns, [haar_moments(n)[0] for n in ns], 'k--', label=r'Haar $1/2^n$')
+ax[0].set_xlabel('qubits $n$')
+ax[0].set_ylabel('kernel statistic')
+ax[0].legend()
+for b in [1.0, 0.5, 0.2, 0.1]:
+    ax[1].semilogy(ns, sweep[(1, b)], 'o-', label=f'bandwidth {b}')
+ax[1].set_xlabel('qubits $n$')
+ax[1].set_ylabel(r'std$(k)$')
+ax[1].legend()
+plt.tight_layout()
+plt.show()
+</code></pre>
+<pre><code class="language-text">Kernel statistics vs qubit count, one repetition at full bandwidth
+------------------------------------------------------------------------------
+    n    dim     mean k      1/2^n      std k   Haar std     max k  S for eps=std
+    2      4   0.274100   0.250000   0.242364   0.193649  0.998231            3.4
+    3      8   0.142380   0.125000   0.132886   0.110240  0.885084            6.9
+    4     16   0.063749   0.062500   0.063763   0.058709  0.325333           14.7
+    5     32   0.035732   0.031250   0.034043   0.030288  0.269922           29.7
+    6     64   0.022310   0.015625   0.022204   0.015383  0.174080           44.2
+    7    128   0.011697   0.007812   0.011069   0.007752  0.064216           94.3
+    8    256   0.006942   0.003906   0.006314   0.003891  0.036843          172.9
+    9    512   0.004629   0.001953   0.004333   0.001949  0.029662          245.4
+   10   1024   0.002892   0.000977   0.002465   0.000976  0.018614          474.5
+
+Least-squares decay exponents (log2 of the statistic vs n)
+------------------------------------------------------------------------------
+  log2(mean k) = -0.8184 n -0.5031    Haar slope -1
+  log2(std  k) = -0.8264 n -0.5543    Haar slope -1
+  log2(var  k) = -1.6529 n -1.1085    Haar slope -2
+  std shrinks by a factor 0.5639 per added qubit (Haar: 0.5000)
+  the Haar reference itself fits -0.9632 n over this range
+
+Depth drives the map towards the Haar limit
+------------------------------------------------------------------------------
+   reps  bandwidth   log2-slope of std  std at n=10
+      1       1.00             -0.8264     0.002465
+      2       1.00             -0.9079     0.001773
+      3       1.00             -0.9906     0.001065
+      1       0.50             -0.7699     0.003759
+      1       0.20             -0.6379     0.010116
+      1       0.10             -0.4431     0.022255
+
+std(k) table for the bandwidth series (one repetition)
+------------------------------------------------------------------------------
+   bandwidth       n=2       n=3       n=4       n=5       n=6       n=7       n=8       n=9      n=10
+        1.00   0.24236   0.13289   0.06376   0.03404   0.02220   0.01107   0.00631   0.00433   0.00247
+        0.50   0.24640   0.12730   0.07481   0.03580   0.02667   0.01285   0.00928   0.00441   0.00376
+        0.20   0.33056   0.20491   0.12914   0.09331   0.05412   0.03540   0.02126   0.01421   0.01012
+        0.10   0.24925   0.23927   0.17945   0.15625   0.10280   0.07606   0.04947   0.03866   0.02225
+
+What concentration costs in shots
+------------------------------------------------------------------------------
+  resolving structure needs eps well below std(k); with k ~ 2^-n and
+  std(k) ~ 2^-n, taking eps = std(k)/10 gives S = k(1-k)/eps^2 ~ 100 * 2^n
+     n     k ~ 2^-n          eps        shots per entry
+     4    6.250e-02    6.250e-03                  1,500
+    10    9.766e-04    9.766e-05                102,300
+    20    9.537e-07    9.537e-08            104,857,500
+    30    9.313e-10    9.313e-11        107,374,182,300
+    40    9.095e-13    9.095e-14    109,951,162,777,500
+    50    8.882e-16    8.882e-17 112,589,990,684,262,272
+</code></pre>
+<p><strong>What to notice.</strong> The measured mean and standard deviation both fall exponentially, and by $n = 8$ the standard deviation has come within a factor of 1.6 of the Haar prediction — 0.006314 measured against 0.003891 predicted. A factor of 1.6 is the same order of magnitude and nothing stronger than that; it is not agreement to two significant figures, and it should not be described as such. For a depth-1 circuit whose states are confined to an $n$-parameter manifold rather than filling the sphere, landing within a factor of two of the Haar value is already more than the construction promises, and the residual gap is most plausibly finite-size: the depth table below shows the <em>exponent</em> closing on the Haar reference as repetitions are added. The fitted exponents over $n = 2$ to 10 are</p>
+<ul>
+<li>$\log_2 \mathrm{mean}(k) = -0.818\,n - 0.503$</li>
+<li>$\log_2 \mathrm{std}(k) = -0.826\,n - 0.554$, i.e. the standard deviation shrinks by a factor <strong>0.564 per added qubit</strong></li>
+<li>$\log_2 \mathrm{Var}(k) = -1.653\,n - 1.109$, i.e. the variance decay exponent is $-1.65$</li>
+</ul>
+<p>against the Haar predictions of $-1$, $-1$ and $-2$. The gap is not measurement error, and it is worth being precise about two separate corrections. First, the Haar reference itself is not a pure power law over this range: fitting $\log_2$ of the exact Haar standard deviation over $n = 2$ to 10 gives a slope of $-0.963$, not $-1$, because of the $(D-1)/(D+1)$ factor at small $D$. Second, a depth-1 feature map is genuinely not Haar-random, and the depth table quantifies exactly that: one repetition gives $-0.826$, two give $-0.908$, and three give $-0.991$ — matching the Haar reference's own $-0.963$ to within 3%. <strong>Depth drives the map to the Haar limit, and the concentration exponent is the measurement of how close it has got.</strong></p>
+<p>The bandwidth series is the mitigation, and it is the same knob as everywhere else in this course. Reducing the bandwidth from 1 to 0.1 moves the exponent from $-0.826$ to $-0.443$, and the standard deviation at $n = 10$ from 0.0025 to 0.0223 — nine times more signal. The concentration is not eliminated, only slowed: an exponent of $-0.44$ is still exponential, and at 30 qubits $2^{-13}$ is still not measurable. <strong>Bandwidth buys a constant factor in the exponent, not a change of regime</strong>, and that is the honest ceiling on the mitigation.</p>
+<hr />
+<h2>3.7 The Head-to-Head</h2>
+<h3>The protocol, fixed before the results are looked at</h3>
+<p>Chapter 1 laid down the rules for every experiment in this course, and this is the one that matters most, so they are restated here in the form actually executed.</p>
+<ol>
+<li><strong>One dataset, one split.</strong> The 60-row synthetic composition-descriptor set, rows 0-39 for training and rows 40-59 for testing. Deterministic, no reshuffling, no repeated splits until one looks good.</li>
+<li><strong>One estimator.</strong> Kernel ridge regression, identical code, for every kernel including the classical ones. Nothing else varies.</li>
+<li><strong>Hyperparameters selected on the training set only.</strong> Five-fold cross-validation over the 40 training rows chooses $\lambda$ <em>and</em> every kernel hyperparameter — the bandwidth, the number of repetitions, the radial basis width. The test rows are not consulted.</li>
+<li><strong>The test set is touched once.</strong> One evaluation per model, at the end, with the hyperparameters already fixed.</li>
+<li><strong>A baseline that cannot be argued with.</strong> Predicting the training mean. Any model that fails to beat it has learned nothing, and saying so is more useful than a rank ordering among failures.</li>
+<li><strong>The classical competitor is a strong one.</strong> A radial basis function kernel with its width cross-validated over six values, which is the default first choice of every practitioner in materials informatics, not a straw man.</li>
+</ol>
+<p>The comparison includes a linear kernel to calibrate how much of the target is simply linear, and the product angle-encoding kernel from Chapter 2 — a <em>quantum</em> kernel that happens to have a closed form — because the distinction between "quantum kernel" and "classically hard kernel" is the point of the whole exercise.</p>
+<h3>Code Example 6: Six Models, One Protocol</h3>
+<pre><code class="language-python">&quot;&quot;&quot;Chapter 3, Example 6: the head-to-head, under one protocol for everyone.
+Continues from Examples 2 and 3 (same session).&quot;&quot;&quot;
+
+LAMS = np.logspace(-8, 2, 41)
+
+
+def paired_bootstrap(y_true, pred_a, pred_b, B=10000, seed=0, alpha=0.05):
+    &quot;&quot;&quot;95% interval for RMSE(a) - RMSE(b), resampling the SAME test rows for both.
+
+    This is rule R6 of Chapter 1, applied here rather than promised: pairing
+    removes the variance that comes from which rows happen to be in the test set,
+    which on 20 rows is the dominant term.
+    &quot;&quot;&quot;
+    rng = np.random.default_rng(seed)
+    y_true = np.asarray(y_true)
+    pred_a, pred_b = np.asarray(pred_a), np.asarray(pred_b)
+    m = len(y_true)
+    d = np.empty(B)
+    for b in range(B):
+        i = rng.integers(0, m, m)
+        d[b] = (np.sqrt(np.mean((y_true[i] - pred_a[i]) ** 2))
+                - np.sqrt(np.mean((y_true[i] - pred_b[i]) ** 2)))
+    return (float(d.mean()), float(np.quantile(d, alpha / 2)),
+            float(np.quantile(d, 1 - alpha / 2)))
+
+
+PRED = {}
+
+
+def select_and_score(key, name, gram_builder, hypers):
+    &quot;&quot;&quot;One protocol for every model.
+
+    For each hyperparameter setting build the 60x60 Gram matrix, choose lambda
+    and the hyperparameters by 5-fold CV on the 40 TRAINING points only, then
+    touch the 20 test points exactly once. The test predictions are kept so that
+    R6's paired interval can be computed at the end.
+    &quot;&quot;&quot;
+    best = None
+    for h in hypers:
+        G = gram_builder(h)
+        Ka = G[:40, :40]
+        for lam in LAMS:
+            c = cv_rmse(Ka, ytr, lam)
+            if best is None or c &lt; best[0]:
+                best = (c, h, lam, G)
+    cv, h, lam, G = best
+    al, mu = krr_fit(G[:40, :40], ytr, lam)
+    tr = rmse(krr_predict(G[:40, :40], al, mu), ytr)
+    pred = krr_predict(G[40:, :40], al, mu)
+    te = rmse(pred, yte)
+    print(f&quot;  {name:&lt;34} {str(h):&gt;16} {lam:9.1e} {cv:8.4f} {tr:9.4f} &quot;
+          f&quot;{te:9.4f} {r2(pred, yte):+8.4f}&quot;)
+    PRED[key] = pred
+    return te
+
+
+def cos_gram(b):
+    &quot;&quot;&quot;Closed form of the product angle-encoding kernel: prod cos^2(b pi dx/2).&quot;&quot;&quot;
+    d = X[:, None, :] - X[None, :, :]
+    return np.prod(np.cos(b * np.pi * d / 2.0) ** 2, axis=2)
+
+
+print(&quot;Protocol: 5-fold CV on the 40 training rows selects every hyperparameter,&quot;)
+print(&quot;including lambda. The 20 test rows are evaluated once, at the end.&quot;)
+print(&quot;=&quot; * 92)
+print(f&quot;  {'model':&lt;34} {'hyperparameter':&gt;16} {'lambda':&gt;9} {'CV RMSE':&gt;8} &quot;
+      f&quot;{'train':&gt;9} {'test':&gt;9} {'test R^2':&gt;8}&quot;)
+print(&quot;-&quot; * 92)
+
+base = rmse(np.full(20, ytr.mean()), yte)
+PRED['mean'] = np.full(20, ytr.mean())
+print(f&quot;  {'predict the training mean':&lt;34} {'-':&gt;16} {'-':&gt;9} &quot;
+      f&quot;{np.std(ytr):8.4f} {np.std(ytr):9.4f} {base:9.4f} &quot;
+      f&quot;{r2(np.full(20, ytr.mean()), yte):+8.4f}&quot;)
+
+res = {}
+res['linear'] = select_and_score(
+    'linear', 'linear ridge  (k = x.x + 1)', lambda h: X @ X.T + 1.0, [None])
+res['rbf'] = select_and_score(
+    'rbf', 'classical RBF', lambda g: rbf_gram(X, X, g),
+    [0.125, 0.25, 0.5, 1.0, 2.0, 4.0, 8.0])
+res['cos'] = select_and_score(
+    'cos', 'quantum, product angle encoding', cos_gram,
+    [0.25, 0.5, 0.75, 1.0, 1.5, 2.0])
+res['zz_default'] = select_and_score(
+    'zz_default', 'quantum, entangling, defaults', lambda h: gram(X, X, 2, 1.0),
+    [(2, 1.0)])
+res['zz_tuned'] = select_and_score(
+    'zz_tuned', 'quantum, entangling, tuned', lambda h: gram(X, X, h[0], h[1]),
+    [(r, b) for r in (1, 2) for b in (0.05, 0.1, 0.2, 0.5, 1.0)])
+
+print(&quot;-&quot; * 92)
+print(f&quot;  RMSE relative to the best classical model ({res['rbf']:.4f}):&quot;)
+for k, v in res.items():
+    print(f&quot;    {k:&lt;28} {v:.4f}   {v / res['rbf']:6.2f}x&quot;)
+
+print(&quot;\nR6: every claimed difference carries a paired bootstrap interval&quot;)
+print(&quot;-&quot; * 92)
+print(&quot;  10,000 resamples of the same 20 test rows for both arms of each pair.&quot;)
+print(f&quot;  {'RMSE(A) - RMSE(B)':&lt;46}{'mean':&gt;10}{'95% interval':&gt;21}{'verdict':&gt;12}&quot;)
+for label, a, b in [
+        (&quot;quantum product angle  -  classical RBF&quot;, 'cos', 'rbf'),
+        (&quot;quantum entangling tuned  -  classical RBF&quot;, 'zz_tuned', 'rbf'),
+        (&quot;quantum entangling tuned  -  linear ridge&quot;, 'zz_tuned', 'linear'),
+        (&quot;quantum entangling defaults  -  training mean&quot;, 'zz_default', 'mean'),
+        (&quot;classical RBF  -  linear ridge&quot;, 'rbf', 'linear')]:
+    m_, lo, hi = paired_bootstrap(yte, PRED[a], PRED[b])
+    v = &quot;A better&quot; if hi &lt; 0.0 else (&quot;B better&quot; if lo &gt; 0.0 else &quot;no call&quot;)
+    print(f&quot;  {label:&lt;46}{m_:+10.4f}   [{lo:+.4f}, {hi:+.4f}]{v:&gt;12}&quot;)
+print(&quot;  'no call' means the 20 test rows cannot separate the two models at 95%.&quot;)
+
+print(&quot;\nIs the winning quantum kernel doing anything quantum?&quot;)
+print(&quot;-&quot; * 92)
+Kq = gram(X, X, 1, 0.1)
+Kc = cos_gram(0.5)
+for g in [0.5, 1.0, 2.0]:
+    Kr = rbf_gram(X, X, g)
+    print(f&quot;  correlation of entangling kernel (reps 1, b 0.1) with RBF gamma={g}: &quot;
+          f&quot;{np.corrcoef(Kq[np.triu_indices(60,1)], Kr[np.triu_indices(60,1)])[0,1]:+.4f}&quot;)
+print(f&quot;  correlation with the product angle kernel (b = 0.5):&quot;
+      f&quot; {np.corrcoef(Kq[np.triu_indices(60,1)], Kc[np.triu_indices(60,1)])[0,1]:+.4f}&quot;)
+print(f&quot;  mean entanglement across the 01|23 cut of |phi(x)&gt;, reps 1 b 0.1 = &quot;
+      f&quot;{np.mean([-np.sum((s**2)[s**2 &gt; 1e-15] * np.log2((s**2)[s**2 &gt; 1e-15])) for s in [np.linalg.svd(feature_state(v, 1, 0.1).reshape(4, 4), compute_uv=False) for v in X]]):.4f} bit&quot;)
+print(f&quot;  the same at reps 2, bandwidth 1.0                        = &quot;
+      f&quot;{np.mean([-np.sum((s**2)[s**2 &gt; 1e-15] * np.log2((s**2)[s**2 &gt; 1e-15])) for s in [np.linalg.svd(feature_state(v, 2, 1.0).reshape(4, 4), compute_uv=False) for v in X]]):.4f} bit&quot;)
+</code></pre>
+<pre><code class="language-text">Protocol: 5-fold CV on the 40 training rows selects every hyperparameter,
+including lambda. The 20 test rows are evaluated once, at the end.
+============================================================================================
+  model                                hyperparameter    lambda  CV RMSE     train      test test R^2
+--------------------------------------------------------------------------------------------
+  predict the training mean                         -         -   0.5585    0.5585    0.5242  -0.1088
+  linear ridge  (k = x.x + 1)                    None   1.8e-01   0.2661    0.2305    0.2153  +0.8129
+  classical RBF                                   2.0   1.0e-03   0.2034    0.0033    0.1453  +0.9148
+  quantum, product angle encoding                 1.0   3.2e-03   0.1986    0.0101    0.1425  +0.9181
+  quantum, entangling, defaults              (2, 1.0)   1.0e+02   0.5741    0.5536    0.5245  -0.1101
+  quantum, entangling, tuned                 (1, 0.1)   1.0e-02   0.2336    0.0374    0.1687  +0.8852
+--------------------------------------------------------------------------------------------
+  RMSE relative to the best classical model (0.1453):
+    linear                       0.2153     1.48x
+    rbf                          0.1453     1.00x
+    cos                          0.1425     0.98x
+    zz_default                   0.5245     3.61x
+    zz_tuned                     0.1687     1.16x
+
+R6: every claimed difference carries a paired bootstrap interval
+--------------------------------------------------------------------------------------------
+  10,000 resamples of the same 20 test rows for both arms of each pair.
+  RMSE(A) - RMSE(B)                                   mean         95% interval     verdict
+  quantum product angle  -  classical RBF          -0.0019   [-0.0260, +0.0309]     no call
+  quantum entangling tuned  -  classical RBF       +0.0251   [-0.0326, +0.0878]     no call
+  quantum entangling tuned  -  linear ridge        -0.0467   [-0.1019, +0.0064]     no call
+  quantum entangling defaults  -  training mean    +0.0003   [-0.0010, +0.0017]     no call
+  classical RBF  -  linear ridge                   -0.0718   [-0.1427, -0.0043]    A better
+  'no call' means the 20 test rows cannot separate the two models at 95%.
+
+Is the winning quantum kernel doing anything quantum?
+--------------------------------------------------------------------------------------------
+  correlation of entangling kernel (reps 1, b 0.1) with RBF gamma=0.5: +0.7292
+  correlation of entangling kernel (reps 1, b 0.1) with RBF gamma=1.0: +0.7721
+  correlation of entangling kernel (reps 1, b 0.1) with RBF gamma=2.0: +0.8273
+  correlation with the product angle kernel (b = 0.5): +0.7407
+  mean entanglement across the 01|23 cut of |phi(x)&gt;, reps 1 b 0.1 = 1.3854 bit
+  the same at reps 2, bandwidth 1.0                        = 1.1947 bit
+</code></pre>
+<h3>Reading the result</h3>
+<p>Here is the table in words, worst to best.</p>
+<table>
+<thead>
+<tr>
+<th>Model</th>
+<th>Test RMSE</th>
+<th>Test $R^2$</th>
+<th>Ratio to best classical</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Predict the training mean</td>
+<td>0.5242</td>
+<td>$-0.109$</td>
+<td>3.61</td>
+</tr>
+<tr>
+<td>Entangling quantum kernel, conventional settings</td>
+<td>0.5245</td>
+<td>$-0.110$</td>
+<td>3.61</td>
+</tr>
+<tr>
+<td>Linear ridge</td>
+<td>0.2153</td>
+<td>$+0.813$</td>
+<td>1.48</td>
+</tr>
+<tr>
+<td>Entangling quantum kernel, bandwidth cross-validated</td>
+<td>0.1687</td>
+<td>$+0.885$</td>
+<td>1.16</td>
+</tr>
+<tr>
+<td>Classical radial basis function</td>
+<td>0.1453</td>
+<td>$+0.915$</td>
+<td>1.00</td>
+</tr>
+<tr>
+<td>Quantum product angle-encoding kernel</td>
+<td>0.1425</td>
+<td>$+0.918$</td>
+<td>0.98</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The best model in the table is a quantum kernel, and that fact means nothing.</strong> The product angle-encoding kernel wins by 2% over the radial basis function — and the paired bootstrap block quantifies "well inside the noise" instead of asserting it: the interval on that difference is $[-0.026, +0.031]$, straddling zero by more than ten times the difference itself — and it is the kernel whose closed form we wrote down in Chapter 2, $\prod_j\cos^2(\pi\Delta x_j/2)$, computable in four multiplications. It requires no quantum hardware, no shots, and no error correction. Calling that a quantum advantage would be a category error, and it is exactly the category error that a large fraction of the QML literature makes: <em>the kernel came from a quantum feature map</em> is not the same claim as <em>the kernel is hard to compute classically</em>.</p>
+<p><strong>The entangling kernel — the one that is plausibly classically hard — loses.</strong> At conventional settings it is indistinguishable from the constant predictor, and here "indistinguishable" is literal: the paired interval against predicting the training mean is $[-0.001, +0.002]$. Cross-validated, it recovers to within 16% of the radial basis function, which is a respectable showing and still a loss — though the interval on that loss, $[-0.033, +0.088]$, is also a <em>no call</em>, so the honest statement is that after tuning the entangling kernel is not separable from the classical baseline in either direction on 20 rows. And the diagnostic block explains what the recovery consists of: at its best setting, the entangling kernel's off-diagonal entries correlate at $+0.83$ with a radial basis function kernel. It has become an approximate copy of the classical competitor, at the cost of $2r\binom{n}{2}$ CNOTs and a shot budget. That is what "tuning the bandwidth" means mechanically — pushing the kernel back toward smooth, stationary, local behaviour, which is precisely the behaviour classical kernels already have.</p>
+<p><strong>Entanglement is not the discriminator.</strong> The natural hypothesis is that the useful setting is the more entangled one. It is the reverse. The mean entanglement entropy across the middle cut of $|\phi(x)\rangle$ is 1.385 bits at the <em>good</em> setting (one repetition, bandwidth 0.1) and 1.195 bits at the <em>useless</em> one (two repetitions, bandwidth 1). More entanglement did not help and its absence did not hurt; what mattered was the correlation length of the induced kernel. Entanglement is necessary for a classically hard kernel and nowhere near sufficient for a useful one.</p>
+<h3>Why this dataset produced this result, and what would change it</h3>
+<p>Publishing a negative result obliges one to explain it rather than shrug. Four properties of this problem make a classical kernel close to optimal, and each is a condition to check before expecting anything else.</p>
+<p><strong>The target is smooth and low-dimensional.</strong> Four descriptors, a target built from $\sin$, $\cos$ and a quadratic, with 5% noise. A stationary smooth kernel is very nearly the Bayes-optimal choice for such a function, and the radial basis function is the canonical stationary smooth kernel. There is no room above it to occupy.</p>
+<p><strong>The sample count is small relative to the descriptor count.</strong> With 40 training rows in four dimensions, the samples are dense enough that local interpolation works and the model never has to extrapolate. Quantum kernels are conjectured to help, if anywhere, where the relevant similarity is global and combinatorial rather than local and metric.</p>
+<p><strong>The data are classical, and cheaply so.</strong> Every argument that survives serious scrutiny about quantum advantage in machine learning concerns data that are <em>themselves</em> quantum — measurement records from a quantum sensor, shadows of a many-body state, output of a quantum experiment — where preparing the state is free because the state is the data. Chapter 5 makes that case properly. A table of composition descriptors is the least favourable input imaginable.</p>
+<p><strong>Four qubits is not enough to be interesting, and more would be worse.</strong> At $n = 4$ the feature space is small enough that nothing exotic can happen, and Section 3.6 showed that increasing $n$ makes the kernel concentrate rather than improve. There is no register size at which this experiment turns around: small $n$ is uninformative and large $n$ is unmeasurable.</p>
+<p>What would constitute genuine evidence, then? A dataset where a cross-validated quantum kernel beats a cross-validated strong classical baseline, by a margin larger than the test-set standard error, with the classical baseline given the same hyperparameter budget, on data that a classical surrogate of the quantum kernel cannot also fit — and with the shot cost of estimating the quantum kernel reported alongside the accuracy. Five conditions, all of them checkable. This chapter's own experiments clear none of them, and the useful habit for a reader is to take any positive result and ask which of the five it is missing; in this literature the answer is rarely "none".</p>
+<hr />
+<h2>3.8 Projected Kernels: A Principled Mitigation</h2>
+<h3>The idea</h3>
+<p>Concentration comes from comparing states <em>globally</em>: the fidelity is a single number that depends on all $2^n$ amplitudes, and in a large Hilbert space two random states are always nearly orthogonal. The fix is to stop asking a global question. Measure only <strong>local</strong> properties of $|\phi(x)\rangle$ — the single-qubit reduced density matrices $\rho_q(x)$ — and build a kernel from the distance between those:</p>
+<p>$$ k_{\text{proj}}(x,x') = \exp\left(-\gamma \sum_{q=1}^{n} \left\lVert \rho_q(x) - \rho_q(x')\right\rVert_F^2\right) $$</p>
+<p>This is the <strong>projected quantum kernel</strong>. Three things recommend it.</p>
+<p><strong>It is measurable at fixed cost.</strong> Each $\rho_q$ is three real numbers — the Bloch components $\langle X_q\rangle, \langle Y_q\rangle, \langle Z_q\rangle$ — so the whole feature vector is $3n$ expectation values of single-qubit Paulis, each estimable to $\varepsilon$ with $O(1/\varepsilon^2)$ shots <em>independent of $n$</em>. And it is a feature map, not a pairwise measurement: $N$ samples cost $O(N)$ circuits, not $O(N^2)$. Both of the fidelity kernel's two walls come down, and it is worth being exact about which was which: the $\sim 2^n$ shots per entry of Section 3.6 was the exponential one, the $N(N-1)/2$ pairs of Section 3.5 was only quadratic, and both were binding at realistic dataset sizes.</p>
+<p><strong>It is still a kernel.</strong> A Gaussian of a Euclidean distance in the $3n$-dimensional vector of Bloch components is positive definite by Bochner's theorem, for any $\gamma &gt; 0$.</p>
+<p><strong>It is not classically trivial.</strong> The map from $x$ to the local marginals of a deep entangling circuit is not something with a closed form, so the resulting kernel retains a quantum ingredient even though only local observables are read.</p>
+<p>For one-qubit marginals there is a useful identity that makes the implementation three lines: writing $\rho = \tfrac12(I + \vec{r}\cdot\vec{\sigma})$, a short calculation gives $\lVert \rho - \rho'\rVert_F^2 = \tfrac12\lVert\vec{r} - \vec{r}\,'\rVert^2$, so the distance is an ordinary Euclidean distance in Bloch space, up to a factor of two.</p>
+<h3>Code Example 7: Does It Work, and Does It Help?</h3>
+<p>Two questions, and they have different answers.</p>
+<pre><code class="language-python">&quot;&quot;&quot;Chapter 3, Example 7: the projected kernel, and what it does and does not fix.
+Continues from Examples 2, 3 and 6 (same session).&quot;&quot;&quot;
+
+def reduced_density_matrix(state, keep, n):
+    &quot;&quot;&quot;Partial trace: keep the listed qubits, trace out the rest.&quot;&quot;&quot;
+    psi = state.reshape([2] * n)
+    keep = list(keep)
+    rest = [q for q in range(n) if q not in keep]
+    psi = np.moveaxis(psi, keep + rest, range(n))
+    M = psi.reshape(2 ** len(keep), 2 ** len(rest))
+    return M @ M.conj().T
+
+
+def rdm_vector(state, n):
+    &quot;&quot;&quot;Stack the three Bloch components of every single-qubit reduced state.&quot;&quot;&quot;
+    out = []
+    for q in range(n):
+        r = reduced_density_matrix(state, [q], n)
+        out += [2.0 * r[0, 1].real, -2.0 * r[0, 1].imag, (r[0, 0] - r[1, 1]).real]
+    return np.array(out)
+
+
+def projected_gram(A, n, gamma, reps=1, bandwidth=1.0, per_qubit=False):
+    &quot;&quot;&quot;k_proj(x, x') = exp(-gamma * D) with D = sum_q ||rho_q(x) - rho_q(x')||_F^2.
+
+    For one-qubit marginals ||d rho||_F^2 = |d Bloch|^2 / 2, so D is a Euclidean
+    distance in a 3n-dimensional vector of local observables. per_qubit=True
+    divides D by n, which is the variant discussed below.
+    &quot;&quot;&quot;
+    V = np.array([rdm_vector(feature_state(v, reps, bandwidth), n) for v in A])
+    d2 = (np.sum(V**2, 1)[:, None] + np.sum(V**2, 1)[None, :] - 2.0 * V @ V.T) / 2.0
+    return np.exp(-gamma * np.maximum(d2, 0.0) / (n if per_qubit else 1.0))
+
+
+print(&quot;Sanity check: the projected kernel is a proper kernel&quot;)
+print(&quot;-&quot; * 80)
+P = projected_gram(X[:40], 4, 1.0)
+print(f&quot;  diagonal exactly one?      max |diag - 1| = {np.max(np.abs(np.diag(P) - 1)):.2e}&quot;)
+print(f&quot;  symmetric?                 max asymmetry  = {np.max(np.abs(P - P.T)):.2e}&quot;)
+print(f&quot;  positive semidefinite?     min eigenvalue = {np.linalg.eigvalsh(P).min():.3e}&quot;)
+off = P[~np.eye(40, dtype=bool)]
+print(f&quot;  off-diagonal: mean {off.mean():.6f}  std {off.std():.6f}  min {off.min():.6f}&quot;)
+print(f&quot;  local information only: the 1-RDM vector has 3n = 12 real entries,&quot;)
+print(f&quot;  against 2*2^n - 2 = {2 * 2**4 - 2} for the state itself&quot;)
+
+print(&quot;\nConcentration: fidelity kernel vs projected kernel vs n (reps 1, bandwidth 1)&quot;)
+print(&quot;-&quot; * 80)
+ns = list(range(2, 11))
+print(f&quot;  {'n':&gt;3} {'mean |Bloch|':&gt;13} {'mean k_F':&gt;10} {'std k_F':&gt;9} &quot;
+      f&quot;{'mean k_P':&gt;10} {'std k_P':&gt;9} {'std k_P/n':&gt;10}&quot;)
+rows = {'fid': [], 'proj': [], 'pq': []}
+for n in ns:
+    rng = np.random.default_rng(900 + n)
+    Z = rng.uniform(0, 1, (120, n))
+    iu = np.triu_indices(120, 1)
+    F = gram(Z, Z, 1, 1.0)[iu]
+    Pp = projected_gram(Z, n, 1.0)[iu]
+    Pq = projected_gram(Z, n, 1.0, per_qubit=True)[iu]
+    V = np.array([rdm_vector(feature_state(v, 1, 1.0), n) for v in Z])
+    bl = np.mean(np.linalg.norm(V.reshape(120, n, 3), axis=2))
+    rows['fid'].append(F.std(ddof=1))
+    rows['proj'].append(Pp.std(ddof=1))
+    rows['pq'].append(Pq.std(ddof=1))
+    print(f&quot;  {n:3d} {bl:13.6f} {F.mean():10.6f} {F.std(ddof=1):9.6f} &quot;
+          f&quot;{Pp.mean():10.6f} {Pp.std(ddof=1):9.6f} {Pq.std(ddof=1):10.6f}&quot;)
+
+print(&quot;\nDecay exponents (log2 of std vs n, least squares over n = 2..10)&quot;)
+print(&quot;-&quot; * 80)
+for tag, label in [('fid', 'fidelity kernel  |&lt;phi|phi&gt;|^2'),
+                   ('proj', 'projected kernel, D as defined'),
+                   ('pq', 'projected kernel, D divided by n')]:
+    s = np.polyfit(ns, np.log2(rows[tag]), 1)[0]
+    print(f&quot;  {label:&lt;36} slope {s:+.4f}  -&gt; factor {2**s:.3f} per qubit&quot;)
+print(&quot;  the individual marginals do flatten -- mean |Bloch| falls by roughly&quot;)
+print(&quot;  a factor 0.78 per qubit -- but D sums n of them, and the two effects&quot;)
+print(&quot;  nearly cancel. Divide D by n and the cancellation is undone.&quot;)
+
+print(&quot;\nThe projected kernel in the head-to-head, same protocol as Example 6&quot;)
+print(&quot;-&quot; * 80)
+print(f&quot;  {'model':&lt;34} {'hyperparameter':&gt;16} {'lambda':&gt;9} {'CV RMSE':&gt;8} &quot;
+      f&quot;{'train':&gt;9} {'test':&gt;9} {'test R^2':&gt;8}&quot;)
+best = None
+for reps in (1, 2):
+    for b in (0.1, 0.2, 0.5, 1.0):
+        for g in (0.25, 1.0, 4.0, 16.0, 64.0):
+            G = projected_gram(X, 4, g, reps, b)
+            for lam in LAMS:
+                c = cv_rmse(G[:40, :40], ytr, lam)
+                if best is None or c &lt; best[0]:
+                    best = (c, (reps, b, g), lam, G)
+cv, h, lam, G = best
+al, mu = krr_fit(G[:40, :40], ytr, lam)
+te = rmse(krr_predict(G[40:, :40], al, mu), yte)
+print(f&quot;  {'quantum, projected kernel':&lt;34} {str(h):&gt;16} {lam:9.1e} {cv:8.4f} &quot;
+      f&quot;{rmse(krr_predict(G[:40, :40], al, mu), ytr):9.4f} {te:9.4f} &quot;
+      f&quot;{r2(krr_predict(G[40:, :40], al, mu), yte):+8.4f}&quot;)
+print(f&quot;  classical RBF (Example 6)                 = {res['rbf']:.4f}&quot;)
+print(f&quot;  entangling fidelity kernel, tuned         = {res['zz_tuned']:.4f}&quot;)
+print(f&quot;  product angle-encoding kernel             = {res['cos']:.4f}&quot;)
+print(f&quot;  predict the training mean                 = &quot;
+      f&quot;{rmse(np.full(20, ytr.mean()), yte):.4f}&quot;)
+print(f&quot;  projected / best classical = {te / res['rbf']:.2f}x&quot;)
+
+print(&quot;\nWhat the projection costs in representational reach&quot;)
+print(&quot;-&quot; * 80)
+print(f&quot;  {'n':&gt;4} {'3n local numbers':&gt;18} {'2*2^n - 2 state':&gt;20} {'fraction':&gt;12}&quot;)
+for n in [4, 10, 20, 50]:
+    print(f&quot;  {n:4d} {3*n:18d} {2 * 2**n - 2:20,d} {3*n / (2 * 2**n - 2):12.3e}&quot;)
+</code></pre>
+<pre><code class="language-text">Sanity check: the projected kernel is a proper kernel
+--------------------------------------------------------------------------------
+  diagonal exactly one?      max |diag - 1| = 1.11e-16
+  symmetric?                 max asymmetry  = 0.00e+00
+  positive semidefinite?     min eigenvalue = 1.418e-04
+  off-diagonal: mean 0.627587  std 0.193978  min 0.144005
+  local information only: the 1-RDM vector has 3n = 12 real entries,
+  against 2*2^n - 2 = 30 for the state itself
+
+Concentration: fidelity kernel vs projected kernel vs n (reps 1, bandwidth 1)
+--------------------------------------------------------------------------------
+    n  mean |Bloch|   mean k_F   std k_F   mean k_P   std k_P  std k_P/n
+    2      0.642449   0.259309  0.233191   0.443874  0.248356   0.196207
+    3      0.399132   0.140904  0.133294   0.543060  0.238684   0.137139
+    4      0.300396   0.071417  0.071431   0.579654  0.221679   0.097345
+    5      0.211051   0.037011  0.036767   0.654794  0.226212   0.077372
+    6      0.138706   0.020309  0.020933   0.727217  0.203415   0.049859
+    7      0.104119   0.012613  0.012230   0.768818  0.198675   0.042634
+    8      0.074857   0.006374  0.006371   0.784535  0.203355   0.037032
+    9      0.062573   0.004362  0.004025   0.794563  0.197391   0.030838
+   10      0.054722   0.002913  0.002467   0.789127  0.194950   0.027447
+
+Decay exponents (log2 of std vs n, least squares over n = 2..10)
+--------------------------------------------------------------------------------
+  fidelity kernel  |&lt;phi|phi&gt;|^2       slope -0.8327  -&gt; factor 0.561 per qubit
+  projected kernel, D as defined       slope -0.0443  -&gt; factor 0.970 per qubit
+  projected kernel, D divided by n     slope -0.3576  -&gt; factor 0.780 per qubit
+  the individual marginals do flatten -- mean |Bloch| falls by roughly
+  a factor 0.78 per qubit -- but D sums n of them, and the two effects
+  nearly cancel. Divide D by n and the cancellation is undone.
+
+The projected kernel in the head-to-head, same protocol as Example 6
+--------------------------------------------------------------------------------
+  model                                hyperparameter    lambda  CV RMSE     train      test test R^2
+  quantum, projected kernel            (2, 0.1, 0.25)   1.0e-03   0.3634    0.0993    0.3969  +0.3643
+  classical RBF (Example 6)                 = 0.1453
+  entangling fidelity kernel, tuned         = 0.1687
+  product angle-encoding kernel             = 0.1425
+  predict the training mean                 = 0.5242
+  projected / best classical = 2.73x
+
+What the projection costs in representational reach
+--------------------------------------------------------------------------------
+     n   3n local numbers      2*2^n - 2 state     fraction
+     4                 12                   30    4.000e-01
+    10                 30                2,046    1.466e-02
+    20                 60            2,097,150    2.861e-05
+    50                150 2,251,799,813,685,246    6.661e-14
+</code></pre>
+<p><strong>What to notice — the good news.</strong> The concentration is gone. Over $n = 2$ to 10 the fidelity kernel's standard deviation decays with exponent $-0.833$ per qubit while the projected kernel's decays with exponent $-0.044$ — a factor 0.970 per added qubit, which over eight qubits is a total change of 20%. The projected kernel's spread is essentially $n$-independent, exactly as the construction promises.</p>
+<p>The mechanism is visible in the data and is worth stating because it is easy to get backwards. The individual marginals <em>do</em> flatten: the mean Bloch-vector length falls from 0.642 at $n = 2$ to 0.055 at $n = 10$, a factor of about 0.78 per qubit, as each qubit's reduced state approaches $I/2$. But the distance $D$ sums $n$ of those shrinking terms, and the two effects nearly cancel — $D$ falls only from 0.81 to 0.24 over the same range while $n$ grows fivefold. <strong>Normalising $D$ by $n$, which looks like a harmless convention, destroys the cancellation and reintroduces a decay of exponent $-0.358$.</strong> The mitigation is real but it is not robust to an apparently cosmetic choice, which is a good reason to check any published projected-kernel result for how the distance was scaled.</p>
+<p><strong>What to notice — the bad news.</strong> Under the identical protocol of Section 3.7, with the bandwidth, the repetition count and $\gamma$ all cross-validated over 40 settings, the projected kernel achieves a test RMSE of 0.3969 — <strong>2.73 times worse than the radial basis function</strong> and worse than the untuned entangling fidelity kernel's best cross-validated setting. Fixing the concentration did not fix the prediction.</p>
+<p>That is not a contradiction, and the last table says why. The projection keeps $3n$ real numbers out of the $2\cdot 2^n - 2$ that specify the state: at $n = 4$ that is 12 out of 30, or 40%, and at $n = 20$ it is $3\times10^{-5}$. The concentration was cured by throwing away the information that was concentrating. For a dataset whose target happens to depend on the discarded correlations, that is a bad trade, and on this dataset it is.</p>
+<h3>The general shape of every mitigation</h3>
+<p>Line up the three mitigations this chapter has measured and the pattern is unmistakable.</p>
+<table>
+<thead>
+<tr>
+<th>Mitigation</th>
+<th>Concentration exponent</th>
+<th>Test RMSE</th>
+<th>What it gives up</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>None (2 reps, bandwidth 1)</td>
+<td>$-0.908$</td>
+<td>0.5245</td>
+<td>nothing; nothing works</td>
+</tr>
+<tr>
+<td>Reduce depth to 1 rep</td>
+<td>$-0.826$</td>
+<td>—</td>
+<td>circuit expressivity</td>
+</tr>
+<tr>
+<td>Reduce bandwidth to 0.1</td>
+<td>$-0.443$</td>
+<td>0.1687</td>
+<td>high-frequency content of the model</td>
+</tr>
+<tr>
+<td>Project onto 1-RDMs</td>
+<td>$-0.044$</td>
+<td>0.3969</td>
+<td>all non-local information</td>
+</tr>
+</tbody>
+</table>
+<p>Every entry that improves the exponent gives up some of the very expressivity that made the feature map classically hard in the first place. This is not an accident of the particular constructions; it is the same trade-off in three costumes, and Chapter 5 argues that it is structural. A feature map expressive enough to be classically intractable is expressive enough to concentrate, and every knob that reduces the concentration moves the kernel back toward something a classical method can reproduce. The open question in the field is whether there exists a <em>problem-tailored</em> feature map — one built from the symmetries and the Hamiltonian of a specific materials problem rather than from a generic ansatz — that is simultaneously hard to simulate and non-concentrating. Nobody has exhibited one for a materials property prediction task, and this chapter is why that matters.</p>
+<hr />
+<h2>Exercises</h2>
+<h4>Exercise 1: Inversion Test Against Swap Test</h4>
+<ol>
+<li>Derive $P(\text{ancilla}=0) = (1+k)/2$ for the swap test from $\mathrm{SWAP}|\phi\rangle|\psi\rangle = |\psi\rangle|\phi\rangle$ and a Hadamard on the control.</li>
+<li>Write the variance of the unbiased estimator $\hat{k} = 2\hat{P}-1$ and compare it with the inversion test's $k(1-k)/S$.</li>
+<li>At $k = 2^{-n}$, how many more shots does the swap test need for the same standard error, at $n = 4$ and $n = 20$?</li>
+<li>Name one situation in which the swap test is nevertheless the right choice.</li>
+</ol>
+<details>
+<summary>Solution</summary>
+
+<p><strong>1.</strong> After the Hadamard on the ancilla the state is \(\tfrac12(|0\rangle(|\phi\psi\rangle + |\psi\phi\rangle) + |1\rangle(|\phi\psi\rangle - |\psi\phi\rangle))\). The norm of the first branch is \(\tfrac14(2 + 2|\langle\phi|\psi\rangle|^2)\), so \(P(0) = (1+k)/2\).</p>
+
+<p><strong>2.</strong> \(\hat{P}\) is a binomial proportion with variance \(P(1-P)/S\), and multiplying by 2 multiplies the variance by 4: \(\mathrm{Var}[\hat{k}] = 4P(1-P)/S = (1+k)(1-k)/S = (1-k^2)/S\). The inversion test gives \(k(1-k)/S\). The ratio is \((1+k)/k\), which for small \(k\) is \(1/k\).</p>
+
+<p><strong>3.</strong> At \(n = 4\), \(k = 1/16\) and the ratio is 17, so the swap test needs 17 times the shots. At \(n = 20\), \(k \approx 9.5\times10^{-7}\) and the ratio is about \(1.05\times10^{6}\). The advantage is exponential in \(n\) because the signal is exponentially small while the swap test's variance is not.</p>
+
+<p><strong>4.</strong> When the inverse circuit is unavailable or much more expensive than the forward one — for instance when one of the two states is not produced by a known circuit but arrives from an experiment, a quantum memory, or a quantum sensor. In that case the swap test can compare an unknown state against a prepared one, which the inversion test cannot. This is the setting Chapter 5 identifies as the one where quantum machine learning is most defensible.</p>
+
+
+<pre><code class="language-python">for n in [4, 10, 20]:
+    k = 2.0 ** -n
+    print(f&quot;n = {n:2d}  k = {k:.3e}  var ratio (swap/inversion) =&quot;
+          f&quot; {(1 - k*k) / (k * (1 - k)):12,.1f}&quot;)
+# n =  4  k = 6.250e-02  var ratio (swap/inversion) =         17.0
+# n = 10  k = 9.766e-04  var ratio (swap/inversion) =      1,025.0
+# n = 20  k = 9.537e-07  var ratio (swap/inversion) =  1,048,577.0
+</code></pre>
+
+
+</details>
+
+<h4>Exercise 2: Sizing a Real Study</h4>
+<p>You have a materials dataset with $N = 2000$ entries and want a quantum kernel ridge regression on 8 qubits. Assume the kernel's off-diagonal entries have mean $\bar{k} = 1/256$ and a spread of the same order.</p>
+<ol>
+<li>What target precision $\varepsilon$ is needed for the kernel to carry any information, and how many shots per entry does that imply?</li>
+<li>How many entries, how many total shots, and how long at an assumed $10^4$ circuit executions per second?</li>
+<li>What regularisation floor does that shot count impose, and how does it compare with the kernel's own scale?</li>
+<li>State the conclusion in one sentence a project manager would accept.</li>
+</ol>
+<details>
+<summary>Solution</summary>
+
+<p><strong>1.</strong> The spread is \(\sim \bar{k} = 3.9\times10^{-3}\), so \(\varepsilon\) must be well below it; take \(\varepsilon = \bar{k}/10 = 3.9\times10^{-4}\). Then \(S = \bar{k}(1-\bar{k})/\varepsilon^2 = 2.55\times10^{4}\) shots per entry.</p>
+
+<p><strong>2.</strong> \(N(N-1)/2 = 1{,}999{,}000\) entries, so \(5.1\times10^{10}\) shots, which at \(10^4\) per second is \(5.1\times10^{6}\) s, about 1,416 hours — roughly two months of uninterrupted measurement for one Gram matrix, before any cross-validation, and cross-validation reuses the same matrix so at least that part is free.</p>
+
+<p><strong>3.</strong> \(\lambda \gtrsim 2\sqrt{N}\sqrt{\bar{k}(1-\bar{k})/S} = 2\sqrt{2000}\times 3.9\times10^{-4} = 0.035\). Now compare it with the right quantity, because the obvious comparison is wrong. The kernel's off-diagonal scale \(\bar{k} = 3.9\times10^{-3}\) is an <em>entrywise</em> number and \(\lambda\) is a <em>spectral</em> one, so putting them side by side compares two different things and makes the situation look hopeless when it is not. The correct comparison passes both through the same semicircle argument. The data-dependent part of \(K\) has entrywise scale \(\sigma_k \sim \bar{k}\) and therefore spectral scale \(2\sqrt{N}\sigma_k = 0.35\); the measurement noise has entrywise scale \(\varepsilon = \sigma_k/10\) and therefore spectral scale \(2\sqrt{N}\varepsilon = 0.035\). The factor of ten chosen in part 1 survives the passage to the spectrum exactly, as it must: the ridge floor sits an order of magnitude <em>below</em> the signal, not above it, and the fit is not swamped.</p>
+
+<p><strong>4.</strong> "Two months of measurement buys a Gram matrix whose noise floor sits about a factor of ten below its data-dependent signal — enough to fit with, but the margin costs \(5\times10^{10}\) shots, it scales as \(N^2\), and every further factor of ten in spectral resolution costs a hundredfold more. The method is bounded by measurement time, not by qubit count." Note what this exercise does <em>not</em> show: it does not show that the model fails, and the earlier claim that "no increase in shots fixes it" is simply false, since \(\lambda_{\text{floor}} \propto S^{-1/2}\). The reason to be pessimistic about a 2000-point 8-qubit fidelity kernel is Section 3.7's measured result and Section 3.6's concentration, not this arithmetic.</p>
+
+
+<pre><code class="language-python">import numpy as np
+N, n = 2000, 8
+kbar = 2.0 ** -n
+sigma_k = kbar                      # &quot;a spread of the same order&quot;, as stated
+eps = sigma_k / 10
+S = kbar * (1 - kbar) / eps ** 2
+pairs = N * (N - 1) // 2
+print(f&quot;kbar = {kbar:.3e}  eps = {eps:.3e}  shots/entry = {S:,.0f}&quot;)
+print(f&quot;pairs = {pairs:,d}  total = {pairs*S:.3e}  hours = {pairs*S/1e4/3600:,.0f}&quot;)
+# Both scales pushed through the same semicircle estimate ||.||_2 ~ 2 sqrt(N) x
+# entrywise scale. Comparing lambda with kbar directly would compare a spectral
+# quantity with an entrywise one.
+lam_floor = 2 * np.sqrt(N) * np.sqrt(kbar * (1 - kbar) / S)
+signal = 2 * np.sqrt(N) * sigma_k
+print(f&quot;lambda floor (spectral noise) = {lam_floor:.4f}&quot;)
+print(f&quot;signal, same estimate         = {signal:.4f}&quot;
+      f&quot;   ratio = {signal/lam_floor:.1f}&quot;)
+print(f&quot;entrywise: signal {sigma_k:.3e} vs noise {eps:.3e}&quot;
+      f&quot;   ratio = {sigma_k/eps:.1f}   (the same 10x, as it must be)&quot;)
+print(f&quot;lambda floor at 100x the shots = &quot;
+      f&quot;{2*np.sqrt(N)*np.sqrt(kbar*(1-kbar)/(100*S)):.4f}&quot;)
+# kbar = 3.906e-03  eps = 3.906e-04  shots/entry = 25,500
+# pairs = 1,999,000  total = 5.097e+10  hours = 1,416
+# lambda floor (spectral noise) = 0.0349
+# signal, same estimate         = 0.3494   ratio = 10.0
+# entrywise: signal 3.906e-03 vs noise 3.906e-04   ratio = 10.0   (the same 10x, as it must be)
+# lambda floor at 100x the shots = 0.0035
+</code></pre>
+
+
+</details>
+
+<h4>Exercise 3: The Closed Form, Both Ways</h4>
+<ol>
+<li>Derive $\alpha = (K + \lambda I)^{-1}y$ from $w = (\Phi^{\top}\Phi + \lambda I)^{-1}\Phi^{\top}y$, stating where the push-through identity is used and why it is legitimate for $\lambda &gt; 0$.</li>
+<li>Show that $\lVert w\rVert^2 = \alpha^{\top}K\alpha$, and check the number against Code Example 3.</li>
+<li>Take $K = I$ (the basis-encoding case of Chapter 2). Solve in closed form and describe the resulting predictor.</li>
+<li>Take $K = \mathbf{1}\mathbf{1}^{\top}$ (all ones, the small-bandwidth limit). Solve and describe the predictor.</li>
+</ol>
+<details>
+<summary>Solution</summary>
+
+<p><strong>1.</strong> From \(\Phi^{\top}(\Phi\Phi^{\top} + \lambda I) = (\Phi^{\top}\Phi + \lambda I)\Phi^{\top}\), left-multiply by \((\Phi^{\top}\Phi + \lambda I)^{-1}\) and right-multiply by \((\Phi\Phi^{\top} + \lambda I)^{-1}\). Both inverses exist for \(\lambda > 0\) because \(\Phi^{\top}\Phi\) and \(\Phi\Phi^{\top}\) are positive semidefinite, so adding \(\lambda I\) makes them positive definite. The identity is exactly the reason the dual is available: it is not an approximation.</p>
+
+<p><strong>2.</strong> \(w = \Phi^{\top}\alpha\), so \(\lVert w \rVert^2 = \alpha^{\top}\Phi\Phi^{\top}\alpha = \alpha^{\top}K\alpha\). Code Example 3 reports both as 16.228885, agreeing to all printed digits.</p>
+
+<p><strong>3.</strong> \(\alpha = (y - \bar{y})/(1+\lambda)\) and \(\hat{f}(x^\ast) = \bar{y} + \sum_i \alpha_i k(x^\ast, x_i)\). Since \(k(x^\ast, x_i) = 0\) for any test point outside the training cells, the prediction is exactly \(\bar{y}\): the constant predictor with a perfectly fitted training set.</p>
+
+<p><strong>4.</strong> \(K = \mathbf{1}\mathbf{1}^{\top}\) has one eigenvalue \(N\) with eigenvector \(\mathbf{1}\) and \(N-1\) zeros. Since \(y - \bar{y}\) is orthogonal to \(\mathbf{1}\), the solve gives \(\alpha = (y-\bar{y})/\lambda\) in that orthogonal complement, and \(\sum_i \alpha_i k(x^\ast,x_i) = \mathbf{1}^{\top}\alpha = 0\). The prediction is \(\bar{y}\) again, but for the opposite reason: the kernel cannot distinguish the samples at all. Both degenerate limits collapse to the mean, which is why the constant predictor is the right baseline.</p>
+
+
+<pre><code class="language-python">import numpy as np
+N, lam = 5, 1e-3
+y = np.array([1.0, 2.0, 3.0, 4.0, 10.0])
+mu = y.mean()
+for name, K in [(&quot;identity&quot;, np.eye(N)), (&quot;all ones&quot;, np.ones((N, N)))]:
+    al = np.linalg.solve(K + lam * np.eye(N), y - mu)
+    print(f&quot;{name:9s}: prediction at a far test point = {mu + 0.0:.4f}&quot;
+          f&quot;   sum(alpha) = {al.sum():+.3e}&quot;)
+# identity : prediction at a far test point = 4.0000   sum(alpha) = +2.665e-15
+# all ones : prediction at a far test point = 4.0000   sum(alpha) = +1.943e-13
+</code></pre>
+
+
+</details>
+
+<h4>Exercise 4: Re-deriving the Concentration</h4>
+<ol>
+<li>Derive $\mathrm{Var}[k] = (D-1)/(D^2(D+1))$ from the two Haar moments given in Section 3.6, and give its leading behaviour in $n$.</li>
+<li>Code Example 5 measured $\log_2\mathrm{std}(k) = -0.826\,n$ for one repetition and $-0.991\,n$ for three. Explain the difference and say which is closer to the exact Haar reference <em>over the same range of $n$</em>.</li>
+<li>Suppose you can afford $S = 10^6$ shots per kernel entry. At what qubit count does the shot-noise standard error exceed the standard deviation of the kernel itself, so that the measured matrix carries no information?</li>
+<li>Does increasing $S$ to $10^{12}$ change the conclusion qualitatively?</li>
+</ol>
+<details>
+<summary>Solution</summary>
+
+<p><strong>1.</strong> \(\mathrm{Var} = \mathbb{E}[k^2] - \mathbb{E}[k]^2 = \frac{2}{D(D+1)} - \frac{1}{D^2} = \frac{2D - (D+1)}{D^2(D+1)} = \frac{D-1}{D^2(D+1)}\). For \(D = 2^n \gg 1\) this is \(D^{-2} = 2^{-2n}\), so \(\mathrm{std}(k) \approx 2^{-n}\) and \(\log_2 \mathrm{std} \approx -n\).</p>
+
+<p><strong>2.</strong> One repetition of the feature map is not deep enough to scramble the state to a Haar-random one, so its overlaps retain structure and concentrate more slowly. Three repetitions come much closer to the Haar ensemble. The exact Haar standard deviation, fitted over \(n = 2\) to 10, has slope \(-0.963\) rather than \(-1\) because of the \((D-1)/(D+1)\) correction at small \(D\); the three-repetition measurement of \(-0.991\) therefore <em>brackets</em> the reference and is closer to it than the one-repetition \(-0.826\) is. The comparison must be made against the reference on the same range, not against the asymptotic \(-1\).</p>
+
+<p><strong>3.</strong> Shot-noise standard error is \(\sqrt{k(1-k)/S} \approx \sqrt{2^{-n}/S} = 2^{-n/2}/\sqrt{S}\). Setting this equal to \(\mathrm{std}(k) \approx 2^{-n}\) gives \(2^{n/2} = \sqrt{S}\), i.e. \(n = \log_2 S\). With \(S = 10^6\), \(n \approx 19.9\) — so at about <strong>20 qubits</strong> the matrix is pure noise.</p>
+
+<p><strong>4.</strong> No. \(n = \log_2 S\) means a million-fold increase in shots buys 20 more qubits: \(S = 10^{12}\) reaches \(n \approx 40\). The relation is logarithmic in the budget, so the accessible register size grows like the logarithm of the total measurement time. That is the precise sense in which the obstacle is not an engineering problem.</p>
+
+
+<pre><code class="language-python">import numpy as np
+for n in [2, 4, 10, 20]:
+    D = 2.0 ** n
+    var = (D - 1) / (D ** 2 * (D + 1))
+    print(f&quot;n = {n:2d}  mean = {1/D:.3e}  std = {np.sqrt(var):.3e}&quot;
+          f&quot;  log2(std) = {np.log2(np.sqrt(var)):+.4f}&quot;)
+for S in [1e4, 1e6, 1e12]:
+    print(f&quot;S = {S:.0e} -&gt; information vanishes near n = {np.log2(S):.1f}&quot;)
+# n =  2  mean = 2.500e-01  std = 1.936e-01  log2(std) = -2.3688
+# n =  4  mean = 6.250e-02  std = 5.871e-02  log2(std) = -4.0902
+# n = 10  mean = 9.766e-04  std = 9.761e-04  log2(std) = -9.9993
+# n = 20  mean = 9.537e-07  std = 9.537e-07  log2(std) = -19.9999
+# S = 1e+04 -&gt; information vanishes near n = 13.3
+# S = 1e+06 -&gt; information vanishes near n = 19.9
+# S = 1e+12 -&gt; information vanishes near n = 39.9
+</code></pre>
+
+
+</details>
+
+<h4>Exercise 5: Refereeing a Claim</h4>
+<p>A manuscript reports a quantum kernel support vector classifier on a materials dataset: 200 samples, an 80/20 split, 12 qubits, accuracy 0.925 against a classical baseline of 0.875, described as "a clear quantum advantage".</p>
+<ol>
+<li>Compute the standard error of a 0.9 accuracy measured on 40 test samples. Is the reported gap significant?</li>
+<li>The manuscript states that the quantum kernel was computed by state-vector simulation. What does that fact alone imply about the advantage claim?</li>
+<li>List three further pieces of information you would require before accepting the result, and say what each one could reveal.</li>
+<li>The authors add that the classical baseline was "a linear support vector machine with default settings". Rewrite the abstract's claim in a form the data support.</li>
+</ol>
+<details>
+<summary>Solution</summary>
+
+<p><strong>1.</strong> \(\sqrt{p(1-p)/N} = \sqrt{0.9\times0.1/40} = 0.047\). The reported gap is 0.05, or 2 test samples out of 40 — about one standard error, and the difference of two proportions has an even larger standard error, roughly \(\sqrt{2}\times0.047 = 0.067\). The gap is not significant at any conventional level. Reporting a single split without a confidence interval or repeated splits is the most common error in this literature.</p>
+
+<p><strong>2.</strong> If the kernel was computed by simulating the state vector, then a classical computer computed the kernel — so the kernel is, demonstrably, classically computable at this size, and any accuracy it achieves is achievable classically. A simulated quantum kernel can be evidence about a kernel's <em>inductive bias</em>, which is a legitimate and interesting thing to study, but it cannot be evidence of a computational advantage. The claim and the method are incompatible.</p>
+
+<p><strong>3.</strong> (i) <em>The hyperparameter budget given to each model.</em> If the quantum kernel's bandwidth and the regularisation were tuned while the classical baseline used defaults, the comparison measures tuning effort, not kernels. (ii) <em>The kernel matrix statistics</em> — mean and standard deviation of the off-diagonal entries, and the effective dimension. At 12 qubits, \(1/2^{12} = 2.4\times10^{-4}\); if the reported mean is near that, the kernel is concentrated and the classifier is memorising. (iii) <em>The shot budget, or an explicit statement that shots were not modelled.</em> An exact simulated kernel is a different object from a kernel measured at \(10^4\) shots per entry, and Code Example 4 shows the difference can be a factor of two in error.</p>
+
+<p><strong>4.</strong> Something like: "On a 200-sample materials classification task, a simulated 12-qubit quantum kernel achieved 0.925 test accuracy against 0.875 for an untuned linear support vector machine. The difference corresponds to two test samples and is within one standard error; a cross-validated radial basis function baseline was not evaluated. No claim of computational advantage is made, since the kernel was evaluated classically."</p>
+
+
+<pre><code class="language-python">import numpy as np
+p, N = 0.9, 40
+se = np.sqrt(p * (1 - p) / N)
+print(f&quot;standard error of one accuracy      = {se:.4f}&quot;)
+print(f&quot;standard error of the difference    = {np.sqrt(2) * se:.4f}&quot;)
+print(f&quot;reported gap                        = 0.0500  ({0.05/se:.2f} sigma)&quot;)
+print(f&quot;1/2^12 = {2.0**-12:.3e}  &lt;- where a concentrated 12-qubit kernel sits&quot;)
+# standard error of one accuracy      = 0.0474
+# standard error of the difference    = 0.0671
+# reported gap                        = 0.0500  (1.05 sigma)
+# 1/2^12 = 2.441e-04  &lt;- where a concentrated 12-qubit kernel sits
+</code></pre>
+
+
+</details>
+
+<hr />
+<h2>Summary</h2>
+<h3>Key Takeaways</h3>
+<p><strong>1. A quantum kernel method is a kernel method, completely</strong></p>
+<ul>
+<li>$k(x,x') = \mathrm{Tr}[\rho(x)\rho(x')] = |\langle\phi(x)|\phi(x')\rangle|^2$ is symmetric, positive semidefinite, normalised to 1 on the diagonal, and free of trainable parameters; everything learned lives in $\alpha = (K+\lambda I)^{-1}(y - \bar{y})$.</li>
+<li>The push-through identity is the whole derivation, and it is exact for $\lambda &gt; 0$; the dual and primal solutions agreed here to $1.4\times10^{-13}$ with $\lVert w\rVert^2 = \alpha^{\top}K\alpha = 16.2289$.</li>
+<li>A closed-form estimator means a referee can reproduce every number from the Gram matrices alone, which is why this chapter uses nothing else.</li>
+</ul>
+<p><strong>2. The inversion test is exponentially cheaper than the swap test</strong></p>
+<ul>
+<li>$P(0\cdots0)$ after $U^\dagger(x')U(x)$ <em>is</em> the kernel entry: $n$ qubits, no ancilla, verified against the state overlap to $10^{-16}$.</li>
+<li>Variances are $k(1-k)/S$ against $(1-k^2)/S$, a ratio of $1/k \approx 2^n$ — a factor of 17 at four qubits and $10^6$ at twenty.</li>
+<li>The general rule: estimate a small probability by counting a rare outcome, never by rescaling a bounded observable whose variance ignores the signal size.</li>
+</ul>
+<p><strong>3. Shot noise sets a regularisation floor that scales with the dataset</strong></p>
+<ul>
+<li>Entrywise error $s = \sqrt{\bar{k}(1-\bar{k})/S}$ becomes spectral error $\lVert\Delta K\rVert_2 \approx 2s\sqrt{N}$; measured against predicted, 0.282 vs 0.306 at 100 shots and 0.0092 vs 0.0097 at $10^5$.</li>
+<li>The measured matrix is no longer positive semidefinite — smallest eigenvalue $-0.369$ at 100 shots for the working kernel — and $\lambda$ must exceed $2s\sqrt{N}$ or the fit inverts noise. Cross-validation selected 0.56, 0.18, 0.10, 0.032 against predicted floors of 0.597, 0.189, 0.060, 0.019.</li>
+<li>Total budget is $\tfrac{N^2}{2}\bar{k}/\varepsilon^2$: about $4.6\times10^5$ shots at $N = 40$ and $4.7\times10^9$ at $N = 4000$, i.e. 130 hours at an assumed $10^4$ executions per second. The $N^2$ is the first practical wall.</li>
+</ul>
+<p><strong>4. Exponential concentration is the second wall, and it has an exponent</strong></p>
+<ul>
+<li>For Haar-random feature maps $\mathbb{E}[k] = 2^{-n}$ and $\mathrm{Var}[k] = (D-1)/(D^2(D+1)) \to 2^{-2n}$.</li>
+<li>Measured over $n = 2$ to 10: $\log_2\mathrm{std}(k)$ has slope $-0.826$ at one repetition, $-0.908$ at two, $-0.991$ at three, against $-0.963$ for the exact Haar reference on the same range. The variance exponent is twice the standard-deviation exponent, $-1.65$ at one repetition.</li>
+<li>Depth drives the map toward the Haar limit; the concentration exponent measures how far it has got. Bandwidth slows it — exponent $-0.443$ at bandwidth 0.1 — but does not change the regime.</li>
+<li>Combining concentration with shot noise gives $S \sim 100\cdot2^n$ per entry, and information vanishes near $n = \log_2 S$: about 20 qubits at $10^6$ shots, 40 at $10^{12}$. The accessible register size grows like the logarithm of the total measurement time.</li>
+</ul>
+<p><strong>5. The head-to-head, reported as it came out</strong></p>
+<ul>
+<li>Under one protocol with all hyperparameters cross-validated on the training rows: quantum product angle-encoding kernel 0.1425, classical radial basis function 0.1453, entangling quantum kernel tuned 0.1687, linear ridge 0.2153 (Chapter 1's anchor of 0.2146, re-fitted here as a kernel with $\lambda$ chosen by five-fold CV instead of leave-one-out), entangling quantum kernel at conventional settings 0.5245, predict-the-mean 0.5242.</li>
+<li>The best model is nominally quantum and has a four-multiplication closed form, so it is not evidence of anything quantum. The plausibly classically-hard kernel loses by 16% after tuning and loses to the training mean before it.</li>
+<li>Every one of those differences now carries a paired bootstrap interval, and the intervals are the point. The product-cosine kernel's 2% win over the radial basis function, the tuned entangling kernel's 16% loss to it, and even the tuned entangling kernel's 22% lead over linear ridge are all <em>no call</em> at 95% on 20 test rows. The one pair this test set can separate is classical RBF against linear ridge, $[-0.143, -0.004]$. The rank ordering in the table is real arithmetic and mostly not a real finding.</li>
+<li>At its best setting the entangling kernel correlates $+0.83$ with a radial basis function kernel: tuning the bandwidth made it an approximate copy of the classical competitor.</li>
+<li>Entanglement is not the discriminator — 1.385 bits at the useful setting against 1.195 bits at the useless one. Correlation length is.</li>
+</ul>
+<p><strong>6. Every mitigation trades away the thing that made it interesting</strong></p>
+<ul>
+<li>The projected kernel removes the concentration outright: exponent $-0.044$ against $-0.833$ for the fidelity kernel, and $O(N)$ circuits instead of $O(N^2)$ pairs.</li>
+<li>It nonetheless scores 0.3969, 2.73 times worse than the classical baseline, because it keeps $3n$ numbers out of $2\cdot2^n - 2$ — 40% at four qubits, $3\times10^{-5}$ at twenty.</li>
+<li>Dividing the projected distance by $n$, an apparently cosmetic convention, reintroduces a decay of exponent $-0.358$: check the scaling convention in any published result.</li>
+<li>Depth reduction, bandwidth reduction and projection are the same trade in three forms, and no problem-tailored feature map that escapes it has been exhibited for a materials property task.</li>
+</ul>
+<p><strong>Practical implications</strong></p>
+<ul>
+<li>Report the mean and standard deviation of the off-diagonal Gram entries alongside every quantum kernel result, and compare them with $1/2^n$; a mean near $1/2^n$ means the result is about memorisation, not learning.</li>
+<li>Cross-validate the bandwidth before comparing anything, give the classical baseline the same hyperparameter budget, and state the shot model — an exact simulated kernel and a measured one are different objects.</li>
+<li>Budget the shots before the qubits: $N^2\varepsilon^{-2}$ and $2^n$ multiply, and either one alone is usually the end of the discussion.</li>
+<li>If a kernel can be written in closed form, it is a classical kernel with a quantum implementation. That may still be a good model. It is not a quantum advantage, and the two claims should never be merged.</li>
+</ul>
+<p>Chapter 4 leaves the closed form behind. Variational quantum circuits replace the linear solve with gradient descent over circuit parameters, which brings the parameter-shift rule, the barren plateau in its original habitat, and a comparison against a classical neural network of the same parameter count under the same budget. The concentration result of this chapter reappears there in a different costume — as a vanishing gradient — and the discipline established here, one protocol and a baseline that cannot be argued with, carries over unchanged.</p>
+<p><a href="chapter-2.html">← Chapter 2: Data Encoding</a> <a href="chapter-4.html">Chapter 4: Variational Quantum Models →</a></p>
+<h3>Disclaimer</h3>
+<ul>
+<li>This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical warranty, etc.).</li>
+<li>This content and accompanying code examples are provided "AS IS" without any warranty, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
+<li>The comparison results in this chapter are obtained on one synthetic 60-row dataset with a single deterministic split, at four qubits and with exactly simulated kernels; they establish that this quantum kernel does not beat this classical baseline here, and nothing more general. Neither a positive nor a negative conclusion about quantum machine learning as a field should be drawn from a single benchmark, including this one.</li>
+<li>The author and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.</li>
+<li>To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+<li>The content may be changed, updated, or discontinued without notice.</li>
+<li>The copyright and license of this content are subject to the stated conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.</li>
+</ul><div class="navigation">
+    <a href="chapter-2.html" class="nav-button">← Previous Chapter</a>
+    <a href="index.html" class="nav-button">Back to Series Index</a>
+    <a href="chapter-4.html" class="nav-button">Next Chapter →</a>
+</div>
+    </main>
+
+    <footer>
+        <p><strong>Created by</strong>: AI Terakoya Content Team</p>
+        <p><strong>Supervised by</strong>: Dr. Yusuke Hashimoto (Tohoku University)</p>
+        <p><strong>Version</strong>: 1.0 | <strong>Created</strong>: 2025-01-01</p>
+        <p><strong>License</strong>: Creative Commons BY 4.0</p>
+        <p>© 2025 AI Terakoya. All rights reserved.</p>
+    </footer>
+</body>
+</html>

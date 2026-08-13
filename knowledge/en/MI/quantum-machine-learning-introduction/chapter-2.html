@@ -1,0 +1,1373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 2: Data Encoding - AI Terakoya</title>
+
+    <link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+    <style>
+        /* page-specific residual: the rules the shared sheet does not provide.
+           Everything else that used to live here is now in knowledge-base.css;
+           re-declaring it would only risk drifting out of sync with the sheet. */
+        details { background-color: var(--color-bg-alt); margin-bottom: var(--spacing-md) }
+        summary { user-select: none; margin: calc(-1 * var(--spacing-md)); border-radius: var(--border-radius) }
+        summary:hover {
+            /* accent wash; the literal is the FM/MI/ML purple and is the fallback
+               for engines without color-mix() (Chrome <111 / Safari <16.2). */
+            background-color: rgba(123, 44, 191, 0.1);
+            background-color: color-mix(in srgb, var(--color-accent) 10%, transparent);
+        }
+        details[open] summary { margin-bottom: var(--spacing-md); border-bottom: 1px solid var(--color-border) }
+        .learning-objectives {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: var(--spacing-lg);
+            border-radius: var(--border-radius);
+            border-left: 4px solid var(--color-accent);
+            margin-bottom: var(--spacing-xl);
+        }
+        .learning-objectives h2 { margin-top: 0; border-bottom: none }
+        @media (max-width: 768px) {
+            th { padding: var(--spacing-xs) }
+            td { padding: var(--spacing-xs) }
+        }
+    </style>
+
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+
+    <!-- MathJax for LaTeX equation rendering -->
+    <script>
+        MathJax = {
+            tex: {
+                // The HTML must carry a DOUBLE backslash before ( ) [ ] so the
+                // JS string is backslash-paren; a single one collapses to a bare
+                // paren and turns every prose parenthesis into a math delimiter
+                // (non-raw Python template: 4 backslashes -> 2 in HTML -> 1 in JS).
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" id="MathJax-script" async></script>
+</head>
+<body class="dojo-mi">
+    <header>
+        <div class="header-content">
+            <h1>Chapter 2: Data Encoding</h1>
+            <p class="subtitle">Basis, Angle and Amplitude Maps, Data Re-uploading, and the Bandwidth That Decides Whether You Generalise</p>
+            <div class="meta">
+                <span class="meta-item">📖 Reading Time: 45-50 minutes</span>
+                <span class="meta-item">📊 Difficulty: Intermediate</span>
+                <span class="meta-item">💻 Code Examples: 6</span>
+                <span class="meta-item">📝 Exercises: 5</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+<p>🌐 EN | <a href="../../../jp/MI/quantum-machine-learning-introduction/chapter-2.html">🇯🇵 JP</a> | Last sync: 2026-08-13</p>
+<p><a href="../index.html">Materials Informatics Dojo</a> &gt; <a href="index.html">Introduction to Quantum Machine Learning</a> &gt; Chapter 2</p>
+<p>Chapter 1 argued that the interesting quadrant for materials informatics is classical data processed by a quantum device, and that the honest question is whether that ever beats a classical model on the same data. This chapter is about the step where most of the answer is decided, and it is the step that the promotional literature skips: <strong>getting the numbers in</strong>.</p>
+<p>A composition descriptor is a real number. A quantum register holds amplitudes. Something has to map one to the other, and that map — the <strong>encoding</strong>, or <strong>feature map</strong> — is not a preprocessing detail. It fixes the hypothesis space of every model built on top of it: which functions of $x$ the model can represent at all, which it can represent cheaply, and how many samples it will need before it stops memorising. Choose the encoding badly and no amount of training, no clever ansatz, and no error correction will help. Choose it well and, as Chapter 3 will show, you often discover that you have written down a kernel a laptop can evaluate in closed form.</p>
+<p>Three things in this chapter are worth the effort even if you never touch quantum hardware. The first is that an encoding is a feature map with a computable inner product, so the whole apparatus of kernel methods applies immediately — including its limits. The second is the <strong>data re-uploading</strong> result: a model that inserts the same input several times has a Fourier spectrum whose width is set by the number of insertions, which turns "how expressive is my circuit" into an arithmetic question about frequencies. The third is that the single most important hyperparameter in quantum machine learning is not the number of qubits, the depth, or the choice of ansatz. It is a scale factor on the input — the <strong>bandwidth</strong> — and getting it wrong is the difference between beating a constant predictor by 73% and losing to it.</p>
+<h2>Learning Objectives</h2>
+<p>After completing this chapter, you will be able to:</p>
+<ul>
+<li>Implement basis, angle and amplitude encoding on the mini-simulator, and state for each one its qubit count, its state-preparation gate count, and the resolution it throws away</li>
+<li>Explain the input problem: why amplitude encoding's $\lceil \log_2 d \rceil$ qubits do not constitute an exponential saving when a generic vector costs $\Theta(d)$ rotations to prepare</li>
+<li>Read an encoding as a feature map $x \mapsto \rho(x) = |\phi(x)\rangle\langle\phi(x)|$ and derive the induced kernel $k(x,x') = \mathrm{Tr}[\rho(x)\rho(x')]$, including the closed forms for angle and amplitude encoding</li>
+<li>Predict the rank of a Gram matrix from the dimension of the operator space the features live in, and confirm it numerically</li>
+<li>State the data re-uploading theorem — $L$ encoding gates generated by $Z/2$ give the frequency set $\Omega = \lbrace -L, \ldots, L\rbrace$ — and verify the absence of out-of-band Fourier components to machine precision</li>
+<li>Distinguish the <em>spectrum</em> a model can reach from the <em>coefficients</em> it can reach, and measure the gap on a fitted target</li>
+<li>Explain why the encoding bandwidth controls the expressivity-generalisation trade-off, locate the optimum numerically, and quantify the shot cost of a kernel that has been pushed too close to a delta function</li>
+</ul>
+<hr />
+<h2>2.1 Three Ways to Put a Number Into a Quantum Computer</h2>
+<h3>The input problem, stated once</h3>
+<p>A materials dataset is a table: $N$ rows, $d$ descriptor columns, one property column. To do anything quantum with row $x \in \mathbb{R}^d$, the register has to be placed in a state that depends on $x$. Every claim of quantum speedup in machine learning has to be read against the cost of that placement, for a simple reason: if preparing $|\phi(x)\rangle$ takes time proportional to $d$, then a "quantum algorithm running in $\log d$ time" running on top of it takes time proportional to $d$ overall, and the exponent has moved rather than disappeared. This is the <strong>input problem</strong>, and it is the first of the three reasons Chapter 1 gave for scepticism. The second, the measurement cost, arrives in Chapter 3; the third, dequantization, in Chapter 5.</p>
+<p>The three standard encodings resolve the trade-off between qubit count and circuit cost in three different places, and it is worth having all three implemented before arguing about which is better.</p>
+<h3>Basis encoding</h3>
+<p>Quantise each feature to $b$ bits and write the bit string into the register:</p>
+<p>$$ x \; \longmapsto \; |\phi(x)\rangle = |b_1(x_1) \, b_2(x_1) \cdots b_b(x_d)\rangle $$</p>
+<p>Cost: $d\,b$ qubits, and a state preparation of depth 1 — a layer of $X$ gates on the qubits whose bit is 1. Nothing could be cheaper to prepare, and nothing could be worse as a feature map. Two inputs that differ anywhere produce <strong>orthogonal</strong> states, so the induced kernel is</p>
+<p>$$ k(x,x') = |\langle \phi(x')|\phi(x)\rangle|^2 = \begin{cases} 1 &amp; \text{if the quantised words agree} \cr 0 &amp; \text{otherwise} \end{cases} $$</p>
+<p>which carries no notion of "nearby". A regression model built on it can only memorise the training set: the Gram matrix is the identity, so the fitted function is a sum of spikes located at the training points and is exactly the training mean everywhere else. Basis encoding is the right choice when the data really are discrete labels — a space group, an element identity, a Boolean flag — and the wrong choice for anything continuous.</p>
+<h3>Angle encoding</h3>
+<p>Rotate one qubit per feature:</p>
+<p>$$ x \; \longmapsto \; |\phi(x)\rangle = \bigotimes_{j=1}^{d} R_y(\pi x_j)|0\rangle = \bigotimes_{j=1}^{d} \left[\cos\frac{\pi x_j}{2}|0\rangle + \sin\frac{\pi x_j}{2}|1\rangle\right] $$</p>
+<p>Cost: $d$ qubits, one rotation each, depth 1, no two-qubit gates. The state is a product state — no entanglement anywhere — and the induced kernel has a closed form. Because the overlap factorises,</p>
+<p>$$ \langle \phi(x')|\phi(x)\rangle = \prod_{j=1}^{d}\left[\cos\frac{\pi x'_j}{2}\cos\frac{\pi x_j}{2} + \sin\frac{\pi x'_j}{2}\sin\frac{\pi x_j}{2}\right] = \prod_{j=1}^{d} \cos\frac{\pi (x_j - x'_j)}{2} $$</p>
+<p>and therefore</p>
+<p>$$ k(x,x') = \prod_{j=1}^{d} \cos^2\left(\frac{\pi (x_j - x'_j)}{2}\right) = \prod_{j=1}^{d} \frac{1 + \cos\pi(x_j - x'_j)}{2} $$</p>
+<p>Read that second form carefully, because it is the whole chapter in one line. The kernel is a <strong>product of degree-one trigonometric polynomials</strong> in the coordinate differences. It is stationary, it is smooth, it is evaluable on a pocket calculator in $O(d)$ operations, and it contains exactly the frequencies $\lbrace -1, 0, +1 \rbrace$ in each coordinate. This is a perfectly reasonable classical kernel. It is also, exactly, what a quantum computer computes if you use angle encoding — which is the first sign of a pattern that Chapter 5 makes into a general statement.</p>
+<h3>Amplitude encoding</h3>
+<p>Write the feature vector into the amplitudes themselves:</p>
+<p>$$ x \; \longmapsto \; |\phi(x)\rangle = \frac{1}{\lVert x \rVert}\sum_{i=0}^{d-1} x_i |i\rangle, \qquad m = \lceil \log_2 d \rceil \text{ qubits} $$</p>
+<p>This is the encoding that appears in the speedup arguments, because $d$ numbers fit in $\log_2 d$ qubits. Two things are being paid for that.</p>
+<p><strong>The norm is discarded.</strong> Normalisation is forced by the Born rule, so $|\phi(x)\rangle = |\phi(2x)\rangle$ and the induced kernel is a squared cosine similarity,</p>
+<p>$$ k(x,x') = \left|\hat{x}\cdot\hat{x}'\right|^2, \qquad \hat{x} = x/\lVert x \rVert $$</p>
+<p>If $\lVert x \rVert$ carries information — and for a composition vector or a spectrum it usually does — you must restore it by hand, typically by appending a padding coordinate.</p>
+<p><strong>Preparation is not free.</strong> The standard exact construction is a binary tree of $R_y$ rotations: at level $\ell$ there is one rotation per prefix of $\ell$ bits, controlled on those bits. Summing the levels gives</p>
+<p>$$ \sum_{\ell=0}^{m-1} 2^{\ell} = 2^m - 1 = d - 1 \quad \text{rotations} $$</p>
+<p>for a generic vector, most of them multiply controlled, and each multiply controlled rotation decomposes into $O(m)$ two-qubit gates. So the register is logarithmic while the circuit is linear in $d$ counted in rotations, and $\Theta(d\log d)$ counted in two-qubit gates — Exercise 2 does the sum. <strong>The compression is in space, not in time.</strong> Amplitude encoding is a genuine win only when the vector has structure that a short circuit can exploit — a product form, a sparse support, a smooth profile that a low-depth ansatz can approximate — and every serious speedup claim built on it carries that assumption somewhere, usually in a sentence about "efficiently preparable states".</p>
+<h3>The three costs side by side</h3>
+<table>
+<thead>
+<tr>
+<th>Encoding</th>
+<th>Qubits</th>
+<th>State-prep rotations</th>
+<th>Resolution lost</th>
+<th>Induced kernel</th>
+<th>Classically evaluable?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Basis, $b$ bits</td>
+<td>$d\,b$</td>
+<td>0 (only $X$ gates)</td>
+<td>everything below $2^{-b}$</td>
+<td>$\delta(x, x')$</td>
+<td>trivially</td>
+</tr>
+<tr>
+<td>Angle</td>
+<td>$d$</td>
+<td>$d$</td>
+<td>none</td>
+<td>$\prod_j \cos^2\big(\tfrac{\pi \Delta x_j}{2}\big)$</td>
+<td>closed form, $O(d)$</td>
+</tr>
+<tr>
+<td>Amplitude</td>
+<td>$\lceil\log_2 d\rceil$</td>
+<td>$d - 1$ generic</td>
+<td>the norm $\lVert x\rVert$</td>
+<td>$(\hat{x}\cdot\hat{x}')^2$</td>
+<td>closed form, $O(d)$</td>
+</tr>
+</tbody>
+</table>
+<p>Every row of the last column says the same thing, and it is the honest starting point for this course: <strong>none of the three standard encodings gives a kernel that is hard to compute classically.</strong> Getting something classically hard requires an entangling feature map, which is what Chapter 3 uses — and Chapter 3 will also show what that costs.</p>
+<hr />
+<h2>2.2 Encoding Is a Feature Map</h2>
+<h3>From states to operators</h3>
+<p>A quantum model does not have access to the state vector; it has access to expectation values. Any measurement of a fixed observable $O$ on the encoded state produces</p>
+<p>$$ f(x) = \langle \phi(x)|O|\phi(x)\rangle = \mathrm{Tr}\left[\rho(x)\, O\right], \qquad \rho(x) = |\phi(x)\rangle\langle\phi(x)| $$</p>
+<p>and this is <strong>linear in $\rho(x)$</strong>. That single observation does most of the work in this course. The right feature vector is not the state, it is the density matrix; the feature space is the real vector space of Hermitian $D \times D$ operators, with $D = 2^n$, equipped with the Hilbert-Schmidt inner product $\langle A, B\rangle = \mathrm{Tr}[A^\dagger B]$. In that space the induced kernel is a plain dot product:</p>
+<p>$$ k(x,x') = \mathrm{Tr}\left[\rho(x)\rho(x')\right] = \left|\langle \phi(x)|\phi(x')\rangle\right|^2 $$</p>
+<p>So a quantum model with a fixed encoding and a trained observable <em>is</em> a linear model in a feature space of dimension $D^2$, and everything known about linear models in high-dimensional feature spaces applies to it without modification. That is a demotion and a promotion at once: the mystique goes, and a century of statistics arrives.</p>
+<h3>How big is the feature space, really</h3>
+<p>Three dimensions get confused in the literature and it is worth separating them:</p>
+<ul>
+<li>The <strong>Hilbert space</strong> dimension $D = 2^n$. Exponential in $n$, and the number people quote.</li>
+<li>The <strong>feature space</strong> dimension, i.e. the number of real parameters in a Hermitian operator: $D^2$. If the encoded states are real, symmetric operators suffice and it is $D(D+1)/2$.</li>
+<li>The <strong>rank of the Gram matrix</strong> on $N$ samples: at most $\min(N, \dim \text{feature space})$, and that is what actually limits a model fitted to $N$ points.</li>
+</ul>
+<p>The third is the one that matters, and it means the exponential feature space is unreachable in the only sense that counts. With $N = 40$ training rows the model has at most 40 usable directions no matter how many qubits you buy. Code Example 3 checks this to the digit: amplitude encoding on 2 qubits gives real states with $D = 4$, hence a symmetric feature space of dimension $4\cdot 5/2 = 10$, and the Gram matrix of 40 samples has rank exactly 10.</p>
+<h3>Eigenvalues, not rank</h3>
+<p>Rank is a crude summary because a Gram matrix can be nominally full rank and effectively one-dimensional. The refined quantity is the eigenvalue spectrum of $K$, and a convenient scalar summary is the participation ratio</p>
+<p>$$ d_{\text{eff}}(K) = \frac{\left(\sum_i w_i\right)^2}{\sum_i w_i^2} $$</p>
+<p>with $w_i$ the eigenvalues. For a rank-one kernel ($k \equiv 1$) it equals 1; for a delta kernel ($K = I$) it equals $N$. It counts how many independent directions the kernel actually exposes, and Section 2.4 shows that the encoding bandwidth moves it across that entire range.</p>
+<h3>Why a materials researcher should care about the kernel view</h3>
+<p>Because it makes the comparison fair. A descriptor set feeding a Gaussian-process model is a kernel method; a quantum feature map feeding a trained observable is a kernel method; and the two can therefore be compared on a single axis — which kernel has the eigenvalue spectrum better aligned with the target property. That comparison does not care whether the kernel was computed on a laptop or on a dilution refrigerator, which is exactly the discipline Chapter 1 asked for. It also tells you where a quantum method could conceivably win: not by having a larger feature space, but by having a kernel whose top eigenvectors happen to match the physics, and which no classical kernel reproduces cheaply.</p>
+<hr />
+<h2>2.3 A Numerical Laboratory</h2>
+<p>Everything below runs on the mini-simulator built in <a href="../../FM/quantum-computing-introduction/index.html">Introduction to Quantum Computing</a>, Chapter 2, re-listed here so that this chapter is self-contained. The API is fixed for the whole course: <code>ket</code> builds a basis state, <code>apply_gate</code> applies a $2^k \times 2^k$ unitary to any $k$ qubits of an $n$-qubit register, <code>cnot</code> is the two-qubit special case, <code>probs</code> and <code>sample</code> give measurement statistics, and <code>expval</code> computes the expectation value of a Pauli string. The convention is <strong>big-endian</strong>: qubit 0 is the leftmost symbol in the ket and the most significant bit of the amplitude index.</p>
+<h3>Code Example 1: The Mini-Simulator, Re-listed</h3>
+<pre><code class="language-python">&quot;&quot;&quot;Minimal state-vector simulator (big-endian: qubit 0 = leftmost = most significant).
+
+Save this file as qcsim.py; every later example does `from qcsim import *`.
+&quot;&quot;&quot;
+import numpy as np
+
+# ---- single-qubit gates -------------------------------------------------
+I2 = np.eye(2, dtype=complex)
+X = np.array([[0, 1], [1, 0]], dtype=complex)
+Y = np.array([[0, -1j], [1j, 0]], dtype=complex)
+Z = np.array([[1, 0], [0, -1]], dtype=complex)
+H = np.array([[1, 1], [1, -1]], dtype=complex) / np.sqrt(2)
+S = np.array([[1, 0], [0, 1j]], dtype=complex)
+T = np.array([[1, 0], [0, np.exp(1j * np.pi / 4)]], dtype=complex)
+
+
+def rx(theta):
+    c, s = np.cos(theta / 2), np.sin(theta / 2)
+    return np.array([[c, -1j * s], [-1j * s, c]], dtype=complex)
+
+
+def ry(theta):
+    c, s = np.cos(theta / 2), np.sin(theta / 2)
+    return np.array([[c, -s], [s, c]], dtype=complex)
+
+
+def rz(theta):
+    e = np.exp(-1j * theta / 2)
+    return np.array([[e, 0], [0, np.conj(e)]], dtype=complex)
+
+
+# ---- states -------------------------------------------------------------
+def ket(bits: str) -&gt; np.ndarray:
+    &quot;&quot;&quot;'01' -&gt; the 4-dimensional basis state |01&gt; (big-endian).&quot;&quot;&quot;
+    n = len(bits)
+    psi = np.zeros(2 ** n, dtype=complex)
+    psi[int(bits, 2)] = 1.0
+    return psi
+
+
+def apply_gate(state, U, targets, n):
+    &quot;&quot;&quot;Apply the 2^k x 2^k unitary U to the listed target qubits of an n-qubit state.&quot;&quot;&quot;
+    k = len(targets)
+    psi = state.reshape([2] * n)          # 1. view as an n-index tensor
+    psi = np.moveaxis(psi, targets, range(k))   # 2. bring targets to the front
+    rest = psi.shape[k:]
+    psi = psi.reshape(2 ** k, -1)         # 3. flatten and multiply
+    psi = U @ psi
+    psi = psi.reshape(list((2,) * k) + list(rest))
+    psi = np.moveaxis(psi, range(k), targets)   # 4. put the axes back
+    return psi.reshape(-1)
+
+
+CNOT4 = np.array([[1, 0, 0, 0],
+                  [0, 1, 0, 0],
+                  [0, 0, 0, 1],
+                  [0, 0, 1, 0]], dtype=complex)
+
+
+def cnot(state, control, target, n):
+    &quot;&quot;&quot;CNOT with the given control and target; any pair of qubits, any order.&quot;&quot;&quot;
+    return apply_gate(state, CNOT4, [control, target], n)
+
+
+def probs(state):
+    &quot;&quot;&quot;Born-rule probabilities of all 2^n outcomes.&quot;&quot;&quot;
+    return np.abs(state) ** 2
+
+
+def sample(state, shots, seed=None):
+    &quot;&quot;&quot;Simulated measurement: {bitstring: count}.&quot;&quot;&quot;
+    n = int(np.log2(state.size))
+    rng = np.random.default_rng(seed)
+    idx = rng.choice(state.size, size=shots, p=probs(state))
+    out = {}
+    for i in idx:
+        b = format(i, f'0{n}b')
+        out[b] = out.get(b, 0) + 1
+    return dict(sorted(out.items()))
+
+
+PAULI = {'I': I2, 'X': X, 'Y': Y, 'Z': Z}
+
+
+def expval(state, pauli, coeff_map=None):
+    &quot;&quot;&quot;Expectation value of a Pauli string such as 'ZZ', 'XI' (one character per qubit).
+
+    If coeff_map is given, the result is multiplied by coeff_map[pauli], so that a
+    whole Hamiltonian is one line:  sum(expval(psi, p, terms) for p in terms).
+    &quot;&quot;&quot;
+    n = len(pauli)
+    phi = state.copy()
+    for q, ch in enumerate(pauli):
+        if ch != 'I':
+            phi = apply_gate(phi, PAULI[ch], [q], n)
+    val = np.vdot(state, phi).real
+    if coeff_map is not None:
+        val *= coeff_map.get(pauli, 1.0)
+    return val
+</code></pre>
+<p>Ninety-nine lines and no dependency beyond NumPy. Save it as <code>qcsim.py</code>; every later example in this chapter and the next begins with <code>from qcsim import *</code>.</p>
+<h3>Code Example 2: Three Encodings of the Same Four Numbers</h3>
+<p>The dataset is the synthetic composition-descriptor set fixed in Chapter 1 and used identically by every experiment in this course: 60 rows, four descriptors in $[0,1]$, a smooth nonlinear target with mild noise, and a deterministic split into the first 40 rows for training and the last 20 for testing. No download, no version drift, and every number below reproducible from the seed.</p>
+<pre><code class="language-python">&quot;&quot;&quot;Chapter 2, Example 2: three encodings of the same four numbers.&quot;&quot;&quot;
+import numpy as np
+from qcsim import *
+
+def make_materials_dataset(n=60, seed=7):
+    &quot;&quot;&quot;Synthetic composition-descriptor -&gt; formation-energy-like regression set.
+    4 descriptors in [0,1]; smooth nonlinear target + mild noise. Deterministic.&quot;&quot;&quot;
+    rng = np.random.default_rng(seed)
+    X = rng.uniform(0.0, 1.0, (n, 4))
+    y = (np.sin(np.pi * X[:, 0]) * np.cos(np.pi * X[:, 1])
+         + 0.5 * X[:, 2]**2 - 0.3 * X[:, 3]
+         + 0.05 * rng.standard_normal(n))
+    return X, y
+
+
+# ---- 1. basis encoding --------------------------------------------------
+def basis_encode(x, bits=3):
+    &quot;&quot;&quot;Each feature -&gt; `bits` binary digits -&gt; one computational basis state.&quot;&quot;&quot;
+    word = ''
+    for xj in x:
+        q = min(int(xj * 2 ** bits), 2 ** bits - 1)      # uniform quantiser
+        word += format(q, f'0{bits}b')
+    return ket(word), word
+
+
+# ---- 2. angle encoding --------------------------------------------------
+def angle_encode(x, bandwidth=1.0):
+    &quot;&quot;&quot;One qubit per feature: Ry(bandwidth * pi * x_j) on qubit j.&quot;&quot;&quot;
+    n = len(x)
+    psi = ket('0' * n)
+    for j, xj in enumerate(x):
+        psi = apply_gate(psi, ry(bandwidth * np.pi * xj), [j], n)
+    return psi
+
+
+# ---- 3. amplitude encoding ---------------------------------------------
+def amplitude_angles(v):
+    &quot;&quot;&quot;Binary-tree Ry angles for a non-negative vector of length 2**m.&quot;&quot;&quot;
+    m = int(np.log2(v.size))
+    w = v / np.linalg.norm(v)
+    levels = []
+    for lvl in range(m):
+        blk = 2 ** (m - lvl)                    # amplitudes per subtree
+        th = []
+        for b in range(2 ** lvl):
+            seg = w[b * blk:(b + 1) * blk]
+            lo = np.linalg.norm(seg[:blk // 2])
+            hi = np.linalg.norm(seg[blk // 2:])
+            th.append(2.0 * np.arctan2(hi, lo))
+        levels.append(th)
+    return levels
+
+
+def amplitude_encode(v):
+    &quot;&quot;&quot;Prepare v/||v|| with a cascade of controlled Ry gates. Returns (state, n_rot).&quot;&quot;&quot;
+    m = int(np.log2(v.size))
+    psi = ket('0' * m)
+    n_rot = 0
+    for lvl, th in enumerate(amplitude_angles(v)):
+        blocks = [ry(t) for t in th]            # one 2x2 block per control prefix
+        G = np.zeros((2 ** (lvl + 1), 2 ** (lvl + 1)), dtype=complex)
+        for b, B in enumerate(blocks):
+            G[2 * b:2 * b + 2, 2 * b:2 * b + 2] = B
+        psi = apply_gate(psi, G, list(range(lvl + 1)), m)
+        n_rot += len(blocks)
+    return psi, n_rot
+
+
+X, y = make_materials_dataset()
+print(&quot;Contract dataset&quot;)
+print(&quot;-&quot; * 66)
+print(f&quot;  X shape {X.shape}, y shape {y.shape}&quot;)
+print(f&quot;  train = rows 0..39, test = rows 40..59&quot;)
+print(f&quot;  x0 = {np.round(X[0], 4)}   y0 = {y[0]:+.6f}&quot;)
+print(f&quot;  x1 = {np.round(X[1], 4)}   y1 = {y[1]:+.6f}&quot;)
+print(f&quot;  y: mean {y.mean():+.6f}  std {y.std():.6f}  min {y.min():+.6f}  max {y.max():+.6f}&quot;)
+
+x, xp = X[0], X[1]
+
+print(&quot;\n1. Basis encoding, 3 bits per feature (12 qubits, 4096 amplitudes)&quot;)
+print(&quot;-&quot; * 66)
+for label, v in [('x0', x), ('x1', xp)]:
+    st, word = basis_encode(v)
+    print(f&quot;  {label} -&gt; |{word}&gt;   dimension {st.size}, &quot;
+          f&quot;nonzero amplitudes {int(np.count_nonzero(st))}&quot;)
+sa, _ = basis_encode(x)
+sb, _ = basis_encode(xp)
+print(f&quot;  overlap |&lt;phi(x0)|phi(x1)&gt;|^2 = {abs(np.vdot(sa, sb))**2:.6f}&quot;)
+sc, _ = basis_encode(x + 1e-4)
+print(f&quot;  overlap with a 1e-4 perturbation of x0 = {abs(np.vdot(sa, sc))**2:.6f}&quot;)
+
+print(&quot;\n2. Angle encoding, 1 qubit per feature (4 qubits, 16 amplitudes)&quot;)
+print(&quot;-&quot; * 66)
+pa, pb = angle_encode(x), angle_encode(xp)
+print(f&quot;  per-qubit amplitudes (cos, sin of pi*x_j/2)&quot;)
+for j in range(4):
+    c, s = np.cos(np.pi * x[j] / 2), np.sin(np.pi * x[j] / 2)
+    print(f&quot;      qubit {j}: x = {x[j]:.4f} -&gt; [{c:+.6f} {s:+.6f}]&quot;)
+print(f&quot;  joint amplitudes: a(0000) = {pa[0].real:.6f}  a(1110) = {pa[14].real:.6f}&quot;
+      f&quot;   norm = {np.linalg.norm(pa):.12f}&quot;)
+sv = np.linalg.svd(pa.reshape(2, 8), compute_uv=False)
+print(f&quot;  Schmidt values across qubit 0 | rest: {np.round(sv, 6)}  -&gt; rank 1, unentangled&quot;)
+ov = abs(np.vdot(pa, pb)) ** 2
+closed = np.prod(np.cos(np.pi * (x - xp) / 2) ** 2)
+print(f&quot;  |&lt;phi(x0)|phi(x1)&gt;|^2  simulator = {ov:.9f}&quot;)
+print(f&quot;                         closed form = {closed:.9f}&quot;)
+
+print(&quot;\n3. Amplitude encoding, log2(4) = 2 qubits&quot;)
+print(&quot;-&quot; * 66)
+for label, v in [('x0', x), ('x1', xp)]:
+    st, nrot = amplitude_encode(v)
+    print(f&quot;  {label}: prepared = {np.round(st.real, 6)}&quot;)
+    print(f&quot;      target   = {np.round(v / np.linalg.norm(v), 6)}   &quot;
+          f&quot;max error {np.max(np.abs(st.real - v / np.linalg.norm(v))):.2e}, &quot;
+          f&quot;{nrot} rotations&quot;)
+xa = x / np.linalg.norm(x)
+xb = xp / np.linalg.norm(xp)
+sa2, _ = amplitude_encode(x)
+sb2, _ = amplitude_encode(xp)
+print(f&quot;  |&lt;phi(x0)|phi(x1)&gt;|^2  simulator = {abs(np.vdot(sa2, sb2))**2:.9f}&quot;)
+print(f&quot;                         closed form (xhat.xhat')^2 = {(xa @ xb)**2:.9f}&quot;)
+
+print(&quot;\nRotation count for exact amplitude encoding of a generic vector&quot;)
+print(&quot;-&quot; * 66)
+print(f&quot;  {'features d':&gt;11} {'qubits m':&gt;9} {'rotations':&gt;10} {'2^m - 1':&gt;9}&quot;)
+for m in range(1, 9):
+    v = np.abs(np.random.default_rng(m).normal(size=2 ** m)) + 0.1
+    st, nrot = amplitude_encode(v)
+    err = np.max(np.abs(st.real - v / np.linalg.norm(v)))
+    assert err &lt; 1e-12, err
+    print(f&quot;  {2**m:11d} {m:9d} {nrot:10d} {2**m - 1:9d}&quot;)
+</code></pre>
+<pre><code class="language-text">Contract dataset
+------------------------------------------------------------------
+  X shape (60, 4), y shape (60,)
+  train = rows 0..39, test = rows 40..59
+  x0 = [0.6251 0.8972 0.7757 0.2252]   y0 = -0.647213
+  x1 = [0.3002 0.8736 0.0053 0.8212]   y1 = -0.993359
+  y: mean -0.033567  std 0.544575  min -1.219779  max +1.214190
+
+1. Basis encoding, 3 bits per feature (12 qubits, 4096 amplitudes)
+------------------------------------------------------------------
+  x0 -&gt; |101111110001&gt;   dimension 4096, nonzero amplitudes 1
+  x1 -&gt; |010110000110&gt;   dimension 4096, nonzero amplitudes 1
+  overlap |&lt;phi(x0)|phi(x1)&gt;|^2 = 0.000000
+  overlap with a 1e-4 perturbation of x0 = 1.000000
+
+2. Angle encoding, 1 qubit per feature (4 qubits, 16 amplitudes)
+------------------------------------------------------------------
+  per-qubit amplitudes (cos, sin of pi*x_j/2)
+      qubit 0: x = 0.6251 -&gt; [+0.555446 +0.831553]
+      qubit 1: x = 0.8972 -&gt; [+0.160756 +0.986994]
+      qubit 2: x = 0.7757 -&gt; [+0.345106 +0.938564]
+      qubit 3: x = 0.2252 -&gt; [+0.938079 +0.346422]
+  joint amplitudes: a(0000) = 0.028907  a(1110) = 0.722616   norm = 1.000000000000
+  Schmidt values across qubit 0 | rest: [1. 0.]  -&gt; rank 1, unentangled
+  |&lt;phi(x0)|phi(x1)&gt;|^2  simulator = 0.033268934
+                         closed form = 0.033268934
+
+3. Amplitude encoding, log2(4) = 2 qubits
+------------------------------------------------------------------
+  x0: prepared = [0.45981  0.659976 0.570582 0.165659]
+      target   = [0.45981  0.659976 0.570582 0.165659]   max error 1.11e-16, 3 rotations
+  x1: prepared = [0.242857 0.706772 0.00426  0.664437]
+      target   = [0.242857 0.706772 0.00426  0.664437]   max error 1.11e-16, 3 rotations
+  |&lt;phi(x0)|phi(x1)&gt;|^2  simulator = 0.476957369
+                         closed form (xhat.xhat')^2 = 0.476957369
+
+Rotation count for exact amplitude encoding of a generic vector
+------------------------------------------------------------------
+   features d  qubits m  rotations   2^m - 1
+            2         1          1         1
+            4         2          3         3
+            8         3          7         7
+           16         4         15        15
+           32         5         31        31
+           64         6         63        63
+          128         7        127       127
+          256         8        255       255
+</code></pre>
+<p><strong>What to notice.</strong> Four numbers, three encodings, three completely different objects.</p>
+<p>Basis encoding turns $x_0$ into a single computational basis state of a 4096-dimensional space and gives an overlap of exactly zero with $x_1$ — but also an overlap of exactly one with a point $10^{-4}$ away, because both fall in the same quantisation cell. The feature map is a lookup table with a rounding error, and its kernel is a step function of the distance rather than a decreasing one.</p>
+<p>Angle encoding produces a product state whose Schmidt values across any cut are $(1, 0)$ — rank one, no entanglement, exactly as promised. Its overlap agrees with the closed form $\prod_j \cos^2(\pi\Delta x_j/2)$ to nine digits, which is the numerical statement that this "quantum kernel" is a classical formula.</p>
+<p>Amplitude encoding reproduces the normalised feature vector to $10^{-16}$ with three rotations on two qubits, and its overlap agrees with $(\hat{x}\cdot\hat{x}')^2$. The last table is the important one: the rotation count for an exact generic preparation is $2^m - 1 = d - 1$, checked from $d = 2$ to $d = 256$. Two qubits for four features looks like a bargain; ten qubits and 1023 controlled rotations for 1024 features does not.</p>
+<h3>Code Example 3: The Kernel Each Encoding Induces</h3>
+<p>The kernel is the only thing about an encoding that a downstream model can see, so it is the right object to look at. The shaded grids below are the Gram matrices of the first 20 training points, with <code>@</code> for 1 and a blank for 0; the eigenvalue tables are computed on all 40.</p>
+<pre><code class="language-python">&quot;&quot;&quot;Chapter 2, Example 3: the kernel matrices the three encodings induce.
+Continues from Example 2 (same session).&quot;&quot;&quot;
+import matplotlib.pyplot as plt
+
+# ---------------------------------------------------------------- kernels
+def gram(states):
+    &quot;&quot;&quot;Gram matrix of |&lt;phi_i|phi_j&gt;|^2 for a list of encoded states.&quot;&quot;&quot;
+    M = np.array(states)
+    return np.abs(M.conj() @ M.T) ** 2
+
+
+def ascii_map(K, title):
+    &quot;&quot;&quot;Print a Gram matrix as a shaded character grid (0 -&gt; ' ', 1 -&gt; '@').&quot;&quot;&quot;
+    chars = ' .:-=+*#%@'
+    print(f&quot;  {title}&quot;)
+    for row in K:
+        print('    ' + ''.join(chars[min(9, int(v * 10))] for v in row))
+
+
+def eff_dim(K):
+    &quot;&quot;&quot;Participation ratio of the Gram spectrum: (sum w)^2 / sum w^2.&quot;&quot;&quot;
+    w = np.linalg.eigvalsh(K).real
+    w = np.clip(w, 0.0, None)
+    return float(w.sum() ** 2 / np.sum(w ** 2))
+
+
+X, y = make_materials_dataset()
+Xtr = X[:40]
+Xs = Xtr[:20]                                     # 20 points for the pictures
+
+enc = {
+    'basis  (3 bits, 12 qubits)': [basis_encode(v)[0] for v in Xs],
+    'angle  (4 qubits)': [angle_encode(v) for v in Xs],
+    'amplitude (2 qubits)': [amplitude_encode(v)[0] for v in Xs],
+}
+
+print(&quot;Induced Gram matrices on the first 20 training points&quot;)
+print(&quot;=&quot; * 66)
+for name, sts in enc.items():
+    K = gram(sts)
+    off = K[~np.eye(20, dtype=bool)]
+    print(f&quot;\n{name}&quot;)
+    print(f&quot;  diagonal: min {np.min(np.diag(K)):.6f}  max {np.max(np.diag(K)):.6f}&quot;)
+    print(f&quot;  off-diagonal: mean {off.mean():.6f}  std {off.std():.6f}  &quot;
+          f&quot;min {off.min():.6f}  max {off.max():.6f}&quot;)
+    print(f&quot;  effective dimension = {eff_dim(K):.3f}  (20 would be a delta kernel)&quot;)
+    ascii_map(K, 'shaded Gram matrix, rows/cols = samples 0..19')
+
+print(&quot;\n&quot; + &quot;=&quot; * 66)
+print(&quot;Eigenvalue spectra on all 40 training points (top 8, normalised trace)&quot;)
+print(&quot;-&quot; * 66)
+print(f&quot;  {'encoding':&gt;26} &quot; + ' '.join(f'{i:&gt;7d}' for i in range(1, 9)))
+for name in enc:
+    sts = {'basis  (3 bits, 12 qubits)': [basis_encode(v)[0] for v in Xtr],
+           'angle  (4 qubits)': [angle_encode(v) for v in Xtr],
+           'amplitude (2 qubits)': [amplitude_encode(v)[0] for v in Xtr]}[name]
+    w = np.sort(np.linalg.eigvalsh(gram(sts)).real)[::-1] / 40.0
+    print(f&quot;  {name:&gt;26} &quot; + ' '.join(f'{v:7.4f}' for v in w[:8]))
+
+print(&quot;\nFeature-space dimension actually used&quot;)
+print(&quot;-&quot; * 66)
+print(f&quot;  {'encoding':&gt;26} {'dim H':&gt;7} {'D(D+1)/2':&gt;9} {'rank(K), 40 pts':&gt;16}&quot;)
+for name, sts in [('basis  (3 bits, 12 qubits)', [basis_encode(v)[0] for v in Xtr]),
+                  ('angle  (4 qubits)', [angle_encode(v) for v in Xtr]),
+                  ('amplitude (2 qubits)', [amplitude_encode(v)[0] for v in Xtr])]:
+    K = gram(sts)
+    r = int(np.sum(np.linalg.eigvalsh(K).real &gt; 1e-9 * np.trace(K)))
+    D = sts[0].size
+    print(f&quot;  {name:&gt;26} {D:7d} {D * (D + 1) // 2:9d} {r:16d}&quot;)
+
+# ------------------------------------------------------------------ figure
+fig, ax = plt.subplots(1, 3, figsize=(13, 4))
+for a, (name, sts) in zip(ax, enc.items()):
+    im = a.imshow(gram(sts), vmin=0, vmax=1, cmap='viridis')
+    a.set_title(name, fontsize=9)
+    a.set_xlabel('sample index')
+    fig.colorbar(im, ax=a, fraction=0.046)
+ax[0].set_ylabel('sample index')
+plt.tight_layout()
+plt.show()
+</code></pre>
+<pre><code class="language-text">Induced Gram matrices on the first 20 training points
+==================================================================
+
+basis  (3 bits, 12 qubits)
+  diagonal: min 1.000000  max 1.000000
+  off-diagonal: mean 0.000000  std 0.000000  min 0.000000  max 0.000000
+  effective dimension = 20.000  (20 would be a delta kernel)
+  shaded Gram matrix, rows/cols = samples 0..19
+    @                   
+     @                  
+      @                 
+       @                
+        @               
+         @              
+          @             
+           @            
+            @           
+             @          
+              @         
+               @        
+                @       
+                 @      
+                  @     
+                   @    
+                    @   
+                     @  
+                      @ 
+                       @
+
+angle  (4 qubits)
+  diagonal: min 1.000000  max 1.000000
+  off-diagonal: mean 0.239331  std 0.226143  min 0.000024  max 0.866434
+  effective dimension = 6.536  (20 would be a delta kernel)
+  shaded Gram matrix, rows/cols = samples 0..19
+    @ -:   +  ..=.:%.. *
+     @.:  -.  =++     - 
+    -.@-.. % ..+-..+++-=
+    ::-@ -*+=:=-=+:-=.. 
+      . @     ..: :   = 
+      .- @ -%#   * -#.  
+     - *  @ . *.:.      
+    +.%+ - @::.==--%*+:=
+       = %.:@*   * :=   
+      .: # :*@   :::+:  
+    .=.=. *.  @-*  .  : 
+    .++-. .=  -@#. ::.*:
+    =+-=: :=  *#@..-. =-
+    . .+ *.-*: ..@ :*   
+    : .::  - :  . @-.+ .
+    % +- - %::.:-:-@+= *
+    . += # *=+ :.*.+@- .
+    . +. . + : .  +=-@.:
+     --.=  :  :*=    .@.
+    * =    =   :- .*.:.@
+
+amplitude (2 qubits)
+  diagonal: min 1.000000  max 1.000000
+  off-diagonal: mean 0.639159  std 0.217763  min 0.046411  max 0.983358
+  effective dimension = 2.070  (20 would be a delta kernel)
+  shaded Gram matrix, rows/cols = samples 0..19
+    @=####=@++#*%%#@%*+@
+    =@=*# #=. %%%+--::#=
+    #=@*%=-@:=+%#=#%%%%@
+    #**@%+%#*+@*%%%#*+**
+    ##%%@=*%-=%%@*%###@#
+    # =+=@:*%@-.-*###*.+
+    =#-%*:@==:@+#*+--:+:
+    @=@#%*=@=+*#%*%@@%#@
+    +.:*-%==@#=.-**++-.-
+    + =+=@:+#@:.:=%*##.=
+    #%+@%-@*=:@#@%**=-#+
+    *%%*%.+#..#@@++*++@#
+    %%#%@-#%-:@@@#*#*+%#
+    %+=%*****=%+#@*#+-=*
+    #-#%%#+%*%*+**@%@@*#
+    @-%###-@+***##%@@#+@
+    %:%*##-@+#=+*+@@@@+%
+    *:%+#*:%-#-++-@#@@*#
+    +#%*@.+#..#@%=*++*@*
+    @=@*#+:@-=+##*#@%#*@
+
+==================================================================
+Eigenvalue spectra on all 40 training points (top 8, normalised trace)
+------------------------------------------------------------------
+                    encoding       1       2       3       4       5       6       7       8
+  basis  (3 bits, 12 qubits)  0.0250  0.0250  0.0250  0.0250  0.0250  0.0250  0.0250  0.0250
+           angle  (4 qubits)  0.2754  0.1335  0.1108  0.0909  0.0705  0.0483  0.0439  0.0338
+        amplitude (2 qubits)  0.6615  0.1256  0.0971  0.0750  0.0156  0.0073  0.0062  0.0055
+
+Feature-space dimension actually used
+------------------------------------------------------------------
+                    encoding   dim H  D(D+1)/2  rank(K), 40 pts
+  basis  (3 bits, 12 qubits)    4096   8390656               40
+           angle  (4 qubits)      16       136               40
+        amplitude (2 qubits)       4        10               10
+</code></pre>
+<p><strong>What to notice.</strong> The three pictures are the three failure modes and the one reasonable choice, laid out visually.</p>
+<p>Basis encoding gives the identity matrix — a perfect diagonal, effective dimension exactly 20.0, and an off-diagonal mean of exactly zero. It has no idea that any two of these materials resemble each other.</p>
+<p>Amplitude encoding goes to the other extreme: off-diagonal mean 0.64, effective dimension 2.07, and a spectrum in which the leading eigenvalue holds 66% of the trace. Everything looks like everything else, because a squared cosine similarity between vectors of four non-negative numbers is close to 1 for almost any pair. This kernel will underfit no matter how it is regularised.</p>
+<p>Angle encoding sits between them: off-diagonal mean 0.24, effective dimension 6.5, and a spectrum that decays smoothly over the first ten eigenvalues. That decay is what a usable kernel looks like — enough structure to distinguish samples, enough smoothness to interpolate between them.</p>
+<p>The last table settles the dimension question. The Hilbert space dimensions are 4096, 16 and 4; the symmetric feature space dimensions are about $8.4\times10^6$, 136 and 10; and the Gram ranks on 40 samples are 40, 40 and <strong>10</strong>. The amplitude-encoding rank is not limited by the sample count but by $D(D+1)/2 = 10$, exactly as predicted. The 4096-dimensional Hilbert space of the basis encoding buys nothing at all: it too is capped at 40, and 40 orthogonal spikes are the least useful 40 directions available.</p>
+<hr />
+<h2>2.4 Data Re-uploading: One Qubit Is Enough</h2>
+<h3>The construction</h3>
+<p>Everything so far encoded each feature once. Nothing forbids using it again. A <strong>data re-uploading</strong> model interleaves encoding gates with trainable gates,</p>
+<p>$$ U(x, \theta) = W(\theta_L)\, S(x)\, W(\theta_{L-1}) \, S(x) \cdots S(x)\, W(\theta_0) $$</p>
+<p>and measures a fixed observable, $f(x) = \langle 0 | U^\dagger(x,\theta)\, Z\, U(x,\theta) | 0\rangle$. Here $S(x)$ is the encoding gate, $L$ of them, and each $W(\theta_i) = R_z R_y R_z$ is a general single-qubit unitary with three angles. On one qubit. That is the entire model.</p>
+<p>The reason to care is a structural theorem rather than a numerical trick, and it is the cleanest result in the subject.</p>
+<h3>The spectrum of a re-uploading model</h3>
+<p>Take the encoding gate to be generated by a Pauli operator, $S(x) = e^{-i x G}$ with $G$ Hermitian. Write $G$ in its eigenbasis with eigenvalues $\lambda_1, \ldots, \lambda_D$. Expanding the product for $U(x,\theta)$, every amplitude of the final state is a sum of terms each carrying a phase $e^{-i x \Lambda}$, where $\Lambda$ is a sum of $L$ eigenvalues, one from each encoding gate. An expectation value is bilinear — it pairs an amplitude with the conjugate of another amplitude — so the phases that survive are <strong>differences</strong> of such sums. Therefore</p>
+<p>$$ f(x) = \sum_{\omega \in \Omega} c_\omega(\theta)\, e^{i\omega x}, \qquad \Omega = \left\lbrace \sum_{k=1}^{L}\left(\lambda_{i_k} - \lambda_{j_k}\right) \right\rbrace $$</p>
+<p>For $S(x) = R_z(x) = e^{-i x Z/2}$ the eigenvalues are $\pm\tfrac12$, each difference lies in $\lbrace -1, 0, +1\rbrace$, and the sum of $L$ of them ranges over the integers from $-L$ to $L$:</p>
+<p>$$ \Omega = \lbrace -L, -L+1, \ldots, L-1, L \rbrace, \qquad |\Omega| = 2L+1 $$</p>
+<p><strong>A re-uploading model with $L$ encoding gates is a trigonometric polynomial of degree $L$.</strong> Nothing about the number of qubits enters; the frequency content is set by how many times the data went in and by the eigenvalue spacing of the generator. Since $f$ is real, $c_{-\omega} = \overline{c_\omega}$, so the $2L+1$ complex coefficients carry $2L+1$ real degrees of freedom.</p>
+<p>Two consequences follow immediately. First, <strong>universality</strong>: trigonometric polynomials are dense in the continuous $2\pi$-periodic functions, so letting $L$ grow lets a single-qubit model approximate any such function arbitrarily well. Depth substitutes for width. Second, <strong>a hard ceiling at fixed $L$</strong>: no choice of trainable parameters can produce a component at frequency $L+1$. If the property you are fitting has weight at high frequency, you will not fit it, and no amount of training or regularisation will change that. Both statements are checked numerically below.</p>
+<h3>Code Example 4: The Fourier Spectrum, Measured</h3>
+<p>The test is direct. Sample $f$ on a uniform grid over one period, take a discrete Fourier transform, and look at the coefficients above $\omega = L$. The theorem says they are zero; floating-point arithmetic says they are $10^{-16}$.</p>
+<pre><code class="language-python">&quot;&quot;&quot;Chapter 2, Example 4: the Fourier spectrum a re-uploading model can reach.&quot;&quot;&quot;
+import numpy as np
+from qcsim import *
+
+def W(theta):
+    &quot;&quot;&quot;A general single-qubit trainable block: Rz Ry Rz (3 angles).&quot;&quot;&quot;
+    return rz(theta[2]) @ ry(theta[1]) @ rz(theta[0])
+
+
+def reupload_model(x, thetas):
+    &quot;&quot;&quot;f(x) = &lt;Z&gt; after W(th_L) S(x) ... S(x) W(th_0) with S(x) = Rz(x).
+
+    len(thetas) = L + 1 trainable blocks, hence L encoding gates.
+    &quot;&quot;&quot;
+    psi = ket('0')
+    psi = apply_gate(psi, W(thetas[0]), [0], 1)
+    for th in thetas[1:]:
+        psi = apply_gate(psi, rz(x), [0], 1)          # the data-encoding gate
+        psi = apply_gate(psi, W(th), [0], 1)
+    return expval(psi, 'Z')
+
+
+def spectrum(thetas, N=64):
+    &quot;&quot;&quot;Fourier coefficients c_w of f over one period, w = 0, 1, ..., N/2.&quot;&quot;&quot;
+    xs = 2.0 * np.pi * np.arange(N) / N
+    f = np.array([reupload_model(x, thetas) for x in xs])
+    return f, np.fft.fft(f) / N
+
+
+print(&quot;Data re-uploading: the spectrum of f(x) = &lt;Z&gt;, S(x) = Rz(x)&quot;)
+print(&quot;=&quot; * 72)
+print(&quot;theory: L encoding gates -&gt; Omega = {-L, ..., L}, i.e. 2L+1 frequencies&quot;)
+print()
+print(f&quot;  {'L':&gt;2} {'|c_0|':&gt;9} {'|c_1|':&gt;9} {'|c_2|':&gt;9} {'|c_3|':&gt;9} &quot;
+      f&quot;{'|c_4|':&gt;9} {'|c_5|':&gt;9} {'|c_6|':&gt;9} {'max leak':&gt;10}&quot;)
+rng = np.random.default_rng(11)
+for L in range(0, 6):
+    thetas = rng.uniform(0, 2 * np.pi, (L + 1, 3))
+    f, c = spectrum(thetas)
+    mags = np.abs(c[:7])
+    leak = np.max(np.abs(c[L + 1:len(c) // 2 + 1])) if L + 1 &lt;= len(c) // 2 else 0.0
+    print(f&quot;  {L:2d} &quot; + ' '.join(f'{m:9.6f}' for m in mags) + f&quot; {leak:10.2e}&quot;)
+
+print(&quot;\nSame test averaged over 20 random parameter draws (L = 4)&quot;)
+print(&quot;-&quot; * 72)
+rng = np.random.default_rng(2024)
+inband, leaks = [], []
+for _ in range(20):
+    thetas = rng.uniform(0, 2 * np.pi, (5, 3))
+    f, c = spectrum(thetas)
+    inband.append(np.max(np.abs(c[:5])))
+    leaks.append(np.max(np.abs(c[5:33])))
+print(f&quot;  largest in-band |c_w| (w &lt;= 4), smallest over draws = {min(inband):.6f}&quot;)
+print(f&quot;  largest out-of-band |c_w| (5 &lt;= w &lt;= 32), over all draws = {max(leaks):.3e}&quot;)
+print(f&quot;  ratio in-band / out-of-band = {min(inband) / max(leaks):.2e}&quot;)
+
+print(&quot;\nReality checks on the Fourier representation (L = 3)&quot;)
+print(&quot;-&quot; * 72)
+thetas = np.random.default_rng(5).uniform(0, 2 * np.pi, (4, 3))
+f, c = spectrum(thetas, N=64)
+print(f&quot;  f real?                        max |Im f| = {np.max(np.abs(np.imag(f))):.1e}&quot;)
+print(f&quot;  Hermitian, c_-w = conj(c_w)?   max error  = &quot;
+      f&quot;{np.max(np.abs(c[1:4] - np.conj(c[-1:-4:-1]))):.1e}&quot;)
+print(f&quot;  2*pi periodic?  f(0) - f(2*pi) = {reupload_model(0.0, thetas) - reupload_model(2*np.pi, thetas):+.1e}&quot;)
+xs = 2.0 * np.pi * np.arange(64) / 64
+rec = np.real(sum(c[w] * np.exp(1j * w * xs) for w in range(-3, 4)))
+print(f&quot;  degree-3 trig polynomial reproduces f?  max error = {np.max(np.abs(rec - f)):.1e}&quot;)
+print(f&quot;  c_0 = {c[0].real:+.6f}  c_1 = {c[1].real:+.6f}{c[1].imag:+.6f}i  &quot;
+      f&quot;c_2 = {c[2].real:+.6f}{c[2].imag:+.6f}i  c_3 = {c[3].real:+.6f}{c[3].imag:+.6f}i&quot;)
+
+print(&quot;\nWhat happens with a scaled encoding gate S(x) = Rz(b*x)&quot;)
+print(&quot;-&quot; * 72)
+print(f&quot;  {'bandwidth b':&gt;12} {'frequencies present':&gt;34}&quot;)
+for b in [1.0, 2.0, 3.0]:
+    def m(x, th=np.random.default_rng(7).uniform(0, 2*np.pi, (4, 3)), b=b):
+        psi = apply_gate(ket('0'), W(th[0]), [0], 1)
+        for t in th[1:]:
+            psi = apply_gate(psi, rz(b * x), [0], 1)
+            psi = apply_gate(psi, W(t), [0], 1)
+        return expval(psi, 'Z')
+    ff = np.array([m(x) for x in xs])
+    cc = np.fft.fft(ff) / 64
+    present = [w for w in range(33) if abs(cc[w]) &gt; 1e-9]
+    print(f&quot;  {b:12.1f} {str(present):&gt;34}&quot;)
+</code></pre>
+<pre><code class="language-text">Data re-uploading: the spectrum of f(x) = &lt;Z&gt;, S(x) = Rz(x)
+========================================================================
+theory: L encoding gates -&gt; Omega = {-L, ..., L}, i.e. 2L+1 frequencies
+
+   L     |c_0|     |c_1|     |c_2|     |c_3|     |c_4|     |c_5|     |c_6|   max leak
+   0  0.999990  0.000000  0.000000  0.000000  0.000000  0.000000  0.000000   0.00e+00
+   1  0.410168  0.291668  0.000000  0.000000  0.000000  0.000000  0.000000   3.89e-17
+   2  0.055810  0.340243  0.135375  0.000000  0.000000  0.000000  0.000000   5.52e-17
+   3  0.623126  0.152085  0.007458  0.000255  0.000000  0.000000  0.000000   5.80e-17
+   4  0.540477  0.069891  0.080638  0.021140  0.002921  0.000000  0.000000   7.56e-17
+   5  0.152494  0.358885  0.104139  0.084594  0.064244  0.023888  0.000000   1.08e-16
+
+Same test averaged over 20 random parameter draws (L = 4)
+------------------------------------------------------------------------
+  largest in-band |c_w| (w &lt;= 4), smallest over draws = 0.160517
+  largest out-of-band |c_w| (5 &lt;= w &lt;= 32), over all draws = 1.201e-16
+  ratio in-band / out-of-band = 1.34e+15
+
+Reality checks on the Fourier representation (L = 3)
+------------------------------------------------------------------------
+  f real?                        max |Im f| = 0.0e+00
+  Hermitian, c_-w = conj(c_w)?   max error  = 5.6e-17
+  2*pi periodic?  f(0) - f(2*pi) = -7.8e-16
+  degree-3 trig polynomial reproduces f?  max error = 1.3e-15
+  c_0 = -0.180478  c_1 = +0.015152+0.084024i  c_2 = +0.096921-0.014103i  c_3 = +0.230252+0.281564i
+
+What happens with a scaled encoding gate S(x) = Rz(b*x)
+------------------------------------------------------------------------
+   bandwidth b                frequencies present
+           1.0                       [0, 1, 2, 3]
+           2.0                       [0, 2, 4, 6]
+           3.0                       [0, 3, 6, 9]
+</code></pre>
+<p><strong>What to notice.</strong> The zeros are not small, they are numerical zeros. At $L = 4$ the largest coefficient outside the band, over twenty random parameter draws, is $1.2 \times 10^{-16}$, while the <em>smallest</em> in-band maximum over those same draws — the least favourable draw, not the typical one — is 0.161. Their ratio is $1.3\times 10^{15}$, i.e. the ratio of an ordinary number to machine epsilon. The claim is not approximately true; it is exactly true and the computation is only approximately exact.</p>
+<p>The $L = 0$ row is worth a glance: with no encoding gate at all the model is a constant, $|c_0| = 1$ and nothing else, which is the degree-zero case of the theorem. The $L = 3$ row shows that the high coefficients can be <em>small</em> without being zero ($|c_3| = 2.55\times10^{-4}$ for that draw), which is a statement about the coefficients, not about the spectrum.</p>
+<p>The last block is the bandwidth mechanism in miniature. Replacing $S(x) = R_z(x)$ by $R_z(bx)$ multiplies every eigenvalue of the generator by $b$, hence every frequency: the spectrum $\lbrace 0,1,2,3\rbrace$ becomes $\lbrace 0,2,4,6\rbrace$ and then $\lbrace 0,3,6,9\rbrace$. The model reaches higher frequencies, and — this is the part Section 2.5 makes precise — it loses the low ones in the process.</p>
+<h3>Code Example 5: The Spectrum Is Universal, the Coefficients Are Not</h3>
+<p>The theorem constrains which frequencies appear, not which coefficient vectors are reachable. A single qubit with $L$ encoding gates has $3(L+1)$ trainable angles plus, in practice, an output scale and offset; the target subspace has $2L+1$ real dimensions. Counting parameters suggests the model should be able to hit any degree-$L$ trigonometric polynomial, but unitarity constrains the coefficients in ways counting does not capture ($|f| \le 1$ pointwise, for a start).</p>
+<p>So measure the gap. Fix a stiff periodic target, $g(x) = \tanh(4\sin x)$, whose Fourier coefficients decay slowly and only on odd harmonics. Compare two numbers at each $L$: the RMSE of the <em>best possible</em> degree-$L$ trigonometric polynomial, which is the Fourier truncation error and a hard information-theoretic floor; and the RMSE actually achieved by fitting the circuit.</p>
+<pre><code class="language-python">&quot;&quot;&quot;Chapter 2, Example 5: how much of the reachable spectrum is actually used.
+Continues from Example 4 (same session).&quot;&quot;&quot;
+from scipy.optimize import minimize
+
+N = 64
+xs = 2.0 * np.pi * np.arange(N) / N
+g = np.tanh(4.0 * np.sin(xs))                  # target: a stiff periodic profile
+cg = np.fft.fft(g) / N
+
+
+def reupload_batch(xs, thetas):
+    &quot;&quot;&quot;Same model as reupload_model, evaluated for a whole array of x at once.
+
+    A one-qubit circuit is a product of 2x2 matrices, so the whole grid is one
+    batched matmul chain -- 3 orders of magnitude faster than looping, and
+    verified below to agree with the simulator to machine precision.
+    &quot;&quot;&quot;
+    U = np.broadcast_to(W(thetas[0]), (xs.size, 2, 2)).copy()
+    for th in thetas[1:]:
+        e = np.exp(-0.5j * xs)
+        S = np.zeros((xs.size, 2, 2), dtype=complex)
+        S[:, 0, 0], S[:, 1, 1] = e, np.conj(e)      # Rz(x), one per grid point
+        U = W(th) @ S @ U
+    a = U[:, :, 0]                                  # column acting on |0&gt;
+    return (np.abs(a[:, 0]) ** 2 - np.abs(a[:, 1]) ** 2).real   # &lt;Z&gt;
+
+
+thetas = np.random.default_rng(5).uniform(0, 2 * np.pi, (4, 3))
+ref = np.array([reupload_model(x, thetas) for x in xs])
+print(&quot;Batched evaluation agrees with the simulator&quot;)
+print(&quot;-&quot; * 68)
+print(f&quot;  max |batched - simulator| over 64 grid points = &quot;
+      f&quot;{np.max(np.abs(reupload_batch(xs, thetas) - ref)):.2e}&quot;)
+
+
+def truncation_rmse(L):
+    &quot;&quot;&quot;RMSE of the best degree-L trigonometric polynomial (Fourier truncation).&quot;&quot;&quot;
+    keep = np.zeros(N, dtype=complex)
+    keep[:L + 1] = cg[:L + 1]
+    if L &gt; 0:
+        keep[-L:] = cg[-L:]
+    return float(np.sqrt(np.mean((np.real(np.fft.ifft(keep) * N) - g) ** 2)))
+
+
+def mse(p, L):
+    &quot;&quot;&quot;Mean squared error of the trainable model a * f(x) + b against g.&quot;&quot;&quot;
+    return float(np.mean((p[0] * reupload_batch(xs, p[2:].reshape(L + 1, 3))
+                          + p[1] - g) ** 2))
+
+
+def fit(L, restarts=8, seed=0):
+    &quot;&quot;&quot;Least-squares fit of the re-uploading model; best of `restarts` inits.&quot;&quot;&quot;
+    rng = np.random.default_rng(seed)
+    best = np.inf
+    for _ in range(restarts):
+        p0 = np.concatenate(([1.0, 0.0], rng.uniform(0, 2 * np.pi, 3 * (L + 1))))
+        r = minimize(mse, p0, args=(L,), method='L-BFGS-B',
+                     options={'maxiter': 3000, 'ftol': 1e-15, 'gtol': 1e-12})
+        best = min(best, float(np.sqrt(r.fun)))
+    return best
+
+
+print(&quot;\nTarget g(x) = tanh(4 sin x): Fourier coefficients&quot;)
+print(&quot;-&quot; * 68)
+print(f&quot;  {'w':&gt;3} {'|c_w|':&gt;10}    {'w':&gt;3} {'|c_w|':&gt;10}&quot;)
+for w in range(0, 5):
+    print(f&quot;  {w:3d} {abs(cg[w]):10.6f}    {w+5:3d} {abs(cg[w+5]):10.6f}&quot;)
+
+print(&quot;\nUniversality: spectrum bound vs what the 1-qubit model actually reaches&quot;)
+print(&quot;-&quot; * 68)
+print(f&quot;  {'L':&gt;2} {'freqs':&gt;6} {'params':&gt;7} {'degree-L floor':&gt;15} {'fitted model':&gt;13} {'ratio':&gt;7}&quot;)
+for L in range(1, 8):
+    tr, md = truncation_rmse(L), fit(L)
+    print(f&quot;  {L:2d} {2*L+1:6d} {3*(L+1)+2:7d} {tr:15.4f} {md:13.4f} {md/tr:7.2f}&quot;)
+print(f&quot;  RMSE of the best constant predictor = {np.std(g):.4f}&quot;)
+</code></pre>
+<pre><code class="language-text">Batched evaluation agrees with the simulator
+--------------------------------------------------------------------
+  max |batched - simulator| over 64 grid points = 8.33e-16
+
+Target g(x) = tanh(4 sin x): Fourier coefficients
+--------------------------------------------------------------------
+    w      |c_w|      w      |c_w|
+    0   0.000000      5   0.070868
+    1   0.619056      6   0.000000
+    2   0.000000      7   0.032125
+    3   0.168265      8   0.000000
+    4   0.000000      9   0.014826
+
+Universality: spectrum bound vs what the 1-qubit model actually reaches
+--------------------------------------------------------------------
+   L  freqs  params  degree-L floor  fitted model   ratio
+   1      3       8          0.2632        0.2632    1.00
+   2      5      11          0.2632        0.2632    1.00
+   3      7      14          0.1126        0.1126    1.00
+   4      9      17          0.1126        0.1126    1.00
+   5     11      20          0.0512        0.0512    1.00
+   6     13      23          0.0512        0.0512    1.00
+   7     15      26          0.0237        0.0237    1.00
+  RMSE of the best constant predictor = 0.9142
+</code></pre>
+<p><strong>What to notice.</strong> The ratio column is 1.00 at every $L$ from 1 to 7. The single-qubit re-uploading model does not merely approach the degree-$L$ approximation floor, it <strong>saturates</strong> it — for this target the constraint from unitarity costs nothing at all, and the only thing limiting the fit is the frequency budget.</p>
+<p>The staircase in the floor column is the second lesson. Going from $L = 1$ to $L = 2$ buys nothing (0.2632 both times), and neither does $3 \to 4$ (0.1126 both times) or $5 \to 6$ (0.0512 both times). The reason is visible in the coefficient table: $\tanh(4\sin x)$ is odd about $x = 0$ and $\pi$, so its even harmonics vanish identically. Adding an encoding gate helps only if the target has weight at the frequency it unlocks. This is the practical form of the theorem: <strong>look at the spectrum of the property you are trying to predict before choosing a depth</strong>, because half the layers may be free of charge and half may be useless.</p>
+<p>A caveat about the fit itself, since honesty about method matters as much as honesty about results. The optimisation here is a plain least-squares fit with L-BFGS-B and eight seeded restarts, using a batched evaluation of the one-qubit circuit that is verified against the simulator to $8\times10^{-16}$ in the first block. It is not a parameter-shift training loop on a shot-limited device; that is Chapter 4's subject, and the numbers there will be worse for reasons that have nothing to do with the spectrum.</p>
+<hr />
+<h2>2.5 Bandwidth: The Hyperparameter That Decides Everything</h2>
+<h3>What the scale factor does</h3>
+<p>Insert a scale factor in the encoding, $x_j \mapsto b\,\pi x_j$. In the re-uploading picture this multiplies the reachable frequencies by $b$. In the kernel picture it stretches or compresses the kernel, and for the product angle encoding the effect is explicit:</p>
+<p>$$ k_b(x,x') = \prod_{j=1}^{d} \cos^2\left(\frac{b\,\pi (x_j - x'_j)}{2}\right) $$</p>
+<p>The two limits are both disastrous and they fail in opposite ways.</p>
+<p><strong>Small $b$.</strong> Expanding for $b \to 0$ gives $k_b(x,x') \approx 1 - \tfrac{b^2\pi^2}{4}\lVert x - x'\rVert^2$, so the Gram matrix approaches the all-ones matrix. Its spectrum collapses onto one large eigenvalue: rank one, effective dimension one, and the only function the model can express is a constant plus a small linear correction. This is <strong>underfitting by construction</strong>, and it is invisible if you only look at the training error of a heavily regularised fit.</p>
+<p><strong>Large $b$.</strong> The cosines oscillate rapidly, and for $b$ larger than about $1/\Delta x_{\text{typ}}$ the off-diagonal entries become effectively random and small. The Gram matrix approaches the identity: effective dimension $N$, and the fitted function is a set of spikes at the training points. This is <strong>overfitting by construction</strong>, and it <em>is</em> visible in a train/test split — the training error goes to zero and the test error goes above the constant-predictor baseline.</p>
+<p>Somewhere in between, the kernel's correlation length matches the typical spacing between samples, and that is where a kernel method works. The optimum is a property of the data, not of the hardware, and it is the single most important hyperparameter in the subject. It is also easy to get wrong by default: the conventional choice "map $[0,1]$ onto a full rotation" is a choice of $b$, made for no reason connected to the data.</p>
+<h3>The expressivity-generalisation trade-off, quantitatively</h3>
+<p>There is a general principle underneath. The number of directions a kernel exposes, $d_{\text{eff}}$, plays the role of a parameter count. Fitting $N$ samples with $d_{\text{eff}} \ll N$ leaves the model unable to follow the data; fitting with $d_{\text{eff}} \approx N$ leaves nothing to constrain it between the samples. Because the encoding bandwidth moves $d_{\text{eff}}$ smoothly from 1 to $N$, it interpolates the entire bias-variance trade-off with one knob — which is why the QML literature that reports "quantum kernels do not generalise" and the literature that reports competitive performance are usually running the same kernel at two different bandwidths.</p>
+<h3>Code Example 6: Locating the Optimum on the Contract Dataset</h3>
+<p>Angle encoding at bandwidth $b$, features $\rho(x)$ vectorised so that Euclidean dot products equal the kernel, and ridge regression in that explicit feature space at fixed $\lambda = 10^{-4}$. Chapter 3 shows that this is the same estimator as kernel ridge regression, and the dual form is used below wherever a $\lambda$ has to be <em>selected</em>, because a $40\times40$ solve stays conditioned at small $\lambda$ where the $136\times136$ one does not.</p>
+<p>Three of the columns need their status stated before the numbers appear, since R4 of Chapter 1's protocol turns on exactly this. <code>train</code> and <code>test</code> are at the fixed $\lambda = 10^{-4}$. <code>CV</code>, <code>lambda*</code> and <code>test@CV</code> select $\lambda$ by five-fold cross-validation on the 40 training rows and never consult the test set — these are the honest columns. <code>test@orc</code> minimises the test error over the whole $\lambda$ grid: it is an <strong>oracle ceiling</strong>, printed to show what each bandwidth could reach at best, and no conclusion is drawn from it. The bandwidth itself is <em>not</em> selected in this table either; $b = 1$ is the conventional default, and Chapter 3 is where a bandwidth grid is cross-validated properly.</p>
+<pre><code class="language-python">&quot;&quot;&quot;Chapter 2, Example 6: bandwidth, expressivity and generalisation.
+Continues from Example 2 (same session).&quot;&quot;&quot;
+
+def rho_features(psi):
+    &quot;&quot;&quot;Vectorise |phi&gt;&lt;phi| so that the Euclidean dot product equals Tr[rho rho'].&quot;&quot;&quot;
+    R = np.outer(psi.conj(), psi).real
+    D = R.shape[0]
+    iu = np.triu_indices(D, 1)
+    return np.concatenate([np.diag(R), np.sqrt(2.0) * R[iu]])
+
+
+def ridge_fit(Phi, y, lam):
+    &quot;&quot;&quot;Closed-form ridge in feature space: w = (Phi^T Phi + lam I)^-1 Phi^T y.&quot;&quot;&quot;
+    A = Phi.T @ Phi + lam * np.eye(Phi.shape[1])
+    return np.linalg.solve(A, Phi.T @ y)
+
+
+def rmse(a, b):
+    return float(np.sqrt(np.mean((a - b) ** 2)))
+
+
+# The same estimator written in its dual form, which is what Chapter 3 uses. The
+# solve is 40x40 instead of 136x136, it stays conditioned at small lambda, and it
+# is what makes an honestly cross-validated lambda computable here.
+def krr_fit(K, y, lam):
+    mu = float(y.mean())
+    return np.linalg.solve(K + lam * np.eye(K.shape[0]), y - mu), mu
+
+
+def cv_rmse(K, y, lam, nfold=5):
+    &quot;&quot;&quot;Pooled five-fold CV error on the training rows only (Chapter 3's estimator).&quot;&quot;&quot;
+    idx = np.arange(len(y))
+    err = []
+    for f in range(nfold):
+        va = idx[f::nfold]
+        tr = np.setdiff1d(idx, va)
+        al, mu = krr_fit(K[np.ix_(tr, tr)], y[tr], lam)
+        err.append(K[np.ix_(va, tr)] @ al + mu - y[va])
+    return float(np.sqrt(np.mean(np.concatenate(err) ** 2)))
+
+
+X, y = make_materials_dataset()
+Xtr, ytr, Xte, yte = X[:40], y[:40], X[40:], y[40:]
+mu = ytr.mean()
+
+print(&quot;Feature map sanity check: dot product of features == quantum kernel&quot;)
+print(&quot;-&quot; * 74)
+f0, f1 = rho_features(angle_encode(X[0])), rho_features(angle_encode(X[1]))
+print(f&quot;  feature dimension for 4 qubits = {f0.size}  (= D(D+1)/2 with D = 16)&quot;)
+print(f&quot;  f(x0).f(x1)           = {f0 @ f1:.9f}&quot;)
+print(f&quot;  |&lt;phi(x0)|phi(x1)&gt;|^2 = {abs(np.vdot(angle_encode(X[0]), angle_encode(X[1])))**2:.9f}&quot;)
+print(f&quot;  ||f(x0)||^2           = {f0 @ f0:.9f}  (pure state: Tr[rho^2] = 1)&quot;)
+
+print(&quot;\nBandwidth sweep: Ry(b * pi * x_j) angle encoding&quot;)
+print(&quot;-&quot; * 86)
+print(&quot;  train and test are at the fixed lam = 1e-4; CV, lam* and test@CV select&quot;)
+print(&quot;  lambda by five-fold CV on the 40 training rows; test@orc picks lambda on&quot;)
+print(&quot;  the test set to expose each bandwidth's ceiling and is NOT a selection.&quot;)
+print(f&quot;  {'b':&gt;6} {'off-diag k':&gt;11} {'eff.dim':&gt;8} {'train':&gt;8} {'test':&gt;8} &quot;
+      f&quot;{'CV':&gt;8} {'lambda*':&gt;9} {'test@CV':&gt;9} {'test@orc':&gt;9}&quot;)
+LAMS = np.logspace(-8, 2, 41)
+lam = 1e-4
+rows = []
+for b in [0.125, 0.25, 0.5, 1.0, 2.0, 4.0, 8.0, 16.0]:
+    Ptr = np.array([rho_features(angle_encode(v, b)) for v in Xtr])
+    Pte = np.array([rho_features(angle_encode(v, b)) for v in Xte])
+    K, Kx = Ptr @ Ptr.T, Pte @ Ptr.T
+    w = np.linalg.eigvalsh(K).real.clip(0.0)
+    ed = w.sum() ** 2 / np.sum(w ** 2)
+    off = K[~np.eye(40, dtype=bool)]
+    wt = ridge_fit(Ptr, ytr - mu, lam)
+    tr_e, te_e = rmse(Ptr @ wt + mu, ytr), rmse(Pte @ wt + mu, yte)
+
+    def test_at(l):
+        al, m = krr_fit(K, ytr, l)
+        return rmse(Kx @ al + m, yte)
+
+    cv, lam_cv = min((cv_rmse(K, ytr, l), l) for l in LAMS)
+    te_cv, te_orc = test_at(lam_cv), min(test_at(l) for l in LAMS)
+    rows.append((b, off.mean(), ed, tr_e, te_e, cv, lam_cv, te_cv, te_orc))
+    print(f&quot;  {b:6.3f} {off.mean():11.6f} {ed:8.3f} {tr_e:8.4f} {te_e:8.4f} &quot;
+          f&quot;{cv:8.4f} {lam_cv:9.1e} {te_cv:9.4f} {te_orc:9.4f}&quot;)
+
+base = rmse(np.full(20, mu), yte)
+print(f&quot;\n  predict-the-mean baseline: test RMSE = {base:.4f}&quot;)
+r1 = next(r for r in rows if r[0] == 1.0)
+print(f&quot;  at the conventional default b = 1, with lambda = {r1[6]:.1e} chosen by CV on&quot;)
+print(f&quot;  the training rows only: test RMSE {r1[7]:.4f}, &quot;
+      f&quot;{100*(1 - r1[7]/base):.1f}% below baseline&quot;)
+orc = min(rows, key=lambda r: r[8])
+print(f&quot;  lowest test@orc in the sweep: {orc[8]:.4f} at b = {orc[0]:.3f} -- an oracle&quot;)
+print(f&quot;  ceiling, not a result; here it coincides with the honest number above&quot;)
+cvb = min(rows, key=lambda r: r[5])
+print(f&quot;  lowest CV in the sweep: {cvb[5]:.4f} at b = {cvb[0]:.3f}, whose test RMSE is&quot;)
+print(f&quot;  {cvb[7]:.4f}. Forty rows cannot locate the bandwidth optimum by CV: at small b&quot;)
+print(f&quot;  the Gram matrix is nearly rank-deficient, so a barely regularised fit&quot;)
+print(f&quot;  interpolates every fold and the CV score becomes optimistic. Chapter 3 runs&quot;)
+print(f&quot;  the same CV over a bandwidth grid that starts at 0.25 and does land on 1.&quot;)
+
+# R6: the headline is a difference, so it carries a paired interval.
+def paired_bootstrap(y_true, pred_a, pred_b, B=10000, seed=0, alpha=0.05):
+    &quot;&quot;&quot;95% interval for RMSE(a) - RMSE(b), resampling the SAME test rows for both.&quot;&quot;&quot;
+    rng = np.random.default_rng(seed)
+    d = np.empty(B)
+    m = len(y_true)
+    for b in range(B):
+        i = rng.integers(0, m, m)
+        d[b] = (np.sqrt(np.mean((y_true[i] - pred_a[i]) ** 2))
+                - np.sqrt(np.mean((y_true[i] - pred_b[i]) ** 2)))
+    return (float(d.mean()), float(np.quantile(d, alpha / 2)),
+            float(np.quantile(d, 1 - alpha / 2)))
+
+
+Ptr1 = np.array([rho_features(angle_encode(v, 1.0)) for v in Xtr])
+Pte1 = np.array([rho_features(angle_encode(v, 1.0)) for v in Xte])
+al1, m1 = krr_fit(Ptr1 @ Ptr1.T, ytr, r1[6])
+pred_b1 = Pte1 @ Ptr1.T @ al1 + m1
+print(&quot;\nR6: the 72.8% is a difference, so it carries a paired interval&quot;)
+print(&quot;-&quot; * 86)
+for label, pa, pb in [(&quot;b = 1 (CV lambda)  -  predict the mean&quot;, pred_b1,
+                       np.full(20, mu))]:
+    mn, lo, hi = paired_bootstrap(yte, pa, pb)
+    v = &quot;A better&quot; if hi &lt; 0.0 else (&quot;B better&quot; if lo &gt; 0.0 else &quot;no call&quot;)
+    print(f&quot;  {label:&lt;44}{mn:+10.4f}   [{lo:+.4f}, {hi:+.4f}]{v:&gt;10}&quot;)
+
+print(&quot;\nWhere the two failure modes come from&quot;)
+print(&quot;-&quot; * 74)
+for b in [0.125, 1.0, 16.0]:
+    Ptr = np.array([rho_features(angle_encode(v, b)) for v in Xtr])
+    K = Ptr @ Ptr.T
+    w = np.sort(np.linalg.eigvalsh(K).real)[::-1] / 40.0
+    print(f&quot;  b = {b:6.3f}: top-4 normalised Gram eigenvalues &quot;
+          f&quot;{np.round(w[:4], 4)}  tail sum {w[4:].sum():.4f}&quot;)
+</code></pre>
+<pre><code class="language-text">Feature map sanity check: dot product of features == quantum kernel
+--------------------------------------------------------------------------
+  feature dimension for 4 qubits = 136  (= D(D+1)/2 with D = 16)
+  f(x0).f(x1)           = 0.033268934
+  |&lt;phi(x0)|phi(x1)&gt;|^2 = 0.033268934
+  ||f(x0)||^2           = 1.000000000  (pure state: Tr[rho^2] = 1)
+
+Bandwidth sweep: Ry(b * pi * x_j) angle encoding
+--------------------------------------------------------------------------------------
+  train and test are at the fixed lam = 1e-4; CV, lam* and test@CV select
+  lambda by five-fold CV on the 40 training rows; test@orc picks lambda on
+  the test set to expose each bandwidth's ceiling and is NOT a selection.
+       b  off-diag k  eff.dim    train     test       CV   lambda*   test@CV  test@orc
+   0.125    0.974479    1.051   0.1931   0.2496   0.1641   1.0e-08    0.2527    0.1980
+   0.250    0.902245    1.217   0.0991   0.2613   0.2085   1.0e-08    0.2952    0.1951
+   0.500    0.668734    2.061   0.0129   0.1665   0.2627   3.2e-04    0.1496    0.1496
+   1.000    0.237422    7.838   0.0005   0.1549   0.1986   3.2e-03    0.1425    0.1425
+   2.000    0.057185   24.696   0.0001   0.4869   0.4582   1.8e-01    0.4270    0.4127
+   4.000    0.059383   22.490   0.0003   0.9201   0.5671   3.2e+00    0.5548    0.5252
+   8.000    0.061527   22.330   0.0006   0.7398   0.5742   1.0e+02    0.5238    0.5181
+  16.000    0.065738   21.504   0.0002   0.7277   0.5204   1.8e-01    0.6099    0.5177
+
+  predict-the-mean baseline: test RMSE = 0.5242
+  at the conventional default b = 1, with lambda = 3.2e-03 chosen by CV on
+  the training rows only: test RMSE 0.1425, 72.8% below baseline
+  lowest test@orc in the sweep: 0.1425 at b = 1.000 -- an oracle
+  ceiling, not a result; here it coincides with the honest number above
+  lowest CV in the sweep: 0.1641 at b = 0.125, whose test RMSE is
+  0.2527. Forty rows cannot locate the bandwidth optimum by CV: at small b
+  the Gram matrix is nearly rank-deficient, so a barely regularised fit
+  interpolates every fold and the CV score becomes optimistic. Chapter 3 runs
+  the same CV over a bandwidth grid that starts at 0.25 and does land on 1.
+
+R6: the 72.8% is a difference, so it carries a paired interval
+--------------------------------------------------------------------------------------
+  b = 1 (CV lambda)  -  predict the mean         -0.3792   [-0.5114, -0.2412]  A better
+
+Where the two failure modes come from
+--------------------------------------------------------------------------
+  b =  0.125: top-4 normalised Gram eigenvalues [0.9751 0.0092 0.007  0.0048]  tail sum 0.0039
+  b =  1.000: top-4 normalised Gram eigenvalues [0.2754 0.1335 0.1108 0.0909]  tail sum 0.3894
+  b = 16.000: top-4 normalised Gram eigenvalues [0.1011 0.0839 0.0622 0.0607]  tail sum 0.6920
+</code></pre>
+<p><strong>What to notice.</strong> The test-error column is a textbook U, and both ends of it are quantitatively interpretable.</p>
+<p>At $b = 0.125$ the mean off-diagonal kernel is 0.974 and the effective dimension is 1.05: the Gram matrix is the all-ones matrix to within a percent, the leading eigenvalue holds 97.5% of the trace, and the model cannot do much better than the mean. At $b = 16$ the mean off-diagonal has fallen to 0.066 and the effective dimension has risen to 21.5, and the test RMSE of 0.728 is <strong>worse than predicting the training mean</strong> (0.524) while the training RMSE is $2\times10^{-4}$. That is memorisation with a quantum feature map, and it is the failure mode that generates most of the negative results in the literature.</p>
+<p>The optimum is at $b = 1$, which is also the conventional default, and it is the one row where the honest and the oracle columns agree: with $\lambda = 3.2\times10^{-3}$ chosen by five-fold cross-validation on the training rows the test RMSE is 0.1425, against a baseline of 0.5242 — 72.8% better — and minimising over the whole $\lambda$ grid on the test set gains nothing. The corresponding effective dimension is 7.8 out of 40, about one usable direction per five training samples, which is roughly where kernel methods usually want to sit. Chapter 3 reaches the same 0.1425 for the same product-cosine kernel with the bandwidth itself cross-validated, so this number survives being obtained properly. And because 72.8% is a <em>difference</em>, R6 applies to it: the paired bootstrap against the constant predictor gives $-0.379$ with a 95% interval of $[-0.511, -0.241]$, entirely below zero. This one is not a marginal call — it is the rare case in this course where an effect is far larger than the resolution of the experiment.</p>
+<p>The <code>CV</code> column carries an uncomfortable result that belongs in the text rather than in a footnote. Cross-validation on 40 rows does <em>not</em> find $b = 1$. Its lowest score in the sweep, 0.1641, sits at $b = 0.125$, whose actual test RMSE is 0.2527 — the worst kind of selection error, since the CV score is not merely noisy but biased in a specific direction. The mechanism is visible in the <code>eff.dim</code> column: at $b = 0.125$ the Gram matrix is nearly rank one, so at the $\lambda = 10^{-8}$ that CV then chooses the fit interpolates every fold through the almost-null directions and the held-out error is flattered. Cross-validated bandwidth selection works here only once the grid excludes the near-degenerate settings, which is what Chapter 3's grid does, starting at 0.25. Two lessons follow, and the second is the one the rest of the course leans on: sweep the bandwidth, and do not trust a cross-validation score computed at a $\lambda$ small enough for the kernel to interpolate. Chapter 5, Section 5.3 finds the same failure on the classical side, where five-fold CV picks a worse radial basis width than a guess would have.</p>
+<p>One quantitative aside on cost, because it connects to Chapter 3. At $b = 16$ the off-diagonal entries have mean 0.066 and standard deviation about 0.02; distinguishing them requires a standard error well below that spread, say $\varepsilon = 0.002$. Estimating a kernel entry from $S$ measurement shots gives a binomial standard error $\sqrt{k(1-k)/S}$, so</p>
+<p>$$ S \; \gtrsim \; \frac{k(1-k)}{\varepsilon^2} = \frac{0.066 \times 0.934}{4\times10^{-6}} \approx 1.5\times 10^{4} $$</p>
+<p>shots <strong>per matrix entry</strong>, and there are $N(N-1)/2 = 780$ entries even for this tiny training set. The bandwidth that overfits is also the bandwidth that is expensive to measure, and both problems have the same cause: a kernel that has been pushed toward a delta function. Chapter 3 turns this observation into the central obstacle of the subject.</p>
+<hr />
+<h2>2.6 What This Means for a Materials Pipeline</h2>
+<p>Put the chapter's results in the order a practitioner would meet them.</p>
+<p><strong>The encoding is a modelling decision, and it is upstream of everything.</strong> In a classical pipeline you would not choose descriptors by asking which are cheapest to compute; you would ask which carry the physics. The same discipline applies here, and the encoding is the descriptor layer. Basis encoding says "these materials are unrelated unless identical". Amplitude encoding says "only the direction of the composition vector matters". Angle encoding says "the property is a smooth, low-frequency function of each descriptor separately". Those are physical hypotheses, and they are testable — the eigenvalue spectrum of the Gram matrix against the target is the test.</p>
+<p><strong>Qubit counts are the wrong resource to count.</strong> Amplitude encoding's logarithmic register is the headline of most speedup arguments, and Code Example 2 shows the accompanying $d-1$ rotations. For a 1024-dimensional descriptor vector that is ten qubits and about a thousand multiply controlled rotations, which on any realistic hardware is a deeper circuit than the coherence budget allows. Where amplitude encoding does make sense is where the vector is <em>structured</em>: a smooth spectrum, a low-rank density of states, a distribution with a product form.</p>
+<p><strong>If your kernel has a closed form, you have a classical model.</strong> All three encodings in this chapter give kernels expressible in a line of arithmetic. That is not a criticism of the encodings — the product cosine kernel is a perfectly good kernel, and in Chapter 3 it turns out to be the best-performing kernel we test on this dataset. It is a criticism of describing such a model as quantum machine learning. The quantum content of a kernel method is exactly the part of the kernel you cannot write down, and manufacturing that part costs entanglement, depth and shots.</p>
+<p><strong>Tune the bandwidth before anything else.</strong> If you take one operational instruction from this chapter, take this one. Before comparing ansätze, before adding layers, before worrying about noise, sweep the input scale factor and look at the effective dimension of the Gram matrix. A quantum kernel reported as useless is usually a quantum kernel at $b = 1$ when the data wanted $b = 0.1$, and Chapter 3 contains an explicit example: the same entangling feature map goes from worse-than-the-mean to within 16% of the best classical model on the strength of that one number.</p>
+<p><strong>The frequency picture tells you what depth to buy.</strong> A re-uploading model with $L$ insertions is a degree-$L$ trigonometric polynomial. If the property varies smoothly with composition — which for formation energies and elastic constants it generally does — then $L$ of two or three is the whole story, and depth beyond that buys frequencies the target does not contain. Estimating the target's spectrum from a classical fit costs nothing and settles the question before any quantum resource is committed.</p>
+<hr />
+<h2>Exercises</h2>
+<h4>Exercise 1: The Angle-Encoding Kernel, and How Big Its RKHS Really Is</h4>
+<p>Take $d = 4$ and the angle encoding $|\phi(x)\rangle = \bigotimes_j R_y(\pi x_j)|0\rangle$.</p>
+<ol>
+<li>Derive $k(x,x') = \prod_j \cos^2(\pi(x_j - x'_j)/2)$ from the factorised overlap, and evaluate it for $x = (0.2, 0.5, 0.8, 0.1)$ and $x' = (0.3, 0.5, 0.6, 0.4)$.</li>
+<li>Rewrite $k$ as a sum of complex exponentials in the differences $x_j - x'_j$. How many distinct terms are there, and what does that number say about the dimension of the reproducing-kernel Hilbert space?</li>
+<li>The symmetric feature space of a 4-qubit real state has dimension $D(D+1)/2 = 136$. Predict the rank of the Gram matrix of 200 random samples, and check it numerically.</li>
+<li>Explain in one sentence why increasing the number of <em>samples</em> beyond that rank cannot increase the model's capacity.</li>
+</ol>
+<details>
+<summary>Solution</summary>
+
+<p><strong>1.</strong> The state factorises, so the overlap is a product of single-qubit overlaps. With \(R_y(\theta)|0\rangle = \cos(\theta/2)|0\rangle + \sin(\theta/2)|1\rangle\) and \(\theta_j = \pi x_j\), each factor is \(\cos(\theta_j/2)\cos(\theta'_j/2) + \sin(\theta_j/2)\sin(\theta'_j/2) = \cos((\theta_j - \theta'_j)/2)\). Squaring the modulus of the product gives the stated form. Numerically the four factors are 0.975528, 1, 0.904508, 0.793893 and the product is \(k = 0.700510\). Note the second factor: the coordinates agree, so that qubit contributes exactly 1.</p>
+
+<p><strong>2.</strong> Using \(\cos^2 u = (1 + \cos 2u)/2\), \(k = \prod_j \tfrac{1}{2}\left(1 + \cos\pi(x_j - x'_j)\right) = \prod_j \tfrac{1}{2}\left(1 + \tfrac{1}{2}e^{i\pi(x_j-x'_j)} + \tfrac{1}{2}e^{-i\pi(x_j-x'_j)}\right)\). Expanding the product gives one term for each choice of \(\omega_j \in \lbrace -1, 0, +1\rbrace\) in each coordinate, i.e. \(3^4 = 81\) terms. The RKHS is therefore spanned by the 81 functions \(\prod_j e^{i\pi\omega_j x_j}\) and has dimension 81 — large, but a fixed constant, and polynomial in nothing at all: \(3^d\) is exponential in the number of features, not in the number of qubits beyond what \(d\) already gives.</p>
+
+<p><strong>3.</strong> The rank is bounded by the smallest of the sample count (200), the symmetric feature dimension (136), and the RKHS dimension implied by the product structure (81). The product structure is the binding constraint because each qubit's reduced state is a \(2\times 2\) real symmetric matrix with 3 free parameters and the feature vector is their tensor product, giving \(3^d = 81\). The measured rank is exactly 81.</p>
+
+<p><strong>4.</strong> Because the fitted function is a linear combination of the 81 basis functions the kernel provides; adding samples adds constraints, not directions, so beyond rank 81 the additional rows of the Gram matrix are linearly dependent on the earlier ones.</p>
+
+
+<pre><code class="language-python">import numpy as np
+x  = np.array([0.2, 0.5, 0.8, 0.1])
+xp = np.array([0.3, 0.5, 0.6, 0.4])
+fac = np.cos(np.pi * (x - xp) / 2) ** 2
+print(&quot;factors&quot;, np.round(fac, 6), &quot; k =&quot;, round(float(np.prod(fac)), 6))
+# factors [0.975528 1.       0.904508 0.793893]  k = 0.70051
+
+rng = np.random.default_rng(0)
+Z = rng.uniform(0, 1, (200, 4))
+K = np.prod(np.cos(np.pi * (Z[:, None, :] - Z[None, :, :]) / 2) ** 2, axis=2)
+w = np.linalg.eigvalsh(K).real
+print(&quot;rank =&quot;, int(np.sum(w &gt; 1e-9 * np.trace(K))), &quot; 3**4 =&quot;, 3 ** 4)
+# rank = 81  3**4 = 81
+</code></pre>
+
+
+</details>
+
+<h4>Exercise 2: The Real Cost of Amplitude Encoding</h4>
+<p>A descriptor vector of length $d = 1024$ is to be amplitude encoded exactly.</p>
+<ol>
+<li>How many qubits, and how many $R_y$ rotations does the binary-tree construction need?</li>
+<li>At level $\ell$ each rotation carries $\ell$ control qubits, and an $\ell$-controlled single-qubit rotation costs about $2\ell$ CNOTs. Estimate the total two-qubit gate count, and give its asymptotic form in $d$.</li>
+<li>Two composition vectors differ only by an overall factor of 2. What does the induced kernel say about them, and what minimal change to the descriptor fixes it?</li>
+<li>State the condition under which amplitude encoding <em>is</em> worth it, and give one materials example.</li>
+</ol>
+<details>
+<summary>Solution</summary>
+
+<p><strong>1.</strong> \(m = \log_2 1024 = 10\) qubits and \(2^{10} - 1 = 1023\) rotations. The rotation count is one less than the number of amplitudes, which is the statement that the tree has one node per amplitude minus the root.</p>
+
+<p><strong>2.</strong> \(\sum_{\ell=0}^{9} 2^{\ell}\max(1, 2\ell) = 16389\) CNOTs, i.e. of order \(2 d \log_2 d\). Asymptotically the construction is \(\Theta(d \log d)\) two-qubit gates, and even the tighter \(\Theta(d)\) constructions do not remove the linear factor: there are \(d-1\) independent angles to load and each gate can carry at most \(O(1)\) of them.</p>
+
+<p><strong>3.</strong> The kernel is \((\hat{x}\cdot\hat{x}')^2\), which is invariant under rescaling either argument, so it reports \(k = 1\): the two vectors are indistinguishable. If the overall scale is physically meaningful — total mass, absolute intensity, cell volume — append one padding coordinate, for example \(x \mapsto (x, c)\) with a constant \(c\) comparable to the typical \(\lVert x\rVert\); after normalisation the direction of the padded vector now depends on the original norm.</p>
+
+<p><strong>4.</strong> It is worth it when the vector is <em>structured enough that a short circuit prepares it</em>, so that the \(\Theta(d)\) generic cost is replaced by something polylogarithmic. Examples: a smooth density of states sampled on a fine energy grid, which a low-depth ansatz approximates to the accuracy the downstream model needs; a sparse vector with \(s \ll d\) nonzeros, which costs \(O(s\log d)\); a separable distribution, which is a product state. A raw one-hot composition vector over 1024 elements is not such a case.</p>
+
+
+<pre><code class="language-python">for m in [2, 4, 10, 16]:
+    d = 2 ** m
+    print(f&quot;d = {d:6d}  qubits = {m:2d}  rotations = {d-1:6d}&quot;
+          f&quot;  CNOTs ~ {sum(2**l * max(1, 2*l) for l in range(m)):8d}&quot;)
+# d =      4  qubits =  2  rotations =      3  CNOTs ~        5
+# d =     16  qubits =  4  rotations =     15  CNOTs ~       69
+# d =   1024  qubits = 10  rotations =   1023  CNOTs ~    16389
+# d =  65536  qubits = 16  rotations =  65535  CNOTs ~  1835013
+</code></pre>
+
+
+</details>
+
+<h4>Exercise 3: Why Basis Encoding Memorises</h4>
+<p>Basis encoding with $b = 3$ bits per feature on the $d = 4$ contract dataset gives $4^{\,}\times 3 = 12$ qubits and $2^{12} = 4096$ quantisation cells.</p>
+<ol>
+<li>With $N = 40$ samples drawn uniformly, estimate the probability that at least two of them land in the same cell.</li>
+<li>Assuming no collision, write down the Gram matrix and solve kernel ridge regression in closed form.</li>
+<li>What does the resulting model predict at a test point, and what test RMSE does that imply on the contract dataset?</li>
+<li>Give one materials task for which basis encoding is nonetheless the correct choice.</li>
+</ol>
+<details>
+<summary>Solution</summary>
+
+<p><strong>1.</strong> A birthday estimate: \(1 - \exp\left(-N(N-1)/(2 \times 4096)\right) = 1 - \exp(-0.1904) = 0.173\), so about a 17% chance — not negligible, and it grows quadratically with \(N\).</p>
+
+<p><strong>2.</strong> Without collisions all encoded states are mutually orthogonal, so \(K = I_{40}\). Kernel ridge regression gives \(\alpha = (I + \lambda I)^{-1}(y - \bar{y}) = (y - \bar{y})/(1+\lambda)\).</p>
+
+<p><strong>3.</strong> At a test point \(x^\ast\) that does not coincide with a training cell, every \(k(x^\ast, x_i) = 0\), so the prediction is the stored training mean \(\bar{y}\) exactly. On the contract dataset that is a test RMSE of 0.5242 and \(R^2 = -0.1088\) — identical to the constant predictor. The model has memorised 40 points perfectly and learned nothing.</p>
+
+<p><strong>4.</strong> When the input genuinely is a discrete label with no metric: a space-group number, a prototype-structure identifier, the presence or absence of a dopant. There "nearby" is not defined, so a delta kernel is the honest statement of prior ignorance, and the model becomes a per-class mean — which is the right estimator for that hypothesis.</p>
+
+
+<pre><code class="language-python">import numpy as np
+N, cells = 40, 2 ** 12
+print(&quot;collision probability ~&quot;, round(1 - np.exp(-N * (N - 1) / (2 * cells)), 4))
+# collision probability ~ 0.1734
+</code></pre>
+
+
+</details>
+
+<h4>Exercise 4: Spectra From Other Generators</h4>
+<p>The re-uploading theorem depends only on the eigenvalues of the encoding generator.</p>
+<ol>
+<li>Repeat the derivation for $S(x) = R_z(2x) = e^{-ixZ}$. What is $\Omega$ for $L$ encoding gates, and what is the period of $f$?</li>
+<li>Verify your answer numerically for $L = 3$ by inspecting the discrete Fourier transform.</li>
+<li>Now use two qubits with $S(x) = R_z(x) \otimes R_z(x)$, one insertion, and measure $\langle Z_0 Z_1\rangle$. Predict $\Omega$ from the eigenvalues of the total generator and check it.</li>
+<li>State the general rule connecting qubit count, insertion count and spectral width.</li>
+</ol>
+<details>
+<summary>Solution</summary>
+
+<p><strong>1.</strong> The generator is \(Z\) with eigenvalues \(\pm 1\), so each pairwise difference lies in \(\lbrace -2, 0, +2\rbrace\) and a sum of \(L\) of them ranges over the even integers from \(-2L\) to \(2L\). There are still \(2L+1\) frequencies, but they are spaced by 2, so \(f\) has period \(\pi\) rather than \(2\pi\). Doubling the generator doubles the bandwidth and halves the period; it does not add degrees of freedom.</p>
+
+<p><strong>2.</strong> The non-negative frequencies present at \(L = 3\) are \(\lbrace 0, 2, 4, 6\rbrace\), exactly as predicted, with everything else at the \(10^{-16}\) level.</p>
+
+<p><strong>3.</strong> The total generator is \((Z \otimes I + I \otimes Z)/2\) with eigenvalues \(\lbrace +1, 0, 0, -1 \rbrace\). Differences lie in \(\lbrace -2,-1,0,1,2 \rbrace\), so a single insertion already gives \(\Omega = \lbrace -2,\ldots,2\rbrace\). The numerical check returns non-negative frequencies \(\lbrace 0, 1, 2\rbrace\).</p>
+
+<p><strong>4.</strong> The spectral width is set by the <em>spread of the eigenvalues of the total encoding generator</em>, multiplied by the number of insertions. Adding qubits that each receive the data widens the per-insertion spread; adding insertions multiplies it. Both routes buy frequencies, and a single qubit with \(L\) insertions is exactly as expressive, spectrally, as \(L\) qubits with one insertion each — which is the precise sense in which data re-uploading trades width for depth.</p>
+
+
+<pre><code class="language-python">import numpy as np
+from qcsim import *
+
+def W(t):
+    return rz(t[2]) @ ry(t[1]) @ rz(t[0])
+
+xs = 2 * np.pi * np.arange(64) / 64
+th = np.random.default_rng(3).uniform(0, 2 * np.pi, (4, 3))
+
+def one_qubit(x):
+    psi = apply_gate(ket('0'), W(th[0]), [0], 1)
+    for t in th[1:]:
+        psi = apply_gate(psi, rz(2.0 * x), [0], 1)
+        psi = apply_gate(psi, W(t), [0], 1)
+    return expval(psi, 'Z')
+
+c = np.fft.fft(np.array([one_qubit(x) for x in xs])) / 64
+print(&quot;Rz(2x), L = 3:&quot;, [w for w in range(33) if abs(c[w]) &gt; 1e-9])
+# Rz(2x), L = 3: [0, 2, 4, 6]
+
+t2 = np.random.default_rng(4).uniform(0, 2 * np.pi, (4, 3))
+
+def two_qubit(x):
+    psi = ket('00')
+    for q in range(2):
+        psi = apply_gate(psi, W(t2[q]), [q], 2)
+    for q in range(2):
+        psi = apply_gate(psi, rz(x), [q], 2)
+    for q in range(2):
+        psi = apply_gate(psi, W(t2[2 + q]), [q], 2)
+    return expval(psi, 'ZZ')
+
+c2 = np.fft.fft(np.array([two_qubit(x) for x in xs])) / 64
+print(&quot;two qubits, one insertion:&quot;, [w for w in range(33) if abs(c2[w]) &gt; 1e-9])
+# two qubits, one insertion: [0, 1, 2]
+</code></pre>
+
+
+</details>
+
+<h4>Exercise 5: Sizing the Bandwidth and Paying for It</h4>
+<p>A property varies over the composition range with three full oscillations, i.e. its dominant Fourier component is at 3 cycles per unit of $x$.</p>
+<ol>
+<li>Using $S(bx)$ with $L$ insertions, what must $Lb$ be, at minimum, for the model to contain that frequency? Give one $(L, b)$ pair.</li>
+<li>At the other end: suppose a tuned quantum kernel has off-diagonal entries with mean $\bar{k} = 0.07$ and spread $\sigma = 0.02$. To resolve structure you need a standard error $\varepsilon = \sigma/10$. How many shots per entry?</li>
+<li>How many shots in total for a training set of $N = 1000$, and how long at an assumed rate of $10^4$ circuit executions per second?</li>
+<li>Given (2) and (3), argue for or against increasing the bandwidth further.</li>
+</ol>
+<details>
+<summary>Solution</summary>
+
+<p><strong>1.</strong> The model contains \(e^{i\omega b x}\) for integer \(|\omega| \le L\), so the highest frequency in cycles per unit \(x\) is \(Lb/2\pi\). Requiring \(Lb/2\pi \ge 3\) gives \(Lb \ge 6\pi \approx 18.85\). With \(b = 1\), \(L \ge 19\) insertions; with \(b = 2\pi\), \(L \ge 3\). The second is the reason bandwidth exists as a hyperparameter — it buys frequency without buying depth. The cost is that the low frequencies become sparser: with \(b = 2\pi\) the model has components at 0, 1, 2, 3 cycles and nothing in between.</p>
+
+<p><strong>2.</strong> \(\varepsilon = 0.002\) and \(S = \bar{k}(1-\bar{k})/\varepsilon^2 = 0.07 \times 0.93 / 4\times10^{-6} = 16{,}275\) shots per entry.</p>
+
+<p><strong>3.</strong> \(N(N-1)/2 = 499{,}500\) distinct entries, so \(8.13 \times 10^{9}\) shots, which at \(10^4\) per second is \(8.1\times10^5\) s, about 226 hours of pure measurement — for a 1000-sample training set, before a single prediction is made. The scaling is \(N^2 \varepsilon^{-2}\), so ten times the data is a hundred times the measurement.</p>
+
+<p><strong>4.</strong> Against. Increasing the bandwidth pushes \(\bar{k}\) and \(\sigma\) down together, and since \(S \propto \bar{k}/\varepsilon^2 \propto \bar{k}/\sigma^2\), a kernel that flattens roughly as \(\bar{k} \sim \sigma \sim s\) has a shot cost scaling as \(1/s\) — it gets more expensive exactly as it gets less informative. Chapter 3 shows that this is not a coincidence but the generic behaviour of an entangling feature map as the qubit count grows, and that it is the central obstacle in quantum kernel methods.</p>
+
+
+<pre><code class="language-python">kbar, sigma = 0.07, 0.02
+eps = sigma / 10
+S = kbar * (1 - kbar) / eps ** 2
+for N in [40, 1000]:
+    pairs = N * (N - 1) // 2
+    print(f&quot;N = {N:5d}  shots/entry = {S:,.0f}  pairs = {pairs:,d}&quot;
+          f&quot;  total = {pairs*S:.3e}  hours = {pairs*S/1e4/3600:,.1f}&quot;)
+# N =    40  shots/entry = 16,275  pairs = 780  total = 1.269e+07  hours = 0.4
+# N =  1000  shots/entry = 16,275  pairs = 499,500  total = 8.129e+09  hours = 225.8
+</code></pre>
+
+
+</details>
+
+<hr />
+<h2>Summary</h2>
+<h3>Key Takeaways</h3>
+<p><strong>1. The encoding is the model, not the preprocessing</strong></p>
+<ul>
+<li>A feature map $x \mapsto \rho(x) = |\phi(x)\rangle\langle\phi(x)|$ fixes the hypothesis space before any training happens; every downstream model is linear in $\rho(x)$ and therefore a kernel method with $k(x,x') = \mathrm{Tr}[\rho(x)\rho(x')]$.</li>
+<li>Basis encoding is a delta kernel and can only memorise; amplitude encoding is a squared cosine similarity and discards the norm; angle encoding is a product of degree-one cosines and is the only one of the three with a usable eigenvalue spectrum.</li>
+<li>Measured on 40 training rows: effective dimensions 20.0, 2.07 and 6.5 respectively, from Gram matrices whose pictures are the identity, a nearly uniform block, and something in between.</li>
+</ul>
+<p><strong>2. Qubit count is the wrong resource</strong></p>
+<ul>
+<li>Amplitude encoding needs $\lceil\log_2 d\rceil$ qubits and $d-1$ rotations, verified from $d = 2$ to 256; the compression is in space and not in time, and $\Theta(d\log d)$ two-qubit gates for $d = 1024$ is about $1.6\times10^4$.</li>
+<li>The input problem is therefore structural: an algorithm that runs in $\log d$ on top of a $\Theta(d)$ state preparation runs in $\Theta(d)$.</li>
+<li>The escape is structure in the data — sparsity, smoothness, separability — and every credible speedup claim assumes it somewhere.</li>
+</ul>
+<p><strong>3. The Gram rank, not the Hilbert dimension, is the capacity</strong></p>
+<ul>
+<li>Rank is bounded by $\min(N, \dim\text{feature space})$; measured ranks on 40 samples were 40, 40 and 10, the last one saturating $D(D+1)/2 = 10$ exactly.</li>
+<li>For the product angle encoding the tighter bound is $3^d = 81$, confirmed to the digit on 200 samples.</li>
+<li>A 4096-dimensional Hilbert space bought nothing: with 40 samples there are at most 40 usable directions, and orthogonal spikes are the least useful ones.</li>
+</ul>
+<p><strong>4. Data re-uploading makes expressivity arithmetic</strong></p>
+<ul>
+<li>$L$ encoding gates generated by $Z/2$ give exactly $\Omega = \lbrace -L,\ldots,L\rbrace$: a degree-$L$ trigonometric polynomial, on one qubit, independent of the register size.</li>
+<li>Verified numerically to machine precision — the largest out-of-band coefficient over twenty random draws at $L=4$ was $1.2\times10^{-16}$ against in-band coefficients of order 1.</li>
+<li>The spectrum is universal as $L \to \infty$; the coefficients are constrained by unitarity but, on the target tested here, not restrictively — the fitted model reached the degree-$L$ Fourier truncation floor with ratio 1.00 at every $L$ from 1 to 7.</li>
+<li>Adding a layer helps only if the target has weight at the frequency it unlocks: for an odd target the even harmonics are free of charge and useless.</li>
+</ul>
+<p><strong>5. Bandwidth is the hyperparameter that decides everything</strong></p>
+<ul>
+<li>$S(x) \to S(bx)$ scales every reachable frequency by $b$, verified as $\lbrace 0,1,2,3\rbrace \to \lbrace 0,2,4,6\rbrace \to \lbrace 0,3,6,9\rbrace$.</li>
+<li>In kernel language it sweeps the effective dimension from 1.05 at $b = 0.125$ to 24.7 at $b = 2$, and the test error is a U with its minimum at the conventional default $b = 1$: 0.1425 with $\lambda$ cross-validated on the training rows, against a constant-predictor baseline of 0.5242, a 72.8% improvement whose paired bootstrap interval is $[-0.511, -0.241]$ — and the same 0.1425 is all that an oracle choice of $\lambda$ could have reached.</li>
+<li>Cross-validation on 40 rows does not itself locate that optimum: its best score falls at $b = 0.125$, where the test RMSE is 0.2527, because a nearly rank-one Gram matrix at a tiny $\lambda$ interpolates every fold. Sweep the bandwidth, but distrust a CV score taken where the kernel can interpolate.</li>
+<li>Both ends fail, and they fail differently: $b$ too small is a rank-one kernel and structural underfitting; $b$ too large is a delta kernel, a training RMSE of $2\times10^{-4}$, and a test error <em>worse</em> than the mean.</li>
+<li>The same overly large bandwidth that overfits is also the expensive one to measure — about $1.5\times10^4$ shots per matrix entry at $b = 16$ — because both are symptoms of a kernel pushed toward a delta function.</li>
+</ul>
+<p><strong>Practical implications</strong></p>
+<ul>
+<li>Sweep the input scale factor before anything else, and report the effective dimension of the Gram matrix alongside the error; a quantum kernel described as useless is usually a quantum kernel at the wrong bandwidth.</li>
+<li>Estimate the Fourier spectrum of the target classically before choosing a depth; if the property is smooth in composition, two or three insertions is the whole budget.</li>
+<li>If you can write your kernel in a line of arithmetic — and all three encodings in this chapter can be — then you have a classical model with a quantum implementation, and you should say so.</li>
+</ul>
+<p>Chapter 3 takes the kernel view seriously and follows it to its conclusion. It builds an entangling feature map whose kernel has no closed form, measures it with the inversion test, solves kernel ridge regression in NumPy, and then runs the comparison this course exists to run: that quantum kernel against a radial basis function kernel on the same 40 training rows under one protocol. The result is published as it came out. Along the way the same bandwidth knob reappears, this time as the difference between a kernel that loses to its own training mean and one that comes within 16% of the best classical model — and the exponential concentration that makes the whole approach fragile is measured, with an exponent.</p>
+<p><a href="index.html">← Series Top</a> <a href="chapter-3.html">Chapter 3: Quantum Kernel Methods →</a></p>
+<h3>Disclaimer</h3>
+<ul>
+<li>This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical warranty, etc.).</li>
+<li>This content and accompanying code examples are provided "AS IS" without any warranty, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
+<li>The dataset used throughout this chapter is synthetic and deterministic, chosen so that every number is reproducible from a seed; conclusions about encoding choice, bandwidth optima and generalisation are properties of that dataset and must be re-established on real data before being relied upon.</li>
+<li>The author and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.</li>
+<li>To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+<li>The content may be changed, updated, or discontinued without notice.</li>
+<li>The copyright and license of this content are subject to the stated conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.</li>
+</ul><div class="navigation">
+    <a href="chapter-1.html" class="nav-button">← Previous Chapter</a>
+    <a href="index.html" class="nav-button">Back to Series Index</a>
+    <a href="chapter-3.html" class="nav-button">Next Chapter →</a>
+</div>
+    </main>
+
+    <footer>
+        <p><strong>Created by</strong>: AI Terakoya Content Team</p>
+        <p><strong>Supervised by</strong>: Dr. Yusuke Hashimoto (Tohoku University)</p>
+        <p><strong>Version</strong>: 1.0 | <strong>Created</strong>: 2025-01-01</p>
+        <p><strong>License</strong>: Creative Commons BY 4.0</p>
+        <p>© 2025 AI Terakoya. All rights reserved.</p>
+    </footer>
+</body>
+</html>

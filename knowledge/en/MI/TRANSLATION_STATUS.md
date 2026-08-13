@@ -2,17 +2,17 @@
 
 **Dojo**: Materials Informatics
 **Generated**: 2026-07-04
-**Total Series**: 22
-**Total Files**: 118 (22 index + 96 chapters)
-**Complete Series** (index + chapters): 22/22
+**Total Series**: 23
+**Total Files**: 124 (23 index + 101 chapters)
+**Complete Series** (index + chapters): 23/23
 
 ---
 
 ## Summary Statistics
 
-- **Series Translated**: 22/22 (100%)
-- **Index Pages**: 22/22 (100%)
-- **Total Chapter Files**: 96
+- **Series Translated**: 23/23 (100%)
+- **Index Pages**: 23/23 (100%)
+- **Total Chapter Files**: 101
 - **Average Chapters per Series**: 4.4
 
 ---
@@ -398,6 +398,24 @@
 - ✅ `chapter1-introduction.html`
 - ✅ `chapter2-fundamentals.html`
 - ✅ `chapter3-hands-on.html`
+
+---
+
+### 23. ⚛️ Introduction to Quantum Machine Learning - AI Terakoya ✅
+
+**Directory**: `quantum-machine-learning-introduction`
+**Location**: `/MI/quantum-machine-learning-introduction/`
+**Files**: 6 total (1 index + 5 chapters)
+**Last Update**: 2026-08-13
+
+- ✅ `index.html` - Series overview page
+
+**Chapters** (5):
+- ✅ `chapter-1.html`
+- ✅ `chapter-2.html`
+- ✅ `chapter-3.html`
+- ✅ `chapter-4.html`
+- ✅ `chapter-5.html`
 
 ---
 

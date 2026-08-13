@@ -239,6 +239,7 @@ Schrödinger方程式の離散版としてのユニタリ発展と、すべて�
 ### 関連シリーズ
 
   * [量子ハードウェア入門](<../quantum-hardware-introduction/index.html>) — 対をなす姉妹編：量子コンピュータは何でできているのか、方式ごとの物理
+  * [量子機械学習入門](<../../MI/quantum-machine-learning-introduction/index.html>) — MI側での応用と、古典ベースラインに勝てるかの誠実な検証
   * [量子力学入門](<../quantum-mechanics/index.html>) — 変分原理、摂動論
   * [場の量子論入門](<../quantum-field-theory-introduction/index.html>) — 第二量子化、生成消滅演算子
   * [線形代数とテンソル解析](<../linear-algebra-tensor/index.html>) — 固有値問題、Kronecker積、テンソル縮約

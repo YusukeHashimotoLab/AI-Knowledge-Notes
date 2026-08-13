@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚛️ 量子機械学習入門 - AI Terakoya</title>
+
+    <link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+    <style>
+        /* page-specific residual: the rules the shared sheet does not provide.
+           Everything else that used to live here is now in knowledge-base.css;
+           re-declaring it would only risk drifting out of sync with the sheet. */
+        details { background-color: var(--color-bg-alt); margin-bottom: var(--spacing-md) }
+        summary { user-select: none; margin: calc(-1 * var(--spacing-md)); border-radius: var(--border-radius) }
+        summary:hover {
+            /* accent wash; the literal is the FM/MI/ML purple and is the fallback
+               for engines without color-mix() (Chrome <111 / Safari <16.2). */
+            background-color: rgba(123, 44, 191, 0.1);
+            background-color: color-mix(in srgb, var(--color-accent) 10%, transparent);
+        }
+        details[open] summary { margin-bottom: var(--spacing-md); border-bottom: 1px solid var(--color-border) }
+        .learning-objectives {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: var(--spacing-lg);
+            border-radius: var(--border-radius);
+            border-left: 4px solid var(--color-accent);
+            margin-bottom: var(--spacing-xl);
+        }
+        .learning-objectives h2 { margin-top: 0; border-bottom: none }
+        @media (max-width: 768px) {
+            th { padding: var(--spacing-xs) }
+            td { padding: var(--spacing-xs) }
+        }
+    </style>
+
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+
+    <!-- MathJax for LaTeX equation rendering -->
+    <script>
+        MathJax = {
+            tex: {
+                // The HTML must carry a DOUBLE backslash before ( ) [ ] so the
+                // JS string is backslash-paren; a single one collapses to a bare
+                // paren and turns every prose parenthesis into a math delimiter
+                // (non-raw Python template: 4 backslashes -> 2 in HTML -> 1 in JS).
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" id="MathJax-script" async></script>
+</head>
+<body class="dojo-mi">
+    <header>
+        <div class="header-content">
+            <h1>⚛️ 量子機械学習入門</h1>
+            <p class="subtitle">量子機械学習は古典機械学習に勝てるのか — 材料研究者のための誠実な回答</p>
+            <div class="meta">
+                <span class="meta-item">📖 読了時間: 20-25分</span>
+                <span class="meta-item">📊 難易度: 初級</span>
+                <span class="meta-item">💻 コード例: 0個</span>
+                <span class="meta-item">📝 演習問題: 0問</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+<p>🌐 JP | <a href="../../../en/MI/quantum-machine-learning-introduction/index.html">🇬🇧 EN</a> | Last sync: 2026-08-13</p>
+<p><a href="../../index.html">AI寺子屋トップ</a>›<a href="../index.html">マテリアルズ・インフォマティクス道場</a>›<a href="index.html">量子機械学習入門</a></p>
+<p><a href="../index.html">← マテリアルズ・インフォマティクス道場トップ</a></p>
+<h2>🎯 シリーズ概要</h2>
+<p>あなたはすでに材料データにモデルを当てはめています。そして誰かがすでに「量子コンピューティングはそれを変えるのか」と尋ねてきたはずです。本シリーズはその答えを、断言ではなく計算して示すものです。</p>
+<p>量子機械学習は量子技術の中で最も過大に売られている分野であり、その過大な売り込みはたいてい不誠実ではありません。個々には正しい主張の連鎖から生じているのですが、その連鎖は人々が引き出す結論へは合成されないのです。$n$量子ビットのレジスタは $2^n$ 個の振幅を運ぶ。量子回路はデータ点間の内積を誘導する。その内積は古典的には計算困難でありうる。すべて真です。しかしそのどれも、量子モデルが組成記述子40行からより良く汎化するとは言いません。そしてそれが材料研究者が実際にもつ問いです。</p>
+<p>そこで本コースは計算をします。すべての実験はシードを固定した1つの合成材料データセット、1つの固定した訓練/テスト分割、そして後続の章がごまかせないだけ厳しい1つの評価プロトコルの上で走ります。パラメータ数の一致、ハイパーパラメータは訓練データのみで選択、すべての結果に自明なベースラインとノイズ床を併記、本コースが主張するすべての差に対応のあるブートストラップ区間 — 各章がそれぞれ自分の分を印字します — そして実機が測らなければならなかったものすべてに明示的なショットコスト。このプロトコルの下で、ここに登場する量子モデルは勝つものもあり負けるものもあります。そして第1章にすでに最も示唆的な事例が入っています。古典ベースラインを<em>有意に</em>上回る量子特徴写像が、その後ノートPC上で記述子のsinとcos、およびその2つずつの積を評価するだけで小数14桁まで再現されてしまうのです。</p>
+<p>この結果がこの分野全体の形です。興味深い問いは「量子は速いのか」ではなく、「符号化は物理について実際に何を仮定しているのか」「表現力の高いカーネルはなぜ自らの汎化能力を破壊するのか」「材料ワークフローのどこに量子プロセッサはそもそも接続しうるのか」であることが分かります。最後の問いへの誠実な答えは機械学習より上流にあり、第5章がそれを擁護します。</p>
+<p>本コースはマテリアルズ・インフォマティクス道場に置かれる最初の量子コースであり、その配置自体が要点です。すでに信頼している古典ベースラインに照らして量子的主張を判断する人々のために書かれています。</p>
+<h3>学習パス</h3>
+<div class="mermaid">
+flowchart LR
+    P1["Prerequisite<br/>Quantum computing"]
+    P2["Prerequisite<br/>Classical ML"]
+    A["Chapter 1<br/>The QML<br/>landscape"]
+    B["Chapter 2<br/>Data<br/>encoding"]
+    C["Chapter 3<br/>Quantum kernel<br/>methods"]
+    D["Chapter 4<br/>Variational<br/>quantum models"]
+    E["Chapter 5<br/>An honest<br/>assessment"]
+    P1 --> A
+    P2 --> A
+    A --> B --> C --> D --> E
+    style P1 fill:#e2e8f0,stroke:#94a3b8,stroke-width:1px,color:#334155
+    style P2 fill:#e2e8f0,stroke:#94a3b8,stroke-width:1px,color:#334155
+    style A fill:#667eea,stroke:#764ba2,stroke-width:2px,color:#fff
+    style B fill:#7b2cbf,stroke:#764ba2,stroke-width:2px,color:#fff
+    style C fill:#7b2cbf,stroke:#764ba2,stroke-width:2px,color:#fff
+    style D fill:#7b2cbf,stroke:#764ba2,stroke-width:2px,color:#fff
+    style E fill:#9d4edd,stroke:#764ba2,stroke-width:2px,color:#fff
+</div>
+
+<p>各章は厳密に逐次的です。第1章がシミュレータ・データセット・分割・古典ベースライン・評価プロトコルを固定し、以降の章はすべてそのセッションの続きとして動きます。第2章の符号化が第3章のカーネルの材料であり、第4章の変分モデルは第2章の特徴写像を再利用し、第5章が4章分の証拠を集めます。順序を変えて読むことは可能ですが、コードは動きません。</p>
+<h3>📋 学習目標</h3>
+<p>本シリーズを修了すると、以下のことができるようになります。</p>
+<ul>
+<li>任意のQML提案を4象限の分類 — <em>データ</em>が古典か量子か、<em>処理</em>が古典か量子か — に位置づけ、主張の妥当性を決めるのが象限であると説明できる</li>
+<li>basis・angle・amplitude の各符号化を量子ビット数、回路深さ、状態準備の困難さで見積もり、この分野の真のボトルネックがモデルではなく符号化であると説明できる</li>
+<li>量子カーネル $k(x,x') = \lvert\langle\phi(x)\rvert\phi(x')\rangle\rvert^2$ を導出し、inversion test で推定し、カーネルリッジ回帰をNumPyだけで閉形式に解ける</li>
+<li>指数的集中を数値的に実証し、なぜ表現力の高い特徴写像が学習器としては劣るのかを説明できる</li>
+<li>parameter-shift 勾配で変分量子回帰器を構築・訓練し、同一パラメータ数の古典ネットワークと公平に比較できる</li>
+<li>dequantization と古典サロゲートを、ある量子モデルの量子性が本質的か付随的かを言えるだけの深さで説明できる</li>
+<li>第1章の7規則プロトコルで量子優位性の主張を読み、どの規則が破られているかを指摘できる</li>
+</ul>
+<h3>📖 前提知識</h3>
+<p><strong>必須。</strong> <a href="../../FM/quantum-computing-introduction/index.html">量子コンピューティング入門</a>の第1章から第3章の水準。量子ビットと状態ベクトル、標準ゲート集合、ミニ状態ベクトルシミュレータ、変分回路と barren plateau 問題です。同コース第2章のシミュレータは本コース第1章に逐語再掲され、そのAPIとビッグエンディアンの量子ビット順序が全編で無変更で使われます。</p>
+<p><strong>必須。</strong> 回帰・正則化・交差検証・過学習の水準での古典的な教師あり学習。材料側からの自然な入口は<a href="../mi-introduction/index.html">マテリアルズ・インフォマティクス入門</a>であり、本コースが強く依拠する評価の機械については<a href="../../ML/model-evaluation-introduction/index.html">モデル評価入門</a>が扱います。組成記述子に馴染みがあると合成データセットが抽象的に感じられなくなります — <a href="../composition-features-introduction/index.html">組成ベース特徴量入門</a>をご覧ください。</p>
+<p><strong>必須。</strong> Python 3.8以降とNumPy、SciPy、Matplotlib。それだけです。この5章のどこにも量子SDK、ベンダーアカウント、実機アクセスはありません。</p>
+<p><strong>推奨。</strong> <a href="../../FM/quantum-hardware-introduction/index.html">量子ハードウェア入門</a>。コスト見積もりで引用するショットレートやエラー率が実際にどこから来るのかが分かります。第5章はQQ象限が物理的に何を要求するかを論じる際にこれを参照します。</p>
+<p><strong>あると有用（必須ではない）。</strong> 第1章が描くパイプラインの獲得段階については<a href="../bayesian-optimization-introduction/index.html">ベイズ最適化・アクティブラーニング入門</a>、量子技術がすでに材料科学を変えた象限の実例としては<a href="../mlp-introduction/index.html">機械学習ポテンシャル（MLP）入門</a>。</p>
+<hr />
+<h2>📚 章構成</h2>
+<h3>第1章: QMLの見取り図</h3>
+<p>何が主張されており、その主張が成り立つには何が真でなければならないのか。4象限の分類 — 古典/量子データ × 古典/量子処理 — と、材料情報学がすでに、誰もQMLと呼ばない象限に量子の成功譚をもっている理由。QMLを支持する論拠（指数的な状態空間、暗黙の特徴写像、data re-uploading による普遍性）を4つの標準的な反論（入力問題、出力問題、dequantization、集中）と、そして最も重要な5つ目 — シミュレーションの古典的困難性は良い帰納バイアスではない — に対置します。記述子から物性へのパイプラインのどこに量子プロセッサが接続しうるかの段階別の地図。そして以降の全章を律する7規則の評価プロトコルと共有の道具立て。ミニシミュレータの再掲、合成材料データセット、超えるべき数値を固定する閉形式リッジのベースライン、そして dequantization と集中の両方の最初の測定です。</p>
+<p><strong>主要トピック</strong> : 4象限の分類 · 入力問題と出力問題 · dequantization · カーネル集中 · 帰納バイアス · 同一予算プロトコル · 対応のあるブートストラップ · ショット会計 · 閉形式リッジのベースライン</p>
+<p>💻 コード例6個 ⏱️ 40-45分 📊 中級</p>
+<p><a href="chapter-1.html">第1章を読む →</a></p>
+<h3>第2章: データ符号化 — QMLの本当のボトルネック</h3>
+<p>古典的な数値がどうやって量子状態に入るのか、そして各経路の費用。basis・angle・amplitude 符号化を量子ビット数・回路深さ・状態準備の困難さで比較し、指数的空間に届く符号化こそ準備する余裕がないものだという不都合な結論に至ります。符号化を、誘導内積をもつ特徴写像 $x \mapsto \lvert\phi(x)\rangle$ として捉え直すこと。これが第3章のカーネル的見方を可能にします。data re-uploading と、十分な再アップロードを伴う1量子ビットが普遍近似器である理由。そして下流のすべてを決める部分。符号化がモデルの周波数スペクトルを固定し、したがってそもそもどの関数を表現できるかを決めます。3種の符号化の実装、誘導カーネル行列の可視化、角度符号化モデルのフーリエスペクトルの数値抽出で締めます。</p>
+<p><strong>主要トピック</strong> : basis / angle / amplitude 符号化 · 状態準備コスト · 特徴写像と誘導内積 · data re-uploading · 普遍近似 · バンド幅と周波数スペクトル · 量子モデルのフーリエ解析</p>
+<p>💻 コード例6個 ⏱️ 45-50分 📊 中級</p>
+<p><a href="chapter-2.html">第2章を読む →</a></p>
+<h3>第3章: 量子カーネル法</h3>
+<p>QMLの中で理論的に最も満足のいく一角であり、悪い知らせが最も明確な一角でもあります。カーネルトリックの復習、続いて量子カーネル $k(x,x') = \lvert\langle\phi(x)\rvert\phi(x')\rangle\rvert^2$ とその SWAPテストおよび inversion test による推定、そしてそれぞれのショットコスト。カーネルリッジ回帰をNumPyで閉形式に解きます — scikit-learn は使いません — のでパイプライン全体が見えます。続いて指数的集中。レジスタが大きくなると表現力の高い特徴写像はすべての非対角カーネル要素をゼロへ追い込み、Gram行列は単位行列となり、学習がそもそも可能でなくなります。これは断言ではなく数値で実演します。共有データセット上で量子カーネルリッジ回帰をRBFカーネルリッジ回帰と同一プロトコルで対決させ、量子側が勝つか否かにかかわらず結果を報告し、射影カーネルを含む緩和策の概観で締めます。</p>
+<p><strong>主要トピック</strong> : カーネルトリック · 量子カーネル · SWAPテストと inversion test · Gram要素あたりのショットコスト · 閉形式カーネルリッジ · 指数的集中 · Gram行列の条件数 · 射影カーネル</p>
+<p>💻 コード例7個 ⏱️ 45-50分 📊 上級</p>
+<p><a href="chapter-3.html">第3章を読む →</a></p>
+<h3>第4章: 変分量子回路によるML</h3>
+<p>もう一方の主要な branch。勾配降下で訓練するパラメータ化回路です。変分量子回路の解剖 — 符号化層、変分層、測定 — と、姉妹コースの変分固有値ソルバとの厳密な対応。parameter-shift 勾配の導出と実装、訓練ループとそのショットコストの明示。barren plateau を機械学習の形で再訪します。深さ、大域測定、エンタングルメントがそれぞれどう損失地形を平坦化するのか、そしてそれが実際に訓練するつもりのモデルにとって何を意味するのか。続いて汎化。パラメータ $p$ 個の量子モデルを、同じデータ・同じ予算でパラメータ $p$ 個の古典ネットワークと比較します。これは文献がほとんど行わない比較です。訓練したVQC回帰器と同規模のNumPy製MLPを、学習曲線を並べて締めます。</p>
+<p><strong>主要トピック</strong> : VQCの構造 · 符号化層と変分層 · parameter-shift ルール · 訓練ループとショット予算 · QMLにおける barren plateau · 大域測定 vs 局所測定 · 過学習と同一予算比較 · 学習曲線</p>
+<p>💻 コード例7個 ⏱️ 45-50分 📊 上級</p>
+<p><a href="chapter-4.html">第4章を読む →</a></p>
+<h3>第5章: 誠実な評価と展望</h3>
+<p>前4章の証拠が導く先。dequantization と古典サロゲート。量子モデルの量子性が荷重を担っているのか装飾なのかを見分ける方法と、サロゲートが優位性の主張を崩すのに厳密なシミュレーションである必要がない理由。量子優位性の論文の読み方 — ベンチマーク衛生、データ規模、ベースラインの強度、cherry-picking、そして欠けていたら関心を打ち切るべき具体的な対照実験。続いて本物の肯定的結果。<em>量子</em>データなら状況は違い、証明可能なサンプル複雑度の分離が存在します。量子学習器を扱うよりずっと前に量子センサや量子シミュレーションの出力を扱うことになる材料研究者にとって、それが何を意味するのか。いま学ぶ価値のあるもの — カーネル的見方、符号化の問い、評価の規律 — についての実践的指針とシリーズ総括で締めます。</p>
+<p><strong>主要トピック</strong> : dequantization · 量子カーネルの古典サロゲート · ベンチマーク衛生 · cherry-picking と選択的報告 · 量子データとサンプル複雑度の分離 · いま学ぶべきこと · シリーズ総括</p>
+<p>💻 コード例6個 ⏱️ 45-50分 📊 上級</p>
+<p><a href="chapter-5.html">第5章を読む →</a></p>
+<hr />
+<h2>🔤 記法と共有規約</h2>
+<p>第1章で固定し、無変更で用います。どの章のコードもどの章のコードと一緒に動くようにするためです。</p>
+<table>
+<thead>
+<tr>
+<th>記号</th>
+<th>意味</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>$x \in [0,1]^4$</td>
+<td>合成データセットの1行。4つの組成風記述子</td>
+</tr>
+<tr>
+<td>$y$</td>
+<td>目標変数。形成エネルギー風のスカラー</td>
+</tr>
+<tr>
+<td>$\lvert\phi(x)\rangle$</td>
+<td>符号化回路がデータ行から準備する状態</td>
+</tr>
+<tr>
+<td>$k(x,x')$</td>
+<td>量子カーネル $\lvert\langle\phi(x)\rvert\phi(x')\rangle\rvert^2$</td>
+</tr>
+<tr>
+<td>$\lambda$</td>
+<td>リッジの罰則。常に訓練行のみで選択する。第1章はleave-one-out、第2章以降は5分割、第4章の反復訓練は30/10の検証分割</td>
+</tr>
+<tr>
+<td>$S$</td>
+<td>測定ショット数。期待値の標準誤差は高々 $1/\sqrt{S}$</td>
+</tr>
+<tr>
+<td>$p$</td>
+<td>学習パラメータ数。比較の両側で一致させるべき量</td>
+</tr>
+<tr>
+<td>CC, CQ, QC, QQ</td>
+<td>象限のラベル。1文字目がデータ、2文字目が処理</td>
+</tr>
+<tr>
+<td>$X, Y, Z, H$, CNOT</td>
+<td>ゲート記号。<a href="../../FM/quantum-computing-introduction/index.html">量子コンピューティング入門</a>と同一</td>
+</tr>
+</tbody>
+</table>
+<p><strong>量子ビットの順序。</strong> 量子ビット0が最左・最上位ビットであり、姉妹コースと完全に同一です。Qiskitの規約とは逆です。</p>
+<p><strong>データセットと分割。</strong> 第1章のCode Example 2でシードを固定して生成する60行の合成データセット1つ。訓練集合＝先頭40行、テスト集合＝末尾20行。二度と引き直しません。</p>
+<p><strong>基準となる数値。</strong> 古典ベースラインはテストRMSE $0.2146$、$R^2 = 0.814$。ノイズ床は $0.0507$、訓練平均を予測すると $0.5242$。本シリーズのすべての結果はこの3つの数値に対して引用されます。</p>
+<hr />
+<h2>🔍 本シリーズの範囲と非範囲</h2>
+<p><strong>本シリーズは</strong>すべての数値をゼロから再現する手法のコースです。すべてのコード例は素のNumPyかSciPyであり、本文中のすべての出力はその上のコードが生成したものであり、すべての比較は第1章のプロトコルに従います。</p>
+<p><strong>SDKチュートリアルではありません。</strong> Qiskitも PennyLane も Cirq もベンダーアカウントもクラウドバックエンドもありません。姉妹コースのミニシミュレータが唯一の量子インタフェースです。これにより物理が見えたままになり、あなたが読む頃にはAPIが変わっているであろうフレームワークの背後に隠れません。</p>
+<p><strong>ベンチマーク勝利宣言ではありません。</strong> 本コースは量子優位性を主張せず、それが不可能だとも主張しません。明示したプロトコルの下で自身の実験が見つけたものを報告します。量子モデルが負けた実験も含め、そして量子モデルが完全に古典的な理由で勝った実験も含めて。</p>
+<p><strong>実材料データについての証拠ではありません。</strong> データセットは設計上合成です。すべての数値が再現可能であり、どの結果も非公開データに依存しないためです。ここでの結論は手法とその評価の仕方についてであって、実在のどの物性についての達成可能な精度についてでもありません。</p>
+<p><strong>ハードウェアのコースではありません。</strong> 装置の数値、量子ビット数、ベンダーのロードマップはどこにも出てきません。ショット予算を引用するときはそれを算術として — 期待値1つあたり $1/\epsilon^2$ ショットとして — 引用しており、装置スペックとしてではありません。それらのレートの背後にある物理は<a href="../../FM/quantum-hardware-introduction/index.html">量子ハードウェア入門</a>をお読みください。</p>
+<h2>📚 推奨学習パス</h2>
+<h3>パターン1: 完全習得コース（5-6日）</h3>
+<ul>
+<li>1日目: 第1章 1.1-1.4節 — 分類、反論、パイプラインの地図、プロトコル</li>
+<li>2日目: 第1章 1.5節 — 6つの例をすべて走らせ、読み進む前に自分でベースラインの数値を再現する</li>
+<li>3日目: 第2章 — 符号化、特徴写像、再アップロード、周波数スペクトル</li>
+<li>4日目: 第3章 — 量子カーネルと集中問題</li>
+<li>5日目: 第4章 — 変分モデルと同一予算比較</li>
+<li>6日目: 第5章と演習 — dequantization、ベンチマーク衛生、そしてそれへの対処</li>
+</ul>
+<h3>パターン2: 懐疑派のコース（半日）</h3>
+<ul>
+<li>第1章 1.2節と1.4節 — 反論とプロトコル</li>
+<li>第1章 Code Example 5 — 可能な限り最小の例における dequantization</li>
+<li>第3章 3.6節 — 実演される集中</li>
+<li>第5章 5.1節から5.3節 — サロゲートと主張の読み方</li>
+</ul>
+<h3>パターン3: 符号化のコース（1日）</h3>
+<ul>
+<li>第1章 1.5節 — 道具立てとベースライン</li>
+<li>第2章を全文、コードつきで — 未解決の研究課題はここにあります</li>
+<li>第3章 3.1節と3.2節 — 符号化が誘導するもの</li>
+<li>第5章 5.6節 — この分野で働くつもりならいま学ぶべきこと</li>
+</ul>
+<h2>🎯 全体の学習成果</h2>
+<h3>知識レベル</h3>
+<ul>
+<li>✅ 4象限の分類と、各象限に固有のボトルネックを述べられる</li>
+<li>✅ 入力問題・出力問題・dequantization・集中を説明し、どの章がどれを扱うか言える</li>
+<li>✅ 量子カーネルを定義し、集中が表現力から従う理由を説明できる</li>
+<li>✅ シミュレーションの古典的困難性がより良い汎化を含意しない理由を説明できる</li>
+</ul>
+<h3>実践スキル</h3>
+<ul>
+<li>✅ 素の状態ベクトルシミュレータで basis・angle・amplitude 符号化を実装できる</li>
+<li>✅ 量子カーネル行列を構築し、カーネルリッジ回帰を閉形式で解き、集中したGram行列を診断できる</li>
+<li>✅ parameter-shift 勾配を導出・実装し、変分回路を訓練できる</li>
+<li>✅ 交差検証による選択と、差に対する対応のあるブートストラップ区間を伴う同一予算比較を実行できる</li>
+<li>✅ 任意の量子的結果を、指定精度でのショットコストに変換できる</li>
+</ul>
+<h3>応用力</h3>
+<ul>
+<li>✅ QML論文を読み、その象限・ベースライン・テスト集合の大きさ・欠けている区間を突き止められる</li>
+<li>✅ 与えられた量子モデルについて、効率的な古典サロゲートが存在しそうかを判断できる</li>
+<li>✅ 自分の材料ワークフローのどこに量子技術が貢献しうるか、どこにしえないかを同定できる</li>
+<li>✅ 否定的な結果が肯定的な結果と同じだけ情報をもつような実験を設計できる</li>
+</ul>
+<h2>🛠️ 使用する技術・ツール</h2>
+<h3>主要ライブラリ</h3>
+<ul>
+<li><strong>numpy</strong> — 状態ベクトルシミュレータ、すべての線形解法、すべてのカーネル行列</li>
+<li><strong>scipy</strong> — 折々の最適化と特殊関数</li>
+<li><strong>matplotlib</strong> — カーネル行列、学習曲線、集中のスケーリング</li>
+</ul>
+<h3>開発環境</h3>
+<ul>
+<li><strong>Python</strong> : 3.8以上</li>
+<li><strong>Jupyter Notebook</strong> : 推奨。各章は1つの連続したセッションとして書かれています</li>
+<li>Google Colabですべての例が動きます。GPUも量子バックエンドもアカウントも不要です</li>
+</ul>
+<h2>🚀 次のステップ</h2>
+<h3>深化学習</h3>
+<ul>
+<li>量子カーネル理論: 汎化限界、geometric difference、量子カーネルが近似困難であることが証明できる条件</li>
+<li>古典サロゲートとランダム化線形代数 — dequantization の結果の背後にある機械</li>
+<li>材料のための量子シミュレーション: QC象限の応用。姉妹コースの変分固有値ソルバの章から始めてください</li>
+<li>量子データからの学習: shadow tomography、classical shadows、証明可能なサンプル複雑度の分離</li>
+</ul>
+<h3>関連シリーズ</h3>
+<ul>
+<li><a href="../../FM/quantum-computing-introduction/index.html">量子コンピューティング入門</a> — 必須の前提であり、本コースのシミュレータの出典</li>
+<li><a href="../../FM/quantum-hardware-introduction/index.html">量子ハードウェア入門</a> — ショットレートやエラー率が物理的にどこから来るのか</li>
+<li><a href="../mi-introduction/index.html">マテリアルズ・インフォマティクス入門</a> — 本コースが照らし合わせる古典の現職</li>
+<li><a href="../../ML/model-evaluation-introduction/index.html">モデル評価入門</a> — 無修正で移せる古典的な評価の規律</li>
+<li><a href="../mlp-introduction/index.html">機械学習ポテンシャル（MLP）入門</a> — 量子技術がすでに貢献している象限</li>
+</ul>
+<h3>実践プロジェクト</h3>
+<ul>
+<li>プロトコルを保ったままデータだけ差し替えて、本コース全体を自分のデータセットで再実行する</li>
+<li>第3章の量子カーネルの古典サロゲートを実装し、量子側の結果をどれだけ追随するか見る</li>
+<li>お気に入りの符号化の周波数スペクトルを測り、実際に当てはめる必要がある関数と照合する</li>
+<li>公開されたQMLベンチマークを取り、欠けている対応のある区間を加え、報告された優位性が生き延びるか確かめる</li>
+</ul>
+<h3>⚠️ 免責事項</h3>
+<ul>
+<li>本コンテンツは教育・研究・情報提供のみを目的としており、専門的な助言(法律・会計・技術的保証など)を提供するものではありません。</li>
+<li>本コンテンツおよび付随するCode examplesは「現状有姿(AS IS)」で提供され、明示または黙示を問わず、商品性、特定目的適合性、権利非侵害、正確性・完全性、動作・安全性等いかなる保証もしません。</li>
+<li>本コースのデータセットはすべて合成であり、モデル比較はすべて例示です。示される数値は方法論を実演するものであって、実材料データについての証拠でも、いかなる量子装置の性能についての証拠でもありません。</li>
+<li>外部リンク、第三者が提供するデータ・ツール・ライブラリ等の内容・可用性・安全性について、作成者および東北大学は一切の責任を負いません。</li>
+<li>本コンテンツの利用・実行・解釈により直接的・間接的・付随的・特別・結果的・懲罰的損害が生じた場合でも、適用法で許容される最大限の範囲で、作成者および東北大学は責任を負いません。</li>
+<li>本コンテンツの内容は、予告なく変更・更新・提供停止されることがあります。</li>
+<li>本コンテンツの著作権・ライセンスは明記された条件(例: CC BY 4.0)に従います。当該ライセンスは通常、無保証条項を含みます。</li>
+</ul><div class="navigation">
+    <a href="index.html" class="nav-button">シリーズ目次に戻る</a>
+    <a href="chapter-2.html" class="nav-button">次の章 →</a>
+</div>
+    </main>
+
+    <footer>
+        <p><strong>作成者</strong>: AI Terakoya Content Team</p>
+        <p><strong>監修</strong>: Dr. Yusuke Hashimoto（東北大学）</p>
+        <p><strong>バージョン</strong>: 1.0 | <strong>作成日</strong>: 2025-10-17</p>
+        <p><strong>ライセンス</strong>: Creative Commons BY 4.0</p>
+        <p>© 2025 AI Terakoya. All rights reserved.</p>
+    </footer>
+</body>
+</html>

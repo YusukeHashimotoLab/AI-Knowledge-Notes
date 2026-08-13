@@ -102,6 +102,16 @@ Advanced 80-100 min 4 chapters
 
 [Start →](<../ML/transformer-introduction/index.html>)
 
+🌀
+
+Introduction to Quantum Machine Learning
+
+Whether a quantum model beats a classical baseline on materials data, worked out rather than asserted: data encoding, quantum kernel methods and variational quantum circuits built from scratch in NumPy and measured against a tuned classical baseline under one strict protocol — with exponential concentration and dequantization explaining the results
+
+Intermediate-Advanced 220-245 min 5 chapters
+
+[Start →](<./quantum-machine-learning-introduction/index.html>)
+
 🔧 Materials Features & Descriptors (2 series)
 
 ⚛️

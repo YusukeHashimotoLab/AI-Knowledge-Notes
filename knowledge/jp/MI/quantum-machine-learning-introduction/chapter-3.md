@@ -1,0 +1,1656 @@
+---
+title: "第3章: 量子カーネル法"
+chapter_title: "第3章: 量子カーネル法"
+subtitle: 忠実度カーネル、そのショット予算、指数的集中、そして放射基底関数との誠実な比較
+reading_time: 45-50分
+difficulty: 上級
+code_examples: 7
+exercises: 5
+---
+
+🌐 JP | [🇬🇧 EN](<../../../en/MI/quantum-machine-learning-introduction/chapter-3.html>) | Last sync: 2026-08-13
+
+[マテリアルズ・インフォマティクス道場](<../index.html>) > [量子機械学習入門](<index.html>) > 第3章
+
+第2章は「格下げ」で終わりましたが、それは実は贈り物です。固定した符号化と訓練される観測量からなる量子モデルは密度行列空間における線形モデルであり、したがってカーネル法です。そしてカーネル $k(x,x') = |\langle\phi(x)|\phi(x')\rangle|^2$ は、学習問題が量子デバイスについて見ることのできる唯一のものです。本章はそれを真剣に受け取り、最後まで追いかけます。
+
+その見返りとして、量子カーネル法は量子機械学習のなかで理論が完成している唯一の一角です。閉形式解があり、よく理解された汎化理論があり、どの特徴写像が古典的にシミュレート困難かについての証明の形をした主張があり、そしてレジスタが大きくなると何が悪くなるのかとその程度を述べる鋭い否定的結果 — **指数的集中** — があります。変分最適化もなく、barren plateau の民間伝承もなく、期待に頼って調整するハイパーパラメータもありません。だからこそ、本コースが存在する理由である比較を実行するのにふさわしい場所なのです。
+
+そこで実行します。第3.7節は量子カーネルと放射基底関数カーネルを同じ40訓練行に置き、すべてのハイパーパラメータを訓練集合のみの交差検証で選び、20テスト行にはちょうど1回だけ触れます。結果は出たとおりに印字され、宣伝的な文献が選ぶような結果ではありません。*なぜ*そうなったのか — そして答えが変わるには何が違っていなければならないのか — を説明することが本章の実質的な内容であり、勝利よりも価値があります。
+
+ここで得られる定量的な結果のうち2つは、量子ハードウェアが仕事に無関係であり続けたとしても持ち帰る価値があります。第一は、反転テストがSWAPテストよりショットコストで $2^n$ 倍優れており、その理由があらゆる忠実度推定問題に一般化することです。第二は集中の指数です。忠実度カーネルの標準偏差は量子ビットを1つ増やすごとに実測で0.5〜0.56倍になり、「量子カーネルはスケールしない」というスローガンを予算に書ける数値に変えます。
+
+## 学習目標
+
+本章を修了すると、以下のことができるようになります。
+
+  * push-through恒等式を用いて主問題のリッジ回帰からカーネルリッジ回帰の解 $\alpha = (K + \lambda I)^{-1}(y - \bar{y})$ を導出し、機械学習ライブラリを使わずNumPyで実装できる
+  * 閉形式の知られていないカーネルを与えるエンタングル特徴写像を構築し、反転テスト $P(0\cdots0) = |\langle 0|U^\dagger(x')U(x)|0\rangle|^2$ が状態の重なりと同じ数値を返すことを検証できる
+  * 反転テストとSWAPテストのショットコストを比較し、前者が $1/k \approx 2^n$ 倍安いことを示せる
+  * 目標精度における $N \times N$ カーネル行列のショット予算を計算し、ショットノイズが課す正則化の下限 $\lambda \gtrsim 2\sqrt{N}\sqrt{\bar{k}(1-\bar{k})/S}$ を導出できる
+  * 忠実度カーネルの指数的集中 — Haarランダムな特徴写像では $\mathbb{E}[k] = 2^{-n}$、$\mathrm{Var}[k] \approx 2^{-2n}$ — を述べて数値的に検証し、実際の特徴写像について複数の深さで減衰指数を測定できる
+  * 量子カーネルと古典カーネルを1つのプロトコルで対等に比較し、結果がどうであれ報告し、その結果を生んだデータセットの具体的な性質を指摘できる
+  * 射影カーネルが集中をどう除去するかを説明し、実際に除去することを測定し、それでも予測が改善しなかった理由を説明できる
+
+* * *
+
+## 3.1 カーネルトリックと、その量子版
+
+### 20行の復習
+
+特徴写像について線形なモデル $f(x) = w \cdot \varphi(x)$ を、$N$ サンプル上で罰則付き最小二乗によりフィットします。
+
+$$ J(w) = \lVert \Phi w - y \rVert^2 + \lambda \lVert w \rVert^2, \qquad \Phi_{i\cdot} = \varphi(x_i)^{\top} $$
+
+勾配を0にすると $w = (\Phi^{\top}\Phi + \lambda I)^{-1}\Phi^{\top} y$ が得られますが、これは特徴空間の大きさの行列の逆行列を要します。**push-through恒等式**が逆行列を反対側に移します。自明な等式 $\Phi^{\top}(\Phi\Phi^{\top} + \lambda I) = (\Phi^{\top}\Phi + \lambda I)\Phi^{\top}$ から
+
+$$ (\Phi^{\top}\Phi + \lambda I)^{-1}\Phi^{\top} = \Phi^{\top}(\Phi\Phi^{\top} + \lambda I)^{-1} $$
+
+が従い、したがって $K = \Phi\Phi^{\top}$（内積の $N \times N$ 行列）として $\alpha = (K + \lambda I)^{-1} y$ とおけば $w = \Phi^{\top}\alpha$ です。予測は $w$ に一切触れません。
+
+$$ f(x^\ast) = \varphi(x^\ast)\cdot w = \sum_{i=1}^{N} \alpha_i \, \big\langle \varphi(x^\ast), \varphi(x_i)\big\rangle = \sum_{i=1}^{N} \alpha_i \, k(x^\ast, x_i) $$
+
+**必要なのは内積だけです。** 特徴空間は巨大でも無限次元でもよく、計算は $N \times N$ です。これがカーネルトリックであり、量子特徴写像がそもそも使える理由です。誰も $2^n$ 個の振幅を取り出す必要はなく、サンプル対あたり1つの数値だけで済みます。
+
+### 忠実度カーネル
+
+量子特徴写像では特徴は密度行列 $\rho(x) = |\phi(x)\rangle\langle\phi(x)|$ であり、自然な内積はHilbert-Schmidt内積です。したがって
+
+$$ k(x,x') = \mathrm{Tr}\left[\rho(x)\rho(x')\right] = \left|\langle\phi(x)|\phi(x')\rangle\right|^2 $$
+
+となり、純粋状態ではトレース重なりが状態の忠実度に等しいので**忠実度カーネル**と呼ばれます。これは無料で正当なカーネルです。実内積空間のベクトルのグラム行列なので、あらゆるデータセットに対して対称かつ半正定値であり、回路への条件は一切ありません。また規格化されており $k(x,x) = 1$、有界で $0 \le k \le 1$ です。
+
+| 性質 | 内容 | 帰結 |
+| --- | --- | --- |
+| 対称性 | $k(x,x') = k(x',x)$ | 順序を区別しない対あたり測定1回 |
+| 規格化 | $k(x,x) = 1$ | 対角は測定せずに分かる |
+| 正値性 | 厳密に $K \succeq 0$ | ショットノイズが来るまでは行列を修復する必要がない |
+| 値域 | $0 \le k \le 1$ | 確率なので数え上げで推定できる |
+| 不変性 | 大域位相や両引数に共通の最終ユニタリに影響されない | 回路の最終層は自由に選べる |
+
+最後の行は設計空間を制約するので強調しておきます。特徴写像に $x$ に依存しない任意のユニタリ $V$ を追加しても $|\langle\phi|V^\dagger V|\phi'\rangle| = |\langle\phi|\phi'\rangle|$ なので $k$ は変わりません。したがって忠実度カーネルは符号化だけに依存し、その中に学習可能なパラメータは一切ありません。学習可能なものはすべて $\alpha$ に住み、$\alpha$ は1回の線形ソルブです。
+
+### なぜエンタングル写像が必要か
+
+第2章で、標準的な3つの符号化はいずれも閉形式のカーネルを与えることを確認しました。デルタ関数、コサインの積、コサイン類似度の2乗です。閉形式を持つカーネルは、どのハードウェアが評価したにせよ古典カーネルです。古典的に計算困難とみなせるカーネルを得るには、特徴写像が積回路にできないことをしなければならず、標準的な構成はデータ依存の2量子ビット位相を挿入します。
+
+1量子ビットの角度を $\phi_j(x) = b\,\pi x_j$、対の角度を $\phi_{jk}(x) = (\pi - \phi_j)(\pi - \phi_k)$ と書き、対角ユニタリを
+
+$$ U_\Phi(x) = \exp\left(-i\left[\sum_{j} \phi_j(x)\, Z_j + \sum_{j<k} \phi_{jk}(x)\, Z_j Z_k\right]\right) $$
+
+と定義します。特徴写像はHadamard層に続けて $U_\Phi$ を $r$ 回反復したものです。
+
+$$ |\phi(x)\rangle = \left[U_\Phi(x)\, H^{\otimes n}\right]^{r} |0\cdots0\rangle $$
+
+実装上の事実が2つ、これを実用的にします。1量子ビット部分は量子ビットあたり $R_z(2\phi_j)$ 1つで済みます。$R_z(2\phi) = e^{-i\phi Z}$ だからです。対の部分は姉妹コースのコンパイル技法です: $e^{-i\phi Z_jZ_k} = \mathrm{CNOT}_{jk}\,R_z^{(k)}(2\phi)\,\mathrm{CNOT}_{jk}$。したがって回路は $2r\binom{n}{2}$ 個のCNOTと $r\left(2n + \binom{n}{2}\right)$ 個の1量子ビットゲートです。具体的に $n = 4$、$r = 2$ なら Code Example 2 が数える52操作、24 CNOT、28個の1量子ビットゲートになります。
+
+これが古典的に困難だと考える根拠は対角回路の困難性の議論です。「Hadamard層、対角位相、Hadamard層、測定」という形の回路は**instantaneous quantum polynomial-time**（IQP）回路であり、その出力分布を厳密にサンプルすることは標準的な複雑性仮定の下で古典計算機にとって困難です。誠実な留保 — 第5章で展開します — は、*サンプルが困難*であることは*学習問題が必要とする精度で推定するのが困難*であることと同じではなく、その2つの主張の間の隙間にdequantizationの結果の大半が住んでいるということです。
+
+**パラメータ $b$ は第2章のバンド幅**をそのまま引き継いだものであり、この構成における唯一のつまみです。本章では他のどの量よりも多くの仕事をします。
+
+* * *
+
+## 3.2 カーネルを測定する
+
+### 反転テスト
+
+忠実度は観測量ではないので、確率に変換する必要があります。最も安価な方法は追加の量子ビットをまったく使いません。$|\phi(x)\rangle$ を準備し、次に $|\phi(x')\rangle$ を準備する回路の*逆*を作用させ、すべてを測定します。
+
+$$ P(0\cdots 0) = \left|\langle 0\cdots0 | U^\dagger(x')\, U(x) | 0\cdots0\rangle\right|^2 = \left|\langle \phi(x')|\phi(x)\rangle\right|^2 = k(x,x') $$
+
+全ビット0という結果の確率がカーネル成分*そのもの*です。コスト: $n$ 量子ビット、特徴写像の2倍の深さ、そして古典カウンタ1つ。
+
+```mermaid
+graph LR
+    Z["|0...0>"] --> A["U(x)<br/>feature map"]
+    A --> B["U-dagger(x')<br/>inverse map"]
+    B --> M["measure<br/>all qubits"]
+    M --> C["count 0...0<br/>k-hat = c / S"]
+    style Z fill:#e2e8f0,stroke:#94a3b8,color:#334155
+    style A fill:#667eea,stroke:#764ba2,stroke-width:2px,color:#fff
+    style B fill:#667eea,stroke:#764ba2,stroke-width:2px,color:#fff
+    style M fill:#f6ad55,stroke:#dd6b20,color:#1a202c
+    style C fill:#48bb78,stroke:#2f855a,color:#fff
+```
+
+### SWAPテスト、そしてそれが劣る理由
+
+教科書的な代替案は、2つの状態を別々のレジスタに準備し、補助量子ビット1つと制御SWAPを使います。補助量子ビットの結果確率は
+
+$$ P(\text{補助} = 0) = \frac{1 + |\langle\phi|\phi'\rangle|^2}{2} = \frac{1 + k}{2}, \qquad \hat{k} = 2\hat{P} - 1 $$
+
+です。$2n + 1$ 量子ビットと $n$ 対にわたる制御SWAPを要し、それは高価ですが、決定的な反論は統計的なものです。$S$ ショットでの2つの推定量の分散を比較します。
+
+$$ \mathrm{Var}\big[\hat{k}_{\text{inv}}\big] = \frac{k(1-k)}{S}, \qquad \mathrm{Var}\big[\hat{k}_{\text{swap}}\big] = 4 \cdot \frac{P(1-P)}{S} = \frac{1 - k^2}{S} $$
+
+重要になる小さなカーネル値 — 第3.6節が示すように $k \sim 2^{-n}$ が一般的な場合です — では比は
+
+$$ \frac{\mathrm{Var}[\hat{k}_{\text{swap}}]}{\mathrm{Var}[\hat{k}_{\text{inv}}]} = \frac{1-k^2}{k(1-k)} \approx \frac{1}{k} \approx 2^{n} $$
+
+となります。サブルーチンの選択から生じる指数的な因子です。$n = 20$ ではSWAPテストは同じ誤差棒のために100万倍のショットを必要とします。本章のすべては反転テストを使います。そして一般的な教訓 — *小さな確率は稀な事象を数えて推定せよ。信号の大きさに応じて分散が縮まない有界観測量を測ってはならない* — は量子推定の全体で繰り返し現れます。
+
+### ショット予算を事前に
+
+$\hat{k}$ は二項比率なので標準誤差は $\sqrt{k(1-k)/S}$ であり、目標 $\varepsilon$ に達するには
+
+$$ S = \frac{k(1-k)}{\varepsilon^2} $$
+
+ショットが**行列の成分あたり**必要です。$N$ サンプルの訓練集合には異なる非対角成分が $N(N-1)/2$ 個あります（対角は1と分かっています）。したがって総計は
+
+$$ S_{\text{total}} = \frac{N(N-1)}{2}\cdot\frac{\bar{k}(1-\bar{k})}{\varepsilon^2} \;\sim\; \frac{N^2 \bar{k}}{2\varepsilon^2} $$
+
+です。サンプル数について2次、精度について逆2次。Code Example 4 が表にします。見出しは、4000サンプルの訓練集合を $\varepsilon = 0.01$ で測ると約 $4.7\times10^9$ ショットになり、しかもどの対も異なる回路なので償却の余地がないということです。
+
+* * *
+## 3.3 実装する
+
+### Code Example 1: ミニシミュレータの再掲
+
+第2章および [量子コンピューティング入門](<../../FM/quantum-computing-introduction/index.html>) 第2章と同じ99行を、本章が単独で成り立つように再掲します。ビッグエンディアン順序、量子ビット0が左端かつ最上位です。
+
+```python
+"""Minimal state-vector simulator (big-endian: qubit 0 = leftmost = most significant).
+
+Save this file as qcsim.py; every later example does `from qcsim import *`.
+"""
+import numpy as np
+
+# ---- 1量子ビットゲート --------------------------------------------------
+I2 = np.eye(2, dtype=complex)
+X = np.array([[0, 1], [1, 0]], dtype=complex)
+Y = np.array([[0, -1j], [1j, 0]], dtype=complex)
+Z = np.array([[1, 0], [0, -1]], dtype=complex)
+H = np.array([[1, 1], [1, -1]], dtype=complex) / np.sqrt(2)
+S = np.array([[1, 0], [0, 1j]], dtype=complex)
+T = np.array([[1, 0], [0, np.exp(1j * np.pi / 4)]], dtype=complex)
+
+
+def rx(theta):
+    c, s = np.cos(theta / 2), np.sin(theta / 2)
+    return np.array([[c, -1j * s], [-1j * s, c]], dtype=complex)
+
+
+def ry(theta):
+    c, s = np.cos(theta / 2), np.sin(theta / 2)
+    return np.array([[c, -s], [s, c]], dtype=complex)
+
+
+def rz(theta):
+    e = np.exp(-1j * theta / 2)
+    return np.array([[e, 0], [0, np.conj(e)]], dtype=complex)
+
+
+# ---- 状態 ---------------------------------------------------------------
+def ket(bits: str) -> np.ndarray:
+    """'01' -> 4次元の基底状態 |01>（ビッグエンディアン）"""
+    n = len(bits)
+    psi = np.zeros(2 ** n, dtype=complex)
+    psi[int(bits, 2)] = 1.0
+    return psi
+
+
+def apply_gate(state, U, targets, n):
+    """n量子ビット状態の targets に 2^k x 2^k ユニタリ U を作用させる"""
+    k = len(targets)
+    psi = state.reshape([2] * n)          # 1. n添字テンソルとして見る
+    psi = np.moveaxis(psi, targets, range(k))   # 2. 標的軸を先頭へ
+    rest = psi.shape[k:]
+    psi = psi.reshape(2 ** k, -1)         # 3. 平坦化して行列積
+    psi = U @ psi
+    psi = psi.reshape(list((2,) * k) + list(rest))
+    psi = np.moveaxis(psi, range(k), targets)   # 4. 軸を元に戻す
+    return psi.reshape(-1)
+
+
+CNOT4 = np.array([[1, 0, 0, 0],
+                  [0, 1, 0, 0],
+                  [0, 0, 0, 1],
+                  [0, 0, 1, 0]], dtype=complex)
+
+
+def cnot(state, control, target, n):
+    """任意の量子ビット対・任意の向きのCNOT"""
+    return apply_gate(state, CNOT4, [control, target], n)
+
+
+def probs(state):
+    """Born則による全 2^n 通りの確率"""
+    return np.abs(state) ** 2
+
+
+def sample(state, shots, seed=None):
+    """測定のシミュレーション: {ビット列: 回数}"""
+    n = int(np.log2(state.size))
+    rng = np.random.default_rng(seed)
+    idx = rng.choice(state.size, size=shots, p=probs(state))
+    out = {}
+    for i in idx:
+        b = format(i, f'0{n}b')
+        out[b] = out.get(b, 0) + 1
+    return dict(sorted(out.items()))
+
+
+PAULI = {'I': I2, 'X': X, 'Y': Y, 'Z': Z}
+
+
+def expval(state, pauli, coeff_map=None):
+    """'ZZ' や 'XI' のようなPauli文字列（1量子ビット1文字）の期待値。
+
+    coeff_map を与えると結果に coeff_map[pauli] を掛けるので、ハミルトニアン
+    全体が1行で書ける:  sum(expval(psi, p, terms) for p in terms)
+    """
+    n = len(pauli)
+    phi = state.copy()
+    for q, ch in enumerate(pauli):
+        if ch != 'I':
+            phi = apply_gate(phi, PAULI[ch], [q], n)
+    val = np.vdot(state, phi).real
+    if coeff_map is not None:
+        val *= coeff_map.get(pauli, 1.0)
+    return val
+```
+
+### Code Example 2: 特徴写像、カーネル、そして反転テスト
+
+特徴写像を関数呼び出しの列ではなく**ゲートのリスト**として構築します。理由は1つです。反転テストにはその共役転置が必要であり、ゲートのリストなら3行で逆順化と共役化ができます。シミュレータに含まれていない仕掛けはこれだけです。
+
+```python
+"""第3章 Code Example 2: 量子カーネルとその測定方法。"""
+import numpy as np
+from qcsim import *
+
+def make_materials_dataset(n=60, seed=7):
+    """組成記述子から形成エネルギー風の物性値への合成回帰データ。
+    記述子は [0,1] の4次元。滑らかな非線形ターゲット＋弱いノイズ。決定的。"""
+    rng = np.random.default_rng(seed)
+    X = rng.uniform(0.0, 1.0, (n, 4))
+    y = (np.sin(np.pi * X[:, 0]) * np.cos(np.pi * X[:, 1])
+         + 0.5 * X[:, 2]**2 - 0.3 * X[:, 3]
+         + 0.05 * rng.standard_normal(n))
+    return X, y
+
+
+def zz_ops(x, reps=2, bandwidth=1.0):
+    """エンタングル特徴写像のゲート列（作用させる順）。
+
+    1反復あたり: 全量子ビットに H、全量子ビットに Rz(2*phi_j)、続いて全ペアに
+    exp(-i*phi_jk*Z_j Z_k) を実現する CNOT-Rz-CNOT の挟み込み。データは
+    phi_j = bandwidth * pi * x_j と phi_jk = (pi - phi_j)(pi - phi_k) で入る。
+    """
+    n = len(x)
+    phi = bandwidth * np.pi * np.asarray(x)
+    ops = []
+    for _ in range(reps):
+        ops += [(H, [j]) for j in range(n)]
+        ops += [(rz(2.0 * phi[j]), [j]) for j in range(n)]
+        for j in range(n):
+            for k in range(j + 1, n):
+                ang = 2.0 * (np.pi - phi[j]) * (np.pi - phi[k])
+                ops += [(CNOT4, [j, k]), (rz(ang), [k]), (CNOT4, [j, k])]
+    return ops
+
+
+def run_ops(psi, ops, n, dagger=False):
+    """ゲート列を作用させる。dagger=True なら逆順・各ゲートを共役転置して作用"""
+    if dagger:
+        for U, t in reversed(ops):
+            psi = apply_gate(psi, U.conj().T, t, n)
+    else:
+        for U, t in ops:
+            psi = apply_gate(psi, U, t, n)
+    return psi
+
+
+def feature_state(x, reps=2, bandwidth=1.0):
+    """|phi(x)> = U(x)|0...0>"""
+    n = len(x)
+    return run_ops(ket('0' * n), zz_ops(x, reps, bandwidth), n)
+
+
+def qkernel(x, xp, reps=2, bandwidth=1.0):
+    """2つの状態ベクトルから求める厳密な量子カーネル |<phi(x')|phi(x)>|^2"""
+    return float(abs(np.vdot(feature_state(xp, reps, bandwidth),
+                             feature_state(x, reps, bandwidth))) ** 2)
+
+
+def qkernel_inversion(x, xp, reps=2, bandwidth=1.0):
+    """同じ量を反転テストで求める: U^dag(x') U(x) 後の P(全ビット0)"""
+    n = len(x)
+    psi = run_ops(ket('0' * n), zz_ops(x, reps, bandwidth), n)
+    psi = run_ops(psi, zz_ops(xp, reps, bandwidth), n, dagger=True)
+    return float(probs(psi)[0])
+
+
+def gram(A, B, reps=2, bandwidth=1.0):
+    """2つの入力リストの間のカーネル行列を状態ベクトルから計算する"""
+    SA = np.array([feature_state(v, reps, bandwidth) for v in A])
+    SB = np.array([feature_state(v, reps, bandwidth) for v in B])
+    return np.abs(SA.conj() @ SB.T) ** 2
+
+
+X, y = make_materials_dataset()
+
+print("4量子ビット・2反復のエンタングル特徴写像")
+print("-" * 70)
+ops = zz_ops(X[0])
+ncnot = sum(1 for U, t in ops if U.shape[0] == 4)
+print(f"  ゲート操作数           = {len(ops)}")
+print(f"  2量子ビット(CNOT)ゲート = {ncnot}")
+print(f"  1量子ビットゲート       = {len(ops) - ncnot}")
+psi = feature_state(X[0])
+print(f"  状態次元 = {psi.size},  ノルム = {np.linalg.norm(psi):.12f}")
+print(f"  エンタングルしているか? 量子ビット 01 | 23 のSchmidt値 = "
+      f"{np.round(np.linalg.svd(psi.reshape(4, 4), compute_uv=False), 4)}")
+
+print("\n量子カーネル: 状態の重なりと反転テストの比較")
+print("-" * 70)
+print(f"  {'pair':>8} {'|<phi|phi>|^2':>14} {'inversion test':>15} {'difference':>12}")
+for i, j in [(0, 0), (0, 1), (0, 2), (1, 3), (5, 17), (23, 39)]:
+    a, b = qkernel(X[i], X[j]), qkernel_inversion(X[i], X[j])
+    print(f"  ({i:2d},{j:2d}) {a:14.9f} {b:15.9f} {a - b:12.2e}")
+
+print("\n有限ショット数での反転テスト（ペア 0,2; k = "
+      f"{qkernel(X[0], X[2]):.6f}）")
+print("-" * 70)
+n = 4
+psi = run_ops(ket('0000'), zz_ops(X[0]), n)
+psi = run_ops(psi, zz_ops(X[2]), n, dagger=True)
+kex = probs(psi)[0]
+print(f"  {'shots':>8} {'counts of 0000':>15} {'k_hat':>10} {'error':>10} "
+      f"{'sqrt(k(1-k)/S)':>15}")
+for S in [100, 1000, 10000, 100000]:
+    c = sample(psi, S, seed=1234).get('0000', 0)
+    kh = c / S
+    print(f"  {S:8d} {c:15d} {kh:10.5f} {kh - kex:+10.5f} "
+          f"{np.sqrt(kex * (1 - kex) / S):15.5f}")
+
+print("\n訓練データ40点でのカーネル行列の統計")
+print("-" * 70)
+print(f"  {'reps':>5} {'bandwidth':>10} {'mean off-diag':>14} {'std':>9} "
+      f"{'max off-diag':>13} {'eff. dim':>9}")
+for reps, b in [(2, 1.0), (1, 1.0), (2, 0.3), (1, 0.1)]:
+    K = gram(X[:40], X[:40], reps, b)
+    off = K[~np.eye(40, dtype=bool)]
+    w = np.linalg.eigvalsh(K).real.clip(0.0)
+    print(f"  {reps:5d} {b:10.2f} {off.mean():14.6f} {off.std():9.6f} "
+          f"{off.max():13.6f} {w.sum()**2 / np.sum(w**2):9.3f}")
+print(f"  デルタカーネルなら平均0・有効次元40になります。")
+print(f"  1/2^n = {1/16:.6f} が Haar ランダムな特徴写像の位置です")
+```
+
+```text
+4量子ビット・2反復のエンタングル特徴写像
+----------------------------------------------------------------------
+  ゲート操作数           = 52
+  2量子ビット(CNOT)ゲート = 24
+  1量子ビットゲート       = 28
+  状態次元 = 16,  ノルム = 1.000000000000
+  エンタングルしているか? 量子ビット 01 | 23 のSchmidt値 = [0.9071 0.4028 0.1107 0.052 ]
+
+量子カーネル: 状態の重なりと反転テストの比較
+----------------------------------------------------------------------
+      pair  |<phi|phi>|^2  inversion test   difference
+  ( 0, 0)    1.000000000     1.000000000    -2.22e-16
+  ( 0, 1)    0.057599079     0.057599079     4.16e-17
+  ( 0, 2)    0.005100473     0.005100473     1.73e-17
+  ( 1, 3)    0.028266909     0.028266909    -1.04e-17
+  ( 5,17)    0.015034384     0.015034384    -1.21e-17
+  (23,39)    0.044235998     0.044235998    -9.02e-17
+
+有限ショット数での反転テスト（ペア 0,2; k = 0.005100）
+----------------------------------------------------------------------
+     shots  counts of 0000      k_hat      error  sqrt(k(1-k)/S)
+       100               1    0.01000   +0.00490         0.00712
+      1000               9    0.00900   +0.00390         0.00225
+     10000              62    0.00620   +0.00110         0.00071
+    100000             518    0.00518   +0.00008         0.00023
+
+訓練データ40点でのカーネル行列の統計
+----------------------------------------------------------------------
+   reps  bandwidth  mean off-diag       std  max off-diag  eff. dim
+      2       1.00       0.067288  0.065205      0.528816    29.798
+      1       1.00       0.066491  0.068570      0.495660    29.503
+      2       0.30       0.101818  0.096190      0.558679    22.661
+      1       0.10       0.335889  0.181500      0.923509     5.984
+  デルタカーネルなら平均0・有効次元40になります。
+  1/2^n = 0.062500 が Haar ランダムな特徴写像の位置です
+```
+
+**注目すべき点。** 反転テストと状態の重なりは、試したすべての対で $10^{-16}$ の精度で一致します。自明な対 $(0,0)$ で両方がちょうど1を返すことも含めてです。これは同語反復ではなく本当の検査です。2つの計算はコード経路を共有していません。一方は独立に準備した2つのベクトルの内積を取り、他方は2倍の深さの回路を走らせて1つの確率を読み出します。
+
+ショットの表が本章の中心的な困難の最初の登場です。対 $(0,2)$ の厳密なカーネル成分は $k = 0.0051$ です。100ショットでは `0000` の計数が**1**回で、$\hat{k} = 0.01$、2倍のずれです。そのショット数での予測標準誤差は0.0071、すなわち測定しようとしている量より大きい。$10^5$ ショットになって初めて推定値が有効数字2桁で正しくなります。小さなカーネル成分は稀な事象であり、稀な事象は高価です。
+
+最後の表が記憶すべきものです。慣習的な設定 — 2反復、バンド幅1 — では訓練集合上の非対角カーネル成分の平均は0.0673で、4量子ビットのHaarランダム特徴写像の $1/2^n = 0.0625$ に対する値です。**カーネルは4量子ビットの段階ですでにランダム状態の値に潰れています。** その有効次元は40のうち29.8であり、これは第2章のデルタカーネル診断であり、汎化ではなく暗記をするという予測です。バンド幅を0.1、1反復に下げると非対角平均は0.336に上がり、有効次元は6.0に落ちます — 使えるカーネルです。どちらも同じ特徴写像です。
+
+* * *
+
+## 3.4 カーネルリッジ回帰、閉形式で
+
+### 推定量を完全に述べる
+
+第3.1節の式と実用的な推定量の間には3つの細部があり、いずれも報告すべき選択です。
+
+**中心化。** 罰則のかからない切片が標準であり、最も安く得る方法はラベルから訓練平均を引いてフィットし、あとで足し戻すことです。
+
+$$ \alpha = (K + \lambda I)^{-1}(y - \bar{y}\,\mathbf{1}), \qquad \hat{f}(x^\ast) = \bar{y} + \sum_i \alpha_i\, k(x^\ast, x_i) $$
+
+これをしないと罰則 $\lambda\lVert w\rVert^2$ が予測をデータの平均ではなく0に縮め、$\lambda \to \infty$ の極限が誤ったものになります。
+
+**2つの極限。** $\lambda \to 0$ では解が補間します。$K\alpha = y - \bar{y}$ が厳密に成り立つので訓練残差は0であり、モデルは純粋な暗記装置です。$\lambda \to \infty$ では $\alpha \to 0$、$\hat{f} \to \bar{y}$ で定数予測器になります。有用なモデルはすべて厳密にその間に住み、$\lambda$ は面倒なパラメータではなくモデルの容量制御です。
+
+**逆行列ではなくソルブ。** `np.linalg.solve(K + lam*I, y - mu)` はLU分解を使い、逆行列を作るより速く、条件数も良好です。$K$ が対称正定値ならCholesky分解がさらに良い。$N = 40$ では問題になりませんが、$N = 4000$ では問題になります。
+
+### なぜ本コースにとってこれが正しい推定量か
+
+カーネルリッジ回帰は本章で使う*唯一の*モデルであり、すべてのカーネルに同一に適用されます。これは意図的です。サポートベクターマシン、ガウス過程、カーネルリッジ回帰はいずれもグラム行列を消費します。その中から選ぶことは、カーネルの効果を分離することが目的の比較に交絡を加えます。カーネルリッジ回帰には閉形式という追加の美点があり、最適化器も初期化も収束判定もなく、実装の差が科学的な結果を装う余地もありません。査読者は第3.7節のすべての数値を、グラム行列から1回の線形ソルブで再導出できます。
+
+### Code Example 3: ソルバと、それに対する3つの検査
+
+推定量は14行、そして3つの独立な検証です。256次元の特徴空間での明示的なリッジ回帰との比較、教科書的な放射基底関数回帰との比較、そして2つの解析的極限との比較です。
+
+```python
+"""第3章 Code Example 3: 閉形式のカーネルリッジ回帰。
+Code Example 2 の続き（同一セッション）。"""
+
+def krr_fit(K, y, lam):
+    """閉形式解: alpha = (K + lam I)^-1 (y - 平均)。平均も併せて返す"""
+    mu = float(y.mean())
+    alpha = np.linalg.solve(K + lam * np.eye(K.shape[0]), y - mu)
+    return alpha, mu
+
+
+def krr_predict(Ks, alpha, mu):
+    """Ks[i, j] = k(x*_i, x_j) は訓練集合に対するカーネル行列"""
+    return Ks @ alpha + mu
+
+
+def rbf_gram(A, B, gamma):
+    """以降の比較用の古典RBFカーネル exp(-gamma ||a - b||^2)"""
+    d2 = np.sum(A**2, 1)[:, None] + np.sum(B**2, 1)[None, :] - 2.0 * A @ B.T
+    return np.exp(-gamma * d2)
+
+
+def rmse(a, b):
+    return float(np.sqrt(np.mean((a - b) ** 2)))
+
+
+def cv_rmse(K, y, lam, nfold=5):
+    """訓練カーネルの部分ブロックのみを用いた k-分割交差検証誤差（プール）"""
+    m = len(y)
+    idx = np.arange(m)
+    err = []
+    for f in range(nfold):
+        te = idx[f::nfold]
+        tr = np.setdiff1d(idx, te)
+        al, mu = krr_fit(K[np.ix_(tr, tr)], y[tr], lam)
+        err.append(krr_predict(K[np.ix_(te, tr)], al, mu) - y[te])
+    return float(np.sqrt(np.mean(np.concatenate(err) ** 2)))
+
+
+def r2(pred, true):
+    return float(1.0 - np.sum((pred - true) ** 2) / np.sum((true - true.mean()) ** 2))
+
+
+X, y = make_materials_dataset()
+Xtr, ytr, Xte, yte = X[:40], y[:40], X[40:], y[40:]
+Ktr = gram(Xtr, Xtr)
+Kte = gram(Xte, Xtr)
+
+print("閉形式のKRRは1回の線形ソルブに過ぎません")
+print("-" * 74)
+print(f"  K_train {Ktr.shape}, K_test {Kte.shape}; 特徴写像は reps = 2, bandwidth = 1")
+print(f"  {'lambda':>10} {'||alpha||':>10} {'train RMSE':>11} {'test RMSE':>10} {'test R^2':>9}")
+for lam in [1e-8, 1e-6, 1e-4, 1e-2, 1e-1, 1.0, 10.0, 100.0]:
+    al, mu = krr_fit(Ktr, ytr, lam)
+    print(f"  {lam:10.0e} {np.linalg.norm(al):10.3f} "
+          f"{rmse(krr_predict(Ktr, al, mu), ytr):11.4f} "
+          f"{rmse(krr_predict(Kte, al, mu), yte):10.4f} "
+          f"{r2(krr_predict(Kte, al, mu), yte):9.4f}")
+print(f"  平均値を予測するベースライン: テストRMSE {rmse(np.full(20, ytr.mean()), yte):.4f}, "
+      f"R^2 {r2(np.full(20, ytr.mean()), yte):+.4f}")
+print("  -> どの lambda でも既定の量子カーネルは平均値予測より劣ります。")
+
+print("\n同じソルバで第2章のバンド幅を下げた場合")
+print("-" * 74)
+print(f"  {'reps':>5} {'bandwidth':>10} {'best lambda':>12} {'train RMSE':>11} "
+      f"{'test RMSE':>10} {'test R^2':>9}")
+grid = np.logspace(-8, 2, 41)
+for reps, b in [(2, 1.0), (2, 0.3), (1, 0.2), (1, 0.1), (1, 0.05)]:
+    Ka, Kb = gram(Xtr, Xtr, reps, b), gram(Xte, Xtr, reps, b)
+    best = min((rmse(krr_predict(Kb, *krr_fit(Ka, ytr, l)), yte), l) for l in grid)
+    al, mu = krr_fit(Ka, ytr, best[1])
+    print(f"  {reps:5d} {b:10.2f} {best[1]:12.1e} "
+          f"{rmse(krr_predict(Ka, al, mu), ytr):11.4f} {best[0]:10.4f} "
+          f"{r2(krr_predict(Kb, al, mu), yte):9.4f}")
+print("  （ここでは各設定の上限を示すため lambda をテスト集合で選んでいます。")
+print("   Code Example 6 では訓練集合のみの交差検証で正しくやり直します。）")
+
+print("\n検査1: 双対解は特徴空間での明示的なリッジ回帰と一致します")
+print("-" * 74)
+
+
+def rho_features(psi):
+    """|phi><phi| をベクトル化し、内積がカーネルに等しくなるようスケールする"""
+    R = np.outer(psi.conj(), psi)
+    D = R.shape[0]
+    iu = np.triu_indices(D, 1)
+    return np.concatenate([R[np.diag_indices(D)].real,
+                           np.sqrt(2.0) * R[iu].real,
+                           np.sqrt(2.0) * R[iu].imag])
+
+
+Ptr = np.array([rho_features(feature_state(v)) for v in Xtr])
+Pte = np.array([rho_features(feature_state(v)) for v in Xte])
+print(f"  特徴次元 = {Ptr.shape[1]}  （D = 16 のとき実数 D^2 個）")
+print(f"  最大 |Ptr Ptr^T - K_train| = {np.max(np.abs(Ptr @ Ptr.T - Ktr)):.2e}")
+lam = 1e-3
+al, mu = krr_fit(Ktr, ytr, lam)
+w = np.linalg.solve(Ptr.T @ Ptr + lam * np.eye(Ptr.shape[1]), Ptr.T @ (ytr - mu))
+print(f"  主問題と双対問題のテスト予測の最大差 = "
+      f"{np.max(np.abs((Pte @ w + mu) - krr_predict(Kte, al, mu))):.2e}")
+print(f"  ||w||^2 = {w @ w:.6f}   alpha^T K alpha = {al @ Ktr @ al:.6f}")
+
+print("\n検査2: 同じ関数が教科書どおりのRBF回帰を再現します")
+print("-" * 74)
+for gamma in [0.5, 1.0, 2.0, 4.0]:
+    Kr, Krt = rbf_gram(Xtr, Xtr, gamma), rbf_gram(Xte, Xtr, gamma)
+    al, mu = krr_fit(Kr, ytr, 1e-3)
+    print(f"  gamma = {gamma:4.1f}: 訓練RMSE {rmse(krr_predict(Kr, al, mu), ytr):.4f}"
+          f"   テストRMSE {rmse(krr_predict(Krt, al, mu), yte):.4f}"
+          f"   R^2 {r2(krr_predict(Krt, al, mu), yte):+.4f}")
+
+print("\n検査3: 正則化パスの2つの極限")
+print("-" * 74)
+al, mu = krr_fit(Ktr, ytr, 1e-12)
+print(f"  lambda -> 0 では訓練ラベルを補間します: "
+      f"訓練RMSE = {rmse(krr_predict(Ktr, al, mu), ytr):.2e}")
+al, mu = krr_fit(Ktr, ytr, 1e6)
+print(f"  lambda -> 無限大では訓練平均を返します: 予測のばらつき "
+      f"{np.std(krr_predict(Kte, al, mu)):.2e}, 平均 {mu:+.6f}")
+```
+
+```text
+閉形式のKRRは1回の線形ソルブに過ぎません
+--------------------------------------------------------------------------
+  K_train (40, 40), K_test (20, 40); 特徴写像は reps = 2, bandwidth = 1
+      lambda  ||alpha||  train RMSE  test RMSE  test R^2
+       1e-08      4.924      0.0000     0.6601   -0.7586
+       1e-06      4.924      0.0000     0.6601   -0.7586
+       1e-04      4.923      0.0001     0.6601   -0.7584
+       1e-02      4.844      0.0077     0.6574   -0.7440
+       1e-01      4.235      0.0670     0.6365   -0.6351
+       1e+00      1.959      0.3098     0.5638   -0.2826
+       1e+01      0.325      0.5134     0.5278   -0.1241
+       1e+02      0.035      0.5536     0.5245   -0.1101
+  平均値を予測するベースライン: テストRMSE 0.5242, R^2 -0.1088
+  -> どの lambda でも既定の量子カーネルは平均値予測より劣ります。
+
+同じソルバで第2章のバンド幅を下げた場合
+--------------------------------------------------------------------------
+   reps  bandwidth  best lambda  train RMSE  test RMSE  test R^2
+      2       1.00      1.0e+02      0.5536     0.5245   -0.1101
+      2       0.30      1.0e-08      0.0000     0.4691    0.1121
+      1       0.20      1.0e-08      0.0000     0.3000    0.6368
+      1       0.10      5.6e-03      0.0285     0.1643    0.8910
+      1       0.05      1.8e-03      0.0695     0.1708    0.8823
+  （ここでは各設定の上限を示すため lambda をテスト集合で選んでいます。
+   Code Example 6 では訓練集合のみの交差検証で正しくやり直します。）
+
+検査1: 双対解は特徴空間での明示的なリッジ回帰と一致します
+--------------------------------------------------------------------------
+  特徴次元 = 256  （D = 16 のとき実数 D^2 個）
+  最大 |Ptr Ptr^T - K_train| = 1.22e-15
+  主問題と双対問題のテスト予測の最大差 = 1.41e-13
+  ||w||^2 = 16.228885   alpha^T K alpha = 16.228885
+
+検査2: 同じ関数が教科書どおりのRBF回帰を再現します
+--------------------------------------------------------------------------
+  gamma =  0.5: 訓練RMSE 0.0472   テストRMSE 0.1745   R^2 +0.8771
+  gamma =  1.0: 訓練RMSE 0.0147   テストRMSE 0.1393   R^2 +0.9217
+  gamma =  2.0: 訓練RMSE 0.0033   テストRMSE 0.1453   R^2 +0.9148
+  gamma =  4.0: 訓練RMSE 0.0008   テストRMSE 0.2074   R^2 +0.8264
+
+検査3: 正則化パスの2つの極限
+--------------------------------------------------------------------------
+  lambda -> 0 では訓練ラベルを補間します: 訓練RMSE = 7.79e-13
+  lambda -> 無限大では訓練平均を返します: 予測のばらつき 2.58e-07, 平均 -0.088290
+```
+
+**注目すべき点。** 最初の表が誠実な第一印象であり、腰を据えて見る価値があります。慣習的な設定でエンタングル量子カーネルは**どの $\lambda$ の値でも $R^2$ が負**です。$\lambda = 10^{-8}$ では訓練RMSEを $10^{-4}$ 以下まで落としながら、テストRMSEは0.660で、定数予測器のベースライン0.524に対してです。$\lambda$ を上げても救われず、モデルを定数予測器の方へ歩き戻らせるだけで、$\lambda = 100$ でそこに行き着きます。これはバグでも悪いシードでも不運な分割でもありません。デルタカーネルがすることであり、Code Example 2 が非対角成分の平均だけからそれを予測していました。
+
+2番目の表が救済であり、それはハイパーパラメータ1つです。1反復でバンド幅を1から0.1に下げるとテストRMSEが0.525から0.164へ、$R^2$ が $-0.11$ から $+0.89$ へ動きます。回路族については何も変わっていません — 同じゲート、同じ量子ビット、同じトポロジー、同じソルバ。カーネルがデルタ関数であることをやめただけです。選ばれる $\lambda$ の性格も変わることに注意してください。バンド幅1では最良の $\lambda$ は100（最大の正則化、すなわち諦め）ですが、バンド幅0.1では $5.6\times10^{-3}$ です。
+
+検査群は仕掛けを裏づけます。256次元特徴空間での明示的なリッジ回帰は双対の予測を $1.4\times10^{-13}$ で再現し、ノルムも一致します: $\lVert w\rVert^2 = \alpha^{\top}K\alpha = 16.2289$。これはpush-through恒等式の数値的検証です。放射基底関数の行は第3.7節での古典ベースラインになり、この表の中の量子的なものすべてより既に優れています。$\gamma = 1$ で $R^2 = +0.92$ です。
+
+手法上の警告を1つ、出力自体に書いてあるとおり述べます。2番目の表の $\lambda$ は各設定の上限を示すためにテスト集合で選んでいます。それは妥当なプロトコルではなく、そこから何の結論も引き出しません。第3.7節では訓練行のみの交差検証で全体をやり直します。
+
+* * *
+
+## 3.5 ショットノイズがカーネル行列に何をするか
+
+### 成分ごとの誤差からスペクトルの誤差へ
+
+各成分を $S$ ショットから推定すると、$K$ は成分ごとの標準偏差 $s = \sqrt{\bar{k}(1-\bar{k})/S}$ をもつ対称ランダム行列 $\Delta K$ で摂動されます。問題になるのは $\Delta K$ の成分の大きさではなくその*固有値*の大きさです。回帰は $(K + \lambda I)^{-1}$ を解き、敏感なのは最小固有値だからです。
+
+標準偏差 $s$ の独立成分をもつランダム対称行列では、半円則がスペクトル半径
+
+$$ \lVert \Delta K \rVert_2 \; \approx \; 2 s \sqrt{N} $$
+
+を与えます。この $\sqrt{N}$ が問題の本体です。成分あたりのショット数を固定しても*行列*の誤差はサンプル数とともに増えるのです。2つの帰結が従います。
+
+**半正定値性が失われます。** $K$ は厳密に半正定値ですが、$K + \Delta K$ は $-\lVert \Delta K\rVert_2$ まで下がる固有値を持ちます。測定されたグラム行列は一般にグラム行列ではなく、それを前提とするソルバ — Cholesky分解、サポートベクターマシンの双対 — は失敗するか、黙って無意味な結果を出します。
+
+**正則化に下限が生じます。** $\lambda \ll \lVert\Delta K\rVert_2$ のリッジはノイズを逆行列にかけます。したがって
+
+$$ \lambda \;\gtrsim\; 2\sqrt{N}\,\sqrt{\frac{\bar{k}(1-\bar{k})}{S}} $$
+
+は測定予算が課す硬い下限であり、統計的に最適な $\lambda$ とはまったく別物です。データがショットの許すより弱い正則化を望むなら、ショットが勝ちます。これが「量子カーネル法はショット律速である」という主張の定量的な形であり、検証可能です。下限が束縛条件になっているときは、交差検証で選ばれる $\lambda$ が下限に乗るはずです。
+
+### Code Example 4: 予算、摂動、そして下限
+
+すべての非対角成分を二項分布で再サンプルします。これは `sample` が全ビット0の計数について生成する分布とちょうど同じです — 対角は1と分かっており測定しません。慣習設定の集中したカーネルと、バンド幅0.1の使えるカーネルの両方を通します。
+
+```python
+"""第3章 Code Example 4: ショットノイズがカーネル行列に何をするか。
+Code Example 2、3 の続き（同一セッション）。"""
+
+print("目標標準誤差 eps を得るためのカーネル1成分あたりのショット数  (S = k(1-k)/eps^2)")
+print("-" * 74)
+print(f"  {'eps':>8} {'k = 0.5':>14} {'k = 0.0625':>14} {'k = 0.002':>14}")
+for eps in [1e-1, 1e-2, 1e-3, 1e-4]:
+    print(f"  {eps:8.0e} " + ' '.join(f'{max(1.0, k*(1-k)/eps**2):14,.0f}'
+                                      for k in [0.5, 0.0625, 0.002]))
+
+print("\neps = 0.01, k = 0.0625 のときの m x m 訓練行列1つあたりの予算")
+print("-" * 74)
+print(f"  {'m':>8} {'distinct pairs':>16} {'total shots':>18} "
+      f"{'hours at 1e4 shots/s':>21}")
+for m in [40, 400, 4000, 40000]:
+    pairs = m * (m - 1) // 2
+    tot = pairs * 0.0625 * 0.9375 / 1e-4
+    print(f"  {m:8,d} {pairs:16,d} {tot:18,.0f} {tot / 1e4 / 3600:21,.1f}")
+
+print("\n40 x 40 行列へのショットノイズ（各成分を二項分布で再サンプル）")
+print("-" * 74)
+
+
+def noisy_gram(K, S, rng):
+    """非対角成分をすべて S ショットから推定する。対角はちょうど1"""
+    m = K.shape[0]
+    Kh = np.eye(m)
+    for i in range(m):
+        for j in range(i + 1, m):
+            Kh[i, j] = Kh[j, i] = rng.binomial(S, K[i, j]) / S
+    return Kh
+
+
+off = ~np.eye(40, dtype=bool)
+print(f"  {'shots':>9} {'max |dK|':>10} {'RMS dK':>9} {'||dK||_2':>10} "
+      f"{'2 s sqrt(m)':>12} {'min eig(Khat)':>14}")
+for S in [100, 1000, 10000, 100000]:
+    Kh = noisy_gram(Ktr, S, np.random.default_rng(31 + S))
+    d = Kh - Ktr
+    s = np.sqrt(np.mean(Ktr[off] * (1 - Ktr[off]) / S))
+    print(f"  {S:9d} {np.max(np.abs(d)):10.5f} {np.sqrt(np.mean(d**2)):9.5f} "
+          f"{np.linalg.norm(d, 2):10.5f} {2 * s * np.sqrt(40):12.5f} "
+          f"{np.linalg.eigvalsh(Kh).min():14.5f}")
+
+print("\nカーネルが集中していない特徴写像での同じ検査")
+print("-" * 74)
+print("  reps = 1, bandwidth = 0.1 -- 実際に学習できる設定（Code Example 3）")
+Ltr, Lte = gram(Xtr, Xtr, 1, 0.1), gram(Xte, Xtr, 1, 0.1)
+print(f"  {'shots':>9} {'||dK||_2':>10} {'min eig':>10} {'CV lambda':>11} "
+      f"{'train RMSE':>11} {'test RMSE':>10}")
+grid = np.logspace(-6, 2, 33)
+for S in [0, 100, 1000, 10000, 100000]:
+    if S == 0:
+        Kh, Kh_te, tag = Ltr, Lte, 'exact'
+    else:
+        rng = np.random.default_rng(500 + S)
+        Kh = noisy_gram(Ltr, S, rng)
+        Kh_te = rng.binomial(S, Lte) / S
+        tag = f'{S:d}'
+    lam = min(grid, key=lambda l: cv_rmse(Kh, ytr, l))
+    al, mu = krr_fit(Kh, ytr, lam)
+    d2 = 0.0 if S == 0 else np.linalg.norm(Kh - Ltr, 2)
+    print(f"  {tag:>9} {d2:10.5f} {np.linalg.eigvalsh(Kh).min():10.5f} {lam:11.1e} "
+          f"{rmse(krr_predict(Kh, al, mu), ytr):11.4f} "
+          f"{rmse(krr_predict(Kh_te, al, mu), yte):10.4f}")
+
+print("\nショット予算が課す正則化の下限")
+print("-" * 74)
+print("  成分ごとの大きさ s の対称摂動は ||dK||_2 ~ 2 s sqrt(m) を持つので、")
+print("  これを下回る lambda はデータではなくノイズをフィットします")
+kbar = Ltr[off].mean()
+print(f"  m = 40、非対角の平均 k = {kbar:.4f}")
+print(f"  {'shots':>9} {'s = sqrt(k(1-k)/S)':>19} {'lambda floor':>13}")
+for S in [100, 1000, 10000, 100000, 1000000]:
+    s = np.sqrt(kbar * (1 - kbar) / S)
+    print(f"  {S:9d} {s:19.5f} {2 * s * np.sqrt(40):13.5f}")
+```
+
+```text
+目標標準誤差 eps を得るためのカーネル1成分あたりのショット数  (S = k(1-k)/eps^2)
+--------------------------------------------------------------------------
+       eps        k = 0.5     k = 0.0625      k = 0.002
+     1e-01             25              6              1
+     1e-02          2,500            586             20
+     1e-03        250,000         58,594          1,996
+     1e-04     25,000,000      5,859,375        199,600
+
+eps = 0.01, k = 0.0625 のときの m x m 訓練行列1つあたりの予算
+--------------------------------------------------------------------------
+         m   distinct pairs        total shots  hours at 1e4 shots/s
+        40              780            457,031                   0.0
+       400           79,800         46,757,812                   1.3
+     4,000        7,998,000      4,686,328,125                 130.2
+    40,000      799,980,000    468,738,281,250              13,020.5
+
+40 x 40 行列へのショットノイズ（各成分を二項分布で再サンプル）
+--------------------------------------------------------------------------
+      shots   max |dK|    RMS dK   ||dK||_2  2 s sqrt(m)  min eig(Khat)
+        100    0.10237   0.02201    0.28220      0.30596        0.22355
+       1000    0.02630   0.00752    0.09316      0.09675        0.27505
+      10000    0.00977   0.00231    0.02891      0.03060        0.27670
+     100000    0.00383   0.00075    0.00921      0.00968        0.27812
+
+カーネルが集中していない特徴写像での同じ検査
+--------------------------------------------------------------------------
+  reps = 1, bandwidth = 0.1 -- 実際に学習できる設定（Code Example 3）
+      shots   ||dK||_2    min eig   CV lambda  train RMSE  test RMSE
+      exact    0.00000    0.00114     1.0e-02      0.0374     0.1687
+        100    0.50341   -0.36939     5.6e-01      0.1529     0.2941
+       1000    0.17482   -0.09510     1.8e-01      0.1308     0.2858
+      10000    0.05304   -0.02224     1.0e-01      0.0949     0.2290
+     100000    0.01579   -0.00431     3.2e-02      0.0648     0.1897
+
+ショット予算が課す正則化の下限
+--------------------------------------------------------------------------
+  成分ごとの大きさ s の対称摂動は ||dK||_2 ~ 2 s sqrt(m) を持つので、
+  これを下回る lambda はデータではなくノイズをフィットします
+  m = 40、非対角の平均 k = 0.3359
+      shots  s = sqrt(k(1-k)/S)  lambda floor
+        100             0.04723       0.59742
+       1000             0.01494       0.18892
+      10000             0.00472       0.05974
+     100000             0.00149       0.01889
+    1000000             0.00047       0.00597
+```
+
+**注目すべき点。** 予測されたスペクトル半径 $2s\sqrt{N}$ は、どのショット数でも測定された $\lVert\Delta K\rVert_2$ を約10%の精度で追跡します — 100ショットで予測0.306に対し測定0.282、$10^5$ で0.0097に対し0.0092。半円則の見積りは手振りではなく、正しい数値です。
+
+推定行列の最小固有値が2つの物語を語ります。集中したカーネルでは十分に正のままです。その行列は単位行列に近く、単位行列は固有値がすべて1だからです — 役に立たないカーネルの唯一の利点です。バンド幅0.1の使えるカーネルでは最小固有値が厳密には $+0.0011$ で、100ショットの推定後は $-0.369$ です。測定された行列は断固として半正定値ではなく、その破れは半円則が予測する大きさです。
+
+回帰の行が下限を具体化します。上記の解析を何も知らない交差検証は、100ショットで $\lambda = 0.56$ を選び、予測下限は0.597。1000ショットでは $0.18$ に対し $0.189$、$10^5$ では $0.032$ に対し $0.019$。一致は、この式で実験を*計画*できるほど良好です。ショット予算が与えられれば、どれだけ正則化を強いられるか、したがってどれだけ分解能を失うかが事前に分かります。テストRMSEはそれに応じて劣化し、厳密演算での0.169から100ショットでの0.294へ — ハードウェアノイズをまったく含まないモデルで、純粋に測定統計だけで74%の精度損失です。
+
+冒頭の予算表は計画の道具です。$\varepsilon = 0.01$、$\bar{k} = 0.0625$ で40サンプルの訓練集合は約 $4.6\times10^5$ ショット、これは何でもありません。4000サンプルは $4.7\times10^9$ で、毎秒 $10^4$ 回の回路実行を仮定すると130時間の連続測定。40000サンプルは13000時間です。数万件の材料データセットはごく普通にあります。**量子ビット数ではなくショット数の $N^2$ が、現実的なデータセットサイズでこの手法を非実用的にする最初の要因です** — そして第3.7節が第二の要因を示します。
+
+* * *
+
+## 3.6 指数的集中
+
+### 主張
+
+ここでレジスタを大きくしていきます。特徴写像が十分に表現力豊かで、$x$ が動くとき $|\phi(x)\rangle$ がHaarランダム状態のように振る舞うなら、忠実度のモーメントは厳密に計算できます。次元 $D$ の独立な2つのHaarランダム純粋状態について
+
+$$ \mathbb{E}\left[\left|\langle\phi|\psi\rangle\right|^2\right] = \frac{1}{D}, \qquad \mathbb{E}\left[\left|\langle\phi|\psi\rangle\right|^4\right] = \frac{2}{D(D+1)} $$
+
+なので分散は
+
+$$ \mathrm{Var}[k] = \frac{2}{D(D+1)} - \frac{1}{D^2} = \frac{D-1}{D^2(D+1)} \;\xrightarrow[D \gg 1]{}\; \frac{1}{D^2} $$
+
+です。$D = 2^n$ とすると平均は $2^{-n}$ で落ち、標準偏差も $2^{-n}$ で落ちるので、分散は $2^{-2n}$ で落ちます。非対角では**すべてのカーネル成分が同じ消えていく数値に収束し**、ある材料対を別の対から区別する情報がレジスタサイズとともに指数的に縮みます。グラム行列は単位行列に収束します。第2章がデルタカーネルの破綻モードと同定したものですが、今度はそれが自然に起こります。純粋に量子ビット数が駆動し、責任を負わせるべき悪いハイパーパラメータは存在しません。
+
+これは変分回路における barren plateau のカーネル法版であり（[量子コンピューティング入門](<../../FM/quantum-computing-introduction/index.html>) 第3章を参照）、原因も同じです。十分にスクランブルする回路はあらゆる量をHaar平均のまわりに集中させます。表現力と訓練可能性は直接に対立し、それを見るのに最も明快な場所がここです。
+
+### ショットへの帰結、定量的に
+
+集中とショットノイズは乗算的に組み合わさります。それが状況を「単に悪い」ではなく「絶望的」にしています。カーネルの構造を分解するとは $\mathrm{std}(k) \sim 2^{-n}$ のオーダーの差を分解することであり、したがって目標精度は $\varepsilon \sim 2^{-n}$、一方で測定している量は $k \sim 2^{-n}$ です。
+
+$$ S \;=\; \frac{k(1-k)}{\varepsilon^2} \;\sim\; \frac{2^{-n}}{2^{-2n}} \;=\; 2^{\,n} $$
+
+**カーネル成分あたりのショット数が量子ビット数について指数的に増えます。** 余裕を10倍取ると（$\varepsilon = \mathrm{std}/10$）これは $100\cdot 2^n$ で、4量子ビットで約 $1.5\times10^3$、10で $10^5$、20で $10^8$、30で $10^{11}$ です。これに成分数 $N(N-1)/2$ を掛けます。30量子ビットの忠実度カーネルがどんなサイズのデータセットでも測定可能になるショット予算は存在せず、この結論はハードウェアの品質について何の仮定も要しません。Born則とHilbert空間の次元についての主張です。
+
+### Code Example 5: 指数を測定する
+
+実験はスケーリングの研究であり、4記述子の契約データセットとは意図的に分離しています。$n$ を2から10まで動かし、各 $n$ で $[0,1]^n$ から一様に独立な入力対を400組取り、$n$ 量子ビット上で同じ特徴写像で符号化し、カーネルの平均と標準偏差を測ります。そして指数をフィットします。
+
+```python
+"""第3章 Code Example 5: 量子カーネルの指数的集中。
+Code Example 2 の続き（同一セッション）。"""
+import matplotlib.pyplot as plt
+
+
+def kernel_sample(n, npair, reps=1, bandwidth=1.0, seed=0):
+    """n量子ビット上で独立一様な入力ペア npair 組に対する k(x, x')"""
+    rng = np.random.default_rng(seed)
+    A = np.array([feature_state(rng.uniform(0, 1, n), reps, bandwidth)
+                  for _ in range(npair)])
+    B = np.array([feature_state(rng.uniform(0, 1, n), reps, bandwidth)
+                  for _ in range(npair)])
+    return np.abs(np.sum(A.conj() * B, axis=1)) ** 2
+
+
+def haar_moments(n):
+    """2つのHaar状態に対する |<phi|psi>|^2 の厳密な平均と標準偏差"""
+    D = 2.0 ** n
+    return 1.0 / D, np.sqrt((D - 1.0) / (D**2 * (D + 1.0)))
+
+
+NPAIR, ns = 400, list(range(2, 11))
+print("量子ビット数に対するカーネル統計、1反復・バンド幅1")
+print("-" * 78)
+print(f"  {'n':>3} {'dim':>6} {'mean k':>10} {'1/2^n':>10} {'std k':>10} "
+      f"{'Haar std':>10} {'max k':>9} {'S for eps=std':>14}")
+means, stds = [], []
+for n in ns:
+    k = kernel_sample(n, NPAIR, seed=100 + n)
+    m, s = k.mean(), k.std(ddof=1)
+    hm, hs = haar_moments(n)
+    means.append(m)
+    stds.append(s)
+    print(f"  {n:3d} {2**n:6d} {m:10.6f} {hm:10.6f} {s:10.6f} {hs:10.6f} "
+          f"{k.max():9.6f} {m * (1 - m) / s**2:14.1f}")
+
+print("\n最小二乗による減衰指数（統計量の log2 と n の関係）")
+print("-" * 78)
+lm = np.polyfit(ns, np.log2(means), 1)
+ls = np.polyfit(ns, np.log2(stds), 1)
+print(f"  log2(mean k) = {lm[0]:+.4f} n {lm[1]:+.4f}    Haar の傾き -1")
+print(f"  log2(std  k) = {ls[0]:+.4f} n {ls[1]:+.4f}    Haar の傾き -1")
+print(f"  log2(var  k) = {2*ls[0]:+.4f} n {2*ls[1]:+.4f}    Haar の傾き -2")
+print(f"  量子ビットを1つ増やすごとに標準偏差は {2**ls[0]:.4f} 倍になります"
+      f"（Haar: 0.5000）")
+hs_fit = np.polyfit(ns, np.log2([haar_moments(n)[1] for n in ns]), 1)
+print(f"  この範囲では Haar の基準値自体が {hs_fit[0]:+.4f} n にフィットします")
+
+print("\n深さが写像を Haar 極限へ押し進めます")
+print("-" * 78)
+print(f"  {'reps':>5} {'bandwidth':>10} {'log2-slope of std':>19} {'std at n=10':>12}")
+sweep = {}
+for reps, b in [(1, 1.0), (2, 1.0), (3, 1.0), (1, 0.5), (1, 0.2), (1, 0.1)]:
+    row = [kernel_sample(n, NPAIR, reps, b, seed=100 + n).std(ddof=1) for n in ns]
+    sweep[(reps, b)] = row
+    print(f"  {reps:5d} {b:10.2f} {np.polyfit(ns, np.log2(row), 1)[0]:19.4f} "
+          f"{row[-1]:12.6f}")
+
+print("\nバンド幅系列に対する std(k) の表（1反復）")
+print("-" * 78)
+print(f"  {'bandwidth':>10} " + ' '.join(f'{"n=" + str(n):>9}' for n in ns))
+for b in [1.0, 0.5, 0.2, 0.1]:
+    print(f"  {b:10.2f} " + ' '.join(f'{v:9.5f}' for v in sweep[(1, b)]))
+
+print("\n集中がショット数に及ぼす代償")
+print("-" * 78)
+print("  構造を分解するには eps が std(k) を十分下回る必要があります。k ~ 2^-n、")
+print("  std(k) ~ 2^-n のとき eps = std(k)/10 とすれば S = k(1-k)/eps^2 ~ 100 * 2^n")
+print(f"  {'n':>4} {'k ~ 2^-n':>12} {'eps':>12} {'shots per entry':>22}")
+for n in [4, 10, 20, 30, 40, 50]:
+    k = 2.0 ** -n
+    eps = 0.1 * k
+    print(f"  {n:4d} {k:12.3e} {eps:12.3e} {k * (1 - k) / eps**2:22,.0f}")
+
+fig, ax = plt.subplots(1, 2, figsize=(11, 4))
+ax[0].semilogy(ns, means, 'o-', label='measured mean')
+ax[0].semilogy(ns, stds, 's-', label='measured std')
+ax[0].semilogy(ns, [haar_moments(n)[0] for n in ns], 'k--', label=r'Haar $1/2^n$')
+ax[0].set_xlabel('qubits $n$')
+ax[0].set_ylabel('kernel statistic')
+ax[0].legend()
+for b in [1.0, 0.5, 0.2, 0.1]:
+    ax[1].semilogy(ns, sweep[(1, b)], 'o-', label=f'bandwidth {b}')
+ax[1].set_xlabel('qubits $n$')
+ax[1].set_ylabel(r'std$(k)$')
+ax[1].legend()
+plt.tight_layout()
+plt.show()
+```
+
+```text
+量子ビット数に対するカーネル統計、1反復・バンド幅1
+------------------------------------------------------------------------------
+    n    dim     mean k      1/2^n      std k   Haar std     max k  S for eps=std
+    2      4   0.274100   0.250000   0.242364   0.193649  0.998231            3.4
+    3      8   0.142380   0.125000   0.132886   0.110240  0.885084            6.9
+    4     16   0.063749   0.062500   0.063763   0.058709  0.325333           14.7
+    5     32   0.035732   0.031250   0.034043   0.030288  0.269922           29.7
+    6     64   0.022310   0.015625   0.022204   0.015383  0.174080           44.2
+    7    128   0.011697   0.007812   0.011069   0.007752  0.064216           94.3
+    8    256   0.006942   0.003906   0.006314   0.003891  0.036843          172.9
+    9    512   0.004629   0.001953   0.004333   0.001949  0.029662          245.4
+   10   1024   0.002892   0.000977   0.002465   0.000976  0.018614          474.5
+
+最小二乗による減衰指数（統計量の log2 と n の関係）
+------------------------------------------------------------------------------
+  log2(mean k) = -0.8184 n -0.5031    Haar の傾き -1
+  log2(std  k) = -0.8264 n -0.5543    Haar の傾き -1
+  log2(var  k) = -1.6529 n -1.1085    Haar の傾き -2
+  量子ビットを1つ増やすごとに標準偏差は 0.5639 倍になります（Haar: 0.5000）
+  この範囲では Haar の基準値自体が -0.9632 n にフィットします
+
+深さが写像を Haar 極限へ押し進めます
+------------------------------------------------------------------------------
+   reps  bandwidth   log2-slope of std  std at n=10
+      1       1.00             -0.8264     0.002465
+      2       1.00             -0.9079     0.001773
+      3       1.00             -0.9906     0.001065
+      1       0.50             -0.7699     0.003759
+      1       0.20             -0.6379     0.010116
+      1       0.10             -0.4431     0.022255
+
+バンド幅系列に対する std(k) の表（1反復）
+------------------------------------------------------------------------------
+   bandwidth       n=2       n=3       n=4       n=5       n=6       n=7       n=8       n=9      n=10
+        1.00   0.24236   0.13289   0.06376   0.03404   0.02220   0.01107   0.00631   0.00433   0.00247
+        0.50   0.24640   0.12730   0.07481   0.03580   0.02667   0.01285   0.00928   0.00441   0.00376
+        0.20   0.33056   0.20491   0.12914   0.09331   0.05412   0.03540   0.02126   0.01421   0.01012
+        0.10   0.24925   0.23927   0.17945   0.15625   0.10280   0.07606   0.04947   0.03866   0.02225
+
+集中がショット数に及ぼす代償
+------------------------------------------------------------------------------
+  構造を分解するには eps が std(k) を十分下回る必要があります。k ~ 2^-n、
+  std(k) ~ 2^-n のとき eps = std(k)/10 とすれば S = k(1-k)/eps^2 ~ 100 * 2^n
+     n     k ~ 2^-n          eps        shots per entry
+     4    6.250e-02    6.250e-03                  1,500
+    10    9.766e-04    9.766e-05                102,300
+    20    9.537e-07    9.537e-08            104,857,500
+    30    9.313e-10    9.313e-11        107,374,182,300
+    40    9.095e-13    9.095e-14    109,951,162,777,500
+    50    8.882e-16    8.882e-17 112,589,990,684,262,272
+```
+
+**注目すべき点。** 測定された平均と標準偏差はどちらも指数的に落ち、$n = 8$ までに標準偏差はHaar予測の因子1.6以内に入ります — 測定0.006314に対し予測0.003891です。因子1.6は同じオーダーだという以上のことは言えず、有効数字2桁の一致では**ありません**し、そう述べるべきでもありません。深さ1の回路で、状態が球面を埋めるのではなく $n$ 個のパラメータで張られる多様体に限られていることを考えれば、Haar値の因子2以内に来るのは構成が約束する以上のことです。残った差はおそらく有限サイズ効果であり、下の深さの表は繰り返しを増やすと*指数*がHaar基準に近づくことを示しています。$n = 2$ から10でフィットした指数は
+
+  * $\log_2 \mathrm{mean}(k) = -0.818\,n - 0.503$
+  * $\log_2 \mathrm{std}(k) = -0.826\,n - 0.554$、すなわち標準偏差は量子ビット1つあたり **0.564倍**に縮む
+  * $\log_2 \mathrm{Var}(k) = -1.653\,n - 1.109$、すなわち分散の減衰指数は $-1.65$
+
+で、Haar予測の $-1$、$-1$、$-2$ に対するものです。この差は測定誤差ではなく、2つの別々の補正について正確に述べる価値があります。第一に、Haarの基準値自体がこの範囲では純粋なべき乗則ではありません。$n = 2$ から10で厳密なHaar標準偏差の $\log_2$ をフィットすると傾きは $-1$ ではなく $-0.963$ になります。小さな $D$ での $(D-1)/(D+1)$ 因子のためです。第二に、深さ1の特徴写像は本当にHaarランダムではなく、深さの表がまさにそれを定量化します。1反復で $-0.826$、2反復で $-0.908$、3反復で $-0.991$ — Haar基準自身の $-0.963$ に3%以内で一致します。**深さが写像をHaar極限へ押し進め、集中の指数はどれだけ近づいたかの測定値です。**
+
+バンド幅の系列が緩和策であり、本コースの他のどこでも使うのと同じつまみです。バンド幅を1から0.1に下げると指数は $-0.826$ から $-0.443$ へ、$n = 10$ での標準偏差は0.0025から0.0223へ動きます — 信号が9倍です。集中は除去されるのではなく遅くなるだけです。指数 $-0.44$ は依然として指数的であり、30量子ビットでの $2^{-13}$ はやはり測定できません。**バンド幅が買うのは指数における定数因子であって、レジームの変更ではありません。** それが緩和策の誠実な上限です。
+
+* * *
+## 3.7 直接対決
+
+### 結果を見る前に固定したプロトコル
+
+第1章は本コースのすべての実験に規則を定めました。最も重要なのがこれなので、実際に実行した形で再掲します。
+
+  1. **データセット1つ、分割1つ。** 60行の合成組成記述子データ、行0〜39を訓練、行40〜59をテスト。決定的で、良く見えるまで再シャッフルすることはしません。
+  2. **推定量1つ。** カーネルリッジ回帰、同一のコード、古典カーネルも含めてすべてのカーネルに対して。他は何も変えません。
+  3. **ハイパーパラメータは訓練集合のみで選択。** 40訓練行にわたる5分割交差検証が $\lambda$ *および*すべてのカーネルハイパーパラメータ — バンド幅、反復回数、放射基底関数の幅 — を選びます。テスト行は参照しません。
+  4. **テスト集合には1回だけ触れる。** ハイパーパラメータを固定した後、モデルごとに最後に1回の評価。
+  5. **議論の余地のないベースライン。** 訓練平均を予測すること。これに勝てないモデルは何も学習しておらず、そう言うことは失敗どうしの順位付けより有用です。
+  6. **古典の対戦相手は強いものにする。** 幅を6通りで交差検証した放射基底関数カーネル。材料情報学のあらゆる実務者が最初に選ぶ既定の選択であり、藁人形ではありません。
+
+比較にはターゲットのどれだけが単に線形なのかを校正するための線形カーネルと、第2章の積型angle符号化カーネル — 閉形式を持つ*量子*カーネル — を含めます。「量子カーネル」と「古典的に困難なカーネル」の区別が、この作業全体の要点だからです。
+
+### Code Example 6: 6つのモデル、1つのプロトコル
+
+```python
+"""第3章 Code Example 6: 全モデルを同一プロトコルで直接対決させる。
+Code Example 2、3 の続き（同一セッション）。"""
+
+LAMS = np.logspace(-8, 2, 41)
+
+
+def paired_bootstrap(y_true, pred_a, pred_b, B=10000, seed=0, alpha=0.05):
+    """RMSE(a) - RMSE(b) の95%区間。両者に同じテスト行を再標本化して用いる。
+
+    これは第1章のルールR6であり、約束ではなくここで実行する。対応をとることで
+    「どの行がテスト集合に入ったか」に由来する分散が除かれる。20行ではその項が
+    支配的である。
+    """
+    rng = np.random.default_rng(seed)
+    y_true = np.asarray(y_true)
+    pred_a, pred_b = np.asarray(pred_a), np.asarray(pred_b)
+    m = len(y_true)
+    d = np.empty(B)
+    for b in range(B):
+        i = rng.integers(0, m, m)
+        d[b] = (np.sqrt(np.mean((y_true[i] - pred_a[i]) ** 2))
+                - np.sqrt(np.mean((y_true[i] - pred_b[i]) ** 2)))
+    return (float(d.mean()), float(np.quantile(d, alpha / 2)),
+            float(np.quantile(d, 1 - alpha / 2)))
+
+
+PRED = {}
+
+
+def select_and_score(key, name, gram_builder, hypers):
+    """すべてのモデルに共通のプロトコル。
+
+    各ハイパーパラメータ設定について 60x60 のグラム行列を構築し、40点の訓練データ
+    のみを用いた5分割交差検証で lambda とハイパーパラメータを選び、20点のテスト
+    データにはちょうど1回だけ触れます。R6の対応のある区間を最後に計算できるよう、
+    テスト予測値を保存します。
+    """
+    best = None
+    for h in hypers:
+        G = gram_builder(h)
+        Ka = G[:40, :40]
+        for lam in LAMS:
+            c = cv_rmse(Ka, ytr, lam)
+            if best is None or c < best[0]:
+                best = (c, h, lam, G)
+    cv, h, lam, G = best
+    al, mu = krr_fit(G[:40, :40], ytr, lam)
+    tr = rmse(krr_predict(G[:40, :40], al, mu), ytr)
+    pred = krr_predict(G[40:, :40], al, mu)
+    te = rmse(pred, yte)
+    print(f"  {name:<34} {str(h):>16} {lam:9.1e} {cv:8.4f} {tr:9.4f} "
+          f"{te:9.4f} {r2(pred, yte):+8.4f}")
+    PRED[key] = pred
+    return te
+
+
+def cos_gram(b):
+    """積型 angle encoding カーネルの閉形式: prod cos^2(b pi dx/2)"""
+    d = X[:, None, :] - X[None, :, :]
+    return np.prod(np.cos(b * np.pi * d / 2.0) ** 2, axis=2)
+
+
+print("プロトコル: 40行の訓練データによる5分割交差検証がすべてのハイパーパラメータ")
+print("（lambda を含む）を選択します。20行のテストデータは最後に1回だけ評価します。")
+print("=" * 92)
+print(f"  {'model':<34} {'hyperparameter':>16} {'lambda':>9} {'CV RMSE':>8} "
+      f"{'train':>9} {'test':>9} {'test R^2':>8}")
+print("-" * 92)
+
+base = rmse(np.full(20, ytr.mean()), yte)
+PRED['mean'] = np.full(20, ytr.mean())
+print(f"  {'predict the training mean':<34} {'-':>16} {'-':>9} "
+      f"{np.std(ytr):8.4f} {np.std(ytr):9.4f} {base:9.4f} "
+      f"{r2(np.full(20, ytr.mean()), yte):+8.4f}")
+
+res = {}
+res['linear'] = select_and_score(
+    'linear', 'linear ridge  (k = x.x + 1)', lambda h: X @ X.T + 1.0, [None])
+res['rbf'] = select_and_score(
+    'rbf', 'classical RBF', lambda g: rbf_gram(X, X, g),
+    [0.125, 0.25, 0.5, 1.0, 2.0, 4.0, 8.0])
+res['cos'] = select_and_score(
+    'cos', 'quantum, product angle encoding', cos_gram,
+    [0.25, 0.5, 0.75, 1.0, 1.5, 2.0])
+res['zz_default'] = select_and_score(
+    'zz_default', 'quantum, entangling, defaults', lambda h: gram(X, X, 2, 1.0),
+    [(2, 1.0)])
+res['zz_tuned'] = select_and_score(
+    'zz_tuned', 'quantum, entangling, tuned', lambda h: gram(X, X, h[0], h[1]),
+    [(r, b) for r in (1, 2) for b in (0.05, 0.1, 0.2, 0.5, 1.0)])
+
+print("-" * 92)
+print(f"  最良の古典モデル（{res['rbf']:.4f}）に対する相対RMSE:")
+for k, v in res.items():
+    print(f"    {k:<28} {v:.4f}   {v / res['rbf']:6.2f}x")
+
+print("\nR6: 主張されるすべての差に対応のあるブートストラップ区間を付ける")
+print("-" * 92)
+print("  各対の両側について、同じ20テスト行を10,000回再標本化した。")
+print(f"  {'RMSE(A) - RMSE(B)':<46}{'mean':>10}{'95% interval':>21}{'verdict':>12}")
+for label, a, b in [
+        ("quantum product angle  -  classical RBF", 'cos', 'rbf'),
+        ("quantum entangling tuned  -  classical RBF", 'zz_tuned', 'rbf'),
+        ("quantum entangling tuned  -  linear ridge", 'zz_tuned', 'linear'),
+        ("quantum entangling defaults  -  training mean", 'zz_default', 'mean'),
+        ("classical RBF  -  linear ridge", 'rbf', 'linear')]:
+    m_, lo, hi = paired_bootstrap(yte, PRED[a], PRED[b])
+    v = "A better" if hi < 0.0 else ("B better" if lo > 0.0 else "no call")
+    print(f"  {label:<46}{m_:+10.4f}   [{lo:+.4f}, {hi:+.4f}]{v:>12}")
+print("  'no call' は20テスト行では95%水準で両モデルを区別できないという意味である。")
+
+print("\n勝った量子カーネルは本当に量子的なことをしているのか")
+print("-" * 92)
+Kq = gram(X, X, 1, 0.1)
+Kc = cos_gram(0.5)
+for g in [0.5, 1.0, 2.0]:
+    Kr = rbf_gram(X, X, g)
+    print(f"  エンタングルカーネル (reps 1, b 0.1) と RBF gamma={g} の相関: "
+          f"{np.corrcoef(Kq[np.triu_indices(60,1)], Kr[np.triu_indices(60,1)])[0,1]:+.4f}")
+print(f"  積型 angle カーネル (b = 0.5) との相関:"
+      f" {np.corrcoef(Kq[np.triu_indices(60,1)], Kc[np.triu_indices(60,1)])[0,1]:+.4f}")
+print(f"  |phi(x)> の 01|23 カットの平均エンタングルメント、reps 1 b 0.1 = "
+      f"{np.mean([-np.sum((s**2)[s**2 > 1e-15] * np.log2((s**2)[s**2 > 1e-15])) for s in [np.linalg.svd(feature_state(v, 1, 0.1).reshape(4, 4), compute_uv=False) for v in X]]):.4f} bit")
+print(f"  同じ量、reps 2, bandwidth 1.0                             = "
+      f"{np.mean([-np.sum((s**2)[s**2 > 1e-15] * np.log2((s**2)[s**2 > 1e-15])) for s in [np.linalg.svd(feature_state(v, 2, 1.0).reshape(4, 4), compute_uv=False) for v in X]]):.4f} bit")
+```
+
+```text
+プロトコル: 40行の訓練データによる5分割交差検証がすべてのハイパーパラメータ
+（lambda を含む）を選択します。20行のテストデータは最後に1回だけ評価します。
+============================================================================================
+  model                                hyperparameter    lambda  CV RMSE     train      test test R^2
+--------------------------------------------------------------------------------------------
+  predict the training mean                         -         -   0.5585    0.5585    0.5242  -0.1088
+  linear ridge  (k = x.x + 1)                    None   1.8e-01   0.2661    0.2305    0.2153  +0.8129
+  classical RBF                                   2.0   1.0e-03   0.2034    0.0033    0.1453  +0.9148
+  quantum, product angle encoding                 1.0   3.2e-03   0.1986    0.0101    0.1425  +0.9181
+  quantum, entangling, defaults              (2, 1.0)   1.0e+02   0.5741    0.5536    0.5245  -0.1101
+  quantum, entangling, tuned                 (1, 0.1)   1.0e-02   0.2336    0.0374    0.1687  +0.8852
+--------------------------------------------------------------------------------------------
+  最良の古典モデル（0.1453）に対する相対RMSE:
+    linear                       0.2153     1.48x
+    rbf                          0.1453     1.00x
+    cos                          0.1425     0.98x
+    zz_default                   0.5245     3.61x
+    zz_tuned                     0.1687     1.16x
+
+R6: 主張されるすべての差に対応のあるブートストラップ区間を付ける
+--------------------------------------------------------------------------------------------
+  各対の両側について、同じ20テスト行を10,000回再標本化した。
+  RMSE(A) - RMSE(B)                                   mean         95% interval     verdict
+  quantum product angle  -  classical RBF          -0.0019   [-0.0260, +0.0309]     no call
+  quantum entangling tuned  -  classical RBF       +0.0251   [-0.0326, +0.0878]     no call
+  quantum entangling tuned  -  linear ridge        -0.0467   [-0.1019, +0.0064]     no call
+  quantum entangling defaults  -  training mean    +0.0003   [-0.0010, +0.0017]     no call
+  classical RBF  -  linear ridge                   -0.0718   [-0.1427, -0.0043]    A better
+  'no call' は20テスト行では95%水準で両モデルを区別できないという意味である。
+
+勝った量子カーネルは本当に量子的なことをしているのか
+--------------------------------------------------------------------------------------------
+  エンタングルカーネル (reps 1, b 0.1) と RBF gamma=0.5 の相関: +0.7292
+  エンタングルカーネル (reps 1, b 0.1) と RBF gamma=1.0 の相関: +0.7721
+  エンタングルカーネル (reps 1, b 0.1) と RBF gamma=2.0 の相関: +0.8273
+  積型 angle カーネル (b = 0.5) との相関: +0.7407
+  |phi(x)> の 01|23 カットの平均エンタングルメント、reps 1 b 0.1 = 1.3854 bit
+  同じ量、reps 2, bandwidth 1.0                             = 1.1947 bit
+```
+
+### 結果を読む
+
+表を悪い方から良い方へ、言葉で並べます。
+
+| モデル | テストRMSE | テスト $R^2$ | 最良の古典モデルとの比 |
+| --- | --- | --- | --- |
+| 訓練平均を予測 | 0.5242 | $-0.109$ | 3.61 |
+| エンタングル量子カーネル、慣習設定 | 0.5245 | $-0.110$ | 3.61 |
+| 線形リッジ | 0.2153 | $+0.813$ | 1.48 |
+| エンタングル量子カーネル、バンド幅を交差検証 | 0.1687 | $+0.885$ | 1.16 |
+| 古典放射基底関数 | 0.1453 | $+0.915$ | 1.00 |
+| 積型angle符号化の量子カーネル | 0.1425 | $+0.918$ | 0.98 |
+
+**表の最良のモデルは量子カーネルであり、その事実は何も意味しません。** 積型angle符号化カーネルが放射基底関数に2%勝っていますが、対応のあるブートストラップのブロックは「ノイズの内側」を断言ではなく定量化します。その差の区間は $[-0.026, +0.031]$ で、差そのものの10倍以上の幅でゼロをまたいでいます — これは第2章で書き下した閉形式 $\prod_j\cos^2(\pi\Delta x_j/2)$ を持つカーネルであり、4回の掛け算で計算できます。量子ハードウェアもショットも誤り訂正も不要です。これを量子優位と呼ぶのはカテゴリーの誤りであり、QML文献のかなりの割合がまさにそのカテゴリー誤りを犯しています。*このカーネルは量子特徴写像から来た*という主張は、*このカーネルは古典的に計算困難だ*という主張と同じではありません。
+
+**エンタングルカーネル — 古典的に困難とみなせる方 — は負けます。** 慣習設定では定数予測器と区別できず、ここでの「区別できない」は文字どおりです。訓練平均を予測する場合に対する対応のある区間は $[-0.001, +0.002]$ です。交差検証すると放射基底関数の16%以内まで回復し、これは立派な成績で、それでも負けです — ただしその負けの区間 $[-0.033, +0.088]$ も*no call*なので、誠実な言い方は「調整後のエンタングルカーネルは20行ではどちらの向きにも古典ベースラインと分離できない」になります。そして診断ブロックが回復の中身を説明します。最良の設定でエンタングルカーネルの非対角成分は放射基底関数カーネルと $+0.83$ の相関を持ちます。$2r\binom{n}{2}$ 個のCNOTとショット予算を払って、古典の対戦相手の近似的な複製になったのです。「バンド幅を調整する」ことの機械的な意味はそれであり、カーネルを滑らかで定常で局所的な振る舞いへ押し戻すこと、すなわち古典カーネルが既に持っている振る舞いへ戻すことです。
+
+**エンタングルメントは判別因子ではありません。** 自然な仮説は、有用な設定の方がエンタングルメントが強いというものです。逆です。$|\phi(x)\rangle$ の中央カットにおける平均エンタングルメントエントロピーは、*良い*設定（1反復、バンド幅0.1）で1.385ビット、*役に立たない*設定（2反復、バンド幅1）で1.195ビットです。エンタングルメントが多いことは助けにならず、少ないことは害になりませんでした。効いたのは誘導カーネルの相関長です。エンタングルメントは古典的に困難なカーネルの必要条件であり、有用なカーネルの十分条件からはほど遠いのです。
+
+### なぜこのデータセットがこの結果を生んだのか、そして何が変われば変わるのか
+
+否定的結果を公開するなら、肩をすくめるのではなく説明する義務があります。この問題の4つの性質が古典カーネルをほぼ最適にしており、それぞれが他の結果を期待する前に確認すべき条件です。
+
+**ターゲットが滑らかで低次元です。** 記述子4つ、$\sin$、$\cos$、2次式から作ったターゲット、ノイズ5%。定常で滑らかなカーネルはそうした関数に対してほぼBayes最適な選択であり、放射基底関数は定常で滑らかなカーネルの正典です。その上に占める余地がありません。
+
+**記述子数に比してサンプル数が小さいです。** 4次元に40訓練行なので、サンプルは局所補間が働くほど密であり、モデルは外挿を一度もしません。量子カーネルが助けになると予想されるのは、もしどこかにあるとすれば、関連する類似性が局所的・距離的ではなく大域的・組合せ的である場合です。
+
+**データが古典的で、しかも安価です。** 機械学習における量子優位について真剣な精査に耐える議論はすべて、データ*自体*が量子的である場合 — 量子センサからの測定記録、多体状態のシャドウ、量子実験の出力 — を扱います。そこでは状態が即データなので状態の準備が無料です。第5章がその主張を適切に展開します。組成記述子の表は考えうる最も不利な入力です。
+
+**4量子ビットは面白くなるには足りず、増やせばもっと悪くなります。** $n = 4$ では特徴空間が小さすぎて奇妙なことは起こりえず、第3.6節は $n$ を増やすとカーネルは改善ではなく集中することを示しました。この実験がひっくり返るレジスタサイズは存在しません。小さい $n$ は情報を与えず、大きい $n$ は測定できません。
+
+では真の証拠となるものは何でしょうか。交差検証した量子カーネルが、交差検証した強い古典ベースラインを、テスト集合の標準誤差より大きな差で上回り、古典ベースラインに同じハイパーパラメータ予算を与え、しかもその量子カーネルの古典サロゲートがフィットできないデータの上で成し、さらに量子カーネル推定のショットコストを精度と並べて報告する — 5つの条件で、いずれも検証可能です。本章の実験はそのどれも満たしていません。読者にとって有用な習慣は、肯定的な結果を見たらこの5つのどれが欠けているかを問うことです。この分野で「どれも欠けていない」という答えが返ることは稀です。
+
+* * *
+
+## 3.8 射影カーネル — 原理的な緩和策
+
+### 発想
+
+集中は状態を*大域的に*比較することから生じます。忠実度は $2^n$ 個の振幅すべてに依存する1つの数値であり、大きなHilbert空間では2つのランダム状態は常にほぼ直交します。対処法は大域的な問いをやめることです。$|\phi(x)\rangle$ の**局所的な**性質だけ — 1量子ビット縮約密度行列 $\rho_q(x)$ — を測り、それらの間の距離からカーネルを作ります。
+
+$$ k_{\text{proj}}(x,x') = \exp\left(-\gamma \sum_{q=1}^{n} \left\lVert \rho_q(x) - \rho_q(x')\right\rVert_F^2\right) $$
+
+これが**射影量子カーネル**です。推薦すべき点が3つあります。
+
+**固定コストで測定できます。** 各 $\rho_q$ は実数3つ — Bloch成分 $\langle X_q\rangle, \langle Y_q\rangle, \langle Z_q\rangle$ — なので、特徴ベクトル全体は1量子ビットPauliの期待値 $3n$ 個であり、それぞれ $O(1/\varepsilon^2)$ ショットで $\varepsilon$ まで推定でき、その量は *$n$ に依存しません*。しかもこれは対ごとの測定ではなく特徴写像です。$N$ サンプルのコストは $O(N^2)$ の対ではなく $O(N)$ の回路です。忠実度カーネルの2つの壁がどちらも崩れますが、どちらがどちらだったかは正確に言っておく価値があります。3.6節の成分あたり $\sim 2^n$ ショットが指数的な方で、3.5節の $N(N-1)/2$ 個の対は多項式（2次）にすぎず、現実的なデータセットサイズではどちらも効いていました。
+
+**それでもカーネルです。** $3n$ 次元のBloch成分ベクトル上のユークリッド距離のガウス関数は、任意の $\gamma > 0$ についてBochnerの定理により正定値です。
+
+**古典的に自明ではありません。** $x$ から深いエンタングル回路の局所縮約状態への写像は閉形式を持つものではないので、局所観測量だけを読んでいても結果のカーネルは量子的な材料を保ちます。
+
+1量子ビット縮約状態については実装を3行にする便利な恒等式があります。$\rho = \tfrac12(I + \vec{r}\cdot\vec{\sigma})$ と書けば短い計算で $\lVert \rho - \rho'\rVert_F^2 = \tfrac12\lVert\vec{r} - \vec{r}\,'\rVert^2$ が得られるので、距離は係数2を除いてBloch空間での通常のユークリッド距離です。
+
+### Code Example 7: 効くのか、そして役に立つのか
+
+2つの問いであり、答えは異なります。
+
+```python
+"""第3章 Code Example 7: 射影カーネルが直すものと直さないもの。
+Code Example 2、3、6 の続き（同一セッション）。"""
+
+def reduced_density_matrix(state, keep, n):
+    """部分トレース: keep に挙げた量子ビットを残し、他をトレースアウトする"""
+    psi = state.reshape([2] * n)
+    keep = list(keep)
+    rest = [q for q in range(n) if q not in keep]
+    psi = np.moveaxis(psi, keep + rest, range(n))
+    M = psi.reshape(2 ** len(keep), 2 ** len(rest))
+    return M @ M.conj().T
+
+
+def rdm_vector(state, n):
+    """各量子ビットの縮約状態のBloch成分3つを並べたベクトル"""
+    out = []
+    for q in range(n):
+        r = reduced_density_matrix(state, [q], n)
+        out += [2.0 * r[0, 1].real, -2.0 * r[0, 1].imag, (r[0, 0] - r[1, 1]).real]
+    return np.array(out)
+
+
+def projected_gram(A, n, gamma, reps=1, bandwidth=1.0, per_qubit=False):
+    """k_proj(x, x') = exp(-gamma * D)、D = sum_q ||rho_q(x) - rho_q(x')||_F^2。
+
+    1量子ビットの縮約状態では ||d rho||_F^2 = |d Bloch|^2 / 2 なので、D は 3n 次元
+    の局所観測量ベクトル上のユークリッド距離です。per_qubit=True は D を n で割り、
+    本文で議論する変種になります。
+    """
+    V = np.array([rdm_vector(feature_state(v, reps, bandwidth), n) for v in A])
+    d2 = (np.sum(V**2, 1)[:, None] + np.sum(V**2, 1)[None, :] - 2.0 * V @ V.T) / 2.0
+    return np.exp(-gamma * np.maximum(d2, 0.0) / (n if per_qubit else 1.0))
+
+
+print("健全性検査: 射影カーネルは正しいカーネルになっています")
+print("-" * 80)
+P = projected_gram(X[:40], 4, 1.0)
+print(f"  対角はちょうど1か          最大 |diag - 1| = {np.max(np.abs(np.diag(P) - 1)):.2e}")
+print(f"  対称か                     最大の非対称性  = {np.max(np.abs(P - P.T)):.2e}")
+print(f"  半正定値か                 最小固有値      = {np.linalg.eigvalsh(P).min():.3e}")
+off = P[~np.eye(40, dtype=bool)]
+print(f"  非対角: 平均 {off.mean():.6f}  標準偏差 {off.std():.6f}  最小 {off.min():.6f}")
+print(f"  局所情報のみ: 1-RDMベクトルは実数 3n = 12 個で、")
+print(f"  状態そのものは 2*2^n - 2 = {2 * 2**4 - 2} 個です")
+
+print("\n集中の比較: 忠実度カーネル vs 射影カーネル、n 依存性（reps 1, bandwidth 1）")
+print("-" * 80)
+ns = list(range(2, 11))
+print(f"  {'n':>3} {'mean |Bloch|':>13} {'mean k_F':>10} {'std k_F':>9} "
+      f"{'mean k_P':>10} {'std k_P':>9} {'std k_P/n':>10}")
+rows = {'fid': [], 'proj': [], 'pq': []}
+for n in ns:
+    rng = np.random.default_rng(900 + n)
+    Z = rng.uniform(0, 1, (120, n))
+    iu = np.triu_indices(120, 1)
+    F = gram(Z, Z, 1, 1.0)[iu]
+    Pp = projected_gram(Z, n, 1.0)[iu]
+    Pq = projected_gram(Z, n, 1.0, per_qubit=True)[iu]
+    V = np.array([rdm_vector(feature_state(v, 1, 1.0), n) for v in Z])
+    bl = np.mean(np.linalg.norm(V.reshape(120, n, 3), axis=2))
+    rows['fid'].append(F.std(ddof=1))
+    rows['proj'].append(Pp.std(ddof=1))
+    rows['pq'].append(Pq.std(ddof=1))
+    print(f"  {n:3d} {bl:13.6f} {F.mean():10.6f} {F.std(ddof=1):9.6f} "
+          f"{Pp.mean():10.6f} {Pp.std(ddof=1):9.6f} {Pq.std(ddof=1):10.6f}")
+
+print("\n減衰指数（std の log2 と n、n = 2..10 の最小二乗）")
+print("-" * 80)
+for tag, label in [('fid', 'fidelity kernel  |<phi|phi>|^2'),
+                   ('proj', 'projected kernel, D as defined'),
+                   ('pq', 'projected kernel, D divided by n')]:
+    s = np.polyfit(ns, np.log2(rows[tag]), 1)[0]
+    print(f"  {label:<36} 傾き {s:+.4f}  -> 量子ビット1つあたり {2**s:.3f} 倍")
+print("  個々の縮約状態は確かに平坦化し、平均 |Bloch| は量子ビット1つあたり")
+print("  およそ 0.78 倍になります。しかし D はそれを n 個足し合わせるので、")
+print("  2つの効果がほぼ打ち消し合います。D を n で割るとこの相殺が壊れます。")
+
+print("\n射影カーネルを Code Example 6 と同一プロトコルで直接対決させる")
+print("-" * 80)
+print(f"  {'model':<34} {'hyperparameter':>16} {'lambda':>9} {'CV RMSE':>8} "
+      f"{'train':>9} {'test':>9} {'test R^2':>8}")
+best = None
+for reps in (1, 2):
+    for b in (0.1, 0.2, 0.5, 1.0):
+        for g in (0.25, 1.0, 4.0, 16.0, 64.0):
+            G = projected_gram(X, 4, g, reps, b)
+            for lam in LAMS:
+                c = cv_rmse(G[:40, :40], ytr, lam)
+                if best is None or c < best[0]:
+                    best = (c, (reps, b, g), lam, G)
+cv, h, lam, G = best
+al, mu = krr_fit(G[:40, :40], ytr, lam)
+te = rmse(krr_predict(G[40:, :40], al, mu), yte)
+print(f"  {'quantum, projected kernel':<34} {str(h):>16} {lam:9.1e} {cv:8.4f} "
+      f"{rmse(krr_predict(G[:40, :40], al, mu), ytr):9.4f} {te:9.4f} "
+      f"{r2(krr_predict(G[40:, :40], al, mu), yte):+8.4f}")
+print(f"  古典RBF（Code Example 6）                  = {res['rbf']:.4f}")
+print(f"  エンタングル忠実度カーネル（調整後）        = {res['zz_tuned']:.4f}")
+print(f"  積型 angle encoding カーネル               = {res['cos']:.4f}")
+print(f"  平均値を予測するベースライン               = "
+      f"{rmse(np.full(20, ytr.mean()), yte):.4f}")
+print(f"  射影カーネル / 最良の古典モデル = {te / res['rbf']:.2f}x")
+
+print("\n射影が表現力の面で支払った代償")
+print("-" * 80)
+print(f"  {'n':>4} {'3n local numbers':>18} {'2*2^n - 2 state':>20} {'fraction':>12}")
+for n in [4, 10, 20, 50]:
+    print(f"  {n:4d} {3*n:18d} {2 * 2**n - 2:20,d} {3*n / (2 * 2**n - 2):12.3e}")
+```
+
+```text
+健全性検査: 射影カーネルは正しいカーネルになっています
+--------------------------------------------------------------------------------
+  対角はちょうど1か          最大 |diag - 1| = 1.11e-16
+  対称か                     最大の非対称性  = 0.00e+00
+  半正定値か                 最小固有値      = 1.418e-04
+  非対角: 平均 0.627587  標準偏差 0.193978  最小 0.144005
+  局所情報のみ: 1-RDMベクトルは実数 3n = 12 個で、
+  状態そのものは 2*2^n - 2 = 30 個です
+
+集中の比較: 忠実度カーネル vs 射影カーネル、n 依存性（reps 1, bandwidth 1）
+--------------------------------------------------------------------------------
+    n  mean |Bloch|   mean k_F   std k_F   mean k_P   std k_P  std k_P/n
+    2      0.642449   0.259309  0.233191   0.443874  0.248356   0.196207
+    3      0.399132   0.140904  0.133294   0.543060  0.238684   0.137139
+    4      0.300396   0.071417  0.071431   0.579654  0.221679   0.097345
+    5      0.211051   0.037011  0.036767   0.654794  0.226212   0.077372
+    6      0.138706   0.020309  0.020933   0.727217  0.203415   0.049859
+    7      0.104119   0.012613  0.012230   0.768818  0.198675   0.042634
+    8      0.074857   0.006374  0.006371   0.784535  0.203355   0.037032
+    9      0.062573   0.004362  0.004025   0.794563  0.197391   0.030838
+   10      0.054722   0.002913  0.002467   0.789127  0.194950   0.027447
+
+減衰指数（std の log2 と n、n = 2..10 の最小二乗）
+--------------------------------------------------------------------------------
+  fidelity kernel  |<phi|phi>|^2       傾き -0.8327  -> 量子ビット1つあたり 0.561 倍
+  projected kernel, D as defined       傾き -0.0443  -> 量子ビット1つあたり 0.970 倍
+  projected kernel, D divided by n     傾き -0.3576  -> 量子ビット1つあたり 0.780 倍
+  個々の縮約状態は確かに平坦化し、平均 |Bloch| は量子ビット1つあたり
+  およそ 0.78 倍になります。しかし D はそれを n 個足し合わせるので、
+  2つの効果がほぼ打ち消し合います。D を n で割るとこの相殺が壊れます。
+
+射影カーネルを Code Example 6 と同一プロトコルで直接対決させる
+--------------------------------------------------------------------------------
+  model                                hyperparameter    lambda  CV RMSE     train      test test R^2
+  quantum, projected kernel            (2, 0.1, 0.25)   1.0e-03   0.3634    0.0993    0.3969  +0.3643
+  古典RBF（Code Example 6）                  = 0.1453
+  エンタングル忠実度カーネル（調整後）        = 0.1687
+  積型 angle encoding カーネル               = 0.1425
+  平均値を予測するベースライン               = 0.5242
+  射影カーネル / 最良の古典モデル = 2.73x
+
+射影が表現力の面で支払った代償
+--------------------------------------------------------------------------------
+     n   3n local numbers      2*2^n - 2 state     fraction
+     4                 12                   30    4.000e-01
+    10                 30                2,046    1.466e-02
+    20                 60            2,097,150    2.861e-05
+    50                150 2,251,799,813,685,246    6.661e-14
+```
+
+**注目すべき点 — 良い知らせ。** 集中は消えています。$n = 2$ から10で、忠実度カーネルの標準偏差は量子ビットあたり指数 $-0.833$ で減衰する一方、射影カーネルは $-0.044$ — 量子ビットあたり0.970倍で、8量子ビットにわたって合計20%の変化です。射影カーネルのばらつきは本質的に $n$ に依存せず、構成が約束するとおりです。
+
+その機構はデータに見えており、逆に取り違えやすいので明記する価値があります。個々の縮約状態は確かに平坦化します。Bloch ベクトル長の平均は $n = 2$ の0.642から $n = 10$ の0.055へ、量子ビットあたり約0.78倍で落ちます。各量子ビットの縮約状態が $I/2$ に近づくからです。しかし距離 $D$ はその縮んでいく項を $n$ 個足し合わせ、2つの効果がほぼ打ち消し合います — 同じ範囲で $D$ は0.81から0.24へしか落ちないのに $n$ は5倍になります。**$D$ を $n$ で規格化するのは無害な慣習に見えますが、その相殺を壊して指数 $-0.358$ の減衰を復活させます。** 緩和策は本物ですが、見かけ上は化粧的な選択に対して頑健ではありません。公表された射影カーネルの結果について距離のスケーリングを確認すべき十分な理由です。
+
+**注目すべき点 — 悪い知らせ。** 第3.7節と同一のプロトコルの下で、バンド幅・反復回数・$\gamma$ をすべて40通りの設定で交差検証すると、射影カーネルのテストRMSEは0.3969 — **放射基底関数より2.73倍悪く**、調整前のエンタングル忠実度カーネルの最良交差検証設定より悪いです。集中を直したことは予測を直しませんでした。
+
+これは矛盾ではなく、最後の表がその理由を述べます。射影は状態を指定する $2\cdot 2^n - 2$ 個のうち $3n$ 個の実数を保持します。$n = 4$ では30個のうち12個、すなわち40%、$n = 20$ では $3\times10^{-5}$ です。集中していた情報を捨てることで集中が治ったのです。ターゲットが偶然にも捨てられた相関に依存するデータセットにとってはそれは悪い取引であり、このデータセットではそうなっています。
+
+### あらゆる緩和策の一般的な形
+
+本章で測定した3つの緩和策を並べると、パターンは疑いようもありません。
+
+| 緩和策 | 集中の指数 | テストRMSE | 手放すもの |
+| --- | --- | --- | --- |
+| なし（2反復、バンド幅1） | $-0.908$ | 0.5245 | 何も。何も機能しない |
+| 深さを1反復に減らす | $-0.826$ | — | 回路の表現力 |
+| バンド幅を0.1に下げる | $-0.443$ | 0.1687 | モデルの高周波成分 |
+| 1-RDMへ射影する | $-0.044$ | 0.3969 | すべての非局所情報 |
+
+指数を改善する項目はいずれも、そもそも特徴写像を古典的に困難にしていた表現力そのものの一部を手放しています。これは特定の構成の偶然ではなく、同じトレードオフの3つの衣装であり、第5章はそれが構造的であると論じます。古典的に手に負えないほど表現力のある特徴写像は集中するほど表現力があり、集中を減らすあらゆるつまみはカーネルを古典手法が再現できるものへ押し戻します。この分野で開かれている問いは、*問題に特化した*特徴写像 — 汎用のansatzではなく特定の材料問題の対称性とハミルトニアンから構築したもの — が、シミュレート困難でありながら集中しないものとして存在するかどうかです。材料物性予測タスクについてそれを提示できた者はおらず、本章はそれが重要である理由です。
+
+* * *
+
+## 演習
+
+#### 演習1: 反転テストとSWAPテスト
+
+  1. $\mathrm{SWAP}|\phi\rangle|\psi\rangle = |\psi\rangle|\phi\rangle$ と制御量子ビットへのHadamardから、SWAPテストの $P(\text{補助}=0) = (1+k)/2$ を導出してください。
+  2. 不偏推定量 $\hat{k} = 2\hat{P}-1$ の分散を書き、反転テストの $k(1-k)/S$ と比較してください。
+  3. $k = 2^{-n}$ のとき、同じ標準誤差を得るのにSWAPテストは何倍のショットを必要としますか。$n = 4$ と $n = 20$ で答えてください。
+  4. それでもSWAPテストが正しい選択となる状況を1つ挙げてください。
+
+<details>
+<summary>解答</summary>
+
+<p><strong>1.</strong> 補助量子ビットへのHadamard後、状態は \(\tfrac12(|0\rangle(|\phi\psi\rangle + |\psi\phi\rangle) + |1\rangle(|\phi\psi\rangle - |\psi\phi\rangle))\) です。第1分岐のノルムは \(\tfrac14(2 + 2|\langle\phi|\psi\rangle|^2)\) なので \(P(0) = (1+k)/2\) です。</p>
+
+<p><strong>2.</strong> \(\hat{P}\) は分散 \(P(1-P)/S\) の二項比率であり、2倍すると分散は4倍になります: \(\mathrm{Var}[\hat{k}] = 4P(1-P)/S = (1+k)(1-k)/S = (1-k^2)/S\)。反転テストは \(k(1-k)/S\) を与えます。比は \((1+k)/k\) で、小さな \(k\) では \(1/k\) です。</p>
+
+<p><strong>3.</strong> \(n = 4\) では \(k = 1/16\) で比は17なので、SWAPテストは17倍のショットを要します。\(n = 20\) では \(k \approx 9.5\times10^{-7}\) で比は約 \(1.05\times10^{6}\) です。信号が指数的に小さいのにSWAPテストの分散はそうでないので、優位性は \(n\) について指数的です。</p>
+
+<p><strong>4.</strong> 逆回路が利用できないか、順回路よりずっと高価な場合。たとえば2状態の一方が既知の回路で作られたものではなく、実験や量子メモリ、量子センサから来る場合です。そのときSWAPテストは未知の状態と準備した状態を比較できますが、反転テストにはできません。これは第5章が量子機械学習の最も擁護しやすい設定として同定するものです。</p>
+
+```python
+for n in [4, 10, 20]:
+    k = 2.0 ** -n
+    print(f"n = {n:2d}  k = {k:.3e}  分散比 (SWAP/反転) ="
+          f" {(1 - k*k) / (k * (1 - k)):12,.1f}")
+# n =  4  k = 6.250e-02  分散比 (SWAP/反転) =         17.0
+# n = 10  k = 9.766e-04  分散比 (SWAP/反転) =      1,025.0
+# n = 20  k = 9.537e-07  分散比 (SWAP/反転) =  1,048,577.0
+```
+
+</details>
+
+#### 演習2: 実際の研究の規模を見積もる
+
+$N = 2000$ 件の材料データセットがあり、8量子ビットで量子カーネルリッジ回帰を行いたいとします。カーネルの非対角成分は平均 $\bar{k} = 1/256$、ばらつきも同程度と仮定します。
+
+  1. カーネルが情報を運ぶために必要な目標精度 $\varepsilon$ はいくらで、成分あたり何ショットを意味しますか。
+  2. 成分数、総ショット数、そして毎秒 $10^4$ 回の回路実行を仮定した所要時間はいくらですか。
+  3. そのショット数はどんな正則化の下限を課し、それはカーネル自身のスケールと比べてどうですか。
+  4. プロジェクトマネージャが納得する形で結論を1文で述べてください。
+
+<details>
+<summary>解答</summary>
+
+<p><strong>1.</strong> ばらつきは \(\sim \bar{k} = 3.9\times10^{-3}\) なので \(\varepsilon\) はそれを十分下回る必要があり、\(\varepsilon = \bar{k}/10 = 3.9\times10^{-4}\) とします。すると \(S = \bar{k}(1-\bar{k})/\varepsilon^2 = 2.55\times10^{4}\) ショット/成分です。</p>
+
+<p><strong>2.</strong> \(N(N-1)/2 = 1{,}999{,}000\) 成分なので \(5.1\times10^{10}\) ショット、毎秒 \(10^4\) なら \(5.1\times10^{6}\) 秒、約1416時間 — グラム行列1つのために、交差検証の前に、およそ2か月の連続測定です。交差検証は同じ行列を再利用するので、少なくともその部分は無料です。</p>
+
+<p><strong>3.</strong> \(\lambda \gtrsim 2\sqrt{N}\sqrt{\bar{k}(1-\bar{k})/S} = 2\sqrt{2000}\times 3.9\times10^{-4} = 0.035\)。ここで比較すべき量に注意してください。明らかに見える比較が誤りだからです。カーネルの非対角スケール \(\bar{k} = 3.9\times10^{-3}\) は<em>成分ごと</em>の量、\(\lambda\) は<em>スペクトル</em>の量なので、この2つを並べるのは別種のものを比べることになり、実際にはそうでない状況を絶望的に見せてしまいます。正しい比較は両者を同じ半円則の推定に通します。\(K\) のデータ依存部分は成分スケール \(\sigma_k \sim \bar{k}\) をもつのでスペクトルスケールは \(2\sqrt{N}\sigma_k = 0.35\)、測定ノイズは成分スケール \(\varepsilon = \sigma_k/10\) なのでスペクトルスケールは \(2\sqrt{N}\varepsilon = 0.035\) です。設問1で選んだ因子10は、当然そうあるべきものとして、スペクトルへ移っても正確に保たれます。リッジの下限は信号より1桁<em>下</em>にあり、上ではありません。フィットは埋もれていないのです。</p>
+
+<p><strong>4.</strong> 「2か月の測定で得られるグラム行列は、ノイズ床がデータ依存の信号より約1桁下にある — フィットには十分だが、その余裕は \(5\times10^{10}\) ショットを要し、\(N^2\) で増え、スペクトル解像度をさらに1桁上げるごとに100倍かかる。この手法を縛るのは量子ビット数ではなく測定時間である。」なお、この演習が示して<em>いない</em>ことに注意してください。モデルが失敗することは示していませんし、以前あった「ショットを増やしても解決しない」という主張は端的に誤りです。\(\lambda_{\text{floor}} \propto S^{-1/2}\) だからです。2000点8量子ビットの忠実度カーネルに悲観的であるべき理由は、3.7節の実測結果と3.6節の集中であって、この算術ではありません。</p>
+
+```python
+import numpy as np
+N, n = 2000, 8
+kbar = 2.0 ** -n
+sigma_k = kbar                      # 設問文の「ばらつきも同程度」
+eps = sigma_k / 10
+S = kbar * (1 - kbar) / eps ** 2
+pairs = N * (N - 1) // 2
+print(f"kbar = {kbar:.3e}  eps = {eps:.3e}  ショット/成分 = {S:,.0f}")
+print(f"成分数 = {pairs:,d}  合計 = {pairs*S:.3e}  時間 = {pairs*S/1e4/3600:,.0f}")
+# 両方のスケールを同じ半円則の推定 ||.||_2 ~ 2 sqrt(N) x 成分スケール に通す。
+# lambda を kbar と直接比べると、スペクトル量と成分量を比べることになる。
+lam_floor = 2 * np.sqrt(N) * np.sqrt(kbar * (1 - kbar) / S)
+signal = 2 * np.sqrt(N) * sigma_k
+print(f"lambda の下限（スペクトルのノイズ） = {lam_floor:.4f}")
+print(f"同じ推定による信号               = {signal:.4f}"
+      f"   比 = {signal/lam_floor:.1f}")
+print(f"成分ごと: 信号 {sigma_k:.3e} 対 ノイズ {eps:.3e}"
+      f"   比 = {sigma_k/eps:.1f}   （当然、同じ10倍）")
+print(f"ショットを100倍にしたときの lambda の下限 = "
+      f"{2*np.sqrt(N)*np.sqrt(kbar*(1-kbar)/(100*S)):.4f}")
+# kbar = 3.906e-03  eps = 3.906e-04  ショット/成分 = 25,500
+# 成分数 = 1,999,000  合計 = 5.097e+10  時間 = 1,416
+# lambda の下限（スペクトルのノイズ） = 0.0349
+# 同じ推定による信号               = 0.3494   比 = 10.0
+# 成分ごと: 信号 3.906e-03 対 ノイズ 3.906e-04   比 = 10.0   （当然、同じ10倍）
+# ショットを100倍にしたときの lambda の下限 = 0.0035
+```
+
+</details>
+
+#### 演習3: 閉形式を両側から
+
+  1. $w = (\Phi^{\top}\Phi + \lambda I)^{-1}\Phi^{\top}y$ から $\alpha = (K + \lambda I)^{-1}y$ を導出し、push-through恒等式をどこで使うか、$\lambda > 0$ でそれが正当な理由を述べてください。
+  2. $\lVert w\rVert^2 = \alpha^{\top}K\alpha$ を示し、Code Example 3 の数値と照合してください。
+  3. $K = I$（第2章のbasis符号化の場合）とします。閉形式で解き、得られる予測器を記述してください。
+  4. $K = \mathbf{1}\mathbf{1}^{\top}$（全成分1、小バンド幅の極限）とします。解いて予測器を記述してください。
+
+<details>
+<summary>解答</summary>
+
+<p><strong>1.</strong> \(\Phi^{\top}(\Phi\Phi^{\top} + \lambda I) = (\Phi^{\top}\Phi + \lambda I)\Phi^{\top}\) の両辺に、左から \((\Phi^{\top}\Phi + \lambda I)^{-1}\)、右から \((\Phi\Phi^{\top} + \lambda I)^{-1}\) を掛けます。\(\Phi^{\top}\Phi\) と \(\Phi\Phi^{\top}\) は半正定値なので \(\lambda I\) を足せば正定値になり、\(\lambda > 0\) では両方の逆行列が存在します。この恒等式こそ双対が利用できる理由であり、近似ではありません。</p>
+
+<p><strong>2.</strong> \(w = \Phi^{\top}\alpha\) なので \(\lVert w \rVert^2 = \alpha^{\top}\Phi\Phi^{\top}\alpha = \alpha^{\top}K\alpha\)。Code Example 3 は両方を 16.228885 と報告し、印字された全桁で一致します。</p>
+
+<p><strong>3.</strong> \(\alpha = (y - \bar{y})/(1+\lambda)\) で \(\hat{f}(x^\ast) = \bar{y} + \sum_i \alpha_i k(x^\ast, x_i)\)。訓練セルの外のテスト点では \(k(x^\ast, x_i) = 0\) なので予測はちょうど \(\bar{y}\) です。訓練集合を完璧にフィットした定数予測器です。</p>
+
+<p><strong>4.</strong> \(K = \mathbf{1}\mathbf{1}^{\top}\) は固有ベクトル \(\mathbf{1}\) に固有値 \(N\)、残り \(N-1\) 個は0です。\(y - \bar{y}\) は \(\mathbf{1}\) に直交するので、その直交補空間でソルブは \(\alpha = (y-\bar{y})/\lambda\) を与え、\(\sum_i \alpha_i k(x^\ast,x_i) = \mathbf{1}^{\top}\alpha = 0\) です。予測は再び \(\bar{y}\) ですが、理由は正反対です。カーネルがサンプルをまったく区別できないからです。どちらの退化極限も平均に潰れます。だからこそ定数予測器が正しいベースラインなのです。</p>
+
+```python
+import numpy as np
+N, lam = 5, 1e-3
+y = np.array([1.0, 2.0, 3.0, 4.0, 10.0])
+mu = y.mean()
+for name, K in [("単位行列", np.eye(N)), ("全成分1", np.ones((N, N)))]:
+    al = np.linalg.solve(K + lam * np.eye(N), y - mu)
+    print(f"{name:9s}: 遠いテスト点での予測 = {mu + 0.0:.4f}"
+          f"   sum(alpha) = {al.sum():+.3e}")
+# 単位行列     : 遠いテスト点での予測 = 4.0000   sum(alpha) = +2.665e-15
+# 全成分1      : 遠いテスト点での予測 = 4.0000   sum(alpha) = +1.943e-13
+```
+
+</details>
+
+#### 演習4: 集中を自分で再導出する
+
+  1. 第3.6節で与えた2つのHaarモーメントから $\mathrm{Var}[k] = (D-1)/(D^2(D+1))$ を導出し、$n$ についての主要な振る舞いを与えてください。
+  2. Code Example 5 は1反復で $\log_2\mathrm{std}(k) = -0.826\,n$、3反復で $-0.991\,n$ を測定しました。差を説明し、*同じ $n$ の範囲での*厳密なHaar基準にどちらが近いかを述べてください。
+  3. カーネル成分あたり $S = 10^6$ ショットを使えるとします。ショットノイズの標準誤差がカーネル自身の標準偏差を超え、測定行列が情報を運ばなくなるのは何量子ビットからですか。
+  4. $S$ を $10^{12}$ に増やすと結論は質的に変わりますか。
+
+<details>
+<summary>解答</summary>
+
+<p><strong>1.</strong> \(\mathrm{Var} = \mathbb{E}[k^2] - \mathbb{E}[k]^2 = \frac{2}{D(D+1)} - \frac{1}{D^2} = \frac{2D - (D+1)}{D^2(D+1)} = \frac{D-1}{D^2(D+1)}\)。\(D = 2^n \gg 1\) ではこれは \(D^{-2} = 2^{-2n}\) なので \(\mathrm{std}(k) \approx 2^{-n}\)、\(\log_2 \mathrm{std} \approx -n\) です。</p>
+
+<p><strong>2.</strong> 特徴写像1反復では状態をHaarランダムにスクランブルするほど深くないので、重なりに構造が残り集中がより遅くなります。3反復はHaarアンサンブルにずっと近づきます。厳密なHaar標準偏差を \(n = 2\) から10でフィットすると、小さな \(D\) での \((D-1)/(D+1)\) 補正のため傾きは \(-1\) ではなく \(-0.963\) です。したがって3反復の測定値 \(-0.991\) は基準値を<em>挟み込み</em>、1反復の \(-0.826\) よりそれに近いことになります。比較は漸近的な \(-1\) ではなく、同じ範囲での基準値に対して行わなければなりません。</p>
+
+<p><strong>3.</strong> ショットノイズの標準誤差は \(\sqrt{k(1-k)/S} \approx \sqrt{2^{-n}/S} = 2^{-n/2}/\sqrt{S}\) です。これを \(\mathrm{std}(k) \approx 2^{-n}\) と等しくおくと \(2^{n/2} = \sqrt{S}\)、すなわち \(n = \log_2 S\) です。\(S = 10^6\) なら \(n \approx 19.9\) — 約 <strong>20量子ビット</strong>で行列は純粋なノイズになります。</p>
+
+<p><strong>4.</strong> 変わりません。\(n = \log_2 S\) はショットを100万倍にして量子ビットが20個増えることを意味します。\(S = 10^{12}\) で \(n \approx 40\) に届きます。関係は予算の対数なので、到達できるレジスタサイズは総測定時間の対数のように増えます。障害が工学的な問題ではないというのは、まさにこの意味です。</p>
+
+```python
+import numpy as np
+for n in [2, 4, 10, 20]:
+    D = 2.0 ** n
+    var = (D - 1) / (D ** 2 * (D + 1))
+    print(f"n = {n:2d}  平均 = {1/D:.3e}  標準偏差 = {np.sqrt(var):.3e}"
+          f"  log2(std) = {np.log2(np.sqrt(var)):+.4f}")
+for S in [1e4, 1e6, 1e12]:
+    print(f"S = {S:.0e} -> 情報が消えるのは n = {np.log2(S):.1f} 付近")
+# n =  2  平均 = 2.500e-01  標準偏差 = 1.936e-01  log2(std) = -2.3688
+# n =  4  平均 = 6.250e-02  標準偏差 = 5.871e-02  log2(std) = -4.0902
+# n = 10  平均 = 9.766e-04  標準偏差 = 9.761e-04  log2(std) = -9.9993
+# n = 20  平均 = 9.537e-07  標準偏差 = 9.537e-07  log2(std) = -19.9999
+# S = 1e+04 -> 情報が消えるのは n = 13.3 付近
+# S = 1e+06 -> 情報が消えるのは n = 19.9 付近
+# S = 1e+12 -> 情報が消えるのは n = 39.9 付近
+```
+
+</details>
+
+#### 演習5: 主張を査読する
+
+ある原稿が材料データセット上の量子カーネルサポートベクター分類器を報告しています。200サンプル、80/20分割、12量子ビット、正解率0.925に対して古典ベースライン0.875、「明確な量子優位」と記述されています。
+
+  1. 40テストサンプルで測った正解率0.9の標準誤差を計算してください。報告された差は有意ですか。
+  2. 原稿は量子カーネルを状態ベクトルシミュレーションで計算したと述べています。その事実だけから優位性の主張について何が言えますか。
+  3. 結果を受け入れる前に要求する追加情報を3つ挙げ、それぞれが何を明らかにしうるかを述べてください。
+  4. 著者が古典ベースラインは「既定設定の線形サポートベクターマシン」だったと付け加えました。要旨の主張をデータが支持する形に書き直してください。
+
+<details>
+<summary>解答</summary>
+
+<p><strong>1.</strong> \(\sqrt{p(1-p)/N} = \sqrt{0.9\times0.1/40} = 0.047\)。報告された差は0.05、すなわち40個のうち2サンプル分で、標準誤差1個分程度です。2つの比率の差の標準誤差はさらに大きく、およそ \(\sqrt{2}\times0.047 = 0.067\) です。どの慣習的な水準でも有意ではありません。信頼区間も反復分割もなく単一の分割を報告することは、この文献で最も多い誤りです。</p>
+
+<p><strong>2.</strong> カーネルが状態ベクトルのシミュレーションで計算されたのなら、古典計算機がそのカーネルを計算したのであり、したがってそのカーネルはこのサイズでは明示的に古典的に計算可能で、それが達成する精度はどれも古典的に達成可能です。シミュレートされた量子カーネルはカーネルの<em>帰納バイアス</em>についての証拠にはなり、それは正当で興味深い研究対象ですが、計算的な優位性の証拠にはなりえません。主張と手法が両立していません。</p>
+
+<p><strong>3.</strong> (i) <em>各モデルに与えたハイパーパラメータ予算</em>。量子カーネルのバンド幅と正則化を調整し、古典ベースラインは既定値だったのなら、比較が測っているのはカーネルではなく調整の労力です。(ii) <em>カーネル行列の統計</em> — 非対角成分の平均と標準偏差、そして有効次元。12量子ビットでは \(1/2^{12} = 2.4\times10^{-4}\) であり、報告された平均がそれに近いならカーネルは集中しており、分類器は暗記しています。(iii) <em>ショット予算、またはショットをモデル化しなかったという明示</em>。厳密なシミュレートカーネルは成分あたり \(10^4\) ショットで測ったカーネルとは別物で、Code Example 4 はその差が誤差で2倍になりうることを示しています。</p>
+
+<p><strong>4.</strong> たとえば次のように。「200サンプルの材料分類タスクにおいて、シミュレートした12量子ビットの量子カーネルはテスト正解率0.925を達成し、未調整の線形サポートベクターマシンは0.875であった。この差はテストサンプル2個分に相当し標準誤差1個分の内側である。交差検証した放射基底関数のベースラインは評価していない。カーネルは古典的に評価されたため、計算的優位性の主張は行わない。」</p>
+
+```python
+import numpy as np
+p, N = 0.9, 40
+se = np.sqrt(p * (1 - p) / N)
+print(f"正解率1つの標準誤差   = {se:.4f}")
+print(f"差の標準誤差           = {np.sqrt(2) * se:.4f}")
+print(f"報告された差           = 0.0500  ({0.05/se:.2f} sigma)")
+print(f"1/2^12 = {2.0**-12:.3e}  <- 集中した12量子ビットカーネルの位置")
+# 正解率1つの標準誤差   = 0.0474
+# 差の標準誤差           = 0.0671
+# 報告された差           = 0.0500  (1.05 sigma)
+# 1/2^12 = 2.441e-04  <- 集中した12量子ビットカーネルの位置
+```
+
+</details>
+
+* * *
+
+## まとめ
+
+### 要点
+
+**1\. 量子カーネル法は完全にカーネル法である**
+
+  * $k(x,x') = \mathrm{Tr}[\rho(x)\rho(x')] = |\langle\phi(x)|\phi(x')\rangle|^2$ は対称、半正定値、対角が1に規格化され、学習可能パラメータを含みません。学習されるものはすべて $\alpha = (K+\lambda I)^{-1}(y - \bar{y})$ に住みます。
+  * push-through恒等式が導出の全体であり、$\lambda > 0$ で厳密です。双対と主問題の解はここで $1.4\times10^{-13}$ まで一致し、$\lVert w\rVert^2 = \alpha^{\top}K\alpha = 16.2289$ でした。
+  * 閉形式の推定量であることは、査読者がグラム行列だけからすべての数値を再現できることを意味します。本章が他のものを使わない理由です。
+
+**2\. 反転テストはSWAPテストより指数的に安い**
+
+  * $U^\dagger(x')U(x)$ 後の $P(0\cdots0)$ がカーネル成分*そのもの*です。$n$ 量子ビット、補助なし、状態の重なりと $10^{-16}$ で一致を検証しました。
+  * 分散は $k(1-k)/S$ 対 $(1-k^2)/S$、比は $1/k \approx 2^n$ — 4量子ビットで17倍、20量子ビットで $10^6$ 倍です。
+  * 一般規則: 小さな確率は稀な事象を数えて推定すること。信号の大きさを無視した分散をもつ有界観測量をスケールし直してはいけません。
+
+**3\. ショットノイズはデータセットサイズとともに増える正則化の下限を課す**
+
+  * 成分ごとの誤差 $s = \sqrt{\bar{k}(1-\bar{k})/S}$ はスペクトル誤差 $\lVert\Delta K\rVert_2 \approx 2s\sqrt{N}$ になります。測定対予測で100ショットで0.282対0.306、$10^5$ で0.0092対0.0097。
+  * 測定された行列はもはや半正定値ではなく — 使えるカーネルで100ショット時の最小固有値 $-0.369$ — $\lambda$ は $2s\sqrt{N}$ を超えなければフィットはノイズを逆行列にかけます。交差検証は0.56、0.18、0.10、0.032を選び、予測下限は0.597、0.189、0.060、0.019でした。
+  * 総予算は $\tfrac{N^2}{2}\bar{k}/\varepsilon^2$ で、$N = 40$ で約 $4.6\times10^5$ ショット、$N = 4000$ で $4.7\times10^9$、すなわち毎秒 $10^4$ 回を仮定して130時間です。$N^2$ が最初の実用上の壁です。
+
+**4\. 指数的集中が第二の壁であり、それには指数がある**
+
+  * Haarランダムな特徴写像では $\mathbb{E}[k] = 2^{-n}$、$\mathrm{Var}[k] = (D-1)/(D^2(D+1)) \to 2^{-2n}$ です。
+  * $n = 2$ から10での測定: $\log_2\mathrm{std}(k)$ の傾きは1反復で $-0.826$、2反復で $-0.908$、3反復で $-0.991$、同じ範囲での厳密Haar基準は $-0.963$ です。分散の指数は標準偏差の指数の2倍で、1反復では $-1.65$。
+  * 深さが写像をHaar極限へ押し進め、集中の指数はどこまで進んだかを測ります。バンド幅はそれを遅くしますが — バンド幅0.1で指数 $-0.443$ — レジームを変えません。
+  * 集中とショットノイズを組み合わせると成分あたり $S \sim 100\cdot2^n$ になり、情報は $n = \log_2 S$ 付近で消えます。$10^6$ ショットで約20量子ビット、$10^{12}$ で40です。到達できるレジスタサイズは総測定時間の対数のように増えます。
+
+**5\. 直接対決、出たとおりに報告する**
+
+  * すべてのハイパーパラメータを訓練行で交差検証した1つのプロトコルの下で: 積型angle符号化の量子カーネル0.1425、古典放射基底関数0.1453、調整後のエンタングル量子カーネル0.1687、線形リッジ0.2153（第1章のアンカー0.2146を、leave-one-outではなく5分割CVで $\lambda$ を選ぶカーネルとして再フィットしたもの）、慣習設定のエンタングル量子カーネル0.5245、平均予測0.5242。
+  * 最良のモデルは名目上量子的で、4回の掛け算の閉形式を持つので、量子的な何かの証拠にはなりません。古典的に困難とみなせるカーネルは調整後に16%負け、調整前は訓練平均に負けます。
+  * これらの差はすべて対応のあるブートストラップ区間を伴うようになり、区間こそが要点です。積型コサインカーネルの放射基底関数に対する2%の勝ち、調整後のエンタングルカーネルのそれに対する16%の負け、さらに調整後のエンタングルカーネルの線形リッジに対する22%のリードまで、20テスト行ではすべて95%水準で*no call*です。このテスト集合が分離できる唯一の対は古典RBF対線形リッジ $[-0.143, -0.004]$ です。表の順位は本物の算術ですが、その大半は本物の発見ではありません。
+  * 最良設定でエンタングルカーネルは放射基底関数カーネルと $+0.83$ の相関を持ちます。バンド幅の調整が古典の対戦相手の近似的な複製にしたのです。
+  * エンタングルメントは判別因子ではありません — 有用な設定で1.385ビット、役に立たない設定で1.195ビット。効くのは相関長です。
+
+**6\. あらゆる緩和策は面白さの源を手放す**
+
+  * 射影カーネルは集中を完全に除去します。忠実度カーネルの $-0.833$ に対して指数 $-0.044$、そして $O(N^2)$ の対ではなく $O(N)$ の回路です。
+  * それでもスコアは0.3969で古典ベースラインの2.73倍悪い。$2\cdot2^n - 2$ 個のうち $3n$ 個しか保持しないからで、4量子ビットで40%、20量子ビットで $3\times10^{-5}$ です。
+  * 射影距離を $n$ で割るという見かけ上化粧的な慣習が指数 $-0.358$ の減衰を復活させます。公表結果ではスケーリングの慣習を確認してください。
+  * 深さの削減、バンド幅の削減、射影は同じ取引の3つの形であり、材料物性タスクについてそれを逃れる問題特化型の特徴写像は提示されていません。
+
+**実務上の含意**
+
+  * 量子カーネルの結果には必ず非対角グラム成分の平均と標準偏差を併記し、$1/2^n$ と比較してください。平均が $1/2^n$ に近ければ、その結果は学習ではなく暗記についてのものです。
+  * 何かを比較する前にバンド幅を交差検証し、古典ベースラインに同じハイパーパラメータ予算を与え、ショットモデルを明記してください。厳密なシミュレートカーネルと測定されたカーネルは別物です。
+  * 量子ビットより先にショットを見積もってください。$N^2\varepsilon^{-2}$ と $2^n$ は掛け算になり、どちらか一方だけでも通常は議論の終わりです。
+  * カーネルが閉形式で書けるなら、それは量子的な実装をもつ古典カーネルです。良いモデルであることはありえます。量子優位ではありません。この2つの主張を混ぜてはいけません。
+
+第4章は閉形式を離れます。変分量子回路は線形ソルブを回路パラメータ上の勾配降下に置き換え、それに伴って parameter-shift 則、本来の生息地における barren plateau、そして同じパラメータ数の古典ニューラルネットワークとの同一予算での比較が登場します。本章の集中の結果はそこで別の衣装 — 消失勾配 — として再登場し、ここで確立した規律、すなわち1つのプロトコルと議論の余地のないベースラインは、そのまま引き継がれます。
+
+[← 第2章: データ符号化](<chapter-2.html>) [第4章: 変分量子回路によるML →](<chapter-4.html>)
+
+### 免責事項
+
+  * 本コンテンツは教育・研究・情報提供のみを目的としており、専門的な助言(法律・会計・技術的保証など)を提供するものではありません。
+  * 本コンテンツおよび付随するCode examplesは「現状有姿(AS IS)」で提供され、明示または黙示を問わず、商品性、特定目的適合性、権利非侵害、正確性・完全性、動作・安全性等いかなる保証もしません。
+  * 本章の比較結果は、1つの合成60行データセット、単一の決定的分割、4量子ビット、厳密にシミュレートしたカーネルで得られたものです。ここでこの量子カーネルがこの古典ベースラインに勝たないことを示すだけであり、それ以上の一般性はありません。本章を含む単一のベンチマークから、量子機械学習という分野についての肯定的結論も否定的結論も導いてはなりません。
+  * 外部リンク、第三者が提供するデータ・ツール・ライブラリ等の内容・可用性・安全性について、作成者および東北大学は一切の責任を負いません。
+  * 本コンテンツの利用・実行・解釈により直接的・間接的・付随的・特別・結果的・懲罰的損害が生じた場合でも、適用法で許容される最大限の範囲で、作成者および東北大学は責任を負いません。
+  * 本コンテンツの内容は、予告なく変更・更新・提供停止されることがあります。
+  * 本コンテンツの著作権・ライセンスは明記された条件(例: CC BY 4.0)に従います。当該ライセンスは通常、無保証条項を含みます。

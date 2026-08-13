@@ -1,0 +1,1371 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第2章: データ符号化 - AI Terakoya</title>
+
+    <link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+    <style>
+        /* page-specific residual: the rules the shared sheet does not provide.
+           Everything else that used to live here is now in knowledge-base.css;
+           re-declaring it would only risk drifting out of sync with the sheet. */
+        details { background-color: var(--color-bg-alt); margin-bottom: var(--spacing-md) }
+        summary { user-select: none; margin: calc(-1 * var(--spacing-md)); border-radius: var(--border-radius) }
+        summary:hover {
+            /* accent wash; the literal is the FM/MI/ML purple and is the fallback
+               for engines without color-mix() (Chrome <111 / Safari <16.2). */
+            background-color: rgba(123, 44, 191, 0.1);
+            background-color: color-mix(in srgb, var(--color-accent) 10%, transparent);
+        }
+        details[open] summary { margin-bottom: var(--spacing-md); border-bottom: 1px solid var(--color-border) }
+        .learning-objectives {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: var(--spacing-lg);
+            border-radius: var(--border-radius);
+            border-left: 4px solid var(--color-accent);
+            margin-bottom: var(--spacing-xl);
+        }
+        .learning-objectives h2 { margin-top: 0; border-bottom: none }
+        @media (max-width: 768px) {
+            th { padding: var(--spacing-xs) }
+            td { padding: var(--spacing-xs) }
+        }
+    </style>
+
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+
+    <!-- MathJax for LaTeX equation rendering -->
+    <script>
+        MathJax = {
+            tex: {
+                // The HTML must carry a DOUBLE backslash before ( ) [ ] so the
+                // JS string is backslash-paren; a single one collapses to a bare
+                // paren and turns every prose parenthesis into a math delimiter
+                // (non-raw Python template: 4 backslashes -> 2 in HTML -> 1 in JS).
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" id="MathJax-script" async></script>
+</head>
+<body class="dojo-mi">
+    <header>
+        <div class="header-content">
+            <h1>第2章: データ符号化</h1>
+            <p class="subtitle">basis・angle・amplitude符号化、data re-uploading、そして汎化を決めるバンド幅</p>
+            <div class="meta">
+                <span class="meta-item">📖 読了時間: 45-50分</span>
+                <span class="meta-item">📊 難易度: 中級</span>
+                <span class="meta-item">💻 コード例: 6個</span>
+                <span class="meta-item">📝 演習問題: 5問</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+<p>🌐 JP | <a href="../../../en/MI/quantum-machine-learning-introduction/chapter-2.html">🇬🇧 EN</a> | Last sync: 2026-08-13</p>
+<p><a href="../index.html">マテリアルズ・インフォマティクス道場</a> &gt; <a href="index.html">量子機械学習入門</a> &gt; 第2章</p>
+<p>第1章では、材料情報学にとって興味深い象限は「古典データを量子デバイスで処理する」ものであり、誠実な問いは「それが同じデータ上で古典モデルに勝つことがあるのか」であると論じました。本章はその答えの大部分が決まる段階を扱います。そして宣伝的な文献が飛ばしてしまう段階でもあります。すなわち、<strong>数値を中に入れる</strong>という段階です。</p>
+<p>組成記述子は実数です。量子レジスタが保持するのは振幅です。両者を結ぶ写像が必要であり、その写像 — <strong>符号化</strong>、あるいは<strong>特徴写像</strong> — は前処理の細部ではありません。それはその上に構築されるあらゆるモデルの仮説空間を固定します。$x$ のどんな関数をモデルが表現できるのか、どれを安く表現できるのか、暗記をやめるまでにどれだけのサンプルが必要になるのか、をです。符号化を誤れば、どれだけ訓練しても、どれだけ巧妙なansatzを使っても、誤り訂正を導入しても救われません。うまく選べば — そして第3章で示すように — たいてい、ノートパソコンが閉形式で評価できるカーネルを書いていたことに気づきます。</p>
+<p>本章の3つの内容は、量子ハードウェアに一切触れない読者にとっても学ぶ価値があります。第一は、符号化とは内積が計算できる特徴写像であり、したがってカーネル法の道具立てがそのまま — その限界も含めて — 適用できるということ。第二は <strong>data re-uploading</strong> の結果です。同じ入力を複数回挿入するモデルのフーリエスペクトルは挿入回数で幅が決まり、「この回路はどれだけ表現力があるのか」という問いが周波数についての算術に還元されます。第三は、量子機械学習で最も重要なハイパーパラメータは量子ビット数でも深さでもansatzの選択でもないということです。それは入力にかかるスケール因子 — <strong>バンド幅</strong> — であり、それを誤ることが「定数予測器より73%良い」と「定数予測器に負ける」の差になります。</p>
+<h2>学習目標</h2>
+<p>本章を修了すると、以下のことができるようになります。</p>
+<ul>
+<li>basis・angle・amplitude符号化をミニシミュレータ上で実装し、それぞれの量子ビット数、状態準備のゲート数、捨てている分解能を述べられる</li>
+<li>入力問題を説明できる。すなわち、amplitude符号化の $\lceil \log_2 d \rceil$ 量子ビットが、一般ベクトルの準備に $\Theta(d)$ 回の回転を要する以上、指数的な節約にはならない理由を述べられる</li>
+<li>符号化を特徴写像 $x \mapsto \rho(x) = |\phi(x)\rangle\langle\phi(x)|$ として読み、誘導されるカーネル $k(x,x') = \mathrm{Tr}[\rho(x)\rho(x')]$ を、angle符号化とamplitude符号化の閉形式を含めて導出できる</li>
+<li>特徴が住む演算子空間の次元からグラム行列のランクを予測し、数値的に確認できる</li>
+<li>data re-uploading定理 — $Z/2$ が生成する符号化ゲート $L$ 個は周波数集合 $\Omega = \lbrace -L, \ldots, L\rbrace$ を与える — を述べ、帯域外フーリエ成分が機械精度で消えることを検証できる</li>
+<li>モデルが到達できる<em>スペクトル</em>と到達できる<em>係数</em>を区別し、ターゲットをフィットさせてその差を測定できる</li>
+<li>符号化のバンド幅が表現力と汎化のトレードオフを支配する理由を説明し、最適値を数値的に求め、デルタ関数に近づけすぎたカーネルのショットコストを定量化できる</li>
+</ul>
+<hr />
+<h2>2.1 量子コンピュータに数値を入れる3つの方法</h2>
+<h3>入力問題、一度だけ明記する</h3>
+<p>材料データセットは表です。$N$ 行、$d$ 列の記述子、そして1列の物性値。行 $x \in \mathbb{R}^d$ に対して量子的な操作をするには、レジスタを $x$ に依存する状態に置かなければなりません。機械学習における量子高速化の主張はすべて、その配置のコストと照らして読む必要があります。理由は単純です。$|\phi(x)\rangle$ の準備に $d$ に比例する時間がかかるなら、その上で走る「$\log d$ 時間の量子アルゴリズム」は全体で $d$ に比例する時間を要し、指数が消えたのではなく移動しただけです。これが<strong>入力問題</strong>であり、第1章が挙げた懐疑の3つの理由の第一です。第二の測定コストは第3章で、第三のdequantizationは第5章で扱います。</p>
+<p>標準的な3つの符号化は、量子ビット数と回路コストのトレードオフを3つの異なる場所で解決します。どれが優れているかを論じる前に、3つすべてを実装しておく価値があります。</p>
+<h3>basis encoding</h3>
+<p>各特徴量を $b$ ビットに量子化し、そのビット列をレジスタに書き込みます。</p>
+<p>$$ x \; \longmapsto \; |\phi(x)\rangle = |b_1(x_1) \, b_2(x_1) \cdots b_b(x_d)\rangle $$</p>
+<p>コスト: $d\,b$ 量子ビット、そして深さ1の状態準備 — ビットが1の量子ビットに $X$ ゲートを1層かけるだけです。準備がこれより安いものはなく、特徴写像としてこれより悪いものもありません。どこかが異なる2つの入力は<strong>直交する</strong>状態を与えるので、誘導されるカーネルは</p>
+<p>$$ k(x,x') = |\langle \phi(x')|\phi(x)\rangle|^2 = \begin{cases} 1 &amp; \text{量子化された語が一致するとき} \cr 0 &amp; \text{それ以外} \end{cases} $$</p>
+<p>となり、「近い」という概念を一切持ちません。この上に構築した回帰モデルができるのは訓練集合の暗記だけです。グラム行列が単位行列になるので、フィットされた関数は訓練点に立つスパイクの和であり、それ以外のあらゆる場所ではちょうど訓練平均になります。basis符号化が正しい選択なのは、データが本当に離散ラベルであるとき — 空間群、元素の種類、ブール値のフラグ — であり、連続量には誤った選択です。</p>
+<h3>angle encoding</h3>
+<p>特徴量1つに対して量子ビット1つを回転させます。</p>
+<p>$$ x \; \longmapsto \; |\phi(x)\rangle = \bigotimes_{j=1}^{d} R_y(\pi x_j)|0\rangle = \bigotimes_{j=1}^{d} \left[\cos\frac{\pi x_j}{2}|0\rangle + \sin\frac{\pi x_j}{2}|1\rangle\right] $$</p>
+<p>コスト: $d$ 量子ビット、各1回転、深さ1、2量子ビットゲートなし。状態は積状態 — エンタングルメントはどこにもありません — で、誘導されるカーネルは閉形式を持ちます。重なりが因子分解するので、</p>
+<p>$$ \langle \phi(x')|\phi(x)\rangle = \prod_{j=1}^{d}\left[\cos\frac{\pi x'_j}{2}\cos\frac{\pi x_j}{2} + \sin\frac{\pi x'_j}{2}\sin\frac{\pi x_j}{2}\right] = \prod_{j=1}^{d} \cos\frac{\pi (x_j - x'_j)}{2} $$</p>
+<p>したがって</p>
+<p>$$ k(x,x') = \prod_{j=1}^{d} \cos^2\left(\frac{\pi (x_j - x'_j)}{2}\right) = \prod_{j=1}^{d} \frac{1 + \cos\pi(x_j - x'_j)}{2} $$</p>
+<p>2番目の形を注意深く読んでください。これが本章の全体を1行に凝縮したものです。このカーネルは座標差についての<strong>1次三角多項式の積</strong>です。定常であり、滑らかであり、$O(d)$ 回の演算で電卓でも評価でき、各座標について周波数 $\lbrace -1, 0, +1 \rbrace$ をちょうど含みます。これは完全にまともな古典カーネルです。そして同時に、angle符号化を使ったときに量子コンピュータが計算するものと厳密に一致します — 第5章が一般的な主張に仕上げるパターンの、最初の兆候です。</p>
+<h3>amplitude encoding</h3>
+<p>特徴ベクトルを振幅そのものに書き込みます。</p>
+<p>$$ x \; \longmapsto \; |\phi(x)\rangle = \frac{1}{\lVert x \rVert}\sum_{i=0}^{d-1} x_i |i\rangle, \qquad m = \lceil \log_2 d \rceil \text{ 量子ビット} $$</p>
+<p>高速化の議論に現れるのがこの符号化です。$d$ 個の数値が $\log_2 d$ 量子ビットに収まるからです。その代償は2つあります。</p>
+<p><strong>ノルムが捨てられます。</strong> Born則により規格化が強制されるので $|\phi(x)\rangle = |\phi(2x)\rangle$ となり、誘導されるカーネルはコサイン類似度の2乗です。</p>
+<p>$$ k(x,x') = \left|\hat{x}\cdot\hat{x}'\right|^2, \qquad \hat{x} = x/\lVert x \rVert $$</p>
+<p>$\lVert x \rVert$ が情報を持つ場合 — 組成ベクトルやスペクトルでは通常そうです — 手作業で復元する必要があり、典型的にはパディング座標を1つ追加します。</p>
+<p><strong>準備は無料ではありません。</strong> 標準的な厳密構成は $R_y$ 回転の二分木です。レベル $\ell$ には $\ell$ ビットの接頭辞ごとに1回転があり、その接頭辞で制御されます。レベルを足し上げると</p>
+<p>$$ \sum_{\ell=0}^{m-1} 2^{\ell} = 2^m - 1 = d - 1 \quad \text{回転} $$</p>
+<p>が一般ベクトルに対して必要で、その大半は多重制御であり、多重制御回転1つは $O(m)$ 個の2量子ビットゲートに分解されます。つまりレジスタは対数的である一方、回路は回転数で数えれば $d$ に線形、2量子ビットゲート数で数えれば $\Theta(d\log d)$ です — その和は演習2で計算します。<strong>圧縮は空間についてであって、時間についてではありません。</strong> amplitude符号化が真に得になるのは、短い回路が利用できる構造をベクトルが持つとき — 積の形、疎な台、低深さansatzが近似できる滑らかなプロファイル — であり、これに基づく真剣な高速化の主張はどこかに、たいていは「効率的に準備可能な状態」という一文の中に、その仮定を抱えています。</p>
+<h3>3つのコストを並べる</h3>
+<table>
+<thead>
+<tr>
+<th>符号化</th>
+<th>量子ビット数</th>
+<th>状態準備の回転数</th>
+<th>失われる分解能</th>
+<th>誘導カーネル</th>
+<th>古典的に評価可能か</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>basis、$b$ ビット</td>
+<td>$d\,b$</td>
+<td>0（$X$ ゲートのみ）</td>
+<td>$2^{-b}$ 以下すべて</td>
+<td>$\delta(x, x')$</td>
+<td>自明に可能</td>
+</tr>
+<tr>
+<td>angle</td>
+<td>$d$</td>
+<td>$d$</td>
+<td>なし</td>
+<td>$\prod_j \cos^2\big(\tfrac{\pi \Delta x_j}{2}\big)$</td>
+<td>閉形式、$O(d)$</td>
+</tr>
+<tr>
+<td>amplitude</td>
+<td>$\lceil\log_2 d\rceil$</td>
+<td>一般に $d - 1$</td>
+<td>ノルム $\lVert x\rVert$</td>
+<td>$(\hat{x}\cdot\hat{x}')^2$</td>
+<td>閉形式、$O(d)$</td>
+</tr>
+</tbody>
+</table>
+<p>最後の列のどの行も同じことを言っており、それが本コースの誠実な出発点です。<strong>標準的な3つの符号化はいずれも、古典的に計算困難なカーネルを与えません。</strong> 古典的に困難なものを得るにはエンタングル特徴写像が必要で、それが第3章で使うものです。そして第3章はその代償も示します。</p>
+<hr />
+<h2>2.2 符号化は特徴写像である</h2>
+<h3>状態から演算子へ</h3>
+<p>量子モデルは状態ベクトルにアクセスできません。アクセスできるのは期待値です。符号化された状態に対して固定した観測量 $O$ を測定すると</p>
+<p>$$ f(x) = \langle \phi(x)|O|\phi(x)\rangle = \mathrm{Tr}\left[\rho(x)\, O\right], \qquad \rho(x) = |\phi(x)\rangle\langle\phi(x)| $$</p>
+<p>が得られ、これは <strong>$\rho(x)$ について線形</strong>です。この1つの観察が本コースの仕事の大半を担います。正しい特徴ベクトルは状態ではなく密度行列であり、特徴空間は $D = 2^n$ として $D \times D$ エルミート演算子の実ベクトル空間、内積はHilbert-Schmidt内積 $\langle A, B\rangle = \mathrm{Tr}[A^\dagger B]$ です。その空間で誘導されるカーネルはただの内積になります。</p>
+<p>$$ k(x,x') = \mathrm{Tr}\left[\rho(x)\rho(x')\right] = \left|\langle \phi(x)|\phi(x')\rangle\right|^2 $$</p>
+<p>つまり、固定した符号化と訓練される観測量からなる量子モデルは、次元 $D^2$ の特徴空間における線形モデル<em>そのもの</em>であり、高次元特徴空間の線形モデルについて知られていることがすべて修正なしで適用されます。これは格下げと格上げを同時に意味します。神秘性が失われ、1世紀分の統計学が手に入ります。</p>
+<h3>特徴空間は本当はどれだけ大きいのか</h3>
+<p>文献で3つの次元が混同されているので、分けておく価値があります。</p>
+<ul>
+<li><strong>Hilbert空間</strong>の次元 $D = 2^n$。$n$ について指数的で、人々が引用する数字です。</li>
+<li><strong>特徴空間</strong>の次元、すなわちエルミート演算子の実パラメータ数: $D^2$。符号化された状態が実なら対称演算子で足り、$D(D+1)/2$ になります。</li>
+<li>$N$ サンプルに対する<strong>グラム行列のランク</strong>: 最大で $\min(N, \dim \text{特徴空間})$ であり、これが $N$ 点にフィットしたモデルを実際に制限します。</li>
+</ul>
+<p>重要なのは3番目であり、これは指数的な特徴空間が「意味のある唯一の意味で」到達不可能であることを意味します。訓練データが40行なら、量子ビットを何個買おうとモデルが使える方向は最大40個です。Code Example 3 は桁まで一致する形でこれを確認します。2量子ビットのamplitude符号化は $D = 4$ の実状態を与え、対称特徴空間の次元は $4\cdot 5/2 = 10$ で、40サンプルのグラム行列のランクはちょうど10です。</p>
+<h3>ランクではなく固有値</h3>
+<p>ランクは粗い要約です。グラム行列は名目上フルランクでありながら実質的に1次元でありえます。より精密な量は $K$ の固有値スペクトルであり、便利なスカラー要約は参加率</p>
+<p>$$ d_{\text{eff}}(K) = \frac{\left(\sum_i w_i\right)^2}{\sum_i w_i^2} $$</p>
+<p>です（$w_i$ は固有値）。ランク1のカーネル（$k \equiv 1$）では1、デルタカーネル（$K = I$）では $N$ になります。カーネルが実際に露出させている独立方向の数を数えており、第2.4節では符号化のバンド幅がこの全範囲を動かすことを示します。</p>
+<h3>材料研究者がカーネル視点を気にするべき理由</h3>
+<p>比較が公平になるからです。ガウス過程モデルに入る記述子集合はカーネル法であり、訓練される観測量に入る量子特徴写像もカーネル法です。したがって両者は単一の軸 — どのカーネルの固有値スペクトルが目標物性とよく整合しているか — で比較できます。この比較は、カーネルがノートパソコンで計算されたか希釈冷凍機で計算されたかを問いません。それこそ第1章が求めた規律です。同時にこれは、量子手法が勝ちうる場所も教えてくれます。より大きな特徴空間を持つことによってではなく、上位固有ベクトルが物理と偶然一致し、しかもどの古典カーネルも安価には再現できないカーネルを持つことによってです。</p>
+<hr />
+<h2>2.3 数値実験室</h2>
+<p>以下のすべては <a href="../../FM/quantum-computing-introduction/index.html">量子コンピューティング入門</a> 第2章で構築したミニシミュレータの上で走ります。本章が自己完結するようここに再掲します。APIはコース全体で固定です。<code>ket</code> が基底状態を作り、<code>apply_gate</code> が $n$ 量子ビットレジスタの任意の $k$ 量子ビットに $2^k \times 2^k$ ユニタリを作用させ、<code>cnot</code> はその2量子ビット特別版、<code>probs</code> と <code>sample</code> が測定統計を与え、<code>expval</code> がPauli文字列の期待値を計算します。規約は<strong>ビッグエンディアン</strong>で、量子ビット0がケットの左端かつ振幅添字の最上位ビットです。</p>
+<h3>Code Example 1: ミニシミュレータの再掲</h3>
+<pre><code class="language-python">&quot;&quot;&quot;Minimal state-vector simulator (big-endian: qubit 0 = leftmost = most significant).
+
+Save this file as qcsim.py; every later example does `from qcsim import *`.
+&quot;&quot;&quot;
+import numpy as np
+
+# ---- 1量子ビットゲート --------------------------------------------------
+I2 = np.eye(2, dtype=complex)
+X = np.array([[0, 1], [1, 0]], dtype=complex)
+Y = np.array([[0, -1j], [1j, 0]], dtype=complex)
+Z = np.array([[1, 0], [0, -1]], dtype=complex)
+H = np.array([[1, 1], [1, -1]], dtype=complex) / np.sqrt(2)
+S = np.array([[1, 0], [0, 1j]], dtype=complex)
+T = np.array([[1, 0], [0, np.exp(1j * np.pi / 4)]], dtype=complex)
+
+
+def rx(theta):
+    c, s = np.cos(theta / 2), np.sin(theta / 2)
+    return np.array([[c, -1j * s], [-1j * s, c]], dtype=complex)
+
+
+def ry(theta):
+    c, s = np.cos(theta / 2), np.sin(theta / 2)
+    return np.array([[c, -s], [s, c]], dtype=complex)
+
+
+def rz(theta):
+    e = np.exp(-1j * theta / 2)
+    return np.array([[e, 0], [0, np.conj(e)]], dtype=complex)
+
+
+# ---- 状態 ---------------------------------------------------------------
+def ket(bits: str) -&gt; np.ndarray:
+    &quot;&quot;&quot;'01' -&gt; 4次元の基底状態 |01&gt;（ビッグエンディアン）&quot;&quot;&quot;
+    n = len(bits)
+    psi = np.zeros(2 ** n, dtype=complex)
+    psi[int(bits, 2)] = 1.0
+    return psi
+
+
+def apply_gate(state, U, targets, n):
+    &quot;&quot;&quot;n量子ビット状態の targets に 2^k x 2^k ユニタリ U を作用させる&quot;&quot;&quot;
+    k = len(targets)
+    psi = state.reshape([2] * n)          # 1. n添字テンソルとして見る
+    psi = np.moveaxis(psi, targets, range(k))   # 2. 標的軸を先頭へ
+    rest = psi.shape[k:]
+    psi = psi.reshape(2 ** k, -1)         # 3. 平坦化して行列積
+    psi = U @ psi
+    psi = psi.reshape(list((2,) * k) + list(rest))
+    psi = np.moveaxis(psi, range(k), targets)   # 4. 軸を元に戻す
+    return psi.reshape(-1)
+
+
+CNOT4 = np.array([[1, 0, 0, 0],
+                  [0, 1, 0, 0],
+                  [0, 0, 0, 1],
+                  [0, 0, 1, 0]], dtype=complex)
+
+
+def cnot(state, control, target, n):
+    &quot;&quot;&quot;任意の量子ビット対・任意の向きのCNOT&quot;&quot;&quot;
+    return apply_gate(state, CNOT4, [control, target], n)
+
+
+def probs(state):
+    &quot;&quot;&quot;Born則による全 2^n 通りの確率&quot;&quot;&quot;
+    return np.abs(state) ** 2
+
+
+def sample(state, shots, seed=None):
+    &quot;&quot;&quot;測定のシミュレーション: {ビット列: 回数}&quot;&quot;&quot;
+    n = int(np.log2(state.size))
+    rng = np.random.default_rng(seed)
+    idx = rng.choice(state.size, size=shots, p=probs(state))
+    out = {}
+    for i in idx:
+        b = format(i, f'0{n}b')
+        out[b] = out.get(b, 0) + 1
+    return dict(sorted(out.items()))
+
+
+PAULI = {'I': I2, 'X': X, 'Y': Y, 'Z': Z}
+
+
+def expval(state, pauli, coeff_map=None):
+    &quot;&quot;&quot;'ZZ' や 'XI' のようなPauli文字列（1量子ビット1文字）の期待値。
+
+    coeff_map を与えると結果に coeff_map[pauli] を掛けるので、ハミルトニアン
+    全体が1行で書ける:  sum(expval(psi, p, terms) for p in terms)
+    &quot;&quot;&quot;
+    n = len(pauli)
+    phi = state.copy()
+    for q, ch in enumerate(pauli):
+        if ch != 'I':
+            phi = apply_gate(phi, PAULI[ch], [q], n)
+    val = np.vdot(state, phi).real
+    if coeff_map is not None:
+        val *= coeff_map.get(pauli, 1.0)
+    return val
+</code></pre>
+<p>99行、NumPy以外の依存はゼロ。<code>qcsim.py</code> として保存してください。本章と次章の以降のすべての例は <code>from qcsim import *</code> で始まります。</p>
+<h3>Code Example 2: 同じ4つの数値に対する3つの符号化</h3>
+<p>データセットは第1章で固定した合成組成記述子データであり、本コースのすべての実験が同一のものを使います。60行、$[0,1]$ の4記述子、弱いノイズを乗せた滑らかな非線形ターゲット、そして先頭40行を訓練、末尾20行をテストとする決定的な分割です。ダウンロードなし、バージョンのずれなし、以下のすべての数値はシードから再現できます。</p>
+<pre><code class="language-python">&quot;&quot;&quot;第2章 Code Example 2: 同じ4つの数値に対する3つの符号化。&quot;&quot;&quot;
+import numpy as np
+from qcsim import *
+
+def make_materials_dataset(n=60, seed=7):
+    &quot;&quot;&quot;組成記述子から形成エネルギー風の物性値への合成回帰データ。
+    記述子は [0,1] の4次元。滑らかな非線形ターゲット＋弱いノイズ。決定的。&quot;&quot;&quot;
+    rng = np.random.default_rng(seed)
+    X = rng.uniform(0.0, 1.0, (n, 4))
+    y = (np.sin(np.pi * X[:, 0]) * np.cos(np.pi * X[:, 1])
+         + 0.5 * X[:, 2]**2 - 0.3 * X[:, 3]
+         + 0.05 * rng.standard_normal(n))
+    return X, y
+
+
+# ---- 1. basis encoding --------------------------------------------------
+def basis_encode(x, bits=3):
+    &quot;&quot;&quot;各特徴量を `bits` ビットの2進数に量子化し、1つの計算基底状態にする&quot;&quot;&quot;
+    word = ''
+    for xj in x:
+        q = min(int(xj * 2 ** bits), 2 ** bits - 1)      # 一様量子化器
+        word += format(q, f'0{bits}b')
+    return ket(word), word
+
+
+# ---- 2. angle encoding --------------------------------------------------
+def angle_encode(x, bandwidth=1.0):
+    &quot;&quot;&quot;特徴量1つに量子ビット1つ: 量子ビット j に Ry(bandwidth * pi * x_j)&quot;&quot;&quot;
+    n = len(x)
+    psi = ket('0' * n)
+    for j, xj in enumerate(x):
+        psi = apply_gate(psi, ry(bandwidth * np.pi * xj), [j], n)
+    return psi
+
+
+# ---- 3. amplitude encoding ---------------------------------------------
+def amplitude_angles(v):
+    &quot;&quot;&quot;長さ 2**m の非負ベクトルに対する二分木 Ry 角度&quot;&quot;&quot;
+    m = int(np.log2(v.size))
+    w = v / np.linalg.norm(v)
+    levels = []
+    for lvl in range(m):
+        blk = 2 ** (m - lvl)                    # 部分木あたりの振幅数
+        th = []
+        for b in range(2 ** lvl):
+            seg = w[b * blk:(b + 1) * blk]
+            lo = np.linalg.norm(seg[:blk // 2])
+            hi = np.linalg.norm(seg[blk // 2:])
+            th.append(2.0 * np.arctan2(hi, lo))
+        levels.append(th)
+    return levels
+
+
+def amplitude_encode(v):
+    &quot;&quot;&quot;制御Ryゲートのカスケードで v/||v|| を準備する。(状態, 回転数) を返す&quot;&quot;&quot;
+    m = int(np.log2(v.size))
+    psi = ket('0' * m)
+    n_rot = 0
+    for lvl, th in enumerate(amplitude_angles(v)):
+        blocks = [ry(t) for t in th]            # 制御接頭辞ごとに2x2ブロック1つ
+        G = np.zeros((2 ** (lvl + 1), 2 ** (lvl + 1)), dtype=complex)
+        for b, B in enumerate(blocks):
+            G[2 * b:2 * b + 2, 2 * b:2 * b + 2] = B
+        psi = apply_gate(psi, G, list(range(lvl + 1)), m)
+        n_rot += len(blocks)
+    return psi, n_rot
+
+
+X, y = make_materials_dataset()
+print(&quot;契約データセット&quot;)
+print(&quot;-&quot; * 66)
+print(f&quot;  X の形状 {X.shape}, y の形状 {y.shape}&quot;)
+print(f&quot;  訓練 = 行 0..39, テスト = 行 40..59&quot;)
+print(f&quot;  x0 = {np.round(X[0], 4)}   y0 = {y[0]:+.6f}&quot;)
+print(f&quot;  x1 = {np.round(X[1], 4)}   y1 = {y[1]:+.6f}&quot;)
+print(f&quot;  y: 平均 {y.mean():+.6f}  標準偏差 {y.std():.6f}  最小 {y.min():+.6f}  最大 {y.max():+.6f}&quot;)
+
+x, xp = X[0], X[1]
+
+print(&quot;\n1. basis encoding、特徴量あたり3ビット（12量子ビット、4096振幅）&quot;)
+print(&quot;-&quot; * 66)
+for label, v in [('x0', x), ('x1', xp)]:
+    st, word = basis_encode(v)
+    print(f&quot;  {label} -&gt; |{word}&gt;   次元 {st.size}, &quot;
+          f&quot;非ゼロ振幅 {int(np.count_nonzero(st))}&quot;)
+sa, _ = basis_encode(x)
+sb, _ = basis_encode(xp)
+print(f&quot;  重なり |&lt;phi(x0)|phi(x1)&gt;|^2 = {abs(np.vdot(sa, sb))**2:.6f}&quot;)
+sc, _ = basis_encode(x + 1e-4)
+print(f&quot;  x0 を 1e-4 だけ動かした点との重なり = {abs(np.vdot(sa, sc))**2:.6f}&quot;)
+
+print(&quot;\n2. angle encoding、特徴量あたり1量子ビット（4量子ビット、16振幅）&quot;)
+print(&quot;-&quot; * 66)
+pa, pb = angle_encode(x), angle_encode(xp)
+print(f&quot;  量子ビットごとの振幅（pi*x_j/2 の cos, sin）&quot;)
+for j in range(4):
+    c, s = np.cos(np.pi * x[j] / 2), np.sin(np.pi * x[j] / 2)
+    print(f&quot;      量子ビット {j}: x = {x[j]:.4f} -&gt; [{c:+.6f} {s:+.6f}]&quot;)
+print(f&quot;  同時振幅: a(0000) = {pa[0].real:.6f}  a(1110) = {pa[14].real:.6f}&quot;
+      f&quot;   ノルム = {np.linalg.norm(pa):.12f}&quot;)
+sv = np.linalg.svd(pa.reshape(2, 8), compute_uv=False)
+print(f&quot;  量子ビット0 | 残り のSchmidt値: {np.round(sv, 6)}  -&gt; ランク1、非エンタングル&quot;)
+ov = abs(np.vdot(pa, pb)) ** 2
+closed = np.prod(np.cos(np.pi * (x - xp) / 2) ** 2)
+print(f&quot;  |&lt;phi(x0)|phi(x1)&gt;|^2  シミュレータ = {ov:.9f}&quot;)
+print(f&quot;                         閉形式       = {closed:.9f}&quot;)
+
+print(&quot;\n3. amplitude encoding、log2(4) = 2量子ビット&quot;)
+print(&quot;-&quot; * 66)
+for label, v in [('x0', x), ('x1', xp)]:
+    st, nrot = amplitude_encode(v)
+    print(f&quot;  {label}: 準備された状態 = {np.round(st.real, 6)}&quot;)
+    print(f&quot;      目標             = {np.round(v / np.linalg.norm(v), 6)}   &quot;
+          f&quot;最大誤差 {np.max(np.abs(st.real - v / np.linalg.norm(v))):.2e}, &quot;
+          f&quot;回転 {nrot} 個&quot;)
+xa = x / np.linalg.norm(x)
+xb = xp / np.linalg.norm(xp)
+sa2, _ = amplitude_encode(x)
+sb2, _ = amplitude_encode(xp)
+print(f&quot;  |&lt;phi(x0)|phi(x1)&gt;|^2  シミュレータ = {abs(np.vdot(sa2, sb2))**2:.9f}&quot;)
+print(f&quot;                         閉形式 (xhat.xhat')^2 = {(xa @ xb)**2:.9f}&quot;)
+
+print(&quot;\n一般ベクトルの厳密な amplitude encoding に要する回転数&quot;)
+print(&quot;-&quot; * 66)
+print(f&quot;  {'features d':&gt;11} {'qubits m':&gt;9} {'rotations':&gt;10} {'2^m - 1':&gt;9}&quot;)
+for m in range(1, 9):
+    v = np.abs(np.random.default_rng(m).normal(size=2 ** m)) + 0.1
+    st, nrot = amplitude_encode(v)
+    err = np.max(np.abs(st.real - v / np.linalg.norm(v)))
+    assert err &lt; 1e-12, err
+    print(f&quot;  {2**m:11d} {m:9d} {nrot:10d} {2**m - 1:9d}&quot;)
+</code></pre>
+<pre><code class="language-text">契約データセット
+------------------------------------------------------------------
+  X の形状 (60, 4), y の形状 (60,)
+  訓練 = 行 0..39, テスト = 行 40..59
+  x0 = [0.6251 0.8972 0.7757 0.2252]   y0 = -0.647213
+  x1 = [0.3002 0.8736 0.0053 0.8212]   y1 = -0.993359
+  y: 平均 -0.033567  標準偏差 0.544575  最小 -1.219779  最大 +1.214190
+
+1. basis encoding、特徴量あたり3ビット（12量子ビット、4096振幅）
+------------------------------------------------------------------
+  x0 -&gt; |101111110001&gt;   次元 4096, 非ゼロ振幅 1
+  x1 -&gt; |010110000110&gt;   次元 4096, 非ゼロ振幅 1
+  重なり |&lt;phi(x0)|phi(x1)&gt;|^2 = 0.000000
+  x0 を 1e-4 だけ動かした点との重なり = 1.000000
+
+2. angle encoding、特徴量あたり1量子ビット（4量子ビット、16振幅）
+------------------------------------------------------------------
+  量子ビットごとの振幅（pi*x_j/2 の cos, sin）
+      量子ビット 0: x = 0.6251 -&gt; [+0.555446 +0.831553]
+      量子ビット 1: x = 0.8972 -&gt; [+0.160756 +0.986994]
+      量子ビット 2: x = 0.7757 -&gt; [+0.345106 +0.938564]
+      量子ビット 3: x = 0.2252 -&gt; [+0.938079 +0.346422]
+  同時振幅: a(0000) = 0.028907  a(1110) = 0.722616   ノルム = 1.000000000000
+  量子ビット0 | 残り のSchmidt値: [1. 0.]  -&gt; ランク1、非エンタングル
+  |&lt;phi(x0)|phi(x1)&gt;|^2  シミュレータ = 0.033268934
+                         閉形式       = 0.033268934
+
+3. amplitude encoding、log2(4) = 2量子ビット
+------------------------------------------------------------------
+  x0: 準備された状態 = [0.45981  0.659976 0.570582 0.165659]
+      目標             = [0.45981  0.659976 0.570582 0.165659]   最大誤差 1.11e-16, 回転 3 個
+  x1: 準備された状態 = [0.242857 0.706772 0.00426  0.664437]
+      目標             = [0.242857 0.706772 0.00426  0.664437]   最大誤差 1.11e-16, 回転 3 個
+  |&lt;phi(x0)|phi(x1)&gt;|^2  シミュレータ = 0.476957369
+                         閉形式 (xhat.xhat')^2 = 0.476957369
+
+一般ベクトルの厳密な amplitude encoding に要する回転数
+------------------------------------------------------------------
+   features d  qubits m  rotations   2^m - 1
+            2         1          1         1
+            4         2          3         3
+            8         3          7         7
+           16         4         15        15
+           32         5         31        31
+           64         6         63        63
+          128         7        127       127
+          256         8        255       255
+</code></pre>
+<p><strong>注目すべき点。</strong> 4つの数値、3つの符号化、まったく異なる3つの対象です。</p>
+<p>basis符号化は $x_0$ を4096次元空間の単一の計算基底状態に変え、$x_1$ との重なりをちょうど0にします — が同時に、$10^{-4}$ 離れた点との重なりもちょうど1になります。どちらも同じ量子化セルに落ちるからです。この特徴写像は丸め誤差付きのルックアップテーブルであり、そのカーネルは距離の減少関数ではなく階段関数です。</p>
+<p>angle符号化は積状態を作り、どのカットでもSchmidt値は $(1, 0)$ — ランク1、エンタングルメントなし、まさに予告どおりです。その重なりは閉形式 $\prod_j \cos^2(\pi\Delta x_j/2)$ と9桁一致します。この「量子カーネル」が古典的な数式であることの、数値による言明です。</p>
+<p>amplitude符号化は2量子ビット上で3回転により規格化特徴ベクトルを $10^{-16}$ の精度で再現し、その重なりは $(\hat{x}\cdot\hat{x}')^2$ と一致します。最後の表が重要です。一般ベクトルの厳密準備に要する回転数は $2^m - 1 = d - 1$ で、$d = 2$ から $d = 256$ まで確認されています。4特徴に2量子ビットはお買い得に見えます。1024特徴に10量子ビットと1023個の制御回転はそうではありません。</p>
+<h3>Code Example 3: 各符号化が誘導するカーネル</h3>
+<p>下流のモデルが符号化について見ることができるのはカーネルだけなので、見るべき対象はカーネルです。以下の濃淡グリッドは訓練データ先頭20点のグラム行列で、1が <code>@</code>、0が空白です。固有値の表は40点全体で計算しています。</p>
+<pre><code class="language-python">&quot;&quot;&quot;第2章 Code Example 3: 3つの符号化が誘導するカーネル行列。
+Code Example 2 の続き（同一セッション）。&quot;&quot;&quot;
+import matplotlib.pyplot as plt
+
+# ---------------------------------------------------------------- カーネル
+def gram(states):
+    &quot;&quot;&quot;符号化された状態のリストに対する |&lt;phi_i|phi_j&gt;|^2 のグラム行列&quot;&quot;&quot;
+    M = np.array(states)
+    return np.abs(M.conj() @ M.T) ** 2
+
+
+def ascii_map(K, title):
+    &quot;&quot;&quot;グラム行列を濃淡文字のグリッドで表示する（0 -&gt; ' '、1 -&gt; '@'）&quot;&quot;&quot;
+    chars = ' .:-=+*#%@'
+    print(f&quot;  {title}&quot;)
+    for row in K:
+        print('    ' + ''.join(chars[min(9, int(v * 10))] for v in row))
+
+
+def eff_dim(K):
+    &quot;&quot;&quot;グラムスペクトルの参加率: (sum w)^2 / sum w^2&quot;&quot;&quot;
+    w = np.linalg.eigvalsh(K).real
+    w = np.clip(w, 0.0, None)
+    return float(w.sum() ** 2 / np.sum(w ** 2))
+
+
+X, y = make_materials_dataset()
+Xtr = X[:40]
+Xs = Xtr[:20]                                     # 図示用に20点
+
+enc = {
+    'basis  (3 bits, 12 qubits)': [basis_encode(v)[0] for v in Xs],
+    'angle  (4 qubits)': [angle_encode(v) for v in Xs],
+    'amplitude (2 qubits)': [amplitude_encode(v)[0] for v in Xs],
+}
+
+print(&quot;訓練データ先頭20点に対する誘導グラム行列&quot;)
+print(&quot;=&quot; * 66)
+for name, sts in enc.items():
+    K = gram(sts)
+    off = K[~np.eye(20, dtype=bool)]
+    print(f&quot;\n{name}&quot;)
+    print(f&quot;  対角: 最小 {np.min(np.diag(K)):.6f}  最大 {np.max(np.diag(K)):.6f}&quot;)
+    print(f&quot;  非対角: 平均 {off.mean():.6f}  標準偏差 {off.std():.6f}  &quot;
+          f&quot;最小 {off.min():.6f}  最大 {off.max():.6f}&quot;)
+    print(f&quot;  有効次元 = {eff_dim(K):.3f}  （デルタカーネルなら20）&quot;)
+    ascii_map(K, '濃淡表示したグラム行列、行/列 = サンプル 0..19')
+
+print(&quot;\n&quot; + &quot;=&quot; * 66)
+print(&quot;訓練データ40点全体での固有値スペクトル（上位8個、トレースで規格化）&quot;)
+print(&quot;-&quot; * 66)
+print(f&quot;  {'encoding':&gt;26} &quot; + ' '.join(f'{i:&gt;7d}' for i in range(1, 9)))
+for name in enc:
+    sts = {'basis  (3 bits, 12 qubits)': [basis_encode(v)[0] for v in Xtr],
+           'angle  (4 qubits)': [angle_encode(v) for v in Xtr],
+           'amplitude (2 qubits)': [amplitude_encode(v)[0] for v in Xtr]}[name]
+    w = np.sort(np.linalg.eigvalsh(gram(sts)).real)[::-1] / 40.0
+    print(f&quot;  {name:&gt;26} &quot; + ' '.join(f'{v:7.4f}' for v in w[:8]))
+
+print(&quot;\n実際に使われている特徴空間の次元&quot;)
+print(&quot;-&quot; * 66)
+print(f&quot;  {'encoding':&gt;26} {'dim H':&gt;7} {'D(D+1)/2':&gt;9} {'rank(K), 40 pts':&gt;16}&quot;)
+for name, sts in [('basis  (3 bits, 12 qubits)', [basis_encode(v)[0] for v in Xtr]),
+                  ('angle  (4 qubits)', [angle_encode(v) for v in Xtr]),
+                  ('amplitude (2 qubits)', [amplitude_encode(v)[0] for v in Xtr])]:
+    K = gram(sts)
+    r = int(np.sum(np.linalg.eigvalsh(K).real &gt; 1e-9 * np.trace(K)))
+    D = sts[0].size
+    print(f&quot;  {name:&gt;26} {D:7d} {D * (D + 1) // 2:9d} {r:16d}&quot;)
+
+# ------------------------------------------------------------------ 図
+fig, ax = plt.subplots(1, 3, figsize=(13, 4))
+for a, (name, sts) in zip(ax, enc.items()):
+    im = a.imshow(gram(sts), vmin=0, vmax=1, cmap='viridis')
+    a.set_title(name, fontsize=9)
+    a.set_xlabel('sample index')
+    fig.colorbar(im, ax=a, fraction=0.046)
+ax[0].set_ylabel('sample index')
+plt.tight_layout()
+plt.show()
+</code></pre>
+<pre><code class="language-text">訓練データ先頭20点に対する誘導グラム行列
+==================================================================
+
+basis  (3 bits, 12 qubits)
+  対角: 最小 1.000000  最大 1.000000
+  非対角: 平均 0.000000  標準偏差 0.000000  最小 0.000000  最大 0.000000
+  有効次元 = 20.000  （デルタカーネルなら20）
+  濃淡表示したグラム行列、行/列 = サンプル 0..19
+    @                   
+     @                  
+      @                 
+       @                
+        @               
+         @              
+          @             
+           @            
+            @           
+             @          
+              @         
+               @        
+                @       
+                 @      
+                  @     
+                   @    
+                    @   
+                     @  
+                      @ 
+                       @
+
+angle  (4 qubits)
+  対角: 最小 1.000000  最大 1.000000
+  非対角: 平均 0.239331  標準偏差 0.226143  最小 0.000024  最大 0.866434
+  有効次元 = 6.536  （デルタカーネルなら20）
+  濃淡表示したグラム行列、行/列 = サンプル 0..19
+    @ -:   +  ..=.:%.. *
+     @.:  -.  =++     - 
+    -.@-.. % ..+-..+++-=
+    ::-@ -*+=:=-=+:-=.. 
+      . @     ..: :   = 
+      .- @ -%#   * -#.  
+     - *  @ . *.:.      
+    +.%+ - @::.==--%*+:=
+       = %.:@*   * :=   
+      .: # :*@   :::+:  
+    .=.=. *.  @-*  .  : 
+    .++-. .=  -@#. ::.*:
+    =+-=: :=  *#@..-. =-
+    . .+ *.-*: ..@ :*   
+    : .::  - :  . @-.+ .
+    % +- - %::.:-:-@+= *
+    . += # *=+ :.*.+@- .
+    . +. . + : .  +=-@.:
+     --.=  :  :*=    .@.
+    * =    =   :- .*.:.@
+
+amplitude (2 qubits)
+  対角: 最小 1.000000  最大 1.000000
+  非対角: 平均 0.639159  標準偏差 0.217763  最小 0.046411  最大 0.983358
+  有効次元 = 2.070  （デルタカーネルなら20）
+  濃淡表示したグラム行列、行/列 = サンプル 0..19
+    @=####=@++#*%%#@%*+@
+    =@=*# #=. %%%+--::#=
+    #=@*%=-@:=+%#=#%%%%@
+    #**@%+%#*+@*%%%#*+**
+    ##%%@=*%-=%%@*%###@#
+    # =+=@:*%@-.-*###*.+
+    =#-%*:@==:@+#*+--:+:
+    @=@#%*=@=+*#%*%@@%#@
+    +.:*-%==@#=.-**++-.-
+    + =+=@:+#@:.:=%*##.=
+    #%+@%-@*=:@#@%**=-#+
+    *%%*%.+#..#@@++*++@#
+    %%#%@-#%-:@@@#*#*+%#
+    %+=%*****=%+#@*#+-=*
+    #-#%%#+%*%*+**@%@@*#
+    @-%###-@+***##%@@#+@
+    %:%*##-@+#=+*+@@@@+%
+    *:%+#*:%-#-++-@#@@*#
+    +#%*@.+#..#@%=*++*@*
+    @=@*#+:@-=+##*#@%#*@
+
+==================================================================
+訓練データ40点全体での固有値スペクトル（上位8個、トレースで規格化）
+------------------------------------------------------------------
+                    encoding       1       2       3       4       5       6       7       8
+  basis  (3 bits, 12 qubits)  0.0250  0.0250  0.0250  0.0250  0.0250  0.0250  0.0250  0.0250
+           angle  (4 qubits)  0.2754  0.1335  0.1108  0.0909  0.0705  0.0483  0.0439  0.0338
+        amplitude (2 qubits)  0.6615  0.1256  0.0971  0.0750  0.0156  0.0073  0.0062  0.0055
+
+実際に使われている特徴空間の次元
+------------------------------------------------------------------
+                    encoding   dim H  D(D+1)/2  rank(K), 40 pts
+  basis  (3 bits, 12 qubits)    4096   8390656               40
+           angle  (4 qubits)      16       136               40
+        amplitude (2 qubits)       4        10               10
+</code></pre>
+<p><strong>注目すべき点。</strong> 3つの図は、3つの破綻モードと1つの妥当な選択を視覚的に並べたものです。</p>
+<p>basis符号化は単位行列を与えます。完璧な対角線、有効次元はちょうど20.0、非対角の平均はちょうど0です。これらの材料のどの2つが似ているのか、まったく分かっていません。</p>
+<p>amplitude符号化は逆の極端に行きます。非対角平均0.64、有効次元2.07、そして最大固有値がトレースの66%を占めるスペクトルです。すべてが他のすべてに似て見えます。非負の4数からなるベクトル間のコサイン類似度の2乗は、ほとんどどのペアでも1に近いからです。このカーネルはどう正則化しても未学習になります。</p>
+<p>angle符号化は両者の中間です。非対角平均0.24、有効次元6.5、そして最初の10固有値にかけて滑らかに減衰するスペクトル。この減衰こそ使えるカーネルの姿です。サンプルを区別できるだけの構造があり、その間を補間できるだけの滑らかさがあります。</p>
+<p>最後の表が次元の問題に決着をつけます。Hilbert空間の次元は4096、16、4。対称特徴空間の次元は約 $8.4\times10^6$、136、10。そして40サンプルでのグラムランクは40、40、<strong>10</strong> です。amplitude符号化のランクを制限しているのはサンプル数ではなく $D(D+1)/2 = 10$ であり、予測どおりです。basis符号化の4096次元Hilbert空間は何も買っていません。こちらも40で打ち止めであり、しかも40個の直交スパイクは使える40方向のうち最も役に立たないものです。</p>
+<hr />
+<h2>2.4 data re-uploading — 1量子ビットで十分である</h2>
+<h3>構成</h3>
+<p>ここまでは各特徴量を1回ずつ符号化しました。もう一度使ってはいけない理由はありません。<strong>data re-uploading</strong> モデルは符号化ゲートと学習可能ゲートを交互に並べ、</p>
+<p>$$ U(x, \theta) = W(\theta_L)\, S(x)\, W(\theta_{L-1}) \, S(x) \cdots S(x)\, W(\theta_0) $$</p>
+<p>固定した観測量を測定します: $f(x) = \langle 0 | U^\dagger(x,\theta)\, Z\, U(x,\theta) | 0\rangle$。ここで $S(x)$ が符号化ゲートで $L$ 個あり、各 $W(\theta_i) = R_z R_y R_z$ は3角度をもつ一般の1量子ビットユニタリです。1量子ビット上で。これがモデルの全体です。</p>
+<p>これが重要なのは、数値的な小技ではなく構造的な定理があるからです。しかもこの分野で最も明快な結果です。</p>
+<h3>re-uploadingモデルのスペクトル</h3>
+<p>符号化ゲートがPauli演算子で生成されるとします: $S(x) = e^{-i x G}$、$G$ はエルミート。$G$ を固有基底で書き、固有値を $\lambda_1, \ldots, \lambda_D$ とします。$U(x,\theta)$ の積を展開すると、最終状態の各振幅は位相 $e^{-i x \Lambda}$ を伴う項の和になり、$\Lambda$ は各符号化ゲートから1つずつ取った $L$ 個の固有値の和です。期待値は双線形 — ある振幅と別の振幅の複素共役を組み合わせる — なので、生き残る位相はそうした和の<strong>差</strong>です。したがって</p>
+<p>$$ f(x) = \sum_{\omega \in \Omega} c_\omega(\theta)\, e^{i\omega x}, \qquad \Omega = \left\lbrace \sum_{k=1}^{L}\left(\lambda_{i_k} - \lambda_{j_k}\right) \right\rbrace $$</p>
+<p>$S(x) = R_z(x) = e^{-i x Z/2}$ なら固有値は $\pm\tfrac12$、各差は $\lbrace -1, 0, +1\rbrace$ に入り、$L$ 個の和は $-L$ から $L$ までの整数を動きます。</p>
+<p>$$ \Omega = \lbrace -L, -L+1, \ldots, L-1, L \rbrace, \qquad |\Omega| = 2L+1 $$</p>
+<p><strong>符号化ゲート $L$ 個の re-uploading モデルは $L$ 次の三角多項式です。</strong> 量子ビット数はどこにも入りません。周波数の内容は、データが何回入ったかと生成子の固有値間隔だけで決まります。$f$ は実なので $c_{-\omega} = \overline{c_\omega}$ であり、$2L+1$ 個の複素係数は $2L+1$ 個の実自由度を持ちます。</p>
+<p>ここから2つの帰結が直ちに従います。第一は<strong>普遍性</strong>です。三角多項式は連続な $2\pi$ 周期関数の中で稠密なので、$L$ を大きくすれば1量子ビットのモデルがそうした任意の関数を任意精度で近似できます。深さが幅の代わりになります。第二は<strong>固定 $L$ での厳しい上限</strong>です。どんなパラメータを選んでも周波数 $L+1$ の成分は作れません。フィットしたい物性が高周波に重みを持つなら、それはフィットできず、訓練も正則化もそれを変えません。どちらも以下で数値的に確認します。</p>
+<h3>Code Example 4: フーリエスペクトルの測定</h3>
+<p>検査は直接的です。1周期にわたる一様グリッド上で $f$ をサンプルし、離散フーリエ変換をとり、$\omega = L$ より上の係数を見ます。定理はそれがゼロだと言い、浮動小数点演算は $10^{-16}$ だと言います。</p>
+<pre><code class="language-python">&quot;&quot;&quot;第2章 Code Example 4: data re-uploading モデルが到達できるフーリエスペクトル。&quot;&quot;&quot;
+import numpy as np
+from qcsim import *
+
+def W(theta):
+    &quot;&quot;&quot;1量子ビットの学習可能ブロック: Rz Ry Rz（3角度）&quot;&quot;&quot;
+    return rz(theta[2]) @ ry(theta[1]) @ rz(theta[0])
+
+
+def reupload_model(x, thetas):
+    &quot;&quot;&quot;S(x) = Rz(x) として W(th_L) S(x) ... S(x) W(th_0) の後の &lt;Z&gt; を返す。
+
+    len(thetas) = L + 1 個の学習ブロック、したがって符号化ゲートは L 個。
+    &quot;&quot;&quot;
+    psi = ket('0')
+    psi = apply_gate(psi, W(thetas[0]), [0], 1)
+    for th in thetas[1:]:
+        psi = apply_gate(psi, rz(x), [0], 1)          # データ符号化ゲート
+        psi = apply_gate(psi, W(th), [0], 1)
+    return expval(psi, 'Z')
+
+
+def spectrum(thetas, N=64):
+    &quot;&quot;&quot;1周期にわたる f のフーリエ係数 c_w、w = 0, 1, ..., N/2&quot;&quot;&quot;
+    xs = 2.0 * np.pi * np.arange(N) / N
+    f = np.array([reupload_model(x, thetas) for x in xs])
+    return f, np.fft.fft(f) / N
+
+
+print(&quot;data re-uploading: S(x) = Rz(x) のときの f(x) = &lt;Z&gt; のスペクトル&quot;)
+print(&quot;=&quot; * 72)
+print(&quot;理論: 符号化ゲート L 個 -&gt; Omega = {-L, ..., L}、すなわち 2L+1 個の周波数&quot;)
+print()
+print(f&quot;  {'L':&gt;2} {'|c_0|':&gt;9} {'|c_1|':&gt;9} {'|c_2|':&gt;9} {'|c_3|':&gt;9} &quot;
+      f&quot;{'|c_4|':&gt;9} {'|c_5|':&gt;9} {'|c_6|':&gt;9} {'max leak':&gt;10}&quot;)
+rng = np.random.default_rng(11)
+for L in range(0, 6):
+    thetas = rng.uniform(0, 2 * np.pi, (L + 1, 3))
+    f, c = spectrum(thetas)
+    mags = np.abs(c[:7])
+    leak = np.max(np.abs(c[L + 1:len(c) // 2 + 1])) if L + 1 &lt;= len(c) // 2 else 0.0
+    print(f&quot;  {L:2d} &quot; + ' '.join(f'{m:9.6f}' for m in mags) + f&quot; {leak:10.2e}&quot;)
+
+print(&quot;\n同じ検査をランダムなパラメータ20通りで実施（L = 4）&quot;)
+print(&quot;-&quot; * 72)
+rng = np.random.default_rng(2024)
+inband, leaks = [], []
+for _ in range(20):
+    thetas = rng.uniform(0, 2 * np.pi, (5, 3))
+    f, c = spectrum(thetas)
+    inband.append(np.max(np.abs(c[:5])))
+    leaks.append(np.max(np.abs(c[5:33])))
+print(f&quot;  帯域内の最大 |c_w| (w &lt;= 4) の20通り中の最小値 = {min(inband):.6f}&quot;)
+print(f&quot;  帯域外の最大 |c_w| (5 &lt;= w &lt;= 32) の20通り中の最大値 = {max(leaks):.3e}&quot;)
+print(f&quot;  帯域内/帯域外の比 = {min(inband) / max(leaks):.2e}&quot;)
+
+print(&quot;\nフーリエ表現に対する健全性検査（L = 3）&quot;)
+print(&quot;-&quot; * 72)
+thetas = np.random.default_rng(5).uniform(0, 2 * np.pi, (4, 3))
+f, c = spectrum(thetas, N=64)
+print(f&quot;  f は実数か                     最大 |Im f| = {np.max(np.abs(np.imag(f))):.1e}&quot;)
+print(f&quot;  エルミート性 c_-w = conj(c_w)   最大誤差   = &quot;
+      f&quot;{np.max(np.abs(c[1:4] - np.conj(c[-1:-4:-1]))):.1e}&quot;)
+print(f&quot;  2*pi 周期か  f(0) - f(2*pi) = {reupload_model(0.0, thetas) - reupload_model(2*np.pi, thetas):+.1e}&quot;)
+xs = 2.0 * np.pi * np.arange(64) / 64
+rec = np.real(sum(c[w] * np.exp(1j * w * xs) for w in range(-3, 4)))
+print(f&quot;  3次三角多項式で f を再現できるか  最大誤差 = {np.max(np.abs(rec - f)):.1e}&quot;)
+print(f&quot;  c_0 = {c[0].real:+.6f}  c_1 = {c[1].real:+.6f}{c[1].imag:+.6f}i  &quot;
+      f&quot;c_2 = {c[2].real:+.6f}{c[2].imag:+.6f}i  c_3 = {c[3].real:+.6f}{c[3].imag:+.6f}i&quot;)
+
+print(&quot;\n符号化ゲートを S(x) = Rz(b*x) にスケールすると何が起きるか&quot;)
+print(&quot;-&quot; * 72)
+print(f&quot;  {'bandwidth b':&gt;12} {'frequencies present':&gt;34}&quot;)
+for b in [1.0, 2.0, 3.0]:
+    def m(x, th=np.random.default_rng(7).uniform(0, 2*np.pi, (4, 3)), b=b):
+        psi = apply_gate(ket('0'), W(th[0]), [0], 1)
+        for t in th[1:]:
+            psi = apply_gate(psi, rz(b * x), [0], 1)
+            psi = apply_gate(psi, W(t), [0], 1)
+        return expval(psi, 'Z')
+    ff = np.array([m(x) for x in xs])
+    cc = np.fft.fft(ff) / 64
+    present = [w for w in range(33) if abs(cc[w]) &gt; 1e-9]
+    print(f&quot;  {b:12.1f} {str(present):&gt;34}&quot;)
+</code></pre>
+<pre><code class="language-text">data re-uploading: S(x) = Rz(x) のときの f(x) = &lt;Z&gt; のスペクトル
+========================================================================
+理論: 符号化ゲート L 個 -&gt; Omega = {-L, ..., L}、すなわち 2L+1 個の周波数
+
+   L     |c_0|     |c_1|     |c_2|     |c_3|     |c_4|     |c_5|     |c_6|   max leak
+   0  0.999990  0.000000  0.000000  0.000000  0.000000  0.000000  0.000000   0.00e+00
+   1  0.410168  0.291668  0.000000  0.000000  0.000000  0.000000  0.000000   3.89e-17
+   2  0.055810  0.340243  0.135375  0.000000  0.000000  0.000000  0.000000   5.52e-17
+   3  0.623126  0.152085  0.007458  0.000255  0.000000  0.000000  0.000000   5.80e-17
+   4  0.540477  0.069891  0.080638  0.021140  0.002921  0.000000  0.000000   7.56e-17
+   5  0.152494  0.358885  0.104139  0.084594  0.064244  0.023888  0.000000   1.08e-16
+
+同じ検査をランダムなパラメータ20通りで実施（L = 4）
+------------------------------------------------------------------------
+  帯域内の最大 |c_w| (w &lt;= 4) の20通り中の最小値 = 0.160517
+  帯域外の最大 |c_w| (5 &lt;= w &lt;= 32) の20通り中の最大値 = 1.201e-16
+  帯域内/帯域外の比 = 1.34e+15
+
+フーリエ表現に対する健全性検査（L = 3）
+------------------------------------------------------------------------
+  f は実数か                     最大 |Im f| = 0.0e+00
+  エルミート性 c_-w = conj(c_w)   最大誤差   = 5.6e-17
+  2*pi 周期か  f(0) - f(2*pi) = -7.8e-16
+  3次三角多項式で f を再現できるか  最大誤差 = 1.3e-15
+  c_0 = -0.180478  c_1 = +0.015152+0.084024i  c_2 = +0.096921-0.014103i  c_3 = +0.230252+0.281564i
+
+符号化ゲートを S(x) = Rz(b*x) にスケールすると何が起きるか
+------------------------------------------------------------------------
+   bandwidth b                frequencies present
+           1.0                       [0, 1, 2, 3]
+           2.0                       [0, 2, 4, 6]
+           3.0                       [0, 3, 6, 9]
+</code></pre>
+<p><strong>注目すべき点。</strong> ゼロは「小さい」のではなく数値的なゼロです。$L = 4$ ではランダムなパラメータ20通りにわたる帯域外の最大係数が $1.2 \times 10^{-16}$ です。同じ20通りにおける帯域内最大値の<em>最小</em>値 — 典型的な抽出ではなく最も不利な抽出 — は0.161です。両者の比は $1.3\times 10^{15}$、すなわち普通の数と機械エプシロンの比です。この主張は近似的に正しいのではなく厳密に正しく、計算だけが近似的に厳密なのです。</p>
+<p>$L = 0$ の行も一目見る価値があります。符号化ゲートがまったくない場合モデルは定数で、$|c_0| = 1$ で他は何もありません。定理の0次の場合です。$L = 3$ の行は、高い係数がゼロではないまま<em>小さく</em>なりうること（その引きでは $|c_3| = 2.55\times10^{-4}$）を示します。これは係数についての言明であり、スペクトルについての言明ではありません。</p>
+<p>最後のブロックはバンド幅の仕組みを縮図で示します。$S(x) = R_z(x)$ を $R_z(bx)$ に置き換えると生成子の固有値がすべて $b$ 倍になり、したがって周波数もすべて $b$ 倍になります。スペクトル $\lbrace 0,1,2,3\rbrace$ が $\lbrace 0,2,4,6\rbrace$、さらに $\lbrace 0,3,6,9\rbrace$ になります。モデルはより高い周波数に届き、そして — これが第2.5節で精密化する部分ですが — その過程で低い周波数を失います。</p>
+<h3>Code Example 5: スペクトルは普遍だが、係数はそうではない</h3>
+<p>定理が制約するのはどの周波数が現れるかであり、どの係数ベクトルに到達できるかではありません。符号化ゲート $L$ 個の1量子ビットモデルは $3(L+1)$ 個の学習角度に、実務上は出力のスケールとオフセットを加えたものを持ちます。目標となる部分空間の実次元は $2L+1$ です。パラメータを数えるとモデルは任意の $L$ 次三角多項式に到達できそうに見えますが、ユニタリ性は数え上げに現れない形で係数を制約します（まず $|f| \le 1$ が各点で成り立ちます）。</p>
+<p>そこでその差を測ります。急峻な周期ターゲット $g(x) = \tanh(4\sin x)$ を固定します。フーリエ係数の減衰が遅く、奇数調波にのみ重みがあります。各 $L$ で2つの数値を比較します。<em>可能な最良の</em> $L$ 次三角多項式のRMSE — フーリエ打ち切り誤差であり、情報理論的に硬い下限 — と、回路を実際にフィットして達成されるRMSEです。</p>
+<pre><code class="language-python">&quot;&quot;&quot;第2章 Code Example 5: 到達可能なスペクトルのうち実際に使われる部分。
+Code Example 4 の続き（同一セッション）。&quot;&quot;&quot;
+from scipy.optimize import minimize
+
+N = 64
+xs = 2.0 * np.pi * np.arange(N) / N
+g = np.tanh(4.0 * np.sin(xs))                  # ターゲット: 急峻な周期プロファイル
+cg = np.fft.fft(g) / N
+
+
+def reupload_batch(xs, thetas):
+    &quot;&quot;&quot;reupload_model と同じモデルを、x の配列全体について一度に評価する。
+
+    1量子ビット回路は 2x2 行列の積なので、グリッド全体を一括行列積で処理でき
+    ます。ループより3桁高速で、下でシミュレータとの一致を機械精度で検証します。
+    &quot;&quot;&quot;
+    U = np.broadcast_to(W(thetas[0]), (xs.size, 2, 2)).copy()
+    for th in thetas[1:]:
+        e = np.exp(-0.5j * xs)
+        S = np.zeros((xs.size, 2, 2), dtype=complex)
+        S[:, 0, 0], S[:, 1, 1] = e, np.conj(e)      # 各グリッド点に Rz(x) を1つ
+        U = W(th) @ S @ U
+    a = U[:, :, 0]                                  # |0&gt; に作用する列
+    return (np.abs(a[:, 0]) ** 2 - np.abs(a[:, 1]) ** 2).real   # &lt;Z&gt;
+
+
+thetas = np.random.default_rng(5).uniform(0, 2 * np.pi, (4, 3))
+ref = np.array([reupload_model(x, thetas) for x in xs])
+print(&quot;一括評価はシミュレータと一致します&quot;)
+print(&quot;-&quot; * 68)
+print(f&quot;  64点のグリッド上での最大 |一括 - シミュレータ| = &quot;
+      f&quot;{np.max(np.abs(reupload_batch(xs, thetas) - ref)):.2e}&quot;)
+
+
+def truncation_rmse(L):
+    &quot;&quot;&quot;最良の L 次三角多項式（フーリエ打ち切り）のRMSE&quot;&quot;&quot;
+    keep = np.zeros(N, dtype=complex)
+    keep[:L + 1] = cg[:L + 1]
+    if L &gt; 0:
+        keep[-L:] = cg[-L:]
+    return float(np.sqrt(np.mean((np.real(np.fft.ifft(keep) * N) - g) ** 2)))
+
+
+def mse(p, L):
+    &quot;&quot;&quot;学習可能モデル a * f(x) + b の g に対する平均二乗誤差&quot;&quot;&quot;
+    return float(np.mean((p[0] * reupload_batch(xs, p[2:].reshape(L + 1, 3))
+                          + p[1] - g) ** 2))
+
+
+def fit(L, restarts=8, seed=0):
+    &quot;&quot;&quot;re-uploading モデルの最小二乗フィット。`restarts` 回の初期値の最良値&quot;&quot;&quot;
+    rng = np.random.default_rng(seed)
+    best = np.inf
+    for _ in range(restarts):
+        p0 = np.concatenate(([1.0, 0.0], rng.uniform(0, 2 * np.pi, 3 * (L + 1))))
+        r = minimize(mse, p0, args=(L,), method='L-BFGS-B',
+                     options={'maxiter': 3000, 'ftol': 1e-15, 'gtol': 1e-12})
+        best = min(best, float(np.sqrt(r.fun)))
+    return best
+
+
+print(&quot;\nターゲット g(x) = tanh(4 sin x) のフーリエ係数&quot;)
+print(&quot;-&quot; * 68)
+print(f&quot;  {'w':&gt;3} {'|c_w|':&gt;10}    {'w':&gt;3} {'|c_w|':&gt;10}&quot;)
+for w in range(0, 5):
+    print(f&quot;  {w:3d} {abs(cg[w]):10.6f}    {w+5:3d} {abs(cg[w+5]):10.6f}&quot;)
+
+print(&quot;\n普遍性: スペクトルの上限と1量子ビットモデルが実際に到達する精度&quot;)
+print(&quot;-&quot; * 68)
+print(f&quot;  {'L':&gt;2} {'freqs':&gt;6} {'params':&gt;7} {'degree-L floor':&gt;15} {'fitted model':&gt;13} {'ratio':&gt;7}&quot;)
+for L in range(1, 8):
+    tr, md = truncation_rmse(L), fit(L)
+    print(f&quot;  {L:2d} {2*L+1:6d} {3*(L+1)+2:7d} {tr:15.4f} {md:13.4f} {md/tr:7.2f}&quot;)
+print(f&quot;  最良の定数予測器のRMSE = {np.std(g):.4f}&quot;)
+</code></pre>
+<pre><code class="language-text">一括評価はシミュレータと一致します
+--------------------------------------------------------------------
+  64点のグリッド上での最大 |一括 - シミュレータ| = 8.33e-16
+
+ターゲット g(x) = tanh(4 sin x) のフーリエ係数
+--------------------------------------------------------------------
+    w      |c_w|      w      |c_w|
+    0   0.000000      5   0.070868
+    1   0.619056      6   0.000000
+    2   0.000000      7   0.032125
+    3   0.168265      8   0.000000
+    4   0.000000      9   0.014826
+
+普遍性: スペクトルの上限と1量子ビットモデルが実際に到達する精度
+--------------------------------------------------------------------
+   L  freqs  params  degree-L floor  fitted model   ratio
+   1      3       8          0.2632        0.2632    1.00
+   2      5      11          0.2632        0.2632    1.00
+   3      7      14          0.1126        0.1126    1.00
+   4      9      17          0.1126        0.1126    1.00
+   5     11      20          0.0512        0.0512    1.00
+   6     13      23          0.0512        0.0512    1.00
+   7     15      26          0.0237        0.0237    1.00
+  最良の定数予測器のRMSE = 0.9142
+</code></pre>
+<p><strong>注目すべき点。</strong> 比の列は $L = 1$ から7まですべて1.00です。1量子ビットのre-uploadingモデルは $L$ 次近似の下限に近づくだけでなく、それを<strong>飽和</strong>します。このターゲットについては、ユニタリ性からの制約はコストをまったく生んでおらず、フィットを制限しているのは周波数の予算だけです。</p>
+<p>下限の列にある階段が第二の教訓です。$L = 1$ から $L = 2$ への移行は何も買わず（どちらも0.2632）、$3 \to 4$（どちらも0.1126）も $5 \to 6$（どちらも0.0512）も同じです。理由は係数の表に見えています。$\tanh(4\sin x)$ は $x = 0$ と $\pi$ について奇関数なので、偶数調波が恒等的に消えます。符号化ゲートを1つ足すことが役に立つのは、それが解禁する周波数にターゲットが重みを持つときだけです。これが定理の実用的な形です。<strong>深さを選ぶ前に、予測したい物性のスペクトルを見てください。</strong> 層の半分は無料で、半分は無駄になりえます。</p>
+<p>フィット自体について1つ注意しておきます。結果の誠実さと同じくらい手法の誠実さが重要だからです。ここでの最適化は L-BFGS-B とシード固定の8回のリスタートによる素朴な最小二乗フィットであり、1量子ビット回路の一括評価を使っています。この一括評価は最初のブロックでシミュレータと $8\times10^{-16}$ の一致が検証されています。ショット数の制約のあるデバイス上でのparameter-shift訓練ループではありません。それは第4章の主題であり、そこでの数値はもっと悪くなりますが、その理由はスペクトルとは無関係です。</p>
+<hr />
+<h2>2.5 バンド幅 — すべてを決めるハイパーパラメータ</h2>
+<h3>スケール因子が何をするか</h3>
+<p>符号化にスケール因子を入れます: $x_j \mapsto b\,\pi x_j$。re-uploadingの視点ではこれは到達可能な周波数を $b$ 倍します。カーネルの視点ではカーネルを伸縮させ、積型angle符号化ではその効果が陽に書けます。</p>
+<p>$$ k_b(x,x') = \prod_{j=1}^{d} \cos^2\left(\frac{b\,\pi (x_j - x'_j)}{2}\right) $$</p>
+<p>2つの極限はどちらも破滅的で、しかも逆の仕方で破綻します。</p>
+<p><strong>小さい $b$。</strong> $b \to 0$ で展開すると $k_b(x,x') \approx 1 - \tfrac{b^2\pi^2}{4}\lVert x - x'\rVert^2$ なので、グラム行列は全成分1の行列に近づきます。スペクトルは1つの大きな固有値に潰れます。ランク1、有効次元1、そしてモデルが表現できるのは定数と小さな線形補正だけです。これは<strong>構成上の未学習</strong>であり、強く正則化したフィットの訓練誤差だけを見ていると気づきません。</p>
+<p><strong>大きい $b$。</strong> コサインが速く振動し、$b$ が典型的な $1/\Delta x_{\text{typ}}$ より大きくなると非対角成分は実質的にランダムで小さくなります。グラム行列は単位行列に近づきます。有効次元は $N$ になり、フィットされた関数は訓練点に立つスパイクの集まりです。これは<strong>構成上の過学習</strong>であり、訓練/テスト分割では<em>見えます</em> — 訓練誤差がゼロに行き、テスト誤差が定数予測器のベースラインを超えます。</p>
+<p>その中間のどこかで、カーネルの相関長がサンプル間の典型間隔と一致し、そこがカーネル法が機能する場所です。最適値はハードウェアの性質ではなくデータの性質であり、この分野で最も重要な単一のハイパーパラメータです。しかも既定値で誤りやすい。慣習的な「$[0,1]$ を1回転に写す」という選択は $b$ の選択であり、データとは何の関係もない理由で決められています。</p>
+<h3>表現力と汎化のトレードオフ、定量的に</h3>
+<p>その下には一般的な原理があります。カーネルが露出させる方向の数 $d_{\text{eff}}$ はパラメータ数の役割を果たします。$d_{\text{eff}} \ll N$ で $N$ サンプルをフィットするとモデルはデータに追随できず、$d_{\text{eff}} \approx N$ でフィットするとサンプル間を制約するものが何も残りません。符号化のバンド幅は $d_{\text{eff}}$ を1から $N$ まで滑らかに動かすので、1つのつまみでバイアス・バリアンスのトレードオフ全体を内挿します。「量子カーネルは汎化しない」と報告する文献と競争力のある性能を報告する文献が、たいてい同じカーネルを2つの異なるバンド幅で走らせているのはこのためです。</p>
+<h3>Code Example 6: 契約データセット上で最適値を探す</h3>
+<p>バンド幅 $b$ のangle符号化、ユークリッド内積がカーネルに等しくなるようベクトル化した特徴 $\rho(x)$、そしてその明示的特徴空間での固定 $\lambda = 10^{-4}$ のリッジ回帰です。第3章でこれがカーネルリッジ回帰と同じ推定量であることを示しますが、以下では $\lambda$ を<em>選択</em>する場面ではその双対形を用います。$40\times40$ の解法は小さな $\lambda$ でも条件が保たれるのに対し、$136\times136$ の方は保たれないからです。</p>
+<p>3つの列については、数値を見る前にその位置づけを述べておく必要があります。第1章プロトコルのR4がまさにこの点にかかっているからです。<code>train</code> と <code>test</code> は固定した $\lambda = 10^{-4}$ での値です。<code>CV</code>、<code>lambda*</code>、<code>test@CV</code> は40訓練行に対する5分割交差検証で $\lambda$ を選び、テスト集合を一切参照しません — これが誠実な列です。<code>test@orc</code> は $\lambda$ のグリッド全体でテスト誤差を最小化したもので、<strong>オラクルの上限</strong>です。各バンド幅が最良でどこまで到達しうるかを示すために掲載しており、そこから結論は引きません。この表ではバンド幅自体も<em>選択されていません</em>。$b = 1$ は慣習的な既定値であり、バンド幅のグリッドをきちんと交差検証するのは第3章です。</p>
+<pre><code class="language-python">&quot;&quot;&quot;第2章 Code Example 6: バンド幅、表現力、汎化。
+Code Example 2 の続き（同一セッション）。&quot;&quot;&quot;
+
+def rho_features(psi):
+    &quot;&quot;&quot;|phi&gt;&lt;phi| をベクトル化し、ユークリッド内積が Tr[rho rho'] に等しくする&quot;&quot;&quot;
+    R = np.outer(psi.conj(), psi).real
+    D = R.shape[0]
+    iu = np.triu_indices(D, 1)
+    return np.concatenate([np.diag(R), np.sqrt(2.0) * R[iu]])
+
+
+def ridge_fit(Phi, y, lam):
+    &quot;&quot;&quot;特徴空間での閉形式リッジ回帰: w = (Phi^T Phi + lam I)^-1 Phi^T y&quot;&quot;&quot;
+    A = Phi.T @ Phi + lam * np.eye(Phi.shape[1])
+    return np.linalg.solve(A, Phi.T @ y)
+
+
+def rmse(a, b):
+    return float(np.sqrt(np.mean((a - b) ** 2)))
+
+
+# 同じ推定量を双対形で書いたもの。第3章が使うのはこの形である。解くのは
+# 136x136 ではなく 40x40 で、小さな lambda でも条件が保たれ、ここで lambda を
+# 誠実に交差検証できるのはそのおかげである。
+def krr_fit(K, y, lam):
+    mu = float(y.mean())
+    return np.linalg.solve(K + lam * np.eye(K.shape[0]), y - mu), mu
+
+
+def cv_rmse(K, y, lam, nfold=5):
+    &quot;&quot;&quot;訓練行のみでのプールされた5分割CV誤差（第3章と同じ推定量）&quot;&quot;&quot;
+    idx = np.arange(len(y))
+    err = []
+    for f in range(nfold):
+        va = idx[f::nfold]
+        tr = np.setdiff1d(idx, va)
+        al, mu = krr_fit(K[np.ix_(tr, tr)], y[tr], lam)
+        err.append(K[np.ix_(va, tr)] @ al + mu - y[va])
+    return float(np.sqrt(np.mean(np.concatenate(err) ** 2)))
+
+
+X, y = make_materials_dataset()
+Xtr, ytr, Xte, yte = X[:40], y[:40], X[40:], y[40:]
+mu = ytr.mean()
+
+print(&quot;特徴写像の健全性検査: 特徴ベクトルの内積は量子カーネルに等しい&quot;)
+print(&quot;-&quot; * 74)
+f0, f1 = rho_features(angle_encode(X[0])), rho_features(angle_encode(X[1]))
+print(f&quot;  4量子ビットの特徴次元 = {f0.size}  （D = 16 のとき D(D+1)/2）&quot;)
+print(f&quot;  f(x0).f(x1)           = {f0 @ f1:.9f}&quot;)
+print(f&quot;  |&lt;phi(x0)|phi(x1)&gt;|^2 = {abs(np.vdot(angle_encode(X[0]), angle_encode(X[1])))**2:.9f}&quot;)
+print(f&quot;  ||f(x0)||^2           = {f0 @ f0:.9f}  （純粋状態: Tr[rho^2] = 1）&quot;)
+
+print(&quot;\nバンド幅の走査: Ry(b * pi * x_j) 型 angle encoding&quot;)
+print(&quot;-&quot; * 86)
+print(&quot;  train と test は固定した lam = 1e-4 での値。CV、lam*、test@CV は40訓練行の&quot;)
+print(&quot;  5分割CVで lambda を選ぶ。test@orc は各バンド幅の上限を示すために lambda を&quot;)
+print(&quot;  テスト集合上で選んだもので、選択ではない。&quot;)
+print(f&quot;  {'b':&gt;6} {'off-diag k':&gt;11} {'eff.dim':&gt;8} {'train':&gt;8} {'test':&gt;8} &quot;
+      f&quot;{'CV':&gt;8} {'lambda*':&gt;9} {'test@CV':&gt;9} {'test@orc':&gt;9}&quot;)
+LAMS = np.logspace(-8, 2, 41)
+lam = 1e-4
+rows = []
+for b in [0.125, 0.25, 0.5, 1.0, 2.0, 4.0, 8.0, 16.0]:
+    Ptr = np.array([rho_features(angle_encode(v, b)) for v in Xtr])
+    Pte = np.array([rho_features(angle_encode(v, b)) for v in Xte])
+    K, Kx = Ptr @ Ptr.T, Pte @ Ptr.T
+    w = np.linalg.eigvalsh(K).real.clip(0.0)
+    ed = w.sum() ** 2 / np.sum(w ** 2)
+    off = K[~np.eye(40, dtype=bool)]
+    wt = ridge_fit(Ptr, ytr - mu, lam)
+    tr_e, te_e = rmse(Ptr @ wt + mu, ytr), rmse(Pte @ wt + mu, yte)
+
+    def test_at(l):
+        al, m = krr_fit(K, ytr, l)
+        return rmse(Kx @ al + m, yte)
+
+    cv, lam_cv = min((cv_rmse(K, ytr, l), l) for l in LAMS)
+    te_cv, te_orc = test_at(lam_cv), min(test_at(l) for l in LAMS)
+    rows.append((b, off.mean(), ed, tr_e, te_e, cv, lam_cv, te_cv, te_orc))
+    print(f&quot;  {b:6.3f} {off.mean():11.6f} {ed:8.3f} {tr_e:8.4f} {te_e:8.4f} &quot;
+          f&quot;{cv:8.4f} {lam_cv:9.1e} {te_cv:9.4f} {te_orc:9.4f}&quot;)
+
+base = rmse(np.full(20, mu), yte)
+print(f&quot;\n  平均値を予測するベースライン: テストRMSE = {base:.4f}&quot;)
+r1 = next(r for r in rows if r[0] == 1.0)
+print(f&quot;  慣習的な既定値 b = 1 で、訓練行のみのCVが選んだ lambda = {r1[6]:.1e} のとき:&quot;)
+print(f&quot;  テストRMSE {r1[7]:.4f}、ベースラインより {100*(1 - r1[7]/base):.1f}% 改善&quot;)
+orc = min(rows, key=lambda r: r[8])
+print(f&quot;  走査中の test@orc 最小値: {orc[8]:.4f}（b = {orc[0]:.3f}）-- これはオラクルの&quot;)
+print(f&quot;  上限であって結果ではない。ここでは上の誠実な数値と一致する&quot;)
+cvb = min(rows, key=lambda r: r[5])
+print(f&quot;  走査中のCV最小値: {cvb[5]:.4f}（b = {cvb[0]:.3f}）、そのテストRMSEは {cvb[7]:.4f}。&quot;)
+print(f&quot;  40行ではCVでバンド幅の最適値を突き止められない。小さい b ではグラム行列が&quot;)
+print(f&quot;  ほぼ階数不足になり、ほとんど正則化されないフィットが各フォールドを補間して&quot;)
+print(f&quot;  CVスコアが楽観的になるからである。第3章は同じCVを 0.25 から始まる&quot;)
+print(f&quot;  バンド幅グリッドで走らせ、そちらは b = 1 に到達する。&quot;)
+
+# R6: 見出しの数値は差なので、対応のある区間を伴う。
+def paired_bootstrap(y_true, pred_a, pred_b, B=10000, seed=0, alpha=0.05):
+    &quot;&quot;&quot;RMSE(a) - RMSE(b) の95%区間。両者に同じテスト行を再標本化して用いる&quot;&quot;&quot;
+    rng = np.random.default_rng(seed)
+    d = np.empty(B)
+    m = len(y_true)
+    for b in range(B):
+        i = rng.integers(0, m, m)
+        d[b] = (np.sqrt(np.mean((y_true[i] - pred_a[i]) ** 2))
+                - np.sqrt(np.mean((y_true[i] - pred_b[i]) ** 2)))
+    return (float(d.mean()), float(np.quantile(d, alpha / 2)),
+            float(np.quantile(d, 1 - alpha / 2)))
+
+
+Ptr1 = np.array([rho_features(angle_encode(v, 1.0)) for v in Xtr])
+Pte1 = np.array([rho_features(angle_encode(v, 1.0)) for v in Xte])
+al1, m1 = krr_fit(Ptr1 @ Ptr1.T, ytr, r1[6])
+pred_b1 = Pte1 @ Ptr1.T @ al1 + m1
+print(&quot;\nR6: 72.8% という数値は差なので、対応のある区間を伴う&quot;)
+print(&quot;-&quot; * 86)
+for label, pa, pb in [(&quot;b = 1 (CV lambda)  -  predict the mean&quot;, pred_b1,
+                       np.full(20, mu))]:
+    mn, lo, hi = paired_bootstrap(yte, pa, pb)
+    v = &quot;A better&quot; if hi &lt; 0.0 else (&quot;B better&quot; if lo &gt; 0.0 else &quot;no call&quot;)
+    print(f&quot;  {label:&lt;44}{mn:+10.4f}   [{lo:+.4f}, {hi:+.4f}]{v:&gt;10}&quot;)
+
+print(&quot;\n2つの破綻モードはどこから来るのか&quot;)
+print(&quot;-&quot; * 74)
+for b in [0.125, 1.0, 16.0]:
+    Ptr = np.array([rho_features(angle_encode(v, b)) for v in Xtr])
+    K = Ptr @ Ptr.T
+    w = np.sort(np.linalg.eigvalsh(K).real)[::-1] / 40.0
+    print(f&quot;  b = {b:6.3f}: 規格化グラム固有値の上位4個 &quot;
+          f&quot;{np.round(w[:4], 4)}  残りの和 {w[4:].sum():.4f}&quot;)
+</code></pre>
+<pre><code class="language-text">特徴写像の健全性検査: 特徴ベクトルの内積は量子カーネルに等しい
+--------------------------------------------------------------------------
+  4量子ビットの特徴次元 = 136  （D = 16 のとき D(D+1)/2）
+  f(x0).f(x1)           = 0.033268934
+  |&lt;phi(x0)|phi(x1)&gt;|^2 = 0.033268934
+  ||f(x0)||^2           = 1.000000000  （純粋状態: Tr[rho^2] = 1）
+
+バンド幅の走査: Ry(b * pi * x_j) 型 angle encoding
+--------------------------------------------------------------------------------------
+  train と test は固定した lam = 1e-4 での値。CV、lam*、test@CV は40訓練行の
+  5分割CVで lambda を選ぶ。test@orc は各バンド幅の上限を示すために lambda を
+  テスト集合上で選んだもので、選択ではない。
+       b  off-diag k  eff.dim    train     test       CV   lambda*   test@CV  test@orc
+   0.125    0.974479    1.051   0.1931   0.2496   0.1641   1.0e-08    0.2527    0.1980
+   0.250    0.902245    1.217   0.0991   0.2613   0.2085   1.0e-08    0.2952    0.1951
+   0.500    0.668734    2.061   0.0129   0.1665   0.2627   3.2e-04    0.1496    0.1496
+   1.000    0.237422    7.838   0.0005   0.1549   0.1986   3.2e-03    0.1425    0.1425
+   2.000    0.057185   24.696   0.0001   0.4869   0.4582   1.8e-01    0.4270    0.4127
+   4.000    0.059383   22.490   0.0003   0.9201   0.5671   3.2e+00    0.5548    0.5252
+   8.000    0.061527   22.330   0.0006   0.7398   0.5742   1.0e+02    0.5238    0.5181
+  16.000    0.065738   21.504   0.0002   0.7277   0.5204   1.8e-01    0.6099    0.5177
+
+  平均値を予測するベースライン: テストRMSE = 0.5242
+  慣習的な既定値 b = 1 で、訓練行のみのCVが選んだ lambda = 3.2e-03 のとき:
+  テストRMSE 0.1425、ベースラインより 72.8% 改善
+  走査中の test@orc 最小値: 0.1425（b = 1.000）-- これはオラクルの
+  上限であって結果ではない。ここでは上の誠実な数値と一致する
+  走査中のCV最小値: 0.1641（b = 0.125）、そのテストRMSEは 0.2527。
+  40行ではCVでバンド幅の最適値を突き止められない。小さい b ではグラム行列が
+  ほぼ階数不足になり、ほとんど正則化されないフィットが各フォールドを補間して
+  CVスコアが楽観的になるからである。第3章は同じCVを 0.25 から始まる
+  バンド幅グリッドで走らせ、そちらは b = 1 に到達する。
+
+R6: 72.8% という数値は差なので、対応のある区間を伴う
+--------------------------------------------------------------------------------------
+  b = 1 (CV lambda)  -  predict the mean         -0.3792   [-0.5114, -0.2412]  A better
+
+2つの破綻モードはどこから来るのか
+--------------------------------------------------------------------------
+  b =  0.125: 規格化グラム固有値の上位4個 [0.9751 0.0092 0.007  0.0048]  残りの和 0.0039
+  b =  1.000: 規格化グラム固有値の上位4個 [0.2754 0.1335 0.1108 0.0909]  残りの和 0.3894
+  b = 16.000: 規格化グラム固有値の上位4個 [0.1011 0.0839 0.0622 0.0607]  残りの和 0.6920
+</code></pre>
+<p><strong>注目すべき点。</strong> テスト誤差の列は教科書的なU字であり、その両端はどちらも定量的に解釈できます。</p>
+<p>$b = 0.125$ では非対角カーネルの平均が0.974、有効次元が1.05です。グラム行列は1%以内で全成分1の行列であり、最大固有値がトレースの97.5%を占め、モデルは平均よりたいして良いことができません。$b = 16$ では非対角平均が0.066まで落ち、有効次元が21.5まで上がり、テストRMSE 0.728 は<strong>訓練平均を予測するより悪い</strong>（0.524）一方で訓練RMSEは $2\times10^{-4}$ です。これは量子特徴写像による暗記であり、文献の否定的結果の大半を生んでいる破綻モードです。</p>
+<p>最適値は $b = 1$ で、これは慣習的な既定値でもあり、誠実な列とオラクルの列が一致する唯一の行です。訓練行に対する5分割交差検証が選んだ $\lambda = 3.2\times10^{-3}$ でテストRMSEは0.1425、ベースラインの0.5242に対して72.8%の改善であり、$\lambda$ のグリッド全体をテスト集合上で最小化しても何も得られません。対応する有効次元は40のうち7.8 — 訓練サンプル5個あたり使える方向1個程度で、カーネル法がおおよそ望む位置です。第3章はバンド幅自体を交差検証した上で同じ積型コサインカーネルについて同じ0.1425に到達するので、この数値はきちんとした手続きを経ても生き残ります。そして72.8%は<em>差</em>なので、R6が適用されます。定数予測器に対する対応のあるブートストラップは $-0.379$、95%区間 $[-0.511, -0.241]$ で完全にゼロより下です。これは判定に迷う例ではなく、効果が実験の解像度よりはるかに大きい、本コースでは稀な場合です。</p>
+<p><code>CV</code> の列には、脚注ではなく本文に置くべき不都合な結果が載っています。40行での交差検証は $b = 1$ を<strong>見つけません</strong>。走査中の最小スコア0.1641は $b = 0.125$ にあり、そこでの実際のテストRMSEは0.2527です。CVスコアが単に雑音を含むだけでなく特定の方向に偏っているので、これは最悪の種類の選択誤りです。機構は <code>eff.dim</code> の列に見えています。$b = 0.125$ ではグラム行列がほぼ階数1なので、そこでCVが選ぶ $\lambda = 10^{-8}$ ではフィットがほぼゼロ固有値の方向を通って各フォールドを補間し、ホールドアウト誤差が実際より良く見えるのです。ここで交差検証によるバンド幅選択が機能するのは、グリッドが縮退寸前の設定を除いたときだけで、それが 0.25 から始まる第3章のグリッドです。教訓は2つあり、本コースの残りが依拠するのは2番目です。バンド幅は走査しなさい。そして、カーネルが補間できるほど小さい $\lambda$ で計算された交差検証スコアは信用しないこと。第5章の5.3節は古典側で同じ破綻を見つけます — そこでは5分割CVが、あてずっぽうより悪い放射基底関数の幅を選びます。</p>
+<p>コストについて定量的な補足を1つ。第3章につながる話です。$b = 16$ では非対角成分の平均が0.066、標準偏差が約0.02です。これらを区別するにはそのばらつきよりずっと小さい標準誤差が必要で、たとえば $\varepsilon = 0.002$ とします。カーネル成分を $S$ ショットの測定から推定すると二項分布の標準誤差 $\sqrt{k(1-k)/S}$ になるので、</p>
+<p>$$ S \; \gtrsim \; \frac{k(1-k)}{\varepsilon^2} = \frac{0.066 \times 0.934}{4\times10^{-6}} \approx 1.5\times 10^{4} $$</p>
+<p>ショットが<strong>行列の成分1つあたり</strong>必要で、この小さな訓練集合でも成分は $N(N-1)/2 = 780$ 個あります。過学習するバンド幅は測定が高価なバンド幅でもあり、両方の問題は同じ原因を持ちます。デルタ関数の方向に押しやられたカーネルです。第3章はこの観察を本分野の中心的な障害に仕上げます。</p>
+<hr />
+<h2>2.6 材料研究のパイプラインにとって何を意味するか</h2>
+<p>本章の結果を、実務者が出会う順に並べます。</p>
+<p><strong>符号化はモデリングの決定であり、あらゆるものの上流にあります。</strong> 古典的なパイプラインで、計算が最も安いという理由で記述子を選ぶことはしないでしょう。どれが物理を担っているかを問うはずです。同じ規律がここにも当てはまり、符号化が記述子の層です。basis符号化は「これらの材料は同一でない限り無関係である」と言い、amplitude符号化は「組成ベクトルの方向だけが重要である」と言い、angle符号化は「物性は各記述子について滑らかで低周波の関数である」と言います。これらは物理的な仮説であり、検証可能です — ターゲットに対するグラム行列の固有値スペクトルがその検証です。</p>
+<p><strong>量子ビット数は数えるべき資源として誤りです。</strong> amplitude符号化の対数的レジスタは多くの高速化議論の見出しであり、Code Example 2 はそれに付随する $d-1$ 回転を示します。1024次元の記述子ベクトルなら10量子ビットと約1000個の多重制御回転であり、どんな現実的ハードウェアでもコヒーレンス予算が許すより深い回路です。amplitude符号化が意味を持つのはベクトルが<em>構造化されている</em>場合 — 滑らかなスペクトル、低ランクの状態密度、積形の分布 — です。</p>
+<p><strong>カーネルに閉形式があるなら、それは古典モデルです。</strong> 本章の3つの符号化はいずれも1行の算術で書けるカーネルを与えます。これは符号化への批判ではありません — 積コサインカーネルは完全にまともなカーネルであり、第3章ではこのデータセットで検証した中で最も性能の良いカーネルになります。批判の対象は、そうしたモデルを量子機械学習と呼ぶことです。カーネル法の量子的な内容とは、書き下せない部分そのものであり、その部分を作り出すにはエンタングルメントと深さとショットのコストがかかります。</p>
+<p><strong>何よりも先にバンド幅を調整してください。</strong> 本章から1つだけ運用上の指示を持ち帰るなら、これにしてください。ansatzを比較する前、層を足す前、ノイズを心配する前に、入力のスケール因子を走査してグラム行列の有効次元を見てください。役に立たないと報告された量子カーネルは、たいていデータが $b = 0.1$ を望んでいたのに $b = 1$ で走った量子カーネルです。第3章には明示的な例があります。同じエンタングル特徴写像が、その1つの数値のおかげで「平均より悪い」から「最良の古典モデルの16%以内」に変わります。</p>
+<p><strong>周波数の視点はどれだけの深さを買うべきかを教えます。</strong> 挿入回数 $L$ のre-uploadingモデルは $L$ 次の三角多項式です。物性が組成に対して滑らかに変化するなら — 形成エネルギーや弾性定数では一般にそうです — $L$ は2か3で話は終わり、それを超える深さはターゲットが含まない周波数を買うだけです。ターゲットのスペクトルを古典的なフィットから見積もるコストはゼロであり、量子資源を投入する前に決着します。</p>
+<hr />
+<h2>演習</h2>
+<h4>演習1: angle符号化のカーネルと、そのRKHSの本当の大きさ</h4>
+<p>$d = 4$ とし、angle符号化 $|\phi(x)\rangle = \bigotimes_j R_y(\pi x_j)|0\rangle$ を考えます。</p>
+<ol>
+<li>因子分解した重なりから $k(x,x') = \prod_j \cos^2(\pi(x_j - x'_j)/2)$ を導出し、$x = (0.2, 0.5, 0.8, 0.1)$、$x' = (0.3, 0.5, 0.6, 0.4)$ で評価してください。</li>
+<li>$k$ を差 $x_j - x'_j$ の複素指数関数の和として書き直してください。異なる項は何個ありますか。その個数は再生核Hilbert空間の次元について何を言っていますか。</li>
+<li>4量子ビットの実状態の対称特徴空間の次元は $D(D+1)/2 = 136$ です。ランダムな200サンプルのグラム行列のランクを予測し、数値的に確認してください。</li>
+<li><em>サンプル数</em>をそのランク以上に増やしてもモデルの容量が増えない理由を1文で説明してください。</li>
+</ol>
+<details>
+<summary>解答</summary>
+
+<p><strong>1.</strong> 状態が因子分解するので重なりは1量子ビットの重なりの積です。\(R_y(\theta)|0\rangle = \cos(\theta/2)|0\rangle + \sin(\theta/2)|1\rangle\) と \(\theta_j = \pi x_j\) より、各因子は \(\cos(\theta_j/2)\cos(\theta'_j/2) + \sin(\theta_j/2)\sin(\theta'_j/2) = \cos((\theta_j - \theta'_j)/2)\) です。積の絶対値を2乗すれば示された形になります。数値的には4つの因子が 0.975528、1、0.904508、0.793893 で、積は \(k = 0.700510\) です。2番目の因子に注目してください。座標が一致しているので、その量子ビットの寄与はちょうど1です。</p>
+
+<p><strong>2.</strong> \(\cos^2 u = (1 + \cos 2u)/2\) を使うと \(k = \prod_j \tfrac{1}{2}\left(1 + \cos\pi(x_j - x'_j)\right) = \prod_j \tfrac{1}{2}\left(1 + \tfrac{1}{2}e^{i\pi(x_j-x'_j)} + \tfrac{1}{2}e^{-i\pi(x_j-x'_j)}\right)\)。積を展開すると各座標で \(\omega_j \in \lbrace -1, 0, +1\rbrace\) を選ぶごとに1項が生じ、\(3^4 = 81\) 項になります。したがってRKHSは81個の関数 \(\prod_j e^{i\pi\omega_j x_j}\) で張られ、次元は81です。大きいが固定の定数であり、何についても指数的ではありません。\(3^d\) は特徴量数について指数的であって、\(d\) が与える以上の量子ビット数について指数的なのではありません。</p>
+
+<p><strong>3.</strong> ランクはサンプル数（200）、対称特徴次元（136）、そして積構造が含意するRKHS次元（81）の最小値で抑えられます。束縛条件になるのは積構造です。各量子ビットの縮約状態は自由度3の \(2\times 2\) 実対称行列であり、特徴ベクトルはそれらのテンソル積なので \(3^d = 81\) になります。測定されたランクはちょうど81です。</p>
+
+<p><strong>4.</strong> フィットされる関数はカーネルが提供する81個の基底関数の線形結合であり、サンプルを増やすことは制約を増やすだけで方向を増やさないので、ランク81を超えるとグラム行列の追加行は先行する行に線形従属になります。</p>
+
+
+<pre><code class="language-python">import numpy as np
+x  = np.array([0.2, 0.5, 0.8, 0.1])
+xp = np.array([0.3, 0.5, 0.6, 0.4])
+fac = np.cos(np.pi * (x - xp) / 2) ** 2
+print(&quot;各因子&quot;, np.round(fac, 6), &quot; k =&quot;, round(float(np.prod(fac)), 6))
+# 各因子 [0.975528 1.       0.904508 0.793893]  k = 0.70051
+
+rng = np.random.default_rng(0)
+Z = rng.uniform(0, 1, (200, 4))
+K = np.prod(np.cos(np.pi * (Z[:, None, :] - Z[None, :, :]) / 2) ** 2, axis=2)
+w = np.linalg.eigvalsh(K).real
+print(&quot;ランク =&quot;, int(np.sum(w &gt; 1e-9 * np.trace(K))), &quot; 3**4 =&quot;, 3 ** 4)
+# ランク = 81  3**4 = 81
+</code></pre>
+
+
+</details>
+
+<h4>演習2: amplitude符号化の本当のコスト</h4>
+<p>長さ $d = 1024$ の記述子ベクトルを厳密にamplitude符号化します。</p>
+<ol>
+<li>二分木構成に必要な量子ビット数と $R_y$ 回転数はいくつですか。</li>
+<li>レベル $\ell$ の各回転は $\ell$ 個の制御量子ビットを持ち、$\ell$ 制御の1量子ビット回転は約 $2\ell$ 個のCNOTを要します。2量子ビットゲートの総数を見積もり、$d$ についての漸近形を与えてください。</li>
+<li>2つの組成ベクトルが全体の因子2だけ異なります。誘導カーネルはそれらについて何を言いますか。記述子への最小限の変更でどう直せますか。</li>
+<li>amplitude符号化が<em>見合う</em>条件を述べ、材料の例を1つ挙げてください。</li>
+</ol>
+<details>
+<summary>解答</summary>
+
+<p><strong>1.</strong> \(m = \log_2 1024 = 10\) 量子ビットと \(2^{10} - 1 = 1023\) 回転です。回転数が振幅数より1つ少ないのは、二分木のノードが振幅1つにつき1個あり、根を除くという言明です。</p>
+
+<p><strong>2.</strong> \(\sum_{\ell=0}^{9} 2^{\ell}\max(1, 2\ell) = 16389\) 個のCNOT、すなわち \(2 d \log_2 d\) のオーダーです。漸近的にはこの構成は \(\Theta(d \log d)\) 個の2量子ビットゲートであり、より厳しい \(\Theta(d)\) 構成でも線形因子は消えません。読み込むべき独立な角度が \(d-1\) 個あり、1つのゲートが運べるのはそのうち \(O(1)\) 個だからです。</p>
+
+<p><strong>3.</strong> カーネルは \((\hat{x}\cdot\hat{x}')^2\) で、どちらの引数のスケール変換にも不変なので \(k = 1\) を返します。2つのベクトルは区別できません。全体のスケールが物理的に意味を持つ場合 — 総質量、絶対強度、セル体積 — にはパディング座標を1つ追加してください。たとえば典型的な \(\lVert x\rVert\) と同程度の定数 \(c\) を使って \(x \mapsto (x, c)\) とします。規格化後、パディングされたベクトルの方向は元のノルムに依存するようになります。</p>
+
+<p><strong>4.</strong> 見合うのは<em>短い回路が準備できるだけベクトルが構造化されている</em>ときであり、そのとき \(\Theta(d)\) の一般コストが多重対数的なものに置き換わります。例: 細かいエネルギーグリッド上でサンプルした滑らかな状態密度（下流モデルが必要とする精度で低深さansatzが近似できる）、非ゼロ成分が \(s \ll d\) の疎ベクトル（\(O(s\log d)\) で済む）、分離可能な分布（積状態）。1024元素にわたる生のone-hot組成ベクトルはそうした場合ではありません。</p>
+
+
+<pre><code class="language-python">for m in [2, 4, 10, 16]:
+    d = 2 ** m
+    print(f&quot;d = {d:6d}  量子ビット = {m:2d}  回転 = {d-1:6d}&quot;
+          f&quot;  CNOT ~ {sum(2**l * max(1, 2*l) for l in range(m)):8d}&quot;)
+# d =      4  量子ビット =  2  回転 =      3  CNOT ~        5
+# d =     16  量子ビット =  4  回転 =     15  CNOT ~       69
+# d =   1024  量子ビット = 10  回転 =   1023  CNOT ~    16389
+# d =  65536  量子ビット = 16  回転 =  65535  CNOT ~  1835013
+</code></pre>
+
+
+</details>
+
+<h4>演習3: basis符号化が暗記に終わる理由</h4>
+<p>$d = 4$ の契約データセットに特徴量あたり $b = 3$ ビットのbasis符号化を使うと $4 \times 3 = 12$ 量子ビット、$2^{12} = 4096$ 個の量子化セルになります。</p>
+<ol>
+<li>$N = 40$ サンプルを一様に取るとき、少なくとも2つが同じセルに落ちる確率を見積もってください。</li>
+<li>衝突がないと仮定してグラム行列を書き下し、カーネルリッジ回帰を閉形式で解いてください。</li>
+<li>得られたモデルはテスト点で何を予測しますか。契約データセットではそれはどんなテストRMSEを意味しますか。</li>
+<li>それでもbasis符号化が正しい選択となる材料タスクを1つ挙げてください。</li>
+</ol>
+<details>
+<summary>解答</summary>
+
+<p><strong>1.</strong> 誕生日問題の見積りで \(1 - \exp\left(-N(N-1)/(2 \times 4096)\right) = 1 - \exp(-0.1904) = 0.173\)、すなわち約17%です。無視できる大きさではなく、\(N\) について2次で増えます。</p>
+
+<p><strong>2.</strong> 衝突がなければ符号化された状態はすべて互いに直交するので \(K = I_{40}\) です。カーネルリッジ回帰は \(\alpha = (I + \lambda I)^{-1}(y - \bar{y}) = (y - \bar{y})/(1+\lambda)\) を与えます。</p>
+
+<p><strong>3.</strong> 訓練セルと一致しないテスト点 \(x^\ast\) ではすべての \(k(x^\ast, x_i) = 0\) なので、予測は保存された訓練平均 \(\bar{y}\) にちょうど等しくなります。契約データセットではテストRMSE 0.5242、\(R^2 = -0.1088\) — 定数予測器と同一です。このモデルは40点を完璧に暗記して何も学習していません。</p>
+
+<p><strong>4.</strong> 入力が本当に距離の定義されない離散ラベルであるとき。空間群番号、プロトタイプ構造の識別子、ドーパントの有無などです。そこでは「近い」が定義されないので、デルタカーネルは事前の無知を誠実に表明したものであり、モデルはクラスごとの平均になります — その仮説の下では正しい推定量です。</p>
+
+
+<pre><code class="language-python">import numpy as np
+N, cells = 40, 2 ** 12
+print(&quot;衝突確率 ~&quot;, round(1 - np.exp(-N * (N - 1) / (2 * cells)), 4))
+# 衝突確率 ~ 0.1734
+</code></pre>
+
+
+</details>
+
+<h4>演習4: 別の生成子によるスペクトル</h4>
+<p>re-uploading定理は符号化生成子の固有値だけに依存します。</p>
+<ol>
+<li>$S(x) = R_z(2x) = e^{-ixZ}$ について導出を繰り返してください。符号化ゲート $L$ 個での $\Omega$ は何になり、$f$ の周期はいくらになりますか。</li>
+<li>$L = 3$ について離散フーリエ変換を調べて答えを数値的に検証してください。</li>
+<li>次に2量子ビットで $S(x) = R_z(x) \otimes R_z(x)$ を1回挿入し、$\langle Z_0 Z_1\rangle$ を測定します。全体の生成子の固有値から $\Omega$ を予測し、確認してください。</li>
+<li>量子ビット数、挿入回数、スペクトル幅を結ぶ一般規則を述べてください。</li>
+</ol>
+<details>
+<summary>解答</summary>
+
+<p><strong>1.</strong> 生成子は固有値 \(\pm 1\) の \(Z\) なので、各対の差は \(\lbrace -2, 0, +2\rbrace\) にあり、\(L\) 個の和は \(-2L\) から \(2L\) までの偶数を動きます。周波数は依然として \(2L+1\) 個ですが間隔が2なので、\(f\) の周期は \(2\pi\) ではなく \(\pi\) です。生成子を2倍にするとバンド幅が2倍になり周期が半分になります。自由度は増えません。</p>
+
+<p><strong>2.</strong> \(L = 3\) で存在する非負周波数は \(\lbrace 0, 2, 4, 6\rbrace\) で、予測どおりです。それ以外はすべて \(10^{-16}\) の水準です。</p>
+
+<p><strong>3.</strong> 全体の生成子は固有値 \(\lbrace +1, 0, 0, -1 \rbrace\) をもつ \((Z \otimes I + I \otimes Z)/2\) です。差は \(\lbrace -2,-1,0,1,2 \rbrace\) にあるので、1回の挿入で既に \(\Omega = \lbrace -2,\ldots,2\rbrace\) が得られます。数値検証は非負周波数 \(\lbrace 0, 1, 2\rbrace\) を返します。</p>
+
+<p><strong>4.</strong> スペクトル幅は<em>全体の符号化生成子の固有値の広がり</em>に挿入回数を掛けたもので決まります。データを受け取る量子ビットを増やせば1回の挿入あたりの広がりが増え、挿入を増やせばそれが掛け算されます。どちらの道も周波数を買い、\(L\) 回挿入の1量子ビットは、1回ずつ挿入する \(L\) 量子ビットとスペクトルの意味でちょうど同じ表現力を持ちます — data re-uploading が幅を深さと交換するというのは、まさにこの意味です。</p>
+
+
+<pre><code class="language-python">import numpy as np
+from qcsim import *
+
+def W(t):
+    return rz(t[2]) @ ry(t[1]) @ rz(t[0])
+
+xs = 2 * np.pi * np.arange(64) / 64
+th = np.random.default_rng(3).uniform(0, 2 * np.pi, (4, 3))
+
+def one_qubit(x):
+    psi = apply_gate(ket('0'), W(th[0]), [0], 1)
+    for t in th[1:]:
+        psi = apply_gate(psi, rz(2.0 * x), [0], 1)
+        psi = apply_gate(psi, W(t), [0], 1)
+    return expval(psi, 'Z')
+
+c = np.fft.fft(np.array([one_qubit(x) for x in xs])) / 64
+print(&quot;Rz(2x), L = 3:&quot;, [w for w in range(33) if abs(c[w]) &gt; 1e-9])
+# Rz(2x), L = 3: [0, 2, 4, 6]
+
+t2 = np.random.default_rng(4).uniform(0, 2 * np.pi, (4, 3))
+
+def two_qubit(x):
+    psi = ket('00')
+    for q in range(2):
+        psi = apply_gate(psi, W(t2[q]), [q], 2)
+    for q in range(2):
+        psi = apply_gate(psi, rz(x), [q], 2)
+    for q in range(2):
+        psi = apply_gate(psi, W(t2[2 + q]), [q], 2)
+    return expval(psi, 'ZZ')
+
+c2 = np.fft.fft(np.array([two_qubit(x) for x in xs])) / 64
+print(&quot;2量子ビット、挿入1回:&quot;, [w for w in range(33) if abs(c2[w]) &gt; 1e-9])
+# 2量子ビット、挿入1回: [0, 1, 2]
+</code></pre>
+
+
+</details>
+
+<h4>演習5: バンド幅を見積もり、その代金を払う</h4>
+<p>ある物性が組成の範囲内で3回完全に振動する、すなわち主要なフーリエ成分が $x$ の単位あたり3サイクルにあるとします。</p>
+<ol>
+<li>$S(bx)$ と $L$ 回の挿入を使うとき、モデルがその周波数を含むために $Lb$ は最低いくら必要ですか。$(L, b)$ の組を1つ挙げてください。</li>
+<li>反対の端: 調整済みの量子カーネルの非対角成分が平均 $\bar{k} = 0.07$、ばらつき $\sigma = 0.02$ とします。構造を分解するには標準誤差 $\varepsilon = \sigma/10$ が必要です。成分あたり何ショット必要ですか。</li>
+<li>$N = 1000$ の訓練集合では総ショット数はいくらで、毎秒 $10^4$ 回の回路実行を仮定すると何時間かかりますか。</li>
+<li>(2) と (3) を踏まえ、バンド幅をさらに上げることに賛成か反対かを論じてください。</li>
+</ol>
+<details>
+<summary>解答</summary>
+
+<p><strong>1.</strong> モデルは整数 \(|\omega| \le L\) について \(e^{i\omega b x}\) を含むので、\(x\) の単位あたりのサイクル数で見た最高周波数は \(Lb/2\pi\) です。\(Lb/2\pi \ge 3\) より \(Lb \ge 6\pi \approx 18.85\)。\(b = 1\) なら \(L \ge 19\) 回の挿入、\(b = 2\pi\) なら \(L \ge 3\) です。後者がバンド幅というハイパーパラメータの存在理由です — 深さを買わずに周波数を買えます。代償は低周波が疎になることで、\(b = 2\pi\) ではモデルは0、1、2、3サイクルの成分を持ち、その間には何もありません。</p>
+
+<p><strong>2.</strong> \(\varepsilon = 0.002\) より \(S = \bar{k}(1-\bar{k})/\varepsilon^2 = 0.07 \times 0.93 / 4\times10^{-6} = 16{,}275\) ショット/成分です。</p>
+
+<p><strong>3.</strong> 異なる成分は \(N(N-1)/2 = 499{,}500\) 個なので \(8.13 \times 10^{9}\) ショット、毎秒 \(10^4\) なら \(8.1\times10^5\) 秒、約226時間の純粋な測定時間です。1000サンプルの訓練集合に対して、1つの予測もしないうちにこれだけかかります。スケーリングは \(N^2 \varepsilon^{-2}\) なので、データが10倍になれば測定は100倍です。</p>
+
+<p><strong>4.</strong> 反対です。バンド幅を上げると \(\bar{k}\) と \(\sigma\) が一緒に下がり、\(S \propto \bar{k}/\varepsilon^2 \propto \bar{k}/\sigma^2\) なので、おおよそ \(\bar{k} \sim \sigma \sim s\) の形で平坦化するカーネルのショットコストは \(1/s\) でスケールします。情報が少なくなるのとちょうど同じ速さで高価になるのです。第3章では、これが偶然ではなく量子ビット数が増えるときのエンタングル特徴写像の一般的な振る舞いであり、量子カーネル法の中心的な障害であることを示します。</p>
+
+
+<pre><code class="language-python">kbar, sigma = 0.07, 0.02
+eps = sigma / 10
+S = kbar * (1 - kbar) / eps ** 2
+for N in [40, 1000]:
+    pairs = N * (N - 1) // 2
+    print(f&quot;N = {N:5d}  ショット/成分 = {S:,.0f}  成分数 = {pairs:,d}&quot;
+          f&quot;  合計 = {pairs*S:.3e}  時間 = {pairs*S/1e4/3600:,.1f}&quot;)
+# N =    40  ショット/成分 = 16,275  成分数 = 780  合計 = 1.269e+07  時間 = 0.4
+# N =  1000  ショット/成分 = 16,275  成分数 = 499,500  合計 = 8.129e+09  時間 = 225.8
+</code></pre>
+
+
+</details>
+
+<hr />
+<h2>まとめ</h2>
+<h3>要点</h3>
+<p><strong>1. 符号化は前処理ではなくモデルである</strong></p>
+<ul>
+<li>特徴写像 $x \mapsto \rho(x) = |\phi(x)\rangle\langle\phi(x)|$ は訓練が始まる前に仮説空間を固定します。下流のあらゆるモデルは $\rho(x)$ について線形であり、したがって $k(x,x') = \mathrm{Tr}[\rho(x)\rho(x')]$ をもつカーネル法です。</li>
+<li>basis符号化はデルタカーネルで暗記しかできず、amplitude符号化はコサイン類似度の2乗でノルムを捨て、angle符号化は1次コサインの積で、3つの中で使える固有値スペクトルを持つ唯一のものです。</li>
+<li>訓練40行での測定値: 有効次元はそれぞれ20.0、2.07、6.5であり、対応するグラム行列の図は単位行列、ほぼ一様なブロック、そしてその中間です。</li>
+</ul>
+<p><strong>2. 量子ビット数は数えるべき資源ではない</strong></p>
+<ul>
+<li>amplitude符号化は $\lceil\log_2 d\rceil$ 量子ビットと $d-1$ 回転を要し、$d = 2$ から256まで検証しました。圧縮は空間についてで時間についてではなく、$d = 1024$ での2量子ビットゲート $\Theta(d\log d)$ は約 $1.6\times10^4$ です。</li>
+<li>したがって入力問題は構造的です。$\Theta(d)$ の状態準備の上で $\log d$ で走るアルゴリズムは $\Theta(d)$ で走ります。</li>
+<li>逃げ道はデータの構造 — 疎性、滑らかさ、分離可能性 — であり、信頼できる高速化の主張はすべてどこかでそれを仮定しています。</li>
+</ul>
+<p><strong>3. 容量はHilbert次元ではなくグラムランクである</strong></p>
+<ul>
+<li>ランクは $\min(N, \dim\text{特徴空間})$ で抑えられ、40サンプルでの測定ランクは40、40、10で、最後は $D(D+1)/2 = 10$ をちょうど飽和しました。</li>
+<li>積型angle符号化ではより厳しい上限が $3^d = 81$ であり、200サンプルで桁まで一致して確認されました。</li>
+<li>4096次元のHilbert空間は何も買いませんでした。40サンプルなら使える方向は最大40個であり、直交スパイクはその中で最も役に立たないものです。</li>
+</ul>
+<p><strong>4. data re-uploading は表現力を算術にする</strong></p>
+<ul>
+<li>$Z/2$ が生成する符号化ゲート $L$ 個はちょうど $\Omega = \lbrace -L,\ldots,L\rbrace$ を与えます。1量子ビット上の $L$ 次三角多項式であり、レジスタの大きさに依存しません。</li>
+<li>機械精度で数値検証しました。$L=4$ でランダム20通りにわたる帯域外の最大係数は $1.2\times10^{-16}$、帯域内係数はオーダー1です。</li>
+<li>$L \to \infty$ でスペクトルは普遍です。係数はユニタリ性で制約されますが、ここで検証したターゲットでは制約的ではなく、フィットされたモデルは $L = 1$ から7のすべてで比1.00で $L$ 次フーリエ打ち切り下限に到達しました。</li>
+<li>層を足すことが役に立つのはそれが解禁する周波数にターゲットが重みを持つときだけです。奇関数のターゲットでは偶数調波は無料でかつ無駄です。</li>
+</ul>
+<p><strong>5. バンド幅がすべてを決めるハイパーパラメータである</strong></p>
+<ul>
+<li>$S(x) \to S(bx)$ はすべての到達可能周波数を $b$ 倍し、$\lbrace 0,1,2,3\rbrace \to \lbrace 0,2,4,6\rbrace \to \lbrace 0,3,6,9\rbrace$ として検証されました。</li>
+<li>カーネルの言葉では有効次元を $b = 0.125$ の1.05から $b = 2$ の24.7まで走査し、テスト誤差は慣習的な既定値 $b = 1$ に最小をもつU字になります。訓練行で $\lambda$ を交差検証した0.1425 対 定数予測器ベースライン0.5242、72.8%の改善（対応のあるブートストラップ区間 $[-0.511, -0.241]$）であり、$\lambda$ をオラクルで選んでも同じ0.1425にしか届きません。</li>
+<li>40行での交差検証はその最適値を自力では突き止めません。最小スコアは $b = 0.125$ に落ち、そこでのテストRMSEは0.2527です。ほぼ階数1のグラム行列を小さな $\lambda$ で扱うと各フォールドを補間してしまうからです。バンド幅は走査し、カーネルが補間できる領域で取ったCVスコアは疑いなさい。</li>
+<li>両端はどちらも破綻し、破綻の仕方が違います。$b$ が小さすぎればランク1のカーネルと構造的な未学習、$b$ が大きすぎればデルタカーネル、訓練RMSE $2\times10^{-4}$、そして平均<em>より悪い</em>テスト誤差です。</li>
+<li>過学習する過大なバンド幅は測定コストも高いバンド幅であり — $b = 16$ で行列成分あたり約 $1.5\times10^4$ ショット — どちらもデルタ関数へ押しやられたカーネルの症状です。</li>
+</ul>
+<p><strong>実務上の含意</strong></p>
+<ul>
+<li>何よりも先に入力のスケール因子を走査し、誤差と並べてグラム行列の有効次元を報告してください。役に立たないと言われる量子カーネルは、たいていバンド幅を誤った量子カーネルです。</li>
+<li>深さを選ぶ前にターゲットのフーリエスペクトルを古典的に見積もってください。物性が組成に対して滑らかなら、挿入2〜3回が予算の全体です。</li>
+<li>カーネルを1行の算術で書けるなら — 本章の3つの符号化はいずれも書けます — それは量子的な実装を持つ古典モデルであり、そう言うべきです。</li>
+</ul>
+<p>第3章はカーネル視点を真剣に受け取り、その結論まで追います。閉形式を持たないカーネルを与えるエンタングル特徴写像を構築し、反転テストで測定し、カーネルリッジ回帰をNumPyで解き、そして本コースが存在する理由である比較を実行します。同じ40訓練行の上で、その量子カーネルと放射基底関数カーネルを1つのプロトコルで対決させます。結果は出たとおりに掲載します。その途上で同じバンド幅のつまみが再登場し、今度は「自分の訓練平均に負けるカーネル」と「最良の古典モデルの16%以内に来るカーネル」の差になります。そして手法全体を脆くしている指数的集中を、指数の数値とともに測定します。</p>
+<p><a href="index.html">← シリーズトップ</a> <a href="chapter-3.html">第3章: 量子カーネル法 →</a></p>
+<h3>免責事項</h3>
+<ul>
+<li>本コンテンツは教育・研究・情報提供のみを目的としており、専門的な助言(法律・会計・技術的保証など)を提供するものではありません。</li>
+<li>本コンテンツおよび付随するCode examplesは「現状有姿(AS IS)」で提供され、明示または黙示を問わず、商品性、特定目的適合性、権利非侵害、正確性・完全性、動作・安全性等いかなる保証もしません。</li>
+<li>本章で用いるデータセットは合成かつ決定的であり、すべての数値がシードから再現できるよう選んだものです。符号化の選択、バンド幅の最適値、汎化についての結論はそのデータセットの性質であり、実データで再確認するまで依拠してはなりません。</li>
+<li>外部リンク、第三者が提供するデータ・ツール・ライブラリ等の内容・可用性・安全性について、作成者および東北大学は一切の責任を負いません。</li>
+<li>本コンテンツの利用・実行・解釈により直接的・間接的・付随的・特別・結果的・懲罰的損害が生じた場合でも、適用法で許容される最大限の範囲で、作成者および東北大学は責任を負いません。</li>
+<li>本コンテンツの内容は、予告なく変更・更新・提供停止されることがあります。</li>
+<li>本コンテンツの著作権・ライセンスは明記された条件(例: CC BY 4.0)に従います。当該ライセンスは通常、無保証条項を含みます。</li>
+</ul><div class="navigation">
+    <a href="chapter-1.html" class="nav-button">← 前の章</a>
+    <a href="index.html" class="nav-button">シリーズ目次に戻る</a>
+    <a href="chapter-3.html" class="nav-button">次の章 →</a>
+</div>
+    </main>
+
+    <footer>
+        <p><strong>作成者</strong>: AI Terakoya Content Team</p>
+        <p><strong>監修</strong>: Dr. Yusuke Hashimoto（東北大学）</p>
+        <p><strong>バージョン</strong>: 1.0 | <strong>作成日</strong>: 2025-10-17</p>
+        <p><strong>ライセンス</strong>: Creative Commons BY 4.0</p>
+        <p>© 2025 AI Terakoya. All rights reserved.</p>
+    </footer>
+</body>
+</html>
