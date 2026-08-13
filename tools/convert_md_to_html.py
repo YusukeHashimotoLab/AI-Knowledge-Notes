@@ -93,235 +93,20 @@ HTML_HEADER_TEMPLATE = '''<!DOCTYPE html>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{title} - AI Terakoya</title>
 
+    <link href="{css_href}" rel="stylesheet"/>
     <style>
-        :root {{
-            --color-primary: #2c3e50;
-            --color-primary-dark: #1a252f;
-            --color-accent: #7b2cbf;
-            --color-accent-light: #9d4edd;
-            --color-text: #2d3748;
-            --color-text-light: #4a5568;
-            --color-bg: #ffffff;
-            --color-bg-alt: #f7fafc;
-            --color-border: #e2e8f0;
-            --color-code-bg: #f8f9fa;
-            --color-link: #3182ce;
-            --color-link-hover: #2c5aa0;
-
-            --spacing-xs: 0.5rem;
-            --spacing-sm: 1rem;
-            --spacing-md: 1.5rem;
-            --spacing-lg: 2rem;
-            --spacing-xl: 3rem;
-
-            --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
-
-            --border-radius: 8px;
-            --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        }}
-
-        * {{
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }}
-
-        body {{
-            font-family: var(--font-body);
-            line-height: 1.7;
-            color: var(--color-text);
-            background-color: var(--color-bg);
-            font-size: 16px;
-        }}
-
-        header {{
-            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
-            color: white;
-            padding: var(--spacing-xl) var(--spacing-md);
-            margin-bottom: var(--spacing-xl);
-            box-shadow: var(--box-shadow);
-        }}
-
-        .header-content {{
-            max-width: 900px;
-            margin: 0 auto;
-        }}
-
-        h1 {{
-            font-size: 2rem;
-            font-weight: 700;
-            margin-bottom: var(--spacing-sm);
-            line-height: 1.2;
-        }}
-
-        .subtitle {{
-            font-size: 1.1rem;
-            opacity: 0.95;
-            font-weight: 400;
-            margin-bottom: var(--spacing-md);
-        }}
-
-        .meta {{
-            display: flex;
-            flex-wrap: wrap;
-            gap: var(--spacing-md);
-            font-size: 0.9rem;
-            opacity: 0.9;
-        }}
-
-        .meta-item {{
-            display: flex;
-            align-items: center;
-            gap: 0.3rem;
-        }}
-
-        .container {{
-            max-width: 900px;
-            margin: 0 auto;
-            padding: 0 var(--spacing-md) var(--spacing-xl);
-        }}
-
-        h2 {{
-            font-size: 1.75rem;
-            color: var(--color-primary);
-            margin-top: var(--spacing-xl);
-            margin-bottom: var(--spacing-md);
-            padding-bottom: var(--spacing-xs);
-            border-bottom: 3px solid var(--color-accent);
-        }}
-
-        h3 {{
-            font-size: 1.4rem;
-            color: var(--color-primary);
-            margin-top: var(--spacing-lg);
-            margin-bottom: var(--spacing-sm);
-        }}
-
-        h4 {{
-            font-size: 1.1rem;
-            color: var(--color-primary-dark);
-            margin-top: var(--spacing-md);
-            margin-bottom: var(--spacing-sm);
-        }}
-
-        p {{
-            margin-bottom: var(--spacing-md);
-            color: var(--color-text);
-        }}
-
-        a {{
-            color: var(--color-link);
-            text-decoration: none;
-            transition: color 0.2s;
-        }}
-
-        a:hover {{
-            color: var(--color-link-hover);
-            text-decoration: underline;
-        }}
-
-        ul, ol {{
-            margin-left: var(--spacing-lg);
-            margin-bottom: var(--spacing-md);
-        }}
-
-        li {{
-            margin-bottom: var(--spacing-xs);
-            color: var(--color-text);
-        }}
-
-        pre {{
-            background-color: var(--color-code-bg);
-            border: 1px solid var(--color-border);
-            border-radius: var(--border-radius);
-            padding: var(--spacing-md);
-            overflow-x: auto;
-            margin-bottom: var(--spacing-md);
-            font-family: var(--font-mono);
-            font-size: 0.9rem;
-            line-height: 1.5;
-        }}
-
-        code {{
-            font-family: var(--font-mono);
-            font-size: 0.9em;
-            background-color: var(--color-code-bg);
-            padding: 0.2em 0.4em;
-            border-radius: 3px;
-        }}
-
-        pre code {{
-            background-color: transparent;
-            padding: 0;
-        }}
-
-        table {{
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: var(--spacing-md);
-            font-size: 0.95rem;
-        }}
-
-        th, td {{
-            border: 1px solid var(--color-border);
-            padding: var(--spacing-sm);
-            text-align: left;
-        }}
-
-        th {{
-            background-color: var(--color-bg-alt);
-            font-weight: 600;
-            color: var(--color-primary);
-        }}
-
-        blockquote {{
-            border-left: 4px solid var(--color-accent);
-            padding-left: var(--spacing-md);
-            margin: var(--spacing-md) 0;
-            color: var(--color-text-light);
-            font-style: italic;
-            background-color: var(--color-bg-alt);
-            padding: var(--spacing-md);
-            border-radius: var(--border-radius);
-        }}
-
-        .mermaid {{
-            text-align: center;
-            margin: var(--spacing-lg) 0;
-            background-color: var(--color-bg-alt);
-            padding: var(--spacing-md);
-            border-radius: var(--border-radius);
-        }}
-
-        details {{
-            background-color: var(--color-bg-alt);
-            border: 1px solid var(--color-border);
-            border-radius: var(--border-radius);
-            padding: var(--spacing-md);
-            margin-bottom: var(--spacing-md);
-        }}
-
-        summary {{
-            cursor: pointer;
-            font-weight: 600;
-            color: var(--color-primary);
-            user-select: none;
-            padding: var(--spacing-xs);
-            margin: calc(-1 * var(--spacing-md));
-            padding: var(--spacing-md);
-            border-radius: var(--border-radius);
-        }}
-
+        /* page-specific residual: the rules the shared sheet does not provide.
+           Everything else that used to live here is now in knowledge-base.css;
+           re-declaring it would only risk drifting out of sync with the sheet. */
+        details {{ background-color: var(--color-bg-alt); margin-bottom: var(--spacing-md) }}
+        summary {{ user-select: none; margin: calc(-1 * var(--spacing-md)); border-radius: var(--border-radius) }}
         summary:hover {{
+            /* accent wash; the literal is the FM/MI/ML purple and is the fallback
+               for engines without color-mix() (Chrome <111 / Safari <16.2). */
             background-color: rgba(123, 44, 191, 0.1);
+            background-color: color-mix(in srgb, var(--color-accent) 10%, transparent);
         }}
-
-        details[open] summary {{
-            margin-bottom: var(--spacing-md);
-            border-bottom: 1px solid var(--color-border);
-        }}
-
+        details[open] summary {{ margin-bottom: var(--spacing-md); border-bottom: 1px solid var(--color-border) }}
         .learning-objectives {{
             background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
             padding: var(--spacing-lg);
@@ -329,77 +114,10 @@ HTML_HEADER_TEMPLATE = '''<!DOCTYPE html>
             border-left: 4px solid var(--color-accent);
             margin-bottom: var(--spacing-xl);
         }}
-
-        .learning-objectives h2 {{
-            margin-top: 0;
-            border-bottom: none;
-        }}
-
-        .navigation {{
-            display: flex;
-            justify-content: space-between;
-            gap: var(--spacing-md);
-            margin: var(--spacing-xl) 0;
-            padding-top: var(--spacing-lg);
-            border-top: 2px solid var(--color-border);
-        }}
-
-        .nav-button {{
-            flex: 1;
-            padding: var(--spacing-md);
-            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
-            color: white;
-            border-radius: var(--border-radius);
-            text-align: center;
-            font-weight: 600;
-            transition: transform 0.2s, box-shadow 0.2s;
-            box-shadow: var(--box-shadow);
-        }}
-
-        .nav-button:hover {{
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            text-decoration: none;
-        }}
-
-        footer {{
-            margin-top: var(--spacing-xl);
-            padding: var(--spacing-lg) var(--spacing-md);
-            background-color: var(--color-bg-alt);
-            border-top: 1px solid var(--color-border);
-            text-align: center;
-            font-size: 0.9rem;
-            color: var(--color-text-light);
-        }}
-
+        .learning-objectives h2 {{ margin-top: 0; border-bottom: none }}
         @media (max-width: 768px) {{
-            h1 {{
-                font-size: 1.5rem;
-            }}
-
-            h2 {{
-                font-size: 1.4rem;
-            }}
-
-            h3 {{
-                font-size: 1.2rem;
-            }}
-
-            .meta {{
-                font-size: 0.85rem;
-            }}
-
-            .navigation {{
-                flex-direction: column;
-            }}
-
-            table {{
-                font-size: 0.85rem;
-            }}
-
-            th, td {{
-                padding: var(--spacing-xs);
-            }}
+            th {{ padding: var(--spacing-xs) }}
+            td {{ padding: var(--spacing-xs) }}
         }}
     </style>
 
@@ -429,7 +147,7 @@ HTML_HEADER_TEMPLATE = '''<!DOCTYPE html>
     </script>
     <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" id="MathJax-script" async></script>
 </head>
-<body>
+<body class="{dojo_class}">
     <header>
         <div class="header-content">
             <h1>{chapter_title}</h1>
@@ -459,6 +177,33 @@ HTML_FOOTER_TEMPLATE = '''
 </body>
 </html>
 '''
+
+
+def shared_css_href(series_path: Path) -> str:
+    """Relative href from a series directory to the locale's shared stylesheet.
+
+    Series directories always sit exactly one level under their Dojo directory
+    (``knowledge/<lang>/<DOJO>/<series>``, see ``find_series_directories``), so
+    the sheet at ``knowledge/<lang>/assets/css/knowledge-base.css`` is always two
+    hops up. Deriving it from ``series_path`` rather than from ``KNOWLEDGE_ROOT``
+    keeps the href correct even when the tree is converted somewhere else (a
+    staging copy, a test fixture) instead of pointing back at the real repo.
+    """
+    lang_root = series_path.parent.parent          # knowledge/<lang>
+    return os.path.relpath(
+        lang_root / 'assets' / 'css' / 'knowledge-base.css', series_path
+    ).replace(os.sep, '/')
+
+
+def dojo_body_class(series_path: Path) -> str:
+    """Body class that selects the Dojo's accent palette, e.g. ``dojo-fm``.
+
+    This is the shared sheet's explicit, generator-intended accent hook. The
+    other hook it offers keys off a ``<link rel="canonical">`` that this template
+    does not emit, so without this class a generated page would silently fall
+    back to the default accent - invisible for FM/MI/ML but wrong for MS and PI.
+    """
+    return 'dojo-' + series_path.parent.name.lower()
 
 
 class MathPreprocessor(Preprocessor):
@@ -787,6 +532,8 @@ def convert_chapter(series_path: Path, chapter_file: str, loc: Dict) -> bool:
 
         # Build complete HTML
         html = HTML_HEADER_TEMPLATE.format(
+            css_href=shared_css_href(series_path),
+            dojo_class=dojo_body_class(series_path),
             title=frontmatter.get('title', 'Chapter'),
             chapter_title=frontmatter.get('chapter_title', frontmatter.get('title', 'Chapter')),
             subtitle=frontmatter.get('subtitle', ''),
