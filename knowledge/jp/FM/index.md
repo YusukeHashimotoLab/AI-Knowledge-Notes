@@ -58,7 +58,7 @@ subtitle: Fundamentals of Mathematics & Physics for Materials Informatics
 
 [開始 →](<pde-boundary-value/index.html>)
 
-⚛️ 量子力学シリーズ（5シリーズ）
+⚛️ 量子力学シリーズ（6シリーズ）
 
 📗
 
@@ -109,6 +109,16 @@ subtitle: Fundamentals of Mathematics & Physics for Materials Informatics
 中級〜上級 225-250分 5章・36例
 
 [開始 →](<quantum-algorithms-intermediate/index.html>)
+
+🧱
+
+量子ソフトウェアスタック入門
+
+SDKのチュートリアルではなく、SDKが何をしているかの講座。量子ソフトウェアスタックのミニチュアをNumPyで一から作る。ユニタリ等価性チェッカ付きの回路IR、EulerとKAKによるゲート合成を伴うピープホール最適化器、格子・heavy-hex接続へのレイアウトとSWAPルーティング、Rabi・Ramsey・DRAG較正ループ付きの3準位パルスシミュレータ、読み出し補正・ゼロノイズ外挿・確率的誤差キャンセル・リソース見積りまで、すべての書き換えが回路の意味を保つことを検証しながら進む
+
+上級 230-255分 5章・38例
+
+[開始 →](<quantum-software-stack-introduction/index.html>)
 
 🔥 統計力学・熱力学シリーズ（4シリーズ）
 

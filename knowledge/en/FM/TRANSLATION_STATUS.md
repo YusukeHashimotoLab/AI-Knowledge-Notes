@@ -2,18 +2,18 @@
 
 **Dojo**: Fundamental Mathematics & Physics
 **Generated**: 2026-07-04
-**Total Series**: 16
-**Total Files**: 92 (16 index + 76 chapters)
-**Complete Series** (index + chapters): 16/16
+**Total Series**: 18
+**Total Files**: 108 (18 index + 90 chapters)
+**Complete Series** (index + chapters): 18/18
 
 ---
 
 ## Summary Statistics
 
-- **Series Translated**: 17/17 (100%)
-- **Index Pages**: 17/17 (100%)
-- **Total Chapter Files**: 81
-- **Average Chapters per Series**: 4.8
+- **Series Translated**: 18/18 (100%)
+- **Index Pages**: 18/18 (100%)
+- **Total Chapter Files**: 90
+- **Average Chapters per Series**: 5.0
 
 ---
 
@@ -95,13 +95,17 @@
 
 **Directory**: `equilibrium-thermodynamics`
 **Location**: `/FM/equilibrium-thermodynamics/`
-**Files**: 2 total (1 index + 1 chapters)
+**Files**: 6 total (1 index + 5 chapters)
 **Last Update**: 2025-12-01
 
 - ✅ `index.html` - Series overview page
 
-**Chapters** (1):
+**Chapters** (5):
 - ✅ `chapter-1.html`
+- ✅ `chapter-2.html`
+- ✅ `chapter-3.html`
+- ✅ `chapter-4.html`
+- ✅ `chapter-5.html`
 
 ---
 
@@ -309,6 +313,24 @@
 **Location**: `/FM/quantum-mechanics/`
 **Files**: 6 total (1 index + 5 chapters)
 **Last Update**: 2025-12-01
+
+- ✅ `index.html` - Series overview page
+
+**Chapters** (5):
+- ✅ `chapter-1.html`
+- ✅ `chapter-2.html`
+- ✅ `chapter-3.html`
+- ✅ `chapter-4.html`
+- ✅ `chapter-5.html`
+
+---
+
+### 18. 🧱 Introduction to the Quantum Software Stack - AI Terakoya ✅
+
+**Directory**: `quantum-software-stack-introduction`
+**Location**: `/FM/quantum-software-stack-introduction/`
+**Files**: 6 total (1 index + 5 chapters)
+**Last Update**: 2026-08-13
 
 - ✅ `index.html` - Series overview page
 

@@ -1,0 +1,1421 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第3章: トランスパイル — 接続性への写像 - AI Terakoya</title>
+
+    <link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+    <style>
+        /* page-specific residual: the rules the shared sheet does not provide.
+           Everything else that used to live here is now in knowledge-base.css;
+           re-declaring it would only risk drifting out of sync with the sheet. */
+        details { background-color: var(--color-bg-alt); margin-bottom: var(--spacing-md) }
+        summary { user-select: none; margin: calc(-1 * var(--spacing-md)); border-radius: var(--border-radius) }
+        summary:hover {
+            /* accent wash; the literal is the FM/MI/ML purple and is the fallback
+               for engines without color-mix() (Chrome <111 / Safari <16.2). */
+            background-color: rgba(123, 44, 191, 0.1);
+            background-color: color-mix(in srgb, var(--color-accent) 10%, transparent);
+        }
+        details[open] summary { margin-bottom: var(--spacing-md); border-bottom: 1px solid var(--color-border) }
+        .learning-objectives {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: var(--spacing-lg);
+            border-radius: var(--border-radius);
+            border-left: 4px solid var(--color-accent);
+            margin-bottom: var(--spacing-xl);
+        }
+        .learning-objectives h2 { margin-top: 0; border-bottom: none }
+        @media (max-width: 768px) {
+            th { padding: var(--spacing-xs) }
+            td { padding: var(--spacing-xs) }
+        }
+    </style>
+
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+
+    <!-- MathJax for LaTeX equation rendering -->
+    <script>
+        MathJax = {
+            tex: {
+                // The HTML must carry a DOUBLE backslash before ( ) [ ] so the
+                // JS string is backslash-paren; a single one collapses to a bare
+                // paren and turns every prose parenthesis into a math delimiter
+                // (non-raw Python template: 4 backslashes -> 2 in HTML -> 1 in JS).
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" id="MathJax-script" async></script>
+</head>
+<body class="dojo-fm">
+    <header>
+        <div class="header-content">
+            <h1>第3章: トランスパイル — 接続性への写像</h1>
+            <p class="subtitle">物理の帰結としての結合グラフ、配置問題、SWAP挿入、そして正しいルータともっともらしいルータを見分ける方法</p>
+            <div class="meta">
+                <span class="meta-item">📖 読了時間: 45-50分</span>
+                <span class="meta-item">📊 難易度: 上級</span>
+                <span class="meta-item">💻 コード例: 7個</span>
+                <span class="meta-item">📝 演習問題: 5問</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+<p>🌐 JP | <a href="../../../en/FM/quantum-software-stack-introduction/chapter-3.html">🇬🇧 EN</a> | Last sync: 2026-08-13</p>
+<p><a href="../index.html">基礎数理道場</a> &gt; <a href="index.html">量子ソフトウェアスタック入門</a> &gt; 第3章</p>
+<p>第2章は、どの量子ビットも他のどれとでも相互作用できるものとして回路をコンパイルしました。そのように振る舞うハードウェアはちょうど1系統だけで、理由は物理的です。イオン鎖は共有された運動モードを介してすべての対を結合するので、結合グラフは完全グラフになります。超伝導チップは平面上で量子ビットを容量的に近傍と結合し、さらに隣接する遷移周波数が衝突してはならないという制約が加わります。その結果できるグラフは次数3か4で、直径はチップとともに伸びます。<a href="../quantum-hardware-introduction/index.html">量子ハードウェア入門</a>はそれらのグラフをゲート機構から導きます。本章はそれを所与とし、コンパイラがそれに対して何をしなければならないかを問います。</p>
+<p>やるべきことは2つあり、述べやすいのはそのうち1つだけです。<strong>配置</strong>は、最初にどの物理量子ビットがどの論理量子ビットを保持するかの選択であり、どのコンパイラも厳密には解かない難しい組み合わせ問題です。<strong>ルーティング</strong>は、回路が要求するゲートに対して配置が不適切だと判明したときにSWAPゲートを挿入することであり、ネイティブSWAPを持たないハードウェアではSWAP 1個がCXゲート3個分です。以下の計測値は第2章のものを圧倒します。あちらの最適化器は回路のゲートの4分の1を除去しましたが、12量子ビットのQFTをheavy-hexグラフへルーティングするとCX数は4.6倍になります。接続性は二次的な考慮事項ではありません。</p>
+<p>さらに新しい正しさの問題があり、これが本章の方法論的な中心です。ルーティング後の回路は、書き下したユニタリと意図的に<em>異なります</em> — SWAPがどの物理線がどの論理量子ビットを保持するかを置換したからです。したがって第1章の等価性検査はそのままでは使えず、置換の報告を粗く扱うルータは、置換を無視するあらゆるテストを通過してハードウェア上で失敗します。3.3節は検査を作り直し、Code Example 4 は素朴な版が何を見落とすかを示します。SWAPが挿入された回路でちょうど1のオーダーの誤差です。</p>
+<h2>学習目標</h2>
+<p>本章を修了すると、以下のことができるようになります。</p>
+<ul>
+<li>結合グラフをデータ — 隣接関係と全点対最短経路表 — として表現し、全結合・1次元鎖・正方格子・heavy-hexのトポロジーを構成できる</li>
+<li>結合グラフの平均距離から回路のルーティングオーバーヘッドを予測し、その見積りが予測ではなく上界である理由を説明できる</li>
+<li>配置問題を述べ、それがNP困難である理由と、それでも厳密解の価値がきわめて小さい理由を説明できる</li>
+<li>自身の置換を追跡する最近傍SWAPルータを実装し、SABRE型のルータが行っていて自分が行っていないことを正確に述べられる</li>
+<li>置換を込めた等価性検査 $U_{\mathrm{phys}}P(\ell_0) = P(\ell_f)(U_{\mathrm{log}}\otimes I)$ を作り、小さな装置では厳密に、大きな装置では標本で検証し、置換を無視した版が失敗することを実証できる</li>
+<li>GHZとQFT回路について3つのトポロジーでSWAP数を計測し、グラフの寄与と回路の相互作用構造の寄与を分離できる</li>
+<li>ヒューリスティックなルータを、両方が動く小さな事例で厳密なルータと比較し、超過分をゲート順序・先読み・配置・目的関数に帰属させられる</li>
+</ul>
+<hr />
+<h2>3.1 接続性グラフ</h2>
+<h3>グラフはどこから来るのか</h3>
+<p>結合グラフはゲート機構についての主張であり、本章で使う4つのトポロジーは4つの異なる機構です。</p>
+<table>
+<thead>
+<tr>
+<th>トポロジー</th>
+<th>物理的な機構</th>
+<th>帰結</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>全結合</strong></td>
+<td>すべての量子ビットが1つの共有ボゾンモード — イオン結晶の運動モード、あるいはバス共振器 — に結合する</td>
+<td>ルーティングは不要。ゲート速度は全対で共有され、モードが混み合うと劣化する</td>
+</tr>
+<tr>
+<td><strong>1次元鎖</strong></td>
+<td>一列に並んだ量子ビットの最近傍交換相互作用。ゲート定義スピンなど</td>
+<td>平均距離が $n/3$ で伸びる。ルーティングにとって最悪の場合</td>
+</tr>
+<tr>
+<td><strong>正方格子</strong></td>
+<td>平面上の容量結合、次数4</td>
+<td>平均距離が $\sqrt{n}$ で伸びる</td>
+</tr>
+<tr>
+<td><strong>heavy-hex</strong></td>
+<td>六角格子の各結合上に量子ビットを1個追加し、次数が3を超えないようにしたもの</td>
+<td>周波数衝突とクロストークが扱える範囲に留まる。グラフは非常に疎</td>
+</tr>
+</tbody>
+</table>
+<p>行われている取引が見えるのはheavy-hexの行です。その目的は接続性ではなく — 同じ量子ビット数の格子より接続性は<em>低い</em> — 次数の上限です。近傍が4つある周波数固定の超伝導量子ビットは周波数衝突の機会が4つ、クロストーク経路が4つあります。次数を3で抑え、しかも各結合上に量子ビットを1個挿入して計算用の量子ビットが直接隣り合わないようにすることで、平均距離が伸びる代償として歩留まりと較正の安定性を買います。これは材料と制御の判断がグラフとして現れたものであり、そのつけをコンパイラが払います。</p>
+<h3>平均距離がコストの予測子である</h3>
+<p>結合グラフ上で距離 $d$ にある量子ビット間の2量子ビットゲートは、両者を近づけるのに $d - 1$ 個のSWAPを要し、SWAP 1個はCXゲート3個分です。相互作用する対が装置上に一様に散らばった回路では、2量子ビットゲートあたりの余分なCXゲート数の期待値は</p>
+<p>$$ \text{オーバーヘッド} \;\approx\; 3\left( \bar{d} - 1 \right), \qquad \bar{d} = \frac{2}{n(n-1)}\sum_{i&lt;j} \mathrm{dist}(i,j) $$</p>
+<p>です。これはルータが手元にないときに使う見積りで、Code Example 1 が各トポロジーについて計算します。実際には<em>上界</em>であり、その理由はいま理解しておく価値があります。この見積りは各ゲートが毎回まっさらなランダム配置から始まると仮定していますが、ルータは自分のSWAPを元に戻さないので、近くの量子ビット上で連続するゲートは独立なゲートより安く済みます。Code Example 5 がその差 — 格子で約2倍 — を計測します。</p>
+<h3>Code Example 1: データとしての接続性グラフ</h3>
+<p>本章のすべては第1章の3つのモジュール上で動きます。本章が自己完結するようにここに再掲します。1つ目は<a href="../quantum-computing-introduction/chapter-2.html">量子コンピューティング入門</a>の状態ベクトルシミュレータで、本章が使う関数のみ逐語です。同ファイルの <code>probs</code> と <code>sample</code> は本章では不要です。</p>
+<pre><code class="language-python">&quot;&quot;&quot;Minimal state-vector simulator (big-endian: qubit 0 = leftmost = most significant).
+
+Save this file as qcsim.py; every later example does `from qcsim import *`.
+&quot;&quot;&quot;
+import numpy as np
+
+# ---- 1量子ビットゲート --------------------------------------------------
+I2 = np.eye(2, dtype=complex)
+X = np.array([[0, 1], [1, 0]], dtype=complex)
+Y = np.array([[0, -1j], [1j, 0]], dtype=complex)
+Z = np.array([[1, 0], [0, -1]], dtype=complex)
+H = np.array([[1, 1], [1, -1]], dtype=complex) / np.sqrt(2)
+S = np.array([[1, 0], [0, 1j]], dtype=complex)
+T = np.array([[1, 0], [0, np.exp(1j * np.pi / 4)]], dtype=complex)
+
+
+def rx(theta):
+    c, s = np.cos(theta / 2), np.sin(theta / 2)
+    return np.array([[c, -1j * s], [-1j * s, c]], dtype=complex)
+
+
+def ry(theta):
+    c, s = np.cos(theta / 2), np.sin(theta / 2)
+    return np.array([[c, -s], [s, c]], dtype=complex)
+
+
+def rz(theta):
+    e = np.exp(-1j * theta / 2)
+    return np.array([[e, 0], [0, np.conj(e)]], dtype=complex)
+
+
+# ---- 状態 ---------------------------------------------------------------
+def ket(bits: str) -&gt; np.ndarray:
+    &quot;&quot;&quot;'01' -&gt; 4次元の基底状態 |01&gt;（ビッグエンディアン）&quot;&quot;&quot;
+    n = len(bits)
+    psi = np.zeros(2 ** n, dtype=complex)
+    psi[int(bits, 2)] = 1.0
+    return psi
+
+
+def apply_gate(state, U, targets, n):
+    &quot;&quot;&quot;n量子ビット状態の targets に 2^k x 2^k ユニタリ U を作用させる&quot;&quot;&quot;
+    k = len(targets)
+    psi = state.reshape([2] * n)          # 1. n添字テンソルとして見る
+    psi = np.moveaxis(psi, targets, range(k))   # 2. 標的軸を先頭へ
+    rest = psi.shape[k:]
+    psi = psi.reshape(2 ** k, -1)         # 3. 平坦化して行列積
+    psi = U @ psi
+    psi = psi.reshape(list((2,) * k) + list(rest))
+    psi = np.moveaxis(psi, range(k), targets)   # 4. 軸を元に戻す
+    return psi.reshape(-1)
+
+
+CNOT4 = np.array([[1, 0, 0, 0],
+                  [0, 1, 0, 0],
+                  [0, 0, 0, 1],
+                  [0, 0, 1, 0]], dtype=complex)
+
+
+def cnot(state, control, target, n):
+    &quot;&quot;&quot;任意の量子ビット対・任意の向きのCNOT&quot;&quot;&quot;
+    return apply_gate(state, CNOT4, [control, target], n)
+</code></pre>
+<p>2つ目は回路IRで、第1章 Code Example 2 から逐語です。</p>
+<pre><code class="language-python">&quot;&quot;&quot;Chapter 1, Example 2: 本コースの回路IRです。
+
+回路はゲートタプルのリストです。ゲート名は文字列、量子ビットは整数
+（ビッグエンディアン、量子ビット0が最左）です。このファイルを qir.py として
+保存してください。以下のすべてのコード例は `from qir import *` から始まり、
+以降のすべての章がこれを再掲します。
+
+    (&quot;h&quot;, q)   (&quot;x&quot;, q)   (&quot;z&quot;, q)   (&quot;s&quot;, q)   (&quot;t&quot;, q)
+    (&quot;rx&quot;, theta, q)      (&quot;ry&quot;, theta, q)      (&quot;rz&quot;, theta, q)
+    (&quot;cx&quot;, control, target)                     (&quot;cz&quot;, q1, q2)
+&quot;&quot;&quot;
+import numpy as np
+from qcsim import *
+
+CZ4 = np.diag([1.0, 1.0, 1.0, -1.0]).astype(complex)
+
+FIXED_1Q = {&quot;h&quot;: H, &quot;x&quot;: X, &quot;z&quot;: Z, &quot;s&quot;: S, &quot;t&quot;: T}
+ROT_1Q = {&quot;rx&quot;: rx, &quot;ry&quot;: ry, &quot;rz&quot;: rz}
+TWO_Q = (&quot;cx&quot;, &quot;cz&quot;)
+
+
+def gate_qubits(g):
+    &quot;&quot;&quot;ゲートタプル1個が触れる量子ビットを、書かれた順に返します&quot;&quot;&quot;
+    if g[0] in ROT_1Q:
+        return (g[2],)
+    if g[0] in TWO_Q:
+        return (g[1], g[2])
+    if g[0] in FIXED_1Q:
+        return (g[1],)
+    raise ValueError(f&quot;unknown gate name {g[0]!r}&quot;)
+
+
+def apply_ir_gate(state, g, n):
+    &quot;&quot;&quot;ゲートタプル1個を n量子ビット状態ベクトルに作用させます&quot;&quot;&quot;
+    name = g[0]
+    if name in FIXED_1Q:
+        return apply_gate(state, FIXED_1Q[name], [g[1]], n)
+    if name in ROT_1Q:
+        return apply_gate(state, ROT_1Q[name](g[1]), [g[2]], n)
+    if name == &quot;cx&quot;:
+        return cnot(state, g[1], g[2], n)
+    if name == &quot;cz&quot;:
+        return apply_gate(state, CZ4, [g[1], g[2]], n)
+    raise ValueError(f&quot;unknown gate name {name!r}&quot;)
+
+
+def run_circuit(circ, n, psi0=None):
+    &quot;&quot;&quot;ゲートタプルのリストを状態ベクトルシミュレータで実行し、最終状態を返します。
+
+    psi0 の既定値は |00...0&gt; です。ゲートは左から右へ作用させるので、回路の
+    行列はゲート行列の逆順の積になります。
+    &quot;&quot;&quot;
+    state = ket(&quot;0&quot; * n) if psi0 is None else np.asarray(psi0, dtype=complex)
+    for g in circ:
+        state = apply_ir_gate(state, g, n)
+    return state
+
+
+def circuit_depth(circ, n):
+    &quot;&quot;&quot;量子ビットの排他性による貪欲な層分け: 回路が必要とする層数です。
+
+    すべてのゲートが1単位時間を要すると仮定しています。これはハードウェア上では
+    誤りであり、第4章で修正します。
+    &quot;&quot;&quot;
+    ready = [0] * n              # 各量子ビットが最初に空く層
+    for g in circ:
+        qs = gate_qubits(g)
+        layer = max(ready[q] for q in qs)
+        for q in qs:
+            ready[q] = layer + 1
+    return max(ready) if n else 0
+
+
+def gate_counts(circ):
+    &quot;&quot;&quot;ゲート名 -&gt; 個数。加えてキー &quot;2q&quot; に2量子ビットゲートの総数を入れます&quot;&quot;&quot;
+    counts = {}
+    for g in circ:
+        counts[g[0]] = counts.get(g[0], 0) + 1
+    counts[&quot;2q&quot;] = sum(counts.get(name, 0) for name in TWO_Q)
+    return counts
+</code></pre>
+<p>3つ目は検査器で、第1章 Code Example 4 から逐語です。3.3節はこれを置き換えるのではなく拡張します。</p>
+<pre><code class="language-python">&quot;&quot;&quot;The unitary-equivalence checker of Chapter 1, re-listed.
+
+このファイルを qcheck.py として保存してください。以降の各例は
+`from qcheck import *` で始まります。
+&quot;&quot;&quot;
+import numpy as np
+from qir import *
+
+
+def unitary_of(circ, n):
+    &quot;&quot;&quot;回路の 2^n x 2^n 行列: 各基底状態に対して1回ずつ実行します&quot;&quot;&quot;
+    dim = 2 ** n
+    U = np.empty((dim, dim), dtype=complex)
+    for j in range(dim):
+        e = np.zeros(dim, dtype=complex)
+        e[j] = 1.0
+        U[:, j] = run_circuit(circ, n, psi0=e)
+    return U
+
+
+def best_global_phase(U, V):
+    &quot;&quot;&quot;e^{i phi} V を U に位相だけで最も近づける位相を返します。
+
+    これはHilbert-Schmidt重なり tr(V^dagger U) から得られます。Cauchy-Schwarzに
+    より、その絶対値が 2^n に達するのは U = e^{i phi} V のときに限るので、
+    重なりがほぼゼロであること自体が両者が非等価であることの証明になります。
+    &quot;&quot;&quot;
+    tr = np.trace(V.conj().T @ U)
+    return 1.0 + 0.0j if abs(tr) &lt; 1e-12 else tr / abs(tr)
+
+
+def phase_free_error(U, V):
+    &quot;&quot;&quot;最良の大域位相を除去したあとの max |U - e^{i phi} V|&quot;&quot;&quot;
+    return float(np.max(np.abs(U - best_global_phase(U, V) * V)))
+
+
+def assert_equivalent(a, b, n, label=&quot;&quot;, atol=1e-10):
+    &quot;&quot;&quot;本コースのすべての書き換えパスを守るテストです&quot;&quot;&quot;
+    err = phase_free_error(unitary_of(a, n), unitary_of(b, n))
+    if err &gt; atol:
+        raise AssertionError(f&quot;{label}: circuits differ, max error {err:.3e}&quot;)
+    return err
+</code></pre>
+<p>さてグラフです。装置は辞書で表します。隣接集合、幅優先探索で計算した全点対最短経路表、そしてソート済みの辺リストです。</p>
+<pre><code class="language-python">&quot;&quot;&quot;第3章 Example 1: データとしての接続性グラフ。&quot;&quot;&quot;
+from itertools import combinations
+import numpy as np
+from qcheck import *
+
+
+def device(name, n, edges):
+    &quot;&quot;&quot;結合グラフ。隣接集合と全点対最短経路表です。&quot;&quot;&quot;
+    adj = {q: set() for q in range(n)}
+    for a, b in edges:
+        adj[a].add(b)
+        adj[b].add(a)
+    dist = [[-1] * n for _ in range(n)]
+    for s in range(n):                              # s からの幅優先探索
+        dist[s][s] = 0
+        frontier = [s]
+        while frontier:
+            nxt = []
+            for p in frontier:
+                for r in sorted(adj[p]):
+                    if dist[s][r] &lt; 0:
+                        dist[s][r] = dist[s][p] + 1
+                        nxt.append(r)
+            frontier = nxt
+    return {&quot;name&quot;: name, &quot;n&quot;: n, &quot;adj&quot;: adj, &quot;dist&quot;: dist,
+            &quot;edges&quot;: sorted(tuple(sorted(e)) for e in edges)}
+
+
+def all_to_all(n):
+    &quot;&quot;&quot;すべての対が結合。イオン鎖など、バスを介する方式です。&quot;&quot;&quot;
+    return device(f&quot;all-to-all {n}&quot;, n, list(combinations(range(n), 2)))
+
+
+def line(n):
+    &quot;&quot;&quot;1次元鎖。一列に並べたゲート定義スピン量子ビットです。&quot;&quot;&quot;
+    return device(f&quot;line {n}&quot;, n, [(q, q + 1) for q in range(n - 1)])
+
+
+def grid(rows, cols):
+    &quot;&quot;&quot;正方格子。平面超伝導チップの自然な配置です。&quot;&quot;&quot;
+    edges = []
+    for r in range(rows):
+        for c in range(cols):
+            q = r * cols + c
+            if c + 1 &lt; cols:
+                edges.append((q, q + 1))
+            if r + 1 &lt; rows:
+                edges.append((q, q + cols))
+    return device(f&quot;grid {rows}x{cols}&quot;, rows * cols, edges)
+
+
+def heavy_hex_7():
+    &quot;&quot;&quot;最小のheavy-hex断片。次数3の量子ビットを2個もつH字形です。&quot;&quot;&quot;
+    return device(&quot;heavy-hex 7&quot;, 7,
+                  [(0, 1), (1, 2), (1, 3), (3, 5), (4, 5), (5, 6)])
+
+
+def heavy_hex_16():
+    &quot;&quot;&quot;heavy hexagon 1つ、すなわち12周期の閉路に、フラグ量子ビット4個が付いた形です。
+
+    heavy-hex格子は、六角格子の各結合上に量子ビットを1個追加したもので、どの
+    量子ビットも隣接数が3を超えません。この上限こそが要点です。周波数固定の超伝導
+    チップで周波数衝突とクロストークを扱える範囲に保つためのものであり、その代償が
+    非常に疎なグラフです。
+    &quot;&quot;&quot;
+    return device(&quot;heavy-hex 16&quot;, 16,
+                  [(0, 1), (1, 2), (1, 4), (2, 3), (3, 5), (4, 7), (5, 8),
+                   (6, 7), (7, 10), (8, 9), (8, 11), (10, 12), (11, 14),
+                   (12, 13), (12, 15), (13, 14)])
+
+
+DEVICES = [all_to_all(16), grid(4, 4), heavy_hex_16(), line(16),
+           all_to_all(7), grid(2, 3), heavy_hex_7()]
+
+head = (f&quot;{'device':&lt;16}{'qubits':&gt;7}{'edges':&gt;7}{'deg (mean)':&gt;12}&quot;
+        f&quot;{'deg (max)':&gt;11}{'diameter':&gt;10}{'mean dist':&gt;11}&quot;)
+print(head)
+print(&quot;-&quot; * len(head))
+for d in DEVICES:
+    n = d[&quot;n&quot;]
+    degs = [len(d[&quot;adj&quot;][q]) for q in range(n)]
+    pairs = [d[&quot;dist&quot;][a][b] for a, b in combinations(range(n), 2)]
+    print(f&quot;{d['name']:&lt;16}{n:&gt;7}{len(d['edges']):&gt;7}{np.mean(degs):&gt;12.2f}&quot;
+          f&quot;{max(degs):&gt;11}{max(pairs):&gt;10}{np.mean(pairs):&gt;11.2f}&quot;)
+
+print(f&quot;{'device':&lt;16}{'mean dist':&gt;11}{'extra CX per 2q gate':&gt;23}&quot;)
+print(&quot;-&quot; * 50)
+for d in DEVICES[:4]:
+    md = np.mean([d[&quot;dist&quot;][a][b] for a, b in combinations(range(d[&quot;n&quot;]), 2)])
+    print(f&quot;{d['name']:&lt;16}{md:&gt;11.2f}{3 * (md - 1):&gt;23.2f}&quot;)
+</code></pre>
+<pre><code class="language-text">device           qubits  edges  deg (mean)  deg (max)  diameter  mean dist
+--------------------------------------------------------------------------
+all-to-all 16        16    120       15.00         15         1       1.00
+grid 4x4             16     24        3.00          4         6       2.67
+heavy-hex 16         16     16        2.00          3         8       3.68
+line 16              16     15        1.88          2        15       5.67
+all-to-all 7          7     21        6.00          6         1       1.00
+grid 2x3              6      7        2.33          3         3       1.67
+heavy-hex 7           7      6        1.71          3         4       2.29
+device            mean dist   extra CX per 2q gate
+--------------------------------------------------
+all-to-all 16          1.00                   0.00
+grid 4x4               2.67                   5.00
+heavy-hex 16           3.68                   8.05
+line 16                5.67                  14.00
+</code></pre>
+<p><strong>着目点。</strong> 16量子ビット、4つのトポロジー、辺の数は120から15へ落ち、平均距離は1.00から5.67へ上がります。heavy-hex断片は格子と同じ量子ビット数で辺は3分の2、平均距離は38%大きい — これが次数3の上限の値段を定量化したものです。2つ目の表は平均距離を上の見積りに換算します。全結合は何も払わず、$4\times4$ 格子は2量子ビットゲートあたりCX 5個、heavy-hexは8個、16量子ビットの1次元鎖は14個です。</p>
+<p>回路のゲートの4分の1を除去するために骨を折った第2章と比べてください。接続性はゲートを5倍にしえます。2つの効果は同じ大きさではなく、配置を無視してピープホール規則に労力を注ぐコンパイラは配分を誤っています。</p>
+<h3>需要側 — 回路が要求するもの</h3>
+<p>結合グラフは問題の半分にすぎません。もう半分は回路の<strong>相互作用グラフ</strong>、すなわち回路がどの論理量子ビットの対を、何回結合する必要があるかです。2つの回路がその幅を挟みます。</p>
+<p><strong>GHZ鎖</strong> — Hadamard 1個と一列の $n-1$ 個のCXゲート — は相互作用グラフがパスです。パスは連結なあらゆる装置の内側に存在するので、GHZ鎖を完全にネイティブにする配置が<em>何かしら</em>あり、それを見つけることが配置問題の最も易しい形です。</p>
+<p><strong>QFT</strong> はすべての対をちょうど1回必要とするので、相互作用グラフは完全グラフです。どんな配置も助けになりません。全結合以外のハードウェアでは、辺でないすべての対をルーティングしなければなりません。これが標準的な負荷試験になる理由であり、しかも実在の回路です。<a href="../quantum-algorithms-intermediate/index.html">量子アルゴリズム中級</a>の第2章がこれを作り、その上に位相推定を構築します。</p>
+<h3>Code Example 2: ルーティングの対象となる回路</h3>
+<p>どちらの回路もIRで書き、どちらも使用前に検証します。制御位相ゲートは厳密な行列と、QFT回路はビット反転置換を手で適用した上で密なDFT行列と照合します。</p>
+<pre><code class="language-python">&quot;&quot;&quot;第3章 Example 2: ルーティング対象の2つの回路と、その相互作用グラフ。
+Code Example 1 の続き（同一セッション）。&quot;&quot;&quot;
+from itertools import combinations
+import numpy as np
+from qcheck import *
+
+
+def ghz_chain(n):
+    &quot;&quot;&quot;CNOT鎖によるGHZ。相互作用グラフはパスです。&quot;&quot;&quot;
+    return [(&quot;h&quot;, 0)] + [(&quot;cx&quot;, q, q + 1) for q in range(n - 1)]
+
+
+def cphase(theta, a, b):
+    &quot;&quot;&quot;IRでの制御位相ゲート。CXゲート2個とRz回転3個です。&quot;&quot;&quot;
+    return [(&quot;rz&quot;, theta / 2, a), (&quot;rz&quot;, theta / 2, b),
+            (&quot;cx&quot;, a, b), (&quot;rz&quot;, -theta / 2, b), (&quot;cx&quot;, a, b)]
+
+
+def qft(n):
+    &quot;&quot;&quot;最後の反転を省いた教科書的QFT。すべての対が1回ずつ相互作用します。&quot;&quot;&quot;
+    circ = []
+    for q in range(n):
+        circ.append((&quot;h&quot;, q))
+        for r in range(q + 1, n):
+            circ += cphase(np.pi / 2 ** (r - q), q, r)
+    return circ
+
+
+def interaction_graph(circ, n):
+    &quot;&quot;&quot;回路が結合を必要とする量子ビット対の集合と、その回数です。&quot;&quot;&quot;
+    weight = {}
+    for g in circ:
+        qs = gate_qubits(g)
+        if len(qs) == 2:
+            key = tuple(sorted(qs))
+            weight[key] = weight.get(key, 0) + 1
+    return weight
+
+
+CP = np.diag([1.0, 1.0, 1.0, np.exp(1j * 0.7)])
+print(&quot;制御位相ゲートを行列と照合:&quot;)
+print(f&quot;  theta = 0.7 での位相を除いた誤差: &quot;
+      f&quot;{phase_free_error(CP, unitary_of(cphase(0.7, 0, 1), 2)):.2e}&quot;)
+
+
+def dft_matrix(n):
+    &quot;&quot;&quot;QFT回路の検査用、2^n 振幅上の密なDFT行列です。&quot;&quot;&quot;
+    dim = 2 ** n
+    j = np.arange(dim)
+    return np.exp(2j * np.pi * np.outer(j, j) / dim) / np.sqrt(dim)
+
+
+def reversal(n):
+    &quot;&quot;&quot;教科書的QFTが呼び出し側に残すビット反転置換です。&quot;&quot;&quot;
+    dim = 2 ** n
+    P = np.zeros((dim, dim), dtype=complex)
+    for x in range(dim):
+        bits = format(x, f&quot;0{n}b&quot;)
+        P[int(bits[::-1], 2), x] = 1.0
+    return P
+
+
+print(&quot;\nQFT回路と密なDFT行列の照合（反転は手で適用）:&quot;)
+for n in (2, 3, 4, 5):
+    err = phase_free_error(dft_matrix(n), reversal(n) @ unitary_of(qft(n), n))
+    print(f&quot;  n = {n}: 位相を除いた誤差 {err:.2e}&quot;)
+
+print(&quot;\nコンパイル問題としての2つの回路&quot;)
+head = (f&quot;{'circuit':&lt;14}{'qubits':&gt;7}{'gates':&gt;7}{'CX':&gt;5}{'depth':&gt;7}&quot;
+        f&quot;{'pairs used':&gt;12}{'pairs possible':&gt;16}&quot;)
+print(head)
+print(&quot;-&quot; * len(head))
+for label, circ, n in [(&quot;GHZ chain&quot;, ghz_chain(6), 6), (&quot;QFT&quot;, qft(6), 6),
+                       (&quot;GHZ chain&quot;, ghz_chain(10), 10), (&quot;QFT&quot;, qft(10), 10)]:
+    w = interaction_graph(circ, n)
+    print(f&quot;{label:&lt;14}{n:&gt;7}{len(circ):&gt;7}{gate_counts(circ)['2q']:&gt;5}&quot;
+          f&quot;{circuit_depth(circ, n):&gt;7}{len(w):&gt;12}{n * (n - 1) // 2:&gt;16}&quot;)
+
+print(&quot;\n回路にルーティングが必要かどうかは、2つのグラフの関係の問題です&quot;)
+head = f&quot;{'circuit':&lt;20}&quot; + &quot;&quot;.join(f&quot;{d['name']:&gt;16}&quot; for d in
+                                    (all_to_all(6), grid(2, 3), heavy_hex_7()))
+print(head)
+print(&quot;-&quot; * len(head))
+for label, circ, n in [(&quot;GHZ chain, n = 6&quot;, ghz_chain(6), 6),
+                       (&quot;QFT, n = 6&quot;, qft(6), 6),
+                       (&quot;GHZ chain, n = 5&quot;, ghz_chain(5), 5),
+                       (&quot;QFT, n = 5&quot;, qft(5), 5)]:
+    pairs = interaction_graph(circ, n)
+    row = &quot;&quot;
+    for d in (all_to_all(6), grid(2, 3), heavy_hex_7()):
+        if d[&quot;n&quot;] &lt; n:
+            row += f&quot;{'too small':&gt;16}&quot;
+            continue
+        native = sum(1 for (a, b) in pairs if b in d[&quot;adj&quot;][a])
+        row += f&quot;{f'{native}/{len(pairs)} native':&gt;16}&quot;
+    print(f&quot;{label:&lt;20}{row}&quot;)
+</code></pre>
+<pre><code class="language-text">制御位相ゲートを行列と照合:
+  theta = 0.7 での位相を除いた誤差: 1.12e-16
+
+QFT回路と密なDFT行列の照合（反転は手で適用）:
+  n = 2: 位相を除いた誤差 1.92e-16
+  n = 3: 位相を除いた誤差 1.31e-15
+  n = 4: 位相を除いた誤差 2.09e-15
+  n = 5: 位相を除いた誤差 3.19e-15
+
+コンパイル問題としての2つの回路
+circuit        qubits  gates   CX  depth  pairs used  pairs possible
+--------------------------------------------------------------------
+GHZ chain           6      6    5      6           5              15
+QFT                 6     81   30     38          15              15
+GHZ chain          10     10    9     10           9              45
+QFT                10    235   90     70          45              45
+
+回路にルーティングが必要かどうかは、2つのグラフの関係の問題です
+circuit                 all-to-all 6        grid 2x3     heavy-hex 7
+--------------------------------------------------------------------
+GHZ chain, n = 6          5/5 native      4/5 native      3/5 native
+QFT, n = 6              15/15 native     7/15 native     5/15 native
+GHZ chain, n = 5          4/4 native      3/4 native      2/4 native
+QFT, n = 5              10/10 native     5/10 native     3/10 native
+</code></pre>
+<p><strong>着目点。</strong> QFT回路は $n = 5$ で密なDFTを $3\times10^{-15}$ の精度で再現します。これがベンチマークとして使う許可です。続くコンパイル問題の表が2つの極端を示します。$n = 10$ でGHZ鎖は使える45対のうち9対、QFTは45対すべてを使い、QFTの90個のCXゲートは45個の制御位相の各2個から来ます。</p>
+<p>最後の表が次節への導入です。<em>自明な</em>配置 — 論理 $q$ を物理 $q$ に — で読むと、GHZ鎖は $2\times3$ 格子上で5対のうち4対しかネイティブではありません。物理量子ビット2と3が結合していないからです。別の配置なら5対中5対になります。QFTは15対中7対で、どんな配置も改善しません。完全グラフ以外のどの6量子ビット装置も辺を15本持たないからです。</p>
+<hr />
+<h2>3.2 配置問題</h2>
+<h3>定式化</h3>
+<p><strong>配置</strong>とは、回路の論理量子ビットから装置の物理量子ビットへの単射です。結合グラフ $G$ と回路が与えられたとき、配置問題はその後のルーティングコストを最小化する単射を選ぶことです。</p>
+<p>これが難しい理由は2つの特別な場合が示します。ある配置の下で回路の相互作用グラフが $G$ の部分グラフになるなら、その配置のコストは0であり、それを見つけることはまさに<strong>部分グラフ同型</strong>、すなわちNP完全問題です。そのような配置が存在しない場合 — 通常はこちらです — 目的関数は後段のルータが生むSWAP数になるので、問題の難しさはグラフだけでなくルータにも依存します。いずれにせよ期待できる厳密アルゴリズムはなく、探索空間は $n$ 論理量子ビットを $N$ 物理量子ビットへ写す
+$$ \frac{N!}{(N-n)!} $$
+通りの単射 — 127量子ビット装置に16論理量子ビットなら $2\times10^{33}$ 通りです。</p>
+<h3>厳密解の価値が小さい理由</h3>
+<p>ここでのNP困難性に対する誠実な応答は諦めではなく計測であり、それを行うのが Code Example 6 です。6量子ビットや7量子ビットの装置なら全数探索が可能なので最適値が計算でき、安価なヒューリスティクスをそれと比較できます。計測が示すのは、最適値から1〜2ゲート内に収まるヒューリスティクスは神託と同じだけの価値がある、ということです。残る差が、まともな回路の間のばらつきより小さいからです。</p>
+<p>知っておく価値のあるヒューリスティクスはSABREが導入したもので、6行です。自明な配置から回路を順方向にルーティングし、ルータが終了時に持っていた写像を保持します。次にそこから<em>逆順</em>のゲート列をルーティングし、その写像を保持し、これを繰り返します。各パスは開始写像を、回路が実際に含むゲートに合ったものへ近づけ、配置に対する探索は一切行いません。直感はこうです。ルータが最後に持つ写像は構成上、回路の終わりに適応しています。だからそこから回路を逆向きに走らせれば、回路の始まりに適応した写像が得られます。</p>
+<p>配置の質を測るにはルータが必要なので、本節のコードはルータが存在してからの Code Example 6 です。</p>
+<hr />
+<h2>3.3 ルーティングと、その検査法</h2>
+<h3>SWAP挿入</h3>
+<p>配置が与えられると、ルータは回路をたどり、2量子ビットゲートが結合グラフの辺でない対に作用するたびに、辺になるまで一方または両方の量子ビットを動かします。この移動がSWAPであり、ネイティブSWAPを持たないハードウェアではSWAPはCXゲート3個です。</p>
+<p>$$ \mathrm{SWAP}_{a,b} = \mathrm{CX}_{a,b}\,\mathrm{CX}_{b,a}\,\mathrm{CX}_{a,b} $$</p>
+<p>第2章はこれを検証し、しかも最適であることを示しました。SWAPの正準座標は $(\pi/4,\pi/4,\pi/4)$ であり、2CXの回路はそこに到達できません。距離 $d$ のゲートを満たす最も安い方法は最短経路に沿った $d-1$ 個のSWAPで、その個数は片方の端点が全部歩いても両方が近づいても同じです。違うのは深さだけです。</p>
+<p>Code Example 3 のルータは、動く中で最も単純なことを行い、その名も正直に付けています。次の2量子ビットゲートについて、その一方の量子ビットを最短経路に沿ってもう一方へ歩かせ、1ホップにつきSWAP 1個、ゲートは書かれた順、先読みなしです。この選択の2つの性質が重要です。</p>
+<p><strong>自分の置換を保持します。</strong> SWAPの後、ある論理量子ビットを保持する物理線は変わっており、ルータはSWAPを元に戻すのではなく新しい写像を記録します。元に戻せば写像は自明なままで等価性検査は易しくなります — 第1章 Code Example 7 がまさにそれを行い、そう明言しています — が、代償はSWAP数の倍増です。置換を保持するのが本物のトランスパイラの振る舞いであり、だからこそ検査を作り直す必要があります。</p>
+<p><strong>これはベースラインであり、ルータではありません。</strong> 3.4節が何を諦めているかを計測します。</p>
+<h3>SABREは代わりに何をするか</h3>
+<p>実運用ツールのルータはSABREの子孫であり、その2つの着想は原理のレベルで述べる価値があります。どちらも本章では実装しません。</p>
+<p><strong>ゲート順序ではなくフロント層で作業する。</strong> 回路は列ではなく半順序です。台が交わらないゲートはどちらの順でも実行できます。SABREは先行ゲートがすべて済んだゲートの集合 — <strong>フロント層</strong> — を保持し、その中の実行可能な任意の要素を実行できます。書かれた順序では先にあるゲートがすでに辺の上にあることは多く、それを先に実行すればSWAPの必要が丸ごと消えます。</p>
+<p><strong>先読みコストで候補SWAPを採点する。</strong> 目の前のゲートのための最短経路に決め打ちするのではなく、SABREはフロント層に隣接する各辺上のSWAPをすべて考え、フロント層を残す距離の総和<em>に加えて</em>、後続ゲートの拡張集合からの減衰した寄与でそれを採点します。最近使った量子ビットに減衰係数をかけることで、同じ量子ビットを繰り返し動かすことを抑制します。結果は「現在のゲートの距離」よりずっと形の良いコスト関数上の貪欲探索です。</p>
+<p>どちらの着想も実装の複雑さを要し、どちらも漸近的な振る舞いを変えません。それらが買うものを Code Example 7 が計測します。</p>
+<h3>等価性検査を作り直す</h3>
+<p>$\ell$ を仮想線から物理線への写像とし、$\ell[v]$ が仮想量子ビット $v$ を保持する物理線であるとします。$\ell_0$ をその初期値、$\ell_f$ をルーティング後の値とし、$P(\ell)$ を $\ell$ に従って線を付け替えるユニタリとします。すると「ルーティングは回路の意味を保つ」という主張はちょうど</p>
+<p>$$ U_{\mathrm{phys}}\, P(\ell_0) \;=\; P(\ell_f)\, \left( U_{\mathrm{log}} \otimes I \right) $$</p>
+<p>がグローバル位相を除いて成り立つことです。ここで $U_{\mathrm{log}}$ は $n$ 個の論理量子ビットに、$I$ は $N - n$ 個の遊休量子ビットに作用します。左から右へ読んでください。論理量子ビットを初期の物理線に置き、物理回路を走らせると、論理回路を走らせて結果を<em>最終の</em>物理線に置いたものと同じ状態になります。ルータが正直に報告すべきものはすべて $\ell_f$ に入っています。</p>
+<p>このテストには2つの実装が必要です。$2^N \times 2^N$ の行列を作れるほど小さな装置 — ここでは $N \le 7$ — では恒等式を厳密に検査できます。16量子ビットの装置では行列は複素数 $4\times10^9$ 個、状態ベクトルは65536個なので、代わりにランダムな入力状態でテストを走らせます。これは証明ではなく確率的な検査であり、何が買えるかは明確にしておく価値があります。置換の取り違えは直ちに捕まります。置換の誤りはほとんどすべての入力に対して $O(1)$ の誤差だからです。</p>
+<h3>Code Example 3: 最近傍ルータ</h3>
+<pre><code class="language-python">&quot;&quot;&quot;第3章 Example 3: 最近傍ルータ。
+Code Example 2 の続き（同一セッション）。&quot;&quot;&quot;
+import numpy as np
+from qcheck import *
+
+
+def remap(g, loc):
+    &quot;&quot;&quot;ゲートタプルを仮想量子ビットから物理線へ書き換えます。&quot;&quot;&quot;
+    if g[0] in ROT_1Q:
+        return (g[0], g[1], loc[g[2]])
+    if g[0] in TWO_Q:
+        return (g[0], loc[g[1]], loc[g[2]])
+    return (g[0], loc[g[1]])
+
+
+def swap_gates(p, q):
+    &quot;&quot;&quot;結合した2本の物理線上のSWAP。ネイティブSWAPはないのでCXゲート3個です。&quot;&quot;&quot;
+    return [(&quot;cx&quot;, p, q), (&quot;cx&quot;, q, p), (&quot;cx&quot;, p, q)]
+
+
+def next_hop(dev, p, target):
+    &quot;&quot;&quot;target に1歩近い p の隣接点。添字が最小のものを選びます。&quot;&quot;&quot;
+    for r in sorted(dev[&quot;adj&quot;][p]):
+        if dev[&quot;dist&quot;][r][target] == dev[&quot;dist&quot;][p][target] - 1:
+            return r
+    raise ValueError(&quot;disconnected coupling graph&quot;)
+
+
+def route(circ, dev, layout=None):
+    &quot;&quot;&quot;すべての2量子ビットゲートが結合した対に作用するまでSWAPを挿入します。
+
+    方針は動く中で最も単純なもので、名前も正直に付けています。次の2量子ビット
+    ゲートについて、その2つの量子ビットの一方を最短経路に沿ってもう一方へ歩かせ、
+    1ホップにつきSWAP 1個を挿入します。ゲートは書かれた順に保ち、先読みは一切
+    しません。SABREが代わりに何をするかは3.3節で述べ、その差はExample 7で計測
+    します。
+
+    loc[v] は仮想量子ビット v をいま保持している物理線です。物理回路、初期と最終
+    の写像、そしてSWAP数を返します。
+    &quot;&quot;&quot;
+    loc = list(range(dev[&quot;n&quot;])) if layout is None else list(layout)
+    loc0, out, swaps = list(loc), [], 0
+    for g in circ:
+        qs = gate_qubits(g)
+        if len(qs) == 1:
+            out.append(remap(g, loc))
+            continue
+        a, b = qs
+        while dev[&quot;dist&quot;][loc[a]][loc[b]] &gt; 1:
+            p, r = loc[a], next_hop(dev, loc[a], loc[b])
+            out += swap_gates(p, r)
+            swaps += 1
+            u, v = loc.index(p), loc.index(r)        # 2つの仮想量子ビットが動く
+            loc[u], loc[v] = r, p
+        out.append(remap(g, loc))
+    return out, loc0, loc, swaps
+
+
+dev = grid(2, 3)
+circ = ghz_chain(5)
+phys, loc0, locf, swaps = route(circ, dev)
+print(&quot;5量子ビットのGHZ鎖を、自明なレイアウトで 2x3 格子上にルーティング&quot;)
+print(f&quot;  結合辺              : {dev['edges']}&quot;)
+print(f&quot;  論理回路            : {circ}&quot;)
+print(f&quot;  物理回路            : {phys}&quot;)
+print(f&quot;  挿入したSWAP数      : {swaps}   (CXゲート &quot;
+      f&quot;{gate_counts(circ)['2q']} -&gt; {gate_counts(phys)['2q']})&quot;)
+print(f&quot;  初期写像 v -&gt; p     : {loc0}&quot;)
+print(f&quot;  最終写像 v -&gt; p     : {locf}&quot;)
+print(f&quot;  深さ                : {circuit_depth(circ, 5)} -&gt; &quot;
+      f&quot;{circuit_depth(phys, dev['n'])}&quot;)
+
+print(&quot;\nルーティング後の回路のすべての2量子ビットゲートが結合対の上にあること:&quot;)
+bad = [g for g in phys if len(gate_qubits(g)) == 2
+       and gate_qubits(g)[1] not in dev[&quot;adj&quot;][gate_qubits(g)[0]]]
+print(f&quot;  結合していない対の上のゲート数: {len(bad)}&quot;)
+
+print(&quot;\n同じ回路を3つのトポロジーで&quot;)
+head = (f&quot;{'device':&lt;16}{'SWAPs':&gt;7}{'CX in':&gt;7}{'CX out':&gt;8}{'blow-up':&gt;9}&quot;
+        f&quot;{'depth in':&gt;10}{'depth out':&gt;11}&quot;)
+print(head)
+print(&quot;-&quot; * len(head))
+for d in (all_to_all(6), grid(2, 3), heavy_hex_7()):
+    p, l0, lf, s = route(circ, d)
+    cin, cout = gate_counts(circ)[&quot;2q&quot;], gate_counts(p)[&quot;2q&quot;]
+    print(f&quot;{d['name']:&lt;16}{s:&gt;7}{cin:&gt;7}{cout:&gt;8}{cout / cin:&gt;9.2f}&quot;
+          f&quot;{circuit_depth(circ, 5):&gt;10}{circuit_depth(p, d['n']):&gt;11}&quot;)
+
+print(&quot;\nそしてすべての対を必要とするQFT&quot;)
+print(head)
+print(&quot;-&quot; * len(head))
+for d in (all_to_all(6), grid(2, 3), heavy_hex_7()):
+    q = qft(5)
+    p, l0, lf, s = route(q, d)
+    cin, cout = gate_counts(q)[&quot;2q&quot;], gate_counts(p)[&quot;2q&quot;]
+    print(f&quot;{d['name']:&lt;16}{s:&gt;7}{cin:&gt;7}{cout:&gt;8}{cout / cin:&gt;9.2f}&quot;
+          f&quot;{circuit_depth(q, 5):&gt;10}{circuit_depth(p, d['n']):&gt;11}&quot;)
+</code></pre>
+<pre><code class="language-text">5量子ビットのGHZ鎖を、自明なレイアウトで 2x3 格子上にルーティング
+  結合辺              : [(0, 1), (0, 3), (1, 2), (1, 4), (2, 5), (3, 4), (4, 5)]
+  論理回路            : [('h', 0), ('cx', 0, 1), ('cx', 1, 2), ('cx', 2, 3), ('cx', 3, 4)]
+  物理回路            : [('h', 0), ('cx', 0, 1), ('cx', 1, 2), ('cx', 2, 1), ('cx', 1, 2), ('cx', 2, 1), ('cx', 1, 0), ('cx', 0, 1), ('cx', 1, 0), ('cx', 0, 3), ('cx', 3, 4)]
+  挿入したSWAP数      : 2   (CXゲート 4 -&gt; 10)
+  初期写像 v -&gt; p     : [0, 1, 2, 3, 4, 5]
+  最終写像 v -&gt; p     : [1, 2, 0, 3, 4, 5]
+  深さ                : 5 -&gt; 11
+
+ルーティング後の回路のすべての2量子ビットゲートが結合対の上にあること:
+  結合していない対の上のゲート数: 0
+
+同じ回路を3つのトポロジーで
+device            SWAPs  CX in  CX out  blow-up  depth in  depth out
+--------------------------------------------------------------------
+all-to-all 6          0      4       4     1.00         5          5
+grid 2x3              2      4      10     2.50         5         11
+heavy-hex 7           2      4      10     2.50         5         11
+
+そしてすべての対を必要とするQFT
+device            SWAPs  CX in  CX out  blow-up  depth in  depth out
+--------------------------------------------------------------------
+all-to-all 6          0     20      20     1.00        30         30
+grid 2x3              9     20      47     2.35        30         67
+heavy-hex 7          12     20      56     2.80        30         57
+</code></pre>
+<p><strong>着目点。</strong> 5量子ビットのGHZ鎖は $2\times3$ 格子で2個のSWAPを要し、CX数は4から10 — 相互作用グラフがパスの回路に対して2.5倍です。原因はすべて、自明な配置が論理2と論理3を結合していない物理線に置いたことにあります。最終写像 <code>[1, 2, 0, 3, 4, 5]</code> は論理量子ビットの行き先を記録し、結合していない対の検査は出力のすべての2量子ビットゲートが装置上で合法であることを確認します。</p>
+<p>覚えておくべきはQFTの行です。$2\times3$ 格子では20個のCXが47個になり深さは30から67へ、7量子ビットのheavy-hex断片では20個が56個になります。heavy-hexの装置は量子ビットが1個多いのにルーティングコストは<em>悪い</em> — これも次数の上限が現れたものです。</p>
+<h3>Code Example 4: 追跡した置換を込めた検査</h3>
+<pre><code class="language-python">&quot;&quot;&quot;第3章 Example 4: 追跡した置換を込めた等価性検査。
+Code Example 3 の続き（同一セッション）。&quot;&quot;&quot;
+import numpy as np
+from qcheck import *
+
+
+def place(psi, loc, n):
+    &quot;&quot;&quot;仮想線 v 上の量子ビットを物理線 loc[v] へ移します。&quot;&quot;&quot;
+    return np.transpose(psi.reshape([2] * n), np.argsort(loc)).reshape(-1)
+
+
+def permutation_unitary(loc, n):
+    &quot;&quot;&quot;その付け替えの 2^n x 2^n 行列です。&quot;&quot;&quot;
+    dim = 2 ** n
+    P = np.empty((dim, dim), dtype=complex)
+    for j in range(dim):
+        e = np.zeros(dim, dtype=complex)
+        e[j] = 1.0
+        P[:, j] = place(e, loc, n)
+    return P
+
+
+def routed_error(circ, n_log, dev, phys, loc0, locf):
+    &quot;&quot;&quot;U_phys P(loc0) と P(locf) (U_log tensor I) の、位相を除いた誤差の最大値です。
+
+    「ルーティングは回路の意味を保つ」という主張の中身はこれで尽きています。
+    ルーティング後の回路は、書き下した回路とは別のユニタリです。保たれるのは、
+    そのユニタリにSWAPが行った付け替えを合成したものであり、ルータが正しいのは
+    その付け替えを正直に報告している場合に限ります。
+    &quot;&quot;&quot;
+    n = dev[&quot;n&quot;]
+    U_log = unitary_of(circ, n_log)
+    U_emb = np.kron(U_log, np.eye(2 ** (n - n_log))) if n &gt; n_log else U_log
+    left = unitary_of(phys, n) @ permutation_unitary(loc0, n)
+    return phase_free_error(left, permutation_unitary(locf, n) @ U_emb)
+
+
+def routed_error_sampled(circ, n_log, dev, phys, loc0, locf, trials=8, seed=0):
+    &quot;&quot;&quot;同じ検査をランダムな入力状態で行います。行列が大きすぎる装置向けです。&quot;&quot;&quot;
+    n, rng, worst = dev[&quot;n&quot;], np.random.default_rng(seed), 0.0
+    idle = ket(&quot;0&quot; * (n - n_log)) if n &gt; n_log else None
+    for _ in range(trials):
+        v = rng.normal(size=2 ** n_log) + 1j * rng.normal(size=2 ** n_log)
+        psi_l = v / np.linalg.norm(v)
+        out_l = run_circuit(circ, n_log, psi0=psi_l)
+        psi_v = np.kron(psi_l, idle) if idle is not None else psi_l
+        out_v = np.kron(out_l, idle) if idle is not None else out_l
+        got = run_circuit(phys, n, psi0=place(psi_v, loc0, n))
+        want = place(out_v, locf, n)
+        ph = np.vdot(want, got)
+        ph = ph / abs(ph) if abs(ph) &gt; 1e-12 else 1.0
+        worst = max(worst, float(np.max(np.abs(got - ph * want))))
+    return worst
+
+
+print(&quot;まず付け替え自身の検査。P([1, 0]) はSWAP行列でなければなりません。&quot;)
+print(f&quot;  誤差: &quot;
+      f&quot;{np.max(np.abs(permutation_unitary([1, 0], 2) - unitary_of([('cx', 0, 1), ('cx', 1, 0), ('cx', 0, 1)], 2))):.2e}&quot;)
+
+print(&quot;\nルーティング後の回路を、厳密検査と標本検査の両方で確認&quot;)
+head = (f&quot;{'circuit':&lt;12}{'device':&lt;16}{'SWAPs':&gt;7}{'matrix check':&gt;14}&quot;
+        f&quot;{'sampled check':&gt;15}{'ignoring the perm':&gt;19}&quot;)
+print(head)
+print(&quot;-&quot; * len(head))
+CASES = [(&quot;GHZ n=5&quot;, ghz_chain(5), 5), (&quot;QFT n=4&quot;, qft(4), 4),
+         (&quot;QFT n=5&quot;, qft(5), 5)]
+for label, circ, n_log in CASES:
+    for d in (all_to_all(6), grid(2, 3), heavy_hex_7()):
+        phys, loc0, locf, swaps = route(circ, d)
+        exact = routed_error(circ, n_log, d, phys, loc0, locf)
+        sampled = routed_error_sampled(circ, n_log, d, phys, loc0, locf, seed=1)
+        naive = routed_error(circ, n_log, d, phys, loc0, loc0)
+        assert exact &lt; 1e-10, (label, d[&quot;name&quot;])
+        print(f&quot;{label:&lt;12}{d['name']:&lt;16}{swaps:&gt;7}{exact:&gt;14.1e}&quot;
+              f&quot;{sampled:&gt;15.1e}{naive:&gt;19.1e}&quot;)
+
+print(&quot;\n自明でない初期レイアウトも同じ恒等式で扱えます&quot;)
+head = f&quot;{'layout v -&gt; p':&lt;22}{'SWAPs':&gt;6}  {'final map':&lt;22}{'matrix check':&gt;14}&quot;
+print(head)
+print(&quot;-&quot; * len(head))
+for layout in ([0, 1, 2, 3, 4, 5], [3, 4, 5, 0, 1, 2], [1, 0, 3, 2, 5, 4],
+               [0, 1, 2, 5, 4, 3], [3, 0, 1, 2, 5, 4]):
+    phys, loc0, locf, swaps = route(ghz_chain(5), grid(2, 3), layout)
+    err = routed_error(ghz_chain(5), 5, grid(2, 3), phys, loc0, locf)
+    print(f&quot;{str(layout):&lt;22}{swaps:&gt;6}  {str(locf):&lt;22}{err:&gt;14.1e}&quot;)
+</code></pre>
+<pre><code class="language-text">まず付け替え自身の検査。P([1, 0]) はSWAP行列でなければなりません。
+  誤差: 0.00e+00
+
+ルーティング後の回路を、厳密検査と標本検査の両方で確認
+circuit     device            SWAPs  matrix check  sampled check  ignoring the perm
+-----------------------------------------------------------------------------------
+GHZ n=5     all-to-all 6          0       0.0e+00        0.0e+00            0.0e+00
+GHZ n=5     grid 2x3              2       0.0e+00        0.0e+00            7.1e-01
+GHZ n=5     heavy-hex 7           2       0.0e+00        0.0e+00            7.1e-01
+QFT n=4     all-to-all 6          0       0.0e+00        0.0e+00            0.0e+00
+QFT n=4     grid 2x3              5       0.0e+00        0.0e+00            5.0e-01
+QFT n=4     heavy-hex 7           3       0.0e+00        0.0e+00            5.0e-01
+QFT n=5     all-to-all 6          0       0.0e+00        0.0e+00            0.0e+00
+QFT n=5     grid 2x3              9       0.0e+00        0.0e+00            3.5e-01
+QFT n=5     heavy-hex 7          12       0.0e+00        0.0e+00            3.5e-01
+
+自明でない初期レイアウトも同じ恒等式で扱えます
+layout v -&gt; p          SWAPs  final map               matrix check
+------------------------------------------------------------------
+[0, 1, 2, 3, 4, 5]         2  [1, 2, 0, 3, 4, 5]           0.0e+00
+[3, 4, 5, 0, 1, 2]         3  [3, 4, 0, 1, 2, 5]           0.0e+00
+[1, 0, 3, 2, 5, 4]         2  [0, 3, 1, 2, 5, 4]           0.0e+00
+[0, 1, 2, 5, 4, 3]         0  [0, 1, 2, 5, 4, 3]           0.0e+00
+[3, 0, 1, 2, 5, 4]         0  [3, 0, 1, 2, 5, 4]           0.0e+00
+</code></pre>
+<p><strong>着目点。</strong> まず付け替えのユニタリを、第2章のSWAP回路と照合して検証します。$P([1,0])$ がSWAP行列でないなら、その後の一切に意味がありません。次にルーティング後のすべての回路が厳密検査と標本検査の両方を通り、誤差は $10^{-16}$ ではなくちょうど0です。これは偶然ではありません。ルーティングは振幅テンソルのどの軸に各因子が掛かるかを変えるだけで、追加されるCXゲートは振幅の厳密な置換なので、同じ演算が同じ順序で行われ丸め誤差の差が生じないのです。</p>
+<p>最後の列がこの例の要点です。ルーティング後の回路を元の回路と比べて置換を<em>忘れる</em>と、SWAPが挿入されたときは $0.35$ から $0.71$ の誤差になり、挿入されなかったときはちょうど0になります。これが、壊れたルータを易しい事例で正しく見せる失敗の様式です。全結合の行は通り、疎な行は落ちるので、前者しか含まないテスト群は成功を報告します。</p>
+<p>配置の表が3.2節との輪を閉じます。4つの配置、4つのSWAP数、うち2つは0です。論理鎖 $0{-}1{-}2{-}3{-}4$ を物理パス $0{-}1{-}2{-}5{-}4$ と $3{-}0{-}1{-}2{-}5$ に写す配置で、どちらも格子が備えています。ルータがそれらの配置を見つけたのではなく、与えられました。見つけるのが Code Example 6 です。</p>
+<hr />
+<h2>3.4 コストを計測する</h2>
+<h3>この数値が何に依存するか</h3>
+<p>回路のルーティングオーバーヘッドは3つのものの積であり、そのうち1つだけを報告しても情報になりません。</p>
+<ul>
+<li><strong>結合グラフ</strong>。平均距離を通して効きます。Code Example 1 が計算した係数です。</li>
+<li><strong>回路の相互作用構造</strong>。パスはどの装置でもほとんど無料、完全グラフは最大です。現実のものはすべてその間にあり、ゲート数よりその位置が重要です。</li>
+<li><strong>配置とルータ</strong>。両者合わせて2倍程度の価値があり、Code Example 6 と 7 が計測します。</li>
+</ul>
+<p>だからこそ「トポロジーXのオーバーヘッド」に単一の数値を引用するベンチマークは意味を持たず、また合成ベンチマークがあのように構成される理由でもあります。量子ボリュームのようなベンチマークは回路の<em>構造</em>を固定します — ランダムな対に作用するランダムな2量子ビットゲートの正方形回路 — ので、得られる数値は特定のアルゴリズムの性質ではなく機械とコンパイラを合わせた性質になります。本コースはベンダー数値を一切引用せず、以下の表は上で定義したグラフに対する上のコードの測定値であり、それ以上のものではありません。</p>
+<h3>Code Example 5: 3つのトポロジーでのSWAP数</h3>
+<pre><code class="language-python">&quot;&quot;&quot;第3章 Example 5: 接続性のコストを計測します。
+Code Example 4 の続き（同一セッション）。&quot;&quot;&quot;
+from itertools import combinations
+import numpy as np
+import matplotlib.pyplot as plt
+from qcheck import *
+
+BIG = [all_to_all(16), grid(4, 4), heavy_hex_16()]
+
+print(&quot;GHZ鎖。挿入したSWAP数と、CX数の前 -&gt; 後&quot;)
+head = f&quot;{'n':&gt;3}&quot; + &quot;&quot;.join(f&quot;{d['name']:&gt;22}&quot; for d in BIG)
+print(head)
+print(&quot;-&quot; * len(head))
+for n in range(4, 13):
+    row = &quot;&quot;
+    for d in BIG:
+        phys, l0, lf, s = route(ghz_chain(n), d)
+        cin, cout = gate_counts(ghz_chain(n))[&quot;2q&quot;], gate_counts(phys)[&quot;2q&quot;]
+        row += f&quot;{f'{s} swap, {cin}-&gt;{cout}':&gt;22}&quot;
+    print(f&quot;{n:&gt;3}{row}&quot;)
+
+print(&quot;\nQFT。すべての対を必要とする回路について同じ表&quot;)
+print(head)
+print(&quot;-&quot; * len(head))
+qft_swaps = {d[&quot;name&quot;]: [] for d in BIG}
+ns = list(range(4, 13))
+for n in ns:
+    row = &quot;&quot;
+    for d in BIG:
+        phys, l0, lf, s = route(qft(n), d)
+        cin, cout = gate_counts(qft(n))[&quot;2q&quot;], gate_counts(phys)[&quot;2q&quot;]
+        qft_swaps[d[&quot;name&quot;]].append(s)
+        row += f&quot;{f'{s} swap, {cin}-&gt;{cout}':&gt;22}&quot;
+    print(f&quot;{n:&gt;3}{row}&quot;)
+
+print(&quot;\n膨張率と、平均距離による見積りの予測値&quot;)
+head = (f&quot;{'device':&lt;16}{'QFT n=12 CX in':&gt;16}{'CX out':&gt;9}{'measured':&gt;10}&quot;
+        f&quot;{'predicted':&gt;11}&quot;)
+print(head)
+print(&quot;-&quot; * len(head))
+for d in BIG:
+    circ = qft(12)
+    phys, l0, lf, s = route(circ, d)
+    cin, cout = gate_counts(circ)[&quot;2q&quot;], gate_counts(phys)[&quot;2q&quot;]
+    md = np.mean([d[&quot;dist&quot;][a][b] for a, b in combinations(range(d[&quot;n&quot;]), 2)])
+    print(f&quot;{d['name']:&lt;16}{cin:&gt;16}{cout:&gt;9}{cout / cin:&gt;10.2f}&quot;
+          f&quot;{1 + 3 * (md - 1):&gt;11.2f}&quot;)
+print(&quot;\n同じ行を、16物理量子ビット上での標本検査で検証&quot;)
+head = f&quot;{'circuit':&lt;12}{'device':&lt;16}{'SWAPs':&gt;7}{'gates out':&gt;11}{'sampled check':&gt;15}&quot;
+print(head)
+print(&quot;-&quot; * len(head))
+for label, circ, n_log in [(&quot;GHZ n=6&quot;, ghz_chain(6), 6),
+                           (&quot;GHZ n=12&quot;, ghz_chain(12), 12),
+                           (&quot;QFT n=6&quot;, qft(6), 6), (&quot;QFT n=10&quot;, qft(10), 10)]:
+    for d in BIG[1:]:
+        phys, loc0, locf, s = route(circ, d)
+        err = routed_error_sampled(circ, n_log, d, phys, loc0, locf,
+                                   trials=3, seed=5)
+        assert err &lt; 1e-9, (label, d[&quot;name&quot;])
+        print(f&quot;{label:&lt;12}{d['name']:&lt;16}{s:&gt;7}{len(phys):&gt;11}{err:&gt;15.1e}&quot;)
+fig, ax = plt.subplots(figsize=(6.2, 4))
+for d, style in zip(BIG, (&quot;o-&quot;, &quot;s-&quot;, &quot;^-&quot;)):
+    ax.plot(ns, qft_swaps[d[&quot;name&quot;]], style, label=d[&quot;name&quot;])
+ax.set_xlabel(&quot;logical qubits in the QFT&quot;)
+ax.set_ylabel(&quot;SWAPs inserted&quot;)
+ax.set_title(&quot;Routing cost of the QFT on 16-qubit devices&quot;)
+ax.legend(fontsize=8); plt.tight_layout(); plt.show()
+</code></pre>
+<pre><code class="language-text">GHZ鎖。挿入したSWAP数と、CX数の前 -&gt; 後
+  n         all-to-all 16              grid 4x4          heavy-hex 16
+---------------------------------------------------------------------
+  4          0 swap, 3-&gt;3          0 swap, 3-&gt;3          0 swap, 3-&gt;3
+  5          0 swap, 4-&gt;4         3 swap, 4-&gt;13         2 swap, 4-&gt;10
+  6          0 swap, 5-&gt;5         3 swap, 5-&gt;14         5 swap, 5-&gt;20
+  7          0 swap, 6-&gt;6         3 swap, 6-&gt;15        10 swap, 6-&gt;36
+  8          0 swap, 7-&gt;7         3 swap, 7-&gt;16        11 swap, 7-&gt;40
+  9          0 swap, 8-&gt;8         6 swap, 8-&gt;26        15 swap, 8-&gt;53
+ 10          0 swap, 9-&gt;9         6 swap, 9-&gt;27        15 swap, 9-&gt;54
+ 11        0 swap, 10-&gt;10        6 swap, 10-&gt;28       20 swap, 10-&gt;70
+ 12        0 swap, 11-&gt;11        6 swap, 11-&gt;29       24 swap, 11-&gt;83
+
+QFT。すべての対を必要とする回路について同じ表
+  n         all-to-all 16              grid 4x4          heavy-hex 16
+---------------------------------------------------------------------
+  4        0 swap, 12-&gt;12        6 swap, 12-&gt;30        6 swap, 12-&gt;30
+  5        0 swap, 20-&gt;20       12 swap, 20-&gt;56        9 swap, 20-&gt;47
+  6        0 swap, 30-&gt;30       17 swap, 30-&gt;81       17 swap, 30-&gt;81
+  7        0 swap, 42-&gt;42      25 swap, 42-&gt;117      45 swap, 42-&gt;177
+  8        0 swap, 56-&gt;56      24 swap, 56-&gt;128      63 swap, 56-&gt;245
+  9        0 swap, 72-&gt;72      50 swap, 72-&gt;222      68 swap, 72-&gt;276
+ 10        0 swap, 90-&gt;90      59 swap, 90-&gt;267      83 swap, 90-&gt;339
+ 11      0 swap, 110-&gt;110     73 swap, 110-&gt;329    124 swap, 110-&gt;482
+ 12      0 swap, 132-&gt;132     74 swap, 132-&gt;354    158 swap, 132-&gt;606
+
+膨張率と、平均距離による見積りの予測値
+device            QFT n=12 CX in   CX out  measured  predicted
+--------------------------------------------------------------
+all-to-all 16                132      132      1.00       1.00
+grid 4x4                     132      354      2.68       6.00
+heavy-hex 16                 132      606      4.59       9.05
+
+同じ行を、16物理量子ビット上での標本検査で検証
+circuit     device            SWAPs  gates out  sampled check
+-------------------------------------------------------------
+GHZ n=6     grid 4x4              3         15        0.0e+00
+GHZ n=6     heavy-hex 16          5         21        0.0e+00
+GHZ n=12    grid 4x4              6         30        0.0e+00
+GHZ n=12    heavy-hex 16         24         84        0.0e+00
+QFT n=6     grid 4x4             17        132        0.0e+00
+QFT n=6     heavy-hex 16         17        132        0.0e+00
+QFT n=10    grid 4x4             59        412        0.0e+00
+QFT n=10    heavy-hex 16         83        484        0.0e+00
+</code></pre>
+<p><strong>着目点。</strong> GHZの表は易しい場合ですが、それでも無料ではありません。$4\times4$ 格子では鎖に $n = 5$ で3個、$n = 12$ で6個のSWAPがかかります。すべて自明な配置が論理量子ビットを行の境界をまたいで歩かせるためです。heavy-hexでは $n = 12$ で24個 — 相互作用グラフがパスの回路に対して、長いパスを含む連結な装置上で、です。これはルーティングの失敗ではなく配置の失敗であり、Code Example 6 がそのすべてを回復します。</p>
+<p>QFTの表が本章の正直な見出しです。$n = 12$ でCX数は格子で132から354へ、heavy-hexで606へ — 2.7倍と4.6倍です。平均距離による見積りは6.0と9.05を予測したので、約2倍の過大評価です。理由は3.1節で述べたとおりです。QFTは近くの量子ビットを繰り返し相互作用させ、ルータは動かした場所に量子ビットを置いたままにするので、連続するゲートは独立なゲートより安く済みます。見積りは桁としては正しく、ルータが手元にないときに使うべきものです。ルータを走らせることの代用ではありません。</p>
+<p>標本のブロックが検証です。4つの回路、2つの16量子ビット装置、ルーティング出力は最大484ゲートで、置換を込めた確率的検査は全行を通ります。$4^{16}$ の行列は複素数 $4\times10^9$ 個ですが、ランダムな $2^{16}$ 状態ベクトル3本は無料に近く、しかも重要な誤りを捕まえます。</p>
+<h3>Code Example 6: 配置の価値</h3>
+<pre><code class="language-python">&quot;&quot;&quot;第3章 Example 6: レイアウト問題と、その安価なヒューリスティクス。
+Code Example 5 の続き（同一セッション）。&quot;&quot;&quot;
+from itertools import permutations
+from math import factorial
+import numpy as np
+from qcheck import *
+
+
+def layout_search(circ, dev):
+    &quot;&quot;&quot;すべてのレイアウトを、その後ルータが必要とするSWAP数で採点します。小さな装置専用です。&quot;&quot;&quot;
+    scores = [route(circ, dev, p)[3] for p in permutations(range(dev[&quot;n&quot;]))]
+    return min(scores), max(scores), float(np.mean(scores)), scores
+
+
+def reverse_traversal(circ, dev, rounds=2):
+    &quot;&quot;&quot;SABREの初期レイアウトの工夫を6行で。
+
+    自明なレイアウトから回路を順方向にルーティングし、終了時の写像を保持します。
+    そこから逆順のゲート列をルーティングしてその写像を保持し、これを繰り返します。
+    各パスは開始写像を、回路が実際に含むゲートに合った写像へ近づけます。レイアウト
+    に対する探索は一切行いません。
+    &quot;&quot;&quot;
+    loc = list(range(dev[&quot;n&quot;]))
+    for r in range(2 * rounds):
+        gates = circ if r % 2 == 0 else list(reversed(circ))
+        loc = route(gates, dev, loc)[2]
+    return loc
+
+
+CASES = [(&quot;GHZ n=5&quot;, ghz_chain(5), 5), (&quot;QFT n=4&quot;, qft(4), 4),
+         (&quot;QFT n=5&quot;, qft(5), 5)]
+print(&quot;6量子ビットと7量子ビットの装置2種でのレイアウト全数探索&quot;)
+head = (f&quot;{'circuit':&lt;10}{'device':&lt;14}{'layouts':&gt;9}{'best':&gt;6}{'worst':&gt;7}&quot;
+        f&quot;{'mean':&gt;7}{'trivial':&gt;9}{'reverse trav.':&gt;15}&quot;)
+print(head)
+print(&quot;-&quot; * len(head))
+for label, circ, n_log in CASES:
+    for d in (grid(2, 3), heavy_hex_7()):
+        best, worst, mean, _ = layout_search(circ, d)
+        triv = route(circ, d)[3]
+        phys, loc0, locf, rev = route(circ, d, reverse_traversal(circ, d))
+        err = routed_error(circ, n_log, d, phys, loc0, locf)
+        assert err &lt; 1e-10, label
+        print(f&quot;{label:&lt;10}{d['name']:&lt;14}{factorial(d['n']):&gt;9}{best:&gt;6}&quot;
+              f&quot;{worst:&gt;7}{mean:&gt;7.2f}{triv:&gt;9}{rev:&gt;15}&quot;)
+
+print(&quot;\n探索が続けられない理由。N 物理量子ビット上に n 論理量子ビットを置くレイアウト数&quot;)
+head = f&quot;{'N':&gt;4}&quot; + &quot;&quot;.join(f&quot;{f'n = {n}':&gt;16}&quot; for n in (4, 8, 12, 16))
+print(head)
+print(&quot;-&quot; * len(head))
+for N in (7, 16, 27, 65, 127):
+    row = &quot;&quot;
+    for n in (4, 8, 12, 16):
+        row += (f&quot;{factorial(N) // factorial(N - n):&gt;16.3g}&quot; if n &lt;= N
+                else f&quot;{'-':&gt;16}&quot;)
+    print(f&quot;{N:&gt;4}{row}&quot;)
+print(&quot;\n全数探索の答えが存在しない16量子ビット装置でのヒューリスティクス&quot;)
+head = (f&quot;{'circuit':&lt;10}{'device':&lt;14}{'trivial':&gt;9}{'reverse trav.':&gt;15}&quot;
+        f&quot;{'best of 200 random':&gt;20}{'check':&gt;9}&quot;)
+print(head)
+print(&quot;-&quot; * len(head))
+for label, circ, n_log in [(&quot;QFT n=6&quot;, qft(6), 6), (&quot;QFT n=8&quot;, qft(8), 8),
+                           (&quot;QFT n=10&quot;, qft(10), 10),
+                           (&quot;GHZ n=12&quot;, ghz_chain(12), 12)]:
+    for d in (grid(4, 4), heavy_hex_16()):
+        triv = route(circ, d)[3]
+        lay = reverse_traversal(circ, d)
+        rev = route(circ, d, lay)[3]
+        rng = np.random.default_rng(17)
+        rand = min(route(circ, d, list(rng.permutation(d[&quot;n&quot;])))[3]
+                   for _ in range(200))
+        phys, loc0, locf, _ = route(circ, d, lay)
+        err = routed_error_sampled(circ, n_log, d, phys, loc0, locf,
+                                   trials=2, seed=9)
+        assert err &lt; 1e-9, label
+        print(f&quot;{label:&lt;10}{d['name']:&lt;14}{triv:&gt;9}{rev:&gt;15}{rand:&gt;20}&quot;
+              f&quot;{err:&gt;9.0e}&quot;)
+</code></pre>
+<pre><code class="language-text">6量子ビットと7量子ビットの装置2種でのレイアウト全数探索
+circuit   device          layouts  best  worst   mean  trivial  reverse trav.
+-----------------------------------------------------------------------------
+GHZ n=5   grid 2x3            720     0      7   3.04        2              0
+GHZ n=5   heavy-hex 7        5040     0     12   6.03        2              0
+QFT n=4   grid 2x3            720     2      9   4.97        5              4
+QFT n=4   heavy-hex 7        5040     2     15   8.34        3              2
+QFT n=5   grid 2x3            720     4     15   8.41        9              8
+QFT n=5   heavy-hex 7        5040     5     24  13.98       12             10
+
+探索が続けられない理由。N 物理量子ビット上に n 論理量子ビットを置くレイアウト数
+   N           n = 4           n = 8          n = 12          n = 16
+--------------------------------------------------------------------
+   7             840               -               -               -
+  16        4.37e+04        5.19e+08        8.72e+11        2.09e+13
+  27        4.21e+05        8.95e+10        8.33e+15        2.73e+20
+  65        1.62e+07        2.04e+14        1.93e+21        1.36e+28
+ 127        2.48e+08         5.4e+16        1.03e+25        1.71e+33
+
+全数探索の答えが存在しない16量子ビット装置でのヒューリスティクス
+circuit   device          trivial  reverse trav.  best of 200 random    check
+-----------------------------------------------------------------------------
+QFT n=6   grid 4x4             17             18                  11    0e+00
+QFT n=6   heavy-hex 16         17             15                  20    0e+00
+QFT n=8   grid 4x4             24             32                  27    0e+00
+QFT n=8   heavy-hex 16         63             55                  35    0e+00
+QFT n=10  grid 4x4             59             61                  41    0e+00
+QFT n=10  heavy-hex 16         83             99                  77    0e+00
+GHZ n=12  grid 4x4              6              0                   9    0e+00
+GHZ n=12  heavy-hex 16         24             18                  17    0e+00
+</code></pre>
+<p><strong>着目点。</strong> 小さな装置では配置の地形が全部見えます。GHZの行では最良の配置がSWAPをすべて除去し、最悪の配置は7個または12個を挿入します。全配置の平均は3.04と6.03なので、自明な配置の2は平均より良く、それでも良くはありません。$n = 5$ のQFTをheavy-hexに置く場合、幅は5から24です。逆走ヒューリスティクスは6行すべてで自明な配置に勝ち、うち3行で真の最適に到達します。コストはルーティング4パスで、探索はなしです。</p>
+<p>階乗の表が探索がそこで止まる理由です。127物理量子ビットに16論理量子ビットなら配置は $2\times10^{33}$ 通りあり、しかもNP困難なので厳密なものは来ません。</p>
+<p>最後の表に誠実さがあります。16量子ビット装置ではヒューリスティクスが自明な配置より<em>悪い</em>ことがあります — 格子上の $n = 8$ のQFTで24に対して32 — 本章の版がSABREの逆走の工夫だけを残して先読みコスト関数を落としているので、長い回路では誤ったものを最適化するのです。そして本物の探索である200個のランダム配置は、ルーティング4パスの代わりに200パスというコストで、ほとんどの行でヒューリスティクスに勝ちます。この取引 — 探索時間対SWAP数 — がトランスパイラの設計空間のすべてであり、実運用ツールが単一のアルゴリズムではなく最適化レベルを露出している理由です。</p>
+<h3>Code Example 7: 単純なルータが失うもの</h3>
+<p>ヒューリスティクスのコストを知る唯一の方法は、最適値が計算できるところで最適値を計算することです。（装置写像、すでに実行した2量子ビットゲート数）に対する幅優先探索がまさにそれを行います。SWAPのコストはすべて1なので素の幅優先探索が最小値を返し、開始写像として可能なすべてを種にすれば同時に配置問題も厳密に解けます。物理量子ビット数に対して階乗なので、代替手段ではなく測定器です。</p>
+<pre><code class="language-python">&quot;&quot;&quot;第3章 Example 7: 単純なルータが失うものを、最適解と比べて計測します。
+Code Example 6 の続き（同一セッション）。&quot;&quot;&quot;
+from collections import deque
+from itertools import permutations
+import numpy as np
+from qcheck import *
+
+
+def optimal_swaps(circ, dev, layout=None):
+    &quot;&quot;&quot;装置写像に対する幅優先探索で求めたSWAP数の最小値です。
+
+    状態は（写像、すでに実行した2量子ビットゲート数）です。1量子ビットゲートは
+    ルーティングを要さないので2量子ビットゲートだけが入り、書かれた順序を保ちます。
+    これは route() が用いる模型とまったく同じなので、比較は公平です。SWAPのコストは
+    すべて1なので、素の幅優先探索が最適解を返します。layout=None とすると開始写像が
+    自由になり、レイアウト問題も厳密に解くことになります。
+    &quot;&quot;&quot;
+    pairs = [gate_qubits(g) for g in circ if len(gate_qubits(g)) == 2]
+    n = dev[&quot;n&quot;]
+
+    def advance(loc, k):
+        while k &lt; len(pairs):
+            a, b = pairs[k]
+            if loc[b] in dev[&quot;adj&quot;][loc[a]]:
+                k += 1
+            else:
+                return k
+        return k
+
+    starts = ([tuple(layout)] if layout is not None
+              else [p for p in permutations(range(n))])
+    queue, seen = deque(), set()
+    for st in starts:
+        s = (st, advance(st, 0))
+        if s not in seen:
+            seen.add(s)
+            queue.append((s, 0))
+    while queue:
+        (loc, k), cost = queue.popleft()
+        if k == len(pairs):
+            return cost, loc
+        for p, q in dev[&quot;edges&quot;]:
+            nl = list(loc)
+            u, v = nl.index(p), nl.index(q)
+            nl[u], nl[v] = q, p
+            nxt = (tuple(nl), advance(tuple(nl), k))
+            if nxt not in seen:
+                seen.add(nxt)
+                queue.append((nxt, cost + 1))
+    raise RuntimeError(&quot;unreachable on a connected device&quot;)
+
+
+print(&quot;単純なルータと厳密なルータの比較。両方が動く小さな事例で&quot;)
+head = (f&quot;{'circuit':&lt;10}{'device':&lt;14}{'ours, trivial':&gt;14}&quot;
+        f&quot;{'optimal, trivial':&gt;18}{'ours, rev trav.':&gt;17}&quot;
+        f&quot;{'optimal, free layout':&gt;22}&quot;)
+print(head)
+print(&quot;-&quot; * len(head))
+rows = []
+for label, circ, n_log in [(&quot;GHZ n=4&quot;, ghz_chain(4), 4),
+                           (&quot;GHZ n=5&quot;, ghz_chain(5), 5),
+                           (&quot;QFT n=3&quot;, qft(3), 3),
+                           (&quot;QFT n=4&quot;, qft(4), 4),
+                           (&quot;QFT n=5&quot;, qft(5), 5)]:
+    for d in (grid(2, 3), heavy_hex_7()):
+        ours = route(circ, d)[3]
+        opt_fixed = optimal_swaps(circ, d, list(range(d[&quot;n&quot;])))[0]
+        rev = route(circ, d, reverse_traversal(circ, d))[3]
+        opt_free, best_loc = optimal_swaps(circ, d)
+        phys, loc0, locf, _ = route(circ, d, best_loc)
+        assert routed_error(circ, n_log, d, phys, loc0, locf) &lt; 1e-10
+        rows.append((ours, opt_fixed, rev, opt_free))
+        print(f&quot;{label:&lt;10}{d['name']:&lt;14}{ours:&gt;14}{opt_fixed:&gt;18}&quot;
+              f&quot;{rev:&gt;17}{opt_free:&gt;22}&quot;)
+
+ours = np.array([r[0] for r in rows], float)
+opt_fixed = np.array([r[1] for r in rows], float)
+rev = np.array([r[2] for r in rows], float)
+opt_free = np.array([r[3] for r in rows], float)
+print(f&quot;\n10行の合計: 本章のルータ {ours.sum():.0f}、&quot;
+      f&quot;同じレイアウトでの最適 {opt_fixed.sum():.0f}、&quot;
+      f&quot;逆走ヒューリスティクス付き {rev.sum():.0f}、&quot;
+      f&quot;レイアウトも最適化した最適 {opt_free.sum():.0f}&quot;)
+print(f&quot;  最適解に対する超過（同一レイアウト）: &quot;
+      f&quot;{100 * (ours.sum() / opt_fixed.sum() - 1):.0f}%&quot;)
+print(f&quot;  最適解に対する超過（レイアウト込み）: &quot;
+      f&quot;{100 * (ours.sum() / opt_free.sum() - 1):.0f}%&quot;)
+print(f&quot;  レイアウトのヒューリスティクス併用  : &quot;
+      f&quot;{100 * (rev.sum() / opt_free.sum() - 1):.0f}%&quot;)
+
+print(&quot;\n厳密なルータは代替手段ではなく、測定器です:&quot;)
+from math import factorial
+head = f&quot;{'device':&lt;14}{'maps':&gt;10}{'states for QFT n=5':&gt;20}&quot;
+print(head)
+print(&quot;-&quot; * len(head))
+pairs = sum(1 for g in qft(5) if len(gate_qubits(g)) == 2)
+for N, name in ((6, &quot;grid 2x3&quot;), (7, &quot;heavy-hex 7&quot;), (16, &quot;grid 4x4&quot;),
+                (27, &quot;heavy-hex 27&quot;)):
+    print(f&quot;{name:&lt;14}{factorial(N):&gt;10.3g}{factorial(N) * (pairs + 1):&gt;20.3g}&quot;)
+</code></pre>
+<pre><code class="language-text">単純なルータと厳密なルータの比較。両方が動く小さな事例で
+circuit   device         ours, trivial  optimal, trivial  ours, rev trav.  optimal, free layout
+-----------------------------------------------------------------------------------------------
+GHZ n=4   grid 2x3                   2                 2                0                     0
+GHZ n=4   heavy-hex 7                1                 1                2                     0
+GHZ n=5   grid 2x3                   2                 2                0                     0
+GHZ n=5   heavy-hex 7                2                 2                0                     0
+QFT n=3   grid 2x3                   2                 1                1                     1
+QFT n=3   heavy-hex 7                2                 1                1                     1
+QFT n=4   grid 2x3                   5                 3                4                     2
+QFT n=4   heavy-hex 7                3                 3                2                     2
+QFT n=5   grid 2x3                   9                 5                8                     4
+QFT n=5   heavy-hex 7               12                 7               10                     4
+
+10行の合計: 本章のルータ 40、同じレイアウトでの最適 27、逆走ヒューリスティクス付き 28、レイアウトも最適化した最適 14
+  最適解に対する超過（同一レイアウト）: 48%
+  最適解に対する超過（レイアウト込み）: 186%
+  レイアウトのヒューリスティクス併用  : 100%
+
+厳密なルータは代替手段ではなく、測定器です:
+device              maps  states for QFT n=5
+--------------------------------------------
+grid 2x3             720            1.51e+04
+heavy-hex 7     5.04e+03            1.06e+05
+grid 4x4        2.09e+13            4.39e+14
+heavy-hex 27    1.09e+28            2.29e+29
+</code></pre>
+<p><strong>着目点。</strong> 10行の合計で、本章のルータはSWAPを40個挿入し、同じ配置での厳密なルータは27個、配置も選ぶ厳密なルータは14個です。配置を固定すると48%、配置を含めると186%の超過です。前段に逆走ヒューリスティクスを置くと超過は100%に下がります。これらが本章のルータのコストであり、率直に述べたものです。</p>
+<p>超過はどこから来るのでしょうか。GHZの行からはどこからも来ません。相互作用グラフがパスなので1つの量子ビットをそれに沿って歩かせるのがすでに最適で、本章のルータは2、1、2、2で厳密なルータと一致します。超過はすべてQFTの行にあり、4つの原因に分離できます。</p>
+<ul>
+<li><strong>ゲート順序。</strong> 書かれた順に実行します。本物のルータは依存グラフ上で作業し、フロント層の任意のゲートを実行できるので、しばしばSWAPを丸ごと消せます。4つの中で最大の要因です。</li>
+<li><strong>先読み。</strong> 目の前のゲートのために量子ビットを動かし、次のゲートが何を欲しいか一度も問いません。</li>
+<li><strong>両端点。</strong> 片方の量子ビットに全部歩かせます。両方を歩かせれば深さは半分になりますが、SWAP数は変わりません。</li>
+<li><strong>配置。</strong> 指定がなければ自明な配置であり、表はそれだけで2倍程度の価値があることを示しています。</li>
+</ul>
+<p>5番目があり、これは質の差ではなく目的関数の差です。本章はSWAP数を最小化します。ハードウェア上で重要なのは総誤差であり、それはゲート数だけでなく深さにも、そしてどの物理量子ビットを使ったかにも依存します。SWAPを2個余分に払って悪い量子ビットを避けるルータは正しいことも十分にありえます。もう1つ注記すべきは、厳密なルータも本章と同じく書かれたゲート順序の制約を共有しているので、その27は<em>本章の模型における</em>最適値であり真の最適値ではないことです。フロント層を使うルータはそれに勝てます。</p>
+<p>最後に状態数の表です。探索は（写像、進捗）の対ごとに1状態を訪れるので、$N!$ に2量子ビットゲート数を掛けたものになります。$2\times3$ 格子で1万5千、$4\times4$ 格子で $4\times10^{14}$、27量子ビットで $2\times10^{29}$ です。おもちゃの装置を超えればすべてヒューリスティックであり、ルータを報告する唯一誠実な方法はこの表が行っていることです。最適値が計算できるところでは最適値と比べ、できないところでは別のヒューリスティクスと比べる、ということです。</p>
+<hr />
+<h2>演習</h2>
+<h4>演習1: 手で求める平均距離</h4>
+<p>$0{-}1{-}2{-}3{-}4{-}5{-}0$ と結合した6量子ビットの環を考えます。</p>
+<ol>
+<li>全点対の距離表を書き、平均距離 $\bar{d}$ を計算してください。</li>
+<li>$3(\bar{d}-1)$ から2量子ビットゲートあたりの余分なCX数を見積もり、Code Example 1 の $2\times3$ 格子と比較してください。</li>
+<li>環の辺は6本、格子は7本です。平均距離が小さいのはどちらで、辺の数だけでそれを予測できますか。</li>
+<li>環の辺を1本切って6量子ビットの1次元鎖にします。$\bar{d}$ は何倍になりますか。</li>
+</ol>
+<details>
+<summary>解答</summary>
+
+<p><strong>1.</strong> 6環では距離は隔たり \(k = |i-j| \bmod 6\) だけで決まります。\(k \in \lbrace 1, 5\rbrace\) で \(d = 1\)、\(k \in \lbrace 2,4 \rbrace\) で \(d = 2\)、\(k = 3\) で \(d = 3\) です。15個の無順序対のうち距離1が6個、距離2が6個、距離3が3個なので \(\bar{d} = (6 + 12 + 9)/15 = 1.80\) です。</p>
+
+<p><strong>2.</strong> \(3(1.80 - 1) = 2.40\) 個です。\(2\times3\) 格子は \(\bar{d} = 1.67\) なので \(2.00\) 個です。格子のほうが安いです。</p>
+
+<p><strong>3.</strong> 格子で、\(1.67\) 対 \(1.80\) です。格子は辺も1本多いので、ここでは辺の数が順序を予測しています。ただし一般には予測しません。16量子ビットのheavy-hex断片は辺16本で \(\bar{d} = 3.68\)、16量子ビットの1次元鎖は辺15本で \(\bar{d} = 5.67\) であり、辺1本では説明できない大きな差です。重要なのは辺の配置であり、単一の要約としては直径のほうが良いことが多いです。</p>
+
+<p><strong>4.</strong> 6量子ビットの1次元鎖では15対の距離が \(1\) が5対、\(2\) が4対、\(3\) が3対、\(4\) が2対、\(5\) が1対なので \(\bar{d} = (5 + 8 + 9 + 8 + 5)/15 = 2.33\) です。環から辺を1本外すと \(\bar{d}\) は \(2.33/1.80 = 1.30\) 倍になり、見積りオーバーヘッドは2.40から4.00へ — 結合器を1個削るだけでルーティングコストが67%増えます。接続性は非線形に劣化するので、実機の死んだ結合器は無視されるのではなく報告され、迂回されます。</p>
+
+</details>
+
+<h4>演習2: SWAPが0の配置</h4>
+<p>Code Example 5 は、12量子ビットのGHZ鎖が $4\times4$ 格子で自明な配置なら6個のSWAP、逆走配置なら0個であることを見つけました。</p>
+<ol>
+<li>自明な配置が失敗する理由を1文で説明してください。</li>
+<li>12論理量子ビットを $4\times4$ 格子に置き、GHZ鎖を完全にネイティブにする配置を書き下し、連続する各対が辺であることを手で確認してください。</li>
+<li>同じ格子上で16論理量子ビットのGHZ鎖に対してそのような配置は存在しますか。16量子ビットのheavy-hex断片ではどうですか。</li>
+<li>一般化してください。$n$ 量子ビットのGHZ鎖をSWAP 0で配置できることを保証する結合グラフの性質は何ですか。</li>
+</ol>
+<details>
+<summary>解答</summary>
+
+<p><strong>1.</strong> 自明な配置は格子を行ごとに番号付けするので、論理量子ビット3と4が物理3と4に落ち、これは隣接する行の両端で結合していません。同じことがすべての行境界で起こります。</p>
+
+<p><strong>2.</strong> 蛇行（ブストロフェドン）経路です。論理 \(0\) から \(11\) に対して物理 \(0{,}1{,}2{,}3{,}7{,}6{,}5{,}4{,}8{,}9{,}10{,}11\) とします。連続する対は第1行に沿った \((0,1),(1,2),(2,3)\)、列を下る \((3,7)\)、第2行を戻る \((7,6),(6,5),(5,4)\)、列を下る \((4,8)\)、そして \((8,9),(9,10),(10,11)\) で、いずれも格子の辺です。</p>
+
+<p><strong>3.</strong> 格子では存在します。蛇行を第4行まで延ばして \(\ldots,11,15,14,13,12\) とします。定義したheavy-hex断片では存在しません。16ノード16辺で長さ12の閉路1つと次数1のペンダント量子ビット4個からなり、Hamilton経路は各ペンダントに入って出なければなりませんが次数1がそれを禁じます。そこで可能な最長経路は13ノード（12閉路にペンダント1個）なので、3個の論理量子ビットはルーティングが必要になります。</p>
+
+<p><strong>4.</strong> グラフが \(n\) 頂点上のパスを含むこと、\(n = N\) のときはHamilton経路を含むことです。これも一般にはNP完全な問いであり、最も易しい回路に対してさえ配置問題の難しさが最も純粋な形で現れています。</p>
+
+</details>
+
+<h4>演習3: 置換の帳簿</h4>
+<p>あるルータが4物理量子ビット上で自明な配置から始め、順に $\mathrm{SWAP}_{0,1}$、$\mathrm{SWAP}_{1,2}$、$\mathrm{SWAP}_{0,1}$ を挿入します。</p>
+<ol>
+<li>各SWAPの後の $\ell$ を追跡してください。$\ell[v]$ は仮想量子ビット $v$ の物理線です。</li>
+<li>$\ell_f$ は何で、それは<em>出力</em>線のどの置換に対応しますか。</li>
+<li>ある人のルータは、常に $\ell_f = \ell_0$ となるように各SWAPの逆を回路の末尾に追加します。それは何を要し、何を買いますか。</li>
+<li>その人が正しいのはどういう状況ですか。</li>
+</ol>
+<details>
+<summary>解答</summary>
+
+<p><strong>1.</strong> 初期は \(\ell = [0,1,2,3]\) です。\(\mathrm{SWAP}_{0,1}\) は物理線0と1にある仮想量子ビットを交換し \(\ell = [1,0,2,3]\) になります。\(\mathrm{SWAP}_{1,2}\) は線1と2にあるものを交換します。仮想0が線1、仮想2が線2にあるので \(\ell = [2,0,1,3]\) です。\(\mathrm{SWAP}_{0,1}\) は線0と1、すなわち仮想1と仮想0を交換し \(\ell = [0,2,1,3]\) になります。</p>
+
+<p><strong>2.</strong> \(\ell_f = [0,2,1,3]\) です。論理0が物理0、論理1が物理2、論理2が物理1、論理3が物理3です。3個のSWAPが1個の互換しか生んでおらず、先読みするルータならもっと短い列を見つけたはずだという徴候です。論理量子ビット1を読み出すには物理線2を測ります。置換は古典的な測定記録の付け替えであり、実行時のコストは0です。</p>
+
+<p><strong>3.</strong> SWAP数が最大で倍になることを要します。SWAP 1個は最もノイジーなゲート種のCX 3個なので、利便性を買う最も高価な方法です。買えるのは第1章の等価性検査がそのまま使えることであり、まさにそれが第1章 Code Example 7 がそうした理由であり、そう明言した理由です。</p>
+
+<p><strong>4.</strong> 置換を古典的な後処理に吸収できない場合です。たとえば回路が、付け替えを知らされない呼び出し側によって出力線を固定されたサブルーチンである場合、回路中測定が特定の物理線へフィードバックされる場合、あるいは同じ物理量子ビットを後続ブロックで既知の割り当てのまま再利用しなければならない場合です。そうした場合には置換を物理的に実現しなければなりません。それ以外の場所では、追跡は無料で、元に戻すのは無駄です。</p>
+
+</details>
+
+<h4>演習4: フロント層の自由度</h4>
+<p>1次元鎖 $0{-}1{-}2{-}3$ 上、自明な配置で3ゲートの回路 $\mathrm{CX}_{0,2}$、$\mathrm{CX}_{1,3}$、$\mathrm{CX}_{0,1}$ を考えます。</p>
+<ol>
+<li>Code Example 3 の方針 — 書かれた順 — でルーティングし、SWAP数を数えてください。</li>
+<li>依存関係だけを守ってゲートを並べ替えることを許します。合法な順序は何通りで、もう一方の順序でルータは何個のSWAPを出しますか。</li>
+<li>この配置でのSWAP数の最小値と、配置も自由にした場合の最小値を求めてください。</li>
+<li>これは Code Example 7 で計測した48%の超過について何を語りますか。</li>
+</ol>
+<details>
+<summary>解答</summary>
+
+<p><strong>1.</strong> 4個です。\(\mathrm{CX}_{0,2}\) は距離2なので線0と1のSWAP 1個で \(\ell = [1,0,2,3]\) となりゲートが実行できます。次に \(\mathrm{CX}_{1,3}\) は線0にいる論理1を線3の論理3に近づける必要があり、SWAPがさらに2個で \(\ell = [0,2,1,3]\) に終わります。\(\mathrm{CX}_{0,1}\) はそこで距離2なのでもう1個必要です。<code>route</code> を走らせると4が返ります。</p>
+
+<p><strong>2.</strong> 3番目のゲートは1番目と量子ビット0、2番目と量子ビット1を共有するので最後でなければならず、最初の2つは独立です。合法な順序は \((0{,}2)(1{,}3)(0{,}1)\) と \((1{,}3)(0{,}2)(0{,}1)\) の2通りで、ルータは前者で4個、後者で<strong>2個</strong>を出します。並べ替えだけでコストが半分になり、ルーティングのアルゴリズムは一切変えていません。</p>
+
+<p><strong>3.</strong> 自明な配置では2個で、<code>optimal_swaps</code> がそれを確認します。まず線1と2をSWAPすると \(\ell = [0,2,1,3]\) となり、論理0が論理2の隣に<em>かつ</em>論理1が論理3の隣に同時に来るので、両方のゲートが実行できます。あと1個のSWAPで論理0と1が並びます。SWAP 1個が2ゲートに奉仕することこそ先読みコスト関数が見つけるように設計されているものであり、ゲートごとの最短経路には見えないものです。配置を自由にすると答えは<strong>0</strong>です。相互作用グラフはパス \(2{-}0{-}1{-}3\)、すなわち4頂点上のパスなので1次元鎖にちょうど収まり、配置は \(\ell_0 = [1,2,0,3]\) です。</p>
+
+<p><strong>4.</strong> 超過は調整の問題ではなく構造的であり、しかも Code Example 7 が見つけたのと同じ分かれ方をする、ということです。ここではゲート順序だけで4が2になり、配置だけで2が0になりました。本章のルータは目の前のゲートのための最短経路に決め打ちするので、2ゲートに同時に奉仕するSWAPが見えません。並べ替えと先読みはその盲点を2方向から攻めるものであり、だからSABREは両方を持ち、だから計測された超過がQFTの行に集中したのです。QFTはまさに、1個のSWAPが複数のゲートに奉仕できる対において密です。</p>
+
+</details>
+
+<h4>演習5: トランスパイラの報告書を読む</h4>
+<p>あるトランスパイラが、2量子ビットゲート100個をもつ同一の20量子ビット回路について次を報告しました。</p>
+<table>
+<thead>
+<tr>
+<th>対象</th>
+<th>後のCX</th>
+<th>後の深さ</th>
+<th>SWAP</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>全結合</td>
+<td>100</td>
+<td>41</td>
+<td>0</td>
+</tr>
+<tr>
+<td>格子 $5\times4$</td>
+<td>361</td>
+<td>158</td>
+<td>87</td>
+</tr>
+<tr>
+<td>heavy-hex、20量子ビット</td>
+<td>634</td>
+<td>265</td>
+<td>178</td>
+</tr>
+</tbody>
+</table>
+<ol>
+<li>SWAP数をCX数と照合してください。整合していますか。</li>
+<li>$3(\bar{d}-1)$ を用いて各グラフの平均距離をオーバーヘッドから逆算し、それが妥当かを述べてください。</li>
+<li>heavy-hexの行は格子の行の1.8倍のCX数です。そのうちどれだけがグラフで、どれだけが配置でありえますか。</li>
+<li>次に1つだけ数値を求めるとしたら何にしますか。理由も述べてください。</li>
+</ol>
+<details>
+<summary>解答</summary>
+
+<p><strong>1.</strong> 整合しています。SWAP 1個はCX 3個なので \(100 + 3\times87 = 361\)、\(100 + 3\times178 = 634\) です。もし算術が閉じていなければ、そのトランスパイラはネイティブSWAPを出しているか、ルーティング後にゲートを融合しているかであり、どちらも数値を読む前に知っておく必要があります。</p>
+
+<p><strong>2.</strong> 格子はゲートあたり余分なCXが \(261/100 = 2.61\) 個なので \(\bar{d} \approx 1 + 2.61/3 = 1.87\)。heavy-hexは \(534/100 = 5.34\) なので \(\bar{d} \approx 2.78\) です。どちらも真の平均距離より<em>小さい</em>です。\(5\times4\) 格子は \(\bar{d} = 3.00\)、20量子ビットのheavy-hexはさらに疎で、Code Example 1 の16量子ビット断片ですでに \(3.68\) です。小さいのは期待される向きです。\(3(\bar{d}-1)\) は上界であり、ルータは動かした場所に量子ビットを置いたままにするからで、Code Example 5 が同じ2倍の差を計測しました。逆算した \(\bar{d}\) が真の値より<em>大きい</em>なら、ルータが何か誤っている徴候です。</p>
+
+<p><strong>3.</strong> ほとんどがグラフです。このサイズではheavy-hexの平均距離が格子の約1.4倍であり、難しいグラフはルータに選択肢も与えないのでルーティングコストは平均距離よりやや速く増えます。残りの、おそらく1.2から1.3倍が配置でありえます。Code Example 6 はヒューリスティクスが格子よりheavy-hexで悪く働く行をいくつか見つけました。両者を分離する方法は、複数の配置で再実行して幅を報告することです。</p>
+
+<p><strong>4.</strong> 配置に対する幅、あるいは同じことですが \(k\) 個のランダム配置の最良でのSWAP数です。1回のルーティングパスは、Code Example 6 が2倍以上の幅を示した分布の1点しか報告しません。幅がなければ、良いグラフと運の良い配置を区別する方法がありません。次に近いのは辺ごとの2量子ビットゲート誤り率です。悪い結合器を通る経路は、SWAPを3個余分に払うより高くつくことがあります。</p>
+
+</details>
+
+<hr />
+<h2>まとめ</h2>
+<h3>要点</h3>
+<p><strong>1. 結合グラフはデータとして書かれたゲート機構である</strong></p>
+<ul>
+<li>全結合は共有ボゾンモードから、格子は平面上の容量結合から、heavy-hexは周波数衝突とクロストークを抑えるために次数を3で抑えたことから来ます。代償はより疎なグラフです。</li>
+<li>16量子ビットでは辺の数が120から15、平均距離が1.00から5.67まで動きます。heavy-hexは格子の3分の2の辺と38%大きい平均距離を持ちます。</li>
+</ul>
+<p><strong>2. 平均距離はオーバーヘッドを、上界として予測する</strong></p>
+<ul>
+<li>2量子ビットゲートあたり余分なCXは $3(\bar{d}-1)$ 個。全結合で0、$4\times4$ 格子で5.00、heavy-hexで8.05、16量子ビットの1次元鎖で14.00です。</li>
+<li>実測のオーバーヘッドはその約半分です。ルータは動かした場所に量子ビットを置いたままにするので、連続するゲートは独立なゲートより安いからです。ルータがないときに使い、ルータの代用にはしないでください。</li>
+</ul>
+<p><strong>3. 需要側は回路の相互作用グラフである</strong></p>
+<ul>
+<li>GHZ鎖はパスであり、連結なあらゆる装置で何らかの配置によりネイティブになります。QFTは完全グラフで、どんな配置も助けになりません。</li>
+<li>12量子ビットのQFTをルーティングするとCX数は格子で2.7倍、heavy-hexで4.6倍になります。第2章の最適化器は回路のゲートの26%を除去しましたが、接続性は最大5倍に増やします。</li>
+</ul>
+<p><strong>4. 配置はNP困難で、良いヒューリスティクスは神託とほぼ同じ価値がある</strong></p>
+<ul>
+<li>コスト0の厳密な場合は部分グラフ同型であり、配置は $N!/(N-n)!$ 通り — 127物理量子ビットに16論理量子ビットなら $2\times10^{33}$ 通りです。</li>
+<li>全数探索が可能な装置では、最良と最悪の配置の幅は2倍から4倍です。SABREの逆走の工夫は試した6行すべてで自明な配置に勝ち、3行で最適に到達しました。ルーティング4パス、探索なしです。</li>
+<li>本章の簡略版は16量子ビット装置では自明な配置より悪いこともあります。逆走を残して先読みコストを落としているためで、アルゴリズムを半分だけ持つことの価値を正直に計測したものです。</li>
+</ul>
+<p><strong>5. ルーティング後の回路は書いた回路ではなく、検査はそう述べなければならない</strong></p>
+<ul>
+<li>正しい主張は位相を除いた $U_{\mathrm{phys}}P(\ell_0) = P(\ell_f)(U_{\mathrm{log}}\otimes I)$ であり、試したすべてのルーティング後回路で誤差ちょうど0で通りました。</li>
+<li>置換を忘れると、SWAPが挿入されたときは0.35から0.71の誤差、されなかったときはちょうど0になります。つまり置換を無視するテスト群は全結合で通り、実機で黙って失敗します。</li>
+<li>16量子ビット装置では行列は $4\times10^9$ 個の数、状態ベクトルは65536個なので検査はランダム入力で走らせます。これは証明ではありませんが、置換の取り違えはほとんどすべての入力で $O(1)$ の誤差です。</li>
+</ul>
+<p><strong>6. ヒューリスティックなルータは、最適値が存在するところで最適値と比べて報告すべきである</strong></p>
+<ul>
+<li>10個の小さな事例の合計で、本章のルータは40個、同じ配置での厳密なルータは27個、配置も選ぶ厳密なルータは14個 — 48%と186%の超過であり、配置ヒューリスティクスで100%に下がります。</li>
+<li>超過はすべてQFTの行にあり、GHZの行では本章のルータはすでに最適です。原因はゲート順序、先読み、片方の端点だけを歩かせること、配置で、おおよそこの重要度順です。</li>
+<li>厳密なルーティングは $N!$ にゲート数を掛けた数の状態を訪れます。6量子ビットで $1.5\times10^4$、27量子ビットで $2\times10^{29}$ です。代替手段ではなく測定器です。</li>
+</ul>
+<p><strong>実務上の含意</strong></p>
+<ul>
+<li>グラフ、回路の相互作用構造、配置手法を名指しせずにルーティングオーバーヘッドを引用しないでください。3つは乗算的であり、3つ目だけで2倍の価値があります。</li>
+<li>ルータより先に置換を込めた等価性検査を作り、テスト群に疎な装置を必ず含めてください。置換のバグは全結合では見えません。</li>
+<li>トランスパイルした回路が予想外に大きいときは、$\mathrm{CX}_{\text{後}} = \mathrm{CX}_{\text{前}} + 3\times\mathrm{SWAP}$ が閉じるかを確認してください。閉じるなら増加はルーティングで、直し方は配置です。閉じないなら増加は合成で、直し方は第2章にあります。</li>
+</ul>
+<h3>この先へ</h3>
+<p>第2章と第3章で、回路は特定の機械が実行できるゲート列まで落ち、その各ゲートは1単位時間かかる抽象的なユニタリとして扱われました。第4章はその抽象化を開きます。回転ゲートは共鳴駆動であり、その長さと形が最下層でのコンパイラの出力であり、そもそもパルスを整形しなければならない理由は、超伝導量子ビットが2準位系ではないことです。速すぎるパルスは第3準位を占有し、リーケージは量子ビットの誤りとして記述できません。あの章は3準位のパルスシミュレータを作り、リーケージを計測し、DRAGで抑制し、それから制御スタックが自分の機械に対して走らせる較正ループを実装します。Rabi振幅、Ramsey周波数、DRAG係数の3つで、いずれも意図的にずらしたパラメータを回復します。ソフトウェアがソフトウェアであることをやめ、実験になる層です。</p>
+<p><a href="chapter-2.html">← 第2章: 回路最適化とゲート合成</a> <a href="chapter-4.html">第4章: パルスと較正 →</a></p>
+<h3>免責事項</h3>
+<ul>
+<li>本コンテンツは教育・研究・情報提供のみを目的としており、専門的な助言(法律・会計・技術的保証など)を提供するものではありません。</li>
+<li>本コンテンツおよび付随するCode examplesは「現状有姿(AS IS)」で提供され、明示または黙示を問わず、商品性、特定目的適合性、権利非侵害、正確性・完全性、動作・安全性等いかなる保証もしません。</li>
+<li>本章の結合グラフ・SWAP数・オーバーヘッド係数は、コード中に定義した特定のグラフ・回路・配置に対する測定値であり、いかなる装置やトランスパイラのベンチマークでもありません。演習5のトランスパイラ報告書は実機のデータではなく教育用に構成した例です。提案書や論文に用いる前に一次資料で確認してください。</li>
+<li>外部リンク、第三者が提供するデータ・ツール・ライブラリ等の内容・可用性・安全性について、作成者および東北大学は一切の責任を負いません。</li>
+<li>本コンテンツの利用・実行・解釈により直接的・間接的・付随的・特別・結果的・懲罰的損害が生じた場合でも、適用法で許容される最大限の範囲で、作成者および東北大学は責任を負いません。</li>
+<li>本コンテンツの内容は、予告なく変更・更新・提供停止されることがあります。</li>
+<li>本コンテンツの著作権・ライセンスは明記された条件(例: CC BY 4.0)に従います。当該ライセンスは通常、無保証条項を含みます。</li>
+</ul><div class="navigation">
+    <a href="chapter-2.html" class="nav-button">← 前の章</a>
+    <a href="index.html" class="nav-button">シリーズ目次に戻る</a>
+    <a href="chapter-4.html" class="nav-button">次の章 →</a>
+</div>
+    </main>
+
+    <footer>
+        <p><strong>作成者</strong>: AI Terakoya Content Team</p>
+        <p><strong>監修</strong>: Dr. Yusuke Hashimoto（東北大学）</p>
+        <p><strong>バージョン</strong>: 1.0 | <strong>作成日</strong>: 2025-10-17</p>
+        <p><strong>ライセンス</strong>: Creative Commons BY 4.0</p>
+        <p>© 2025 AI Terakoya. All rights reserved.</p>
+    </footer>
+</body>
+</html>

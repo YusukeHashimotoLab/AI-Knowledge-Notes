@@ -1,0 +1,1582 @@
+---
+title: "第5章: 誤り緩和の実装層とリソース見積り"
+chapter_title: "第5章: 誤り緩和の実装層とリソース見積り"
+subtitle: 読み出し補正、ゲート折り返しによるゼロノイズ外挿、確率的誤差キャンセル、それらすべてがぶつかる指数の壁、そして代替案に値札をつけるパイプライン
+reading_time: 45-50分
+difficulty: 上級
+code_examples: 8
+exercises: 5
+---
+
+🌐 JP | [🇬🇧 EN](<../../../en/FM/quantum-software-stack-introduction/chapter-5.html>) | Last sync: 2026-08-13
+
+[基礎数理道場](<../index.html>) > [量子ソフトウェアスタック入門](<index.html>) > 第5章
+
+ここまでの4章は、ハードウェアが動くことを前提としたスタックを作ってきました。ゲートを消す最適化器、SWAPを挿すルータ、1量子ビットゲート誤差を $5 \times 10^{-6}$ まで押し下げる較正ループ — そのすべては回路を*短く*、*正確に*しようとする試みであり、回路が誤り率の許す長さを超えた瞬間にすべてが役に立たなくなります。2量子ビットゲートあたり $10^{-3}$ なら、1000ゲートの回路はもう負けています。本章は、その事実の上に座り、それでも何かをする層についての話です。
+
+ソフトウェアにできることはちょうど2つです。**緩和する**こと。ノイズはそのままにして、変形した回路を走らせ、結果を後処理して*期待値*をノイズなしの値に近づけます。そして**見積る**こと。ノイズのない代替案が物理量子ビットと実時間でいくらかかるかを計算し、緩和すべきかどうかの問いに形容詞ではなく数値で答えられるようにします。5.1節から5.3節は3つの緩和手法を実装し、それぞれが何を買い、何を支払うかを実測します。5.4節は境界をできるだけ端的に述べます。緩和のコストは回路サイズについて指数的、誤り訂正のコストは多項式的なので、どれだけ後処理しても助けにならない回路サイズが存在します。5.5節はそれがどこかを計算します。この文の両半分に数値が付きます。誤り緩和は現に存在するハードウェア上でたしかに本質的な役割を果たしており、*かつ*指数的に高価であり、どちらの半分を落としてもこの分野の像は誤ったものになるからです。
+
+## 学習目標
+
+本章を読み終えると、以下ができるようになります：
+
+  * 較正回路から読み出しの混同行列を構成し、その逆行列で測定分布を補正し、逆行列が負の確率を生む理由と制約付き最小二乗が代わりに何をするかを説明できる
+  * 厳密な読み出し緩和のコスト（$2^n$ 本の較正回路）を述べ、それを $2n$ に落とすテンソル積近似を実装し、テンソル積模型が*何もしないより悪くなる*場合を実証できる
+  * ゲート折り返しを実装し、第1章の等価性チェッカでユニタリが変わらないことを証明し、既知の倍率でノイズを増幅できる
+  * 折り返しで作ったノイズ付き期待値の族をRichardson補間と最小二乗直線でゼロノイズへ外挿し、それぞれが残すバイアスを実測できる
+  * 外挿の分散コストを実測して $\lVert w \rVert^2$ と照合し、高次の推定量が総誤差で勝ち始めるショット予算を特定できる
+  * 脱分極チャネルの擬確率逆を導出し、確率的誤差キャンセルをサンプリング推定量として実装し、そのサンプリングコストが回路サイズについて指数的であることを数値で示せる
+  * アルゴリズムの入力から物理量子ビットと実時間までのリソース見積りパイプラインを、10の冪の閾値比較が要求する相対許容ガード込みで実装し、訂正が緩和より安くなる回路サイズを突き止められる
+
+### 引き継ぐもの
+
+本章のすべては[第1章](<chapter-1.html>)の回路IRとその下の状態ベクトルシミュレータの上で走ります。両方とも等価性チェッカとともに Code Example 1 に再掲します。ノイズ増幅パスは書き換えパスであり、本コースのすべての書き換えパスは意味を保ったことを証明しなければならないからです。第1章が必要としなかった入門コースのシミュレータの関数が2つ、`PAULI` と `expval` も同じ出典から逐語で再掲します。
+
+数値の基準点が姉妹コースから3つ来ており、本章はそのすべてと整合します。[量子コンピューティング入門 第5章](<../quantum-computing-introduction/chapter-5.html>)は表面符号のスケーリング $p_L \approx A(p/p_{\text{th}})^{(d+1)/2}$ を $A = 0.1$、$p_{\text{th}} = 10^{-2}$ で与え、符号距離と量子ビットオーバーヘッドの表を与えます。Code Example 8 はそれを1行ずつ再現します。同章はまた2・3・4個のノイズ倍率に対するRichardsonの重みのノルム $\lVert w \rVert_2 = 2.24, 4.36, 8.31$ を与え、Code Example 5 がそれを再計算します。[量子アルゴリズム（中級）第4章](<../quantum-algorithms-intermediate/chapter-4.html>)はFeMoco規模の計算に対するqubitized位相推定のToffoli数と、日数・物理量子ビット数への変換を与えます。Code Example 8 はそれも再現します。2つの姉妹コースの間で規約が1量子ビットだけ違っており — 回転表面符号は前者では論理量子ビットあたり $2d^2 - 1$、後者では $2d^2$ と書かれています — 本章のコードは $2d^2 - 1$ を使い、そう明記します。
+
+姉妹コースのゼロノイズ外挿の扱いとの違いが1つ、意図的にあります。あちらではノイズ強度を誤り確率を直接上げることで走査しました。それはシミュレータにできて実機にできないことです。ここでは**ゲート折り返し**で走査します。それが実機が実際にやることであり、この違いは効きます。折り返しは、分数倍率のために工夫をしなければ奇数の整数倍率しか到達せず、そして誤差の一種類にはまったく盲目なのです。
+
+* * *
+
+## 5.1 読み出し誤差の緩和
+
+### 唯一の古典的な誤差
+
+量子コンピュータの誤差経路のうち、ちょうど1つが古典的・定常的・測定可能な確率過程です。最終測定の割り当て誤差です。$\lvert 0 \rangle$ の量子ビットが確率 $\epsilon_{01}$ で1と報告され、$\lvert 1 \rangle$ の量子ビットが確率 $\epsilon_{10}$ で0と報告され、現在の超伝導ハードウェアではその数値は1%から5%の間 — 第4章のゲート誤差より1桁から2桁大きいのです。古典的だから厳密に逆にでき、多くの実験で単独最大の誤差だから、それを逆にすることが本章でもっとも費用対効果の高い作業になります。
+
+$2^n$ 個のビット列上の測定分布をベクトル $\mathbf{p}_{\text{meas}}$、回路が実際に生んだ分布を $\mathbf{p}_{\text{true}}$ と書きます。割り当て誤差はその間に作用する確率行列です。
+
+$$ \mathbf{p}_{\text{meas}} = M\,\mathbf{p}_{\text{true}}, \qquad M_{mt} = P(m \text{ と読む} \mid t \text{ を準備}) $$
+
+$M$ が**混同行列**で、列和は1、そして測定可能です。$2^n$ 個の基底状態をそれぞれ準備して測れば、各実験が1列を与えます。あとは $\mathbf{p}_{\text{true}} = M^{-1}\mathbf{p}_{\text{meas}}$ であり、手法全体が線形代数1行です。その1行で2つのことがうまくいかず、どちらも重要です。
+
+### Code Example 1: シミュレータ・IR・チェッカの再掲
+
+```python
+"""Minimal state-vector simulator (big-endian: qubit 0 = leftmost = most significant).
+
+Save this file as qcsim.py; every later example does `from qcsim import *`.
+"""
+import numpy as np
+
+# ---- 1量子ビットゲート --------------------------------------------------
+I2 = np.eye(2, dtype=complex)
+X = np.array([[0, 1], [1, 0]], dtype=complex)
+Y = np.array([[0, -1j], [1j, 0]], dtype=complex)
+Z = np.array([[1, 0], [0, -1]], dtype=complex)
+H = np.array([[1, 1], [1, -1]], dtype=complex) / np.sqrt(2)
+S = np.array([[1, 0], [0, 1j]], dtype=complex)
+T = np.array([[1, 0], [0, np.exp(1j * np.pi / 4)]], dtype=complex)
+
+
+def rx(theta):
+    c, s = np.cos(theta / 2), np.sin(theta / 2)
+    return np.array([[c, -1j * s], [-1j * s, c]], dtype=complex)
+
+
+def ry(theta):
+    c, s = np.cos(theta / 2), np.sin(theta / 2)
+    return np.array([[c, -s], [s, c]], dtype=complex)
+
+
+def rz(theta):
+    e = np.exp(-1j * theta / 2)
+    return np.array([[e, 0], [0, np.conj(e)]], dtype=complex)
+
+
+# ---- 状態 ---------------------------------------------------------------
+def ket(bits: str) -> np.ndarray:
+    """'01' -> 4次元の基底状態 |01>（ビッグエンディアン）"""
+    n = len(bits)
+    psi = np.zeros(2 ** n, dtype=complex)
+    psi[int(bits, 2)] = 1.0
+    return psi
+
+
+def apply_gate(state, U, targets, n):
+    """n量子ビット状態の targets に 2^k x 2^k ユニタリ U を作用させる"""
+    k = len(targets)
+    psi = state.reshape([2] * n)          # 1. n添字テンソルとして見る
+    psi = np.moveaxis(psi, targets, range(k))   # 2. 標的軸を先頭へ
+    rest = psi.shape[k:]
+    psi = psi.reshape(2 ** k, -1)         # 3. 平坦化して行列積
+    psi = U @ psi
+    psi = psi.reshape(list((2,) * k) + list(rest))
+    psi = np.moveaxis(psi, range(k), targets)   # 4. 軸を元に戻す
+    return psi.reshape(-1)
+
+
+CNOT4 = np.array([[1, 0, 0, 0],
+                  [0, 1, 0, 0],
+                  [0, 0, 0, 1],
+                  [0, 0, 1, 0]], dtype=complex)
+
+
+def cnot(state, control, target, n):
+    """任意の量子ビット対・任意の向きのCNOT"""
+    return apply_gate(state, CNOT4, [control, target], n)
+
+
+def probs(state):
+    """Born則による全 2^n 通りの確率"""
+    return np.abs(state) ** 2
+
+
+PAULI = {'I': I2, 'X': X, 'Y': Y, 'Z': Z}
+
+
+def expval(state, pauli, coeff_map=None):
+    """'ZZ' や 'XI' のようなPauli文字列（1量子ビット1文字）の期待値。
+
+    coeff_map を与えると結果に coeff_map[pauli] を掛けるので、ハミルトニアン
+    全体が1行で書ける:  sum(expval(psi, p, terms) for p in terms)
+    """
+    n = len(pauli)
+    phi = state.copy()
+    for q, ch in enumerate(pauli):
+        if ch != 'I':
+            phi = apply_gate(phi, PAULI[ch], [q], n)
+    val = np.vdot(state, phi).real
+    if coeff_map is not None:
+        val *= coeff_map.get(pauli, 1.0)
+    return val
+
+
+# ---- 第1章の回路IRの再掲 (qir.py) --------------------------------------
+CZ4 = np.diag([1.0, 1.0, 1.0, -1.0]).astype(complex)
+
+FIXED_1Q = {"h": H, "x": X, "z": Z, "s": S, "t": T}
+ROT_1Q = {"rx": rx, "ry": ry, "rz": rz}
+TWO_Q = ("cx", "cz")
+
+
+def gate_qubits(g):
+    """ゲートタプル1個が触れる量子ビットを、書かれた順に返します"""
+    if g[0] in ROT_1Q:
+        return (g[2],)
+    if g[0] in TWO_Q:
+        return (g[1], g[2])
+    if g[0] in FIXED_1Q:
+        return (g[1],)
+    raise ValueError(f"unknown gate name {g[0]!r}")
+
+
+def apply_ir_gate(state, g, n):
+    """ゲートタプル1個を n量子ビット状態ベクトルに作用させます"""
+    name = g[0]
+    if name in FIXED_1Q:
+        return apply_gate(state, FIXED_1Q[name], [g[1]], n)
+    if name in ROT_1Q:
+        return apply_gate(state, ROT_1Q[name](g[1]), [g[2]], n)
+    if name == "cx":
+        return cnot(state, g[1], g[2], n)
+    if name == "cz":
+        return apply_gate(state, CZ4, [g[1], g[2]], n)
+    raise ValueError(f"unknown gate name {name!r}")
+
+
+def run_circuit(circ, n, psi0=None):
+    """ゲートタプルのリストを状態ベクトルシミュレータで実行し、最終状態を返します。
+
+    psi0 の既定値は |00...0> です。ゲートは左から右へ作用させるので、回路の
+    行列はゲート行列の逆順の積になります。
+    """
+    state = ket("0" * n) if psi0 is None else np.asarray(psi0, dtype=complex)
+    for g in circ:
+        state = apply_ir_gate(state, g, n)
+    return state
+
+
+def circuit_depth(circ, n):
+    """量子ビットの排他性による貪欲な層分け: 回路が必要とする層数です。
+
+    すべてのゲートが1単位時間を要すると仮定しています。これはハードウェア上では
+    誤りであり、第4章で修正します。
+    """
+    ready = [0] * n              # 各量子ビットが最初に空く層
+    for g in circ:
+        qs = gate_qubits(g)
+        layer = max(ready[q] for q in qs)
+        for q in qs:
+            ready[q] = layer + 1
+    return max(ready) if n else 0
+
+
+def gate_counts(circ):
+    """ゲート名 -> 個数。加えてキー "2q" に2量子ビットゲートの総数を入れます"""
+    counts = {}
+    for g in circ:
+        counts[g[0]] = counts.get(g[0], 0) + 1
+    counts["2q"] = sum(counts.get(name, 0) for name in TWO_Q)
+    return counts
+
+
+# ---- 第1章の等価性チェッカの再掲 ---------------------------------------
+def unitary_of(circ, n):
+    """回路の 2^n x 2^n 行列: 各基底状態に対して1回ずつ実行します"""
+    dim = 2 ** n
+    U = np.empty((dim, dim), dtype=complex)
+    for j in range(dim):
+        e = np.zeros(dim, dtype=complex)
+        e[j] = 1.0
+        U[:, j] = run_circuit(circ, n, psi0=e)
+    return U
+
+
+def best_global_phase(U, V):
+    """e^{i phi} V を U に位相だけで最も近づける位相を返します。
+
+    これはHilbert-Schmidt重なり tr(V^dagger U) から得られます。Cauchy-Schwarzに
+    より、その絶対値が 2^n に達するのは U = e^{i phi} V のときに限るので、
+    重なりがほぼゼロであること自体が両者が非等価であることの証明になります。
+    """
+    tr = np.trace(V.conj().T @ U)
+    return 1.0 + 0.0j if abs(tr) < 1e-12 else tr / abs(tr)
+
+
+def phase_free_error(U, V):
+    """最良の大域位相を除去したあとの max |U - e^{i phi} V|"""
+    return float(np.max(np.abs(U - best_global_phase(U, V) * V)))
+
+
+def assert_equivalent(a, b, n, label="", atol=1e-10):
+    """本コースのすべての書き換えパスを守るテストです"""
+    err = phase_free_error(unitary_of(a, n), unitary_of(b, n))
+    if err > atol:
+        raise AssertionError(f"{label}: circuits differ, max error {err:.3e}")
+    return err
+
+
+print("シミュレータ・IR・チェッカの再掲と検証")
+print("=" * 74)
+bell = [("h", 0), ("cx", 0, 1)]
+ghz = [("h", 0)] + [("cx", i, i + 1) for i in range(3)]
+print(f"  Bell状態の振幅       : {np.round(run_circuit(bell, 2).real, 6)}")
+print(f"  GHZ(4)の確率         : "
+      f"{np.round(probs(run_circuit(ghz, 4))[[0, 15]], 6)} at |0000>, |1111>")
+print(f"  GHZ(4)の<ZZZZ>       : {expval(run_circuit(ghz, 4), 'ZZZZ'):.6f}")
+print(f"  GHZ(4)のゲート数     : {gate_counts(ghz)}")
+print(f"  GHZ(4)の深さ         : {circuit_depth(ghz, 4)}")
+print(f"  チェッカを自分自身に : {assert_equivalent(bell, bell, 2):.2e}")
+print(f"  チェッカを誤った回路に: "
+      f"{phase_free_error(unitary_of(bell, 2), unitary_of([('h', 0), ('h', 1)], 2)):.3f}")
+```
+
+```text
+シミュレータ・IR・チェッカの再掲と検証
+==========================================================================
+  Bell状態の振幅       : [0.707107 0.       0.       0.707107]
+  GHZ(4)の確率         : [0.5 0.5] at |0000>, |1111>
+  GHZ(4)の<ZZZZ>       : 1.000000
+  GHZ(4)のゲート数     : {'h': 1, 'cx': 3, '2q': 3}
+  GHZ(4)の深さ         : 4
+  チェッカを自分自身に : 0.00e+00
+  チェッカを誤った回路に: 1.207
+```
+
+**注目点。** ここに新しいものはありません。シミュレータの関数は入門コースのもの逐語、`run_circuit`・`circuit_depth`・`gate_counts` は第1章のIR逐語、`unitary_of` から `assert_equivalent` までは第1章の等価性チェッカ逐語です。`assert_equivalent` は単に例外を投げるのではなく位相を除いた誤差を返すので、表に印字できます。そしてこれが5.2節のノイズ増幅を、願望ではなく監査可能なものにする関数です。
+
+### Code Example 2: 混同行列と、その逆行列では足りない理由
+
+```python
+"""第5章 Code Example 2: 混同行列、その逆行列、そして逆行列では足りない理由。
+Code Example 1 の続き（同一セッション）。"""
+from functools import reduce
+
+# 量子ビットごとの (eps01, eps10) = (P(1と読む | 0), P(0と読む | 1))。以下の補正
+# ルーチンはこのタプルを読まず、較正のカウントしか見ません
+RATES = [(0.030, 0.060), (0.020, 0.050), (0.050, 0.090)]
+
+
+def confusion_matrix(rates):
+    """量子ビットごとに独立な読み出し誤差に対する M[m, t] = P(mと読む | tを準備)。
+
+    ビッグエンディアンなので、量子ビット0がKronecker積の最左因子です。
+    """
+    return reduce(np.kron, [np.array([[1 - e01, e10], [e01, 1 - e10]])
+                            for e01, e10 in rates])
+
+
+def calibrate(rates, shots, rng):
+    """2^n 回の較正実験: 各基底状態を準備し、結果を数えます。
+
+    これが読み出し緩和のコストのすべてであり、スケールしない理由のすべてです。
+    基底状態1つにつき回路1本かかります。
+    """
+    M_true = confusion_matrix(rates)
+    return np.column_stack([rng.multinomial(shots, M_true[:, t]) / shots
+                            for t in range(M_true.shape[1])])
+
+
+def project_simplex(v):
+    """v の確率単体へのユークリッド射影です。"""
+    u = np.sort(v)[::-1]
+    css = np.cumsum(u)
+    k = np.nonzero(u * np.arange(1, v.size + 1) > css - 1.0)[0][-1]
+    return np.maximum(v - (css[k] - 1.0) / (k + 1.0), 0.0)
+
+
+def ls_simplex(M, p, iters=4000):
+    """確率単体上で ||M x - p||^2 を最小化します。射影勾配法です。"""
+    x = np.full(p.size, 1.0 / p.size)
+    step = 1.0 / np.linalg.norm(M, 2) ** 2
+    for _ in range(iters):
+        x = project_simplex(x - step * (M.T @ (M @ x - p)))
+    return x
+
+
+def tvd(p, q):
+    """全変動距離です。"""
+    return 0.5 * float(np.sum(np.abs(p - q)))
+
+
+def z_expval(p, mask, n):
+    """測定分布から読み取る、Z演算子の積の期待値です。
+
+    mask が量子ビットを選びます。ビッグエンディアンなので量子ビット q はビット
+    n - 1 - q です。
+    """
+    return float(sum(p[m] * (-1) ** bin(m & mask).count("1")
+                     for m in range(2 ** n)))
+
+
+N = 3
+rng = np.random.default_rng(20260813)
+circ = [("h", 0), ("cx", 0, 1), ("cx", 1, 2)]
+p_true = probs(run_circuit(circ, N))
+M_true = confusion_matrix(RATES)
+M_cal = calibrate(RATES, 20000, rng)
+
+print("A. 混同行列")
+print("=" * 74)
+print(f"  量子ビット数 = {N} なので行列は {2**N} x {2**N}、較正には"
+      f" {2**N} 本の回路がかかります")
+print(f"  量子ビットごとの誤り率（隠れている）: {RATES}")
+print(f"  M[0,0] = {M_true[0, 0]:.6f}   (|000>から3量子ビットすべて正しく読む)")
+print(f"  M[7,7] = {M_true[7, 7]:.6f}   (|111>から3つすべて正しく読む)")
+print(f"  列和 = {np.round(M_true.sum(axis=0), 12)}")
+print(f"  Mの条件数              : {np.linalg.cond(M_true):.4f}")
+print(f"  20000ショットで較正した場合 : max |M_cal - M_true| ="
+      f" {np.max(np.abs(M_cal - M_true)):.5f}")
+
+print("\nB. GHZ測定の補正")
+print("=" * 74)
+SHOTS = 8000
+p_meas = rng.multinomial(SHOTS, M_true @ p_true) / SHOTS
+p_inv = np.linalg.solve(M_cal, p_meas)
+p_ls = ls_simplex(M_cal, p_meas)
+print(f"  {'state':>7} {'true':>10} {'measured':>10} {'M^-1':>11} {'LS':>10}")
+for m in range(2 ** N):
+    print(f"  {format(m, '03b'):>7} {p_true[m]:10.4f} {p_meas[m]:10.4f}"
+          f" {p_inv[m]:+11.4f} {p_ls[m]:10.4f}")
+MASK01 = 0b110                        # 量子ビット0と1のZ。真の値は +1
+print(f"\n  {'':>18} {'TVD to truth':>13} {'<Z0 Z1>':>9} {'error':>10}")
+for name, p in (("測定値", p_meas), ("M^-1 補正", p_inv),
+                ("LS 補正", p_ls)):
+    print(f"  {name:>18} {tvd(p, p_true):13.5f}"
+          f" {z_expval(p, MASK01, N):9.4f}"
+          f" {z_expval(p, MASK01, N) - z_expval(p_true, MASK01, N):+10.5f}")
+print(f"\n  M^-1 のあとの負の成分 : "
+      f"{2**N} 個のうち {int(np.sum(p_inv < 0))} 個、最も負なのは"
+      f" {p_inv.min():+.5f}")
+print(f"  負の部分の絶対値の和  : {float(-p_inv[p_inv < 0].sum()):.5f}")
+```
+
+```text
+A. 混同行列
+==========================================================================
+  量子ビット数 = 3 なので行列は 8 x 8、較正には 8 本の回路がかかります
+  量子ビットごとの誤り率（隠れている）: [(0.03, 0.06), (0.02, 0.05), (0.05, 0.09)]
+  M[0,0] = 0.903070   (|000>から3量子ビットすべて正しく読む)
+  M[7,7] = 0.812630   (|111>から3つすべて正しく読む)
+  列和 = [1. 1. 1. 1. 1. 1. 1. 1.]
+  Mの条件数              : 1.3982
+  20000ショットで較正した場合 : max |M_cal - M_true| = 0.00538
+
+B. GHZ測定の補正
+==========================================================================
+    state       true   measured        M^-1         LS
+      000     0.5000     0.4461     +0.4906     0.4895
+      001     0.0000     0.0262     +0.0045     0.0027
+      010     0.0000     0.0130     +0.0016     0.0000
+      011     0.0000     0.0250     -0.0039     0.0000
+      100     0.0000     0.0146     -0.0004     0.0000
+      101     0.0000     0.0206     -0.0030     0.0000
+      110     0.0000     0.0421     +0.0037     0.0026
+      111     0.5000     0.4123     +0.5071     0.5051
+
+                      TVD to truth   <Z0 Z1>      error
+                 測定値       0.14162    0.8535   -0.14650
+             M^-1 補正       0.01686    1.0117   +0.01171
+               LS 補正       0.01046    1.0000   +0.00000
+
+  M^-1 のあとの負の成分 : 8 個のうち 3 個、最も負なのは -0.00393
+  負の部分の絶対値の和  : 0.00741
+```
+
+**注目点。** 補正前の測定はひどく間違っています。GHZ状態は $\lvert 000 \rangle$ と $\lvert 111 \rangle$ に0.5と0.5、他のどこにも何も出さないはずですが、測定分布は本来空であるべき6本のビット列に重みの14%を置き、パリティ観測量 $\langle Z_0 Z_1 \rangle$ は1ではなく0.854で返ってきます。その $-0.147$ の誤差は、良いゲート誤差の100倍です。読み出し緩和は微調整ではありません。
+
+較正した行列を逆にするとほとんどが取れます — 全変動距離が0.142から0.017、観測量の誤差が $-0.147$ から $+0.012$ — その途中で3つの負の確率が出て、最も負なのは $-0.0039$ です。これはバグではなく、較正を良くしても直りません。$M^{-1}$ は確率行列ではなく、単体を単体の外へ写します。ショットノイズは角から押し出されるのです。負の成分は、推定値が非物理だという誠実な信号です。標準的な修復は、方程式を解く代わりに単体上で $\lVert M x - \mathbf{p}_{\text{meas}} \rVert^2$ を最小化することです。10行の射影勾配ループで、ここでは両方の指標で素朴な逆に勝ち（TVD 0.010 対 0.017）、単体から出ることがありません。$\langle Z_0 Z_1 \rangle$ が1.0000に厳密に一致するのはこの実例での偶然ですが、物理的でいることは偶然ではありません。
+
+### コストと、誰もが置く仮定
+
+誠実な手法は基底状態1つにつき較正回路1本を必要とします。3量子ビットなら問題なく、50量子ビットでは不可能です。普遍的な迂回路は、読み出し誤差が**独立**だと仮定することです。すると混同行列は $2 \times 2$ ブロックのテンソル積になり、$2n$ 回の較正実験でそれが決まり、逆はそれぞれの逆のテンソル積で、$2^n \times 2^n$ の行列を一度も作らずに $O(n 2^n)$ の演算で分布に作用させられます。実運用ソフトウェアがやっているのはこれです。そしてこれはハードウェアについての仮定であり、Code Example 3 はそれを意図的に破ります。
+
+### Code Example 3: 緩和のコストと、それを現実的にする仮定
+
+```python
+"""第5章 Code Example 3: 読み出し緩和のコストと、それを現実的にする仮定。
+Code Example 2 の続き（同一セッション）。"""
+print("A. 誠実にやった場合のコスト")
+print("=" * 74)
+print(f"  {'qubits':>7} {'calib. circuits':>16} {'matrix entries':>15}"
+      f" {'cond(M)':>12} {'noise blow-up':>14}")
+MQ = confusion_matrix([(0.030, 0.060)])
+for n in (1, 3, 10, 20, 50):
+    print(f"  {n:7d} {2 ** n:16,d} {4 ** n:15.3e}"
+          f" {np.linalg.cond(MQ) ** n:12.3e}"
+          f" {np.linalg.norm(np.linalg.inv(MQ), 2) ** n:14.3e}")
+
+print("\nB. テンソル積による近道と、その検算")
+print("=" * 74)
+
+
+def tensored_inverse_apply(rates, p):
+    """テンソル積型の混同行列の逆を、行列を作らずに作用させます。
+
+    M = M_0 (x) M_1 (x) ... なので M^-1 = M_0^-1 (x) M_1^-1 (x) ... となり、
+    各因子はテンソルの1軸に作用します。O(4^n) ではなく O(n 2^n) の演算量と
+    O(2^n) のメモリで済みます。
+    """
+    n = len(rates)
+    v = p.reshape([2] * n)
+    for q, (e01, e10) in enumerate(rates):
+        Minv = np.linalg.inv(np.array([[1 - e01, e10], [e01, 1 - e10]]))
+        v = np.moveaxis(np.tensordot(Minv, np.moveaxis(v, q, 0), axes=1), 0, q)
+    return v.reshape(-1)
+
+
+p_tens = tensored_inverse_apply(RATES, p_meas)
+print(f"  max |テンソル積の逆 - 完全な逆| = "
+      f"{np.max(np.abs(p_tens - np.linalg.solve(M_true, p_meas))):.2e}")
+print(f"  較正回路は {2 ** N} 本ではなく {2 * N} 本"
+      f"   (2^n ではなく 2n)")
+
+print("\nC. テンソル積の仮定が見落とすもの")
+print("=" * 74)
+C_CORR = 0.040               # 量子ビット0と1が同時に反転する確率
+PERM = np.zeros((2 ** N, 2 ** N))
+for t in range(2 ** N):
+    PERM[t ^ 0b110, t] = 1.0
+M_real = (1 - C_CORR) * M_true + C_CORR * (M_true @ PERM)
+marg = []
+for q in range(N):
+    bit = 2 ** (N - 1 - q)
+    e01 = float(sum(M_real[m, 0] for m in range(2 ** N) if m & bit))
+    e10 = float(sum(M_real[m, 2 ** N - 1] for m in range(2 ** N)
+                    if not m & bit))
+    marg.append((e01, e10))
+print(f"  相関のある反転の確率      : {C_CORR}")
+print("  推定した量子ビットごとの周辺分布:",
+      [(round(a, 4), round(b, 4)) for a, b in marg])
+p_meas_r = M_real @ p_true
+print(f"\n  {'':>22} {'TVD to truth':>13} {'<Z0 Z1>':>9} {'error':>10}")
+for name, p in (("測定値", p_meas_r),
+                ("テンソル積による補正", tensored_inverse_apply(marg, p_meas_r)),
+                ("完全な行列による補正", np.linalg.solve(M_real, p_meas_r))):
+    print(f"  {name:>22} {tvd(p, p_true):13.5f}"
+          f" {z_expval(p, MASK01, N):9.4f}"
+          f" {z_expval(p, MASK01, N) - z_expval(p_true, MASK01, N):+10.5f}")
+```
+
+```text
+A. 誠実にやった場合のコスト
+==========================================================================
+   qubits  calib. circuits  matrix entries      cond(M)  noise blow-up
+        1                2       4.000e+00    1.105e+00      1.102e+00
+        3                8       6.400e+01    1.347e+00      1.337e+00
+       10            1,024       1.049e+06    2.702e+00      2.634e+00
+       20        1,048,576       1.100e+12    7.302e+00      6.939e+00
+       50 1,125,899,906,842,624       1.268e+30    1.441e+02      1.268e+02
+
+B. テンソル積による近道と、その検算
+==========================================================================
+  max |テンソル積の逆 - 完全な逆| = 1.11e-16
+  較正回路は 8 本ではなく 6 本   (2^n ではなく 2n)
+
+C. テンソル積の仮定が見落とすもの
+==========================================================================
+  相関のある反転の確率      : 0.04
+  推定した量子ビットごとの周辺分布: [(0.0664, 0.0964), (0.0572, 0.0872), (0.05, 0.09)]
+
+                          TVD to truth   <Z0 Z1>      error
+                     測定値       0.17365    0.8472   -0.15280
+              テンソル積による補正       0.09074    1.1815   +0.18147
+              完全な行列による補正       0.00000    1.0000   +0.00000
+```
+
+**注目点。** パートAは厳密な手法に値札をつけます。10量子ビットで較正回路1024本、20量子ビットで100万本、50量子ビットで $1.1 \times 10^{15}$ 本。条件数も $\mathrm{cond}(M_q)^n$ で増え、10量子ビットで2.7、50量子ビットで144になるので、回路を走らせられたとしても補正がショットノイズを2桁増幅します。パートBはテンソル積の近道を完全な逆と照合し、$10^{-16}$ の一致を得ます。仮定が厳密に成り立つときはそうなるはずです。
+
+パートCが覚えておく価値のある部分です。量子ビット0と1が*同時に*反転する確率を4%加えます — まったく現実的なクロストーク経路です — そしてテンソル積模型を1量子ビット周辺分布から較正します。$2n$ 回の実験で見えるのはそれだけです。生の測定は $\langle Z_0 Z_1 \rangle$ が $0.153$ 低い。テンソル積による補正は $1.18$ を返します。今度は $0.181$ *高い*、つまり**何もしないより大きな誤差**であり、しかも同じだけの自信が付いています。完全に較正した行列は誤差を厳密に取り除きます。誤ったノイズ模型の上に建てた補正は上品に失敗せず、反対方向に失敗し、出力のどこにもそう書いてありません。実務上の帰結は、相関のある読み出し誤差は*測る*しかない — 相関のある較正状態を準備して残差を見る — ということであり、仮定で消してはいけないということです。
+
+* * *
+
+## 5.2 ゼロノイズ外挿を折り返しで実装する
+
+### 回路を変えずにノイズを増幅する
+
+ゼロノイズ外挿の考えは、観測量を装置のノイズ水準の*既知の倍数*で何度か測り、その列をゼロへ外挿することです。姉妹コースは誤り確率を上げてノイズを走査しましたが、実機の利用者にそれはできません。利用者にできるのは、計算内容を変えない形で回路を長くすることです。
+
+$$ G \;\longrightarrow\; G\,(G^{-1}G)^{k}, \qquad \lambda = 2k+1 $$
+
+すべてのゲートが、自分自身の $2k+1$ 個のコピーと逆ゲートの交代列に置き換わります。逆は対で打ち消し合うので積は厳密に $G$ であり、回路のユニタリは手つかずのまま、ノイズが入りうる場所の数が $\lambda$ 倍になります。ノイズがゲートに依らない模型のもとでは、実効的な誤り率は装置の $\lambda$ 倍です。これが**ゲート折り返し**で、2つの流儀があります。ゲートをその場で折り返す**局所**折り返しと、回路全体を1つのブロックとして折り返す **大域** 折り返し $C \to C(C^{-1}C)^k$ です。
+
+定義からの帰結を2つ、コードの前に述べます。第一に、整数の局所折り返しは $\lambda = 1, 3, 5, \ldots$ にしか到達しません。分数倍率にはゲートの*部分集合*を折り返す必要があり、それは演習2でやります。第二に、すべてのゲートの逆がIRのゲート集合の中で表せなければ、折り返した回路は出力できません。回転については自明（角度の符号を変える）で、$S$ と $T$ には厳密な等式 $S^{-1} = ZS$、$T^{-1} = ZST$ があり、位相の余りがありません。
+
+### Code Example 4: 折り返しによるノイズ増幅と、何も変わらないことの証明
+
+```python
+"""第5章 Code Example 4: ゲート折り返しによるノイズ増幅と、それが何も変えない
+ことの証明。Code Example 3 の続き（同一セッション）。"""
+
+
+def invert_gate(g):
+    """ゲート1個の逆を、IR自身のゲート集合の中のゲートタプルとして返します。
+
+    s^-1 = z s と t^-1 = z s t は位相の余りがない厳密な行列等式なので、折り返し
+    後の回路もコンパイラが出力するゲート集合の中に留まります。
+    """
+    if g[0] in ("h", "x", "z", "cx", "cz"):
+        return [g]
+    if g[0] == "s":
+        return [("z", g[1]), ("s", g[1])]
+    if g[0] == "t":
+        return [("z", g[1]), ("s", g[1]), ("t", g[1])]
+    if g[0] in ROT_1Q:
+        return [(g[0], -g[1], g[2])]
+    raise ValueError(f"no inverse rule for {g[0]}")
+
+
+def fold_local(circ, k):
+    """すべてのゲート G を G (G^-1 G)^k に置き換えます。ノイズ倍率 lambda = 2k + 1。"""
+    out = []
+    for g in circ:
+        out.append(g)
+        for _ in range(k):
+            out.extend(invert_gate(g))
+            out.append(g)
+    return out
+
+
+def fold_global(circ, k):
+    """回路全体 C を C (C^-1 C)^k に置き換えます。同じ lambda、違うノイズです。"""
+    inv = [h for g in reversed(circ) for h in invert_gate(g)]
+    out = list(circ)
+    for _ in range(k):
+        out.extend(inv)
+        out.extend(circ)
+    return out
+
+
+def ansatz(theta, n, layers):
+    """ハードウェア効率的アンザッツ: 量子ビットごとにry-rzの対、次にCXのはしご。"""
+    circ, k = [], 0
+    for _ in range(layers):
+        for q in range(n):
+            circ.append(("ry", theta[k], q))
+            circ.append(("rz", theta[k + 1], q))
+            k += 2
+        for q in range(n - 1):
+            circ.append(("cx", q, q + 1))
+    return circ
+
+
+NQ, LAYERS = 4, 2
+THETA = 0.25 + 0.31 * np.arange(2 * NQ * LAYERS)
+CIRC = ansatz(THETA, NQ, LAYERS)
+# 4サイト横磁場Ising鎖、h = 1
+TFIM = {"ZZII": 1.0, "IZZI": 1.0, "IIZZ": 1.0,
+        "XIII": 1.0, "IXII": 1.0, "IIXI": 1.0, "IIIX": 1.0}
+
+print("ゲート折り返し: ノイズは増え、ユニタリは同じ")
+print("=" * 74)
+print(f"  テスト回路: {NQ} 量子ビット、{LAYERS} 層、"
+      f"{len(CIRC)} ゲート、深さ {circuit_depth(CIRC, NQ)}")
+print(f"  ゲート数   : {gate_counts(CIRC)}")
+psi0 = run_circuit(CIRC, NQ)
+E0 = sum(expval(psi0, p, TFIM) for p in TFIM)
+print(f"  ノイズなしのエネルギー <H> = {E0:.6f}")
+
+print(f"\n  {'lambda':>7} {'gates':>7} {'depth':>7} {'2q gates':>9}"
+      f" {'local == global':>16} {'phase-free error':>18}"
+      f" {'<H> noiseless':>14}")
+for k in (0, 1, 2, 3):
+    fl, fg = fold_local(CIRC, k), fold_global(CIRC, k)
+    psi = run_circuit(fl, NQ)
+    print(f"  {2 * k + 1:7d} {len(fl):7d} {circuit_depth(fl, NQ):7d}"
+          f" {gate_counts(fl)['2q']:9d} {str(fl == fg):>16}"
+          f" {max(assert_equivalent(CIRC, fl, NQ), assert_equivalent(CIRC, fg, NQ)):18.2e}"
+          f" {sum(expval(psi, p, TFIM) for p in TFIM):14.6f}")
+```
+
+```text
+ゲート折り返し: ノイズは増え、ユニタリは同じ
+==========================================================================
+  テスト回路: 4 量子ビット、2 層、22 ゲート、深さ 9
+  ゲート数   : {'ry': 8, 'rz': 8, 'cx': 6, '2q': 6}
+  ノイズなしのエネルギー <H> = -1.507650
+
+   lambda   gates   depth  2q gates  local == global   phase-free error  <H> noiseless
+        1      22       9         6             True           0.00e+00      -1.507650
+        3      66      27        18            False           5.66e-16      -1.507650
+        5     110      45        30            False           6.18e-16      -1.507650
+        7     154      63        42            False           1.18e-15      -1.507650
+```
+
+**注目点。** ゲート数も深さもちょうど $\lambda$ 倍で増え、$\lambda = 1$ で22ゲートが $\lambda = 7$ で154ゲート、2量子ビットゲート数は6から42になります。元の回路に対する位相を除いた誤差はどの倍率でも、どちらの折り返し戦略でも $10^{-16}$ のままで、ノイズなしのエネルギーは6桁変わりません。それが要点です。**ノイズのないシミュレータには折り返しが起きたことが検出できません。** 検出できるのはノイズのある装置だけであり、それがこれをコンパイラのバグではなくノイズのノブにしているのです。
+
+局所折り返しと大域折り返しはここでは同じゲート数と同じ深さを与えます。この回路の逆が回路と同じ長さだからです。`local == global` の列は、それでも2つのゲート*列*が $\lambda = 3$ 以降は異なることを示しており、それが効くかどうかは Code Example 5 が測ります。
+
+### Code Example 5: ゼロノイズへの外挿
+
+```python
+"""第5章 Code Example 5: 折り返した回路上でのゼロノイズ外挿。
+Code Example 4 の続き（同一セッション）。"""
+
+
+def gate_matrix(g):
+    """ゲートタプル1個の (ユニタリ, 標的リスト) を返します。"""
+    if g[0] in FIXED_1Q:
+        return FIXED_1Q[g[0]], [g[1]]
+    if g[0] in ROT_1Q:
+        return ROT_1Q[g[0]](g[1]), [g[2]]
+    if g[0] == "cx":
+        return CNOT4, [g[1], g[2]]
+    if g[0] == "cz":
+        return CZ4, [g[1], g[2]]
+    raise ValueError(g[0])
+
+
+def rho_apply(rho, U, targets, n):
+    """U rho U^dagger を、rho の各列に apply_gate を作用させて構成します。"""
+    A = np.column_stack([apply_gate(rho[:, k], U, targets, n)
+                         for k in range(rho.shape[1])])
+    Ad = A.conj().T
+    return np.column_stack([apply_gate(Ad[:, k], U, targets, n)
+                            for k in range(Ad.shape[1])])
+
+
+def depolarize(rho, q, p, n):
+    """1量子ビット脱分極チャネル: (1-p) rho + (p/3) sum_P P rho P。"""
+    out = (1.0 - p) * rho
+    for P in (X, Y, Z):
+        out = out + (p / 3.0) * rho_apply(rho, P, [q], n)
+    return out
+
+
+def noisy_rho(circ, n, p):
+    """各ゲートが触れるすべての量子ビットに脱分極を加えたあとの密度行列です。
+    厳密であり、トラジェクトリのサンプリングは使いません。"""
+    rho = np.zeros((2 ** n, 2 ** n), dtype=complex)
+    rho[0, 0] = 1.0
+    for g in circ:
+        U, tg = gate_matrix(g)
+        rho = rho_apply(rho, U, tg, n)
+        for q in gate_qubits(g):
+            rho = depolarize(rho, q, p, n)
+    return rho
+
+
+def rho_expval(rho, pauli):
+    """Pauli文字列に対する tr(P rho) です。"""
+    n, A = len(pauli), rho
+    for q, ch in enumerate(pauli):
+        if ch != "I":
+            A = np.column_stack([apply_gate(A[:, k], PAULI[ch], [q], n)
+                                 for k in range(A.shape[1])])
+    return float(np.trace(A).real)
+
+
+def energy(rho):
+    return sum(TFIM[p] * rho_expval(rho, p) for p in TFIM)
+
+
+def richardson_weights(lams):
+    """ノイズ倍率を通る厳密な多項式補間を、ゼロで評価します。"""
+    lams = np.asarray(lams, dtype=float)
+    return np.array([np.prod([-lj / (li - lj) for lj in lams if lj != li])
+                     for li in lams])
+
+
+def ls_line_weights(lams):
+    """倍率を通る最小二乗直線の、切片に対する重みです。"""
+    A = np.column_stack([np.ones_like(lams, dtype=float), np.asarray(lams,
+                                                                    float)])
+    return np.linalg.pinv(A)[0]
+
+
+LAMS = np.array([1, 3, 5, 7])
+print("A. 外挿の重みと、それが分散で払う代価")
+print("=" * 74)
+print(f"  {'scales':>16} {'estimator':>12} {'weights':>34} {'||w||^2':>9}")
+for lams in ([1, 2], [1, 2, 3], [1, 2, 3, 4], [1, 3, 5, 7]):
+    for name, wf in (("Richardson", richardson_weights),
+                     ("LS line", ls_line_weights)):
+        if name == "LS line" and len(lams) == 2:
+            continue
+        w = wf(lams)
+        print(f"  {str(lams):>16} {name:>12}"
+              f" {np.array2string(np.round(w, 4), separator=', '):>34}"
+              f" {float(w @ w):9.3f}")
+
+print("\nB. 折り返した4つのノイズ倍率でのエネルギー")
+print("=" * 74)
+print(f"  ノイズなしの <H> = {E0:.6f}  (変分の最小値ではなく、固定した回路)")
+print(f"\n  {'p':>8} {'folding':>8}" + "".join(f" {'lam=' + str(l):>10}"
+                                              for l in LAMS))
+VALS = {}
+for p in (0.002, 0.005, 0.010):
+    for name, fold in (("local", fold_local), ("global", fold_global)):
+        VALS[(p, name)] = np.array(
+            [energy(noisy_rho(fold(CIRC, (l - 1) // 2), NQ, p)) for l in LAMS])
+        print(f"  {p:8.3f} {name:>8}"
+              + "".join(f" {v:10.5f}" for v in VALS[(p, name)]))
+
+print("\nC. ゼロノイズへの外挿（局所折り返し）")
+print("=" * 74)
+print(f"  {'p':>8} {'raw bias':>10} {'Richardson':>11} {'bias':>10}"
+      f" {'reduction':>10} {'LS line':>10} {'bias':>10} {'reduction':>10}")
+for p in (0.002, 0.005, 0.010):
+    v = VALS[(p, "local")]
+    rich = float(richardson_weights(LAMS) @ v)
+    line = float(ls_line_weights(LAMS) @ v)
+    raw = v[0] - E0
+    print(f"  {p:8.3f} {raw:+10.4f} {rich:11.5f} {rich - E0:+10.5f}"
+          f" {abs(raw / (rich - E0)):9.0f}x {line:10.5f} {line - E0:+10.5f}"
+          f" {abs(raw / (line - E0)):9.1f}x")
+print("\n  局所折り返しと大域折り返しの、全グリッド上での最大の食い違い:"
+      f" {max(abs(VALS[(p, 'local')] - VALS[(p, 'global')]).max() for p in (0.002, 0.005, 0.010)):.2e}")
+```
+
+```text
+A. 外挿の重みと、それが分散で払う代価
+==========================================================================
+            scales    estimator                            weights   ||w||^2
+            [1, 2]   Richardson                         [ 2., -1.]     5.000
+         [1, 2, 3]   Richardson                    [ 3., -3.,  1.]    19.000
+         [1, 2, 3]      LS line        [ 1.3333,  0.3333, -0.6667]     2.333
+      [1, 2, 3, 4]   Richardson               [ 4., -6.,  4., -1.]    69.000
+      [1, 2, 3, 4]      LS line           [ 1. ,  0.5, -0. , -0.5]     1.500
+      [1, 3, 5, 7]   Richardson [ 2.1875, -2.1875,  1.3125, -0.3125]    11.391
+      [1, 3, 5, 7]      LS line       [ 0.85,  0.45,  0.05, -0.35]     1.050
+
+B. 折り返した4つのノイズ倍率でのエネルギー
+==========================================================================
+  ノイズなしの <H> = -1.507650  (変分の最小値ではなく、固定した回路)
+
+         p  folding      lam=1      lam=3      lam=5      lam=7
+     0.002    local   -1.46442   -1.38162   -1.30419   -1.23175
+     0.002   global   -1.46442   -1.38162   -1.30419   -1.23175
+     0.005    local   -1.40193   -1.21398   -1.05464   -0.91910
+     0.005   global   -1.40193   -1.21398   -1.05466   -0.91915
+     0.010    local   -1.30380   -0.98264   -0.74986   -0.57884
+     0.010   global   -1.30380   -0.98267   -0.75001   -0.57917
+
+C. ゼロノイズへの外挿（局所折り返し）
+==========================================================================
+         p   raw bias  Richardson       bias  reduction    LS line       bias  reduction
+     0.002    +0.0432    -1.50795   -0.00030       143x   -1.50058   +0.00707       6.1x
+     0.005    +0.1057    -1.50815   -0.00050       212x   -1.46898   +0.03867       2.7x
+     0.010    +0.2039    -1.50585   +0.00180       113x   -1.38531   +0.12233       1.7x
+
+  局所折り返しと大域折り返しの、全グリッド上での最大の食い違い: 3.24e-04
+```
+
+**注目点。** パートAが以降のすべてを決める算術です。Richardson外挿はノイズ倍率を通る厳密な多項式補間をゼロで評価するもので、$\lambda = 1,2$ では $(2,-1)$、$1,2,3$ では $(3,-3,1)$、$1,2,3,4$ では $(4,-6,4,-1)$ となり、$\lVert w \rVert^2 = 5, 19, 69$、したがって $\lVert w \rVert_2 = 2.24, 4.36, 8.31$ — 姉妹コースの数値が定義から回復されます。折り返しの倍率 $1,3,5,7$ はもっと穏やかな重みを与え、69ではなく $\lVert w \rVert^2 = 11.4$ です。単に点が離れているからです。そして同じ4点を通る最小二乗直線は $\lVert w \rVert^2 = 1.05$、*1点あたり1未満*であり、外挿しないのとほとんど変わらない値段です。
+
+パートCが成果とトレードオフです。$p = 0.002$ で生のノイズ付きエネルギーは $+0.043$ 偏っており、3次のRichardson推定はそれを $-0.0003$ にします。**143倍**の低減です。$p = 0.005$ では212倍、$p = 0.01$ では113倍。これほど大きいのは、この範囲でノイズが $\lambda$ についてほぼ線形なので、4点を通る3次式が非常によく当てはまるからです。同じデータを使う最小二乗直線は6.1、2.7、1.7倍にとどまります。2つの推定量はバイアスで20倍、分散で11倍、互いに逆方向に違っており — これが実務者のする選択であり、ショット予算を知らずには選べないのです。局所折り返しと大域折り返しはこのグリッド上のどこでも最大 $3.2 \times 10^{-4}$ しか違いません。脱分極ノイズは何とでも可換で、挿入の個数だけが効くからです。コヒーレント誤差ではまったく等価ではなく、それが演習3です。
+
+### Code Example 6: 緩和がバイアスを買うために払う分散
+
+```python
+"""第5章 Code Example 6: 緩和がバイアスを買うために払う分散。
+Code Example 5 の続き（同一セッション）。"""
+P_NOISE = 0.005
+TERM_EV = [np.array([rho_expval(noisy_rho(fold_local(CIRC, (l - 1) // 2),
+                                          NQ, P_NOISE), p) for p in TFIM])
+           for l in LAMS]
+COEF = np.array([TFIM[p] for p in TFIM])
+
+
+def sampled_energies(shots, rng):
+    """4つのノイズ倍率それぞれにおける <H> の、ショットノイズ1実現です。
+
+    各Pauli項はそれぞれの回路で `shots` ショット測定し、<P> の推定量は二項分布
+    のカウントから 2 k / shots - 1 とします。
+    """
+    return np.array([float(COEF @ (2.0 * rng.binomial(shots, 0.5 * (1.0 + ev))
+                                   / shots - 1.0)) for ev in TERM_EV])
+
+
+W_RICH = richardson_weights(LAMS)
+W_LINE = ls_line_weights(LAMS)
+print("外挿の分散コストの実測")
+print("=" * 74)
+print(f"  p = {P_NOISE}、4つのノイズ倍率 {LAMS.tolist()}、"
+      f"Pauli項 {len(TFIM)} 個")
+print(f"  ||w||^2 : Richardson {float(W_RICH @ W_RICH):.3f},"
+      f" LS line {float(W_LINE @ W_LINE):.3f}, raw 1.000")
+print(f"\n  {'shots/term':>11} {'total shots':>12} {'estimator':>11}"
+      f" {'mean bias':>10} {'std':>9} {'predicted std':>14} {'RMSE':>9}")
+for shots in (1000, 10000, 100000):
+    rng = np.random.default_rng(7)
+    draws = np.array([sampled_energies(shots, rng) for _ in range(600)])
+    raw = draws[:, 0]
+    rich = draws @ W_RICH
+    line = draws @ W_LINE
+    s_raw = float(np.std(raw))
+    for name, est, w2 in (("raw", raw, 1.0),
+                          ("LS line", line, float(W_LINE @ W_LINE)),
+                          ("Richardson", rich, float(W_RICH @ W_RICH))):
+        bias = float(np.mean(est)) - E0
+        sd = float(np.std(est))
+        print(f"  {shots:11d} {shots * len(TFIM) * len(LAMS):12,d} {name:>11}"
+              f" {bias:+10.5f} {sd:9.5f} {s_raw * np.sqrt(w2):14.5f}"
+              f" {np.sqrt(bias ** 2 + sd ** 2):9.5f}")
+print("\n  外挿値の統計誤差を生の推定量に合わせるために必要なショット数の倍率")
+print("  （総予算を固定した場合）:")
+for name, w2 in (("LS line", float(W_LINE @ W_LINE)),
+                 ("Richardson", float(W_RICH @ W_RICH))):
+    print(f"    {name:>11}: {len(LAMS)} 倍率 x ||w||^2 = {w2:6.3f}"
+          f"  ->  ショット {len(LAMS) * w2:6.2f}倍")
+```
+
+```text
+外挿の分散コストの実測
+==========================================================================
+  p = 0.005、4つのノイズ倍率 [1, 3, 5, 7]、Pauli項 7 個
+  ||w||^2 : Richardson 11.391, LS line 1.050, raw 1.000
+
+   shots/term  total shots   estimator  mean bias       std  predicted std      RMSE
+         1000       28,000         raw   +0.10671   0.07563        0.07563   0.13079
+         1000       28,000     LS line   +0.03844   0.07950        0.07749   0.08831
+         1000       28,000  Richardson   -0.00194   0.25368        0.25524   0.25369
+        10000      280,000         raw   +0.10612   0.02412        0.02412   0.10883
+        10000      280,000     LS line   +0.03942   0.02479        0.02472   0.04657
+        10000      280,000  Richardson   -0.00122   0.08473        0.08142   0.08474
+       100000    2,800,000         raw   +0.10592   0.00804        0.00804   0.10622
+       100000    2,800,000     LS line   +0.03899   0.00837        0.00824   0.03988
+       100000    2,800,000  Richardson   -0.00086   0.02753        0.02713   0.02755
+
+  外挿値の統計誤差を生の推定量に合わせるために必要なショット数の倍率
+  （総予算を固定した場合）:
+        LS line: 4 倍率 x ||w||^2 =  1.050  ->  ショット   4.20倍
+     Richardson: 4 倍率 x ||w||^2 = 11.391  ->  ショット  45.56倍
+```
+
+**注目点。** 実測した標準偏差はどの予算でも $\sigma_{\text{raw}}\lVert w \rVert_2$ に数%以内で追随します。1項あたり1000ショットでのRichardsonは予測0.2552に対して0.2537、1項あたり10万ショットでの生の推定量は0.0080に対して0.0080です。外挿の分散ペナルティは経験則ではありません。重みベクトルのノルムそのものであり、データを取る前に計算できます。
+
+RMSEの列が誠実な要約であり、そこには交差があります。1項あたり1000ショットでの順位はLS直線（0.088）、生（0.131）、Richardson（0.254）で、高次の外挿が3つのうち*最悪*です。ほぼ完璧に取り除いたバイアスを、自分の分散が飲み込んでしまうからです。1項あたり10万ショットでは順位が逆転します。Richardson（0.0276）、LS直線（0.0399）、生（0.106）。**どの外挿が最良かはショット予算の性質であり、手法の性質ではありません。** ショット数を書かずにZNEの結果を報告する論文は、それを解釈するのに必要な情報を差し控えています。
+
+総予算も読む価値があります。最後のブロックは280万ショット、4量子ビット・22ゲートの回路で期待値1つを $\pm 0.03$ にするためです。緩和はバイアスの問題をサンプリングの問題に変換し、サンプリングの問題はもともと律速でした。
+
+* * *
+
+## 5.3 確率的誤差キャンセル
+
+### 逆にできないチャネルを逆にする
+
+ゼロノイズ外挿は検証できない仮定を1つ置きます。観測量がノイズ強度の滑らかな低次関数だという仮定です。確率的誤差キャンセルはそういう仮定を置かず、引き換えにノイズの完全な特徴づけを要求します。考えはノイズチャネルの*逆*を作用させることです。障害は、ノイズチャネルの逆がチャネルではないこと — 完全正ではなく、どんなハードウェアも走らせられない — です。解決は、それが常に*走らせられる*操作の**擬確率**結合として書けることです。
+
+$$ \mathcal{N}^{-1} = \sum_i c_i\,\mathcal{O}_i, \qquad \sum_i c_i = 1, \qquad \text{一部の } c_i < 0 $$
+
+$\gamma = \sum_i \lvert c_i \rvert$ として確率 $\lvert c_i \rvert / \gamma$ で $\mathcal{O}_i$ をサンプリングし、回路に挿入し、測定値に $\gamma\,\mathrm{sign}(c_i)$ を掛けます。その推定量の平均はノイズなしの期待値です。つまり**不偏**であり、外挿はそうではありません。代価は分散です。推定量のばらつきはノイズ地点あたり $\gamma$ 倍になるので、$N$ 地点ではショット数が $\gamma^{2N}$ で増えます。その $\gamma^{2N}$ が本章の指数の壁であり、Code Example 7 がそれに数値を与えます。
+
+1量子ビットの脱分極チャネルなら代数は手計算で足ります。Pauli転送行列は $f = 1 - 4p/3$ として $\mathrm{diag}(1, f, f, f)$ で、逆を $\alpha\,\mathrm{id} + \beta(X \cdot X + Y \cdot Y + Z \cdot Z)$ と書くと $\alpha + 3\beta = 1$ と $\alpha - \beta = 1/f$ が出て、
+
+$$ \beta = \frac{1}{4}\left(1 - \frac{1}{f}\right) < 0, \qquad \alpha = 1 - 3\beta, \qquad \gamma = \lvert \alpha \rvert + 3\lvert \beta \rvert = 1 + \frac{3}{2}\left(\frac{1}{f} - 1\right) $$
+
+となり、主要項では $\gamma \approx 1 + 2p$ です。
+
+### Code Example 7: 確率的誤差キャンセルと、そのサンプリングの請求書
+
+```python
+"""第5章 Code Example 7: 確率的誤差キャンセルと、そのサンプリングの請求書。
+Code Example 6 の続き（同一セッション）。"""
+PAULI_LIST = (I2, X, Y, Z)
+
+
+def pec_coeffs(p):
+    """脱分極チャネルの逆の擬確率分解です。
+
+    このチャネルのPauli転送行列は f = 1 - 4p/3 として diag(1, f, f, f) です。
+    逆を alpha * identity + beta * (X . X + Y . Y + Z . Z) と書くと
+    diag(alpha + 3 beta, alpha - beta, ...) になるので、alpha + 3 beta = 1 かつ
+    alpha - beta = 1/f です。1ノルム gamma = |alpha| + 3|beta| が、サンプリング
+    コストが指数的になる相手です。
+    """
+    f = 1.0 - 4.0 * p / 3.0
+    beta = (1.0 - 1.0 / f) / 4.0
+    alpha = 1.0 - 3.0 * beta
+    return alpha, beta, abs(alpha) + 3.0 * abs(beta)
+
+
+def rho1_channel(rho, p):
+    """2 x 2 密度行列に対する1量子ビット脱分極チャネルです。"""
+    return (1 - p) * rho + (p / 3.0) * sum(P @ rho @ P for P in (X, Y, Z))
+
+
+def rho1_inverse(rho, p):
+    """擬確率による逆を、サンプリングせずに厳密に作用させます。"""
+    alpha, beta, _ = pec_coeffs(p)
+    return alpha * rho + beta * sum(P @ rho @ P for P in (X, Y, Z))
+
+
+print("A. 脱分極チャネルの逆はチャネルではない")
+print("=" * 74)
+rng = np.random.default_rng(5150)
+v = rng.normal(size=(2, 2)) + 1j * rng.normal(size=(2, 2))
+rho_test = v @ v.conj().T
+rho_test = rho_test / np.trace(rho_test)
+print(f"  {'p':>8} {'f':>10} {'alpha':>10} {'beta':>11} {'gamma':>10}"
+      f" {'1 + 2p':>9} {'inversion error':>16}")
+for p in (0.001, 0.002, 0.005, 0.010, 0.050):
+    a, b, g = pec_coeffs(p)
+    err = np.max(np.abs(rho1_inverse(rho1_channel(rho_test, p), p) - rho_test))
+    print(f"  {p:8.3f} {1 - 4 * p / 3:10.6f} {a:10.6f} {b:+11.6f} {g:10.6f}"
+          f" {1 + 2 * p:9.6f} {err:16.2e}")
+print("  beta が負なので、逆はチャネルではなく擬確率です。実機で走らせることは")
+print("  できず、そこからサンプリングすることしかできません。")
+
+print("\nB. サンプリングのオーバーヘッド、回路サイズについて指数的")
+print("=" * 74)
+LOCS = sum(len(gate_qubits(g)) for g in CIRC)
+print(f"  Code Example 4 の回路はゲート {len(CIRC)} 個、ノイズ地点 {LOCS} 個")
+print("  各成分は、統計誤差を一定に保つためにショット予算を増やすべき倍率の")
+print("  log10 です。オーバーヘッドは gamma^(2N) です。")
+print(f"\n  {'p':>8} {'gamma':>10}" + "".join(
+    f" {'N=' + f'{n:.0e}':>10}" for n in (LOCS, 1e2, 1e3, 1e4, 1e6)))
+for p in (0.001, 0.002, 0.005, 0.010):
+    _, _, g = pec_coeffs(p)
+    print(f"  {p:8.3f} {g:10.6f}"
+          + "".join(f" {2 * n * np.log10(g):10.1f}"
+                    for n in (LOCS, 1e2, 1e3, 1e4, 1e6)))
+
+print("\nC. サンプリングできる大きさの回路でPECを実装する")
+print("=" * 74)
+SMALL = [("h", 0), ("cx", 0, 1), ("ry", 0.7, 1)]
+NS, P_PEC = 2, 0.02
+psi_ideal = run_circuit(SMALL, NS)
+ideal = expval(psi_ideal, "ZZ")
+noisy = rho_expval(noisy_rho(SMALL, NS, P_PEC), "ZZ")
+alpha, beta, gamma = pec_coeffs(P_PEC)
+weights = np.array([abs(alpha), abs(beta), abs(beta), abs(beta)]) / gamma
+signs = np.sign([alpha, beta, beta, beta])
+n_loc = sum(len(gate_qubits(g)) for g in SMALL)
+
+
+def pec_sample(rng):
+    """PECの1サンプル: 擬確率から引いたPauliを挿入し、符号を保持します。"""
+    rho = np.zeros((2 ** NS, 2 ** NS), dtype=complex)
+    rho[0, 0] = 1.0
+    sign = 1.0
+    for g in SMALL:
+        U, tg = gate_matrix(g)
+        rho = rho_apply(rho, U, tg, NS)
+        for q in gate_qubits(g):
+            rho = depolarize(rho, q, P_PEC, NS)
+            j = rng.choice(4, p=weights)
+            sign *= signs[j]
+            rho = rho_apply(rho, PAULI_LIST[j], [q], NS)
+    return sign * gamma ** n_loc * rho_expval(rho, "ZZ"), sign
+
+
+rng = np.random.default_rng(24680)
+draws, sgn = map(np.array, zip(*[pec_sample(rng) for _ in range(4000)]))
+print(f"  回路: ゲート {len(SMALL)} 個、ノイズ地点 {n_loc} 個、p = {P_PEC}")
+print(f"  gamma = {gamma:.6f}, gamma^{n_loc} = {gamma ** n_loc:.4f},"
+      f" オーバーヘッド gamma^{2 * n_loc} = {gamma ** (2 * n_loc):.4f}")
+print(f"\n  {'estimator':>14} {'value':>10} {'bias':>10} {'std of one sample':>18}")
+print(f"  {'ノイズなし':>14} {ideal:10.5f} {0.0:+10.5f} {'--':>18}")
+print(f"  {'ノイズあり':>14} {noisy:10.5f} {noisy - ideal:+10.5f} {'--':>18}")
+print(f"  {'PEC, 4000':>14} {draws.mean():10.5f} {draws.mean() - ideal:+10.5f}"
+      f" {draws.std():18.5f}")
+print(f"  PEC平均の標準誤差: {draws.std() / np.sqrt(len(draws)):.5f}")
+print(f"  負の符号で引かれたサンプルの割合:"
+      f" {float(np.mean(sgn < 0)):.4f}")
+```
+
+```text
+A. 脱分極チャネルの逆はチャネルではない
+==========================================================================
+         p          f      alpha        beta      gamma    1 + 2p  inversion error
+     0.001   0.998667   1.001001   -0.000334   1.002003  1.002000         1.11e-16
+     0.002   0.997333   1.002005   -0.000668   1.004011  1.004000         0.00e+00
+     0.005   0.993333   1.005034   -0.001678   1.010067  1.010000         1.11e-16
+     0.010   0.986667   1.010135   -0.003378   1.020270  1.020000         1.11e-16
+     0.050   0.933333   1.053571   -0.017857   1.107143  1.100000         5.55e-17
+  beta が負なので、逆はチャネルではなく擬確率です。実機で走らせることは
+  できず、そこからサンプリングすることしかできません。
+
+B. サンプリングのオーバーヘッド、回路サイズについて指数的
+==========================================================================
+  Code Example 4 の回路はゲート 22 個、ノイズ地点 28 個
+  各成分は、統計誤差を一定に保つためにショット予算を増やすべき倍率の
+  log10 です。オーバーヘッドは gamma^(2N) です。
+
+         p      gamma    N=3e+01    N=1e+02    N=1e+03    N=1e+04    N=1e+06
+     0.001   1.002003        0.0        0.2        1.7       17.4     1737.8
+     0.002   1.004011        0.1        0.3        3.5       34.8     3476.7
+     0.005   1.010067        0.2        0.9        8.7       87.0     8700.5
+     0.010   1.020270        0.5        1.7       17.4      174.3    17430.5
+
+C. サンプリングできる大きさの回路でPECを実装する
+==========================================================================
+  回路: ゲート 3 個、ノイズ地点 4 個、p = 0.02
+  gamma = 1.041096, gamma^4 = 1.1748, オーバーヘッド gamma^8 = 1.3801
+
+       estimator      value       bias  std of one sample
+           ノイズなし    0.76484   +0.00000                 --
+           ノイズあり    0.70527   -0.05957                 --
+       PEC, 4000    0.75812   -0.00672            0.33428
+  PEC平均の標準誤差: 0.00529
+  負の符号で引かれたサンプルの割合: 0.0757
+```
+
+**注目点。** パートAが代数を確認します。$\beta$ はどのノイズ水準でも負であり、擬確率の逆をチャネルと合成すると入力の密度行列が $10^{-16}$ で返り、$\gamma$ は主要項の $1 + 2p$ と $p = 10^{-3}$ で4桁、$p = 0.05$ で2桁一致します。
+
+パートBが壁です。$p = 0.005$ の行を読んでください。Code Example 4 の22ゲート回路、ノイズ地点28個ではサンプリングコストは $10^{0.2}$、1.6倍 — まったく払える額であり、だからPECは小さな回路では実際に使われます。ノイズ地点1000個では $10^{8.7}$。1万個では $10^{87}$、100万個では $10^{8700}$ です。この種の数値に手が届くハードウェア改良も、アルゴリズム的工夫も、予算水準も存在しません。**緩和は大きな回路への道ではなく、小さな回路からより多くを引き出す方法です。**
+
+パートCがPECの実装で、4000サンプルで答えが出る程度に小さな回路上です。ノイズ付きの期待値は $-0.060$ 偏っており、PECはノイズなしの $0.765$ に対して $0.758$、残差 $-0.007$ を標準誤差 $0.005$ に対して返します。宣伝どおり、1.5標準誤差以内で不偏です。*1サンプル*の標準偏差は、1で抑えられた観測量に対して0.334であり、サンプルの7.6%が負の符号を持ちます。この2つの数値が指数コストの機構を可視化しています。回路が大きくなるにつれ符号はコイン投げに近づき、正と負の寄与がますます完全に打ち消し合い、その差を見るのに必要なサンプル数が $\gamma^{2N}$ で増えるのです。
+
+* * *
+
+## 5.4 ソフトウェアの工夫が尽きる場所
+
+3つの手法を誠実に並べます。
+
+| | 何を直すか | 追加量子ビット | 仮定 | サンプリングコスト |
+| --- | --- | --- | --- | --- |
+| 読み出し緩和 | 割り当て誤差のみ | なし | 読み出しのノイズ模型と、$2^n$ または $2n$ 回の較正 | $\sim 1$、加えて較正 |
+| ゼロノイズ外挿 | $\lambda$ に比例して増えるゲートノイズのバイアス | なし | 観測量が $\lambda$ の低次関数、折り返しがノイズを倍率化 | 倍率あたり $\lVert w \rVert^2$、本章では4〜46倍 |
+| 確率的誤差キャンセル | バイアス、滑らかさの仮定なし | なし | ノイズの完全なトモグラフィ的知識 | $\gamma^{2N}$、回路サイズについて指数的 |
+| 誤り訂正 | すべて。符号が設計されていればリークも | 論理あたり $2d^2 - 1$ | 物理誤り率が閾値未満 | $\sim 1$ |
+
+最後の列に現れる構造が本章の話のすべてです。3つの緩和手法は精度を*サンプル*で買い、サンプルのコストは回路サイズとともに増えます。外挿の模型が成り立つなら多項式的に、PECでは常に指数的に。誤り訂正は精度を*量子ビット*で買い、量子ビットのコストは必要な論理誤り率の*対数*とともに増えます。符号距離が指数に入るからです。指数的に増える量と対数的に増える量は交差し、しかも早く交差します。
+
+さらに3つの非対称性に名前を付けておきます。オーバーヘッドの表が隠している部分だからです。
+
+  * **緩和が直すのは期待値であって状態ではありません。** 上のどれも、後続のゲートが作用できる補正された状態を生みません。測定統計への後処理なので、計算の途中では使えず、深いコヒーレントなサブルーチンを支えられず、出力が平均ではなくサンプルされたビット列であるアルゴリズムには効きません。
+  * **緩和は模型に入っていないものを扱えません。** Code Example 3 のテンソル積読み出し補正は模型が誤ったときに事態を悪化させ、演習3は折り返しが増幅せずに打ち消してしまうコヒーレント誤差を示します。そのとき外挿は偏った答えを返し、困難があったとは報告しません。緩和手法の故障モードは、自信を持って誤った数値です。
+  * **そして緩和は今日たしかに本質的です。** Code Example 2 は第4章の較正済みのゲート誤差の100倍大きい読み出し誤差を取り除き、Code Example 5 はノイズバイアスの99.3%を取り除きました。いま実機が走らせられる規模の回路では、これらの手法が結果とノイズのプロットの違いを作ります。両方の文が真であり、どちらも逃げ口上ではありません。
+
+* * *
+
+## 5.5 リソース見積りパイプライン
+
+「緩和すべきか」に答えるもう1つの方法は、代替案に値札をつけることです。誤り耐性のリソース見積りは4つの関数の連鎖であり、そのどれも算術であって、規律は入力を明記することにすべて宿ります。
+
+$$ \text{アルゴリズム} \xrightarrow{\ \lambda,\ \varepsilon,\ C_{\text{walk}}\ } N_{\text{Toffoli}} \xrightarrow{\ \text{失敗予算}\ } p_L \xrightarrow{\ p_{\text{phys}},\ p_{\text{th}}\ } d \xrightarrow{\ \text{符号}\ } n_{\text{phys}},\ t_{\text{wall}} $$
+
+第1のつなぎ目は[量子アルゴリズム（中級）第4章](<../quantum-algorithms-intermediate/chapter-4.html>)のアルゴリズムレベルの言明です。qubitized位相推定は約 $(\pi/2)(\lambda/\varepsilon)$ 回のウォークステップを要し、各ステップが $C_{\text{walk}}$ Toffoliかかります。第2は予算の選択で、実行全体の失敗確率を0.1に保つので $p_L = 0.1/N_{\text{Toffoli}}$ です。第3は[量子コンピューティング入門 第5章](<../quantum-computing-introduction/chapter-5.html>)の閾値公式 $p_L \approx A(p/p_{\text{th}})^{(d+1)/2}$ を最小の奇数 $d$ について解いたものです。第4は符号の面積で、回転表面符号では論理量子ビットあたり $2d^2 - 1$ 個の物理量子ビット、そして論理Toffoli 1個あたり10 $\mu$s という仮置きのサイクル時間です。
+
+実装上の細部が1つ、省略できません。第3段は比を大きな冪に上げたものを10の冪と比較しますが、2進浮動小数点ではそれらは見た目の数値ではありません。`0.1 * 0.1 ** 5` は `1.0000000000000004e-06` に評価され、これは $10^{-6}$ 以下では*ありません*。素朴な比較は目標をちょうど満たす距離を棄却して次のものを返します。$d$ は奇数なので符号距離が2段まるごと動き、論理量子ビットあたり数百個の物理量子ビットが変わります。姉妹コース2つがこの罠を踏みました。ガードは相対許容であり、Code Example 8 はそれを適用する前に失敗を実演します。
+
+### Code Example 8: アルゴリズムの入力から物理量子ビットと日数まで
+
+```python
+"""第5章 Code Example 8: 論理から物理へのリソース見積りパイプライン。
+Code Example 7 の続き（同一セッション）。算術のみで、シミュレータは不要です。"""
+CHEM_ACC = 1.6e-3        # Hartree、慣例的な化学的精度の目標
+P_THRESHOLD = 1e-2       # 表面符号の閾値の代表値、桁の目安
+A_PREFACTOR = 0.1        # 無次元の前係数、桁の目安
+T_TOFFOLI = 1e-5         # 論理Toffoli 1個あたりの秒数、標準的な仮置き値
+
+
+def qubitized_toffolis(lam, eps, toffolis_per_walk):
+    """qubitized位相推定のToffoli数: (pi/2)(lam/eps) 回のウォークステップです。"""
+    steps = np.pi * lam / (2 * eps)
+    return steps, steps * toffolis_per_walk
+
+
+def logical_error_target(n_toffoli, total_failure=0.1):
+    """実行全体の失敗確率を0.1に保つ、ゲートあたりの論理誤り率です。"""
+    return total_failure / n_toffoli
+
+
+def logical_error(p_phys, d, p_th=P_THRESHOLD, A=A_PREFACTOR):
+    """表面符号のスケーリング p_L ~ A (p/p_th)^((d+1)/2) です。"""
+    return A * (p_phys / p_th) ** ((d + 1) / 2)
+
+
+def required_distance(p_phys, target, p_th=P_THRESHOLD, A=A_PREFACTOR):
+    """目標の論理誤り率に達する最小の奇数符号距離です。
+
+    比較には**相対**許容を入れています。p_L は比を大きな冪に上げたものなので、
+    目標をちょうど満たす距離は2進浮動小数点では数ulp上に着地し、素朴な
+    `<= target` はそれを棄却して次の距離を返してしまいます。姉妹コース2つが
+    この罠を踏みました。
+    """
+    if p_phys >= p_th:
+        return None                  # 閾値以上では量子ビットを増やしても無駄
+    for d in range(3, 201, 2):
+        if logical_error(p_phys, d, p_th, A) <= target * (1 + 1e-9):
+            return d
+    return None
+
+
+def physical_per_logical(d):
+    """回転表面符号: 論理量子ビット1個あたり 2 d^2 - 1 個の物理量子ビットです。"""
+    return 2 * d * d - 1
+
+
+def estimate(lam, eps, toffolis_per_walk, p_phys, n_logical):
+    """パイプライン全体を1つの関数に: アルゴリズムの入力から実機まで。"""
+    steps, tof = qubitized_toffolis(lam, eps, toffolis_per_walk)
+    pL = logical_error_target(tof)
+    d = required_distance(p_phys, pL)
+    per = physical_per_logical(d)
+    return {"walk_steps": steps, "toffolis": tof, "p_L": pL, "distance": d,
+            "per_logical": per, "physical": per * n_logical,
+            "seconds": tof * T_TOFFOLI, "days": tof * T_TOFFOLI / 86400}
+
+
+print("A. 閾値比較にひそむ浮動小数点の罠")
+print("=" * 74)
+print(f"  0.1 * 0.1 ** 5  = {0.1 * 0.1 ** 5!r}")
+print(f"  これは <= 1e-06 か? {0.1 * 0.1 ** 5 <= 1e-6}")
+print(f"  相対許容つきなら? {0.1 * 0.1 ** 5 <= 1e-6 * (1 + 1e-9)}")
+for target in (1e-6, 1e-10, 1e-12):
+    d_ok = required_distance(1e-3, target)
+    d_bad = next((d for d in range(3, 201, 2)
+                  if logical_error(1e-3, d) <= target), None)
+    print(f"  p = 1e-3, 目標 {target:.0e}: ガードあり d = {d_ok:3d},"
+          f" ガードなし d = {d_bad:3d}"
+          + ("   <- 距離1段ずれる" if d_ok != d_bad else ""))
+
+print("\nB. 姉妹コースの表の再現")
+print("=" * 74)
+print(f"  {'p_phys':>9} {'target p_L':>12} {'distance d':>11}"
+      f" {'phys/logical':>13} {'100 logical qubits':>19}")
+for p_phys in (1e-3, 3e-4, 1e-4):
+    for target in (1e-6, 1e-10, 1e-15):
+        d = required_distance(p_phys, target)
+        per = physical_per_logical(d)
+        print(f"  {p_phys:9.0e} {target:12.0e} {d:11d} {per:13,d} {100 * per:19,d}")
+
+print("\nC. アルゴリズムから実機まで、1回の呼び出しで")
+print("=" * 74)
+print(f"  eps = {CHEM_ACC:.1e} Ha、p_phys = 1e-3、論理量子ビット {2 * 76 + 1000} 個")
+print(f"\n  {'system':>26} {'lambda':>8} {'C_walk':>8} {'Toffolis':>10}"
+      f" {'p_L':>9} {'d':>4} {'physical':>10} {'days':>8}")
+for name, lam, cw in (("N2, moderate space", 40.0, 1e4),
+                      ("FeMoco, low estimate", 300.0, 1e4),
+                      ("FeMoco, mid estimate", 1000.0, 3e4),
+                      ("FeMoco, high estimate", 4000.0, 1e5)):
+    r = estimate(lam, CHEM_ACC, cw, 1e-3, 2 * 76 + 1000)
+    print(f"  {name:>26} {lam:8.0f} {cw:8.0e} {r['toffolis']:10.2e}"
+          f" {r['p_L']:9.1e} {r['distance']:4d} {r['physical']:10.2e}"
+          f" {r['days']:8.2f}")
+
+print("\n  量子アルゴリズム（中級）第4章との突き合わせ:")
+for tof in (1e9, 1e10, 1e11):
+    pL = logical_error_target(tof)
+    d = required_distance(1e-3, pL)
+    per = physical_per_logical(d)
+    print(f"    {tof:.0e} Toffoli -> p_L {pL:.1e}, d = {d}, 論理あたり {per},"
+          f" 物理 {per * 1152:.2e}, {tof * T_TOFFOLI / 86400:.2f} 日")
+
+print("\nD. 緩和が尽き、訂正が始まる場所")
+print("=" * 74)
+print("  緩和: p = 1e-3、ノイズ地点 N 個でのPECサンプリングコスト gamma^(2N)。")
+print("  訂正: p = 1e-3 で論理誤り率 0.1/N を得るための、論理量子ビット1個")
+print("  あたりの物理量子ビット数。")
+_, _, g3 = pec_coeffs(1e-3)
+print(f"\n  {'N (gates)':>11} {'log10 PEC overhead':>19} {'p_L needed':>11}"
+      f" {'d':>4} {'phys/logical':>13}")
+for n in (1e2, 1e3, 1e4, 1e6, 1e9, 1e11):
+    d = required_distance(1e-3, logical_error_target(n))
+    print(f"  {n:11.0e} {2 * n * np.log10(g3):19.1f}"
+          f" {logical_error_target(n):11.1e} {d:4d}"
+          f" {physical_per_logical(d):13,d}")
+```
+
+```text
+A. 閾値比較にひそむ浮動小数点の罠
+==========================================================================
+  0.1 * 0.1 ** 5  = 1.0000000000000004e-06
+  これは <= 1e-06 か? False
+  相対許容つきなら? True
+  p = 1e-3, 目標 1e-06: ガードあり d =   9, ガードなし d =  11   <- 距離1段ずれる
+  p = 1e-3, 目標 1e-10: ガードあり d =  17, ガードなし d =  19   <- 距離1段ずれる
+  p = 1e-3, 目標 1e-12: ガードあり d =  21, ガードなし d =  23   <- 距離1段ずれる
+
+B. 姉妹コースの表の再現
+==========================================================================
+     p_phys   target p_L  distance d  phys/logical  100 logical qubits
+      1e-03        1e-06           9           161              16,100
+      1e-03        1e-10          17           577              57,700
+      1e-03        1e-15          27         1,457             145,700
+      3e-04        1e-06           7            97               9,700
+      3e-04        1e-10          11           241              24,100
+      3e-04        1e-15          19           721              72,100
+      1e-04        1e-06           5            49               4,900
+      1e-04        1e-10           9           161              16,100
+      1e-04        1e-15          13           337              33,700
+
+C. アルゴリズムから実機まで、1回の呼び出しで
+==========================================================================
+  eps = 1.6e-03 Ha、p_phys = 1e-3、論理量子ビット 1152 個
+
+                      system   lambda   C_walk   Toffolis       p_L    d   physical     days
+          N2, moderate space       40    1e+04   3.93e+08   2.5e-10   17   6.65e+05     0.05
+        FeMoco, low estimate      300    1e+04   2.95e+09   3.4e-11   19   8.31e+05     0.34
+        FeMoco, mid estimate     1000    3e+04   2.95e+10   3.4e-12   21   1.01e+06     3.41
+       FeMoco, high estimate     4000    1e+05   3.93e+11   2.5e-13   23   1.22e+06    45.45
+
+  量子アルゴリズム（中級）第4章との突き合わせ:
+    1e+09 Toffoli -> p_L 1.0e-10, d = 17, 論理あたり 577, 物理 6.65e+05, 0.12 日
+    1e+10 Toffoli -> p_L 1.0e-11, d = 19, 論理あたり 721, 物理 8.31e+05, 1.16 日
+    1e+11 Toffoli -> p_L 1.0e-12, d = 21, 論理あたり 881, 物理 1.01e+06, 11.57 日
+
+D. 緩和が尽き、訂正が始まる場所
+==========================================================================
+  緩和: p = 1e-3、ノイズ地点 N 個でのPECサンプリングコスト gamma^(2N)。
+  訂正: p = 1e-3 で論理誤り率 0.1/N を得るための、論理量子ビット1個
+  あたりの物理量子ビット数。
+
+    N (gates)  log10 PEC overhead  p_L needed    d  phys/logical
+        1e+02                 0.2     1.0e-03    3            17
+        1e+03                 1.7     1.0e-04    5            49
+        1e+04                17.4     1.0e-05    7            97
+        1e+06              1737.8     1.0e-07   11           241
+        1e+09           1737757.8     1.0e-10   17           577
+        1e+11         173775776.0     1.0e-12   21           881
+```
+
+**注目点。** パートAが罠の実演です。$p = 10^{-3}$、目標 $10^{-6}$ でガード付きの探索は $d = 9$、ガードなしは $d = 11$ を返し、$10^{-12}$ では21対23です。物理量子ビットでは161対241、881対1057 — リソース見積りの主要数値に20%の誤りが、浮動小数点の比較1つから生じます。修正は乗算1回です。
+
+パートBは[量子コンピューティング入門 第5章](<../quantum-computing-introduction/chapter-5.html>)の表を厳密に再現します。同コースが同じ $2d^2 - 1$ の規約を使っているからです。$p = 10^{-3}$ で論理誤り率 $10^{-10}$ には距離17と論理あたり577個の物理量子ビットが必要なので、論理100量子ビットで物理57,700個。物理誤り率を $3 \times 10^{-4}$ に改善すると同じ目標が距離11と24,100個になります。全行が一致します。
+
+パートCはパイプライン全体を1回の呼び出しで走らせ、量子アルゴリズム（中級）が着地した場所に着地します。$\lambda = 1000$ Hartree、$C_{\text{walk}} = 3 \times 10^4$ のFeMoco規模の計算には $2.95 \times 10^{10}$ Toffoli、論理誤り率 $3.4 \times 10^{-12}$、符号距離21、物理量子ビット約 $10^6$ 個、3.4日が必要です。もっともらしい入力範囲の上端では $3.9 \times 10^{11}$ Toffoli、$1.2 \times 10^6$ 物理量子ビット、45日です。突き合わせのブロックは[量子アルゴリズム（中級）第4章](<../quantum-algorithms-intermediate/chapter-4.html>)の主要3行 — $10^9$、$10^{10}$、$10^{11}$ Toffoliでの符号距離と実時間の日数 — を桁まで再現します。両者が食い違うのは物理量子ビットの列だけで、しかも規約が分ける論理あたり1量子ビット分だけです。あちらは $2d^2$ を数え、本章は5.5節で明記したとおり[量子コンピューティング入門 第5章](<../quantum-computing-introduction/chapter-5.html>)に従って $2d^2 - 1$ を数えます。
+
+パートDは5.4節の境界を計算したものです。ノイズ地点100個ではPECのコストは1.6倍で、誤り訂正は距離3・論理あたり物理17個を要します — 緩和が楽勝であり、しかも追加量子ビットをまったく必要としません。1万地点では緩和はサンプル $10^{17}$、訂正は論理あたり97個。$10^{11}$ 地点 — FeMoco回路の規模 — では緩和は $10^{1.7 \times 10^{8}}$、訂正は881個です。**交差点は数千ゲートあたり**で、その両側でまったく競っていません。交差点より上はすべて誤り耐性の問題であり、下はすべて今日の量子コンピューティングが起きている場所です。
+
+* * *
+
+## 5.6 シリーズの地図
+
+これは本コレクションの量子6コースの6本目かつ最後であり、6本は互いを読み合わせるために書かれました。表がその地図です。
+
+| コース | 答える問い | 他に何を渡すか |
+| --- | --- | --- |
+| [量子コンピューティング入門](<../quantum-computing-introduction/index.html>) | 量子ビット・ゲート・アルゴリズムとは何か、どう模擬するか | 他のすべてのコースが走るミニシミュレータと、第5章のノイズ・緩和・訂正の予算 |
+| [量子ハードウェア入門](<../quantum-hardware-introduction/index.html>) | $T_1$・$T_2$・ゲート誤差は物理的に何でできているか | 本コース第4章が制御スタックに変えるトランズモンのスペクトルとDRAGの物理 |
+| [量子アルゴリズム（中級）](<../quantum-algorithms-intermediate/index.html>) | どの高速化が定理で、それは何を前提にするか | ブロック符号化、qubitization、そして5.5節のToffoli数の言語 |
+| 量子ソフトウェアスタック入門 | アルゴリズムとパルスの間で何が起きているか | 回路IR、最適化器、ルータ、パルスシミュレータ、緩和層 — すべて輸入ではなく自作 |
+| [量子機械学習](<../../MI/quantum-machine-learning-introduction/index.html>) | 量子モデルは古典モデルよりよく学習するか | 評価の規律 — 同予算、対応のある区間、誠実なベースライン |
+| [量子センシング](<../../MS/quantum-sensing-introduction/index.html>) | 量子技術はすでにどこで優位を出しているか | コレクション中で唯一の肯定的な答え、そして第4章の較正が依拠する計量学 |
+
+6本すべてを貫く横断的な主題が2つあり、最後に一度述べる価値があります。
+
+**層は漏れる。どちら向きに漏れるかを知ることが技能である。** $Z$ 回転を末尾に押し出すコンパイラはパルス層の事実を利用しています。物理量子ビット数を引用するリソース見積りは、前係数がデコーダの性質である閾値公式を利用しています。静かに失敗する緩和手法が失敗するのは、そのノイズ模型がノイズとは違う層から来たからです。ここでの真面目な判断はどれも1層下に手を伸ばすことを要求し、だから1つの層のAPIだけを教えるコースでは足りないのです。
+
+**そして数値が論拠である。** この6コースで測れる主張はすべて測りました。実際に走るコードで、失敗をそのまま残して。15行の局所探索に負けたアンザッツ、何もしないより悪かった読み出し補正、系統誤差に停滞した較正ループ、小さな予算では3つのうち最悪だった外挿。持ち帰る価値のある習慣は、過度に一般化された主張を捕まえるものです。予算は何だったか、ベースラインは何だったか、そして仮定はどの層から来たかを問うこと。
+
+* * *
+
+## 演習
+
+#### 演習1: 局所的な観測量に対する読み出し緩和
+
+関心のある観測量はたいてい $k$-局所 — 2つか3つの量子ビットのパリティ — であり、それらに $2^n$ の仕掛けは要りません。
+
+  1. 誤り率 $(\epsilon_{01}, \epsilon_{10})$ をもつ1量子ビット $q$ について、測定周辺分布が $P_{\text{meas}}(1) = (1 - \epsilon_{01} - \epsilon_{10})P_{\text{true}}(1) + \epsilon_{01}$ を満たすことを示し、逆に解いてください。
+  2. Code Example 2 のGHZ状態の3量子ビットすべてについて、その反転を数値的に検証してください。
+  3. この結果は、$n$ 量子ビット装置上で $k$-局所観測量を補正する較正コストについて何を意味しますか。
+  4. Code Example 3 の相関のある読み出し模型のもとでも、1量子ビット観測量に対する1量子ビットの反転は機能しますか。
+
+<details>
+<summary>解答</summary>
+
+<p><strong>1.</strong> テンソル積型の混同行列を他のすべての量子ビットについて周辺化すると量子ビット \(q\) の \(2 \times 2\) ブロックが残るので、\(P_{\text{meas}}(1) = (1-\epsilon_{10})P_{\text{true}}(1) + \epsilon_{01}(1 - P_{\text{true}}(1))\) となり、これは示された形に整理されます。逆に解くと \(P_{\text{true}}(1) = (P_{\text{meas}}(1) - \epsilon_{01})/(1 - \epsilon_{01} - \epsilon_{10})\) です。補正は量子ビットごとにアフィン写像1つで、分母は読み出しの<em>コントラスト</em>です。</p>
+
+<p><strong>2.</strong> 3量子ビットすべてが、測定周辺分布0.4850、0.4850、0.4800から真値0.5に対して0.500000を返します。</p>
+
+<p><strong>3.</strong> 観測量の台に載る \(k\) 量子ビットだけが効くので、較正回路は \(2^k\) 本で足ります。2量子ビットパリティで4本、3量子ビットで8本、\(n\) には依りません。だから厳密な手法が \(2^{100}\) 本を要する100量子ビット装置でも読み出し緩和が日常的に使われるのです。誰も分布全体を補正しておらず、観測量が必要とする周辺分布を補正しています。厳密な手法のコストは<em>分布</em>を補正するコストであり、それはずっと強い要求なのです。</p>
+
+<p><strong>4.</strong> 真に1量子ビットの観測量については機能します。Code Example 3 の相関反転は各量子ビットの周辺誤り率を変えますが — それはまさに周辺較正が測るものです — 周辺分布から較正した1量子ビット補正は整合的です。テンソル積模型が間違えるのは<em>結合</em>観測量 \(\langle Z_0 Z_1 \rangle\) のほうで、相関反転は周辺分布の形を保ったまま相関を変えるからです。相関のあるノイズは相関のある観測量を最初に壊します。</p>
+
+```python
+for q in range(N):
+    e01, e10 = RATES[q]
+    bit = 2 ** (N - 1 - q)
+    m_true = float(sum(p_true[m] for m in range(2 ** N) if m & bit))
+    m_meas = float(sum(M_true[m, t] * p_true[t] for m in range(2 ** N)
+                       for t in range(2 ** N) if m & bit))
+    corr = (m_meas - e01) / (1.0 - e01 - e10)
+    print(f"  qubit {q}: P(1) true {m_true:.4f}  measured {m_meas:.4f}"
+          f"  corrected {corr:.6f}")
+#   qubit 0: P(1) true 0.5000  measured 0.4850  corrected 0.500000
+#   qubit 1: P(1) true 0.5000  measured 0.4850  corrected 0.500000
+#   qubit 2: P(1) true 0.5000  measured 0.4800  corrected 0.500000
+```
+
+</details>
+
+#### 演習2: 分数のノイズ倍率
+
+整数の局所折り返しは $\lambda = 1, 3, 5, \ldots$ にしか到達しません。分数倍率は最初の $m$ ゲートだけを折り返すことで得られます。
+
+  1. 部分折り返しを実装し、到達する $\lambda = (\lvert C \rvert + 2m)/\lvert C \rvert$ とユニタリが保たれることを確認してください。
+  2. Code Example 5 の外挿を $\lbrace 1,3,5,7 \rbrace$ ではなく $\lambda = \lbrace 1, 1.5, 2, 3 \rbrace$ で走らせてください。Richardsonの重みはどうなりますか。
+  3. どちらの集合を使いますか。根拠は何ですか。
+
+<details>
+<summary>解答</summary>
+
+<p><strong>1.</strong> 22ゲートの回路で \(\lambda = 1.5\) を要求すると \(m = 5.5\) となり、6に丸めて \(\lambda = 34/22 = 1.545\) が得られます。到達可能な倍率は \(2/\lvert C \rvert\) 刻みで量子化されています。等価性誤差はどの倍率でも \(10^{-16}\) なので、変換は依然として厳密です。</p>
+
+<p><strong>2.</strong> 爆発します。\(\lbrace 1, 1.5, 2, 3\rbrace\) では \(\lVert w \rVert^2 = 419\)、\(\lbrace 1,3,5,7\rbrace\) の11.4に対して分散で37倍、標準偏差で6倍です。近接した点を通る厳密な多項式補間は悪条件な操作であり、ノイズ倍率を密集させるのはそれを悪化させる方法そのものです。バイアスも \(-0.0005\) から \(+0.072\) に劣化します。てこが短いからです。フィットは \([1,7]\) ではなく \(\lambda \in [1,3]\) から外挿しなければなりません。</p>
+
+<p><strong>3.</strong> 高次の外挿には広い集合です。狭い集合が擁護できるのは低次の推定量と組んだときだけで、\(\lbrace 1,1.5,2,3\rbrace\) 上の最小二乗直線は \(\lVert w \rVert^2 = 1.86\)、バイアス \(+0.018\) であり、これは妥当な動作点です。一般則は、外挿の次数と倍率の広がりを一緒に選ばねばならないということです。分数折り返しが有用なのは、最も深い回路が完全に脱分極してしまう場合に最大の \(\lambda\) を小さく保つときです。</p>
+
+```python
+def fold_partial(circ, k, m):
+    """Fold every gate k times and the first m gates once more: lambda = 2k+1+2m/|C|."""
+    out = []
+    for i, g in enumerate(circ):
+        reps = k + (1 if i < m else 0)
+        out.append(g)
+        for _ in range(reps):
+            out.extend(invert_gate(g))
+            out.append(g)
+    return out
+
+
+for lam_t in (1.5, 2.0, 2.5):
+    m = int(round((lam_t - 1.0) * len(CIRC) / 2.0))
+    fc = fold_partial(CIRC, 0, m)
+    print(f"  target lambda {lam_t:4.2f}: m = {m:2d}, gates {len(fc):3d},"
+          f" achieved lambda {len(fc) / len(CIRC):5.3f},"
+          f" equivalence error {assert_equivalent(CIRC, fc, NQ):.1e}")
+LAMS_F = np.array([1.0, 1.5, 2.0, 3.0])
+vals_f = np.array([energy(noisy_rho(fold_partial(CIRC, 0,
+                   int(round((l - 1) * len(CIRC) / 2))), NQ, 0.005))
+                   for l in LAMS_F])
+wr, wl = richardson_weights(LAMS_F), ls_line_weights(LAMS_F)
+print(f"  Richardson bias {float(wr @ vals_f) - E0:+.5f}, ||w||^2 {float(wr @ wr):.3f}")
+print(f"  LS line    bias {float(wl @ vals_f) - E0:+.5f}, ||w||^2 {float(wl @ wl):.3f}")
+#   target lambda 1.50: m =  6, gates  34, achieved lambda 1.545, equivalence error 3.4e-16
+#   target lambda 2.00: m = 11, gates  44, achieved lambda 2.000, equivalence error 7.0e-16
+#   target lambda 2.50: m = 16, gates  54, achieved lambda 2.455, equivalence error 5.7e-16
+#   Richardson bias +0.07236, ||w||^2 419.000
+#   LS line    bias +0.01843, ||w||^2 1.857
+```
+
+</details>
+
+#### 演習3: 折り返しに見えないコヒーレント誤差
+
+脱分極ノイズを、純粋にユニタリな系統誤差に置き換えます。回路中のすべての $R_z(\theta)$ が、小さな $\delta$ に対して $R_z(\theta + \delta)$ として実装されるとします。2つの版を考えてください。$\delta$ が $\theta$ の符号を持つ場合（倍率誤差）と、$\delta$ が固定符号を持つ場合（ゼロ点オフセット誤差）です。
+
+  1. 局所折り返しは2つの誤差それぞれに何をしますか。まず解析的に答えてください。
+  2. 両方で Code Example 5 の外挿を走らせ、生と外挿後のバイアスを報告してください。
+  3. これはZNEの結果の報告について何を意味しますか。
+
+<details>
+<summary>解答</summary>
+
+<p><strong>1.</strong> \(R_z(\theta)\) の局所折り返しは \(R_z(\theta)R_z(-\theta)R_z(\theta)\) を出力します。倍率誤差なら3つは \(R_z(\theta+\delta)\)、\(R_z(-\theta-\delta)\)、\(R_z(\theta+\delta)\) になり、その積は \(R_z(\theta+\delta)\) — <em>折り返さないゲートとまったく同じ</em>です。折り返しは誤差を厳密に打ち消し、何も増幅しません。ゼロ点オフセット誤差なら3つは \(R_z(\theta+\delta)\)、\(R_z(-\theta+\delta)\)、\(R_z(\theta+\delta)\) で、積は \(R_z(\theta+3\delta)\)。誤差はちょうど \(\lambda\) 倍に増幅され、それがZNEの望むものです。</p>
+
+<p><strong>2.</strong> 両模型は同じ生のバイアス \(-0.00153\) を与えます。この回路の角度はすべて正なので、\(\lambda = 1\) では2つが一致するからです。折り返すと完全に分岐します。倍率誤差は4つの倍率すべてで5桁同じエネルギーを与えるので、どちらの外挿も \(-0.00153\) を返します。<strong>ZNEは偏った値を報告し、そうだと言うものは出力のどこにもありません。</strong> オフセット誤差は \(\lambda\) とともに変化し、Richardsonはバイアスを \(+0.00052\) にしますが、最小二乗直線は \(-0.034\) まで行き過ぎ、何もしないより22倍悪くなります。コヒーレント誤差の \(\lambda\) 依存性は多項式ではなく三角関数的であり、直線はそれには誤った模型なのです。</p>
+
+<p><strong>3.</strong> \(\lambda\) 走査が平坦であることを報告しなければならず、平坦な走査は誤差が小さい証拠ではないということです。折り返しが盲目な大きな誤差とも同じくらい整合的なのです。誠実な手順は、外挿値だけでなくすべての倍率でのノイズ付きの値を報告し、独立な手法 — 特徴づけたノイズ模型を使うPEC、あるいは厳密な答えが分かっているClifford回路 — で照合することです。</p>
+
+```python
+DELTA = 0.05
+
+
+def coherent_rho(circ, n, delta, proportional):
+    """Every rz gets an extra delta: a purely unitary, systematic error."""
+    rho = np.zeros((2 ** n, 2 ** n), dtype=complex)
+    rho[0, 0] = 1.0
+    for g in circ:
+        U, tg = gate_matrix(g)
+        if g[0] == "rz":
+            U = rz(g[1] + (np.sign(g[1]) if proportional else 1.0) * delta)
+        rho = rho_apply(rho, U, tg, n)
+    return rho
+
+
+for prop in (True, False):
+    vals_c = np.array([energy(coherent_rho(fold_local(CIRC, (l - 1) // 2), NQ,
+                                           DELTA, prop)) for l in LAMS])
+    rich = float(richardson_weights(LAMS) @ vals_c)
+    line = float(ls_line_weights(LAMS) @ vals_c)
+    print(f"  proportional = {prop}: energies {np.round(vals_c, 5).tolist()}")
+    print(f"    raw bias {vals_c[0] - E0:+.5f}   Richardson bias {rich - E0:+.5f}"
+          f"   LS line bias {line - E0:+.5f}")
+#   proportional = True: energies [-1.50918, -1.50918, -1.50918, -1.50918]
+#     raw bias -0.00153   Richardson bias -0.00153   LS line bias -0.00153
+#   proportional = False: energies [-1.50918, -1.4911, -1.44773, -1.38424]
+#     raw bias -0.00153   Richardson bias +0.00052   LS line bias -0.03405
+```
+
+</details>
+
+#### 演習4: PECの実時間予算
+
+緩和なしの推定に $10^6$ ショットの基準予算、スループット毎秒 $10^4$ ショットを仮定します。
+
+  1. $p = 10^{-3}$ と $p = 3\times10^{-4}$ で、ノイズ地点 $10^2$、$10^3$、$10^4$ 個の回路に対するPECの実時間を計算してください。
+  2. 各誤り率で1日に収まる最大の回路は何ですか。
+  3. 物理誤り率を10倍改善すると、回路サイズは何倍買えますか。
+
+<details>
+<summary>解答</summary>
+
+<p><strong>1.</strong> \(p = 10^{-3}\) では \(10^{2.17}\) 秒（2.5分）、\(10^{3.74}\) 秒（15時間）、\(10^{19.4}\) 秒 — \(10^{11.9}\) 年です。\(p = 3\times10^{-4}\) では同じ3つが \(10^{2.05}\) 秒、\(10^{2.52}\) 秒（6分）、\(10^{7.2}\) 秒、約半年。中央の列が面白いところで、1000ゲートの回路が一方の誤り率では1日仕事、他方ではコーヒー休憩なのです。</p>
+
+<p><strong>2.</strong> \(\gamma^{2N} = 86400 \times 10^4 / 10^6\) を解くと \(p = 10^{-3}\) でノイズ地点 \(N = 1690\) 個、\(p = 3\times10^{-4}\) で \(N = 5634\) 個です。</p>
+
+<p><strong>3.</strong> 回路サイズで約3.3倍、10倍ではありません。\(\log \gamma \approx 2p\) なので、予算固定で払える \(N\) は \(1/p\) に比例します。ここでの \(p\) の3.3倍の改善（\(10^{-3}\) から \(3\times10^{-4}\)）が同じ3.3倍の \(N\) を買い、\(p\) の1桁が \(N\) の1桁を買います。これは何桁も必要な目標に対して誤り率について<em>線形</em>であり、緩和がスケールしないという言明の定量形です。誤り訂正と比べてください。あちらでは同じ \(p\) の1桁が必要な距離を数段動かし、回路サイズは無制限の倍率で動きます。</p>
+
+```python
+RATE, base = 1e4, 1e6
+for p in (1e-3, 3e-4):
+    _, _, g = pec_coeffs(p)
+    print(f"  p = {p:.0e}, gamma = {g:.6f}")
+    for nloc in (1e2, 1e3, 1e4):
+        log_secs = np.log10(base / RATE) + 2 * nloc * np.log10(g)
+        print(f"    N = {nloc:6.0e}: log10 seconds {log_secs:8.2f},"
+              f" log10 years {log_secs - np.log10(3.156e7):8.2f}")
+    print(f"    largest N in one day:"
+          f" {np.log10(86400 * RATE / base) / (2 * np.log10(g)):.0f}")
+#   p = 1e-03, gamma = 1.002003
+#     N =  1e+02: log10 seconds     2.17, log10 years    -5.33
+#     N =  1e+03: log10 seconds     3.74, log10 years    -3.76
+#     N =  1e+04: log10 seconds    19.38, log10 years    11.88
+#     largest N in one day: 1690
+#   p = 3e-04, gamma = 1.000600
+#     N =  1e+02: log10 seconds     2.05, log10 years    -5.45
+#     N =  1e+03: log10 seconds     2.52, log10 years    -4.98
+#     N =  1e+04: log10 seconds     7.21, log10 years    -0.29
+#     largest N in one day: 5634
+```
+
+</details>
+
+#### 演習5: リソース見積りは実際どの入力に依存するか
+
+Code Example 8 のパイプラインを $\lambda = 1000$ Hartree、$C_{\text{walk}} = 3\times10^4$、$p_{\text{phys}} = 10^{-3}$、論理量子ビット1152個で使います。
+
+  1. 目標精度を化学的精度から10倍粗くしてください。何が変わりますか。
+  2. $\lambda$ を2倍・半分にしてください。何が変わりますか。
+  3. $p_{\text{phys}}$ を $10^{-3}$ から $10^{-4}$ に改善してください。何が変わりますか。
+  4. 姉妹コースの2つの表面符号規約のうち、主要数値を変えるのはどちらで、どれだけ変えますか。
+
+<details>
+<summary>解答</summary>
+
+<p><strong>1.</strong> すべてが10分の1になります。\(2.95\times10^{10}\) の代わりに \(2.95\times10^{9}\) Toffoli、3.41日の代わりに0.34日、そしてゲートあたりの論理誤差予算が1桁緩むので符号距離が21から19に落ちます。\(\varepsilon\) を緩めるのはリソース見積りで使える最も安い節約であり、関心量がエネルギーの<em>差</em>で系統誤差が打ち消し合うときは物理的にも正当です。</p>
+
+<p><strong>2.</strong> 実行時間は線形にスケールし、\(\lambda = 500, 1000, 2000\) で1.70、3.41、6.82日です。一方で符号距離は21のままです。\(d\) はToffoli数の対数に依存し、4倍は距離1段に足りないからです。つまり \(\lambda\) は実時間を決め、量子ビット数にはほとんど何もしません。</p>
+
+<p><strong>3.</strong> 距離が21から11へ、物理量子ビット数が \(1.01\times10^{6}\) から \(2.78\times10^{5}\) へ3.6倍落ち、実行時間はまったく変わりません。物理誤り率は<em>量子ビット数</em>のてこであって実時間のてこではなく、精度と1ノルムが実時間のてこです。この2つを混同することが、リソース見積りの議論が狂う原因です。</p>
+
+<p><strong>4.</strong> \(d = 21\) で2つの規約は論理あたり882と881を与え、論理1152量子ビットでは \(1.016\times10^{6}\) 対 \(1.015\times10^{6}\) — 0.1%の違いで、この種の見積りに値する2桁の有効数字では見えません。見えないからこそ確認する価値があります。公表された2つの見積りの間のこの大きさの差は規約の違いであって不一致ではなく、不一致と取り違えると時間を無駄にします。</p>
+
+```python
+for eps, lab in ((1.6e-3, "chemical accuracy"), (1.6e-2, "10x coarser")):
+    r = estimate(1000.0, eps, 3e4, 1e-3, 1152)
+    print(f"  {lab:>18}: Toffolis {r['toffolis']:.2e}, d = {r['distance']},"
+          f" physical {r['physical']:.2e}, days {r['days']:.2f}")
+for lam in (500.0, 1000.0, 2000.0):
+    r = estimate(lam, 1.6e-3, 3e4, 1e-3, 1152)
+    print(f"  lambda = {lam:6.0f}: Toffolis {r['toffolis']:.2e},"
+          f" d = {r['distance']}, days {r['days']:.2f}")
+for p in (1e-3, 1e-4):
+    r = estimate(1000.0, 1.6e-3, 3e4, p, 1152)
+    print(f"  p_phys = {p:.0e}: d = {r['distance']},"
+          f" per logical {r['per_logical']}, physical {r['physical']:.2e}")
+print(f"  2d^2 vs 2d^2-1 at d = 21: {2*21*21} vs {2*21*21-1},"
+      f" on 1152 logical qubits {2*21*21*1152:.3e} vs {(2*21*21-1)*1152:.3e}")
+#    chemical accuracy: Toffolis 2.95e+10, d = 21, physical 1.01e+06, days 3.41
+#          10x coarser: Toffolis 2.95e+09, d = 19, physical 8.31e+05, days 0.34
+#   lambda =    500: Toffolis 1.47e+10, d = 21, days 1.70
+#   lambda =   1000: Toffolis 2.95e+10, d = 21, days 3.41
+#   lambda =   2000: Toffolis 5.89e+10, d = 21, days 6.82
+#   p_phys = 1e-03: d = 21, per logical 881, physical 1.01e+06
+#   p_phys = 1e-04: d = 11, per logical 241, physical 2.78e+05
+#   2d^2 vs 2d^2-1 at d = 21: 882 vs 881, on 1152 logical qubits 1.016e+06 vs 1.015e+06
+```
+
+</details>
+
+* * *
+
+## まとめ
+
+### 要点
+
+**1\. 読み出し誤差は古典的で、大きく、そしてある程度まで補正できる**
+
+  * $\mathbf{p}_{\text{meas}} = M\mathbf{p}_{\text{true}}$ で $M$ は $2^n$ 本の較正回路から測定可能。GHZ状態上の $\langle Z_0 Z_1 \rangle$ の生の誤差は $-0.147$、良いゲート誤差の100倍でした。$M^{-1}$ はTVDを0.142から0.017に落とし負の確率を返し、単体上の制約付き最小二乗は0.010に達して物理的でいます。
+  * 厳密な手法は $2^n$ 本の回路 — 50量子ビットで $1.1\times10^{15}$ — がかかり、$\mathrm{cond}(M)$ は $\mathrm{cond}(M_q)^n$ で増えます。実務で補正されるのは $k$-局所観測量だけで、$2^k$ 本です。
+  * **誤ったノイズ模型の上に建てた補正は誤った方向に失敗します。** 4%の相関反転があると、テンソル積補正は $\langle Z_0 Z_1 \rangle$ を $-0.153$ 低いところから $+0.181$ 高いところへ動かしました。何もしないより悪いのです。
+
+**2\. ゲート折り返しはノイズを増幅し、それ以外は何も変えないことを証明できる**
+
+  * $G \to G(G^{-1}G)^k$ はゲート数と深さを $\lambda = 2k+1$ 倍にし、元の回路に対する位相を除いた誤差はどの倍率でも $10^{-16}$ のまま。$S^{-1} = ZS$、$T^{-1} = ZST$ が折り返し後の回路をゲート集合の中に留めます。
+  * 整数の局所折り返しは奇数の $\lambda$ にしか到達せず、分数倍率は部分集合の折り返しから $2/\lvert C \rvert$ 刻みで得られます。局所と大域はゲート列として異なりますが、脱分極ノイズ下では $3.2\times10^{-4}$ で一致しました。
+
+**3\. 外挿は大きな倍率でバイアスを取り、計算できる倍率で分散を払う**
+
+  * $\lambda = 1,3,5,7$ 上の3次Richardsonはノイズバイアスを $p = 0.002$ で143倍、$0.005$ で212倍、$0.01$ で113倍に低減。同じデータ上の最小二乗直線は6.1、2.7、1.7倍でした。
+  * Richardsonの重みは厳密補間です。$(2,-1)$、$(3,-3,1)$、$(4,-6,4,-1)$ で $\lVert w \rVert_2 = 2.24, 4.36, 8.31$ — 姉妹コースの数値です。$1,3,5,7$ の族は $\lVert w \rVert^2 = 11.4$、最小二乗直線は $1.05$、そして実測標準偏差はどの予算でも $\sigma_{\text{raw}}\lVert w \rVert_2$ に数%で一致しました。
+  * **最良の推定量は予算に依ります。** 1項1000ショットでのRMSE順位はLS直線0.088、生0.131、Richardson 0.254。10万ショットではRichardson 0.028、LS直線0.040、生0.106でした。
+
+**4\. PECは不偏で指数的に高価であり、両方が厳密に定量できる**
+
+  * 脱分極の逆は $\beta < 0$ として $\alpha\,\mathrm{id} + \beta\sum_P P \cdot P$ で、$\gamma = 1 + \tfrac{3}{2}(1/f - 1) \approx 1 + 2p$。チャネルと合成すると入力が $10^{-16}$ で返ります。$p = 0.02$ のノイズ地点4個の回路で実装すると $-0.060$ のバイアスを $-0.007 \pm 0.005$ に落とし、1サンプルの標準偏差は0.334、サンプルの7.6%が負の符号を持ちました。
+  * ショットのオーバーヘッドは $\gamma^{2N}$ です。$p = 0.005$ でノイズ地点28個なら1.6倍、1000個で $10^{8.7}$、1万個で $10^{87}$、100万個で $10^{8700}$。
+
+**5\. 緩和は指数的、訂正はそうではなく、交差点は早い**
+
+  * $p = 10^{-3}$ で: 100ゲートはPECサンプル $10^{0.2}$ 対 距離3・論理あたり物理17個。$10^{4}$ ゲートは $10^{17.4}$ 対 97個。$10^{11}$ ゲートは $10^{1.7\times10^{8}}$ 対 881個。交差点は数千ゲートです。
+  * 緩和は期待値を補正して状態を補正しないので、コヒーレントなサブルーチンを支えられず、模型が落としたノイズを扱えません。演習3の倍率誤差は折り返しには見えず、外挿は警告なしに偏った値を返します。
+  * **そして緩和は今日本質的です。** 現在の実機が走らせられる回路上で $-0.147$ の読み出しバイアスとゲートノイズバイアスの99.3%を取り除きました。この2つの事実は同じ段落に属します。
+
+**6\. リソース見積りは4つの関数と1つの浮動小数点ガードである**
+
+  * $(\lambda, \varepsilon, C_{\text{walk}}) \to N_{\text{Toffoli}} \to p_L = 0.1/N \to d \to (2d^2-1)n_{\text{logical}}$、加えて論理Toffoliあたり10 $\mu$s。
+  * 閾値比較には相対許容が必要です。`0.1 * 0.1 ** 5` は `1.0000000000000004e-06` であり、ガードのない `<=` は $d = 9$ ではなく11、21ではなく23を返しました。論理あたり数百個の物理量子ビットです。
+  * $\lambda = 1000$、$C_{\text{walk}} = 3\times10^4$ のFeMoco規模: $2.95\times10^{10}$ Toffoli、$p_L = 3.4\times10^{-12}$、$d = 21$、物理量子ビット $10^{6}$ 個、3.4日 — 量子アルゴリズム（中級）と桁まで一致します。
+  * $\varepsilon$ と $\lambda$ が実行時間を決め、$p_{\text{phys}}$ が量子ビット数を決めます。$p_{\text{phys}}$ の1桁は量子ビットで3.6倍、時間では何も変えません。
+
+**実務上の含意**
+
+  * 読み出し誤差を最初に補正すること。最大で最も安く、厳密に逆にできる唯一のものであり、観測量が必要とする周辺分布の補正は $2^n$ ではなく $2^k$ 本で済みます。
+  * 緩和後の期待値を、すべてのノイズ倍率における緩和前の値とショット予算なしに報告しないこと。それらがなければ、平坦な走査と本当に低ノイズな装置は見分けがつきません。
+  * 外挿の次数とショット予算は一緒に選び、何かを走らせる前に $\lVert w \rVert^2$ を計算すること。それが分散ペナルティのすべてであり、事前に手に入ります。
+  * ある回路に緩和を提案する前に $\gamma^{2N}$ を計算すること。指数の桁数が2桁を超えるなら、それは後処理の問題ではなく誤り耐性の問題です。
+  * リソース見積りでは、冪と冪の比較すべてに相対許容を入れ、表面符号の規約を明記し、答えと並べて $\lambda$、$\varepsilon$、$p_{\text{phys}}$ を引用すること。成果物は指数と前提であって、決して仮数ではありません。
+
+### 次章へ
+
+これで本コースは終わり、そして本コースが目指した下降も終わります。アルゴリズムが回路になり、回路がより短い回路になり、短い回路がハードウェアのグラフに収まるものになり、それが整形されたパルスのスケジュールになり、返ってきた測定がノイズと議論を済ませた推定値になる。この5層のどれ1つもSDKの機能ではありませんでした。どれもテスト付きの数十行のNumPyであり、それが本コースが支えようとした主張です。層は作れるほど単純であり、1つ作ることが、実際に使うことになる層のドキュメントを理解する道なのです。
+
+ここからどこへ行くかは、スタックについての問いではなく、あなた自身の問題についての問いになりました。ハミルトニアンがあるなら、道は[量子アルゴリズム（中級）](<../quantum-algorithms-intermediate/index.html>)を通ってToffoli数に至り、5.5節を通って物理量子ビット数に至ります。装置があるなら、[量子ハードウェア入門](<../quantum-hardware-introduction/index.html>)を通ってその誤り率の下にある材料の問いに至ります。データがあるなら、[量子機械学習](<../../MI/quantum-machine-learning-introduction/index.html>)に自分を騙さないための評価の規律があります。そして今日動く量子技術が欲しいなら、[量子センシング](<../../MS/quantum-sensing-introduction/index.html>)が「優位はあるか」に「ある」と答える唯一のコースです。
+
+[← 第4章: パルスと較正](<chapter-4.html>) [シリーズ目次に戻る →](<index.html>)
+
+### 免責事項
+
+  * 本コンテンツは教育・研究・情報提供のみを目的としており、専門的な助言(法律・会計・技術的保証など)を提供するものではありません。
+  * 本コンテンツおよび付随するCode examplesは「現状有姿(AS IS)」で提供され、明示または黙示を問わず、商品性、特定目的適合性、権利非侵害、正確性・完全性、動作・安全性等いかなる保証もしません。
+  * 本章の読み出し誤り率、ゲート誤り率、符号距離、Toffoli数、サイクル時間、実時間の数値は、緩和とリソース見積りの算術を示すために選んだ桁の目安であり、装置の仕様や公表された見積りではありません。提案書や論文に用いる前に一次資料で確認してください。
+  * 外部リンク、第三者が提供するデータ・ツール・ライブラリ等の内容・可用性・安全性について、作成者および東北大学は一切の責任を負いません。
+  * 本コンテンツの利用・実行・解釈により直接的・間接的・付随的・特別・結果的・懲罰的損害が生じた場合でも、適用法で許容される最大限の範囲で、作成者および東北大学は責任を負いません。
+  * 本コンテンツの内容は、予告なく変更・更新・提供停止されることがあります。
+  * 本コンテンツの著作権・ライセンスは明記された条件(例: CC BY 4.0)に従います。当該ライセンスは通常、無保証条項を含みます。

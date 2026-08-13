@@ -241,6 +241,7 @@ Every chapter reprints the implementation it needs, so any chapter can be execut
   * [Introduction to Quantum Hardware](<../quantum-hardware-introduction/index.html>) — the companion volume: what the machines are made of, platform by platform
   * [Introduction to Quantum Machine Learning](<../../MI/quantum-machine-learning-introduction/index.html>) — the MI-side application, and an honest measurement of whether it beats a classical baseline
   * [Intermediate Quantum Algorithms](<../quantum-algorithms-intermediate/index.html>) — the sequel: Grover, phase estimation, Shor, qubitization and QAOA, each with its assumptions stated
+  * [Introduction to the Quantum Software Stack](<../quantum-software-stack-introduction/index.html>) — what compilers, calibration and mitigation actually do, taught by building a mini-stack
   * [Introduction to Quantum Mechanics](<../quantum-mechanics/index.html>) — variational principle, perturbation theory
   * [Introduction to Quantum Field Theory](<../quantum-field-theory-introduction/index.html>) — second quantization, creation and annihilation operators
   * [Linear Algebra and Tensor Analysis](<../linear-algebra-tensor/index.html>) — eigenvalue problems, Kronecker products, tensor contractions

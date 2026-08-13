@@ -238,6 +238,7 @@ The conventions are fixed in Chapter 1 and never changed, so that code and formu
   * [Introduction to Quantum Computing](<../quantum-computing-introduction/index.html>) — the algorithms half of this pair
   * [Introduction to Quantum Machine Learning](<../../MI/quantum-machine-learning-introduction/index.html>) — the MI-side application, and an honest measurement of whether it beats a classical baseline
   * [Introduction to Quantum Sensing](<../../MS/quantum-sensing-introduction/index.html>) — the same quantum systems used as measuring instruments for materials
+  * [Introduction to the Quantum Software Stack](<../quantum-software-stack-introduction/index.html>) — what compilers, calibration and mitigation actually do, taught by building a mini-stack
   * [Introduction to Quantum Mechanics](<../quantum-mechanics/index.html>) — two-level systems, the harmonic oscillator, perturbation theory
   * [Introduction to Superconductivity](<../../MS/superconductivity-introduction/index.html>) — Cooper pairing and the Josephson effect in full
   * [Introduction to Spintronics](<../../MS/spintronics-introduction/index.html>) — spin transport, exchange, and magnetic materials

@@ -241,6 +241,7 @@ Schrödinger方程式の離散版としてのユニタリ発展と、すべて�
   * [量子ハードウェア入門](<../quantum-hardware-introduction/index.html>) — 対をなす姉妹編：量子コンピュータは何でできているのか、方式ごとの物理
   * [量子機械学習入門](<../../MI/quantum-machine-learning-introduction/index.html>) — MI側での応用と、古典ベースラインに勝てるかの誠実な検証
   * [量子アルゴリズム（中級）](<../quantum-algorithms-intermediate/index.html>) — 続編：Grover、位相推定、Shor、qubitization、QAOA。各高速化の前提条件を明示
+  * [量子ソフトウェアスタック入門](<../quantum-software-stack-introduction/index.html>) — コンパイラ・較正・誤り緩和が実際に何をしているかを、ミニスタックの自作で学ぶ
   * [量子力学入門](<../quantum-mechanics/index.html>) — 変分原理、摂動論
   * [場の量子論入門](<../quantum-field-theory-introduction/index.html>) — 第二量子化、生成消滅演算子
   * [線形代数とテンソル解析](<../linear-algebra-tensor/index.html>) — 固有値問題、Kronecker積、テンソル縮約

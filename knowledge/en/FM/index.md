@@ -58,7 +58,7 @@ Intermediate 100-120 min 5 Chapters, 40 Examples
 
 [Start →](<pde-boundary-value/index.html>)
 
-⚛️ Quantum Mechanics Series (5 Series)
+⚛️ Quantum Mechanics Series (6 Series)
 
 📗
 
@@ -109,6 +109,16 @@ Where provable speedups live and what each one assumes: Grover and amplitude amp
 Intermediate to Advanced 225-250 min 5 Chapters, 36 Examples
 
 [Start →](<quantum-algorithms-intermediate/index.html>)
+
+🧱
+
+Introduction to the Quantum Software Stack
+
+Not an SDK tutorial but a course on what SDKs do: a miniature quantum software stack built from nothing in NumPy — a circuit IR with a unitary-equivalence checker, a peephole optimizer with Euler and KAK gate synthesis, layout and SWAP routing onto lattice and heavy-hex connectivity, a three-level pulse simulator with Rabi, Ramsey and DRAG calibration loops, and readout correction, zero-noise extrapolation, probabilistic error cancellation and resource estimation — with every rewrite verified to preserve the circuit's meaning
+
+Advanced 230-255 min 5 Chapters, 38 Examples
+
+[Start →](<quantum-software-stack-introduction/index.html>)
 
 🔥 Statistical Mechanics and Thermodynamics Series (4 Series)
 
