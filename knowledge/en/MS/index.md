@@ -48,7 +48,7 @@ Intermediate 110-150 min 5 Chapters・35 Examples
 
 [Start →](<materials-thermodynamics-introduction/index.html>)
 
-🔬 Characterization Series (5 Series)
+🔬 Characterization Series (6 Series)
 
 📗
 
@@ -99,6 +99,16 @@ Electrical conductivity and resistivity measurements, dielectric property measur
 Intermediate 100-130 min 5 Chapters・35 Examples
 
 [Start →](<electrical-magnetic-testing-introduction/index.html>)
+
+📗
+
+Introduction to Quantum Sensing
+
+Quantum systems used as measuring instruments: NV-center magnetometry and ODMR, dc SQUIDs from the RSJ model, atomic clocks and atom interferometry, and entanglement-enhanced sensing with its fragility measured rather than asserted — sensitivity, Allan deviation and filter functions computed from stated formulas with NumPy
+
+Intermediate to Advanced 215-240 min 5 Chapters・29 Examples
+
+[Start →](<quantum-sensing-introduction/index.html>)
 
 🧪 Materials Classes Series (4 Series)
 

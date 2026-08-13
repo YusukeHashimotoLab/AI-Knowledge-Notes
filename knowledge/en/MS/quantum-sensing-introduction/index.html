@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔬 Introduction to Quantum Sensing - AI Terakoya</title>
+
+    <link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+    <style>
+        /* page-specific residual: the rules the shared sheet does not provide.
+           Everything else that used to live here is now in knowledge-base.css;
+           re-declaring it would only risk drifting out of sync with the sheet. */
+        details { background-color: var(--color-bg-alt); margin-bottom: var(--spacing-md) }
+        summary { user-select: none; margin: calc(-1 * var(--spacing-md)); border-radius: var(--border-radius) }
+        summary:hover {
+            /* accent wash; the literal is the FM/MI/ML purple and is the fallback
+               for engines without color-mix() (Chrome <111 / Safari <16.2). */
+            background-color: rgba(123, 44, 191, 0.1);
+            background-color: color-mix(in srgb, var(--color-accent) 10%, transparent);
+        }
+        details[open] summary { margin-bottom: var(--spacing-md); border-bottom: 1px solid var(--color-border) }
+        .learning-objectives {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: var(--spacing-lg);
+            border-radius: var(--border-radius);
+            border-left: 4px solid var(--color-accent);
+            margin-bottom: var(--spacing-xl);
+        }
+        .learning-objectives h2 { margin-top: 0; border-bottom: none }
+        @media (max-width: 768px) {
+            th { padding: var(--spacing-xs) }
+            td { padding: var(--spacing-xs) }
+        }
+    </style>
+
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+
+    <!-- MathJax for LaTeX equation rendering -->
+    <script>
+        MathJax = {
+            tex: {
+                // The HTML must carry a DOUBLE backslash before ( ) [ ] so the
+                // JS string is backslash-paren; a single one collapses to a bare
+                // paren and turns every prose parenthesis into a math delimiter
+                // (non-raw Python template: 4 backslashes -> 2 in HTML -> 1 in JS).
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" id="MathJax-script" async></script>
+</head>
+<body class="dojo-ms">
+    <header>
+        <div class="header-content">
+            <h1>🔬 Introduction to Quantum Sensing</h1>
+            <p class="subtitle">Quantum Systems as Measuring Instruments — A Characterization Course for Materials Researchers</p>
+            <div class="meta">
+                <span class="meta-item">📖 Reading Time: 20-25 minutes</span>
+                <span class="meta-item">📊 Difficulty: Beginner</span>
+                <span class="meta-item">💻 Code Examples: 0</span>
+                <span class="meta-item">📝 Exercises: 0</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+<p>🌐 EN | <a href="../../../jp/MS/quantum-sensing-introduction/index.html">🇯🇵 JP</a> | Last sync: 2026-08-13</p>
+<p><a href="../../index.html">AI Terakoya Top</a>›<a href="../index.html">Materials Science Dojo</a>›<a href="index.html">Introduction to Quantum Sensing</a></p>
+<p><a href="../index.html">← Back to Materials Science Dojo</a></p>
+<h2>🎯 Series Overview</h2>
+<p>Quantum sensing is the third pillar of quantum technology, and it is the one that already works. While quantum computing argues about error thresholds and quantum communication about repeaters, quantum sensors have been sitting in laboratories for decades doing measurements that nothing else can do — and a large fraction of those measurements are measurements of materials.</p>
+<p>That is why this course lives in the Materials Science Dojo rather than in a quantum dojo. A nitrogen-vacancy centre in diamond is not primarily a qubit candidate here; it is a magnetic-field microscope with tens of nanometres of resolution, used to image domain walls, two-dimensional magnets, antiferromagnetic textures and current distributions in operating devices. A SQUID is not primarily a superconducting circuit; it is the susceptometer and the flux microscope that a magnetism laboratory already owns. An atomic clock is not primarily a frequency standard; it is the instrument that taught everyone else how to characterize the stability of a measurement. Read this way, quantum sensing belongs beside <a href="../xrd-analysis-introduction/index.html">X-ray diffraction</a>, <a href="../spectroscopy-introduction/index.html">spectroscopy</a>, <a href="../electron-microscopy-introduction/index.html">electron microscopy</a> and <a href="../electrical-magnetic-testing-introduction/index.html">electrical and magnetic testing</a> as one more family of characterization methods — one that answers a question none of the others do: <em>what is the local field here, now, without touching the sample and without averaging over the whole specimen.</em></p>
+<p>The course is built around a single observation. Every method in it — NV magnetometry, the dc SQUID, the optical clock, the atom interferometer, and the entangled-probe schemes at the end — is the same interferometer with different hardware. Chapter 1 establishes that template, defines the sensitivity $\eta$ once for the whole course, derives the projection-noise limit and verifies it numerically, and builds the stability and filter-function machinery that the four later chapters all call. Chapters 2, 3 and 4 are then three instances of it, readable in any order provided Chapter 2 comes before the comparison passages of Chapters 3 and 4 are taken literally. Chapter 5 asks what entanglement adds, and answers honestly.</p>
+<p>Every number in these five chapters is computed from stated formulas with NumPy, SciPy and Matplotlib. There is no instrument SDK, no vendor software, and no hardware access.</p>
+<h3>Learning Path</h3>
+<div class="mermaid">
+flowchart LR
+    P1["Prerequisite<br/>Quantum mechanics<br/>two-level systems"]
+    A["Chapter 1<br/>Principles of<br/>quantum sensing"]
+    B["Chapter 2<br/>NV-centre<br/>magnetometry"]
+    C["Chapter 3<br/>SQUIDs"]
+    D["Chapter 4<br/>Clocks and atom<br/>interferometry"]
+    E["Chapter 5<br/>Beyond the<br/>standard quantum limit"]
+    P1 --> A
+    A --> B
+    A --> C
+    A --> D
+    B --> E
+    C --> E
+    D --> E
+    style P1 fill:#e2e8f0,stroke:#94a3b8,stroke-width:1px,color:#334155
+    style A fill:#667eea,stroke:#764ba2,stroke-width:2px,color:#fff
+    style B fill:#7b2cbf,stroke:#764ba2,stroke-width:2px,color:#fff
+    style C fill:#7b2cbf,stroke:#764ba2,stroke-width:2px,color:#fff
+    style D fill:#7b2cbf,stroke:#764ba2,stroke-width:2px,color:#fff
+    style E fill:#9d4edd,stroke:#764ba2,stroke-width:2px,color:#fff
+</div>
+
+<p>Chapter 1 is required first, because it fixes the notation, the sensitivity definition and the numerical toolkit that the rest of the course reuses without restating. Chapters 2, 3 and 4 are then mostly parallel: they cover three different platform families whose physics is developed independently, and the only shared derivations are Chapter 1's. They are not fully self-contained, though. Chapter 3 compares its own numbers against Chapter 2's AC sensitivity (§2.3), $T_1$ relaxometry bandwidth (§2.4) and stray-field model (§2.5), two of its exercises use those results directly, and Chapter 4 refers back to the flux-locked loop of §3.2 and to the SQUID's operating temperature. Read in order, those passages land as comparisons; read out of order, they are forward references you can follow or skip. Chapter 5 assumes all three, since its whole point is what entanglement would add to any of them.</p>
+<h3>📋 Learning Objectives</h3>
+<p>On finishing this series you will be able to:</p>
+<ul>
+<li>Write any quantum-sensing protocol as a Ramsey interferometer, identifying the beamsplitter, the accumulated phase and the readout, and explain what the shared structure implies about the shared sensitivity formula</li>
+<li>Define the sensitivity $\eta$ in signal per root hertz, derive it from projection noise, and use it correctly — including knowing the averaging times over which it is a valid extrapolation and the ones over which it is not</li>
+<li>Compute an Allan deviation, identify the white, flicker and drift regimes from its slope, and decide whether a measurement should be averaged longer or modulated instead</li>
+<li>Explain the level structure of the nitrogen-vacancy centre, simulate an ODMR spectrum, and compute the sensitivity of DC, AC and relaxometric protocols including projection noise</li>
+<li>Derive the $V$-$\Phi$ characteristic of a dc SQUID from the resistively-shunted-junction model, convert a flux noise into a field sensitivity, and explain why pickup-coil geometry decides everything</li>
+<li>Explain the operating principle of an optical lattice clock and of a light-pulse atom interferometer, and compute the phase sensitivity of each</li>
+<li>State what the standard quantum limit does and does not forbid, quantify the entanglement-enhanced gain, and demonstrate numerically how quickly decoherence removes it</li>
+<li>Place any measurement problem on the sensitivity-against-resolution map and judge, from scaling laws alone, whether a quantum sensor is the right instrument or the wrong one</li>
+</ul>
+<h3>📖 Prerequisites</h3>
+<p><strong>Required.</strong> Quantum mechanics at the level of two-level systems: superposition, the Bloch sphere, Rabi and Ramsey dynamics, and the measurement postulate. <a href="../../FM/quantum-computing-introduction/index.html">Introduction to Quantum Computing</a> Chapters 1 and 2 cover exactly this if it is not already familiar.</p>
+<p><strong>Strongly recommended.</strong> <a href="../../FM/quantum-hardware-introduction/index.html">Introduction to Quantum Hardware</a>, and in particular <a href="../../FM/quantum-hardware-introduction/chapter-1.html">its Chapter 1</a>. That chapter defines $T_1$, $T_2$, $T_2^\ast$, noise spectral density, the Ramsey and echo sequences and the filter-function formalism, and this course uses all of them with the same meanings and the same symbols rather than re-deriving them. The relationship between the two courses is exact: the hardware course asks how to stop a two-level system from noticing its environment, and this one asks how to read out what it noticed.</p>
+<p><strong>Useful for Chapter 3.</strong> <a href="../superconductivity-introduction/index.html">Introduction to Superconductivity</a> for flux quantization and the Josephson effect. Chapter 3 recapitulates what it needs, but the recapitulation is brisk.</p>
+<p><strong>Useful for Chapter 2's applications.</strong> <a href="../spintronics-introduction/index.html">Introduction to Spintronics</a> for magnetic domains, domain walls and current-induced textures — the objects that scanning magnetometry is used to image.</p>
+<p><strong>Required tooling.</strong> Python 3.8 or later with NumPy, SciPy and Matplotlib. Nothing else.</p>
+<hr />
+<h2>📚 Chapters</h2>
+<h3>Chapter 1: Principles of Quantum Sensing</h3>
+<p>Why a quantum system makes a good instrument: a discrete transition is a reproducible frequency reference, and the phase of a superposition is a time integral of whatever perturbed it. Then the template — split, accumulate, recombine, read — written out for all four platforms of the course side by side, so that the sensitivity formula can be derived once. Projection noise from binomial statistics, the standard quantum limit $\delta\phi = 1/(C\sqrt{N})$ verified by Monte Carlo over six decades, and the sensitivity $\eta$ defined with its units and its three standard misuses. The optimal interrogation time $\tau = T_2/2$ and the dead-time correction. Then stability: the Allan deviation, its white, flicker and random-walk regimes reproduced numerically, and the reason a sensitivity quoted without a stability curve is half a specification. Closes with filter functions read three ways — as decoupling, as a lock-in amplifier, and as spectroscopy of the host material — and the sensitivity-against-resolution map the rest of the course navigates by.</p>
+<p><strong>Key topics</strong> : two-level system as reference and transducer · Ramsey protocol as universal template · projection noise · standard quantum limit · sensitivity $\eta$ · optimal interrogation time · dead time and duty cycle · Allan deviation · filter functions · AC sensitivity · sensitivity-resolution trade-off</p>
+<p>💻 6 Code Examples ⏱️ 40-45 minutes 📊 Intermediate</p>
+<p><a href="chapter-1.html">Read Chapter 1 →</a></p>
+<h3>Chapter 2: NV-Center Magnetometry</h3>
+<p>The case where a materials defect becomes an instrument. The nitrogen-vacancy centre's level structure, its spin-dependent fluorescence and optically detected magnetic resonance — the mechanism that makes a single spin readable at room temperature. DC magnetometry by CW-ODMR and by Ramsey, with the sensitivity formula of Chapter 1 evaluated for real level structures and checked numerically. AC magnetometry and dynamical decoupling: from the Hahn echo to XY8, why the same pulse train that extends $T_2$ also selects a measurement band, and how the two readings of the filter function are used in the same experiment. $T_1$ relaxometry as a probe of gigahertz noise, which is the one modality that reaches frequencies no pulse sequence can filter. Then imaging: scanning NV microscopy and wide-field magnetometry applied to magnetic domains, two-dimensional magnets, antiferromagnets and current distributions.</p>
+<p><strong>Key topics</strong> : NV level structure · zero-field splitting · spin-dependent fluorescence · ODMR · CW and pulsed DC magnetometry · XY8 and dynamical decoupling · AC sensitivity · $T_1$ relaxometry · scanning and wide-field imaging · thermometry and strain sensing</p>
+<p>💻 7 Code Examples ⏱️ 45-50 minutes 📊 Intermediate</p>
+<p><a href="chapter-2.html">Read Chapter 2 →</a></p>
+<h3>Chapter 3: SQUIDs — Superconducting Quantum Interference Devices</h3>
+<p>The most sensitive magnetometer ever built, and an interferometer whose arms are made of superconductor rather than of pulses. Flux quantization and the Josephson relations, recapitulated at the level Chapter 3 needs. The dc SQUID: the $V$-$\Phi$ characteristic derived from the resistively-shunted-junction model, the flux-to-voltage transfer function, and why a flux-locked loop is not an accessory but part of the measurement. What limits the sensitivity — flux noise, and the $1/f$ contribution from the same two-level systems and surface defects that limit superconducting qubits, which is where this chapter becomes a materials argument. Then the applications a materials laboratory actually uses: susceptometry, scanning SQUID microscopy, flux imaging, and the pickup-coil scaling that decides the sensitivity-resolution trade-off in this platform.</p>
+<p><strong>Key topics</strong> : flux quantization · Josephson effect · dc SQUID and the RSJ model · $V$-$\Phi$ characteristic · flux-locked loop · flux noise and $1/f$ noise · surface spins and two-level systems · pickup-coil design and scaling · susceptometry · scanning SQUID microscopy</p>
+<p>💻 5 Code Examples ⏱️ 45-50 minutes 📊 Intermediate</p>
+<p><a href="chapter-3.html">Read Chapter 3 →</a></p>
+<h3>Chapter 4: Atomic Clocks and Atom Interferometry</h3>
+<p>Where the Ramsey protocol reaches its highest precision, and where the vocabulary of stability was invented. Time and frequency as the reference measurement: fractional stability, the Allan deviation revisited with clocks as its native application, and the systematic-error discipline that clock work demands. Optical lattice clocks and ion clocks, built from physics the quantum-hardware course already established. Light-pulse atom interferometry: laser pulses as beamsplitters, the gravimetric and Sagnac phases, and the sensitivity formula for an inertial measurement. Then the design trade that matters most outside the clock community — the vapour-cell magnetometer, optically pumped and operated in the spin-exchange relaxation-free regime, which reaches extraordinary sensitivity with no cryogenics at all.</p>
+<p><strong>Key topics</strong> : Ramsey as a time standard · fractional frequency stability · systematic error budgets · optical lattice and ion clocks · light-pulse beamsplitters · Mach-Zehnder atom interferometer · gravimetry and rotation sensing · optical pumping · vapour-cell magnetometers · the SERF regime</p>
+<p>💻 6 Code Examples ⏱️ 40-45 minutes 📊 Advanced</p>
+<p><a href="chapter-4.html">Read Chapter 4 →</a></p>
+<h3>Chapter 5: Beyond the Standard Quantum Limit</h3>
+<p>What entanglement buys, what it costs, and what remains. Spin squeezing and entanglement-enhanced interferometry: the route from the $1/\sqrt{N}$ standard quantum limit towards the $1/N$ Heisenberg limit, stated as physics rather than as a slogan. Then the honest evaluation — the implementation cost of preparing and holding a squeezed or entangled state, and a numerical experiment showing how quickly the advantage evaporates under realistic decoherence, because a fragile gain that is reported without its fragility is not a result. Sensor output as <em>quantum data</em>, which is the concrete form of the prospect that <a href="../../MI/quantum-machine-learning-introduction/index.html">Introduction to Quantum Machine Learning</a> Chapter 5 leaves open. Then a materials research roadmap: which measurement problems quantum sensors can realistically address — nanoscale magnetism, device self-heating, internal currents in batteries — assessed from principles rather than from announcements. Closes with a synthesis of the whole quantum series.</p>
+<p><strong>Key topics</strong> : spin squeezing · entanglement-enhanced metrology · Heisenberg limit · N00N states and loss fragility · decoherence and the disappearing advantage · quantum data · materials research roadmap · series synthesis</p>
+<p>💻 5 Code Examples ⏱️ 45-50 minutes 📊 Advanced</p>
+<p><a href="chapter-5.html">Read Chapter 5 →</a></p>
+<hr />
+<h2>🔤 Notation and Shared Conventions</h2>
+<p>Fixed in Chapter 1 and used unchanged, so that a formula from any chapter can be read with any other.</p>
+<table>
+<thead>
+<tr>
+<th>Symbol</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>$\gamma$</td>
+<td>angular gyromagnetic ratio, rad s$^{-1}$ T$^{-1}$; quoted numbers are $\gamma/2\pi$ in Hz/T</td>
+</tr>
+<tr>
+<td>$\phi$</td>
+<td>accumulated interferometer phase, $\phi = \int_0^\tau \delta\omega\,dt$</td>
+</tr>
+<tr>
+<td>$\tau$</td>
+<td>interrogation (free-precession) time of one shot</td>
+</tr>
+<tr>
+<td>$t_d$</td>
+<td>dead time per shot: initialization plus readout</td>
+</tr>
+<tr>
+<td>$T$</td>
+<td>total measurement time; the resolution reached is $\eta/\sqrt{T}$</td>
+</tr>
+<tr>
+<td>$C$</td>
+<td>fringe contrast, $0 &lt; C \le 1$, absorbing every imperfection</td>
+</tr>
+<tr>
+<td>$N$</td>
+<td>number of independent probes read out per shot</td>
+</tr>
+<tr>
+<td>$\eta$</td>
+<td>sensitivity, $\eta = \delta X_\mathrm{min}\sqrt{T}$, in signal per $\sqrt{\mathrm{Hz}}$</td>
+</tr>
+<tr>
+<td>$\sigma_y(\tau)$</td>
+<td>Allan deviation at averaging time $\tau$</td>
+</tr>
+<tr>
+<td>$\lvert\tilde{s}(f,\tau)\rvert^2$</td>
+<td>filter function of a pulse sequence</td>
+</tr>
+<tr>
+<td>$T_1, T_2, T_2^\ast$</td>
+<td>as defined in <a href="../../FM/quantum-hardware-introduction/chapter-1.html">quantum-hardware Chapter 1</a> §1.4, without redefinition</td>
+</tr>
+<tr>
+<td>$\Phi_0$</td>
+<td>magnetic flux quantum $h/2e$</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Sensitivity is an amplitude spectral density.</strong> $\eta$ has units of signal per root hertz; its <em>square</em> is a power spectral density. Both conventions appear in the literature and they differ by a square, so every comparison in this course states which one is meant.</p>
+<p><strong>Angular versus cyclic frequency.</strong> $\Omega$, $\Delta$ and $\gamma$ are angular; quoted numbers are cyclic, written with an explicit $2\pi$. Every factor of $2\pi$ in the code is explicit for this reason.</p>
+<p><strong>The figure of merit is $N T_2$.</strong> Chapter 1 shows that the projection-noise-limited sensitivity depends only on the product of the probe count and the coherence time — and that dead time is what breaks the symmetry. Every platform comparison in the course is a comparison of how each one spends that product.</p>
+<hr />
+<h2>🔍 What This Series Is and Is Not</h2>
+<p><strong>It is</strong> a physics and methods course. Every formula is derived, every number is computed from the formula by code printed in the text, and every scaling law is checked numerically rather than asserted.</p>
+<p><strong>It is not a table of sensitivity records.</strong> No chapter states the best sensitivity achieved by any technique. Such numbers are the fastest-moving quantity in the field, they are obsolete before they are read, and — more importantly — they are not explanatory. What is stated instead is the scaling: $\eta \propto 1/\sqrt{N T_2}$, $\eta_B \propto d^{-3/2}$, $B \propto z^{-3}$. Those do not go out of date, and they are what let you evaluate a claim you meet in the wild.</p>
+<p><strong>It is not an instrument catalogue.</strong> No vendors, no product names, no model numbers, no purchasing advice. A reader who wants to know which instrument to buy is reading the wrong document; a reader who wants to know what any instrument of a given class <em>can and cannot do, and why</em>, is reading the right one.</p>
+<p><strong>It is not a quantum computing course.</strong> The overlap in physics is large and the overlap in purpose is zero. Where a piece of two-level-system physics is needed, this course cites <a href="../../FM/quantum-hardware-introduction/index.html">Introduction to Quantum Hardware</a> rather than re-deriving it, and it uses the same symbols so that the two can be read together.</p>
+<p><strong>It is not a substitute for the conventional methods.</strong> Chapter 1's map includes cases where a quantum sensor is the wrong choice, and Chapter 5 keeps that honesty. Where a bulk susceptibility measurement or an electron microscope answers the question better, the course says so.</p>
+<h2>📚 Recommended Learning Paths</h2>
+<h3>Pattern 1: Complete path (5-6 days)</h3>
+<ul>
+<li>Day 1: Chapter 1, Sections 1.1-1.5 — the template, the sensitivity, the stability, the map</li>
+<li>Day 2: Chapter 1, Section 1.6 — run all six examples and reproduce the $1/\sqrt{N}$ and Allan results yourself</li>
+<li>Day 3: Chapter 2 — NV centres, from level structure to imaging</li>
+<li>Day 4: Chapter 3 — SQUIDs, from flux quantization to scanning microscopy</li>
+<li>Day 5: Chapter 4 — clocks, atom interferometers and vapour cells</li>
+<li>Day 6: Chapter 5 and the exercises — squeezing, its fragility, and the roadmap</li>
+</ul>
+<h3>Pattern 2: The magnetic-imaging path (two days)</h3>
+<ul>
+<li>Chapter 1, Sections 1.2, 1.3 and 1.5 — the template, $\eta$, and the resolution trade-off</li>
+<li>Chapter 2 in full — this is the imaging chapter</li>
+<li>Chapter 3, Sections 3.4 onward — scanning SQUID microscopy, for the comparison</li>
+<li>Chapter 5, Section 5.4 — where nanoscale magnetometry is heading</li>
+</ul>
+<h3>Pattern 3: The measurement-science path (one day)</h3>
+<ul>
+<li>Chapter 1, Sections 1.3 and 1.4 — sensitivity, Allan deviation, filter functions</li>
+<li>Chapter 4, Sections 4.1 and 4.2 — stability and systematic error budgets, done properly</li>
+<li>Chapter 1, Exercises 1 to 4 — the four calculations a measurement scientist should be able to do from memory</li>
+</ul>
+<h2>🎯 Overall Learning Outcomes</h2>
+<h3>Knowledge Level</h3>
+<ul>
+<li>✅ State the Ramsey template and identify it in four physically unrelated instruments</li>
+<li>✅ Define $\eta$, $C$, $N T_2$ and $\sigma_y(\tau)$, and explain what each one does and does not specify</li>
+<li>✅ Explain the physical origin of the sensitivity-resolution trade-off, and why it cannot be engineered away</li>
+<li>✅ State what the standard quantum limit forbids, and what it does not</li>
+</ul>
+<h3>Practical Skills</h3>
+<ul>
+<li>✅ Compute the sensitivity of a pulse sequence including projection noise, contrast and dead time</li>
+<li>✅ Compute an Allan deviation from a data record and read the regimes off its slope</li>
+<li>✅ Evaluate a filter function exactly and design a pulse sequence for a target frequency band</li>
+<li>✅ Simulate an ODMR spectrum, a SQUID $V$-$\Phi$ curve, and an atom-interferometer fringe</li>
+</ul>
+<h3>Application Ability</h3>
+<ul>
+<li>✅ Choose, from scaling laws alone, whether a measurement problem needs a scanning probe, a wide-field ensemble, a pickup loop or a vapour cell</li>
+<li>✅ Read a quantum-sensing paper and locate its sensitivity definition, its averaging time and its missing stability curve</li>
+<li>✅ Recognize when a conventional characterization method is the better instrument</li>
+<li>✅ Turn a coherence measurement into a statement about defects in the host material</li>
+</ul>
+<h2>🛠️ Technologies and Tools Used</h2>
+<h3>Main Libraries</h3>
+<ul>
+<li><strong>numpy</strong> — every simulation, every filter function, every Allan deviation</li>
+<li><strong>scipy</strong> — integration, root finding, optimization, special functions</li>
+<li><strong>matplotlib</strong> — fringes, spectra, stability curves, sensitivity maps</li>
+</ul>
+<h3>Development Environment</h3>
+<ul>
+<li><strong>Python</strong> : 3.8 or higher</li>
+<li><strong>Jupyter Notebook</strong> : recommended, since each chapter is written as one continuous session</li>
+<li>Google Colab runs every example. Nothing here needs a GPU, an instrument, or an account</li>
+</ul>
+<h2>🚀 Next Steps</h2>
+<h3>Deep Dive Learning</h3>
+<ul>
+<li>Quantum metrology theory: the quantum Fisher information, the Cramér-Rao bound, and when entanglement provably helps</li>
+<li>Noise spectroscopy: inverting families of coherence curves into spectral densities, and what that reveals about defect ensembles</li>
+<li>Nanoscale NMR and single-molecule detection with shallow defect centres</li>
+<li>Optomechanical and photonic sensors, where the probe is a light field rather than a spin</li>
+</ul>
+<h3>Related Series</h3>
+<ul>
+<li><a href="../../FM/quantum-hardware-introduction/index.html">Introduction to Quantum Hardware</a> — the sister course, and the source of this one's coherence vocabulary</li>
+<li><a href="../../FM/quantum-computing-introduction/index.html">Introduction to Quantum Computing</a> — the prerequisite for two-level-system formalism</li>
+<li><a href="../../MI/quantum-machine-learning-introduction/index.html">Introduction to Quantum Machine Learning</a> — where the quantum data produced by these sensors would be consumed</li>
+<li><a href="../superconductivity-introduction/index.html">Introduction to Superconductivity</a> — the physics behind Chapter 3</li>
+<li><a href="../spintronics-introduction/index.html">Introduction to Spintronics</a> — the objects Chapter 2's microscopes are pointed at</li>
+<li><a href="../electrical-magnetic-testing-introduction/index.html">Introduction to Electrical and Magnetic Testing</a> — the conventional magnetic characterization this course sits beside</li>
+</ul>
+<h3>Practical Projects</h3>
+<ul>
+<li>Take a published sensitivity claim, reconstruct it from the Chapter 1 formula, and identify which parameter the authors optimized</li>
+<li>Record any slowly-drifting laboratory signal and compute its Allan deviation; find the optimal averaging time before you next average anything</li>
+<li>Design a CPMG sequence for a noise band you actually care about, and compute how much of the rest of the spectrum it rejects</li>
+<li>Place your own measurement problem on the Chapter 1 map and argue, in scaling laws only, for or against a quantum sensor</li>
+</ul>
+<h3>⚠️ Disclaimer</h3>
+<ul>
+<li>This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical warranty, etc.).</li>
+<li>This content and accompanying code examples are provided "AS IS" without any warranty, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
+<li>Every sensitivity figure in this course is computed from the stated formulas and the stated assumptions: the numbers illustrate scaling laws and are not measurements, specifications, or claims about any instrument.</li>
+<li>The author and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.</li>
+<li>To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+<li>The content may be changed, updated, or discontinued without notice.</li>
+<li>The copyright and license of this content are subject to the stated conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.</li>
+</ul><div class="navigation">
+    <a href="index.html" class="nav-button">Back to Series Index</a>
+    <a href="chapter-2.html" class="nav-button">Next Chapter →</a>
+</div>
+    </main>
+
+    <footer>
+        <p><strong>Created by</strong>: AI Terakoya Content Team</p>
+        <p><strong>Supervised by</strong>: Dr. Yusuke Hashimoto (Tohoku University)</p>
+        <p><strong>Version</strong>: 1.0 | <strong>Created</strong>: 2025-01-01</p>
+        <p><strong>License</strong>: Creative Commons BY 4.0</p>
+        <p>© 2025 AI Terakoya. All rights reserved.</p>
+    </footer>
+</body>
+</html>

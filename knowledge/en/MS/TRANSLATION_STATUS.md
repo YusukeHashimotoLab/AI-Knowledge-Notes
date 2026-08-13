@@ -2,17 +2,17 @@
 
 **Dojo**: Materials Science
 **Generated**: 2026-08-10
-**Total Series**: 35
-**Total Files**: 203 (35 index + 168 chapters)
-**Complete Series** (index + chapters): 34/35
+**Total Series**: 36
+**Total Files**: 209 (36 index + 173 chapters)
+**Complete Series** (index + chapters): 35/36
 
 ---
 
 ## Summary Statistics
 
-- **Series Translated**: 35/35 (100%)
-- **Index Pages**: 35/35 (100%)
-- **Total Chapter Files**: 168
+- **Series Translated**: 36/36 (100%)
+- **Index Pages**: 36/36 (100%)
+- **Total Chapter Files**: 173
 - **Average Chapters per Series**: 4.8
 
 ---
@@ -444,7 +444,25 @@
 
 ---
 
-### 25. Introduction to Spectroscopy Series - MS Terakoya ✅
+### 25. Introduction to Quantum Sensing - AI Terakoya ✅
+
+**Directory**: `quantum-sensing-introduction`
+**Location**: `/MS/quantum-sensing-introduction/`
+**Files**: 6 total (1 index + 5 chapters)
+**Last Update**: 2026-08-13
+
+- ✅ `index.html` - Series overview page
+
+**Chapters** (5):
+- ✅ `chapter-1.html`
+- ✅ `chapter-2.html`
+- ✅ `chapter-3.html`
+- ✅ `chapter-4.html`
+- ✅ `chapter-5.html`
+
+---
+
+### 26. Introduction to Spectroscopy Series - MS Terakoya ✅
 
 **Directory**: `spectroscopy-introduction`
 **Location**: `/MS/spectroscopy-introduction/`
@@ -463,7 +481,7 @@
 
 ---
 
-### 26. Advanced Spintronics - AI Terakoya ✅
+### 27. Advanced Spintronics - AI Terakoya ✅
 
 **Directory**: `spintronics-advanced`
 **Location**: `/MS/spintronics-advanced/`
@@ -480,7 +498,7 @@
 
 ---
 
-### 27. Intermediate Spintronics Series - MS Terakoya ✅
+### 28. Intermediate Spintronics Series - MS Terakoya ✅
 
 **Directory**: `spintronics-intermediate`
 **Location**: `/MS/spintronics-intermediate/`
@@ -497,7 +515,7 @@
 
 ---
 
-### 28. Introduction to Spintronics Series - MS Terakoya ✅
+### 29. Introduction to Spintronics Series - MS Terakoya ✅
 
 **Directory**: `spintronics-introduction`
 **Location**: `/MS/spintronics-introduction/`
@@ -514,7 +532,7 @@
 
 ---
 
-### 29. Advanced Superconductivity Series - MS Terakoya ✅
+### 30. Advanced Superconductivity Series - MS Terakoya ✅
 
 **Directory**: `superconductivity-advanced`
 **Location**: `/MS/superconductivity-advanced/`
@@ -532,7 +550,7 @@
 
 ---
 
-### 30. Intermediate Superconductivity Series - MS Terakoya ✅
+### 31. Intermediate Superconductivity Series - MS Terakoya ✅
 
 **Directory**: `superconductivity-intermediate`
 **Location**: `/MS/superconductivity-intermediate/`
@@ -550,7 +568,7 @@
 
 ---
 
-### 31. Introduction to Superconductivity Series - MS Terakoya ✅
+### 32. Introduction to Superconductivity Series - MS Terakoya ✅
 
 **Directory**: `superconductivity-introduction`
 **Location**: `/MS/superconductivity-introduction/`
@@ -568,7 +586,7 @@
 
 ---
 
-### 32. Introduction to Supercritical Fluids - AI Terakoya ✅
+### 33. Introduction to Supercritical Fluids - AI Terakoya ✅
 
 **Directory**: `supercritical-fluid-introduction`
 **Location**: `/MS/supercritical-fluid-introduction/`
@@ -589,7 +607,7 @@
 
 ---
 
-### 33. Introduction to Materials Synthesis Processes Series - MS Terakoya ✅
+### 34. Introduction to Materials Synthesis Processes Series - MS Terakoya ✅
 
 **Directory**: `synthesis-processes-introduction`
 **Location**: `/MS/synthesis-processes-introduction/`
@@ -606,7 +624,7 @@
 
 ---
 
-### 34. Introduction to Thin Films and Nanomaterials Series - MS Terakoya ✅
+### 35. Introduction to Thin Films and Nanomaterials Series - MS Terakoya ✅
 
 **Directory**: `thin-film-nano-introduction`
 **Location**: `/MS/thin-film-nano-introduction/`
@@ -623,7 +641,7 @@
 
 ---
 
-### 35. Introduction to X-ray Diffraction Analysis Series - MS Terakoya ✅
+### 36. Introduction to X-ray Diffraction Analysis Series - MS Terakoya ✅
 
 **Directory**: `xrd-analysis-introduction`
 **Location**: `/MS/xrd-analysis-introduction/`

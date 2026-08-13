@@ -1,0 +1,1273 @@
+---
+title: "Chapter 3: SQUIDs"
+chapter_title: "Chapter 3: SQUIDs"
+subtitle: Flux Quantization, the RSJ Model, Where the Noise Comes From, and Why It Is the Same Materials Problem as a Qubit
+reading_time: 45-50 minutes
+difficulty: Intermediate
+code_examples: 5
+exercises: 5
+---
+
+🌐 EN | [🇯🇵 JP](<../../../jp/MS/quantum-sensing-introduction/chapter-3.html>) | Last sync: 2026-08-13
+
+[Materials Science Dojo](<../index.html>) > [Introduction to Quantum Sensing](<index.html>) > Chapter 3
+
+Chapter 2 measured a magnetic field by watching the phase of one electron spin. This chapter measures it by watching the phase of a superconducting condensate, and the change of scale changes everything about the answer. A single spin gives nanometre resolution and nanotesla sensitivity; a superconducting loop gives micrometre resolution and femtotesla sensitivity. The SQUID has been the most sensitive magnetometer available since 1964 and remains so, and the reason is compressible to one sentence: it does not measure a field, it counts flux quanta, and the quantum of flux is very small.
+
+The device is also the closest thing in this course to a shared object with the sister course. A **Josephson junction** is the nonlinear element of every superconducting qubit — [Chapter 2 of Introduction to Quantum Hardware](<../../FM/quantum-hardware-introduction/chapter-2.html>) builds the transmon out of one — and it is the phase-sensitive element of every SQUID. The same fabrication process, the same tunnel barrier, the same amorphous oxides at the same interfaces. What differs is the operating regime: a qubit runs at $E_J/E_C \sim 50$, where the phase is a quantum variable, and a magnetometer runs six decades higher, where the phase is classical and obeys an ordinary differential equation. Code Example 1 makes that comparison a table.
+
+The payoff of that shared heritage arrives in §3.3. The noise floor of the best SQUIDs is not set by their circuit design but by two defect populations — unpaired spins on the superconductor surface and two-level fluctuators in the tunnel barrier — and these are the *same* two populations that limit flux-qubit dephasing and transmon relaxation. A materials advance in one is a materials advance in the other. That link is the thread this course is written around, and this chapter is where it is drawn most sharply.
+
+The superconductivity itself is taken as known. [Introduction to Superconductivity](<../superconductivity-introduction/index.html>) in this dojo covers the condensate, the order parameter, the coherence length and the gap; what is used here is only the existence of a macroscopic phase and the Josephson relations that follow from it, and §3.1 recalls both in the form the rest of the chapter needs.
+
+## Learning Objectives
+
+After completing this chapter, you will be able to:
+
+  * State fluxoid quantization and derive $\Phi_0 = h/2e$, and explain why a magnetometer built on it is calibrated by constants of nature rather than by a reference magnet
+  * Write both Josephson relations, define $E_J$, $L_J$, $\beta_L$ and $\beta_c$, and locate a qubit junction and a magnetometer junction on the same $E_J/E_C$ axis
+  * Derive $I_c(\Phi) = 2I_0|\cos(\pi\Phi/\Phi_0)|$ in the zero-inductance limit, and compute numerically how loop screening lifts the minimum off zero
+  * Integrate the RSJ equations of a dc SQUID to obtain $V(\Phi)$, extract the transfer function $V_\Phi$, and verify that it is of order $R/L$ near $\beta_L = 1$
+  * Convert the Johnson noise of the shunt resistors into a flux noise and an energy resolution, and show that $\epsilon = 8\sqrt{\pi}\,k_BT\sqrt{LC}$ at $\beta_L = \beta_c = 1$
+  * Estimate $1/f$ flux noise from a surface-spin density, explain why its near-independence of loop area is evidence for a surface mechanism, and convert the same $S_\Phi$ into a flux-qubit dephasing time
+  * Design a pickup coil or flux transformer, compute the resulting field and moment resolution, and place SQUIDs and NV centres on one resolution-against-sensitivity map
+
+### Conventions
+
+Fields and fluxes are SI throughout: flux in weber, flux noise as $\sqrt{S_\Phi}$ in $\Phi_0/\sqrt{\mathrm{Hz}}$ (the practical unit is the microflux quantum, $\mu\Phi_0/\sqrt{\mathrm{Hz}}$), field noise as $\sqrt{S_B}$ in T/$\sqrt{\mathrm{Hz}}$. The sensitivity symbol $\eta$ of Chapters 1 and 2 and the quantity $\sqrt{S_B}$ are the same thing; the SQUID literature writes the second and the spin literature the first, and this chapter uses whichever the surrounding argument uses.
+
+Energies are quoted in the units each community uses: $E_J/h$ in GHz when comparing with a qubit, $E_J/k_B$ in kelvin when asking whether a phase is classical, and the energy resolution $\epsilon$ in units of $\hbar$ because that is the only scale it can sensibly be measured against.
+
+* * *
+
+## 3.1 Flux Quantization and the Josephson Effect
+
+### One Phase for the Whole Condensate
+
+A superconductor is described by a complex order parameter $\psi(\mathbf{r}) = \sqrt{n_s}\,e^{i\theta(\mathbf{r})}$, and the supercurrent density is
+
+$$ \mathbf{j}_s = \frac{n_s q}{m}\left( \hbar\nabla\theta - q\mathbf{A} \right), \qquad q = -2e $$
+
+for Cooper pairs of charge $2e$ and mass $2m_e$. The combination in brackets is the gauge-invariant one, and integrating it around a closed loop inside the superconductor gives the statement this chapter is built on. Because $\psi$ is single-valued, $\oint \nabla\theta\cdot\mathrm{d}\boldsymbol{\ell} = 2\pi n$ for integer $n$, so
+
+$$ \Phi + \frac{m}{n_s q^2}\oint \mathbf{j}_s\cdot\mathrm{d}\boldsymbol{\ell} = n\,\frac{h}{2e} \;\equiv\; n\,\Phi_0 $$
+
+This is **fluxoid quantization**. The quantity that is quantised is the flux plus a kinetic-inductance term, and in a thick ring where the interior current density vanishes the second term drops and the flux itself is quantised in units of
+
+$$ \Phi_0 = \frac{h}{2e} = 2.067\,833\,848 \times 10^{-15}\ \mathrm{Wb} $$
+
+Three features of this number deserve to be noticed before any device is built on it. It contains only $h$ and $e$, so it is exact by definition in the present SI and identical in every laboratory. The factor 2 in the denominator is the charge of a Cooper pair, and its experimental confirmation was one of the early proofs of pairing. And it is *small*: a loop of side 10 $\mu$m encloses one flux quantum in a field of 21 $\mu$T, so resolving a microflux quantum on that loop means resolving 21 pT. Code Example 1 tabulates this, and it is the whole reason for the SQUID's existence.
+
+### The Two Josephson Relations
+
+Put a weak link — a thin insulating barrier, a constriction, a normal-metal bridge — between two superconductors with phases $\theta_1$ and $\theta_2$, and let $\varphi$ be the gauge-invariant phase difference across it. Two relations follow, and everything in this chapter is a consequence of them.
+
+$$ I = I_c \sin\varphi \qquad\text{(dc Josephson effect)} $$
+
+$$ \frac{\mathrm{d}\varphi}{\mathrm{d}t} = \frac{2\pi}{\Phi_0}V = \frac{2e}{\hbar}V \qquad\text{(ac Josephson effect)} $$
+
+The first says a supercurrent flows with no voltage, up to a maximum $I_c$. The second says a voltage makes the phase wind, at $2e/h = 483.598$ MHz per microvolt — a conversion so precise that it defines the volt.
+
+Two derived quantities are needed. Differentiating the first relation and substituting the second gives $V = L_J\,\mathrm{d}I/\mathrm{d}t$ with
+
+$$ L_J(\varphi) = \frac{\Phi_0}{2\pi I_c \cos\varphi} $$
+
+the **Josephson inductance** — a nonlinear, current-dependent inductance, which is precisely what makes an artificial atom out of an LC circuit in the sister course. Integrating $IV$ gives the **Josephson energy**
+
+$$ E_J = \frac{I_c \Phi_0}{2\pi} = \frac{\hbar I_c}{2e} $$
+
+### The Same Junction, Two Regimes
+
+The junction is a circuit element with two energy scales: $E_J$, which wants the phase to sit still, and the charging energy $E_C = e^2/2C$, which wants it to fluctuate. Their ratio decides whether the phase is a quantum variable.
+
+A transmon is engineered at $E_J/E_C \approx 50$, large enough that charge noise is exponentially suppressed but small enough that the anharmonicity survives — the compromise the sister course analyses in detail. A SQUID magnetometer junction carries microamperes rather than nanoamperes and is shunted by a picofarad, putting it five to six decades higher. At $E_J/k_B$ of several hundred kelvin the phase has no measurable quantum fluctuations at 4 K, and the correct description is a classical equation of motion. That is a licence, not a limitation: it is what allows the whole of §3.2 to be an ordinary differential equation.
+
+### Code Example 1: Scales, Interference, and the Screening Parameter
+
+```python
+import numpy as np
+
+H = 6.62607015e-34          # Planck constant, J s
+HBAR = H / (2 * np.pi)
+E = 1.602176634e-19         # elementary charge, C
+KB = 1.380649e-23           # Boltzmann constant, J/K
+PHI0 = H / (2 * E)          # superconducting flux quantum, Wb
+MU0 = 4 * np.pi * 1e-7      # T m / A
+
+print("The two constants this chapter runs on")
+print(f"  Phi_0 = h/2e            = {PHI0:.9e} Wb = {PHI0*1e15:.6f} fWb")
+print(f"  Phi_0 / (1 um^2)        = {PHI0/1e-12*1e3:.4f} mT")
+print(f"  2 e / hbar              = {2*E/HBAR:.6e} rad/(s V)")
+print(f"  2 e / h                 = {2*E/H:.6e} Hz/V = "
+      f"{2*E/H*1e-6/1e6:.4f} MHz/uV")
+
+# --- What a flux quantum means for a magnetometer ---------------------------
+print("\nHow much field is one flux quantum, and what a uPhi_0 of resolution "
+      "buys:")
+print(f"{'loop side':>12}{'area (m^2)':>13}{'Phi_0 / A':>14}"
+      f"{'1 uPhi_0 / A':>16}")
+print("-" * 55)
+for label, side in [("1 um", 1e-6), ("10 um", 1e-5), ("100 um", 1e-4),
+                    ("1 mm", 1e-3), ("10 mm", 1e-2)]:
+    A = side**2
+    print(f"{label:>12}{A:>13.3e}{PHI0/A*1e3:>11.4g} mT"
+          f"{PHI0/A*1e-6*1e12:>13.4g} pT")
+print("  A microflux-quantum of resolution on a 10 mm loop is 20 fT. That is")
+print("  the whole reason a SQUID is the most sensitive magnetometer there is:")
+print("  it measures flux, and flux is quantised in a very small unit.")
+
+# --- Josephson energy scales: the same junction, two jobs -------------------
+def e_josephson(Ic):
+    """E_J = Ic Phi_0 / (2 pi), returned in joules."""
+    return Ic * PHI0 / (2 * np.pi)
+
+
+def l_josephson(Ic):
+    """Josephson inductance at zero phase: L_J = Phi_0 / (2 pi Ic)."""
+    return PHI0 / (2 * np.pi * Ic)
+
+
+print("\nThe same tunnel junction, used as a qubit element and as a sensor "
+      "element:")
+header = (f"{'role':>26}{'I_c':>10}{'E_J/h (GHz)':>13}{'E_J/kB (K)':>12}"
+          f"{'L_J':>11}{'C':>9}{'E_J/E_C':>11}")
+print(header)
+print("-" * len(header))
+for role, Ic, C in [("transmon junction", 30e-9, 80e-15),
+                    ("flux-qubit junction", 300e-9, 5e-15),
+                    ("shunted SQUID junction", 5e-6, 1e-12),
+                    ("shunted SQUID junction", 20e-6, 1e-12)]:
+    EJ = e_josephson(Ic)
+    EC = E**2 / (2 * C)
+    Ic_s = f"{Ic*1e9:.0f} nA" if Ic < 1e-6 else f"{Ic*1e6:.0f} uA"
+    LJ = l_josephson(Ic)
+    LJ_s = f"{LJ*1e9:.2f} nH" if LJ > 1e-10 else f"{LJ*1e12:.1f} pH"
+    print(f"{role:>26}{Ic_s:>10}{EJ/H/1e9:>13.4g}{EJ/KB:>12.4g}"
+          f"{LJ_s:>11}{C*1e15:>7.0f} fF{EJ/EC:>11.4g}")
+print("  A transmon sits at E_J/E_C of order 50: the phase is a quantum")
+print("  variable and its zero-point motion is the qubit. A shunted SQUID")
+print("  junction sits five to six decades higher, so the phase is classical")
+print("  and the RSJ equations of the next example are the right description.")
+
+# --- The dc SQUID interference pattern --------------------------------------
+# Two identical junctions in a loop. With negligible loop inductance the phase
+# difference is fixed by the enclosed flux, phi_2 - phi_1 = 2 pi Phi/Phi_0, and
+# the maximum supercurrent is I_c(Phi) = 2 I_0 |cos(pi Phi/Phi_0)|.
+def ic_of_flux_numeric(phi_e, n=200001):
+    """Maximum of I_0 (sin phi_1 + sin phi_2) over phi_1, at zero inductance."""
+    p1 = np.linspace(0.0, 2 * np.pi, n)
+    return np.max(np.sin(p1) + np.sin(p1 + 2 * np.pi * phi_e))
+
+
+print("\nZero-inductance interference pattern, I_c(Phi) / 2 I_0:")
+print(f"{'Phi/Phi_0':>11}{'numeric':>12}{'|cos(pi Phi/Phi_0)|':>22}")
+print("-" * 45)
+for pe in [0.0, 0.1, 0.25, 0.4, 0.5, 0.75, 1.0]:
+    print(f"{pe:>11.2f}{ic_of_flux_numeric(pe)/2:>12.8f}"
+          f"{abs(np.cos(np.pi*pe)):>22.8f}")
+print("  The pattern is periodic in Phi_0 and vanishes at half-integer flux:")
+print("  the SQUID is an interferometer whose path difference is a flux, and")
+print("  the fringe spacing is a constant of nature.")
+
+# --- Screening: the one parameter that spoils the ideal pattern -------------
+def beta_L(L, I0):
+    """Screening parameter beta_L = 2 L I_0 / Phi_0."""
+    return 2.0 * L * I0 / PHI0
+
+
+print("\nScreening parameter beta_L = 2 L I_0 / Phi_0 for realistic devices:")
+print(f"{'L':>10}{'I_0':>10}{'beta_L':>10}{'L I_0 (Wb)':>14}"
+       f"{'circulating current at Phi_0/2':>32}")
+print("-" * 76)
+for L, I0 in [(10e-12, 5e-6), (100e-12, 5e-6), (200e-12, 5e-6),
+              (100e-12, 20e-6), (1e-9, 20e-6)]:
+    bl = beta_L(L, I0)
+    print(f"{L*1e12:>8.0f} pH{I0*1e6:>8.0f} uA{bl:>10.4f}{L*I0:>14.4e}"
+          f"{PHI0/(2*L)*1e6:>29.3f} uA")
+print("  beta_L near 1 is the design target: much less and the flux-to-voltage")
+print("  transfer is small, much more and screening washes out the modulation.")
+print("  It also fixes L I_0 at about Phi_0/2, which is why a SQUID loop cannot")
+print("  be made large and sensitive at the same time.")
+```
+
+```text
+The two constants this chapter runs on
+  Phi_0 = h/2e            = 2.067833848e-15 Wb = 2.067834 fWb
+  Phi_0 / (1 um^2)        = 2.0678 mT
+  2 e / hbar              = 3.038535e+15 rad/(s V)
+  2 e / h                 = 4.835978e+14 Hz/V = 483.5978 MHz/uV
+
+How much field is one flux quantum, and what a uPhi_0 of resolution buys:
+   loop side   area (m^2)     Phi_0 / A    1 uPhi_0 / A
+-------------------------------------------------------
+        1 um    1.000e-12      2.068 mT         2068 pT
+       10 um    1.000e-10    0.02068 mT        20.68 pT
+      100 um    1.000e-08  0.0002068 mT       0.2068 pT
+        1 mm    1.000e-06  2.068e-06 mT     0.002068 pT
+       10 mm    1.000e-04  2.068e-08 mT    2.068e-05 pT
+  A microflux-quantum of resolution on a 10 mm loop is 20 fT. That is
+  the whole reason a SQUID is the most sensitive magnetometer there is:
+  it measures flux, and flux is quantised in a very small unit.
+
+The same tunnel junction, used as a qubit element and as a sensor element:
+                      role       I_c  E_J/h (GHz)  E_J/kB (K)        L_J        C    E_J/E_C
+--------------------------------------------------------------------------------------------
+         transmon junction     30 nA         14.9      0.7151   10.97 nH     80 fF      61.54
+       flux-qubit junction    300 nA          149       7.151    1.10 nH      5 fF      38.46
+    shunted SQUID junction      5 uA         2483       119.2    65.8 pH   1000 fF  1.282e+05
+    shunted SQUID junction     20 uA         9934       476.7    16.5 pH   1000 fF  5.128e+05
+  A transmon sits at E_J/E_C of order 50: the phase is a quantum
+  variable and its zero-point motion is the qubit. A shunted SQUID
+  junction sits five to six decades higher, so the phase is classical
+  and the RSJ equations of the next example are the right description.
+
+Zero-inductance interference pattern, I_c(Phi) / 2 I_0:
+  Phi/Phi_0     numeric   |cos(pi Phi/Phi_0)|
+---------------------------------------------
+       0.00  1.00000000            1.00000000
+       0.10  0.95105652            0.95105652
+       0.25  0.70710678            0.70710678
+       0.40  0.30901699            0.30901699
+       0.50  0.00000000            0.00000000
+       0.75  0.70710678            0.70710678
+       1.00  1.00000000            1.00000000
+  The pattern is periodic in Phi_0 and vanishes at half-integer flux:
+  the SQUID is an interferometer whose path difference is a flux, and
+  the fringe spacing is a constant of nature.
+
+Screening parameter beta_L = 2 L I_0 / Phi_0 for realistic devices:
+         L       I_0    beta_L    L I_0 (Wb)  circulating current at Phi_0/2
+----------------------------------------------------------------------------
+      10 pH       5 uA    0.0484    5.0000e-17                      103.392 uA
+     100 pH       5 uA    0.4836    5.0000e-16                       10.339 uA
+     200 pH       5 uA    0.9672    1.0000e-15                        5.170 uA
+     100 pH      20 uA    1.9344    2.0000e-15                       10.339 uA
+    1000 pH      20 uA   19.3439    2.0000e-14                        1.034 uA
+  beta_L near 1 is the design target: much less and the flux-to-voltage
+  transfer is small, much more and screening washes out the modulation.
+  It also fixes L I_0 at about Phi_0/2, which is why a SQUID loop cannot
+  be made large and sensitive at the same time.
+```
+
+**What to look for.** The flux-per-area table is the sensitivity argument in one column. On a 10 mm loop, one microflux quantum is 20 fT — and a microflux quantum is roughly what a good SQUID resolves in a second, as §3.3 will derive from first principles. Nothing about the loop is special; the smallness comes from $\Phi_0$.
+
+The regime table then places the two uses of one junction. A 30 nA transmon junction has $E_J/h = 14.9$ GHz and $E_J/k_B = 0.72$ K; a 5 $\mu$A shunted magnetometer junction has $E_J/h = 2483$ GHz and $E_J/k_B = 119$ K, and $E_J/E_C = 1.3\times10^5$ against the transmon's 62. Three decades in critical current become five in the energy ratio because the shunt capacitance also grows. The Josephson inductances are informative too: 11 nH for the qubit junction against 66 pH for the sensor, and the latter is comparable to the geometric inductance of the loop it sits in, which is the origin of the screening parameter below.
+
+The interference pattern reproduces $2I_0|\cos(\pi\Phi/\Phi_0)|$ to eight digits, obtained by nothing more than maximising $\sin\varphi_1 + \sin(\varphi_1 + 2\pi\Phi/\Phi_0)$ over $\varphi_1$. The zero at half-integer flux is exact in this limit, and the next section shows what destroys it.
+
+The last table is the constraint that shapes every SQUID ever built. The screening parameter $\beta_L = 2LI_0/\Phi_0$ has to be near 1, which fixes $LI_0 \approx \Phi_0/2 \approx 10^{-15}$ Wb. Since $L$ grows with loop size, a larger loop demands a smaller critical current, and a smaller critical current means a smaller signal voltage. A SQUID cannot be made large and sensitive at the same time — which is why the large area lives in a separate pickup coil, as §3.4 shows.
+
+* * *
+
+## 3.2 The dc SQUID
+
+### Two Junctions and a Constraint
+
+A dc SQUID is a superconducting loop interrupted by two junctions. Going around the loop, the gauge-invariant phase differences across the two junctions and the enclosed flux are not independent:
+
+$$ \varphi_2 - \varphi_1 = \frac{2\pi\Phi_{\mathrm{tot}}}{\Phi_0}, \qquad \Phi_{\mathrm{tot}} = \Phi_{\mathrm{ext}} + L J $$
+
+where $J$ is the circulating current and $L$ the loop inductance. The second equation is what makes the device nonlinear in an interesting way: the loop screens the applied flux, and how much it screens depends on how much current it is already carrying.
+
+In the limit $L \to 0$ the constraint becomes rigid, $\varphi_2 - \varphi_1 = 2\pi\Phi_{\mathrm{ext}}/\Phi_0$, and the maximum supercurrent is obtained by maximising $I_0(\sin\varphi_1 + \sin\varphi_2)$:
+
+$$ I_c(\Phi) = 2 I_0 \left| \cos\frac{\pi\Phi}{\Phi_0} \right| $$
+
+This is a two-slit interference pattern whose path difference is a magnetic flux and whose fringe spacing is a constant of nature. It is also the reason the device is called an interferometer rather than a magnetometer.
+
+### Screening
+
+At finite $L$ the loop must generate a circulating current to change its enclosed flux, and that current is subtracted from what the junctions can carry. Expelling half a flux quantum requires $J = \Phi_0/2L$, so the modulation depth of $I_c(\Phi)$ is controlled by
+
+$$ \beta_L = \frac{2 L I_0}{\Phi_0} $$
+
+For $\beta_L \ll 1$ the ideal pattern survives; for $\beta_L \gg 1$ screening washes it out. The optimum is near $\beta_L \approx 1$, and Code Example 2 computes the pattern numerically rather than quoting an approximation, because the standard approximations for $I_c(\Phi_0/2)$ are only asymptotic.
+
+### The RSJ Model
+
+To get a *voltage* rather than a critical current, bias the SQUID above $I_c$ and let the phases wind. The standard classical description is the **resistively and capacitively shunted junction** model: each junction is a Josephson element in parallel with a resistance $R$ and a capacitance $C$, so its total current is
+
+$$ I_k = I_0\sin\varphi_k + \frac{\Phi_0}{2\pi R}\dot{\varphi}_k + \frac{\Phi_0 C}{2\pi}\ddot{\varphi}_k $$
+
+Non-dimensionalise with the natural time $t_c = \Phi_0/(2\pi I_0 R)$, currents in units of $I_0$ and voltages in units of $I_0R$. Writing $i_b$ for the bias current, $\varphi_e = \Phi_{\mathrm{ext}}/\Phi_0$ and $j = J/I_0$, the two junctions obey
+
+$$ \begin{aligned} \beta_c\, \varphi_1'' + \varphi_1' + \sin\varphi_1 &= \frac{i_b}{2} + j \cr \beta_c\, \varphi_2'' + \varphi_2' + \sin\varphi_2 &= \frac{i_b}{2} - j \cr j &= \frac{(\varphi_2 - \varphi_1) - 2\pi\varphi_e}{\pi\beta_L} \cr v &= \frac{\varphi_1' + \varphi_2'}{2} \end{aligned} $$
+
+with the **Stewart-McCumber parameter**
+
+$$ \beta_c = \frac{2\pi I_0 R^2 C}{\Phi_0} $$
+
+playing the role of a mass. For $\beta_c > 1$ the phase particle is underdamped, the I-V characteristic is hysteretic, and the device cannot be used as a continuous transducer: once it switches to the voltage state it stays there. Every practical dc SQUID therefore has a deliberately added shunt resistor to bring $\beta_c$ below 1. Adding a resistor is adding dissipation, and adding dissipation is adding noise — which is the entire subject of §3.3. With $\beta_c = 0$ the system is two first-order equations, and that is the regime Code Example 2 integrates.
+
+### From $V(\Phi)$ to a Magnetometer
+
+Bias just above $I_c(0)$ and sweep the applied flux. The time-averaged voltage oscillates with period $\Phi_0$, and the useful figure of merit is the slope at the steepest point,
+
+$$ V_\Phi = \left|\frac{\partial V}{\partial \Phi}\right|_{\max} \sim \frac{R}{L} $$
+
+the **flux-to-voltage transfer function**. Two consequences follow. First, the response is periodic, so a raw $V(\Phi)$ reading is ambiguous modulo $\Phi_0$ and useless as an absolute measurement. Second, it is nonlinear, so a large signal distorts.
+
+Both are cured by the same trick. A **flux-locked loop** feeds the amplified voltage back as a current into a coil coupled to the SQUID, with the sign chosen so that the feedback cancels any change in the total flux. The SQUID is then held at a fixed point on its $V(\Phi)$ curve and never moves; the output is the feedback current, which is linear in the applied flux over a dynamic range of many flux quanta, limited by the feedback electronics rather than by the device. The SQUID becomes a null detector, and $V_\Phi$ becomes the loop gain rather than the calibration. Everything about sensitivity is nevertheless still set by $V_\Phi$, because it converts the amplifier's voltage noise into an equivalent flux noise.
+
+### Code Example 2: V-$\Phi$ Characteristics From the RSJ Equations
+
+```python
+"""Chapter 3, Example 2: the dc SQUID from the RSJ equations.
+Continues from Example 1 (same session)."""
+
+from scipy.integrate import solve_ivp
+
+# Dimensionless RSJ equations for a symmetric dc SQUID. Time is in units of
+# t_c = Phi_0 / (2 pi I_0 R), current in units of I_0, voltage in units of I_0 R.
+#   beta_c phi_k'' + phi_k' + sin phi_k = i_b/2 +- j
+#   j = [(phi_2 - phi_1) - 2 pi phi_e] / (pi beta_L)
+#   v = (phi_1' + phi_2') / 2
+# With beta_c = 0 (resistively shunted, non-hysteretic) this is two first-order
+# equations, which is the regime every practical magnetometer runs in.
+
+
+def rsj_rhs(t, y, i_b, phi_e, beta_L):
+    p1, p2 = y
+    j = ((p2 - p1) - 2 * np.pi * phi_e) / (np.pi * beta_L)
+    return [i_b / 2 + j - np.sin(p1), i_b / 2 - j - np.sin(p2)]
+
+
+def v_mean(i_b, phi_e, beta_L, t_settle=300.0, t_avg=2000.0):
+    """Time-averaged voltage, from the net phase advance (no sampling error)."""
+    s = solve_ivp(rsj_rhs, (0.0, t_settle), [0.0, 2 * np.pi * phi_e],
+                  args=(i_b, phi_e, beta_L), rtol=1e-9, atol=1e-11,
+                  method="LSODA")
+    y0 = s.y[:, -1]
+    s2 = solve_ivp(rsj_rhs, (0.0, t_avg), y0, args=(i_b, phi_e, beta_L),
+                   rtol=1e-9, atol=1e-11, method="LSODA")
+    return ((s2.y[0, -1] + s2.y[1, -1]) - (y0[0] + y0[1])) / (2 * t_avg)
+
+
+def i_critical(phi_e, beta_L, tol=1e-4):
+    """Largest bias current with a static solution, by bisection on v."""
+    lo, hi = 0.0, 2.0
+    for _ in range(24):
+        mid = 0.5 * (lo + hi)
+        if abs(v_mean(mid, phi_e, beta_L, 200.0, 400.0)) < tol:
+            lo = mid
+        else:
+            hi = mid
+    return 0.5 * (lo + hi)
+
+
+print("Critical current of the dc SQUID against flux, with screening")
+print(f"{'Phi/Phi_0':>11}" + "".join(f"{'bL=' + f'{b:.1f}':>12}"
+                                     for b in (0.2, 0.5, 1.0, 2.0))
+      + f"{'2|cos|':>10}")
+print("-" * 69)
+for pe in (0.0, 0.125, 0.25, 0.375, 0.5):
+    row = "".join(f"{i_critical(pe, b):>12.5f}" for b in (0.2, 0.5, 1.0, 2.0))
+    print(f"{pe:>11.3f}{row}{2*abs(np.cos(np.pi*pe)):>10.5f}")
+print("  Screening lifts the minimum off zero: the loop cannot expel a half")
+print("  flux quantum without a circulating current Phi_0/2L, and that current")
+print("  is subtracted from what the junctions can carry.")
+
+# --- V-Phi characteristics --------------------------------------------------
+i_b = 2.1
+pes = np.linspace(0.0, 1.0, 41)
+print(f"\nV-Phi characteristics at i_b = {i_b:.2f} (i_c(0) = 2 for every "
+      f"beta_L)")
+print(f"{'beta_L':>8}{'v_min':>10}{'v_max':>10}{'Delta v':>10}"
+      f"{'max |dv/d(Phi/Phi_0)|':>23}{'V_Phi/(R/L)':>13}")
+print("-" * 74)
+curves = {}
+for bL in (0.2, 0.5, 1.0, 2.0, 5.0):
+    v = np.array([v_mean(i_b, pe, bL) for pe in pes])
+    curves[bL] = v
+    slope = np.abs(np.gradient(v, pes)).max()
+    print(f"{bL:>8.1f}{v.min():>10.5f}{v.max():>10.5f}{v.max()-v.min():>10.5f}"
+          f"{slope:>23.5f}{slope*bL/2:>13.5f}")
+print("  V_Phi = (dv/d(Phi/Phi_0)) I_0 R / Phi_0 and R/L = 2 I_0 R/(beta_L Phi_0),")
+print("  so the ratio is (dv/dphi_e) beta_L / 2: it is 0.72 at beta_L = 1 and")
+print("  passes unity near beta_L = 2. V_Phi of order R/L is the right rule.")
+print("  Note also that Delta v shrinks monotonically with beta_L while the")
+print("  ratio grows: beta_L near 1 is a compromise, not an optimum of either.")
+
+# --- A concrete device ------------------------------------------------------
+I0, R, T_op = 5e-6, 4.0, 4.2
+for bL in (0.5, 1.0, 2.0):
+    L = bL * PHI0 / (2 * I0)
+    slope = np.abs(np.gradient(curves[bL], pes)).max()
+    V_phi = slope * I0 * R / PHI0
+    print(f"\n  beta_L = {bL:.1f}: L = {L*1e12:6.2f} pH, I_0 R = "
+          f"{I0*R*1e6:.1f} uV, R/L = {R/L*PHI0*1e6:.2f} uV/Phi_0")
+    print(f"    V_Phi = {V_phi*PHI0*1e6:.3f} uV/Phi_0 = "
+          f"{V_phi*PHI0*1e9*1e-3:.4f} nV/mPhi_0")
+    print(f"    Josephson frequency at v = {curves[bL].max():.3f}: "
+          f"{curves[bL].max()*I0*R*2*E/H/1e9:.3f} GHz")
+
+# --- Why the shunt is there -------------------------------------------------
+print("\nThe Stewart-McCumber parameter decides whether the I-V is hysteretic:")
+print(f"{'I_0':>9}{'R':>9}{'C':>9}{'beta_c':>10}{'R for beta_c = 1':>19}")
+print("-" * 56)
+for I0_, R_, C_ in [(5e-6, 4.0, 1e-12), (5e-6, 40.0, 1e-12),
+                    (20e-6, 4.0, 1e-12), (5e-6, 4.0, 0.05e-12)]:
+    bc = 2 * np.pi * I0_ * R_**2 * C_ / PHI0
+    R_crit = np.sqrt(PHI0 / (2 * np.pi * I0_ * C_))
+    print(f"{I0_*1e6:>7.0f} uA{R_:>7.0f} Oh{C_*1e12:>7.2f} pF{bc:>10.4f}"
+          f"{R_crit:>16.3f} Ohm")
+print("  An unshunted tunnel junction has beta_c far above 1, so its I-V is")
+print("  hysteretic and it cannot be used as a continuous flux-to-voltage")
+print("  transducer. Adding an external resistor is a deliberate act of adding")
+print("  dissipation - and with it, as the next example shows, noise.")
+```
+
+```text
+Critical current of the dc SQUID against flux, with screening
+  Phi/Phi_0      bL=0.2      bL=0.5      bL=1.0      bL=2.0    2|cos|
+---------------------------------------------------------------------
+      0.000     2.00000     2.00000     2.00000     2.00000   2.00000
+      0.125     1.85005     1.85920     1.87805     1.90691   1.84776
+      0.250     1.44364     1.52630     1.63442     1.75040   1.41421
+      0.375     0.88346     1.10985     1.34905     1.57597   0.76537
+      0.500     0.30467     0.67208     1.04725     1.39313   0.00000
+  Screening lifts the minimum off zero: the loop cannot expel a half
+  flux quantum without a circulating current Phi_0/2L, and that current
+  is subtracted from what the junctions can carry.
+
+V-Phi characteristics at i_b = 2.10 (i_c(0) = 2 for every beta_L)
+  beta_L     v_min     v_max   Delta v  max |dv/d(Phi/Phi_0)|  V_Phi/(R/L)
+--------------------------------------------------------------------------
+     0.2   0.32037   0.99836   0.67799                2.18282      0.21828
+     0.5   0.32037   0.87002   0.54965                1.87258      0.46814
+     1.0   0.32037   0.72630   0.40593                1.43865      0.71933
+     2.0   0.32037   0.58636   0.26598                0.96286      0.96286
+     5.0   0.32037   0.44412   0.12375                0.43821      1.09554
+  V_Phi = (dv/d(Phi/Phi_0)) I_0 R / Phi_0 and R/L = 2 I_0 R/(beta_L Phi_0),
+  so the ratio is (dv/dphi_e) beta_L / 2: it is 0.72 at beta_L = 1 and
+  passes unity near beta_L = 2. V_Phi of order R/L is the right rule.
+  Note also that Delta v shrinks monotonically with beta_L while the
+  ratio grows: beta_L near 1 is a compromise, not an optimum of either.
+
+  beta_L = 0.5: L = 103.39 pH, I_0 R = 20.0 uV, R/L = 80.00 uV/Phi_0
+    V_Phi = 37.452 uV/Phi_0 = 37.4516 nV/mPhi_0
+    Josephson frequency at v = 0.870: 8.415 GHz
+
+  beta_L = 1.0: L = 206.78 pH, I_0 R = 20.0 uV, R/L = 40.00 uV/Phi_0
+    V_Phi = 28.773 uV/Phi_0 = 28.7731 nV/mPhi_0
+    Josephson frequency at v = 0.726: 7.025 GHz
+
+  beta_L = 2.0: L = 413.57 pH, I_0 R = 20.0 uV, R/L = 20.00 uV/Phi_0
+    V_Phi = 19.257 uV/Phi_0 = 19.2572 nV/mPhi_0
+    Josephson frequency at v = 0.586: 5.671 GHz
+
+The Stewart-McCumber parameter decides whether the I-V is hysteretic:
+      I_0        R        C    beta_c   R for beta_c = 1
+--------------------------------------------------------
+      5 uA      4 Oh   1.00 pF    0.2431           8.113 Ohm
+      5 uA     40 Oh   1.00 pF   24.3083           8.113 Ohm
+     20 uA      4 Oh   1.00 pF    0.9723           4.057 Ohm
+      5 uA      4 Oh   0.05 pF    0.0122          36.283 Ohm
+  An unshunted tunnel junction has beta_c far above 1, so its I-V is
+  hysteretic and it cannot be used as a continuous flux-to-voltage
+  transducer. Adding an external resistor is a deliberate act of adding
+  dissipation - and with it, as the next example shows, noise.
+```
+
+**What to look for.** The critical-current table is the honest version of the interference pattern. At zero flux $I_c = 2I_0$ for every $\beta_L$, because a symmetric solution needs no circulating current. At half-integer flux the ideal pattern says zero and the real device says otherwise: 0.305 at $\beta_L = 0.2$, 1.047 at $\beta_L = 1$, 1.393 at $\beta_L = 2$. The modulation depth is what carries the signal, so screening is a direct loss, and the numbers come from bisecting on the RSJ equations rather than from an asymptotic formula. Exercise 2 asks you to reproduce them by a static calculation, which is an independent check on the integrator.
+
+The V-$\Phi$ table then shows the trade-off that fixes $\beta_L$. The voltage modulation $\Delta v$ falls monotonically with $\beta_L$, from 0.678 at $\beta_L = 0.2$ to 0.124 at $\beta_L = 5$ — screening again. But the *physical* transfer function measured against $R/L$ moves the other way, from 0.22 to 1.10, because $R/L$ itself falls as $\beta_L$ grows. The ratio passes 0.72 at $\beta_L = 1$ and unity near $\beta_L = 2$. So $V_\Phi \sim R/L$ is the right rule of thumb, and $\beta_L \approx 1$ is a compromise between two quantities that move in opposite directions rather than the optimum of either. The full optimisation requires the Langevin noise terms, which §3.3 imports rather than derives.
+
+The concrete-device block puts numbers on it: with $I_0 = 5\ \mu$A, $R = 4\ \Omega$ and $\beta_L = 1$, the loop inductance is 207 pH, $I_0R = 20\ \mu$V, and $V_\Phi = 29\ \mu$V/$\Phi_0$ — which is to say roughly 29 nV per milliflux quantum, so a room-temperature amplifier with a few nV/$\sqrt{\mathrm{Hz}}$ of input noise is already a significant contributor. The Josephson oscillation runs at 7 GHz at the operating point, which is why the microwave environment of a SQUID matters and why its bandwidth is set by the readout electronics rather than by the junctions.
+
+The last table is the reason the shunt exists. An unshunted tunnel junction with $R = 40\ \Omega$ and $C = 1$ pF has $\beta_c = 24$, deeply hysteretic. Reaching $\beta_c = 1$ at $I_0 = 5\ \mu$A and 1 pF requires $R \le 8.1\ \Omega$. That constraint, together with $\beta_L \approx 1$, fixes both $R$ and $I_0$ once $L$ and $C$ are chosen — and it is what makes the energy resolution of the next section a function of $L$ and $C$ alone.
+
+* * *
+
+## 3.3 What Limits the Sensitivity
+
+### White Noise: the Price of the Shunt
+
+The RSJ equations of §3.2 are deterministic and therefore have no noise floor. Adding the Johnson current noise of each shunt, $S_I = 4k_BT/R$, turns them into Langevin equations whose numerical solution is the classical analysis of the dc SQUID. Its central result, at $\beta_L = 1$ and optimal bias, is a voltage noise
+
+$$ S_V \approx 16\, k_B T R $$
+
+This chapter imports that coefficient rather than deriving it — the derivation is a stochastic simulation, not an algebraic step — and everything that follows is algebra. Referring the voltage noise to flux through the transfer function, and using $V_\Phi = R/L$,
+
+$$ S_\Phi = \frac{S_V}{V_\Phi^2} = \frac{16\,k_B T L^2}{R} $$
+
+### Energy Resolution
+
+The natural figure of merit is not the flux noise, which depends on the loop, but the **energy resolution**
+
+$$ \epsilon = \frac{S_\Phi}{2L} $$
+
+which is the energy per unit bandwidth that the device fails to resolve, and which is what determines the performance of any flux transformer coupled to it. With the expression above, $\epsilon = 8k_BTL/R$. Now close the two design constraints of §3.2: $\beta_L = 1$ gives $I_0 = \Phi_0/2L$, and $\beta_c = 1$ gives $R = \sqrt{\Phi_0/(2\pi I_0 C)} = \sqrt{L/(\pi C)}$. Substituting,
+
+$$ \boxed{\ \epsilon = 8\sqrt{\pi}\;k_B T \sqrt{LC} \approx 14.2\, k_B T\sqrt{LC}\ } $$
+
+Two things about this result are worth dwelling on. It contains no free parameters — the resistance and the critical current have been eliminated by the two constraints — so the energy resolution of an optimised dc SQUID depends only on its inductance, its capacitance and its temperature. And $\sqrt{LC}$ has the units of time; with $\beta_L = 1$ imposed it is the inverse plasma frequency of the junction up to a factor $\sqrt{\pi}$, since $\beta_L = 1$ makes the Josephson inductance $L_J = \Phi_0/2\pi I_0 = L/\pi$ and therefore $\omega_p^{-1} = \sqrt{L_JC} = \sqrt{LC/\pi}$. Up to that factor the formula reads "energy resolution equals thermal energy times the response time of the device", which is what a fluctuation-dissipation argument would predict.
+
+Numerically $\sqrt{LC} \approx 10^{-11}$ s for a 100 pH, 1 pF device, so $\epsilon \approx 78\hbar$ at 4.2 K and $\approx 6\hbar$ at 0.3 K. Extrapolating to lower temperature the formula returns $\epsilon < \hbar$, which is the signal that a classical Langevin treatment has been pushed past its own validity: the true bound is of order $\hbar$, and reaching it requires the quantum-limited amplifiers of the sister course rather than a better resistor.
+
+### Code Example 3: From Johnson Noise to an Energy Resolution
+
+```python
+"""Chapter 3, Example 3: from Johnson noise to an energy resolution.
+Continues from Example 2 (same session)."""
+
+# The deterministic RSJ equations of Example 2 have no noise in them. Adding the
+# Johnson current noise of the two shunts, S_I = 4 k_B T / R each, and solving
+# the resulting Langevin equations is the Tesche-Clarke calculation. Its result,
+# at beta_L = 1 and the optimal bias, is the one number this section imports:
+#   S_V = 16 k_B T R.
+# Everything below follows from that by algebra.
+
+
+def noise_chain(L, C, T, V_phi=None):
+    """White flux noise and energy resolution of an optimised dc SQUID.
+
+    beta_L = 1 fixes I_0 = Phi_0 / 2L; beta_c = 1 fixes R = sqrt(L / (pi C)).
+    """
+    I0 = PHI0 / (2.0 * L)
+    R = np.sqrt(L / (np.pi * C))
+    S_V = 16.0 * KB * T * R
+    if V_phi is None:
+        V_phi = R / L
+    S_Phi = S_V / V_phi**2
+    return dict(I0=I0, R=R, V_phi=V_phi, S_V=S_V, S_Phi=S_Phi,
+                eps=S_Phi / (2.0 * L))
+
+
+print("Johnson noise of the shunts, referred to flux and to energy")
+print("  S_V = 16 kB T R,  S_Phi = S_V / V_Phi^2,  epsilon = S_Phi / 2L")
+print("  with V_Phi = R/L, beta_L = 1 and beta_c = 1 this collapses to")
+print("  epsilon = 8 kB T L / R = 8 sqrt(pi) kB T sqrt(L C)")
+print(f"  and the coefficient is 8 sqrt(pi) = {8*np.sqrt(np.pi):.5f}")
+
+print(f"\n{'L (pH)':>8}{'C (pF)':>8}{'T (K)':>7}{'I_0 (uA)':>10}{'R (ohm)':>9}"
+      f"{'V_Phi (uV/Phi_0)':>18}{'sqrt(S_V)':>15}{'sqrt(S_Phi)':>18}"
+      f"{'eps/hbar':>11}")
+print("-" * 104)
+for L, C, T in [(100e-12, 1e-12, 4.2), (100e-12, 1e-12, 0.3),
+                (100e-12, 1e-12, 0.05), (20e-12, 1e-12, 4.2),
+                (500e-12, 1e-12, 4.2), (100e-12, 0.1e-12, 4.2)]:
+    d = noise_chain(L, C, T)
+    ana = 8 * np.sqrt(np.pi) * KB * T * np.sqrt(L * C)
+    assert abs(d["eps"] / ana - 1) < 1e-12
+    print(f"{L*1e12:>8.0f}{C*1e12:>8.2f}{T:>7.2f}{d['I0']*1e6:>10.3f}"
+          f"{d['R']:>9.3f}{d['V_phi']*PHI0*1e6:>18.2f}"
+          f"{np.sqrt(d['S_V'])*1e12:>12.3f} pV{np.sqrt(d['S_Phi'])/PHI0*1e6:>13.4f} uPhi0"
+          f"{d['eps']/HBAR:>11.3f}")
+print("  The last column is the energy resolution in units of hbar. At 4.2 K a")
+print("  100 pH SQUID sits near 80 hbar; cooling to 0.3 K brings it to 6 hbar;")
+print("  the 0.05 K row returns less than hbar, which is the signal that the")
+print("  classical Langevin treatment has been pushed past its own validity.")
+
+# --- Using the transfer function actually computed in Example 2 -------------
+print("\nSame chain with V_Phi taken from the RSJ simulation instead of R/L:")
+L, C, T = 100e-12, 1e-12, 4.2
+I0 = PHI0 / (2 * L)
+R = np.sqrt(L / (np.pi * C))
+print(f"  L = {L*1e12:.0f} pH, C = {C*1e12:.1f} pF, T = {T:.1f} K -> "
+      f"I_0 = {I0*1e6:.3f} uA, R = {R:.3f} ohm")
+slope = np.abs(np.gradient(curves[1.0], pes)).max()
+for label, V_phi in [("R / L", R / L),
+                     ("RSJ, beta_L = 1", slope * I0 * R / PHI0)]:
+    d = noise_chain(L, C, T, V_phi)
+    print(f"  {label:<18} V_Phi = {V_phi*PHI0*1e6:7.2f} uV/Phi_0   "
+          f"sqrt(S_Phi) = {np.sqrt(d['S_Phi'])/PHI0*1e6:6.3f} uPhi0/rtHz   "
+          f"eps = {d['eps']/HBAR:6.2f} hbar")
+print("  The simulated transfer function is 28 percent below R/L at beta_L = 1,")
+print("  so the flux noise amplitude is 39 percent higher and the energy")
+print("  resolution is 93 percent worse. Only the prefactor moves.")
+
+# --- What that means as a field sensitivity ---------------------------------
+def loop_inductance(r, a):
+    """Self-inductance of a circular loop of radius r made of wire radius a."""
+    return MU0 * r * (np.log(8.0 * r / a) - 2.0)
+
+
+print("\nFrom flux noise to field noise for a bare loop, T = 4.2 K, C = 1 pF:")
+print(f"{'r (um)':>8}{'L (pH)':>9}{'A (m^2)':>12}{'I_0 (uA)':>10}"
+      f"{'sqrt(S_Phi)':>16}{'sqrt(S_B)':>17}")
+print("-" * 74)
+for r_um in (5.0, 25.0, 100.0, 500.0):
+    r = r_um * 1e-6
+    L = loop_inductance(r, 1e-6)
+    d = noise_chain(L, 1e-12, 4.2)
+    A = np.pi * r**2
+    print(f"{r_um:>8.1f}{L*1e12:>9.2f}{A:>12.3e}{d['I0']*1e6:>10.2f}"
+          f"{np.sqrt(d['S_Phi'])/PHI0*1e6:>11.4f} uPhi0"
+          f"{np.sqrt(d['S_Phi'])/A*1e15:>12.3f} fT/rtHz")
+rr = np.array([5.0, 25.0, 100.0, 500.0]) * 1e-6
+sb = np.array([np.sqrt(noise_chain(loop_inductance(r, 1e-6), 1e-12, 4.2)["S_Phi"])
+               / (np.pi * r**2) for r in rr])
+print(f"  fitted exponent of sqrt(S_B) against r : "
+      f"{np.polyfit(np.log(rr), np.log(sb), 1)[0]:.4f}")
+print("  Algebra: eps grows as sqrt(L C), so S_Phi = 2 L eps grows as L^(3/2)")
+print("  and sqrt(S_Phi) as L^(3/4); the area grows as r^2, giving r^(-5/4)")
+print("  before the logarithm in L(r) softens it to about r^(-1). Either way")
+print("  field sensitivity improves and spatial resolution degrades as the loop")
+print("  grows: the trade-off map of Chapter 1 section 1.5, for one device family.")
+```
+
+```text
+Johnson noise of the shunts, referred to flux and to energy
+  S_V = 16 kB T R,  S_Phi = S_V / V_Phi^2,  epsilon = S_Phi / 2L
+  with V_Phi = R/L, beta_L = 1 and beta_c = 1 this collapses to
+  epsilon = 8 kB T L / R = 8 sqrt(pi) kB T sqrt(L C)
+  and the coefficient is 8 sqrt(pi) = 14.17963
+
+  L (pH)  C (pF)  T (K)  I_0 (uA)  R (ohm)  V_Phi (uV/Phi_0)      sqrt(S_V)       sqrt(S_Phi)   eps/hbar
+--------------------------------------------------------------------------------------------------------
+     100    1.00   4.20    10.339    5.642            116.67      72.350 pV       0.6202 uPhi0     77.969
+     100    1.00   0.30    10.339    5.642            116.67      19.336 pV       0.1657 uPhi0      5.569
+     100    1.00   0.05    10.339    5.642            116.67       7.894 pV       0.0677 uPhi0      0.928
+      20    1.00   4.20    51.696    2.523            260.87      48.383 pV       0.1855 uPhi0     34.869
+     500    1.00   4.20     2.068   12.616             52.17     108.189 pV       2.0736 uPhi0    174.344
+     100    0.10   4.20    10.339   17.841            368.93     128.659 pV       0.3487 uPhi0     24.656
+  The last column is the energy resolution in units of hbar. At 4.2 K a
+  100 pH SQUID sits near 80 hbar; cooling to 0.3 K brings it to 6 hbar;
+  the 0.05 K row returns less than hbar, which is the signal that the
+  classical Langevin treatment has been pushed past its own validity.
+
+Same chain with V_Phi taken from the RSJ simulation instead of R/L:
+  L = 100 pH, C = 1.0 pF, T = 4.2 K -> I_0 = 10.339 uA, R = 5.642 ohm
+  R / L              V_Phi =  116.67 uV/Phi_0   sqrt(S_Phi) =  0.620 uPhi0/rtHz   eps =  77.97 hbar
+  RSJ, beta_L = 1    V_Phi =   83.92 uV/Phi_0   sqrt(S_Phi) =  0.862 uPhi0/rtHz   eps = 150.68 hbar
+  The simulated transfer function is 28 percent below R/L at beta_L = 1,
+  so the flux noise amplitude is 39 percent higher and the energy
+  resolution is 93 percent worse. Only the prefactor moves.
+
+From flux noise to field noise for a bare loop, T = 4.2 K, C = 1 pF:
+  r (um)   L (pH)     A (m^2)  I_0 (uA)     sqrt(S_Phi)        sqrt(S_B)
+--------------------------------------------------------------------------
+     5.0    10.61   7.854e-11     97.43     0.1153 uPhi0    3035.692 fT/rtHz
+    25.0   103.62   1.963e-09      9.98     0.6369 uPhi0     670.758 fT/rtHz
+   100.0   588.69   3.142e-08      1.76     2.3437 uPhi0     154.268 fT/rtHz
+   500.0  3954.67   7.854e-07      0.26     9.7798 uPhi0      25.749 fT/rtHz
+  fitted exponent of sqrt(S_B) against r : -1.0378
+  Algebra: eps grows as sqrt(L C), so S_Phi = 2 L eps grows as L^(3/2)
+  and sqrt(S_Phi) as L^(3/4); the area grows as r^2, giving r^(-5/4)
+  before the logarithm in L(r) softens it to about r^(-1). Either way
+  field sensitivity improves and spatial resolution degrades as the loop
+  grows: the trade-off map of Chapter 1 section 1.5, for one device family.
+```
+
+**What to look for.** The main table is the design space. A 100 pH, 1 pF SQUID at 4.2 K needs $I_0 = 10.3\ \mu$A and $R = 5.64\ \Omega$ to satisfy both constraints, gives $V_\Phi = 117\ \mu$V/$\Phi_0$, and lands at 72 pV/$\sqrt{\mathrm{Hz}}$ of voltage noise, 0.62 $\mu\Phi_0/\sqrt{\mathrm{Hz}}$ of flux noise and 78 $\hbar$ of energy resolution. Every one of those is a realistic figure for a device of that size, and none of them was fitted.
+
+Reading down the temperature column, the improvement is linear in $T$ for $\epsilon$ and therefore only $\sqrt{T}$ for the flux noise: cooling from 4.2 K to 0.3 K buys a factor 14 in energy resolution but only 3.7 in $\sqrt{S_\Phi}$. Reading down the geometry rows, a smaller loop is quieter in flux but has less area, which is the trade-off the last table makes explicit. Reducing the capacitance helps too, and it helps through the $\beta_c$ constraint rather than directly: a smaller $C$ permits a larger $R$, and a larger $R$ means less Johnson current noise.
+
+The comparison with the simulated transfer function is the internal consistency check. Substituting the $V_\Phi$ actually computed in Code Example 2 for $\beta_L = 1$, rather than the rule of thumb $R/L$, raises the flux noise amplitude by 39% and worsens $\epsilon$ by 93%. The scaling laws survive intact; only the prefactor moves, and a factor of two in an energy resolution is exactly the size of disagreement one should expect between a rule of thumb and a simulation.
+
+The final table is the resolution-against-sensitivity trade-off of Chapter 1, written for one device family. As the loop grows, the flux noise grows only as $L^{3/4}$ while the area grows as $r^2$, so the field noise falls — as $r^{-5/4}$ from the algebra, softened to about $r^{-1}$ by the logarithm in $L(r)$ — and the spatial resolution degrades as $r$. Going from a 5 $\mu$m to a 500 $\mu$m loop buys two decades of field sensitivity and gives up two decades of resolution. There is no design that wins both, and choosing where to sit on that line is the first decision in any scanning-SQUID experiment.
+
+### $1/f$ Noise, and the Materials Problem It Shares With Qubits
+
+The white noise of the previous section is not what limits a SQUID at low frequency. Below a crossover that is typically between 0.1 Hz and a few hertz, every dc SQUID ever measured shows excess noise with a spectrum close to $1/f$, and its amplitude at 1 Hz lands within about a decade of $1\ \mu\Phi_0/\sqrt{\mathrm{Hz}}$ across many materials and many fabrication routes. It is not literally the same number at every size — Code Example 4's forward model gives 1.18, 3.71 and 11.7 $\mu\Phi_0/\sqrt{\mathrm{Hz}}$ for 10, 100 and 1000 $\mu$m loops, a decade of spread over two decades of loop side — and that ratio is the point. A mechanism that scaled with the loop *area* would have spread over four decades in the same range. The striking fact is therefore the weakness of the size dependence rather than a universal value, and it is the weakness that is the clue.
+
+Two mechanisms are established, and both are amorphous-oxide problems.
+
+**Unpaired surface spins.** A superconducting film carries a surface density of order $10^{16}$ to $10^{17}$ unpaired electron spins per square metre — dangling bonds, adsorbed oxygen, defects in the native oxide — each of which flips randomly and couples a small flux into the loop. The signature is the scaling: because the spins live on the *surface* of the wire, the variance grows with the perimeter rather than with the area, so the flux noise depends only weakly on loop size. A bulk mechanism would scale with the area and vary by two decades where the measurements vary by less than one. Code Example 4 builds the forward model and checks the exponent.
+
+**Critical-current fluctuations.** Two-level defects inside the tunnel barrier modulate the transparency of the junction, so $I_0$ fluctuates with a $1/f$ spectrum and a fractional amplitude of order $10^{-6}$ to $10^{-5}$ per root hertz at 1 Hz. In a SQUID an *asymmetry* between the two junctions is what matters, because it produces a circulating current and hence an apparent flux $\approx L\,\delta I_0/2$. Code Example 4 shows that this lands at the same microflux-quantum scale as the surface spins.
+
+The connection to the sister course is now direct, and it is worth stating in both directions.
+
+| Quantity | In a SQUID magnetometer | In a superconducting qubit |
+| --- | --- | --- |
+| Surface spins, $S_\Phi \sim 1\ \mu\Phi_0/\sqrt{\mathrm{Hz}}$ at 1 Hz | the $1/f$ noise floor below ~1 Hz | flux-qubit dephasing; $T_2^\ast$ of tens of ns at the sensitive bias |
+| Barrier two-level defects, $\delta I_0/I_0 \sim 10^{-5}$ | apparent flux drift, $L\delta I_0/2$ | slow drift of the transmon frequency; recalibration cadence |
+| Dielectric loss in the same oxides | of secondary importance | the dominant limit on transmon $T_1$ |
+| Non-equilibrium quasiparticles | excess $I_0$ noise, occasional switching | $T_1$ events, correlated errors |
+
+Read the middle column and the right-hand column as two experiments on the same wafer, because that is what they are. A process change that halves the surface spin density improves a magnetometer's low-frequency noise and a flux qubit's coherence by the same factor, and the magnetometer is by far the cheaper measurement. This is a real and under-exploited channel: **a SQUID is a diagnostic for qubit materials**, and one that runs at 4 K in an afternoon.
+
+### Code Example 4: Surface Spins, and the Same Noise Seen by a Qubit
+
+```python
+import numpy as np
+
+H = 6.62607015e-34
+HBAR = H / (2 * np.pi)
+E = 1.602176634e-19
+KB = 1.380649e-23
+PHI0 = H / (2 * E)
+MU0 = 4 * np.pi * 1e-7
+MU_B = 9.2740100783e-24
+
+
+def flux_noise_surface_spins(sigma_s, perimeter, width, decades=10.0,
+                             moment=MU_B):
+    """Order-of-magnitude 1/f flux noise from unpaired surface spins.
+
+    One spin sitting on the surface of a wire of width w couples a flux of order
+    phi_1 = mu_0 mu / (2 w). The spins are uncorrelated, so the variance is
+    N phi_1^2 with N = sigma_s x 2 x perimeter x width, and a log-uniform
+    distribution of switching rates spreads that variance as 1/f over the
+    stated number of decades.
+    """
+    phi_1 = MU0 * moment / (2.0 * width)
+    n_spins = sigma_s * 2.0 * perimeter * width
+    var = n_spins * phi_1**2
+    return var, var / (decades * np.log(10.0))       # variance, S_Phi at 1 Hz
+
+
+print("1/f flux noise from unpaired surface spins (order of magnitude)")
+print("  one spin at a wire surface couples mu_0 mu_B / 2w of flux:")
+for w_um in (0.1, 1.0, 10.0):
+    print(f"    w = {w_um:5.2f} um -> phi_1 = "
+          f"{MU0*MU_B/(2*w_um*1e-6)/PHI0*1e6:.4f} uPhi_0")
+
+print(f"\n{'loop side':>11}{'wire w':>9}{'N spins':>12}{'rms dPhi':>15}"
+      f"{'sqrt(S_Phi(1 Hz))':>21}")
+print("-" * 68)
+sigma_s = 5e16                       # 0.05 unpaired spins per nm^2
+for side_um, w_um in [(10.0, 1.0), (100.0, 1.0), (1000.0, 1.0),
+                      (10.0, 0.1), (10.0, 10.0)]:
+    P, w = 4 * side_um * 1e-6, w_um * 1e-6
+    var, S1 = flux_noise_surface_spins(sigma_s, P, w)
+    print(f"{side_um:>8.0f} um{w_um:>7.1f} um{var/(MU0*MU_B/(2*w))**2:>12.3e}"
+          f"{np.sqrt(var)/PHI0*1e6:>10.3f} uPhi_0"
+          f"{np.sqrt(S1)/PHI0*1e6:>14.3f} uPhi_0")
+print(f"  The areal density is the one fitted number here: sigma_s = "
+      f"{sigma_s:.0e} 1/m^2,")
+print("  i.e. 0.05 unpaired spins per square nanometre, which is within an order")
+print("  of magnitude of what the literature infers. What the model gets without")
+print("  fitting is the scale and the weakness of the size dependence: the loop")
+print("  side changes by two decades and the flux noise by one, because only the")
+print("  perimeter enters, under a square root. A bulk mechanism would scale with")
+print("  the area and vary by two decades. The near-universality of the measured")
+print("  microflux-quantum is therefore evidence for a surface.")
+print("  It also means 1/f flux noise dominates the error budget of large loops,")
+print("  whose white noise from Example 3 is small.")
+
+# --- The same noise, seen by a flux qubit -----------------------------------
+print("\nThe same S_Phi, imported into a flux qubit at its sensitive bias:")
+print("  dE/dPhi = 2 I_p, so df/dPhi = 2 I_p / h")
+print(f"{'I_p (nA)':>10}{'df/dPhi (GHz/mPhi_0)':>23}{'sigma_Phi (uPhi_0)':>20}"
+      f"{'sigma_f (MHz)':>15}{'T2* (ns)':>11}")
+print("-" * 79)
+S1_ref = (1.0e-6 * PHI0) ** 2        # 1 uPhi_0/sqrt(Hz) at 1 Hz
+f_lo, f_hi = 1e-2, 1e6
+sigma_Phi = np.sqrt(S1_ref * np.log(f_hi / f_lo))
+for Ip_nA in (10.0, 100.0, 300.0):
+    dfdPhi = 2.0 * Ip_nA * 1e-9 / H                  # Hz per weber
+    sigma_f = dfdPhi * sigma_Phi
+    T2s = np.sqrt(2.0) / (2 * np.pi * sigma_f)
+    print(f"{Ip_nA:>10.0f}{dfdPhi*PHI0*1e-3/1e9:>23.4f}"
+          f"{sigma_Phi/PHI0*1e6:>20.4f}{sigma_f/1e6:>15.4f}{T2s*1e9:>11.2f}")
+print(f"  sigma_Phi integrates S_Phi from {f_lo:.0e} Hz to {f_hi:.0e} Hz, i.e."
+      f" ln = {np.log(f_hi/f_lo):.3f}.")
+print("  A flux qubit biased for maximum flux sensitivity is dephased in tens")
+print("  of nanoseconds by the same defect population that limits a SQUID at")
+print("  1 Hz. The sensor and the qubit are reading the same material.")
+
+# --- Critical-current noise: the transmon's problem, in a SQUID -------------
+print("\nCritical-current 1/f noise, from two-level defects in the barrier:")
+print("  an asymmetry dI_0 between the junctions looks like a flux L dI_0 / 2")
+print(f"{'I_0 (uA)':>10}{'dI_0/I_0 at 1 Hz':>19}{'dI_0 (pA)':>12}{'L (pH)':>9}"
+      f"{'apparent flux':>19}")
+print("-" * 69)
+for I0_uA, frac, L_pH in [(5.0, 1e-5, 200.0), (5.0, 1e-6, 200.0),
+                          (20.0, 1e-5, 200.0), (5.0, 1e-5, 20.0)]:
+    dI = frac * I0_uA * 1e-6
+    dPhi = L_pH * 1e-12 * dI / 2.0
+    print(f"{I0_uA:>10.1f}{frac:>19.1e}{dI*1e12:>12.4f}{L_pH:>9.0f}"
+          f"{dPhi/PHI0*1e6:>13.4f} uPhi_0")
+print("  Both mechanisms land at the microflux-quantum scale, and both are")
+print("  amorphous-oxide problems: unpaired spins on the surface, and two-level")
+print("  defects in the tunnel barrier. Chapter 2 of the quantum-hardware course")
+print("  names the same two defect populations as the limits on transmon T1 and")
+print("  flux-qubit T2. Improving one improves the other.")
+```
+
+```text
+1/f flux noise from unpaired surface spins (order of magnitude)
+  one spin at a wire surface couples mu_0 mu_B / 2w of flux:
+    w =  0.10 um -> phi_1 = 0.0282 uPhi_0
+    w =  1.00 um -> phi_1 = 0.0028 uPhi_0
+    w = 10.00 um -> phi_1 = 0.0003 uPhi_0
+
+  loop side   wire w     N spins       rms dPhi    sqrt(S_Phi(1 Hz))
+--------------------------------------------------------------------
+      10 um    1.0 um   4.000e+06     5.636 uPhi_0         1.175 uPhi_0
+     100 um    1.0 um   4.000e+07    17.822 uPhi_0         3.714 uPhi_0
+    1000 um    1.0 um   4.000e+08    56.359 uPhi_0        11.745 uPhi_0
+      10 um    0.1 um   4.000e+05    17.822 uPhi_0         3.714 uPhi_0
+      10 um   10.0 um   4.000e+07     1.782 uPhi_0         0.371 uPhi_0
+  The areal density is the one fitted number here: sigma_s = 5e+16 1/m^2,
+  i.e. 0.05 unpaired spins per square nanometre, which is within an order
+  of magnitude of what the literature infers. What the model gets without
+  fitting is the scale and the weakness of the size dependence: the loop
+  side changes by two decades and the flux noise by one, because only the
+  perimeter enters, under a square root. A bulk mechanism would scale with
+  the area and vary by two decades. The near-universality of the measured
+  microflux-quantum is therefore evidence for a surface.
+  It also means 1/f flux noise dominates the error budget of large loops,
+  whose white noise from Example 3 is small.
+
+The same S_Phi, imported into a flux qubit at its sensitive bias:
+  dE/dPhi = 2 I_p, so df/dPhi = 2 I_p / h
+  I_p (nA)   df/dPhi (GHz/mPhi_0)  sigma_Phi (uPhi_0)  sigma_f (MHz)   T2* (ns)
+-------------------------------------------------------------------------------
+        10                 0.0624              4.2919         0.2679     840.22
+       100                 0.6242              4.2919         2.6788      84.02
+       300                 1.8725              4.2919         8.0364      28.01
+  sigma_Phi integrates S_Phi from 1e-02 Hz to 1e+06 Hz, i.e. ln = 18.421.
+  A flux qubit biased for maximum flux sensitivity is dephased in tens
+  of nanoseconds by the same defect population that limits a SQUID at
+  1 Hz. The sensor and the qubit are reading the same material.
+
+Critical-current 1/f noise, from two-level defects in the barrier:
+  an asymmetry dI_0 between the junctions looks like a flux L dI_0 / 2
+  I_0 (uA)   dI_0/I_0 at 1 Hz   dI_0 (pA)   L (pH)      apparent flux
+---------------------------------------------------------------------
+       5.0            1.0e-05     50.0000      200       2.4180 uPhi_0
+       5.0            1.0e-06      5.0000      200       0.2418 uPhi_0
+      20.0            1.0e-05    200.0000      200       9.6720 uPhi_0
+       5.0            1.0e-05     50.0000       20       0.2418 uPhi_0
+  Both mechanisms land at the microflux-quantum scale, and both are
+  amorphous-oxide problems: unpaired spins on the surface, and two-level
+  defects in the tunnel barrier. Chapter 2 of the quantum-hardware course
+  names the same two defect populations as the limits on transmon T1 and
+  flux-qubit T2. Improving one improves the other.
+```
+
+**What to look for.** The single-spin coupling sets the scale: a spin on the surface of a 1 $\mu$m wire couples $\mu_0\mu_B/2w = 0.0028\ \mu\Phi_0$, and it takes $N \sim 4\times10^{6}$ of them, added in quadrature, to reach a measurable flux. The model has exactly one fitted number, the areal density, and 0.05 spins per square nanometre reproduces the observed microflux quantum on a 10 $\mu$m loop. That density is about a decade below the literature cluster, which sits nearer $5\times10^{17}$ m$^{-2}$, and the discrepancy is in the coupling rather than in the physics: $\phi_1 = \mu_0\mu/2w$ places every spin where it couples best and is roughly a factor 3 generous, and since $S_\Phi \propto \sigma_s\phi_1^2$ a coupling 3 times too large is fitted by a density about 10 times too small. Nothing below depends on the prefactor.
+
+What the model predicts without fitting is the scaling, and that is the part that identifies the mechanism. Increasing the loop side by two decades increases the flux noise by only one, because the variance follows the perimeter and enters under a square root. A bulk mechanism would have given two decades. The $1/w$ dependence of the per-spin coupling partly cancels the $w$ dependence of the spin count, leaving an overall $1/\sqrt{w}$: narrow wires are noisier, which is exactly what is observed and is the opposite of what one would guess from "more material, more defects".
+
+The flux-qubit block is the cross-course link made quantitative. Integrating $1\ \mu\Phi_0/\sqrt{\mathrm{Hz}}$ of $1/f$ noise from $10^{-2}$ Hz to $10^6$ Hz gives $\sigma_\Phi = 4.29\ \mu\Phi_0$ of quasi-static flux uncertainty. A flux qubit with persistent current $I_p = 300$ nA has $\mathrm{d}f/\mathrm{d}\Phi = 2I_p/h = 1.87$ GHz per milliflux quantum, so $\sigma_f = 8.0$ MHz and, using the Gaussian relation $T_2^\ast = \sqrt{2}/2\pi\sigma_f$ from the sister course, $T_2^\ast = 28$ ns. That is the right order for a flux qubit biased for maximum sensitivity, and it was computed from a magnetometer's noise spectrum with no qubit physics in it beyond the slope $2I_p$.
+
+The critical-current block closes the argument by showing that the second mechanism arrives at the same place. A fractional $I_0$ noise of $10^{-5}$ on a 5 $\mu$A junction with a 200 pH loop mimics 2.4 $\mu\Phi_0$ of flux. Both mechanisms are of the same size, both are amorphous-oxide problems, and neither is helped by a better circuit design.
+
+* * *
+
+## 3.4 Measuring Materials With Flux
+
+### Susceptometry: the Workhorse
+
+The single most common use of a SQUID in materials science is not imaging. It is the measurement of a sample's magnetic moment as a function of temperature and applied field — $M(T)$, $M(H)$, and the susceptibility $\chi$ — because those curves identify magnetic order, transition temperatures, superconducting volume fractions, spin-glass freezing, paramagnetic impurity content, and much else.
+
+The instrument is a SQUID coupled to a **pickup coil**, usually wound as a second-order gradiometer so that a uniform applied field couples nothing while a local dipole couples strongly. The sample is moved through the coil and the flux change is recorded. Two design principles come out of §3.1 and §3.3.
+
+First, the pickup coil is *not* the SQUID loop. The SQUID must keep $\beta_L \approx 1$, which caps its inductance and therefore its area. The area is put in a separate superconducting loop connected to an input coil that is mutually coupled to the SQUID — a **flux transformer**, which carries no dissipation because it is entirely superconducting. With the input coil matched to the pickup coil, $L_i = L_p$, the effective area of the combination is
+
+$$ A_{\mathrm{eff}} = \frac{A_p M_i}{L_p + L_i} = \frac{k}{2}\,A_p\sqrt{\frac{L_{\mathrm{sq}}}{L_p}} $$
+
+which grows as $r_p^2/\sqrt{L_p} \sim r_p^{3/2}$: field sensitivity improves as $r_p^{-3/2}$ while the SQUID itself stays small. This is how femtotesla sensitivity is reached, and Code Example 5 computes it.
+
+Second, the sample has to be *moved*, which puts the signal at the transport frequency — typically well below 10 Hz. That is squarely inside the $1/f$ region of §3.3, so the relevant noise is not the white noise but the surface-spin noise, and the resolution of a real susceptometer is several decades worse than its white-noise floor. The gap is not a defect of the design; it is the same materials problem again, appearing as an instrument specification.
+
+### Scanning SQUID Microscopy
+
+Replace the pickup coil with a micrometre-scale loop close to a surface and raster-scan it. The resolution is set by the loop size and the height above the sample, exactly as the standoff set the resolution in Chapter 2, and the same Laplace argument applies: features finer than the standoff are exponentially attenuated.
+
+The physics accessible this way is largely superconducting, and it is physics that no other probe reaches. Individual **vortices** each carry one flux quantum and appear as identifiable objects, so pinning sites, vortex lattices, vortex motion and entry barriers can be imaged directly. Local **Meissner screening** measured by a co-wound field coil gives the superfluid density point by point, which maps inhomogeneity in a film or a crystal. **Edge and surface currents** in topological materials, and **current paths** in devices, appear as flux patterns. And a **local susceptometer** — a field coil and a pickup loop on the same tip — measures $\chi$ on a micrometre scale, which is how mesoscopic magnetism and paramagnetic islands in nominally non-magnetic films are found.
+
+### Flux Imaging and the Biomagnetic Aside
+
+Between the two extremes sit fixed-array flux imagers: a SQUID scanned or arrayed a few hundred micrometres above a sample at room temperature, separated by a thin vacuum window. The resolution is the standoff, so hundreds of micrometres, but the sample need not be cold. This is the configuration used for non-destructive evaluation, for current mapping in packaged electronics, and for imaging remanent magnetisation in geological and archaeological samples.
+
+Biomagnetism — magnetoencephalography and magnetocardiography — is the application that made SQUID arrays an industry, and it is mentioned here only to place it on the map: it demands femtotesla sensitivity over centimetre standoffs with no cryogenic access to the sample, which is precisely the regime the flux transformer of Code Example 5 delivers and precisely the opposite of the regime a scanning tip delivers. It is not a materials measurement and is not pursued further in this course.
+
+### Where SQUIDs and NV Centres Belong
+
+The two techniques of Chapters 2 and 3 are complementary rather than competing, and the boundary is drawn by geometry and by temperature.
+
+  * **Spatial resolution.** NV wins by three to four decades, because the sensor is an atom and the standoff is an implantation depth.
+  * **Field sensitivity.** SQUID wins by five to eight decades, because it counts flux quanta over a large area.
+  * **Operating temperature.** NV works from 4 K to above 600 K; a SQUID needs its superconductor cold. For a sample that must be hot, or for a sample that cannot be cooled, there is no contest.
+  * **Bandwidth.** A SQUID is a lumped circuit and stops in the MHz. An NV has a 2.87 GHz transition and reads gigahertz noise directly through $T_1$, as §2.4 showed.
+  * **Invasiveness.** A SQUID must be brought within its own loop size of the sample and is a superconductor, so it screens and it must be cold. An NV sits inside a dielectric and perturbs almost nothing.
+
+Code Example 5 puts numbers in all of those columns and finds that the exchange rate between resolution and sensitivity is the same $3/2$ power for both families — which is not a coincidence, because both pay for sensitivity by averaging over area.
+
+### Code Example 5: Pickup Coils, Moments, and the Map
+
+```python
+"""Chapter 3, Example 5: pickup coils, moment resolution, and where a SQUID
+beats an NV centre. Continues from Example 4 (same session)."""
+
+
+def loop_L(r, a):
+    """Self-inductance of a circular loop of radius r, wire radius a."""
+    return MU0 * r * (np.log(8.0 * r / a) - 2.0)
+
+
+def a_eff_transformer(r_p, L_sq, a=25e-6, k=0.7):
+    """Effective area of a SQUID fed by a matched superconducting flux
+    transformer: A_eff = A_p M_i / (L_p + L_i), with L_i = L_p (matching) and
+    M_i = k sqrt(L_i L_sq), so A_eff = (k/2) A_p sqrt(L_sq / L_p)."""
+    L_p = loop_L(r_p, a)
+    return 0.5 * k * np.pi * r_p**2 * np.sqrt(L_sq / L_p), L_p
+
+
+S_PHI_WHITE = (0.62e-6 * PHI0) ** 2      # from Example 3: 100 pH, 1 pF, 4.2 K
+S_PHI_1F = (1.0e-6 * PHI0) ** 2          # 1 uPhi_0/sqrt(Hz) at 1 Hz
+
+print("A matched flux transformer trades area against inductance")
+print(f"  SQUID flux noise 0.62 uPhi_0/sqrt(Hz) white, 1.0 uPhi_0/sqrt(Hz) "
+      f"at 1 Hz")
+print(f"\n{'r_p':>9}{'L_p (nH)':>11}{'A_p (m^2)':>12}{'A_eff (m^2)':>14}"
+      f"{'A_eff/A_p':>12}{'sqrt(S_B) white':>18}{'at 1 Hz':>14}")
+print("-" * 90)
+for r_mm in (0.3, 1.0, 10.0, 30.0):
+    A_eff, L_p = a_eff_transformer(r_mm * 1e-3, 100e-12)
+    A_p = np.pi * (r_mm * 1e-3) ** 2
+    print(f"{r_mm:>7.1f} mm{L_p*1e9:>11.3f}{A_p:>12.3e}{A_eff:>14.3e}"
+          f"{A_eff/A_p:>12.5f}"
+          f"{np.sqrt(S_PHI_WHITE)/A_eff*1e15:>13.3f} fT"
+          f"{np.sqrt(S_PHI_1F)/A_eff*1e15:>11.3f} fT")
+rr = np.array([0.3, 1.0, 10.0, 30.0]) * 1e-3
+sb = np.array([np.sqrt(S_PHI_WHITE) / a_eff_transformer(r, 100e-12)[0]
+               for r in rr])
+print(f"  fitted exponent of sqrt(S_B) against r_p : "
+      f"{np.polyfit(np.log(rr), np.log(sb), 1)[0]:.4f}")
+print("  A_eff grows as r_p^2 / sqrt(L_p), i.e. roughly r_p^(3/2), so field")
+print("  sensitivity improves as r_p^(-3/2) up to a logarithm. This is how a")
+print("  femtotesla magnetometer is built without making the SQUID itself big:")
+print("  keep beta_L near 1 in the loop that carries the junctions, and put the")
+print("  area somewhere else.")
+
+# --- Moment resolution: what a susceptometer can weigh -----------------------
+def flux_from_dipole(m, r_loop, z):
+    """On-axis flux of a point dipole through a loop of radius r at distance z."""
+    return MU0 * m * r_loop**2 / (2.0 * (r_loop**2 + z**2) ** 1.5)
+
+
+print("\nMoment resolution: the flux a dipole threads through a pickup loop")
+print(f"{'r_loop':>9}{'z':>9}{'Phi per A m^2':>17}{'delta m, white':>19}"
+      f"{'delta m at 1 Hz':>19}")
+print("-" * 73)
+for r_mm, z_mm in [(0.05, 0.05), (1.0, 1.0), (5.0, 2.0), (10.0, 5.0)]:
+    r_l, z = r_mm * 1e-3, z_mm * 1e-3
+    c = flux_from_dipole(1.0, r_l, z)
+    print(f"{r_mm:>7.2f} mm{z_mm:>7.2f} mm{c:>17.4e}"
+          f"{np.sqrt(S_PHI_WHITE)/c:>14.4e} Am2"
+          f"{np.sqrt(S_PHI_1F)/c:>14.4e} Am2")
+print("  1e-18 A m^2 is about 100 000 Bohr magnetons; the numbers above are")
+print("  the flux-noise floor only. A working susceptometer is several decades")
+print("  worse because the sample has to be moved, and moving it puts the signal")
+print("  at a low frequency where the 1/f noise of the previous example lives.")
+print("  That is why the 1/f column, not the white column, sets what can be")
+print("  measured on a small sample.")
+
+# --- Where each technique wins ----------------------------------------------
+print("\nOne map, two device families (orders of magnitude, from the physics):")
+header = (f"{'probe':>26}{'resolution':>13}{'field noise':>16}"
+          f"{'operating T':>14}{'bandwidth':>13}")
+print(header)
+print("-" * len(header))
+rows = [
+    ("single NV, scanning tip",   "20 nm",   "50 nT/rtHz",  "4 - 600 K",
+     "DC - GHz"),
+    ("NV ensemble, wide field",   "400 nm",  "1 nT/rtHz",   "4 - 600 K",
+     "DC - GHz"),
+    ("scanning SQUID, 1 um loop", "1 um",    "3 pT/rtHz",   "below 10 K",
+     "DC - MHz"),
+    ("SQUID, 25 um loop",         "25 um",   "0.7 pT/rtHz", "below 10 K",
+     "DC - MHz"),
+    ("SQUID + 10 mm transformer", "10 mm",   "0.2 fT/rtHz", "below 10 K",
+     "DC - MHz"),
+]
+for row in rows:
+    print(f"{row[0]:>26}{row[1]:>13}{row[2]:>16}{row[3]:>14}{row[4]:>13}")
+d_size = np.log10(1e-2 / 2e-8)
+d_field = np.log10(50e-9 / 0.2e-15)
+print(f"  Top row to bottom row: {d_size:.1f} decades of linear size buy "
+      f"{d_field:.1f}")
+print(f"  decades of field noise, a slope of {d_field/d_size:.2f}. That is the "
+      f"same 3/2")
+print("  both families produced independently above, because both pay spatial")
+print("  resolution for sensitivity through the same geometry.")
+print("  The columns that do not scale are the interesting ones. A SQUID needs")
+print("  a superconductor, so it needs cryogenics; an NV works at 600 K. A")
+print("  SQUID is a lumped circuit, so it stops in the MHz; an NV has a 2.87 GHz")
+print("  transition and reads GHz noise directly through T1.")
+```
+
+```text
+A matched flux transformer trades area against inductance
+  SQUID flux noise 0.62 uPhi_0/sqrt(Hz) white, 1.0 uPhi_0/sqrt(Hz) at 1 Hz
+
+      r_p   L_p (nH)   A_p (m^2)   A_eff (m^2)   A_eff/A_p   sqrt(S_B) white       at 1 Hz
+------------------------------------------------------------------------------------------
+    0.3 mm      0.967   2.827e-07     3.183e-08     0.11257       40.281 fT     64.969 fT
+    1.0 mm      4.735   3.142e-06     1.598e-07     0.05086        8.024 fT     12.941 fT
+   10.0 mm     76.289   3.142e-04     3.981e-06     0.01267        0.322 fT      0.519 fT
+   30.0 mm    270.284   2.827e-03     1.903e-05     0.00673        0.067 fT      0.109 fT
+  fitted exponent of sqrt(S_B) against r_p : -1.3898
+  A_eff grows as r_p^2 / sqrt(L_p), i.e. roughly r_p^(3/2), so field
+  sensitivity improves as r_p^(-3/2) up to a logarithm. This is how a
+  femtotesla magnetometer is built without making the SQUID itself big:
+  keep beta_L near 1 in the loop that carries the junctions, and put the
+  area somewhere else.
+
+Moment resolution: the flux a dipole threads through a pickup loop
+   r_loop        z    Phi per A m^2     delta m, white    delta m at 1 Hz
+-------------------------------------------------------------------------
+   0.05 mm   0.05 mm       4.4429e-03    2.8856e-19 Am2    4.6543e-19 Am2
+   1.00 mm   1.00 mm       2.2214e-04    5.7713e-18 Am2    9.3085e-18 Am2
+   5.00 mm   2.00 mm       1.0058e-04    1.2746e-17 Am2    2.0559e-17 Am2
+  10.00 mm   5.00 mm       4.4959e-05    2.8516e-17 Am2    4.5994e-17 Am2
+  1e-18 A m^2 is about 100 000 Bohr magnetons; the numbers above are
+  the flux-noise floor only. A working susceptometer is several decades
+  worse because the sample has to be moved, and moving it puts the signal
+  at a low frequency where the 1/f noise of the previous example lives.
+  That is why the 1/f column, not the white column, sets what can be
+  measured on a small sample.
+
+One map, two device families (orders of magnitude, from the physics):
+                     probe   resolution     field noise   operating T    bandwidth
+----------------------------------------------------------------------------------
+   single NV, scanning tip        20 nm      50 nT/rtHz     4 - 600 K     DC - GHz
+   NV ensemble, wide field       400 nm       1 nT/rtHz     4 - 600 K     DC - GHz
+ scanning SQUID, 1 um loop         1 um       3 pT/rtHz    below 10 K     DC - MHz
+         SQUID, 25 um loop        25 um     0.7 pT/rtHz    below 10 K     DC - MHz
+ SQUID + 10 mm transformer        10 mm     0.2 fT/rtHz    below 10 K     DC - MHz
+  Top row to bottom row: 5.7 decades of linear size buy 8.4
+  decades of field noise, a slope of 1.47. That is the same 3/2
+  both families produced independently above, because both pay spatial
+  resolution for sensitivity through the same geometry.
+  The columns that do not scale are the interesting ones. A SQUID needs
+  a superconductor, so it needs cryogenics; an NV works at 600 K. A
+  SQUID is a lumped circuit, so it stops in the MHz; an NV has a 2.87 GHz
+  transition and reads GHz noise directly through T1.
+```
+
+**What to look for.** The transformer table shows how badly a large pickup coil is coupled and why it is still worth it. Only 1.3% of a 10 mm coil's geometric area survives as effective area, because $A_{\mathrm{eff}}$ is suppressed by $\sqrt{L_{\mathrm{sq}}/L_p}$ and the pickup inductance is three decades above the SQUID's. But 1.3% of 3 cm$^2$ is still 4 mm$^2$, three decades more than a bare 25 $\mu$m loop, so the field noise falls to 0.32 fT/$\sqrt{\mathrm{Hz}}$ white and 0.52 fT/$\sqrt{\mathrm{Hz}}$ at 1 Hz. The fitted exponent is $-1.39$, close to the $-3/2$ the algebra predicts and reduced by the logarithm in $L_p(r_p)$.
+
+The moment table is the number a materials scientist actually needs. A millimetre-scale pickup loop with a sample a millimetre away resolves $5.8\times10^{-18}$ A m$^2$ per root hertz on the white-noise floor, and $9.3\times10^{-18}$ A m$^2$ against the $1/f$ noise at 1 Hz — of order $10^{6}$ Bohr magnetons. Working instruments are several decades short of this, and the reason is in the second column: the sample transport puts the signal at a low frequency, where the surface-spin noise of §3.3 dominates, and on top of that sit vibration, temperature drift and the moment of the sample holder. The flux-noise floor is a bound, not a specification.
+
+The last table is the map. Across five and a half decades of linear size, from a 20 nm scanning NV to a 10 mm flux transformer, the field noise falls by eight and a half decades — a slope of 1.47, the same $3/2$ that both device families produced independently from their own geometry. The columns that break the pattern are the interesting ones: operating temperature and bandwidth do not scale with size at all, and they are what actually decides which instrument a given measurement needs.
+
+* * *
+
+## Exercises
+
+#### Exercise 1: Reading a SQUID Specification
+
+A dc SQUID is quoted with $L = 200$ pH, $C = 0.5$ pF and an operating temperature of 4.2 K.
+
+  1. What critical current and shunt resistance does the design satisfy $\beta_L = \beta_c = 1$?
+  2. Compute $\epsilon$, $\sqrt{S_\Phi}$ and $V_\Phi$.
+  3. The loop is a square of side 40 $\mu$m. What field noise does that imply, and how does it compare with the single-NV AC sensitivity of §2.3?
+  4. The manufacturer instead quotes 3 $\mu\Phi_0/\sqrt{\mathrm{Hz}}$ at 1 Hz. What does the discrepancy tell you, and what would you change first?
+
+<details>
+<summary>Solution</summary>
+
+<p><strong>1.</strong> \(I_0 = \Phi_0/2L = 2.0678\times10^{-15}/(4\times10^{-10}) = 5.170\ \mu\mathrm{A}\). \(R = \sqrt{L/(\pi C)} = \sqrt{2\times10^{-10}/(\pi\times5\times10^{-13})} = \sqrt{127.3} = 11.28\ \Omega\).</p>
+
+<p><strong>2.</strong> \(\epsilon = 8\sqrt{\pi}k_BT\sqrt{LC} = 14.180\times5.799\times10^{-23}\times\sqrt{10^{-22}} = 8.22\times10^{-33}\) J/Hz \(= 78.0\,\hbar\) — the same as the 100 pH, 1 pF device, because \(LC\) is the same. \(S_\Phi = 2L\epsilon = 3.29\times10^{-42}\) Wb\(^2\)/Hz, so \(\sqrt{S_\Phi} = 1.814\times10^{-21}\) Wb \(= 0.877\ \mu\Phi_0/\sqrt{\mathrm{Hz}}\). \(V_\Phi = R/L = 5.64\times10^{10}\) V/Wb \(= 117\ \mu\)V/\(\Phi_0\).</p>
+
+<p><strong>3.</strong> \(A = (40\ \mu\mathrm{m})^2 = 1.6\times10^{-9}\) m\(^2\), so \(\sqrt{S_B} = 1.814\times10^{-21}/1.6\times10^{-9} = 1.13\) pT/\(\sqrt{\mathrm{Hz}}\). That is 45 000 times better than the 51 nT/\(\sqrt{\mathrm{Hz}}\) of a single NV, at a spatial resolution 2000 times worse — a slope of \(\log(4.5\times10^4)/\log(2\times10^3) = 1.41\), which is the same 3/2 that section 3.4 finds across the whole map.</p>
+
+<p><strong>4.</strong> The quoted figure is 3.4 times the white-noise floor, and it is quoted at 1 Hz, which is exactly where the \(1/f\) surface-spin noise of section 3.3 lives. There is nothing wrong with the circuit; the device is limited by its own surfaces. The first thing to change is therefore not \(R\), \(L\) or \(T\) but the surface treatment and the wire width — and, if the measurement permits, the operating frequency, since moving the signal above the \(1/f\) crossover recovers the white-noise floor. That is what a flux-locked loop with a modulated bias is for.</p>
+
+```python
+import numpy as np
+h, e, kB, hbar = 6.62607015e-34, 1.602176634e-19, 1.380649e-23, 1.054571817e-34
+PHI0 = h / (2 * e)
+L, C, T = 200e-12, 0.5e-12, 4.2
+I0, R = PHI0 / (2 * L), np.sqrt(L / (np.pi * C))
+eps = 8 * np.sqrt(np.pi) * kB * T * np.sqrt(L * C)
+SPhi = 2 * L * eps
+print(f"I0 = {I0*1e6:.3f} uA   R = {R:.2f} ohm   eps = {eps/hbar:.1f} hbar")
+print(f"sqrt(S_Phi) = {np.sqrt(SPhi)/PHI0*1e6:.3f} uPhi0   "
+      f"V_Phi = {R/L*PHI0*1e6:.1f} uV/Phi0")
+print(f"sqrt(S_B) = {np.sqrt(SPhi)/1.6e-9*1e12:.3f} pT/rtHz")
+# I0 = 5.170 uA   R = 11.28 ohm   eps = 78.0 hbar
+# sqrt(S_Phi) = 0.877 uPhi0   V_Phi = 116.7 uV/Phi0
+# sqrt(S_B) = 1.133 pT/rtHz
+```
+
+</details>
+
+#### Exercise 2: Screening, Statically
+
+Code Example 2 obtained $I_c(\Phi)$ by bisecting on the RSJ integrator. Reproduce it without any time integration.
+
+  1. Write the two static equations and the flux constraint, and show that $I_b = I_0(\sin\varphi_1 + \sin\varphi_2)$ subject to $(\sin\varphi_1 - \sin\varphi_2)/2 = [(\varphi_2-\varphi_1) - 2\pi\varphi_e]/(\pi\beta_L)$.
+  2. Maximise numerically at $\varphi_e = 1/2$ for $\beta_L = 0.2, 0.5, 1, 2$ and compare with the values printed in Code Example 2.
+  3. Explain why $I_c(0) = 2I_0$ for every $\beta_L$.
+  4. For $\beta_L \gg 1$ the standard estimate is $\Delta I_c \approx \Phi_0/L$. Test it at $\beta_L = 2$ and comment.
+
+<details>
+<summary>Solution</summary>
+
+<p><strong>1.</strong> Static means \(\dot\varphi = 0\), so each junction carries only its supercurrent: \(I_0\sin\varphi_1 = I_b/2 + J\) and \(I_0\sin\varphi_2 = I_b/2 - J\). Adding gives \(I_b = I_0(\sin\varphi_1+\sin\varphi_2)\); subtracting gives \(J = I_0(\sin\varphi_1-\sin\varphi_2)/2\). Substituting \(J\) into \(\varphi_2-\varphi_1 = 2\pi(\Phi_{\mathrm{ext}} + LJ)/\Phi_0\) and using \(\beta_L = 2LI_0/\Phi_0\) gives the stated constraint.</p>
+
+<p><strong>2.</strong> Scanning \(\varphi_1\) and solving the constraint for \(\varphi_2\) at each point gives 0.30454, 0.67198, 1.04716 and 1.39304 in units of \(I_0\), against 0.30467, 0.67208, 1.04725 and 1.39313 from the integrator: agreement to four digits. The residual difference is the bisection tolerance, not a physical effect.</p>
+
+<p><strong>3.</strong> At \(\varphi_e = 0\) the symmetric solution \(\varphi_1 = \varphi_2\) satisfies the constraint with \(J = 0\) for any \(\beta_L\), and it also maximises \(\sin\varphi_1 + \sin\varphi_2\) at \(\varphi_1 = \varphi_2 = \pi/2\). No circulating current is needed, so the loop inductance is irrelevant and \(I_c = 2I_0\).</p>
+
+<p><strong>4.</strong> At \(\beta_L = 2\), \(\Phi_0/L = 2I_0/\beta_L = I_0\), so the estimate predicts \(I_c(\Phi_0/2) = 2I_0 - I_0 = I_0\), while the calculation gives \(1.393\,I_0\). The estimate is 28% low. It assumes the loop must generate the full screening current \(\Phi_0/2L\) at the operating point, which overstates the cost because the two junction phases redistribute to share it. The estimate is asymptotic in \(\beta_L\) and should not be used near 1, which is where devices are built.</p>
+
+```python
+import numpy as np
+from scipy.optimize import brentq
+def ic_static(pe, bL, n=4001):
+    best = 0.0
+    for p1 in np.linspace(-np.pi, np.pi, n):
+        g = lambda p2: ((np.sin(p1) - np.sin(p2)) / 2
+                        - ((p2 - p1) - 2 * np.pi * pe) / (np.pi * bL))
+        c = p1 + 2 * np.pi * pe
+        xs = np.linspace(c - np.pi, c + np.pi, 201)
+        gs = np.array([g(x) for x in xs])
+        for k in range(len(xs) - 1):
+            if gs[k] * gs[k + 1] < 0:
+                best = max(best, np.sin(p1) + np.sin(brentq(g, xs[k], xs[k + 1])))
+    return best
+print([round(float(ic_static(0.5, b)), 5) for b in (0.2, 0.5, 1.0, 2.0)])
+# [0.30454, 0.67198, 1.04716, 1.39304]
+```
+
+</details>
+
+#### Exercise 3: The Energy Resolution, Term by Term
+
+  1. Starting from $S_V = 16k_BTR$, $V_\Phi = R/L$ and $\epsilon = S_\Phi/2L$, derive $\epsilon = 8k_BTL/R$.
+  2. Impose $\beta_c = 1$ and $\beta_L = 1$ and eliminate $R$ and $I_0$ to obtain $\epsilon = 8\sqrt{\pi}k_BT\sqrt{LC}$.
+  3. At what temperature does the formula return $\epsilon = \hbar$ for $L = 100$ pH and $C = 1$ pF? What is wrong with the answer?
+  4. A colleague proposes reducing $C$ by a factor 100 to gain a decade in $\epsilon$. What else changes, and is the proposal sound?
+
+<details>
+<summary>Solution</summary>
+
+<p><strong>1.</strong> \(S_\Phi = S_V/V_\Phi^2 = 16k_BTR\cdot(L/R)^2 = 16k_BTL^2/R\), so \(\epsilon = S_\Phi/2L = 8k_BTL/R\).</p>
+
+<p><strong>2.</strong> \(\beta_c = 2\pi I_0R^2C/\Phi_0 = 1\) gives \(R^2 = \Phi_0/(2\pi I_0 C)\); \(\beta_L = 2LI_0/\Phi_0 = 1\) gives \(I_0 = \Phi_0/2L\). Substituting, \(R^2 = \Phi_0\cdot 2L/(2\pi\Phi_0 C) = L/(\pi C)\), so \(R = \sqrt{L/(\pi C)}\) and \(\epsilon = 8k_BTL\sqrt{\pi C/L} = 8\sqrt{\pi}k_BT\sqrt{LC}\).</p>
+
+<p><strong>3.</strong> \(\sqrt{LC} = 10^{-11}\) s, so \(T = \hbar/(8\sqrt{\pi}k_B\sqrt{LC}) = 1.0546\times10^{-34}/(14.180\times1.3806\times10^{-23}\times10^{-11}) = 53.9\) mK. The answer is wrong in the sense that it cannot be trusted: the derivation is entirely classical, treats the shunts as Johnson resistors with \(S_I = 4k_BT/R\), and neglects the zero-point term \(2\pi\hbar f/R\) that dominates once \(hf \gtrsim k_BT\). At 54 mK the relevant frequencies are the Josephson frequency, of order GHz, for which \(hf/k_B \approx 50\) mK — so the quantum correction is exactly of order unity. The honest statement is that \(\epsilon\) saturates at order \(\hbar\).</p>
+
+<p><strong>4.</strong> Reducing \(C\) by 100 reduces \(\sqrt{LC}\) by 10 and \(\epsilon\) by 10, and it does so by permitting \(R\) to grow by 10. But \(\sqrt{S_\Phi} = \sqrt{2L\epsilon}\) falls only by \(\sqrt{10}\), and \(V_\Phi = R/L\) grows by 10, which means the SQUID's own voltage noise falls relative to the amplifier's — so the proposal helps twice over. It is sound as physics. The difficulty is fabrication: junction capacitance is proportional to area, so a hundredfold reduction means a junction ten times smaller in each direction, which raises the critical-current spread, raises the \(1/f\) critical-current noise (which scales inversely with area), and eventually makes \(E_C\) comparable to \(E_J\) — at which point the phase stops being classical and the device becomes a qubit rather than a magnetometer.</p>
+
+</details>
+
+#### Exercise 4: Diagnosing a Fabrication Change
+
+Two batches of nominally identical dc SQUIDs are measured. Both have $L = 150$ pH and operate at 4.2 K.
+
+| Batch | white $\sqrt{S_\Phi}$ | $\sqrt{S_\Phi}$ at 1 Hz | $1/f$ crossover |
+| --- | --- | --- | --- |
+| A | 0.75 $\mu\Phi_0/\sqrt{\mathrm{Hz}}$ | 1.1 $\mu\Phi_0/\sqrt{\mathrm{Hz}}$ | 2 Hz |
+| B | 0.76 $\mu\Phi_0/\sqrt{\mathrm{Hz}}$ | 6.0 $\mu\Phi_0/\sqrt{\mathrm{Hz}}$ | 60 Hz |
+
+  1. What does the equality of the white noise tell you about $R$, $C$ and $I_0$ in the two batches?
+  2. Estimate the surface spin density implied by each $1/f$ amplitude, taking a 20 $\mu$m loop side and 1 $\mu$m wires and using the model of Code Example 4.
+  3. Give one alternative explanation for batch B and one measurement that distinguishes it from surface spins.
+  4. What would each batch imply for a flux qubit fabricated on the same wafer, with $I_p = 200$ nA?
+
+<details>
+<summary>Solution</summary>
+
+<p><strong>1.</strong> The white flux noise is \(\sqrt{16k_BTL^2/R}\), so equal white noise at equal \(L\) and \(T\) means equal \(R\) to within 3%. With \(\beta_c\) fixed by \(R^2C I_0\) and \(\beta_L\) by \(LI_0\), equal \(L\) also means equal \(I_0\) and therefore equal \(C\). The junctions and shunts are the same; nothing in the circuit changed.</p>
+
+<p><strong>2.</strong> The model gives \(\sqrt{S_\Phi(1\,\mathrm{Hz})} \propto \sqrt{\sigma_s}\), and Code Example 4 returns 1.175 \(\mu\Phi_0/\sqrt{\mathrm{Hz}}\) for a 10 \(\mu\)m loop with 1 \(\mu\)m wires at \(\sigma_s = 5\times10^{16}\) m\(^{-2}\). A 20 \(\mu\)m loop has twice the perimeter, hence \(\sqrt{2}\) more noise: 1.662 \(\mu\Phi_0/\sqrt{\mathrm{Hz}}\) at the same density. So batch A, at 1.1, implies \(\sigma_s = 5\times10^{16}\times(1.1/1.662)^2 = 2.2\times10^{16}\) m\(^{-2}\), and batch B, at 6.0, implies \(6.5\times10^{17}\) m\(^{-2}\) — a factor 30 more spins. Given that the model's absolute prefactor is uncertain at the order-of-magnitude level, the defensible statement is the <em>ratio</em>: batch B has 30 times the fluctuator density.</p>
+
+<p><strong>3.</strong> The alternative is critical-current noise from barrier defects, which also gives \(1/f\) and would also leave the white noise unchanged. It is distinguished by its bias dependence: the apparent flux from an \(I_0\) asymmetry scales with \(I_0\) and reverses with the direction of the bias current, whereas surface-spin flux noise does not. A bias-reversal measurement therefore separates them, and it is standard practice for exactly this reason. Temperature dependence is a second discriminator, since thermally activated barrier defects freeze out with a different exponent than surface spins.</p>
+
+<p><strong>4.</strong> \(\mathrm{d}f/\mathrm{d}\Phi = 2I_p/h = 1.248\) GHz per m\(\Phi_0\). Integrating each \(1/f\) amplitude over \(10^{-2}\) to \(10^{6}\) Hz, \(\sigma_\Phi = \sqrt{S_\Phi(1)\ln(10^8)} = 4.72\) and 25.75 \(\mu\Phi_0\) for A and B, giving \(\sigma_f = 5.89\) and 32.15 MHz and \(T_2^\ast = \sqrt{2}/(2\pi\sigma_f) = 38.2\) and 7.0 ns. Batch B's wafer would produce flux qubits 5.5 times worse, and the SQUID measurement — one afternoon at 4 K — predicted it before any qubit was fabricated. That is the practical content of section 3.3.</p>
+
+```python
+import numpy as np
+h = 6.62607015e-34
+PHI0 = h / (2 * 1.602176634e-19)
+for S1_u, Ip in [(1.1, 200e-9), (6.0, 200e-9)]:
+    sig = S1_u * 1e-6 * PHI0 * np.sqrt(np.log(1e8))
+    sf = 2 * Ip / h * sig
+    print(f"sigma_s = {5e16*(S1_u/1.662)**2:.3e} 1/m2   "
+          f"sigma_Phi = {sig/PHI0*1e6:6.2f} uPhi0   sigma_f = {sf/1e6:6.2f} MHz"
+          f"   T2* = {np.sqrt(2)/(2*np.pi*sf)*1e9:6.2f} ns")
+# sigma_s = 2.190e+16 1/m2   sigma_Phi =   4.72 uPhi0   sigma_f =   5.89 MHz   T2* =  38.19 ns
+# sigma_s = 6.516e+17 1/m2   sigma_Phi =  25.75 uPhi0   sigma_f =  32.15 MHz   T2* =   7.00 ns
+```
+
+</details>
+
+#### Exercise 5: Choosing an Instrument
+
+You must measure the magnetisation of a 5 $\mu$m by 5 $\mu$m flake of a van der Waals magnet, one monolayer thick, as a function of temperature from 4 K to 200 K.
+
+  1. Estimate the flake's total moment, taking 15 Bohr magnetons per square nanometre.
+  2. Could a bulk susceptometer with the moment resolution computed in Code Example 5 measure it? Answer for both the white-noise and the 1 Hz figures.
+  3. Estimate the stray field a scanning NV would see at 50 nm from the flake edge, using the model of §2.5, and the averaging time needed at 51 nT/$\sqrt{\mathrm{Hz}}$.
+  4. Which instrument answers the question, and what is the deciding constraint?
+
+<details>
+<summary>Solution</summary>
+
+<p><strong>1.</strong> Area \(2.5\times10^{-11}\) m\(^2\) = \(2.5\times10^{7}\) nm\(^2\), so \(3.75\times10^{8}\) Bohr magnetons, i.e. \(m = 3.75\times10^{8}\times9.274\times10^{-24} = 3.48\times10^{-15}\) A m\(^2\).</p>
+
+<p><strong>2.</strong> Yes, comfortably, on paper: Code Example 5 gives \(5.8\times10^{-18}\) A m\(^2\)/\(\sqrt{\mathrm{Hz}}\) white and \(9.3\times10^{-18}\) at 1 Hz for a millimetre pickup loop, so the flake is 400 to 600 times the noise floor in one second. In practice the answer is usually no, because a real susceptometer sits several decades above its flux-noise floor and, more importantly, because the sample holder and substrate contribute a background moment that is orders of magnitude larger than \(3.5\times10^{-15}\) A m\(^2\). The measurement is background-limited, not noise-limited — which is the standard reason bulk magnetometry fails on two-dimensional samples.</p>
+
+<p><strong>3.</strong> Areal moment \(m_s = 15\times9.274\times10^{-24}/10^{-18} = 1.391\times10^{-4}\) A. Edge field \(\mu_0 m_s/(2\pi d) = 1.2566\times10^{-6}\times1.391\times10^{-4}/(2\pi\times5\times10^{-8}) = 5.56\times10^{-4}\) T \(= 556\ \mu\)T. Against 51 nT/\(\sqrt{\mathrm{Hz}}\) the required time for unit signal-to-noise is \((51\times10^{-9}/5.56\times10^{-4})^2 = 8.4\times10^{-9}\) s. Sensitivity is not remotely the constraint; scan time and standoff stability are.</p>
+
+<p><strong>4.</strong> The scanning NV answers it. The deciding constraint is not sensitivity — both instruments have it in abundance — but <strong>background</strong>: the NV measures the field of the flake locally, with everything more than a few hundred nanometres away contributing almost nothing, whereas the bulk susceptometer measures the flake plus the substrate plus the holder and cannot separate them. The temperature range is also decisive: 4 to 200 K is inside the NV's operating range and requires no change of sensor, while it takes a bulk instrument across its own calibration. This is the general rule: local probes win when the signal of interest is a small part of a large sample, regardless of who has the better noise floor.</p>
+
+</details>
+
+* * *
+
+## Summary
+
+### Key Takeaways
+
+**1\. The device measures flux, and flux is quantised in a small unit**
+
+  * Fluxoid quantization gives $\Phi_0 = h/2e = 2.0678\times10^{-15}$ Wb, containing only constants of nature, so the calibration is exact and universal.
+  * One microflux quantum on a 10 mm loop is 20 fT. Everything else in the chapter is engineering around that fact.
+  * The Josephson relations $I = I_c\sin\varphi$ and $\dot\varphi = 2\pi V/\Phi_0$ supply the phase-sensitive element, with $2e/h = 483.598$ MHz/$\mu$V.
+
+**2\. The same junction is a qubit or a sensor depending on $E_J/E_C$**
+
+  * A transmon junction: 30 nA, $E_J/h = 14.9$ GHz, $E_J/E_C = 62$, phase quantum-mechanical.
+  * A shunted magnetometer junction: 5 $\mu$A, $E_J/h = 2483$ GHz, $E_J/k_B = 119$ K, $E_J/E_C \approx 10^5$, phase classical — which licenses the whole RSJ treatment.
+  * $\beta_L = 2LI_0/\Phi_0 \approx 1$ pins $LI_0 \approx \Phi_0/2$, so a SQUID cannot be simultaneously large and sensitive; the area has to live in a separate transformer.
+
+**3\. The RSJ model gives $V(\Phi)$, and the numbers are not the textbook approximations**
+
+  * $I_c(\Phi) = 2I_0|\cos(\pi\Phi/\Phi_0)|$ holds only at $L \to 0$; screening lifts $I_c(\Phi_0/2)$ to $0.30\,I_0$ at $\beta_L = 0.2$ and $1.05\,I_0$ at $\beta_L = 1$, confirmed by an independent static calculation.
+  * $\Delta v$ falls with $\beta_L$ while $V_\Phi/(R/L)$ rises; the ratio is 0.72 at $\beta_L = 1$ and 1.0 near $\beta_L = 2$. So $V_\Phi \sim R/L$ is right, and $\beta_L \approx 1$ is a compromise, not an optimum.
+  * $\beta_c = 2\pi I_0R^2C/\Phi_0 < 1$ requires a deliberate shunt, and the shunt is where the white noise comes from.
+  * A flux-locked loop converts a periodic, nonlinear $V(\Phi)$ into a linear null measurement with a dynamic range of many flux quanta.
+
+**4\. White noise, and an energy resolution with no free parameters**
+
+  * $S_V \approx 16k_BTR$ from the Langevin RSJ analysis leads to $S_\Phi = 16k_BTL^2/R$ and $\epsilon = S_\Phi/2L = 8k_BTL/R$.
+  * Closing $\beta_L = \beta_c = 1$ eliminates $R$ and $I_0$ and gives $\epsilon = 8\sqrt{\pi}k_BT\sqrt{LC} = 14.18\,k_BT\sqrt{LC}$ — thermal energy times the junction response time.
+  * 78 $\hbar$ at 4.2 K, 5.6 $\hbar$ at 0.3 K, and below $\hbar$ if extrapolated further, which is the signal that the classical treatment has expired.
+  * Substituting the simulated $V_\Phi$ for $R/L$ worsens $\epsilon$ by 93% and leaves every scaling law intact.
+
+**5\. $1/f$ noise is the same materials problem as a qubit's**
+
+  * Surface spins at $\sim 0.05$ per nm$^2$ reproduce the observed $\sim 1\ \mu\Phi_0/\sqrt{\mathrm{Hz}}$, and — without fitting — reproduce its weak dependence on loop size, which is the evidence for a surface rather than a bulk mechanism.
+  * The same $S_\Phi$, imported into a flux qubit with $I_p = 300$ nA, gives $\sigma_\Phi = 4.3\ \mu\Phi_0$, $\sigma_f = 8$ MHz and $T_2^\ast = 28$ ns.
+  * Critical-current noise from barrier two-level defects lands at the same $\mu\Phi_0$ scale, and is the same amorphous oxide that limits transmon $T_1$.
+  * Therefore a SQUID is a cheap, 4 K diagnostic for qubit materials, and a process improvement is shared by both.
+
+**6\. Applications are decided by geometry, temperature and background**
+
+  * A matched flux transformer gives $A_{\mathrm{eff}} \propto r_p^{3/2}$, reaching 0.3 fT/$\sqrt{\mathrm{Hz}}$ at 10 mm while the SQUID stays small.
+  * The moment floor is $\sim 10^{-17}$ A m$^2$/$\sqrt{\mathrm{Hz}}$, but a susceptometer moves its sample and therefore operates in the $1/f$ region — so the practical resolution is set by §3.3, not by §3.1.
+  * Scanning SQUID microscopy images individual vortices, local superfluid density and current paths; flux imagers work through a window at room temperature; biomagnetism is the femtotesla-at-centimetres extreme.
+  * Across both device families, five and a half decades of size buy eight and a half decades of field noise, a slope of 1.47 — the $3/2$ that follows from averaging over area.
+
+**Practical implications**
+
+  * Quote flux noise with its frequency. A white-noise figure and a 1 Hz figure describe different physics and different limits.
+  * Check $\beta_L$ and $\beta_c$ before believing any quoted transfer function; the two constraints together fix $R$ and $I_0$ once $L$ and $C$ are chosen.
+  * If a measurement fails on a small sample, ask whether it is noise-limited or background-limited before improving the sensor.
+
+Chapter 4 leaves the solid state. Atomic clocks and atom interferometers use the same Ramsey sequence of Chapter 1 on systems that have no host material at all — and therefore no $1/f$ noise, no surface spins and no fabrication spread, at the price of a vacuum chamber and a laser system. Reading Chapters 2, 3 and 4 together gives the full range of the trade-off: a defect in a crystal, a circuit on a chip, and an atom in free space, all measuring a phase.
+
+[← Chapter 2: NV-Center Magnetometry](<chapter-2.html>) [Chapter 4: Atomic Clocks and Atom Interferometry →](<chapter-4.html>)
+
+### Disclaimer
+
+  * This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical warranty, etc.).
+  * This content and accompanying code examples are provided "AS IS" without any warranty, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.
+  * The device parameters used here are representative order-of-magnitude values chosen to make the physics computable, not specifications; the coefficient $S_V \approx 16k_BTR$ is imported from the standard Langevin analysis rather than derived here, and the surface-spin flux-noise model is a deliberately simplified forward model whose absolute prefactor is uncertain at the order-of-magnitude level.
+  * The author and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.
+  * To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.
+  * The content may be changed, updated, or discontinued without notice.
+  * The copyright and license of this content are subject to the stated conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.

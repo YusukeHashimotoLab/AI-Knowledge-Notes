@@ -1,0 +1,1581 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第5章: 量子限界を超える - AI Terakoya</title>
+
+    <link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+    <style>
+        /* page-specific residual: the rules the shared sheet does not provide.
+           Everything else that used to live here is now in knowledge-base.css;
+           re-declaring it would only risk drifting out of sync with the sheet. */
+        details { background-color: var(--color-bg-alt); margin-bottom: var(--spacing-md) }
+        summary { user-select: none; margin: calc(-1 * var(--spacing-md)); border-radius: var(--border-radius) }
+        summary:hover {
+            /* accent wash; the literal is the FM/MI/ML purple and is the fallback
+               for engines without color-mix() (Chrome <111 / Safari <16.2). */
+            background-color: rgba(123, 44, 191, 0.1);
+            background-color: color-mix(in srgb, var(--color-accent) 10%, transparent);
+        }
+        details[open] summary { margin-bottom: var(--spacing-md); border-bottom: 1px solid var(--color-border) }
+        .learning-objectives {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: var(--spacing-lg);
+            border-radius: var(--border-radius);
+            border-left: 4px solid var(--color-accent);
+            margin-bottom: var(--spacing-xl);
+        }
+        .learning-objectives h2 { margin-top: 0; border-bottom: none }
+        @media (max-width: 768px) {
+            th { padding: var(--spacing-xs) }
+            td { padding: var(--spacing-xs) }
+        }
+    </style>
+
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+
+    <!-- MathJax for LaTeX equation rendering -->
+    <script>
+        MathJax = {
+            tex: {
+                // The HTML must carry a DOUBLE backslash before ( ) [ ] so the
+                // JS string is backslash-paren; a single one collapses to a bare
+                // paren and turns every prose parenthesis into a math delimiter
+                // (non-raw Python template: 4 backslashes -> 2 in HTML -> 1 in JS).
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" id="MathJax-script" async></script>
+</head>
+<body class="dojo-ms">
+    <header>
+        <div class="header-content">
+            <h1>第5章: 量子限界を超える</h1>
+            <p class="subtitle">スピンスクイージング、デコヒーレンスがそれに何をするか、そして量子センシングが材料研究と出会う場所</p>
+            <div class="meta">
+                <span class="meta-item">📖 読了時間: 45-50分</span>
+                <span class="meta-item">📊 難易度: 上級</span>
+                <span class="meta-item">💻 コード例: 5個</span>
+                <span class="meta-item">📝 演習問題: 5問</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+<p>🌐 JP | <a href="../../../en/MS/quantum-sensing-introduction/chapter-5.html">🇬🇧 EN</a> | Last sync: 2026-08-13</p>
+<p><a href="../index.html">材料科学基礎道場</a> &gt; <a href="index.html">量子センシング入門</a> &gt; 第5章</p>
+<p>これまでの4章のあらゆる感度は $1/\sqrt{N}$ の因子を含み、その導出はどれも同じことを仮定していました。$N$ 個のプローブが独立で、したがってそれぞれの射影ノイズが二乗和で加わるということです。この仮定は選択であって法則ではありません。プローブをエンタングルさせればノイズの加わり方は変わりえます。最良の場合、位相の不確かさは $1/\sqrt{N}$ ではなく $1/N$ で落ちます。これが<strong>Heisenberg限界</strong>です。原子 $N = 10^{4}$ 個なら100倍です。</p>
+<p>本章はその100倍が実際にはどうなるのかを詰めます。答えには両方向の慎重さが必要で、2つの失敗の形は同じくらいよく見られます。1つは理想的なスケーリングを引用してそこで止めることで、これはどの装置も守らない約束を生みます。もう1つは脆さから「計量学でエンタングルメントは役に立たない」と結論することで、これは量子ノイズ限界の干渉計がすでにスクイーズド光を本質的な構成要素として使っているという事実に反します。誠実な立場は定量的であり、5つの Example で計算できます。エンタングルメントは有界な改善を買い、その上限は本章が数値的に導く特定の定数であり、その定数がコストに見合う状況は事前に同定できます。</p>
+<p>そのうえで本章は外へ向きます。5.3節は量子センサの出力を<em>データ</em>として真面目に扱います — <a href="../../MI/quantum-machine-learning-introduction/index.html">量子機械学習入門</a>が量子センシングの講座へ明示的に先送りした主題です。そして5.4節は、誰かのロードマップではなく信号源の物理から、量子センサがどの材料キャラクタリゼーションの課題に現実的に取り組めるのかを問います。5.5節は4コースの弧 — 計算、ハードウェア、機械学習、センシング — を閉じます。</p>
+<p><strong>単位と規約。</strong> 第1章から第4章と同じです。集団スピン演算子は $N$ 個のスピン$\frac{1}{2}$ プローブに対し $J_a = \frac{1}{2}\sum_i \sigma_a^{(i)}$ なので、完全偏極状態は $|\langle \mathbf{J}\rangle| = N/2$ をもち、コヒーレントスピン状態は横方向分散 $N/4$ をもちます。スクイージングパラメータ $\xi^2$ は $\xi^2 = 1$ が標準量子限界、$\xi^2 = 1/N$ がHeisenberg限界となるように規格化します。$\xi^2$ のデシベル表示は $10\log_{10}\xi^2$ を意味し、負に大きいほど良好です。デフェージングのパラメータはスピンあたりのデフェージング確率 $p$ に対して $\eta = 1 - 2p$ であり、$\eta = e^{-T/T_2}$ が1.4節のコヒーレンス時間と結びつけます。光損失も透過率 $\eta$ で表します。2つの用法は文脈で区別され、どちらも「どれだけコヒーレンスが生き残るか」です。</p>
+<h2>学習目標</h2>
+<p>本章を修了すると、以下のことができるようになります：</p>
+<ul>
+<li>標準量子限界とHeisenberg限界を量子Fisher情報の言葉で述べ、$z$ 軸まわりの回転を推定する資源が $4\,\mathrm{Var}(J_z)$ である理由を説明できる</li>
+<li>集団スピン基底で一軸ねじれをシミュレートし、ねじれだけでは計量的な利得がないことを示し、局所回転がそれを感度に変換する理由を説明できる</li>
+<li>一軸ねじれが $1/N$ に届かず $\xi^2 \propto N^{-2/3}$ で飽和することを数値的に確認し、有限の $N$ の範囲から前係数を誠実に取り出せる</li>
+<li>独立な単一スピンデフェージングが集団スピンのモーメントに及ぼす厳密な作用を導いて検証し、それを使ってスクイージングの利得にデコヒーレンス下の値段を付けられる</li>
+<li>両方のセンサで観測時間を再最適化したとき、無相関デフェージング下のエンタングルメントがスケーリングの変化ではなく $\sqrt{e}$ に迫る有界な定数を買うことを示せる</li>
+<li>N00N状態の損失に対する指数的な脆さと、スクイーズド真空の線形な劣化を対比し、スクイージングが本質的な役割を担う場面で後者が使われる理由を説明できる</li>
+<li>量子Fisher情報と、固定した直交成分読み出しが回収する情報の隔たりを計算し、その隔たりを埋めることが学習問題である理由を説明できる</li>
+<li>材料キャラクタリゼーションの計測を信号源の幾何・距離・必要な平均化時間で評価し、原理に基づいてセンサの系統を選べる</li>
+<li>本シリーズの4コースを1枚の地図に配置し、それぞれが何に答えているかを述べられる</li>
+</ul>
+<hr />
+<h2>5.1 スピンスクイージングとエンタングルメント増強センシング</h2>
+<h3>標準量子限界が実際に仮定していること</h3>
+<p>$x$ 方向を向いたコヒーレントスピン状態に用意された $N$ 個の2準位プローブを考えます — 完全偏極した集団に $\pi/2$ パルスをかけて作られる状態であり、本コースのあらゆるRamsey系列の出発点です。$z$ 方向の磁場は平均スピンを $xy$ 平面内で $\varphi = \gamma B T$ だけ回し、読み出しは $J_y$ を測ります。信号は $\partial\langle J_y\rangle/\partial\varphi = \langle J_x\rangle = N/2$、ノイズは $\sqrt{\mathrm{Var}(J_y)} = \sqrt{N}/2$、したがって</p>
+<p>$$ \Delta\varphi_\mathrm{SQL} = \frac{\sqrt{\mathrm{Var}(J_y)}}{\left|\partial\langle J_y\rangle/\partial\varphi\right|} = \frac{\sqrt{N}/2}{N/2} = \frac{1}{\sqrt{N}} $$</p>
+<p>です。分子の $\sqrt{N}$ が仮定の隠れ場所です。コヒーレントスピン状態は積状態なので $N$ 回の射影は独立で、分散が加わります。$\mathrm{Var}(J_y) = N\times\frac{1}{4}$ です。相関を付ければその和は変わります。ただし無限に変わることはできません。一般的な限界は<strong>量子Cramér-Rao限界</strong></p>
+<p>$$ \Delta\varphi \ge \frac{1}{\sqrt{F_Q}}, \qquad F_Q = 4\,\mathrm{Var}(\hat{G}) \;\; \text{（純粋状態の場合）} $$</p>
+<p>で、$\hat{G}$ はパラメータの生成子、ここでは $J_z$ です。コヒーレントスピン状態では $\mathrm{Var}(J_z) = N/4$ かつ $F_Q = N$ となり、標準量子限界を再現します。$N$ スピンのどんな状態でも $z$ 方向にもてる分散の最大値は $N^2/4$ で、GHZ状態 $(|0\cdots0\rangle + |1\cdots1\rangle)/\sqrt{2}$ で達成され、$F_Q = N^2$ すなわち $\Delta\varphi = 1/N$、Heisenberg限界を与えます。</p>
+<p>資源が何であると判明したかに注意してください。生成子の軸に沿った<em>大きい</em>分散であって、小さい分散ではありません。これは「スクイーズド状態」という言葉が示唆することの逆であり、これを正しい向きに把握することが本章の最初の実質的な要点です。</p>
+<h3>スクイージングと、それを測るパラメータ</h3>
+<p>量子計算機を必要とせずに原子スピンに相関を付ける標準的な方法は、<strong>一軸ねじれ</strong>ハミルトニアン</p>
+<p>$$ H = \chi J_z^2 $$</p>
+<p>です。これは集団変数の2乗に比例する相互作用から自然に生じます。Bose-Einstein凝縮体中の衝突相互作用、共通の共振器モードによる光シフト、高密度集団中の双極子相互作用などです。$x$ 方向のコヒーレントスピン状態に対するその効果はせん断です。$J_z &gt; 0$ の原子は一方に、$J_z &lt; 0$ の原子は他方に、$J_z$ に比例するレートで歳差するので、$yz$ 平面内で最初は円だった不確かさの円板が傾いた楕円にせん断されます。その平面内の一方向は $N/4$ より小さい分散をもち — スクイーズされており — 垂直な方向はそれより大きくなります。</p>
+<p>評価指標は<strong>Winelandスクイージングパラメータ</strong></p>
+<p>$$ \xi^2 = N\,\frac{\left(\Delta J_\perp\right)^2}{\left|\langle \mathbf{J}\rangle\right|^2} $$</p>
+<p>で、コヒーレントスピン状態がちょうど1を与えるように規格化されています。この式にはスクイージングが小さくする分子と、スクイージングが同じく小さくする分母が含まれています。ねじれが平均スピンベクトルを巻いてその長さを縮めるからです。この競合が最適値を内部に生みます。ねじりが足りなければスクイージングはなく、ねじりすぎればコントラストが消えます。</p>
+<p>ここに、ほとんどの解説が飛ばしていて、コードでは避けようがなくなる細かな点があります。$J_z$ は $H = \chi J_z^2$ と可換なので、ねじれは $\mathrm{Var}(J_z)$ をまったく変えられません — そして上のCramér-Rao限界により、$\mathrm{Var}(J_z)$ がなお $N/4$ である状態は $F_Q = N$ をもち、$z$ 軸まわりの回転について標準量子限界を破ることが<em>できない</em>のです。解決は、ねじれた状態のスクイーズ方向が読み出し平面から傾いて外れていることにあり、それを揃えるには平均スピン軸まわりの局所回転1回 — パルス1発、エンタングルメントの生成も破壊もなし — が必要です。その回転が $\mathrm{Var}(J_z)$ を $N/4$ より上げるものです。そしてこの回転は位相を蓄積する<em>前</em>に入れなければならず、後ではいけません。パルスの目的は、磁場が働いているあいだに $J_z$ — 信号が回し読み出しが測る演算子 — をスクイーズされた直交成分にすることです。干渉の後に入れれば、すでに位相が書き込まれた分散を回すだけで、推定器が見るのは $\xi^2 \ge 1$、コヒーレントスピン状態と変わりません。Code Example 1 はこの両側をその順序で明示的に示します。</p>
+<h3>Code Example 1: 一軸ねじれと、それを使えるものにするパルス</h3>
+<pre><code class="language-python">&quot;&quot;&quot;第5章 Code Example 1: 一軸ねじれと、それを使えるものにするせん断、そして
+N^(-2/3) の壁。&quot;&quot;&quot;
+import numpy as np
+from scipy.special import gammaln
+
+TWO_PI = 2.0 * np.pi
+
+
+def dicke_setup(N):
+    &quot;&quot;&quot;スピン1/2 が N 個の最大スピン梯子について (m, off) を返します。
+
+    m は -N/2 から +N/2 までの J_z 固有値、off[k] は行列要素
+    &lt;m_k + 1| J_+ |m_k&gt; = sqrt(j(j+1) - m(m+1)) です。
+    &quot;&quot;&quot;
+    j = 0.5 * N
+    m = np.arange(-j, j + 1.0)
+    off = np.sqrt(j * (j + 1.0) - m[:-1] * (m[:-1] + 1.0))
+    return m, off
+
+
+def css_x(N):
+    &quot;&quot;&quot;+x 方向を向いたコヒーレントスピン状態を、J_z 基底で表します。
+
+    振幅は二項係数です。二項係数そのものが桁溢れする数万という N でも、
+    log-gamma を使えば正確に扱えます。
+    &quot;&quot;&quot;
+    k = np.arange(N + 1)
+    logc = 0.5 * (gammaln(N + 1.0) - gammaln(k + 1.0) - gammaln(N - k + 1.0))
+    return np.exp(logc - 0.5 * N * np.log(2.0)).astype(complex)
+
+
+def j_plus(psi, off):
+    out = np.zeros_like(psi)
+    out[1:] = off * psi[:-1]
+    return out
+
+
+def j_minus(psi, off):
+    out = np.zeros_like(psi)
+    out[:-1] = off * psi[1:]
+    return out
+
+
+def spin_moments(psi, m, off):
+    &quot;&quot;&quot;J の1次と2次のモーメントすべてを、O(N) の演算で返します。
+
+    キーは平均が &quot;x&quot;、&quot;y&quot;、&quot;z&quot;、2乗が &quot;xx&quot;、&quot;yy&quot;、&quot;zz&quot;、対称化した交差項
+    &lt;{J_a, J_b}&gt; が &quot;xy&quot;、&quot;xz&quot;、&quot;yz&quot; です。
+    &quot;&quot;&quot;
+    jp, jm = j_plus(psi, off), j_minus(psi, off)
+    jx = 0.5 * (jp + jm)
+    jy = (jp - jm) / 2.0j
+    jz = m * psi
+    return {
+        &quot;x&quot;: np.vdot(psi, jx).real, &quot;y&quot;: np.vdot(psi, jy).real,
+        &quot;z&quot;: np.vdot(psi, jz).real,
+        &quot;xx&quot;: np.vdot(jx, jx).real, &quot;yy&quot;: np.vdot(jy, jy).real,
+        &quot;zz&quot;: np.vdot(jz, jz).real,
+        &quot;xy&quot;: 2.0 * np.vdot(jx, jy).real,
+        &quot;xz&quot;: 2.0 * np.vdot(jx, jz).real,
+        &quot;yz&quot;: 2.0 * np.vdot(jy, jz).real,
+    }
+
+
+def moments_to_tensors(d):
+    &quot;&quot;&quot;モーメントの辞書を、平均ベクトルとテンソル M_ab に分けます。&quot;&quot;&quot;
+    mean = np.array([d[&quot;x&quot;], d[&quot;y&quot;], d[&quot;z&quot;]])
+    M = np.array([
+        [d[&quot;xx&quot;], 0.5 * d[&quot;xy&quot;], 0.5 * d[&quot;xz&quot;]],
+        [0.5 * d[&quot;xy&quot;], d[&quot;yy&quot;], 0.5 * d[&quot;yz&quot;]],
+        [0.5 * d[&quot;xz&quot;], 0.5 * d[&quot;yz&quot;], d[&quot;zz&quot;]],
+    ])
+    return mean, M
+
+
+def tensors_to_moments(mean, M):
+    return {&quot;x&quot;: mean[0], &quot;y&quot;: mean[1], &quot;z&quot;: mean[2],
+            &quot;xx&quot;: M[0, 0], &quot;yy&quot;: M[1, 1], &quot;zz&quot;: M[2, 2],
+            &quot;xy&quot;: 2.0 * M[0, 1], &quot;xz&quot;: 2.0 * M[0, 2], &quot;yz&quot;: 2.0 * M[1, 2]}
+
+
+def rotate_x(d, alpha):
+    &quot;&quot;&quot;モーメントの組を、x 軸まわりに alpha だけ回転させます。
+
+    J はベクトル演算子なので、平均はベクトルとして、M_ab は2階テンソルとして
+    変換します。これは局所的でエンタングルメントを作らない操作、すなわち
+    パルス1発です。
+    &quot;&quot;&quot;
+    c, s = np.cos(alpha), np.sin(alpha)
+    R = np.array([[1.0, 0.0, 0.0], [0.0, c, -s], [0.0, s, c]])
+    mean, M = moments_to_tensors(d)
+    return tensors_to_moments(R @ mean, R @ M @ R.T)
+
+
+def xi2_operational(d, N):
+    &quot;&quot;&quot;z 軸まわりの回転に対する、読み出しを最適化したスクイージングパラメータ。
+
+    z 方向の磁場は平均スピンを回し、直交成分
+    J_theta = cos(theta) J_y + sin(theta) J_z の信号は
+    d&lt;J_theta&gt;/dphi = cos(theta) &lt;J_x&gt; です。つまり J_z の部分は信号を
+    まったく運びません。theta を最適化すると
+    Dphi^2 = det(C_2) / (C_zz &lt;J_x&gt;^2) となり、xi^2 = N Dphi^2 がそれを
+    標準量子限界 1/N と比べた量になります。
+    &quot;&quot;&quot;
+    mean, M = moments_to_tensors(d)
+    C = M - np.outer(mean, mean)
+    Cyy, Czz, Cyz = C[1, 1], C[2, 2], C[1, 2]
+    return N * (Cyy * Czz - Cyz ** 2) / (Czz * mean[0] ** 2)
+
+
+def oat_state(N, mu, m, psi0):
+    &quot;&quot;&quot;一軸ねじれ: mu = chi t として exp(-i mu J_z^2)|CSS_x&gt; を返します。&quot;&quot;&quot;
+    return psi0 * np.exp(-1j * mu * m ** 2)
+
+
+ALPHAS = np.linspace(-0.5 * np.pi, 0.5 * np.pi, 2001)
+
+
+def best_squeezing(N, eta=1.0, mu_grid=None, alpha_grid=ALPHAS):
+    &quot;&quot;&quot;ねじれの強さとせん断角について xi^2 を最小化します。&quot;&quot;&quot;
+    m, off = dicke_setup(N)
+    psi0 = css_x(N)
+    if mu_grid is None:
+        centre = N ** (-2.0 / 3.0)
+        mu_grid = np.logspace(np.log10(0.1 * centre),
+                              np.log10(10.0 * centre), 200)
+    best = (np.inf, None, None)
+    for mu in mu_grid:
+        d0 = spin_moments(oat_state(N, mu, m, psi0), m, off)
+        for a in alpha_grid[::8]:
+            x = xi2_operational(dephase_moments(rotate_x(d0, a), N, eta), N)
+            if x &lt; best[0]:
+                best = (x, mu, a)
+    d0 = spin_moments(oat_state(N, best[1], m, psi0), m, off)
+    for a in alpha_grid:
+        x = xi2_operational(dephase_moments(rotate_x(d0, a), N, eta), N)
+        if x &lt; best[0]:
+            best = (x, best[1], a)
+    return best
+
+
+def dephase_moments(d, N, eta):
+    &quot;&quot;&quot;独立な単一スピンデフェージングが J のモーメントに及ぼす厳密な作用。
+
+    各スピンは rho -&gt; (1-p) rho + p Z rho Z を受け、eta = 1 - 2p です。
+    Heisenberg表示では sigma_x と sigma_y に eta が掛かり、sigma_z は変わらず、
+    チャネルはサイトごとに分解します。J_a^2 の i = j の項は
+    (sigma_a^i)^2 = 1 を与えるので免疫があり、これが横方向の分散が単に
+    スケールされるのではなく N/4 へ押し戻される理由です。この免疫の床こそが
+    スクイージングを壊すものです。
+    &quot;&quot;&quot;
+    q = 0.25 * N
+    return {
+        &quot;x&quot;: eta * d[&quot;x&quot;], &quot;y&quot;: eta * d[&quot;y&quot;], &quot;z&quot;: d[&quot;z&quot;],
+        &quot;xx&quot;: q + eta ** 2 * (d[&quot;xx&quot;] - q),
+        &quot;yy&quot;: q + eta ** 2 * (d[&quot;yy&quot;] - q),
+        &quot;zz&quot;: d[&quot;zz&quot;],
+        &quot;xy&quot;: eta ** 2 * d[&quot;xy&quot;],
+        &quot;xz&quot;: eta * d[&quot;xz&quot;],
+        &quot;yz&quot;: eta * d[&quot;yz&quot;],
+    }
+
+
+# --- スクイーズしていない基準 ---------------------------------------------
+N0 = 100
+m0, off0 = dicke_setup(N0)
+psi_css = css_x(N0)
+d_css = spin_moments(psi_css, m0, off0)
+print(f&quot;コヒーレントスピン状態、N = {N0}&quot;)
+print(f&quot;  norm                              &quot;
+      f&quot;{np.vdot(psi_css, psi_css).real:.12f}&quot;)
+print(f&quot;  &lt;Jx&gt;  (expect N/2 = {N0 / 2:.1f})        {d_css['x']:.9f}&quot;)
+print(f&quot;  &lt;Jy&gt;, &lt;Jz&gt;                        {d_css['y']:.2e}, &quot;
+      f&quot;{d_css['z']:.2e}&quot;)
+print(f&quot;  Var(Jy), Var(Jz)  (N/4 = {N0 / 4:.1f})   {d_css['yy']:.6f}, &quot;
+      f&quot;{d_css['zz']:.6f}&quot;)
+print(f&quot;  xi^2 = {xi2_operational(d_css, N0):.9f}&quot;
+      f&quot;   -- ちょうど標準量子限界です&quot;)
+
+# --- ねじれだけでは何も得られません ---------------------------------------
+print(f&quot;\nN = {N0} での一軸ねじれ。中央の列はねじれた状態をそのまま読み出した&quot;)
+print(&quot;場合、右の列は局所パルスを1発加えた場合です。&quot;)
+head = (f&quot;{'mu = chi t':&gt;12}{'xi^2, no shear':&gt;16}{'xi^2, best shear':&gt;18}&quot;
+        f&quot;{'alpha (rad)':&gt;13}{'|&lt;J&gt;|/(N/2)':&gt;13}&quot;)
+print(head)
+print(&quot;-&quot; * len(head))
+for mu in [0.005, 0.01, 0.02, 0.05, 0.1]:
+    d0 = spin_moments(oat_state(N0, mu, m0, psi_css), m0, off0)
+    raw = xi2_operational(d0, N0)
+    bb = (np.inf, None)
+    for a in ALPHAS:
+        x = xi2_operational(rotate_x(d0, a), N0)
+        if x &lt; bb[0]:
+            bb = (x, a)
+    print(f&quot;{mu:&gt;12.4f}{raw:&gt;16.5f}{bb[0]:&gt;18.6f}{bb[1]:&gt;13.4f}&quot;
+          f&quot;{abs(d0['x']) / (N0 / 2):&gt;13.6f}&quot;)
+print(&quot;  中央の列は決して1を下回りません。J_z はねじれのハミルトニアンと&quot;)
+print(&quot;  可換なので、ねじれは Var(J_z) を変えられず、z 軸「まわり」の回転に&quot;)
+print(&quot;  対してせん断前の状態はコヒーレント状態とまったく同じ感度しか&quot;)
+print(&quot;  ありません。エンタングルメントは実在しますが、局所回転が&quot;)
+print(&quot;  スクイーズ方向を読み出し方向に変えるまで計量的には不活性です。&quot;)
+
+x_best, mu_best, a_best = best_squeezing(N0)
+print(f&quot;\n  最良の xi^2 = {x_best:.6f}（{10 * np.log10(x_best):.3f} dB）、&quot;
+      f&quot;mu = {mu_best:.5f}、alpha = {a_best:.4f} のとき&quot;)
+print(f&quot;  N^(-2/3) = {N0 ** (-2 / 3):.6f}; Heisenberg限界 1/N = {1 / N0:.6f}&quot;)
+
+# --- スケーリングと、それを隠している補正項 -------------------------------
+print(&quot;\n最適値が N とともにどうスケールするか&quot;)
+head = (f&quot;{'N':&gt;8}{'best xi^2':&gt;13}{'dB':&gt;9}{'mu_opt':&gt;10}{'1/N':&gt;11}&quot;
+        f&quot;{'xi^2 N^(2/3)':&gt;15}&quot;)
+print(head)
+print(&quot;-&quot; * len(head))
+Ns = [10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000]
+xi2s = []
+for N in Ns:
+    x, mu, _ = best_squeezing(N)
+    xi2s.append(x)
+    print(f&quot;{N:&gt;8d}{x:&gt;13.6f}{10 * np.log10(x):&gt;9.3f}{mu:&gt;10.5f}&quot;
+          f&quot;{1.0 / N:&gt;11.6f}{x * N ** (2 / 3):&gt;15.4f}&quot;)
+xi2s = np.array(xi2s, dtype=float)
+Nsa = np.array(Ns, dtype=float)
+naive = np.polyfit(np.log(Nsa), np.log(xi2s), 1)[0]
+tail = Nsa &gt;= 200
+A, B = np.polyfit(Nsa[tail] ** (-1 / 3), xi2s[tail] * Nsa[tail] ** (2 / 3), 1)[::-1]
+print(f&quot;\n  全 N での素朴な指数フィット          : {naive:.4f}&quot;)
+print(f&quot;  xi^2 N^(2/3) = A + B N^(-1/3) のフィット: A = {A:.4f}, B = {B:.4f}&quot;)
+print(f&quot;  解析的な前係数 (1/2) 3^(2/3)         : &quot;
+      f&quot;{0.5 * 3 ** (2 / 3):.4f}&quot;)
+print(&quot;  指数は確かに -2/3 です。素朴なフィットが外すのは、主要な補正項が&quot;)
+print(&quot;  N^(-1/3) 1つ分しか下にないからです。有限の N の範囲からスケーリング&quot;)
+print(&quot;  則を確認する誠実な方法は、A を取り出すことです。&quot;)
+print(f&quot;\n  一軸ねじれはHeisenberg限界に到達しません。N = {Ns[-1]} でも&quot;)
+print(f&quot;  1/N までの隔たりは {xi2s[-1] * Ns[-1]:.1f} 倍あります。&quot;)
+</code></pre>
+<pre><code class="language-text">コヒーレントスピン状態、N = 100
+  norm                              1.000000000000
+  &lt;Jx&gt;  (expect N/2 = 50.0)        50.000000000
+  &lt;Jy&gt;, &lt;Jz&gt;                        0.00e+00, -1.37e-15
+  Var(Jy), Var(Jz)  (N/4 = 25.0)   25.000000, 25.000000
+  xi^2 = 1.000000000   -- ちょうど標準量子限界です
+
+N = 100 での一軸ねじれ。中央の列はねじれた状態をそのまま読み出した
+場合、右の列は局所パルスを1発加えた場合です。
+  mu = chi t  xi^2, no shear  xi^2, best shear  alpha (rad)  |&lt;J&gt;|/(N/2)
+------------------------------------------------------------------------
+      0.0050         1.00001          0.613518       0.9048     0.998763
+      0.0100         1.00016          0.388194       1.0116     0.995062
+      0.0200         1.00330          0.180448       1.1687     0.980393
+      0.0500         1.33159          0.062957       1.3572     0.883555
+      0.1000        18.91619          0.425454       1.4326     0.609067
+  中央の列は決して1を下回りません。J_z はねじれのハミルトニアンと
+  可換なので、ねじれは Var(J_z) を変えられず、z 軸「まわり」の回転に
+  対してせん断前の状態はコヒーレント状態とまったく同じ感度しか
+  ありません。エンタングルメントは実在しますが、局所回転が
+  スクイーズ方向を読み出し方向に変えるまで計量的には不活性です。
+
+  最良の xi^2 = 0.062946（-12.010 dB）、mu = 0.05033、alpha = 1.3572 のとき
+  N^(-2/3) = 0.046416; Heisenberg限界 1/N = 0.010000
+
+最適値が N とともにどうスケールするか
+       N    best xi^2       dB    mu_opt        1/N   xi^2 N^(2/3)
+------------------------------------------------------------------
+      10     0.309903   -5.088   0.19868   0.100000         1.4384
+      20     0.197897   -7.036   0.13416   0.050000         1.4581
+      50     0.104063   -9.827   0.07807   0.020000         1.4123
+     100     0.062946  -12.010   0.05033   0.010000         1.3561
+     200     0.038002  -14.202   0.03245   0.005000         1.2996
+     500     0.019600  -17.077   0.01803   0.002000         1.2347
+    1000     0.011953  -19.225   0.01162   0.001000         1.1953
+    2000     0.007326  -21.352   0.00732   0.000500         1.1629
+    5000     0.003866  -24.127   0.00398   0.000200         1.1306
+   10000     0.002395  -26.207   0.00256   0.000100         1.1116
+
+  全 N での素朴な指数フィット          : -0.7100
+  xi^2 N^(2/3) = A + B N^(-1/3) のフィット: A = 1.0425, B = 1.5133
+  解析的な前係数 (1/2) 3^(2/3)         : 1.0400
+  指数は確かに -2/3 です。素朴なフィットが外すのは、主要な補正項が
+  N^(-1/3) 1つ分しか下にないからです。有限の N の範囲からスケーリング
+  則を確認する誠実な方法は、A を取り出すことです。
+
+  一軸ねじれはHeisenberg限界に到達しません。N = 10000 でも
+  1/N までの隔たりは 23.9 倍あります。
+</code></pre>
+<p><strong>着目点。</strong> 2番目の表の中央の列から始めてください。ねじれた状態をそのまま読み出すと $\xi^2 = 1.00001$、$1.00016$、$1.00330$、そしてねじれが強くなると1より<em>悪く</em>なり、$\mu = 0.1$ では $18.9$ です。状態は強くエンタングルしており、$z$ 軸まわりの回転に対する計量的な価値はゼロか負です。局所回転1回だけ違う右の列は、$\mu = 0.05$ で $\xi^2 = 0.062957$ に達します — 一瞬前に読み出された同じ状態の300倍良い値です。エンタングルメントは必要でしたが十分ではなく、残りをやったのはエンタングルしないパルスでした。スクイージングの主張を評価する人は誰でも、2つの列のどちらが引用されているのかを問うべきです。</p>
+<p>スケーリングの表が「標準量子限界を超える」の誠実な版です。一軸ねじれは $N = 100$ で $\xi^2 = 0.0629$、$N = 10^{4}$ で $0.002395$ に達します。$-12.0$ dB と $-26.2$ dB という本物の利得であり、そしてHeisenberg限界にはまったく届いておらず、$N = 10^{4}$ ではさらに $23.9$ 倍下です。スケーリングは $N^{-1}$ ではなく $N^{-2/3}$ であり、これは技術的な不足ではなくねじれハミルトニアンの性質です。円板をせん断してできる楕円のアスペクト比は、球面の曲率が折り返す前にはせん断と同じ速さでしか育たないのです。</p>
+<p>フィッティングのブロックは数値的な誠実さについての小さな教訓です。全範囲での素朴な両対数フィットは指数 $-0.7100$ を返し、それを報告して「$-2/3$ を $7\%$ で測った」と主張することも、「反証した」と主張することもできます。どちらも正しくありません。主要な補正が主要項の $N^{-1/3}$ 1つ分しか下にないので、有限の $N$ の範囲では綺麗な指数は得られないのです。代わりに $\xi^2 N^{2/3} = A + BN^{-1/3}$ をフィットすると $A = 1.0425$ が返り、解析的な前係数 $\frac{1}{2}3^{2/3} = 1.0400$ と4分の1パーセントで一致します — これは確かにスケーリング則を確認しています。フィットした指数が理論から、既知の補正項の大きさより小さくずれているときは、補正項をフィットしましょう。</p>
+<hr />
+<h2>5.2 デコヒーレンスの代価</h2>
+<h3>スクイーズド状態が脆いものである理由</h3>
+<p>スクイーズド状態は一方向に $N/4$ より小さい分散をもちます。デフェージングはそれを戻します。その機構はこの節のすべてを説明するので、正確に述べる価値があります。</p>
+<p>各スピンが独立にデフェージングチャネル $\rho \to (1-p)\rho + p\,Z\rho Z$ を受けるとし、$\eta = 1 - 2p$ と書きます。Heisenberg表示ではこれは $\sigma_x$ と $\sigma_y$ に $\eta$ を掛け、$\sigma_z$ を放っておきます。ではそれが集団の2次モーメントに何をするか見ましょう。</p>
+<p>$$ \left\langle J_y^2 \right\rangle = \frac{1}{4}\left( N + \sum_{i \ne j}\sigma_y^{(i)}\sigma_y^{(j)} \right) \;\longrightarrow\; \frac{N}{4} + \eta^2\left( \left\langle J_y^2\right\rangle - \frac{N}{4} \right) $$</p>
+<p>$i = j$ の項は $\left(\sigma_y^{(i)}\right)^2 = 1$ であり、したがって<strong>このチャネルに免疫</strong>です。減衰するのは異なるスピン間の相関だけです。スクイージングは完全にその相関から成り — $N/4$ より小さい分散はスピン間の負の相関を要求します — デフェージングはスクイーズされた分散をスケールするのではなく、無相関の値 $N/4$ へ引き戻します。初期の傾きは $\left(N/4\right)\times(1-\eta^2) \approx N p$ で、スクイージングがどれだけ良かったかに依存しません。したがってスクイージングが<em>良い</em>ほど、それを台無しにする $p$ は小さくなります。</p>
+<p>1次と2次のモーメント9個すべてに対する関係は厳密かつ初等的であり、つまり $10^{4}$ スピンのスクイーズされた集団をデフェージング下で扱うのに $2^{N}$ 次元の密度行列を書き下す必要は一度もありません。Example 2 はその写像を使う前に総当たり計算と照合します。</p>
+<h3>Code Example 2: 利得と、誰も再最適化しない観測時間</h3>
+<pre><code class="language-python">&quot;&quot;&quot;第5章 Code Example 2: 1パーセントのデフェージングが12 dBのスクイージングに何を
+するか、そして観測時間を再最適化した後に何が残るか。
+Code Example 1 の続き（同一セッション）。&quot;&quot;&quot;
+
+
+def brute_force_moments(N, mu, eta):
+    &quot;&quot;&quot;同じモーメントを、近道なしに完全な 2^N 密度行列から計算します。
+
+    局所デフェージングは、2つの計算基底ビット列のHamming距離だけ eta を
+    べき乗した係数で各コヒーレンスを減衰させる操作にちょうど等しいので、
+    チャネルは要素ごとの掛け算1回で済みます。
+    &quot;&quot;&quot;
+    dim = 2 ** N
+    bits = ((np.arange(dim)[:, None] &gt;&gt; np.arange(N)[::-1]) &amp; 1).astype(float)
+    Jz_diag = (0.5 - bits).sum(axis=1)
+    Jz = np.diag(Jz_diag).astype(complex)
+    Jx = np.zeros((dim, dim), dtype=complex)
+    for q in range(N):
+        flip = np.arange(dim) ^ (1 &lt;&lt; (N - 1 - q))
+        Jx[np.arange(dim), flip] += 0.5
+    Jy = -1j * (Jz @ Jx - Jx @ Jz)             # [J_z, J_x] = i J_y の関係から
+    psi = np.ones(dim, dtype=complex) / np.sqrt(dim)      # +x 方向のCSS
+    psi = psi * np.exp(-1j * mu * Jz_diag ** 2)
+    rho = np.outer(psi, psi.conj())
+    ham = (bits[:, None, :] != bits[None, :, :]).sum(axis=2)
+    rho = rho * eta ** ham
+
+    def ev(A):
+        return np.trace(rho @ A).real
+
+    return {&quot;x&quot;: ev(Jx), &quot;y&quot;: ev(Jy), &quot;z&quot;: ev(Jz),
+            &quot;xx&quot;: ev(Jx @ Jx), &quot;yy&quot;: ev(Jy @ Jy), &quot;zz&quot;: ev(Jz @ Jz),
+            &quot;xy&quot;: ev(Jx @ Jy + Jy @ Jx), &quot;xz&quot;: ev(Jx @ Jz + Jz @ Jx),
+            &quot;yz&quot;: ev(Jy @ Jz + Jz @ Jy)}
+
+
+N_chk, mu_chk = 6, 0.25
+m_c, off_c = dicke_setup(N_chk)
+d_pure = spin_moments(oat_state(N_chk, mu_chk, m_c, css_x(N_chk)), m_c, off_c)
+print(f&quot;デフェージング写像を完全な 2^N 計算と照合します&quot;
+      f&quot;（N = {N_chk}、mu = {mu_chk}）&quot;)
+keys = [&quot;x&quot;, &quot;y&quot;, &quot;z&quot;, &quot;xx&quot;, &quot;yy&quot;, &quot;zz&quot;, &quot;xy&quot;, &quot;xz&quot;, &quot;yz&quot;]
+print(f&quot;{'eta':&gt;7}{'worst |map - exact|':&gt;22}{'worst relative':&gt;18}&quot;)
+print(&quot;-&quot; * 47)
+for eta_chk in [1.0, 0.9, 0.6, 0.2]:
+    d_map = dephase_moments(d_pure, N_chk, eta_chk)
+    d_bf = brute_force_moments(N_chk, mu_chk, eta_chk)
+    diffs = [abs(d_map[k] - d_bf[k]) for k in keys]
+    # 相対誤差は、厳密値そのものがほぼゼロでない場合にのみ評価します
+    rels = [abs(d_map[k] - d_bf[k]) / abs(d_bf[k])
+            for k in keys if abs(d_bf[k]) &gt; 1e-2]
+    print(f&quot;{eta_chk:&gt;7.2f}{max(diffs):&gt;22.3e}{max(rels):&gt;18.3e}&quot;)
+print(&quot;  モーメント写像は厳密なので、以下はすべて O(4^N) ではなく O(N) で&quot;)
+print(&quot;  走り、N = 10,000 は N = 6 と同じくらい安く済みます。&quot;)
+
+# --- 崩壊 -----------------------------------------------------------------
+N_g = 100
+m_g, off_g = dicke_setup(N_g)
+psi0_g = css_x(N_g)
+d_css_g = spin_moments(psi0_g, m_g, off_g)
+centre_g = N_g ** (-2.0 / 3.0)
+mu_scan_g = np.logspace(np.log10(0.1 * centre_g),
+                        np.log10(10.0 * centre_g), 200)
+x0_g, mu0_g, a0_g = best_squeezing(N_g, 1.0, mu_scan_g)
+d_sheared = rotate_x(spin_moments(oat_state(N_g, mu0_g, m_g, psi0_g),
+                                  m_g, off_g), a0_g)
+
+print(f&quot;\nデフェージングに対する計量的利得、N = {N_g}。&quot;
+      f&quot;eta = 1 - 2p = exp(-T/T2) なので、&quot;)
+print(&quot;3列目は「T2 のこの割合だけ観測する」という意味にもなります。&quot;)
+head = (f&quot;{'p':&gt;7}{'eta':&gt;8}{'T/T2':&gt;8}{'xi^2 CSS':&gt;10}{'xi^2 fixed':&gt;12}&quot;
+        f&quot;{'xi^2 re-opt':&gt;13}{'gain (dB)':&gt;11}{'mu_opt':&gt;9}&quot;)
+print(head)
+print(&quot;-&quot; * len(head))
+for p in [0.0, 0.003, 0.01, 0.03, 0.05, 0.1, 0.2, 0.3]:
+    eta = 1.0 - 2.0 * p
+    x_css = xi2_operational(dephase_moments(d_css_g, N_g, eta), N_g)
+    x_fix = xi2_operational(dephase_moments(d_sheared, N_g, eta), N_g)
+    x_opt, mu_o, _ = best_squeezing(N_g, eta, mu_scan_g)
+    print(f&quot;{p:&gt;7.3f}{eta:&gt;8.3f}{abs(np.log(eta)):&gt;8.3f}{x_css:&gt;10.4f}&quot;
+          f&quot;{x_fix:&gt;12.4f}{x_opt:&gt;13.4f}&quot;
+          f&quot;{10 * np.log10(x_css / x_opt):&gt;11.3f}{mu_o:&gt;9.5f}&quot;)
+print(f&quot;  理想的な利得は {-10 * np.log10(x0_g):.2f} dB です。スピンあたり&quot;)
+print(&quot;  1パーセントのデフェージングがそのうち 2.4 dB を、10パーセントが&quot;)
+print(&quot;  8.6 dB を奪い、30パーセントでは装置を作る理由になるものは何も&quot;)
+print(&quot;  残りません。ねじれの再最適化は端では効きますが、修復はできません。&quot;)
+print(&quot;  上の写像にある免疫の N/4 の床が、硬い障害だからです。&quot;)
+
+# --- ふつう省かれてしまう比較 --------------------------------------------
+print(&quot;\n誠実な比較。両方のセンサに観測時間を選ばせます。評価指標は xi^2/T&quot;)
+print(&quot;すなわち平均化時間あたりの分散で、eta = exp(-T/T2) は第1章の&quot;)
+print(&quot;コヒーレンス包絡線です。&quot;)
+head = (f&quot;{'N':&gt;8}{'ideal gain':&gt;13}{'T/T2 plain':&gt;12}{'T/T2 sq':&gt;10}&quot;
+        f&quot;{'real gain':&gt;12}{'amplitude':&gt;12}&quot;)
+print(head)
+print(&quot;-&quot; * len(head))
+u_grid = np.logspace(-2.5, 0.4, 120)
+N_list = [100, 1000, 10000]
+amp_gains = []
+for N in N_list:
+    m_n, off_n = dicke_setup(N)
+    psi_n = css_x(N)
+    d_css_n = spin_moments(psi_n, m_n, off_n)
+    ideal = best_squeezing(N)[0]
+    centre = N ** (-2.0 / 3.0)
+    mus_n = np.logspace(np.log10(0.1 * centre), np.log10(10.0 * centre), 60)
+    f_css, f_sq = [], []
+    for u in u_grid:
+        eta = np.exp(-u)
+        f_css.append(xi2_operational(dephase_moments(d_css_n, N, eta), N) / u)
+        f_sq.append(best_squeezing(N, eta, mus_n)[0] / u)
+    f_css, f_sq = np.array(f_css), np.array(f_sq)
+    kc, ks = int(np.argmin(f_css)), int(np.argmin(f_sq))
+    g = f_css[kc] / f_sq[ks]
+    amp_gains.append(np.sqrt(g))
+    print(f&quot;{N:&gt;8d}{-10 * np.log10(ideal):&gt;10.2f} dB{u_grid[kc]:&gt;12.3f}&quot;
+          f&quot;{u_grid[ks]:&gt;10.3f}{10 * np.log10(g):&gt;9.2f} dB&quot;
+          f&quot;{np.sqrt(g):&gt;11.2f}x&quot;)
+print(&quot;  素のセンサは T2 の半分だけ観測し、これは教科書どおりの最適値です。&quot;)
+print(&quot;  スクイーズしたほうはずっと早く止めなければならず、そこで手放した&quot;)
+print(&quot;  時間の代償が、スクイージングの利得を上回ります。&quot;)
+print(f&quot;\n  得られた振幅での利得: &quot;
+      f&quot;{'、'.join(f'{a:.3f}' for a in amp_gains)}&quot;)
+print(f&quot;  sqrt(e) = {np.sqrt(np.e):.4f}&quot;)
+# 3点を眺めるだけでは極限は確認できません。Code Example 1 が N^(-2/3) の壁に
+# 対して行ったのと同じく、主要な補正項を当てはめます。有限 N での不足は
+# 主要項より N^(-1/3) だけ低い次数です。
+x_fit = np.array(N_list, dtype=float) ** (-1.0 / 3.0)
+A_g, B_g = np.polyfit(x_fit, np.array(amp_gains), 1)[::-1]
+resid = np.array(amp_gains) - (A_g + B_g * x_fit)
+print(f&quot;  当てはめ gain = A + B N^(-1/3): A = {A_g:.4f}, B = {B_g:.4f}, &quot;
+      f&quot;残差の最大 {np.abs(resid).max():.4f}&quot;)
+print(f&quot;  外挿した A / sqrt(e) = {A_g/np.sqrt(np.e):.4f}、すなわち &quot;
+      f&quot;{abs(A_g/np.sqrt(np.e)-1)*100:.1f} パーセント低い&quot;)
+print(&quot;  したがってこの数列は極限として sqrt(e) と整合し、3点外挿で数パーセント&quot;)
+print(&quot;  の精度です。証明ではありませんが、正しい定数です。そしてこれは偶然では&quot;)
+print(&quot;  ありません。無相関なデフェージングのもとでは、標準量子限界に対する改善の&quot;)
+print(&quot;  最大値は最適なプローブ状態で達成される定数倍 sqrt(e) です。ここでの&quot;)
+print(&quot;  エンタングルメントは指数を変えません。前係数を、振幅で最大65パーセント&quot;)
+print(&quot;  動かすだけです。&quot;)
+print(&quot;\n  この見積もりが悲観的ではなく「楽観的」である3つの理由:&quot;)
+print(&quot;   * スクイージングは瞬時に、しかも無料で生成され、ねじれの最中の&quot;)
+print(&quot;     デコヒーレンスがないとしています&quot;)
+print(&quot;   * 読み出しはノイズなしと仮定しています。実際には N/4 より小さい&quot;)
+print(&quot;     分散を分解するには sqrt(N)/2 より良い分解能が必要です&quot;)
+print(&quot;   * デフェージングはスピン間で独立としています。その穏やかなモデルでも&quot;)
+print(&quot;     GHZ状態はスピン1個より N 倍速くコヒーレンスを失い（Example 4）、&quot;)
+print(&quot;     全スピンが同じ揺らぎを見る同相の磁場ノイズのもとでは、N 粒子の&quot;)
+print(&quot;     エンタングル状態は N 倍の位相誤差を蓄積してさらに悪くなります&quot;)
+</code></pre>
+<pre><code class="language-text">デフェージング写像を完全な 2^N 計算と照合します（N = 6、mu = 0.25）
+    eta   worst |map - exact|    worst relative
+-----------------------------------------------
+   1.00             4.441e-15         1.027e-15
+   0.90             4.441e-15         9.631e-16
+   0.60             1.554e-15         7.920e-16
+   0.20             8.882e-16         1.083e-15
+  モーメント写像は厳密なので、以下はすべて O(4^N) ではなく O(N) で
+  走り、N = 10,000 は N = 6 と同じくらい安く済みます。
+
+デフェージングに対する計量的利得、N = 100。eta = 1 - 2p = exp(-T/T2) なので、
+3列目は「T2 のこの割合だけ観測する」という意味にもなります。
+      p     eta    T/T2  xi^2 CSS  xi^2 fixed  xi^2 re-opt  gain (dB)   mu_opt
+------------------------------------------------------------------------------
+  0.000   1.000   0.000    1.0000      0.0629       0.0629     12.010  0.05033
+  0.003   0.994   0.006    1.0121      0.0785       0.0784     11.107  0.04918
+  0.010   0.980   0.020    1.0412      0.1159       0.1152      9.561  0.04696
+  0.030   0.940   0.062    1.1317      0.2322       0.2256      7.004  0.04280
+  0.050   0.900   0.105    1.2346      0.3644       0.3466      5.516  0.03902
+  0.100   0.800   0.223    1.5625      0.7859       0.7170      3.383  0.03243
+  0.200   0.600   0.511    2.7778      2.3477       2.0227      1.378  0.02345
+  0.300   0.400   0.916    6.2500      6.8102       5.6236      0.459  0.01619
+  理想的な利得は 12.01 dB です。スピンあたり
+  1パーセントのデフェージングがそのうち 2.4 dB を、10パーセントが
+  8.6 dB を奪い、30パーセントでは装置を作る理由になるものは何も
+  残りません。ねじれの再最適化は端では効きますが、修復はできません。
+  上の写像にある免疫の N/4 の床が、硬い障害だからです。
+
+誠実な比較。両方のセンサに観測時間を選ばせます。評価指標は xi^2/T
+すなわち平均化時間あたりの分散で、eta = exp(-T/T2) は第1章の
+コヒーレンス包絡線です。
+       N   ideal gain  T/T2 plain   T/T2 sq   real gain   amplitude
+-------------------------------------------------------------------
+     100     12.01 dB       0.493     0.170     2.32 dB       1.31x
+    1000     19.23 dB       0.493     0.082     3.33 dB       1.47x
+   10000     26.21 dB       0.493     0.040     3.86 dB       1.56x
+  素のセンサは T2 の半分だけ観測し、これは教科書どおりの最適値です。
+  スクイーズしたほうはずっと早く止めなければならず、そこで手放した
+  時間の代償が、スクイージングの利得を上回ります。
+
+  得られた振幅での利得: 1.307、1.468、1.560
+  sqrt(e) = 1.6487
+  当てはめ gain = A + B N^(-1/3): A = 1.6234, B = -1.4808, 残差の最大 0.0075
+  外挿した A / sqrt(e) = 0.9847、すなわち 1.5 パーセント低い
+  したがってこの数列は極限として sqrt(e) と整合し、3点外挿で数パーセント
+  の精度です。証明ではありませんが、正しい定数です。そしてこれは偶然では
+  ありません。無相関なデフェージングのもとでは、標準量子限界に対する改善の
+  最大値は最適なプローブ状態で達成される定数倍 sqrt(e) です。ここでの
+  エンタングルメントは指数を変えません。前係数を、振幅で最大65パーセント
+  動かすだけです。
+
+  この見積もりが悲観的ではなく「楽観的」である3つの理由:
+   * スクイージングは瞬時に、しかも無料で生成され、ねじれの最中の
+     デコヒーレンスがないとしています
+   * 読み出しはノイズなしと仮定しています。実際には N/4 より小さい
+     分散を分解するには sqrt(N)/2 より良い分解能が必要です
+   * デフェージングはスピン間で独立としています。その穏やかなモデルでも
+     GHZ状態はスピン1個より N 倍速くコヒーレンスを失い（Example 4）、
+     全スピンが同じ揺らぎを見る同相の磁場ノイズのもとでは、N 粒子の
+     エンタングル状態は N 倍の位相誤差を蓄積してさらに悪くなります
+</code></pre>
+<p><strong>着目点。</strong> まず検証のブロックです。モーメント写像は厳密な $2^6$ 密度行列計算と、4つの $\eta$ の値にわたって絶対値で $4\times10^{-15}$、相対で $10^{-15}$ まで一致します。これは浮動小数点のノイズです。残りが許可されました。</p>
+<p>崩壊の表がこの節の見出しです。$N = 100$ で理想的な利得は $12.01$ dB です。スピンあたり1パーセントのデフェージングがそのうち $2.4$ dB を、5パーセントが $6.5$ dB を、10パーセントが $8.6$ dB を奪い、30パーセントでは $0.46$ dB が生き残り、そのために装置を建てる実験室はありません。各ノイズ水準でねじれの強さを再最適化しても — <code>xi^2 re-opt</code> の列、<code>mu_opt</code> は $0.050$ から $0.016$ へ落ちます — 回復するのは数十分の1デシベルにすぎません。障害物はパラメータの選択の悪さではなく免疫の $N/4$ の床だからです。3列目は $\eta = e^{-T/T_2}$ を通して $p$ を観測時間に翻訳します。1パーセントのデフェージングはコヒーレンス時間の $2\%$ だけ観測するという意味です。</p>
+<p>そしてそれが、2番目の表を決定的にする観察です。第1章1.3節と第4章4.1節はどちらも、<em>スクイーズしていない</em>Ramseyセンサは $T \approx T_2/2$ だけ観測すべきだと確立しました。ここでの数値計算は $0.493$ を見つけ、それを確認しています。しかしスクイーズしたセンサは $T_2/2$ を支払えません。そこでは $p \approx 0.2$ でスクイージングは消えているからです。もっと短い時間 — $N = 100$ で $0.170\,T_2$、$N = 10^{4}$ で $0.040\,T_2$ — しか観測できず、観測が短いこと自体が感度の損失です。$\eta_B \propto \xi/\sqrt{T}$ ですから。2つのセンサを<em>それぞれ自分の最適値で</em>比べ、1.3節の $\eta^2$ にちょうど等しい評価指標 $\xi^2/T$ を使うと、</p>
+<table>
+<thead>
+<tr>
+<th>$N$</th>
+<th>理想のスクイージング</th>
+<th>実際に使える利得</th>
+<th>振幅では</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>100</td>
+<td>$-12.01$ dB</td>
+<td>$2.32$ dB</td>
+<td>$1.31$ 倍</td>
+</tr>
+<tr>
+<td>1000</td>
+<td>$-19.23$ dB</td>
+<td>$3.33$ dB</td>
+<td>$1.47$ 倍</td>
+</tr>
+<tr>
+<td>10 000</td>
+<td>$-26.21$ dB</td>
+<td>$3.86$ dB</td>
+<td>$1.56$ 倍</td>
+</tr>
+</tbody>
+</table>
+<p>となります。26デシベルの理想的なスクイージングは、$3.9$ dB の実際の感度に相当します。そして振幅利得の数列 — $1.307$、$1.468$、$1.560$ — は $\sqrt{e} = 1.6487$ へ向かって上がっています。3点を眺めるだけで極限は確定できないので、この Example は Code Example 1 が $N^{-2/3}$ の壁に対して行ったのと同じやり方で漸近を当てはめます。有限 $N$ の不足は主要項より $N^{-1/3}$ だけ低い次数なので、gain $= A + BN^{-1/3}$ を当てはめると $A = 1.6234$、残差の最大は $0.0075$ になります。この外挿した切片は $\sqrt{e}$ より $1.5\%$ 低く、定数を同定するには十分ですが測定したと言うには不十分で、そのどちらであるかを正直に述べておきます。定数そのものは数値の偶然ではありません。無相関デフェージングに対しては、標準量子限界に対する最良の改善がちょうど振幅で $\sqrt{e}$ 倍であり、最適なプローブ状態で達成され、$1/\sqrt{N}$ の<em>スケーリング</em>はそのまま残るという定理があります。数値計算はそれを特定の状態族から数パーセントの精度で取り出したのです。これが本章で最も重要な1つの数値です。</p>
+<p>両方向に読んでください。どちらの読みも真です。</p>
+<p><strong>過大宣伝に対して。</strong> 無相関デフェージング下のエンタングルメントは指数を変えません。$1/N$ はなく、$N = 10^{4}$ での100倍はなく、それを見込んだ提案は工学ではなく物理において誤りです。Example の末尾に印字される3つの注意書きはすべて同じ方向を指します。この計算はスクイージングが無料で瞬時、読み出しがノイズなし、そしてノイズモデルが最も穏やかであると仮定していました。実在の装置はもっと悪くなります。</p>
+<p><strong>切り捨てに対して。</strong> 振幅で $1.65$ 倍は平均化時間で $2.7$ 倍であり、それが決定的で、他のどんな方法でも得られない計測は存在します。その状況は同定できます。エンタングルメントがコストに見合うのは、ちょうど <strong>$N$ を増やせないとき</strong>です。光格子時計では原子数が4.2節の低温衝突による密度シフトで上から抑えられており — 原子を足せば系統誤差が増える — $\sqrt{N}$ の道は閉ざされていてエンタングルメントの道だけが残ります。ナノスケールのNV計測では必要な空間分解能でプローブ体積が固定されるので、ここでも $N$ は自由なパラメータではありません。重力波干渉計では循環パワーが光学素子の熱変形と放射圧ノイズで抑えられています。資源がコストではなく系統誤差で上限を持つところではどこでも、有界な定数倍こそが売りに出されているものであり、それは買う価値があります。</p>
+<h3>損失と、光子における同じ脆さ</h3>
+<p>スピンの場合はデフェージングでしたが、光の場合は損失であり、結果の構造は同じでより鋭くなります。2つの状態が両極端を示します。</p>
+<p><strong>N00N状態</strong> $(|N,0\rangle + |0,N\rangle)/\sqrt{2}$ は $N$ 個の光子を「全部が経路1」と「全部が経路2」の重ね合わせに置きます。その位相感度は $1/N$、Heisenberg限界であり、GHZの光子版です。脆さは即座に現れます。光子1個を失えばそれがどちらの経路から来たかが露わになるので、2項間のコヒーレンスは<em>すべての</em>光子が生き残った場合にのみ残り、その確率は透過率 $\eta$ に対して $\eta^N$ です。</p>
+<p><strong>スクイーズド真空</strong>は、光のスクイージングが本質的な役割を担う場面で実際に使われる状態です。これはそもそも光子数が確定した状態ではなく、直交成分の分散が真空より一方向に $e^{-2r}$ 小さいGauss状態です。損失下では測定される分散は<em>混合</em></p>
+<p>$$ V(\eta, r) = \eta\, e^{-2r} + (1-\eta) $$</p>
+<p>になります。減衰したスクイーズド直交成分が、損失ポートから入ってくる真空で補充されるからです。これは線形な劣化であり、$\eta^N$ と線形混合の違いがこの節の話のすべてです。</p>
+<h3>Code Example 3: 指数対線形</h3>
+<pre><code class="language-python">&quot;&quot;&quot;第5章 Code Example 3: スクイーズド光の2つの使い方と、損失がそれぞれに何をするか。
+Code Example 1-2 の続き（同一セッション）。&quot;&quot;&quot;
+
+
+def noon_gain(N, eta):
+    &quot;&quot;&quot;光子数予算を固定したとき、N00N状態が古典プローブに対して得る
+    Fisher情報の利得。
+
+    光子 N 個のN00N状態はFisher情報 N^2 を運びますが、|N,0&gt; と |0,N&gt; の
+    コヒーレンスは光子が1個も失われない場合にのみ生き残り、その確率は eta^N
+    です。合計 M 光子の予算を使うと M/N 回の繰り返しができて M N eta^N と
+    なり、同じ M 光子の古典プローブを同じチャネルに通すと M eta です。
+    比は N eta^(N-1) になります。
+    &quot;&quot;&quot;
+    return N * eta ** (N - 1.0)
+
+
+def squeezed_gain_db(eta, r):
+    &quot;&quot;&quot;透過率 eta を通った後のスクイーズド真空によるノイズ低減量（dB）。
+
+    真空に対する測定分散は eta e^(-2r) + (1 - eta) です。スクイーズされた
+    直交成分は減衰し、その代わりに真空が漏れ込みます。劣化は損失に対して
+    「線形」で、r を無限に大きくしたときの上限は -10 log10(1 - eta) です。
+    &quot;&quot;&quot;
+    return -10.0 * np.log10(eta * np.exp(-2.0 * r) + (1.0 - eta))
+
+
+def db_to_r(x_db):
+    &quot;&quot;&quot;dB で表したスクイージング量を、スクイーズパラメータ r に変換します。&quot;&quot;&quot;
+    return x_db * np.log(10.0) / 20.0
+
+
+etas = [1.0, 0.99, 0.95, 0.9, 0.7, 0.5]
+print(&quot;N00N状態: 古典プローブに対する利得 N eta^(N-1)&quot;)
+head = f&quot;{'N':&gt;6}&quot; + &quot;&quot;.join(f&quot;{'eta=' + f'{e:.2f}':&gt;11}&quot; for e in etas)
+print(head)
+print(&quot;-&quot; * len(head))
+for N in [2, 4, 10, 20, 50, 100, 200]:
+    print(f&quot;{N:&gt;6d}&quot; + &quot;&quot;.join(f&quot;{noon_gain(N, e):&gt;11.3f}&quot; for e in etas))
+
+print(&quot;\nN についての最適値と、それが意味する上限&quot;)
+head = (f&quot;{'eta':&gt;7}{'loss':&gt;8}{'-1/ln eta':&gt;12}{'best N':&gt;9}&quot;
+        f&quot;{'best gain':&gt;11}{'in dB':&gt;9}&quot;)
+print(head)
+print(&quot;-&quot; * len(head))
+Ns_try = np.arange(1, 200001)
+for eta in [0.999, 0.99, 0.95, 0.9, 0.7, 0.5, 0.3]:
+    g = noon_gain(Ns_try, eta)
+    k = int(np.argmax(g))
+    print(f&quot;{eta:&gt;7.3f}{1 - eta:&gt;8.3f}{-1.0 / np.log(eta):&gt;12.2f}&quot;
+          f&quot;{Ns_try[k]:&gt;9d}{g[k]:&gt;11.3f}{10 * np.log10(g[k]):&gt;9.3f}&quot;)
+print(&quot;  Heisenbergスケーリングは消えています。損失を固定すれば、達成できる&quot;)
+print(&quot;  最良の利得は 1/(e |ln eta|) 程度の定数です。N を N* より大きくすると&quot;)
+print(&quot;  センサは悪くなり、使える N は損失によって上から抑えられます。&quot;)
+
+print(&quot;\nスクイーズド真空、損失を生き延びる道&quot;)
+etas2 = [1.0, 0.95, 0.9, 0.8, 0.5]
+head = f&quot;{'source':&gt;10}&quot; + &quot;&quot;.join(f&quot;{'eta=' + f'{e:.2f}':&gt;11}&quot; for e in etas2)
+print(head)
+print(&quot;-&quot; * len(head))
+for r_db in [3.0, 6.0, 10.0, 15.0, 20.0]:
+    r = db_to_r(r_db)
+    print(f&quot;{r_db:&gt;7.0f} dB&quot; + &quot;&quot;.join(f&quot;{squeezed_gain_db(e, r):&gt;11.2f}&quot;
+                                       for e in etas2))
+print(&quot;\n  光源をより強くスクイーズしたときの上限と、10 dB の光源が届けるもの&quot;)
+print(f&quot;{'eta':&gt;7}{'ceiling (dB)':&gt;15}{'10 dB source gives':&gt;21}&quot;)
+print(&quot;-&quot; * 43)
+r10 = db_to_r(10.0)
+for eta in [0.99, 0.95, 0.9, 0.8, 0.5]:
+    print(f&quot;{eta:&gt;7.2f}{-10 * np.log10(1 - eta):&gt;15.2f}&quot;
+          f&quot;{squeezed_gain_db(eta, r10):&gt;18.2f} dB&quot;)
+eta_grid = np.linspace(0.5, 1.0, 500001)
+k = int(np.argmin(np.abs(squeezed_gain_db(eta_grid, r10) - 6.0)))
+print(f&quot;\n  10 dB の光源は eta &gt; {eta_grid[k]:.4f} であれば依然 6 dB を届けます。&quot;)
+print(f&quot;  すなわち光源から検出器までの損失予算が &quot;
+      f&quot;{100 * (1 - eta_grid[k]):.1f} パーセント以内ということです。&quot;)
+
+print(&quot;\n並べてみれば、劣化の法則がすべてを語ります&quot;)
+head = (f&quot;{'loss 1-eta':&gt;12}{'N00N, best over N':&gt;21}&quot;
+        f&quot;{'10 dB squeezed vacuum':&gt;24}&quot;)
+print(head)
+print(&quot;-&quot; * len(head))
+for eta in [0.99, 0.95, 0.9, 0.7, 0.5]:
+    g = noon_gain(Ns_try, eta).max()
+    print(f&quot;{1 - eta:&gt;12.2f}{10 * np.log10(g):&gt;18.2f} dB&quot;
+          f&quot;{squeezed_gain_db(eta, r10):&gt;21.2f} dB&quot;)
+print(&quot;  損失1パーセントではN00Nの列が名目上は勝っています。しかしその値は&quot;)
+print(&quot;  光子99個のN00N状態を要求し、その生成コストは N とともに急激に増えます。&quot;)
+print(&quot;  一方スクイーズド真空の値に必要なのは非線形素子1つと綺麗な光学系です。&quot;)
+print(&quot;  上限ではなく傾向を読むべきです。N00Nはエンタングル状態の大きさに&quot;)
+print(&quot;  ついて指数的に、eta^N で優位を失います。スクイーズド真空は真空との&quot;)
+print(&quot;  線形混合として失います。理想的なスケーリングではなくこの違いこそが、&quot;)
+print(&quot;  スクイージングを本気で使っている量子ノイズ限界の干渉計、すなわち&quot;)
+print(&quot;  重力波検出器がスクイーズド真空を注入する理由です。そこでは読み出し光の&quot;)
+print(&quot;  ショットノイズが帯域の一部で実際に支配的なノイズなので、分散の数dBが&quot;)
+print(&quot;  そのまま到達距離の数dBになり、光学系の損失予算が設計上の制約になります。&quot;)
+</code></pre>
+<pre><code class="language-text">N00N状態: 古典プローブに対する利得 N eta^(N-1)
+     N   eta=1.00   eta=0.99   eta=0.95   eta=0.90   eta=0.70   eta=0.50
+------------------------------------------------------------------------
+     2      2.000      1.980      1.900      1.800      1.400      1.000
+     4      4.000      3.881      3.429      2.916      1.372      0.500
+    10     10.000      9.135      6.302      3.874      0.404      0.020
+    20     20.000     16.523      7.547      2.702      0.023      0.000
+    50     50.000     30.556      4.050      0.286      0.000      0.000
+   100    100.000     36.973      0.623      0.003      0.000      0.000
+   200    200.000     27.067      0.007      0.000      0.000      0.000
+
+N についての最適値と、それが意味する上限
+    eta    loss   -1/ln eta   best N  best gain    in dB
+--------------------------------------------------------
+  0.999   0.001      999.50      999    368.063   25.659
+  0.990   0.010       99.50       99     36.973   15.679
+  0.950   0.050       19.50       19      7.547    8.778
+  0.900   0.100        9.49        9      3.874    5.882
+  0.700   0.300        2.80        3      1.470    1.673
+  0.500   0.500        1.44        1      1.000    0.000
+  0.300   0.700        0.83        1      1.000    0.000
+  Heisenbergスケーリングは消えています。損失を固定すれば、達成できる
+  最良の利得は 1/(e |ln eta|) 程度の定数です。N を N* より大きくすると
+  センサは悪くなり、使える N は損失によって上から抑えられます。
+
+スクイーズド真空、損失を生き延びる道
+    source   eta=1.00   eta=0.95   eta=0.90   eta=0.80   eta=0.50
+-----------------------------------------------------------------
+      3 dB       3.00       2.79       2.59       2.21       1.25
+      6 dB       6.00       5.40       4.87       3.97       2.04
+     10 dB      10.00       8.39       7.21       5.53       2.60
+     15 dB      15.00      10.97       8.91       6.47       2.88
+     20 dB      20.00      12.25       9.63       6.82       2.97
+
+  光源をより強くスクイーズしたときの上限と、10 dB の光源が届けるもの
+    eta   ceiling (dB)   10 dB source gives
+-------------------------------------------
+   0.99          20.00              9.63 dB
+   0.95          13.01              8.39 dB
+   0.90          10.00              7.21 dB
+   0.80           6.99              5.53 dB
+   0.50           3.01              2.60 dB
+
+  10 dB の光源は eta &gt; 0.8320 であれば依然 6 dB を届けます。
+  すなわち光源から検出器までの損失予算が 16.8 パーセント以内ということです。
+
+並べてみれば、劣化の法則がすべてを語ります
+  loss 1-eta    N00N, best over N   10 dB squeezed vacuum
+---------------------------------------------------------
+        0.01             15.68 dB                 9.63 dB
+        0.05              8.78 dB                 8.39 dB
+        0.10              5.88 dB                 7.21 dB
+        0.30              1.67 dB                 4.32 dB
+        0.50              0.00 dB                 2.60 dB
+  損失1パーセントではN00Nの列が名目上は勝っています。しかしその値は
+  光子99個のN00N状態を要求し、その生成コストは N とともに急激に増えます。
+  一方スクイーズド真空の値に必要なのは非線形素子1つと綺麗な光学系です。
+  上限ではなく傾向を読むべきです。N00Nはエンタングル状態の大きさに
+  ついて指数的に、eta^N で優位を失います。スクイーズド真空は真空との
+  線形混合として失います。理想的なスケーリングではなくこの違いこそが、
+  スクイージングを本気で使っている量子ノイズ限界の干渉計、すなわち
+  重力波検出器がスクイーズド真空を注入する理由です。そこでは読み出し光の
+  ショットノイズが帯域の一部で実際に支配的なノイズなので、分散の数dBが
+  そのまま到達距離の数dBになり、光学系の損失予算が設計上の制約になります。
+</code></pre>
+<p><strong>着目点。</strong> 最初の表はN00N状態が現実と出会う場面です。透過率が完全なら利得は宣伝どおり $N$ です。$\eta = 0.95$ — 検出器を含む実在の光路には楽観的な5パーセント損失 — では利得は $N = 19$ で $7.55$ に達してその後<em>落ち</em>、$N = 200$ では $0.007$ になります。5パーセント損失のチャネルを通る光子200個のN00N状態は、レーザービームより4桁悪いのです。50パーセント損失では最良の $N$ は1、つまり得るものは何もありません。</p>
+<p>2番目の表は構造的な要点を示します。最適な $N$ は $-1/\ln\eta$ で、そこでの利得は損失で決まる<em>定数</em>です。1パーセント損失で約 $37$、5パーセントで $7.5$、10パーセントで $3.9$。Heisenbergスケーリングは劣化したのではなく廃止されました。損失を固定すれば、エンタングル状態がどれほど大きくても古典プローブに対する改善は有界で、$N$ を最適値より押し上げれば事態は悪化します。これは5.2節の $\sqrt{e}$ と同じ言明を別の物理系で述べたものであり、一般的なパターンです。<strong>1粒子あたりのデコヒーレンス確率が固定されていると、スケーリングの優位は定数の優位に変換されます</strong>。</p>
+<p>スクイーズド真空の表は代替案を示します。10 dB の光源は10パーセント損失のチャネルを通ってなお $7.21$ dB を届け、20パーセント損失では $5.53$ dB です。光源をより強くスクイーズしたときの上限は $-10\log_{10}(1-\eta)$ なので、10パーセントの損失は結晶がどれほど良くても使えるスクイージングを10 dB で打ち止めにします — だからこの種の系での工学的努力はスクイーザーではなく<em>損失予算</em>に向かうのです。計算された要求は具体的です。10 dB の光源が 6 dB を届けるには、光源から検出器までの合計損失が $16.8\%$ 以内でなければならず、それは鏡のコーティング、モード整合、フォトダイオードの量子効率についての仕様です。</p>
+<p>並べた表は注意書きと一緒に注意深く読む必要があります。1パーセント損失ではN00Nの列が名目上は勝っており、$15.7$ dB 対 $9.6$ dB です。その値は光子99個のN00N状態を仮定しています。そうした状態の生成コストは $N$ とともに急激に増え、スケーラブルな経路は知られていません。一方スクイーズド真空はポンプパワーが支える $r$ で、非線形素子1つから出てきます。したがって重要な比較は上限ではなく傾向と生成可能性であり、その両方でスクイーズド真空が、どんな理想的な計算にも捉えられない差で勝ちます。</p>
+<p><strong>これがすでに本質的な役割を担っている場所。</strong> 重力波干渉計が物理的な先例であり、そこがスクイージングが本当に報われる場合である理由を正確に述べる価値があります。この種の装置は帯域の一部で<em>量子ノイズ限界</em>にあります。地面振動、熱、技術的なノイズ源が抑えられた後、高周波で残るのは読み出し光そのものの光子ショットノイズです。その領域では、読み出し直交成分の分散を1デシベル減らせば、測定のノイズが直接、仲介なしに1デシベル減ります。暗ポートにスクイーズド真空を注入するのがまさにそれを行います。装置がその量子限界にあるから、選んだ状態が緩やかに劣化するから、そして同じ改善に至る古典的な道 — 循環パワー — が鏡の熱変形で上限を持つから、うまくいくのです。この3つ組が、理想的なスケーリングではなく、提案されたエンタングルメント増強センサに当てるべき基準です。装置は本当に量子ノイズ限界にあるか、選んだ状態は緩やかに劣化するか、古典的な資源は本当に上限を持っているか。</p>
+<hr />
+<h2>5.3 量子データとしてのセンサ出力</h2>
+<h3>読み出しはモデルの一部である</h3>
+<p>Example 2 と Example 3 のどの表にも、まだ名前を付けていない隔たりがあります。量子Fisher情報 $F_Q$ は<em>可能な最良の</em>測定に使える情報です。実験室が実際に得る数値は行った測定で決まり、それはふつう直交成分です。分布数の読み出しが与えるものがそれだからです。2つの比は、選んだ読み出しが回収する利用可能な情報の割合であり、それは1でもなく定数でもありません。</p>
+<h3>Code Example 4: 固定した読み出しが取りこぼすもの</h3>
+<pre><code class="language-python">&quot;&quot;&quot;第5章 Code Example 4: 量子Fisher情報と、固定した読み出しが取りこぼすもの。
+Code Example 1-3 の続き（同一セッション）。&quot;&quot;&quot;
+from scipy.linalg import expm
+
+N_f = 8
+dim = 2 ** N_f
+bits_f = ((np.arange(dim)[:, None] &gt;&gt; np.arange(N_f)[::-1]) &amp; 1).astype(float)
+Jz_diag = (0.5 - bits_f).sum(axis=1)
+Jz_f = np.diag(Jz_diag).astype(complex)
+Jx_f = np.zeros((dim, dim), dtype=complex)
+for q in range(N_f):
+    flip = np.arange(dim) ^ (1 &lt;&lt; (N_f - 1 - q))
+    Jx_f[np.arange(dim), flip] += 0.5
+Jy_f = -1j * (Jz_f @ Jx_f - Jx_f @ Jz_f)
+ham_f = (bits_f[:, None, :] != bits_f[None, :, :]).sum(axis=2)
+
+
+def dephase_rho(rho, eta):
+    &quot;&quot;&quot;独立な単一スピンデフェージングを、Hamming距離による減衰として実装します。&quot;&quot;&quot;
+    return rho * eta ** ham_f
+
+
+def qfi(rho, gen=Jz_f, tol=1e-11):
+    &quot;&quot;&quot;生成子 gen に対する量子Fisher情報。
+
+    drho = -i[gen, rho] として
+    F_Q = 2 sum_kl |&lt;k|drho|l&gt;|^2 / (lam_k + lam_l) です。これはどんな測定を
+    もってきても得られるFisher情報の最大値です。
+    &quot;&quot;&quot;
+    lam, U = np.linalg.eigh(rho)
+    drho = -1j * (gen @ rho - rho @ gen)
+    A = U.conj().T @ drho @ U
+    s = lam[:, None] + lam[None, :]
+    mask = s &gt; tol
+    return float(2.0 * np.sum(np.abs(A[mask]) ** 2 / s[mask]))
+
+
+def moment_fisher(rho):
+    &quot;&quot;&quot;最良の線形直交成分読み出しによるFisher情報。
+
+    (F, theta*, 4 Var(Jz)) を返します。F = &lt;Jx&gt;^2 Czz / det(C_2) は
+    Example 1 の N/xi^2 と同じ量であり、4 Var(Jz) は純粋状態に対する
+    量子Fisher情報です。
+    &quot;&quot;&quot;
+    def ev(A):
+        return np.trace(rho @ A).real
+
+    ex, ey, ez = ev(Jx_f), ev(Jy_f), ev(Jz_f)
+    Cyy = ev(Jy_f @ Jy_f) - ey ** 2
+    Czz = ev(Jz_f @ Jz_f) - ez ** 2
+    Cyz = 0.5 * ev(Jy_f @ Jz_f + Jz_f @ Jy_f) - ey * ez
+    det = Cyy * Czz - Cyz ** 2
+    return ex ** 2 * Czz / det, np.arctan2(-Cyz, Czz), 4.0 * Czz
+
+
+psi_css_f = np.ones(dim, dtype=complex) / np.sqrt(dim)
+x_f, mu_f, a_f = best_squeezing(N_f)
+psi_twist = psi_css_f * np.exp(-1j * mu_f * Jz_diag ** 2)
+psi_shear = expm(-1j * a_f * Jx_f) @ psi_twist
+psi_ghz = np.zeros(dim, dtype=complex)
+psi_ghz[0] = psi_ghz[-1] = 1.0 / np.sqrt(2.0)
+
+print(f&quot;スピン N = {N_f} 個。ねじれ mu = {mu_f:.5f}、せん断 alpha = {a_f:.4f}&quot;)
+print(f&quot;  Example 1 のDicke基底計算による xi^2         : {x_f:.6f}&quot;)
+F_chk = moment_fisher(np.outer(psi_shear, psi_shear.conj()))[0]
+print(f&quot;  完全な 2^N 状態から求めた N / F_moments       : &quot;
+      f&quot;{N_f / F_chk:.6f}&quot;)
+print(&quot;  両者は一致します。つまり Example 1 の O(N) の仕掛けと、ここでの&quot;)
+print(&quot;  O(4^N) の仕掛けは同じ物理を記述しています。&quot;)
+
+states = [(&quot;coherent spin state&quot;, psi_css_f),
+          (&quot;twisted, no shear&quot;, psi_twist),
+          (&quot;twisted + shear&quot;, psi_shear),
+          (&quot;GHZ&quot;, psi_ghz)]
+print(f&quot;\n生成子は J_z です。標準量子限界は F = N = {N_f}、&quot;)
+print(f&quot;Heisenberg限界は F = N^2 = {N_f ** 2} です。&quot;)
+head = (f&quot;{'state':&lt;22}{'4 Var(Jz)':&gt;12}{'F_Q':&gt;11}{'F_moments':&gt;12}&quot;
+        f&quot;{'F_mom/F_Q':&gt;11}{'theta*':&gt;9}&quot;)
+print(head)
+print(&quot;-&quot; * len(head))
+for label, psi in states:
+    rho = np.outer(psi, psi.conj())
+    Fq = qfi(rho)
+    Fm, th, four_var = moment_fisher(rho)
+    print(f&quot;{label:&lt;22}{four_var:&gt;12.4f}{Fq:&gt;11.4f}{Fm:&gt;12.4f}&quot;
+          f&quot;{Fm / Fq:&gt;11.4f}{th:&gt;9.4f}&quot;)
+print(&quot;  2行目は Example 1 の教訓をFisher情報の言葉で言い直したものです。&quot;)
+print(&quot;  ねじれは 4 Var(Jz) = N を変えないので、せん断前の状態をどう測っても&quot;)
+print(&quot;  標準量子限界は破れません。3行目では局所せん断が 4 Var(Jz) を N より&quot;)
+print(&quot;  はるかに大きくしています。スクイーズしたセンサが使う資源は&quot;)
+print(&quot;  「反」スクイーズ方向の分散であり、スクイーズ方向はそれを読み出しが&quot;)
+print(&quot;  回収できるようにするだけのものです。4行目は極端な場合で、GHZは&quot;)
+print(&quot;  分散のすべてを z 方向に持ち、&lt;Jx&gt; = 0 なので F_moments = 0 です。&quot;)
+print(&quot;  GHZ状態には回すべき平均スピンがないので、線形な直交成分読み出しには&quot;)
+print(&quot;  何も見えず、情報はパリティ測定で取り出すしかありません。&quot;)
+
+print(&quot;\nデフェージング下での、2つのFisher情報の隔たり&quot;)
+head = (f&quot;{'p':&gt;6}  {'state':&lt;22}{'F_Q':&gt;11}{'F_moments':&gt;12}&quot;
+        f&quot;{'F_mom/F_Q':&gt;11}{'theta*':&gt;9}{'F_mom/N':&gt;10}&quot;)
+print(head)
+print(&quot;-&quot; * len(head))
+for p in [0.0, 0.01, 0.05, 0.2]:
+    eta = 1.0 - 2.0 * p
+    for label, psi in [(&quot;coherent spin state&quot;, psi_css_f),
+                       (&quot;twisted + shear&quot;, psi_shear), (&quot;GHZ&quot;, psi_ghz)]:
+        rho = dephase_rho(np.outer(psi, psi.conj()), eta)
+        Fq = qfi(rho)
+        Fm, th, _ = moment_fisher(rho)
+        print(f&quot;{p:&gt;6.2f}  {label:&lt;22}{Fq:&gt;11.4f}{Fm:&gt;12.4f}&quot;
+              f&quot;{Fm / Fq:&gt;11.4f}{th:&gt;9.4f}{Fm / N_f:&gt;10.3f}&quot;)
+
+print(&quot;\nGHZ の行を、解析形 N^2 eta^(2N) と比べます&quot;)
+print(f&quot;{'p':&gt;7}{'eta':&gt;8}{'F_Q(GHZ)':&gt;12}{'N^2 eta^(2N)':&gt;15}&quot;
+      f&quot;{'F_Q / N':&gt;11}&quot;)
+print(&quot;-&quot; * 53)
+for p in [0.0, 0.01, 0.02, 0.05, 0.1, 0.2]:
+    eta = 1.0 - 2.0 * p
+    rho = dephase_rho(np.outer(psi_ghz, psi_ghz.conj()), eta)
+    print(f&quot;{p:&gt;7.2f}{eta:&gt;8.2f}{qfi(rho):&gt;12.5f}&quot;
+          f&quot;{N_f ** 2 * eta ** (2 * N_f):&gt;15.5f}{qfi(rho) / N_f:&gt;11.5f}&quot;)
+print(f&quot;  GHZ は数パーセントのデフェージングで標準量子限界 N = {N_f} を&quot;)
+print(&quot;  下回り、指数 2N は Example 3 のN00N状態と同じ eta^N の脆さです。&quot;)
+print(&quot;  1つの機構に2つの名前が付いているだけです。&quot;)
+print(&quot;\n  次に F_mom/F_Q の列を読んでください。これは固定した直交成分読み出しが&quot;)
+print(&quot;  実際に回収している、利用可能な情報の割合です。そしてそれを回収する&quot;)
+print(&quot;  読み出し角 theta* は、ノイズが変われば動きます。ノイズモデルに合わせて&quot;)
+print(&quot;  調整された読み出しとは、データに当てはめた推定器のことです。センサの&quot;)
+print(&quot;  出力が単なる数値であることをやめ、量子データの集合になるのはこの点です。&quot;)
+</code></pre>
+<pre><code class="language-text">スピン N = 8 個。ねじれ mu = 0.22528、せん断 alpha = 1.0587
+  Example 1 のDicke基底計算による xi^2         : 0.354129
+  完全な 2^N 状態から求めた N / F_moments       : 0.354129
+  両者は一致します。つまり Example 1 の O(N) の仕掛けと、ここでの
+  O(4^N) の仕掛けは同じ物理を記述しています。
+
+生成子は J_z です。標準量子限界は F = N = 8、
+Heisenberg限界は F = N^2 = 64 です。
+state                    4 Var(Jz)        F_Q   F_moments  F_mom/F_Q   theta*
+-----------------------------------------------------------------------------
+coherent spin state         8.0000     8.0000      8.0000     1.0000  -0.0000
+twisted, no shear           8.0000     8.0000      6.6641     0.8330  -0.9301
+twisted + shear            27.1191    27.1191     22.5906     0.8330  -0.0007
+GHZ                        64.0000    64.0000      0.0000     0.0000  -0.0000
+  2行目は Example 1 の教訓をFisher情報の言葉で言い直したものです。
+  ねじれは 4 Var(Jz) = N を変えないので、せん断前の状態をどう測っても
+  標準量子限界は破れません。3行目では局所せん断が 4 Var(Jz) を N より
+  はるかに大きくしています。スクイーズしたセンサが使う資源は
+  「反」スクイーズ方向の分散であり、スクイーズ方向はそれを読み出しが
+  回収できるようにするだけのものです。4行目は極端な場合で、GHZは
+  分散のすべてを z 方向に持ち、&lt;Jx&gt; = 0 なので F_moments = 0 です。
+  GHZ状態には回すべき平均スピンがないので、線形な直交成分読み出しには
+  何も見えず、情報はパリティ測定で取り出すしかありません。
+
+デフェージング下での、2つのFisher情報の隔たり
+     p  state                         F_Q   F_moments  F_mom/F_Q   theta*   F_mom/N
+-----------------------------------------------------------------------------------
+  0.00  coherent spin state        8.0000      8.0000     1.0000  -0.0000     1.000
+  0.00  twisted + shear           27.1191     22.5906     0.8330  -0.0007     2.824
+  0.00  GHZ                       64.0000      0.0000     0.0000  -0.0000     0.000
+  0.01  coherent spin state        7.6832      7.6832     1.0000  -0.0000     0.960
+  0.01  twisted + shear           23.7227     19.3645     0.8163  -0.0007     2.421
+  0.01  GHZ                       46.3231      0.0000     0.0000  -0.0000     0.000
+  0.05  coherent spin state        6.4800      6.4800     1.0000  -0.0000     0.810
+  0.05  twisted + shear           14.3804     11.5981     0.8065  -0.0006     1.450
+  0.05  GHZ                       11.8593      0.0000     0.0000  -0.0000     0.000
+  0.20  coherent spin state        2.8800      2.8800     1.0000  -0.0000     0.360
+  0.20  twisted + shear            3.0563      2.7606     0.9033  -0.0004     0.345
+  0.20  GHZ                        0.0181      0.0000     0.0000  -0.0000     0.000
+
+GHZ の行を、解析形 N^2 eta^(2N) と比べます
+      p     eta    F_Q(GHZ)   N^2 eta^(2N)    F_Q / N
+-----------------------------------------------------
+   0.00    1.00    64.00000       64.00000    8.00000
+   0.01    0.98    46.32305       46.32305    5.79038
+   0.02    0.96    33.30579       33.30579    4.16322
+   0.05    0.90    11.85933       11.85933    1.48242
+   0.10    0.80     1.80144        1.80144    0.22518
+   0.20    0.60     0.01806        0.01806    0.00226
+  GHZ は数パーセントのデフェージングで標準量子限界 N = 8 を
+  下回り、指数 2N は Example 3 のN00N状態と同じ eta^N の脆さです。
+  1つの機構に2つの名前が付いているだけです。
+
+  次に F_mom/F_Q の列を読んでください。これは固定した直交成分読み出しが
+  実際に回収している、利用可能な情報の割合です。そしてそれを回収する
+  読み出し角 theta* は、ノイズが変われば動きます。ノイズモデルに合わせて
+  調整された読み出しとは、データに当てはめた推定器のことです。センサの
+  出力が単なる数値であることをやめ、量子データの集合になるのはこの点です。
+</code></pre>
+<p><strong>着目点。</strong> まず整合性の検証です。Example 1 の $O(N)$ の集団スピンの仕掛けから求めた $\xi^2$ と、完全な $2^8$ 密度行列計算から求めた $N/F_\mathrm{moments}$ が6桁で一致します。同じ物理の独立な2つの実装です。</p>
+<p>状態の表は5.1節の細かな点をFisher情報の言葉で言い直して決着させます。コヒーレントスピン状態は $F_Q = N = 8$ をもち、直交成分読み出しはそのすべてを回収します。$F_\mathrm{mom}/F_Q = 1$ です。Gauss状態はGauss測定で最適に読まれるので、標準量子限界では読み出しの最適性を誰も心配しません。ねじれた状態はなお $F_Q = 8$ です — ねじれは $\mathrm{Var}(J_z)$ を変えませんでした — したがってどんな測定をもってしてもそれで標準量子限界を破ることはできません。せん断の後は $4\,\mathrm{Var}(J_z) = 27.1$ となり、状態は本当にSQL未満です。$F_\mathrm{mom} = 22.6 = N/\xi^2$ です。センサが使う資源は反スクイーズ方向の分散であり、スクイーズ方向は実用的な読み出しがそれを回収できるようにするものです。そしてGHZの行は極端で、$F_Q = N^2 = 64$ という可能な最大値をもちながら $F_\mathrm{mom} = 0$ が厳密に成り立ちます。$\langle J_x \rangle = 0$ であり、GHZ状態には回すべき平均スピンがないからです。その情報はすべてパリティ観測量に宿っています。状態は最大限に有用でありながら、標準的な装置では完全に読めないことがありうるのです。</p>
+<p>デフェージングの表は次に、読み出しの隔たりが動くことを示します。せん断した状態では $F_\mathrm{mom}/F_Q$ が $p$ の増加とともに $0.833 \to 0.816 \to 0.807 \to 0.903$ と動き、最適な直交成分の角度 $\theta^\ast$ もそれとともにずれます。利用可能な情報のおよそ6分の1が固定した直交成分によって捨てられており、どれだけ捨てられるかはノイズに依存します。GHZの列は $N^2\eta^{2N}$ で崩壊し — 解析形と小数5桁で一致します — $p \approx 0.05$ で標準量子限界 $N = 8$ を下回ります。その $\eta^{2N}$ は5.2節のN00N状態の $\eta^N$ の2乗です。Fisher情報がコヒーレンスの2次だからです。1つの機構、2つの名前、2つの章。</p>
+<h3>なぜこれがセンサ出力をデータ集合にするのか</h3>
+<p>部品を組み立てましょう。量子センサが運ぶ情報はプローブ状態に依存し、そのうち回収できる割合は測定に依存し、最適な測定はノイズに依存し、そのノイズは試料と装置の性質であってふつう事前には分かりません。帰結として、推定器 — 測定記録から物理量への写像 — は理論で固定されるのではなく<em>当てはめ</em>なければならず、測定設定それ自体がデータに対して最適化できるパラメータになります。</p>
+<p>これはまさに姉妹コース<a href="../../MI/quantum-machine-learning-introduction/index.html">量子機械学習入門</a>が予期していた状況です。その5.4節、<a href="../../MI/quantum-machine-learning-introduction/chapter-5.html">量子データが話を変えるとき</a>は、あのコースの否定的な結果はすべてデータが古典的であるという前提 — 表に載った4つの数値を、コストがまるごと量子側に請求される形でレジスタに載せること — に依拠していると論じ、量子計量学をその前提が崩れる数少ない方向の1つとして挙げています。その正確な言葉は、信号が古典的な読み出しではなく量子プローブのコヒーレンスに宿る測定は「この意味での量子データを生みます」、そしてその扱いは「量子センシングの講座に属するもので、本コースには属しません」でした。本節がその扱いであり、何が従い何が従わないのかを正確に述べる価値があります。</p>
+<p><strong>従うこと。</strong> 3つ、推測の度合いの小さい順に。</p>
+<ul>
+<li><strong>推定器は、今日すでに学習問題です。</strong> 多パラメータ推定、適応的な測定設定、そしてコヒーレンス曲線の族からノイズスペクトルを逆推定すること（1.4節と2.3節のCPMG逆問題）はすべて、実験室がすでに生み出しているデータ上の統計的な逆問題です。<em>処理</em>に量子的なものは要りません。量子的なのは、モデルのクラスが一般的な回帰ではなく上のFisher情報の構造から来ているという点です。</li>
+<li><strong>測定設定は制御問題です。</strong> $\theta^\ast$ はノイズとともに動くので、ノイズを測って読み出しを適応させるプロトコルは固定したものより良くなります。これが変分計量学であり、シミュレータの代わりに装置を置いた、あのコースの第4章の変分回路と同じ最適化ループです。</li>
+<li><strong>センサ出力のコヒーレントな処理が本当に新しい領域であり、それは近い将来のものではありません。</strong> 厳密な分離は標本複雑度についての言明です。量子状態上に定義された推定課題で、単一コピーに制限されたどんな戦略も指数的に多くの実験を要するのに、2コピー以上をコヒーレントに処理できる戦略は多項式回で済むものが存在します。それを利用するにはセンサとプロセッサが同一の装置であるか量子チャネルで結ばれていなければならず、これは既存の装置を本質的にすべて除外します。この方向を理解する理由にはなりますが、構築するパイプラインではありません。</li>
+</ul>
+<p><strong>従わないこと。</strong> 量子センサと量子計算機の組み合わせが、材料研究のグループが現在抱えているどんな問題においても、量子センサとノートPCの組み合わせに勝つということ。量子状態のランダム化測定から学ぶ古典的なベースラインは強く、誠実な言明はあのコースが脱量子化について述べるものと同じです。生き残る分離は、関心のある量が低weight観測量ではない場合だけなのです。磁力計が測るものの大半は低weight観測量です。</p>
+<hr />
+<h2>5.4 信号源の物理から見た、材料研究のロードマップ</h2>
+<p>材料研究者が本コースについて問うべきことは、どのセンサが最も感度が高いかではなく、どの計測が新たに可能になるかです。その問いは信号源の物理だけから答えられます。与えられた試料が生む信号を計算し、必要な寸法のプローブが分解できるものと比べ、プローブを十分近くまで持って行けるかを確かめる。ベンダーの仕様もロードマップも要らず、その結論は期限切れになりません。</p>
+<h3>Code Example 5: 3つの計測課題に値段を付ける</h3>
+<pre><code class="language-python">&quot;&quot;&quot;第5章 Code Example 5: 信号源の物理だけから、量子センサがどの材料計測に届くかを
+判定します。
+Code Example 1-4 の続き（同一セッション）。&quot;&quot;&quot;
+
+mu_0 = 4.0 * np.pi * 1e-7          # H/m
+mu_B = 9.2740100783e-24            # J/T
+
+
+def dipole_field(m_moment, d):
+    &quot;&quot;&quot;距離 d にある点双極子の漏れ磁場のピーク値: mu0 m / (2 pi d^3)。&quot;&quot;&quot;
+    return mu_0 * m_moment / (TWO_PI * d ** 3)
+
+
+def wire_field(current, d):
+    &quot;&quot;&quot;距離 d にある無限直線電流の磁場: mu0 I / (2 pi d)。&quot;&quot;&quot;
+    return mu_0 * current / (TWO_PI * d)
+
+
+def averaging_time(eta_B, B_target, snr=1.0):
+    &quot;&quot;&quot;指定した信号対雑音比に達するまでの時間: t = (snr eta_B / B)^2。&quot;&quot;&quot;
+    return (snr * eta_B / B_target) ** 2
+
+
+M_s = 1.4e6                        # A/m、代表的な飽和磁化
+print(&quot;信号源1: 磁性ナノ構造を、距離 d = 2a にある点双極子として扱います。&quot;)
+print(&quot;双極子の式は d が対象より大きいことを要求するので、d = 2a がこの見積もりを&quot;)
+print(&quot;信頼できるほぼ限界の近さです。これより近づけると過大評価になります。&quot;)
+head = (f&quot;{'island a x t (nm)':&gt;19}{'moment (mu_B)':&gt;15}{'standoff':&gt;11}&quot;
+        f&quot;{'peak field':&gt;14}&quot;)
+print(head)
+print(&quot;-&quot; * len(head))
+for edge_nm, thick_nm in [(100.0, 2.0), (50.0, 2.0), (20.0, 1.0),
+                          (10.0, 1.0), (5.0, 1.0)]:
+    V = (edge_nm * 1e-9) ** 2 * thick_nm * 1e-9
+    m_mom = M_s * V
+    B = dipole_field(m_mom, 2.0 * edge_nm * 1e-9)
+    print(f&quot;{edge_nm:&gt;13.0f} x{thick_nm:&gt;4.0f}{m_mom / mu_B:&gt;15.3e}&quot;
+          f&quot;{2 * edge_nm:&gt;8.0f} nm{B * 1e3:&gt;11.3f} mT&quot;)
+print(&quot;  これらの島は厚さ t 一定の薄膜なので m = M_s a^2 t であり、d = 2a では&quot;)
+print(&quot;  ピーク磁場は mu_0 M_s t / (16 pi a) です。島が小さくなるほど 1/a で&quot;)
+print(&quot;  増え、m が a^3 に比例する3次元の島なら a に依存しません。どちらにしても&quot;)
+print(&quot;  走査プローブが見る磁場は対象が小さくなっても減りません。ここでの障害は&quot;)
+print(&quot;  感度ではなく、プローブを表面にそれだけ近づけられるかどうかです。&quot;)
+
+print(&quot;\n信号源2: 電流分布を、無限直線電流として扱います&quot;)
+print(f&quot;{'current':&gt;12}{'standoff':&gt;11}{'field':&gt;15}&quot;)
+print(&quot;-&quot; * 38)
+for I, d_um in [(1e-3, 1000.0), (1e-3, 100.0), (1e-6, 100.0),
+                (1e-9, 10.0), (1e-12, 10.0)]:
+    print(f&quot;{I:&gt;10.0e} A{d_um:&gt;8.0f} um{wire_field(I, d_um * 1e-6) * 1e12:&gt;12.3e} pT&quot;)
+
+print(&quot;\n信号源3: 温度を、NVのゼロ磁場分裂 D(T) を通して測ります&quot;)
+dDdT = -74e3                       # Hz/K
+print(f&quot;  |dD/dT| = {abs(dDdT) / 1e3:.0f} kHz/K なので、周波数分解能は&quot;
+      f&quot;そのまま温度分解能になります:&quot;)
+print(f&quot;{'eta_nu (Hz/rtHz)':&gt;18}{'eta_T (mK/rtHz)':&gt;18}&quot;)
+print(&quot;-&quot; * 36)
+for eta_nu in [1.0, 10.0, 100.0, 1000.0]:
+    print(f&quot;{eta_nu:&gt;18.0f}{eta_nu / abs(dDdT) * 1e3:&gt;18.3f}&quot;)
+
+# 以下の感度は、第2章から第4章のスケーリング議論から取った、記載したプローブ
+# 寸法で各物理機構が許す範囲をまたぐ丸めた数値です。どの装置の仕様でもなく、
+# ここでの議論は列と列の比だけに依存します。
+sensors = [
+    (&quot;single NV&quot;,         1e-6,  10e-9),
+    (&quot;NV ensemble film&quot;,  1e-9,  1e-6),
+    (&quot;scanning SQUID&quot;,    1e-12, 1e-6),
+    (&quot;vapour cell&quot;,       1e-15, 3e-3),
+]
+targets = [
+    (&quot;T1&quot;, &quot;20 nm island, probe at 40 nm&quot;,
+     dipole_field(M_s * (20e-9) ** 2 * 1e-9, 40e-9), 40e-9),
+    (&quot;T2&quot;, &quot;1 mA track, probe at 100 um&quot;, wire_field(1e-3, 100e-6), 100e-6),
+    (&quot;T3&quot;, &quot;1 uA track, probe at 100 um&quot;, wire_field(1e-6, 100e-6), 100e-6),
+    (&quot;T4&quot;, &quot;1 nA cell current at 10 um&quot;, wire_field(1e-9, 10e-6), 10e-6),
+]
+print(&quot;\n計測対象:&quot;)
+for tag, tname, B, need_d in targets:
+    print(f&quot;  {tag}: {tname:&lt;30} field {B * 1e12:&gt;9.2e} pT&quot;)
+print(&quot;\n信号対雑音比1に達するまでの秒数、あるいはプローブがそもそも入るか&quot;)
+head = (f&quot;{'probe':&lt;17}{'eta_B':&gt;10}{'size':&gt;12}&quot;
+        + &quot;&quot;.join(f&quot;{t[0]:&gt;12}&quot; for t in targets))
+print(head)
+print(&quot;-&quot; * len(head))
+for sname, eta_B, size in sensors:
+    cells = []
+    for tag, tname, B, need_d in targets:
+        if size &gt; 2.0 * need_d:
+            cells.append(f&quot;{'too big':&gt;12}&quot;)
+        else:
+            cells.append(f&quot;{averaging_time(eta_B, B):&gt;12.2e}&quot;)
+    print(f&quot;{sname:&lt;17}{eta_B:&gt;10.0e}{size * 1e6:&gt;9.2f} um&quot;
+          + &quot;&quot;.join(cells))
+print(&quot;  'too big' は、磁場の見積もりが仮定している距離までプローブを&quot;)
+print(&quot;  近づけられないという意味です。ほとんどの材料計測を決めるのは、&quot;)
+print(&quot;  感度の列ではなくこの項目です。&quot;)
+
+print(&quot;\n感度の低いプローブがしばしば良い装置になる理由&quot;)
+print(&quot;  一辺 a の集団プローブでは eta_B は a^(-3/2) に比例します&quot;)
+print(&quot;  （第4章 Example 6）。点双極子から距離 d = a に置くと、見える磁場は&quot;)
+print(&quot;  a^(-3) で増えます。したがってプローブが小さくなるにつれて信号対雑音比は&quot;)
+print(&quot;  a^(-3/2) で改善します。&quot;)
+eta_ref, a_ref = 1e-15, 3e-3
+m_test = M_s * (20e-9) ** 2 * 1e-9
+head = (f&quot;{'probe edge':&gt;13}{'eta_B':&gt;15}{'B at d = a':&gt;15}{'B/eta_B':&gt;13}&quot;
+        f&quot;{'slope':&gt;9}&quot;)
+print(head)
+print(&quot;-&quot; * len(head))
+prev = None
+for a in [3e-3, 3e-4, 3e-5, 3e-6, 3e-7, 3e-8]:
+    eta_a = eta_ref * (a / a_ref) ** -1.5
+    B_a = dipole_field(m_test, a)
+    snr = B_a / eta_a
+    sl = &quot;      ---&quot; if prev is None else \
+        f&quot;{np.log(snr / prev[1]) / np.log(a / prev[0]):&gt;9.3f}&quot;
+    print(f&quot;{a * 1e6:&gt;10.4f} um{eta_a * 1e15:&gt;12.3e} fT&quot;
+          f&quot;{B_a * 1e12:&gt;12.3e} pT{snr:&gt;13.3e}{sl}&quot;)
+    prev = (a, snr)
+print(&quot;  測定された傾きは -3/2 です。したがって点状の信号源に対しては、&quot;)
+print(&quot;  小型化1桁ごとに信号対雑音比が 31.6 倍になります。そして一様磁場に&quot;)
+print(&quot;  対してはまったく価値がなく、そこでは大きなセルが完勝します。&quot;)
+print(&quot;  センサを選ぶのは信号源の幾何です。&quot;)
+
+print(&quot;\n忘れやすい制約: プローブは試料を乱してはいけません&quot;)
+head = (f&quot;{'optical power':&gt;15}{'absorbed in 1 um^3':&gt;21}&quot;
+        f&quot;{'steady dT, kappa = 1 W/m/K':&gt;28}&quot;)
+print(head)
+print(&quot;-&quot; * len(head))
+for P_uW in [1.0, 10.0, 100.0, 1000.0]:
+    P = P_uW * 1e-6
+    absorbed = 0.01 * P                       # 集光体積で1パーセントが吸収
+    dT = absorbed / (4.0 * np.pi * 1.0 * 1e-6)   # 半径1 umの球のまわり
+    print(f&quot;{P_uW:&gt;12.0f} uW{absorbed * 1e9:&gt;17.1f} nW{dT * 1e3:&gt;25.2f} mK&quot;)
+print(&quot;  ミリケルビンの分解能をもつ温度計測実験で、レーザーが試料を数十&quot;)
+print(&quot;  ミリケルビン加熱しているなら、それは自分の読み出しを測っているだけです。&quot;)
+print(&quot;  感度の数値が仕様のすべてであったことは一度もありません。&quot;)
+</code></pre>
+<pre><code class="language-text">信号源1: 磁性ナノ構造を、距離 d = 2a にある点双極子として扱います。
+双極子の式は d が対象より大きいことを要求するので、d = 2a がこの見積もりを
+信頼できるほぼ限界の近さです。これより近づけると過大評価になります。
+  island a x t (nm)  moment (mu_B)   standoff    peak field
+-----------------------------------------------------------
+          100 x   2      3.019e+06     200 nm      0.700 mT
+           50 x   2      7.548e+05     100 nm      1.400 mT
+           20 x   1      6.038e+04      40 nm      1.750 mT
+           10 x   1      1.510e+04      20 nm      3.500 mT
+            5 x   1      3.774e+03      10 nm      7.000 mT
+  これらの島は厚さ t 一定の薄膜なので m = M_s a^2 t であり、d = 2a では
+  ピーク磁場は mu_0 M_s t / (16 pi a) です。島が小さくなるほど 1/a で
+  増え、m が a^3 に比例する3次元の島なら a に依存しません。どちらにしても
+  走査プローブが見る磁場は対象が小さくなっても減りません。ここでの障害は
+  感度ではなく、プローブを表面にそれだけ近づけられるかどうかです。
+
+信号源2: 電流分布を、無限直線電流として扱います
+     current   standoff          field
+--------------------------------------
+     1e-03 A    1000 um   2.000e+05 pT
+     1e-03 A     100 um   2.000e+06 pT
+     1e-06 A     100 um   2.000e+03 pT
+     1e-09 A      10 um   2.000e+01 pT
+     1e-12 A      10 um   2.000e-02 pT
+
+信号源3: 温度を、NVのゼロ磁場分裂 D(T) を通して測ります
+  |dD/dT| = 74 kHz/K なので、周波数分解能はそのまま温度分解能になります:
+  eta_nu (Hz/rtHz)   eta_T (mK/rtHz)
+------------------------------------
+                 1             0.014
+                10             0.135
+               100             1.351
+              1000            13.514
+
+計測対象:
+  T1: 20 nm island, probe at 40 nm   field  1.75e+09 pT
+  T2: 1 mA track, probe at 100 um    field  2.00e+06 pT
+  T3: 1 uA track, probe at 100 um    field  2.00e+03 pT
+  T4: 1 nA cell current at 10 um     field  2.00e+01 pT
+
+信号対雑音比1に達するまでの秒数、あるいはプローブがそもそも入るか
+probe                 eta_B        size          T1          T2          T3          T4
+---------------------------------------------------------------------------------------
+single NV             1e-06     0.01 um    3.27e-07    2.50e-01    2.50e+05    2.50e+09
+NV ensemble film      1e-09     1.00 um     too big    2.50e-07    2.50e-01    2.50e+03
+scanning SQUID        1e-12     1.00 um     too big    2.50e-13    2.50e-07    2.50e-03
+vapour cell           1e-15  3000.00 um     too big     too big     too big     too big
+  'too big' は、磁場の見積もりが仮定している距離までプローブを
+  近づけられないという意味です。ほとんどの材料計測を決めるのは、
+  感度の列ではなくこの項目です。
+
+感度の低いプローブがしばしば良い装置になる理由
+  一辺 a の集団プローブでは eta_B は a^(-3/2) に比例します
+  （第4章 Example 6）。点双極子から距離 d = a に置くと、見える磁場は
+  a^(-3) で増えます。したがってプローブが小さくなるにつれて信号対雑音比は
+  a^(-3/2) で改善します。
+   probe edge          eta_B     B at d = a      B/eta_B    slope
+-----------------------------------------------------------------
+ 3000.0000 um   1.000e+00 fT   4.148e-06 pT    4.148e-03      ---
+  300.0000 um   3.162e+01 fT   4.148e-03 pT    1.312e-01   -1.500
+   30.0000 um   1.000e+03 fT   4.148e+00 pT    4.148e+00   -1.500
+    3.0000 um   3.162e+04 fT   4.148e+03 pT    1.312e+02   -1.500
+    0.3000 um   1.000e+06 fT   4.148e+06 pT    4.148e+03   -1.500
+    0.0300 um   3.162e+07 fT   4.148e+09 pT    1.312e+05   -1.500
+  測定された傾きは -3/2 です。したがって点状の信号源に対しては、
+  小型化1桁ごとに信号対雑音比が 31.6 倍になります。そして一様磁場に
+  対してはまったく価値がなく、そこでは大きなセルが完勝します。
+  センサを選ぶのは信号源の幾何です。
+
+忘れやすい制約: プローブは試料を乱してはいけません
+  optical power   absorbed in 1 um^3  steady dT, kappa = 1 W/m/K
+----------------------------------------------------------------
+           1 uW             10.0 nW                     0.80 mK
+          10 uW            100.0 nW                     7.96 mK
+         100 uW           1000.0 nW                    79.58 mK
+        1000 uW          10000.0 nW                   795.77 mK
+  ミリケルビンの分解能をもつ温度計測実験で、レーザーが試料を数十
+  ミリケルビン加熱しているなら、それは自分の読み出しを測っているだけです。
+  感度の数値が仕様のすべてであったことは一度もありません。
+</code></pre>
+<p><strong>着目点。</strong> 3つの課題、3つの異なる律速条件、そしてそのどれも磁場感度ではありません。</p>
+<p><strong>ナノスケール磁性。</strong> 双極子の表には人を驚かせる結果が入っています。磁性の島が小さくなると磁気モーメントは落ちますが、距離も一緒に落ちるので、プローブ位置の磁場はモーメントに従って下がりません。表の島は厚さ $t$ 一定の薄膜なので、モーメントは $M_sa^3$ ではなく $m = M_sa^2t$ であり、$d = 2a$ でのピーク磁場は $\mu_0m/2\pi d^3 = \mu_0M_st/16\pi a$、すなわち $1/a$ で<em>増加</em>します。$200$ nm 距離の厚さ $2$ nm・$100$ nm の島は $0.700$ mT を生み、$10$ nm 距離の厚さ $1$ nm・$5$ nm の島は $7.00$ mT を生みます — <em>10倍多く</em>、これはちょうど2行の $t/a$ の比です。もし島が3方向すべてでスケールするなら $m \propto a^3$ と $d^3 \propto a^3$ が打ち消して磁場は増加せず一定になりますが、いずれにしても減りはしません。単一NVが20 nmの島で信号対雑音比1に $3.3\times10^{-7}$ s で達するというタイミングの表と合わせれば、結論は明白です。<a href="../spintronics-introduction/index.html">ナノスケール磁性</a> — 磁壁、スキルミオン、2次元磁性体、反強磁性テクスチャ — において障害は感度ではありません。距離とプローブの寸法です。研究課題はダイヤモンド表面の処理、探針の作製、浅いNV中心の深さ分布であり、これは表面終端とイオン注入損傷についての材料問題です。</p>
+<p><strong>デバイスの自己発熱。</strong> NVのゼロ磁場分裂は $74$ kHz/K で動くので、$10$ Hz$/\sqrt{\mathrm{Hz}}$ の周波数分解能は $0.135$ mK$/\sqrt{\mathrm{Hz}}$ の温度分解能です。これは易しい計測に見えますが、Example の最後の表がそうでない理由を述べています。$100$ µW の1パーセントが立方ミクロンで吸収されると、定常状態で局所温度は $80$ mK 上がり、分解能の数百倍です。この水準の温度計測は自分の読み出しが置いていく熱に支配され、律速条件はスピンではなく<em>光</em>のパワー予算です。設計上の応答はデューティ比を下げること、全光学的またはより低パワーのプロトコルを使うこと、そして自己発熱を無視せず校正することです。</p>
+<p><strong>電池とデバイスの電流イメージング。</strong> 配線中のマイクロアンペアは100 µmで $2$ nT を生み、セルのナノアンペア電流は10 µmで $20$ pT を生みます。どちらもNV集団膜や走査SQUIDの射影ノイズ床よりはるかに上で、タイミングの表は1秒の何分の1かを与えます。ここでの律速条件は感度でも距離でもなく、<strong>逆問題</strong>です。磁力計は磁場を測るのであって、磁場マップから電流<em>分布</em>を復元するのは、条件数が距離と特徴寸法の比に対して指数的に悪化する不良設定の逆問題です。距離を半分にすることは $\eta_B$ のどんな改善よりも価値があり、それは幾何と実装の問題 — セパレータ、窓、センサ基板をどれだけ薄くできるか — です。これをシリーズの<a href="../../MI/battery-mi-application/index.html">電池インフォマティクス</a>側と結びつけると、計測が生むのは磁場マップであり、それを電流密度に変えるのは正則化された逆問題、まさに5.3節が述べた種類のデータの問題です。</p>
+<p><strong>系統を選ぶスケーリング。</strong> 最後の走査が一般原理です。一辺 $a$ の集団プローブは $\eta_B \propto a^{-3/2}$ をもち（4.4節 Example 6）、$d = a$ で局在した双極子から $\propto a^{-3}$ の磁場を見ます。したがって信号対雑音比は $a^{-3/2}$ で改善します。測定された傾きは5桁にわたって厳密に $-1.500$ です。小型化1桁ごとに、<em>点状の信号源に対しては</em>信号対雑音比が $31.6$ 倍になり、その小さなプローブは絶対値では100万倍鈍いのに、です。一様磁場に対しては同じ議論が逆向きに走り、大きなセルが完勝します。センサ系統間の感度比較は信号源の幾何なしには無意味であり、この走査がその理由です。</p>
+<h3>ロードマップに載らないもの</h3>
+<p>包含したものとの対称性のために、3つの除外を述べます。</p>
+<ul>
+<li><strong>センサとプロセッサの間に量子チャネルを要求するもの。</strong> 理由は5.3節で説明しました。近い将来の材料キャラクタリゼーション技術ではありません。</li>
+<li><strong>上の3つの計測のエンタングルメント増強版。</strong> そのどれにおいても $N$ は律速条件ではないか、古典的に増やせるので、5.2節の有界な定数倍はコストに見合いません。例外はいつもどおり $N$ が系統誤差で上限を持つ場合ですが、このリストにはそれがありません。</li>
+<li><strong>感度を理由に確立した手法を置き換えること。</strong> SQUID磁束計はバルク磁化をNV中心よりうまく測り、Hallプローブは分解能が足りる場面ではより単純で、磁気力顕微鏡は量子センサが明らかに凌駕するとは言えない空間分解能をもちます。量子センサが場所を得るのは、ナノメートルの距離で<em>定量的</em>かつ<em>非侵襲的</em>に測るときです。テスラで校正された磁場、試料に迷走磁場をかけない、300 Kで。比較はその軸で行われるべきです。</li>
+</ul>
+<hr />
+<h2>5.5 シリーズを1枚の地図に</h2>
+<p>4つのコース、1つの主題、4つの異なる問い。物理はほとんど完全に重なり、工学はまったく重ならないので、明示的に並べる価値があります。</p>
+<table>
+<thead>
+<tr>
+<th>コース</th>
+<th>答える問い</th>
+<th>2準位系は何のためにあるか</th>
+<th>難所はどこか</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="../../FM/quantum-computing-introduction/index.html">量子コンピューティング入門</a></td>
+<td>何が計算でき、どれだけ速くなるか</td>
+<td>量子ビット、すなわち計算状態の単位</td>
+<td>アルゴリズム、誤り訂正、閾値定理</td>
+</tr>
+<tr>
+<td><a href="../../FM/quantum-hardware-introduction/index.html">量子ハードウェア入門</a></td>
+<td>量子ビットを保持する物理系は何でなければならないか</td>
+<td>ハミルトニアンが設計パラメータであるデバイス</td>
+<td>材料 — 界面、アモルファス酸化膜、同位体純度</td>
+</tr>
+<tr>
+<td><a href="../../MI/quantum-machine-learning-introduction/index.html">量子機械学習入門</a></td>
+<td>量子計算は学習の役に立つか</td>
+<td>特徴写像、あるいは変分モデル</td>
+<td>古典データの載せ込みと、強い古典ベースライン</td>
+</tr>
+<tr>
+<td>量子センシング入門（本コース）</td>
+<td>何が測れ、どれだけよく測れるか</td>
+<td>プローブ、すなわち周波数標準かつ位相積分器</td>
+<td>系統誤差、距離、エンタングルメントの脆さ</td>
+</tr>
+</tbody>
+</table>
+<p>それらの関係は、飾りではなく具体的です。</p>
+<p><strong>センシングとハードウェアは役割を反転させた同じ物理です。</strong> 本コースの<a href="chapter-1.html">第1章</a>とハードウェアコースの第1章は $T_1$、$T_2$、$T_2^\ast$、Ramsey系列とエコー系列を同一に定義します。同じ量なのですから。違うのは目的の符号です。ハードウェアの技術者は量子ビットが環境に気づかないことを望み、センサの設計者はプローブが環境の特定の一部分に気づき、それ以外には気づかないことを望みます。1.4節のフィルタ関数の仕組みは、一方のコースでは<em>動的デカップリング</em>、他方では<em>ノイズ分光</em>であり、同じ積分です。NV中心、イオントラップ、超伝導回路、中性原子は両方のコースに、同じ対象として違う職務記述書つきで現れます。</p>
+<p><strong>センシングは量子機械学習に欠けていたものを供給します。</strong> あのコースの悲観論はまるごと古典データの載せ込みについてのものであり、その5.4節自身が量子センシングを前提が変わる数少ない方向の1つとして挙げています。上の5.3節がその具体的な内容です。センサの出力とは何か、推定器の問題はどう見えるか、そしてそのどの部分が後ではなく今の学習問題なのか。</p>
+<p><strong>計算とセンシングは限界を共有し、ロードマップは共有しません。</strong> どちらもデコヒーレンスで抑えられ、どちらの場合もその限界は材料についての言明です。しかし誤り訂正はデコヒーレンスを<em>破る</em>方法であり、センシングにはその綺麗な対応物がありません。センサは測っている磁場に結合したままでなければならず、まさにその結合こそ誤り訂正が守ろうとする相手だからです。量子誤り訂正を用いた計量プロトコルは存在し、ノイズと信号の構造が異なるときには機能します。ノイズが信号と区別できないとき — ありふれた場合です — には機能しません。この非対称性が、誤り耐性量子計算機がスケーリングの命題であり量子センサがそうでない理由です。</p>
+<p><strong>そして4つすべてを貫く共通の糸。</strong> これらのコースのどれにおいても、律速条件は表面、界面、アモルファス層、あるいは不純物であると判明しました。浅いNV中心を律速するダイヤモンド表面、トランズモンとSQUIDを律速する酸化膜、イオンを加熱する電極の吸着物、アルカリスピンを緩和させるセルのコーティング。これは偶然ではなく、本コースが物理ではなく材料科学の道場に置かれている理由です。この分野が実際に行き詰まっている問いは材料科学で最も古い問いであり、それが以前のどんな装置ももたなかった感度で問われているのです。</p>
+<hr />
+<h2>演習</h2>
+<h4>演習1: スクイージングの主張を読む</h4>
+<p>ある論文が原子 $N = 500$ 個の集団で「$-8$ dB のスピンスクイージング」を報告しています。</p>
+<ol>
+<li>$\xi^2$ はいくらで、標準量子限界に対してどれだけの位相不確かさを意味しますか。</li>
+<li>$N = 500$ のHeisenberg限界からどれだけ離れていますか。dBで答えてください。</li>
+<li>Example 1 から、$N = 500$ での一軸ねじれは何を与えますか。$-8$ dB はその機構と整合しますか。</li>
+<li>論文は分散の低減を報告していますが、コントラスト $|\langle\mathbf{J}\rangle|/(N/2)$ を報告していません。その省略はなぜ問題で、最悪の場合どんなことを隠しえますか。</li>
+</ol>
+<details>
+<summary>解答</summary>
+
+<p><strong>1.</strong> \(\xi^2 = 10^{-8/10} = 0.1585\) です。位相不確かさは \(\Delta\varphi = \xi/\sqrt{N} = 0.398/\sqrt{500}\)、すなわち標準量子限界の \(0.398\) 倍 — 振幅で \(2.51\) 倍良いということです。</p>
+
+<p><strong>2.</strong> Heisenberg限界は \(\xi^2 = 1/N = 0.002\)、すなわち \(-27.0\) dB です。この主張はそこから \(19.0\) dB 足りず、分散で79倍です。</p>
+
+<p><strong>3.</strong> Example 1 は \(N = 500\) での一軸ねじれの最適値として \(\xi^2 = 0.0196\)（\(-17.08\) dB）を与えます。報告された \(-8\) dB はその十分内側なので、一軸ねじれとまったく整合します — というより、ねじれが最適値の手前で止められたか、技術ノイズが約9 dB を持って行ったことを示唆します。Heisenbergスケーリングの主張とは整合<em>しません</em>。</p>
+
+<p><strong>4.</strong> \(\xi^2\) は分母にコントラストを含んでおり、分散だけから計算したスクイージングパラメータはそもそも \(\xi^2\) ではないからです。ねじれが平均スピンを巻いて \(|\langle\mathbf{J}\rangle|\) を潰してしまえば、状態は \(N/4\) をはるかに下回る分散をもちながら計量的に無価値になりえます。Example 1 の \(\mu = 0.1\) の行、分散だけの数値は良く見えて \(\xi^2 = 18.9\) となる場合が、まさにそれです。コントラストの省略が隠しうる最悪の場合は、\(N/4\) 未満の分散と \(\xi^2 > 1\) をもつ状態、すなわち何もしないより悪い測定が、スクイージングとして報告されている場合です。</p>
+
+
+<pre><code class="language-python">import numpy as np
+xi2 = 10 ** (-8 / 10)
+print(f&quot;xi^2 = {xi2:.4f}、振幅の倍率 {1/np.sqrt(xi2):.3f}&quot;)
+print(f&quot;N=500 でのHeisenberg限界: {1/500:.4f} = {10*np.log10(1/500):.1f} dB&quot;)
+print(f&quot;Heisenberg限界まで {10*np.log10(xi2*500):.1f} dB&quot;)
+# xi^2 = 0.1585、振幅の倍率 2.512
+# N=500 でのHeisenberg限界: 0.0020 = -27.0 dB
+# Heisenberg限界まで 19.0 dB
+</code></pre>
+
+
+</details>
+
+<h4>演習2: 実在のセンサにスクイージングの値段を付ける</h4>
+<p>ある磁力計はスピン $N = 10^{4}$ 個と $T_2 = 1$ ms をもちます。共同研究者が、理想的な一軸ねじれの最適値を瞬時かつ無料で届けるという条件でスクイーズしてくれると提案してきました。</p>
+<ol>
+<li>スクイーズしない場合、センサはどの観測時間を使うべきで、その結果の $\eta_B$ は $1/(\gamma\sqrt{N T_2})$ を単位としていくらですか。</li>
+<li>Example 2 から、スクイーズしたセンサはどの観測時間を使い、$\eta_B$ はどれだけ改善しますか。</li>
+<li>その改善を $N$ の増加に換算してください。提案を受けるほうが安いですか、それだけスピンを増やすほうが安いですか。</li>
+<li>共同研究者のスクイージングは実際には生成に $50$ µs かかり、そのあいだ同じデフェージングが働きます。何が起きるかを定性的に見積もり、Example 2 の注意書きリストのどの項に反するか述べてください。</li>
+</ol>
+<details>
+<summary>解答</summary>
+
+<p><strong>1.</strong> 1.3節と Example 2 から \(T_\mathrm{opt} = T_2/2 = 0.5\) ms（数値計算は \(0.493\,T_2\) を与えます）、そして \(\eta_{B,\min} = \sqrt{2e}/(\gamma\sqrt{N T_2}) = 2.33/(\gamma\sqrt{N T_2})\) です。</p>
+
+<p><strong>2.</strong> Example 2 は \(N = 10^4\) について \(T/T_2 = 0.040\)、すなわち \(40\) µs と、分散で \(3.86\) dB、振幅で \(1.56\) 倍の利得を与えます。したがって \(\eta_B\) は同じ単位で \(2.33/1.56 = 1.49\) に改善します。</p>
+
+<p><strong>3.</strong> 古典的には \(\eta_B \propto 1/\sqrt{N}\) なので、振幅 \(1.56\) 倍の利得はスピン数 \(1.56^2 = 2.43\) 倍に相当します — \(10^4\) から \(2.43\times10^4\) へ。それが安いかどうかは、\(N\) をそもそも増やせるかに完全に依存します。プローブ体積が空間分解能の要求で固定されているか、スピンを足すと系統誤差（密度シフト、双極子広がり）が増えるなら、\(N\) の \(2.4\) 倍は売っておらず、提案は受ける価値があります。集団を単に2.4倍大きくできるなら、提案は装置に見合いません。</p>
+
+<p><strong>4.</strong> 50マイクロ秒は \(0.05\,T_2\) で、スクイーズしたセンサが使いたい観測時間 \(0.040\,T_2\) より<em>長い</em>のです。したがってスクイージングは測定が始まる前に大きく劣化しており、蓄積される \(p \approx (1 - e^{-0.05})/2 \approx 0.024\) は Example 2 の表から見て既に数dBを奪うのに十分です。これは第1の注意書き — スクイージングは瞬時かつ無料で生成される — に反しており、実験室の利得がここで計算した数値に届かない通常の理由です。生成時間はコヒーレンス予算の外ではなく内にあります。</p>
+
+
+<pre><code class="language-python">import numpy as np
+print(f&quot;古典の eta_min = sqrt(2e) = {np.sqrt(2*np.e):.4f}&quot;)
+print(f&quot;1.56倍の利得込み = {np.sqrt(2*np.e)/1.56:.4f}&quot;)
+print(f&quot;等価な N の倍率 {1.56**2:.2f}&quot;)
+print(f&quot;0.05 T2 で蓄積する p = {(1-np.exp(-0.05))/2:.4f}&quot;)
+# 古典の eta_min = sqrt(2e) = 2.3316
+# 1.56倍の利得込み = 1.4946
+# 等価な N の倍率 2.43
+# 0.05 T2 で蓄積する p = 0.0244
+</code></pre>
+
+
+</details>
+
+<h4>演習3: N00Nの上限</h4>
+<p>ある光干渉計の透過率と検出効率の合計が $\eta = 0.85$ です。</p>
+<ol>
+<li>最適なN00N光子数はいくらで、同じ光子予算の古典プローブに対してどれだけの利得を与えますか。</li>
+<li>どの $N$ からN00N戦略は古典より<em>悪く</em>なりますか。</li>
+<li>$12$ dB のスクイーズド真空光源が使えます。同じチャネルを通して何を届け、この $\eta$ では光源がどれほど良くても上限はいくらですか。</li>
+<li>どちらを作りますか。またあなたの答えを変えうる測定を1つ挙げてください。</li>
+</ol>
+<details>
+<summary>解答</summary>
+
+<p><strong>1.</strong> \(N^\ast = -1/\ln 0.85 = 6.15\) なので \(N = 6\)、利得は \(N\eta^{N-1} = 6 \times 0.85^5 = 2.66\)、すなわち \(4.25\) dB です。</p>
+
+<p><strong>2.</strong> 利得 \(N\eta^{N-1}\) は \(N = 19\)（利得 \(1.019\)）と \(N = 20\)（利得 \(0.912\)）のあいだで1を横切るので、このチャネルでは \(N = 20\) 以上でN00N状態はレーザーより悪くなります。1ショット30光子の「Heisenberg限界」干渉計は格下げです。</p>
+
+<p><strong>3.</strong> \(e^{-2r} = 10^{-1.2} = 0.0631\) として \(V = \eta e^{-2r} + (1-\eta) = 0.85\times0.0631 + 0.15 = 0.2036\)、すなわち届くのは \(6.91\) dB です。\(r \to \infty\) の上限は \(-10\log_{10}(0.15) = 8.24\) dB なので、12 dB の光源はこのチャネルが与えうるすべての \(1.3\) dB 以内に既にあり、より良いスクイーザーを買うのはほぼ無意味です。</p>
+
+<p><strong>4.</strong> スクイーズド真空です。理由は3つ。ここではより多くを届け（\(6.91\) dB 対 \(4.25\) dB）、非線形素子1つで生成でき、劣化が緩やかなので損失予算の改善がそのまま性能の改善になります。答えを変えうる測定は損失予算そのものです。\(\eta\) を約 \(0.97\) より上に押せれば \(N \approx 33\) のN00N状態が逆転しますが、スクイーズド真空の上限も \(15\) dB へ上がるので、実際には損失を減らすことは<em>両方</em>に有利で、生成可能性の議論がなお決着を付けます。本当の答えは、どちらの状態を使うつもりであっても、まず行う価値のある実験は損失の測定だということです。</p>
+
+
+<pre><code class="language-python">import numpy as np
+eta = 0.85
+Ns = np.arange(1, 200)
+g = Ns * eta ** (Ns - 1.0)
+print(f&quot;N* = {-1/np.log(eta):.2f}、最良の N = {Ns[g.argmax()]}、&quot;
+      f&quot;利得 = {g.max():.3f} = {10*np.log10(g.max()):.2f} dB&quot;)
+print(f&quot;利得 &lt; 1 になるのは N = {Ns[g &lt; 1.0][0]} 以降&quot;)
+V = eta * 10 ** (-1.2) + (1 - eta)
+print(f&quot;12 dB の光源が届けるのは {-10*np.log10(V):.2f} dB、&quot;
+      f&quot;上限は {-10*np.log10(1-eta):.2f} dB&quot;)
+# N* = 6.15、最良の N = 6、利得 = 2.662 = 4.25 dB
+# 利得 &lt; 1 になるのは N = 20 以降
+# 12 dB の光源が届けるのは 6.91 dB、上限は 8.24 dB
+</code></pre>
+
+
+</details>
+
+<h4>演習4: Fisher情報と読み出し</h4>
+<p>Example 4 の $N = 8$ の数値を使って答えてください。</p>
+<ol>
+<li>GHZ状態は $F_Q = 64$ かつ $F_\mathrm{moments} = 0$ です。両方の数値を物理的に説明し、代わりにどの測定が必要か述べてください。</li>
+<li>せん断したねじれ状態は $F_\mathrm{mom}/F_Q = 0.833$ です。それぞれがどんな位相不確かさを意味し、直交成分読み出しが最適測定に並ぶには何倍のショット数が必要ですか。</li>
+<li>$p = 0.05$ でGHZは標準量子限界 $8$ に対して $F_Q = 11.86$ です。そのノイズ水準でGHZに基づくセンサはまだ作る価値がありますか。準備コストも考慮してください。</li>
+<li>せん断状態の $\theta^\ast$ は $p = 0$ から $p = 0.2$ で $-0.0007$ から $-0.0004$ へと変わります。小さな変化です。対応する変化が大きくなる状況を構成し、それが固定読み出しの装置にとって何を意味するか述べてください。</li>
+</ol>
+<details>
+<summary>解答</summary>
+
+<p><strong>1.</strong> \(F_Q = N^2 = 64\) となるのは、GHZ状態が可能な最大値 \(\mathrm{Var}(J_z) = N^2/4\) をもつからです。2つの枝は \(J_z\) で \(N\) 単位違うので、\(z\) 軸まわりの回転は \(N\varphi\) の相対位相を刻みます。\(F_\mathrm{moments} = 0\) となるのは \(\langle \mathbf{J}\rangle = 0\) だからです — 平均スピンがないので、どの直交成分も \(\varphi\) について1次で変化する信号をもちません。情報はすべて2つの枝の相対位相にあり、それを読む観測量は \(\pi/2\) 回転の後のパリティ \(\prod_i \sigma_z^{(i)}\) で、その期待値は \(\cos(N\varphi)\) で振動します。</p>
+
+<p><strong>2.</strong> \(\Delta\varphi = 1/\sqrt{F}\) なので、最適測定では \(1/\sqrt{27.12} = 0.1920\)、直交成分では \(1/\sqrt{22.59} = 0.2104\) です。分散はショット数 \(\nu\) の \(1/\nu\) でスケールするので、最適測定に並ぶには \(1/0.833 = 1.20\) 倍のショットが必要 — \(20\%\) の上乗せです。それは最適測定を実装する困難さと比べればふつう受け入れるべき交換であり、それが2倍ではなく \(20\%\) だと知っていることが、計算する意味です。</p>
+
+<p><strong>3.</strong> \(8\) に対する \(F_Q = 11.86\) は分散で \(1.48\) 倍、振幅で \(1.22\) 倍の改善です。8粒子のGHZ状態の準備には完全なエンタングリング回路 — \(N = 8\) なら2量子ビットゲート7個、それぞれに誤りがある — が必要ですが、コヒーレントスピン状態は \(\pi/2\) パルス1発で済みます。振幅 \(22\%\) の改善のためにそれは擁護できる交換ではなく、\(N\) が大きくなるとGHZの準備コストは増え \(\eta^{2N}\) は縮むので、事態は悪化します。誠実な結論は、GHZに基づく磁気計測は装置ではなく原理実証であり、ゲートを1つも必要とせず既に存在する相互作用だけで済む Example 2 の一軸ねじれこそが実用的な道だということです。</p>
+
+<p><strong>4.</strong> ここで変化が小さいのは、せん断が既にスクイーズ軸を読み出し直交成分に載せており、\(z\) デフェージングが楕円をあまり回さないからです。変化が大きくなるのは、ノイズが生成子と<em>揃っていない</em>成分をもつときです。横緩和、異方的なノイズスペクトル、あるいは大きさではなく向きが揺らぐ磁場などです。そのような場合、固定した読み出しは条件が変わるにつれ最適から外れていくので、測定セッション中に効率が変動し、装置の校正がノイズ依存になります。それが適応的読み出しの具体的な論拠であり、5.3節の橋渡しです。推定器がノイズを学習しなければならないのです。</p>
+
+
+<pre><code class="language-python">import numpy as np
+for F in (27.1191, 22.5906):
+    print(f&quot;F = {F:8.4f}  dphi = {1/np.sqrt(F):.4f}&quot;)
+print(f&quot;ショット数のオーバーヘッド {27.1191/22.5906:.3f}&quot;)
+print(f&quot;p=0.05 のGHZ: 分散 {11.8593/8:.3f}倍、&quot;
+      f&quot;振幅 {np.sqrt(11.8593/8):.3f}倍&quot;)
+# F =  27.1191  dphi = 0.1920
+# F =  22.5906  dphi = 0.2104
+# ショット数のオーバーヘッド 1.200
+# p=0.05 のGHZ: 分散 1.482倍、振幅 1.218倍
+</code></pre>
+
+
+</details>
+
+<h4>演習5: 材料の課題に装置を選ぶ</h4>
+<p>動作中の薄膜デバイス内部の電流分布をイメージングするよう頼まれました。厚さ $500$ nm の膜が合計 $100$ µA を流し、特徴寸法は $2$ µm、達成できるセンサの最短距離はパッシベーション層を隔てて $3$ µm です。</p>
+<ol>
+<li>$2$ µm の特徴が $10$ µA を流しているとして、これを直線電流として扱い、センサ位置の磁場を見積もってください。</li>
+<li>Example 5 のセンサのうち $3$ µm に置けるのはどれで、信号対雑音比10にはそれぞれ何秒の平均化が必要ですか。</li>
+<li>磁場マップから電流密度への復元は、条件数が距離÷特徴寸法とともに悪化する不良設定問題です。ここでその比はいくらで、距離を半分にすることは $\eta_B$ の10倍改善と比べてどれだけの価値がありますか。</li>
+<li>できる実験的変更のうち最も価値の高いものを1つ挙げ、センサではなく数値から正当化してください。</li>
+</ol>
+<details>
+<summary>解答</summary>
+
+<p><strong>1.</strong> \(B = \mu_0 I/(2\pi d) = 2\times10^{-7} \times 10^{-5}/3\times10^{-6} = 6.67\times10^{-7}\) T、すなわち \(667\) nT です。本コースの基準では大きな磁場です。</p>
+
+<p><strong>2.</strong> 単一NV（10 nm）、NV集団膜と走査SQUID（1 µm）はすべて \(3\) µm 以内に収まりますが、蒸気セルは収まりません。信号対雑音比10には \(t = (10\eta_B/B)^2\) なので、\(\eta_B = 10^{-6}\) の単一NVでは \(t = (10\times10^{-6}/6.67\times10^{-7})^2 = 225\) s、\(10^{-9}\) のNV集団では \(t = 2.25\times10^{-4}\) s、\(10^{-12}\) の走査SQUIDでは \(t = 2.25\times10^{-10}\) s です。単一NVを除けばどれも十分に速く、SQUIDの余裕はばかげたほどで — それが感度は律速条件ではないという合図です。</p>
+
+<p><strong>3.</strong> 比は \(3\ \mu\mathrm{m}/2\ \mu\mathrm{m} = 1.5\) です。距離を \(1.5\) µm に半減させると磁場が2倍になるだけでなく、より重要なことに比が \(0.75\) に下がって逆問題の条件数が改善します。電流分布の空間周波数成分はおおよそ \(e^{-2\pi d/\lambda}\) で減衰するので、\(\lambda = 2\) µm の特徴は \(d = 3\) µm では \(e^{-9.42} = 8.07\times10^{-5}\)、\(1.5\) µm では \(e^{-4.71} = 8.98\times10^{-3}\) 倍になります。その空間周波数で復元できる信号が \(111\) 倍です。\(\eta_B\) の10倍改善は10倍の価値です。距離の半減はその11倍の価値があり、それは磁場そのものの2倍を数える前の話です。</p>
+
+<p><strong>4.</strong> パッシベーション層を薄くする、あるいはセンサをパッシベーションの積層の中へ入れることです。数値は、この計測が平均化時間の平方根ではなく距離÷特徴寸法の指数で律速されていると言っており、本コースのどこにある感度改善もその指数には太刀打ちできません。具体的には、デバイスに接合したダイヤモンド膜中のNV集団か、薄化した基板上の走査プローブです。これは作製と実装の問題であり、労力が向かうべき先です — それが5.4節の、そしておそらく本コース全体の一般的な結論です。</p>
+
+
+<pre><code class="language-python">import numpy as np
+mu0, I, d, lam = 4e-7*np.pi, 10e-6, 3e-6, 2e-6
+B = mu0 * I / (2 * np.pi * d)
+print(f&quot;B = {B*1e9:.1f} nT&quot;)
+for name, eta in [(&quot;single NV&quot;, 1e-6), (&quot;NV ensemble&quot;, 1e-9),
+                  (&quot;scanning SQUID&quot;, 1e-12)]:
+    print(f&quot;{name:&lt;16} t(SNR 10) = {(10*eta/B)**2:.3e} s&quot;)
+for dd in (3e-6, 1.5e-6):
+    print(f&quot;d = {dd*1e6:.1f} um: lambda = 2 um での減衰は &quot;
+          f&quot;{np.exp(-2*np.pi*dd/lam):.2e}&quot;)
+print(f&quot;比 {np.exp(-2*np.pi*1.5e-6/lam)/np.exp(-2*np.pi*3e-6/lam):.0f}&quot;)
+# B = 666.7 nT
+# single NV        t(SNR 10) = 2.250e+02 s
+# NV ensemble      t(SNR 10) = 2.250e-04 s
+# scanning SQUID   t(SNR 10) = 2.250e-10 s
+# d = 3.0 um: lambda = 2 um での減衰は 8.07e-05
+# d = 1.5 um: lambda = 2 um での減衰は 8.98e-03
+# 比 111
+</code></pre>
+
+
+</details>
+
+<hr />
+<h2>まとめ</h2>
+<h3>要点</h3>
+<p><strong>1. 標準量子限界を破る資源は、小さい分散ではなく大きい分散</strong></p>
+<ul>
+<li>純粋状態と $z$ 軸まわりの回転について $F_Q = 4\,\mathrm{Var}(J_z)$ であり、コヒーレントスピン状態は $F_Q = N$、GHZは $N^2$ を与えます。</li>
+<li>一軸ねじれは $\mathrm{Var}(J_z)$ を変えないので、ねじれた状態をそのまま読み出すと $\xi^2 \ge 1$ — $\mu = 0.02$ で $1.00330$、$\mu = 0.1$ で $18.9$ です。</li>
+<li>局所回転1回で同じ状態が $\xi^2 = 0.0630$ になります。エンタングルメントは必要であって十分ではなく、スクイージングの主張はどの状態を測ったのかを述べるべきです。</li>
+</ul>
+<p><strong>2. 一軸ねじれは $N^{-2/3}$ で飽和する</strong></p>
+<ul>
+<li>測定された $\xi^2$ は $N = 10$ の $0.310$ から $N = 10^{4}$ の $0.002395$ へ落ち、これは $-26.2$ dB で、なおHeisenberg限界から $23.9$ 倍離れています。</li>
+<li>素朴な指数フィットは $-0.7100$ を与え、$\xi^2N^{2/3} = A + BN^{-1/3}$ のフィットは解析的な $\frac{1}{2}3^{2/3} = 1.0400$ に対して $A = 1.0425$ を与えます。</li>
+<li>フィットした指数が既知の補正項より小さく理論から外れているときは、指数を論じるのではなく補正項をフィットしましょう。</li>
+</ul>
+<p><strong>3. デフェージングは減衰させられない項を通してスクイージングを攻める</strong></p>
+<ul>
+<li>厳密なモーメント写像は $\langle J_{y}^{2}\rangle \to N/4 + \eta^2(\langle J_y^2\rangle - N/4)$ です。減衰するのはスピン間の相関だけで、$N/4$ の床は免疫です。</li>
+<li>$N = 100$ ではスピンあたり1パーセントのデフェージングが $12.0$ dB の利得のうち $2.4$ dB を、10パーセントが $8.6$ dB を奪い、30パーセントでは $0.46$ dB が残ります。</li>
+<li>ねじれの再最適化が回復するのは数十分の1デシベルです。障害物は構造的なものです。</li>
+</ul>
+<p><strong>4. 観測時間を再最適化すると、エンタングルメントが買うのは定数</strong></p>
+<ul>
+<li>素のセンサは1.3節が予測するとおり $T = 0.493\,T_2$ を使い、スクイーズしたほうは $N = 100$ で $0.170\,T_2$、$N = 10^{4}$ で $0.040\,T_2$ を使わなければなりません。</li>
+<li>実際に使える利得は $N = 10^2$、$10^3$、$10^4$ に対して $2.32$、$3.33$、$3.86$ dB — 振幅で $1.307$、$1.468$、$1.560$ 倍で、無相関デフェージングの理論値 $\sqrt{e} = 1.6487$ に迫ります。</li>
+<li>スケーリングは変わらず、前係数が最大 $65\%$ 改善します。この一文のどちらの半分も本質的です。</li>
+</ul>
+<p><strong>5. 損失はHeisenbergスケーリングを有界な定数に変え、2つの光状態は種類において違う</strong></p>
+<ul>
+<li>N00Nの利得は $N\eta^{N-1}$ で $N^\ast = -1/\ln\eta$ で最大化されます。1パーセント損失で $37$、5パーセントで $7.5$、10パーセントで $3.9$、それより $N$ を押し上げれば悪化します。</li>
+<li>スクイーズド真空は混合 $\eta e^{-2r} + (1-\eta)$ として劣化し、上限は $-10\log_{10}(1-\eta)$ です。10 dB の光源が 6 dB を届けるには合計損失 $16.8\%$ 以内が必要です。</li>
+<li>GHZのFisher情報は $N^2\eta^{2N}$ で落ち、小数5桁で一致します — N00Nと同じ $\eta^N$ の機構を2乗したものです。</li>
+<li>スクイージングが本質的な役割を担うのは、装置が本当に量子ノイズ限界にあり、状態が緩やかに劣化し、古典的な資源が上限を持つ場合です。重力波干渉計はまさにその組み合わせの物理的な先例です。</li>
+</ul>
+<p><strong>6. センサの出力は、推定器がノイズに依存するデータ集合</strong></p>
+<ul>
+<li>直交成分読み出しは、せん断状態では利用可能なFisher情報の $83\%$、GHZでは $0\%$、コヒーレントスピン状態では $100\%$ を回収します。</li>
+<li>最適な読み出し角はノイズとともに動くので、推定器は導出するのではなく当てはめなければなりません — <a href="../../MI/quantum-machine-learning-introduction/chapter-5.html">量子機械学習コース</a> 5.4節が本コースへ先送りした量子データの方向の、具体的な内容です。</li>
+<li>厳密な分離は複数コピーのコヒーレントな処理を要求し、したがってセンサとプロセッサの間に量子チャネルを要求します。この方向を理解する理由にはなりますが、構築するパイプラインではありません。</li>
+</ul>
+<p><strong>7. 材料計測では、感度がふつう律速条件ではない</strong></p>
+<ul>
+<li>小さくなる磁性の島は、一緒に小さくなるプローブに<em>より多くの</em>磁場を与えます — 100 nmの島で $0.700$ mT、5 nmの島で $7.00$ mT — したがってナノスケール磁性を律速するのは距離とプローブ寸法、すなわちダイヤモンド表面の処理です。</li>
+<li>$0.135$ mK$/\sqrt{\mathrm{Hz}}$ のNV温度計測は自分の読み出しの発熱で律速されます。$1\%$ 吸収の $100$ µW が立方ミクロンを $80$ mK 上げます。</li>
+<li>電流イメージングは磁場から電流への逆問題の不良設定性で律速され、それは距離÷特徴寸法の指数です。ここでは距離の半減が $111$ 倍の価値で、$\eta_B$ の1桁は10倍でした。</li>
+<li>局在した信号源に対する信号対雑音比はプローブが小さくなるにつれ $a^{-3/2}$ で改善します — 測定された傾きは $-1.500$ — したがって100万倍鈍いプローブが良い装置になりえます。センサを選ぶのは信号源の幾何です。</li>
+</ul>
+<p><strong>実務上の含意</strong></p>
+<ul>
+<li>どんなスクイージングの主張にも問うこと。どの状態を読み出したのか、コントラストはいくらだったのか、観測時間は $T_2$ と比べてどれだけだったのか。</li>
+<li>エンタングルメント増強を提案する前に、$N$ が系統誤差で上限を持っているか確かめること。持っていなければ $N$ を増やしましょう。</li>
+<li>より良いセンサを提案する前に、距離と信号源の幾何を計算すること。距離を半分にする作製技術はふつう感度1桁に勝ります。</li>
+<li>感度、帯域、距離、平均化時間は一緒に引用すること。さもなければ1つも引用しないこと。</li>
+</ul>
+<h3>本シリーズが残すもの</h3>
+<p>本コースは量子センシングを量子情報の一分野ではなく材料キャラクタリゼーションの道具として扱うことを目指し、これまでの4章はそれを各方式を分解することで行いました。すべてが共有するRamseyのひな形、走査磁力計としてのNV中心、磁束トランスフォーマとしてのSQUID、そして誤差バジェットという規律が発明された装置である原子時計と原子干渉計です。本章はその天井と、それを超えようとする誠実な値段を加えました。</p>
+<p>残っているのは、どんなコースも供給できない部分、すなわち誰かが本当に必要としている計測です。量子センサがそれに適した装置かどうかを判定する枠組みはいま完成しており、それは短いものです。信号源に名前を付け、達成できる距離でその信号を計算し、必要な寸法のプローブが分解できるものと比べ、帯域を確かめ、系統バジェットを書き、それからようやく $\eta_B$ を見る。その手順がHallプローブで足りると言うなら、Hallプローブを使いましょう。答えが室温で校正され非侵襲でナノメートルの距離の磁場測定を要求すると言うなら、それができる装置の系統はちょうど1つあり、本コースはそれがどう働くかについてのものでした。</p>
+<p><a href="chapter-4.html">← 第4章: 原子時計と原子干渉計</a> <a href="index.html">シリーズトップ →</a></p>
+<h3>免責事項</h3>
+<ul>
+<li>本コンテンツは教育・研究・情報提供のみを目的としており、専門的な助言(法律・会計・技術的保証など)を提供するものではありません。</li>
+<li>本コンテンツおよび付随するCode examplesは「現状有姿(AS IS)」で提供され、明示または黙示を問わず、商品性、特定目的適合性、権利非侵害、正確性・完全性、動作・安全性等いかなる保証もしません。</li>
+<li>本章に引用したスクイージング量、デコヒーレンスレート、損失予算、感度、モーメント、距離、平均化時間は、明示したモデルから計算した教育目的の桁のオーダーの例示値であり、装置の仕様でも最高性能の主張でもありません。設計・評価・提案書に用いる前に一次資料で確認してください。</li>
+<li>外部リンク、第三者が提供するデータ・ツール・ライブラリ等の内容・可用性・安全性について、作成者および東北大学は一切の責任を負いません。</li>
+<li>本コンテンツの利用・実行・解釈により直接的・間接的・付随的・特別・結果的・懲罰的損害が生じた場合でも、適用法で許容される最大限の範囲で、作成者および東北大学は責任を負いません。</li>
+<li>本コンテンツの内容は、予告なく変更・更新・提供停止されることがあります。</li>
+<li>本コンテンツの著作権・ライセンスは明記された条件(例: CC BY 4.0)に従います。当該ライセンスは通常、無保証条項を含みます。</li>
+</ul><div class="navigation">
+    <a href="chapter-4.html" class="nav-button">← 前の章</a>
+    <a href="index.html" class="nav-button">シリーズ目次に戻る</a>
+</div>
+    </main>
+
+    <footer>
+        <p><strong>作成者</strong>: AI Terakoya Content Team</p>
+        <p><strong>監修</strong>: Dr. Yusuke Hashimoto（東北大学）</p>
+        <p><strong>バージョン</strong>: 1.0 | <strong>作成日</strong>: 2025-10-17</p>
+        <p><strong>ライセンス</strong>: Creative Commons BY 4.0</p>
+        <p>© 2025 AI Terakoya. All rights reserved.</p>
+    </footer>
+</body>
+</html>

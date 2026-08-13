@@ -239,6 +239,7 @@ Fixed in Chapter 1 and used unchanged, so that code from any chapter runs with c
 
   * [Introduction to Quantum Computing](<../../FM/quantum-computing-introduction/index.html>) — the required prerequisite, and the source of this course's simulator
   * [Introduction to Quantum Hardware](<../../FM/quantum-hardware-introduction/index.html>) — where shot rates and error rates come from physically
+  * [Introduction to Quantum Sensing](<../../MS/quantum-sensing-introduction/index.html>) — the same quantum systems used as measuring instruments for materials, and where the quantum data of Chapter 5's open question would come from
   * [Materials Informatics Introduction](<../mi-introduction/index.html>) — the classical incumbent this course measures against
   * [Model Evaluation Introduction](<../../ML/model-evaluation-introduction/index.html>) — the classical evaluation discipline, transferred unchanged
   * [Machine Learning Potential (MLP) Introduction](<../mlp-introduction/index.html>) — the quadrant where quantum technology already contributes

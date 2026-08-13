@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔬 量子センシング入門 - AI Terakoya</title>
+
+    <link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+    <style>
+        /* page-specific residual: the rules the shared sheet does not provide.
+           Everything else that used to live here is now in knowledge-base.css;
+           re-declaring it would only risk drifting out of sync with the sheet. */
+        details { background-color: var(--color-bg-alt); margin-bottom: var(--spacing-md) }
+        summary { user-select: none; margin: calc(-1 * var(--spacing-md)); border-radius: var(--border-radius) }
+        summary:hover {
+            /* accent wash; the literal is the FM/MI/ML purple and is the fallback
+               for engines without color-mix() (Chrome <111 / Safari <16.2). */
+            background-color: rgba(123, 44, 191, 0.1);
+            background-color: color-mix(in srgb, var(--color-accent) 10%, transparent);
+        }
+        details[open] summary { margin-bottom: var(--spacing-md); border-bottom: 1px solid var(--color-border) }
+        .learning-objectives {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: var(--spacing-lg);
+            border-radius: var(--border-radius);
+            border-left: 4px solid var(--color-accent);
+            margin-bottom: var(--spacing-xl);
+        }
+        .learning-objectives h2 { margin-top: 0; border-bottom: none }
+        @media (max-width: 768px) {
+            th { padding: var(--spacing-xs) }
+            td { padding: var(--spacing-xs) }
+        }
+    </style>
+
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+
+    <!-- MathJax for LaTeX equation rendering -->
+    <script>
+        MathJax = {
+            tex: {
+                // The HTML must carry a DOUBLE backslash before ( ) [ ] so the
+                // JS string is backslash-paren; a single one collapses to a bare
+                // paren and turns every prose parenthesis into a math delimiter
+                // (non-raw Python template: 4 backslashes -> 2 in HTML -> 1 in JS).
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" id="MathJax-script" async></script>
+</head>
+<body class="dojo-ms">
+    <header>
+        <div class="header-content">
+            <h1>🔬 量子センシング入門</h1>
+            <p class="subtitle">計測器としての量子系 — 材料研究者のための特性評価コース</p>
+            <div class="meta">
+                <span class="meta-item">📖 読了時間: 20-25分</span>
+                <span class="meta-item">📊 難易度: 初級</span>
+                <span class="meta-item">💻 コード例: 0個</span>
+                <span class="meta-item">📝 演習問題: 0問</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+<p>🌐 JP | <a href="../../../en/MS/quantum-sensing-introduction/index.html">🇬🇧 EN</a> | Last sync: 2026-08-13</p>
+<p><a href="../../index.html">AI寺子屋トップ</a>›<a href="../index.html">材料科学基礎道場</a>›<a href="index.html">量子センシング入門</a></p>
+<p><a href="../index.html">← 材料科学基礎道場トップ</a></p>
+<h2>🎯 シリーズ概要</h2>
+<p>量子センシングは量子技術の第三の柱であり、そしてすでに機能している柱です。量子コンピューティングがエラー閾値を論じ、量子通信が中継器を論じている間、量子センサは何十年も実験室に座り、他の何にもできない測定を行ってきました。そしてその測定のかなりの割合が材料の測定です。</p>
+<p>だから本コースは量子系の道場ではなく材料科学基礎道場に置かれています。ここでのダイヤモンド中の窒素-空孔（NV）中心は、まず量子ビットの候補ではありません。数十ナノメートルの分解能をもつ磁場顕微鏡であり、磁壁、2次元磁性体、反強磁性テクスチャ、そして動作中デバイスの電流分布を写すために使われます。SQUIDはまず超伝導回路ではありません。磁性の研究室がすでに所有している磁化率計であり磁束顕微鏡です。原子時計はまず周波数標準ではありません。測定の安定度をどう特性評価するかを他のすべての分野に教えた計測器です。こう読めば量子センシングは<a href="../xrd-analysis-introduction/index.html">X線回折</a>、<a href="../spectroscopy-introduction/index.html">分光</a>、<a href="../electron-microscopy-introduction/index.html">電子顕微鏡</a>、<a href="../electrical-magnetic-testing-introduction/index.html">電気・磁気測定</a>と並ぶ特性評価手法の一群であり、しかも他のどれも答えない問いに答えるものです。すなわち<em>試料に触れず、試料全体を平均することもなく、いまここの局所的な場は何か</em>という問いです。</p>
+<p>本コースは1つの観察の周りに組み立てられています。ここに登場するあらゆる方式 — NV磁気計測、dc SQUID、光時計、原子干渉計、そして最後のもつれプローブの方式 — は、ハードウェアが違うだけの同じ干渉計です。第1章がそのテンプレートを確立し、コース全体のために感度 $\eta$ を一度定義し、射影ノイズ限界を導出して数値的に検証し、後続の4章がすべて呼び出す安定度とフィルター関数の機構を構築します。第2章・第3章・第4章はその3つの実例であり、どの順序でも読めます。ただし第3章・第4章の比較の箇所をそのまま受け取るには第2章が先である方が自然です。第5章はエンタングルメントが何を加えるかを問い、誠実に答えます。</p>
+<p>この5章のあらゆる数値は、明記した式からNumPy・SciPy・Matplotlibで計算されています。計測器のSDKもベンダーのソフトウェアもハードウェアへのアクセスも一切ありません。</p>
+<h3>学習パス</h3>
+<div class="mermaid">
+flowchart LR
+    P1["Prerequisite<br/>Quantum mechanics<br/>two-level systems"]
+    A["Chapter 1<br/>Principles of<br/>quantum sensing"]
+    B["Chapter 2<br/>NV-centre<br/>magnetometry"]
+    C["Chapter 3<br/>SQUIDs"]
+    D["Chapter 4<br/>Clocks and atom<br/>interferometry"]
+    E["Chapter 5<br/>Beyond the<br/>standard quantum limit"]
+    P1 --> A
+    A --> B
+    A --> C
+    A --> D
+    B --> E
+    C --> E
+    D --> E
+    style P1 fill:#e2e8f0,stroke:#94a3b8,stroke-width:1px,color:#334155
+    style A fill:#667eea,stroke:#764ba2,stroke-width:2px,color:#fff
+    style B fill:#7b2cbf,stroke:#764ba2,stroke-width:2px,color:#fff
+    style C fill:#7b2cbf,stroke:#764ba2,stroke-width:2px,color:#fff
+    style D fill:#7b2cbf,stroke:#764ba2,stroke-width:2px,color:#fff
+    style E fill:#9d4edd,stroke:#764ba2,stroke-width:2px,color:#fff
+</div>
+
+<p>第1章は最初に必須です。以降のコースが再説明せずに再利用する記法・感度の定義・数値の道具箱を固定するからです。第2章・第3章・第4章はそのあとおおむね並列です。3つの異なる方式系統を扱い、物理はそれぞれ独立に展開され、共有される導出は第1章のものだけです。ただし完全に自己完結ではありません。第3章は自分の数値を第2章のAC感度（§2.3）・$T_1$ リラクソメトリの帯域（§2.4）・漏れ磁場モデル（§2.5）と比較し、演習2つはそれらの結果を直接使います。第4章は §3.2 の磁束ロックループとSQUIDの動作温度に立ち戻ります。順に読めばこれらは比較として機能し、順序を変えて読めば、辿ってもよいし飛ばしてもよい前方参照になります。第5章は3つすべてを前提とします。エンタングルメントがそのいずれに何を加えるかが、まさにその論点だからです。</p>
+<h3>📋 学習目標</h3>
+<p>本シリーズを修了すると、以下のことができるようになります。</p>
+<ul>
+<li>任意の量子センシングのプロトコルをRamsey干渉計として書き、ビームスプリッタ・蓄積位相・読み出しを同定し、構造の共有が感度の式の共有について何を含意するかを説明できる</li>
+<li>感度 $\eta$ を「単位ルートヘルツあたりの信号」として定義し、射影ノイズから導出し、正しく使える — それが有効な外挿である平均時間と、そうでない平均時間を知ることを含めて</li>
+<li>Allan偏差を計算し、その傾きから白色・フリッカー・ドリフトの各領域を同定し、測定をより長く平均すべきか代わりに変調すべきかを判断できる</li>
+<li>窒素-空孔中心の準位構造を説明し、ODMRスペクトルをシミュレートし、DC・AC・緩和の各プロトコルの感度を射影ノイズを含めて計算できる</li>
+<li>抵抗分岐接合（RSJ）モデルから dc SQUID の $V$-$\Phi$ 特性を導出し、磁束ノイズを磁場感度に換算し、ピックアップコイルの形状がすべてを決める理由を説明できる</li>
+<li>光格子時計と光パルス原子干渉計の動作原理を説明し、それぞれの位相感度を計算できる</li>
+<li>標準量子限界が何を禁じ何を禁じていないかを述べ、エンタングルメントによる利得を定量化し、デコヒーレンスがそれをどれほど速く消すかを数値的に実証できる</li>
+<li>任意の計測課題を「感度対空間分解能」の地図の上に置き、スケーリング則だけから量子センサが正しい計測器か誤った計測器かを判断できる</li>
+</ul>
+<h3>📖 前提知識</h3>
+<p><strong>必須。</strong> 2準位系のレベルの量子力学: 重ね合わせ、Bloch球、RabiとRamseyのダイナミクス、そして測定の公理。馴染みがなければ<a href="../../FM/quantum-computing-introduction/index.html">量子コンピューティング入門</a>の第1章と第2章がまさにこれを扱っています。</p>
+<p><strong>強く推奨。</strong> <a href="../../FM/quantum-hardware-introduction/index.html">量子ハードウェア入門</a>、特に<a href="../../FM/quantum-hardware-introduction/chapter-1.html">その第1章</a>。あの章が $T_1$、$T_2$、$T_2^\ast$、ノイズパワースペクトル密度、Ramsey系列とエコー系列、そしてフィルター関数の形式を定義しており、本コースはそのすべてを同じ意味・同じ記号で再導出せずに用います。2つのコースの関係は厳密です。ハードウェア編は2準位系に環境を気づかせない方法を問い、本コースは気づいた内容をどう読み出すかを問います。</p>
+<p><strong>第3章に有用。</strong> 磁束量子化とジョセフソン効果について<a href="../superconductivity-introduction/index.html">超伝導入門</a>。第3章は必要な内容を復習しますが、その復習は駆け足です。</p>
+<p><strong>第2章の応用に有用。</strong> 磁区・磁壁・電流誘起テクスチャについて<a href="../spintronics-introduction/index.html">スピントロニクス入門</a> — 走査磁気計測が写す対象そのものです。</p>
+<p><strong>必要な環境。</strong> Python 3.8以降、NumPy・SciPy・Matplotlib。それ以外は不要です。</p>
+<hr />
+<h2>📚 章構成</h2>
+<h3>第1章: 量子センシングの原理</h3>
+<p>量子系が良い計測器になる理由。離散遷移は再現する周波数基準であり、重ね合わせの位相はそれを摂動したものの時間積分です。続いてテンプレート — 分割、蓄積、再結合、読み出し — を本コースの4方式について並べて書き出し、感度の式を一度だけ導出できるようにします。二項統計からの射影ノイズ、$N$ の6桁にわたるモンテカルロで検証した標準量子限界 $\delta\phi = 1/(C\sqrt{N})$、そして単位と3つの典型的な誤用とともに定義される感度 $\eta$。最適干渉時間 $\tau = T_2/2$ とデッドタイム補正。そして安定度: Allan偏差、その白色・フリッカー・ランダムウォークの各領域の数値的再現、そして安定度曲線なしに引用された感度が仕様の半分である理由。最後にフィルター関数を3通りに読み — デカップリングとして、ロックインアンプとして、そしてホスト材料の分光として — 残りのコースが航行に使う「感度対分解能」の地図を作ります。</p>
+<p><strong>主要トピック</strong> : 基準かつ変換器としての2準位系 · 万能テンプレートとしてのRamseyプロトコル · 射影ノイズ · 標準量子限界 · 感度 $\eta$ · 最適干渉時間 · デッドタイムとデューティ比 · Allan偏差 · フィルター関数 · AC感度 · 感度-分解能のトレードオフ</p>
+<p>💻 コード例6個 ⏱️ 40-45分 📊 中級</p>
+<p><a href="chapter-1.html">第1章を読む →</a></p>
+<h3>第2章: NVセンター磁気計測</h3>
+<p>材料欠陥が計測器になる事例。窒素-空孔中心の準位構造、そのスピン依存蛍光、そして光検出磁気共鳴（ODMR） — 単一スピンを室温で読み出せるようにする機構です。CW-ODMRとRamseyによるDC磁気計測、そして第1章の感度の式を実際の準位構造に対して評価し数値的に確認します。AC磁気計測と動的デカップリング: HahnエコーからXY8まで、$T_2$ を延ばすのと同じパルス列がなぜ測定帯域も選択するのか、そしてフィルター関数の2つの読み方が同じ実験の中でどう使われるか。ギガヘルツのノイズのプローブとしての $T_1$ リラクソメトリ — どんなパルス系列もフィルターできない周波数に届く唯一の方式です。そしてイメージング: 走査NV顕微鏡と広視野磁気計測を磁区、2次元磁性体、反強磁性体、電流分布に適用します。</p>
+<p><strong>主要トピック</strong> : NVの準位構造 · ゼロ磁場分裂 · スピン依存蛍光 · ODMR · CWおよびパルスDC磁気計測 · XY8と動的デカップリング · AC感度 · $T_1$ リラクソメトリ · 走査および広視野イメージング · 温度計測とひずみ計測</p>
+<p>💻 コード例7個 ⏱️ 45-50分 📊 中級</p>
+<p><a href="chapter-2.html">第2章を読む →</a></p>
+<h3>第3章: SQUID — 超伝導量子干渉計</h3>
+<p>史上最も感度の高い磁力計であり、腕がパルスではなく超伝導体でできた干渉計。磁束量子化とジョセフソン関係を第3章が必要とするレベルで復習します。dc SQUID: 抵抗分岐接合モデルから導く $V$-$\Phi$ 特性、磁束-電圧の伝達関数、そして磁束ロックループが付属品ではなく測定の一部である理由。感度を制限するもの — 磁束ノイズ、そして超伝導量子ビットを制限するのと同じ2準位系と表面欠陥からの $1/f$ 寄与であり、ここでこの章は材料論になります。そして磁性の研究室が実際に使う応用: 磁化率測定、走査SQUID顕微鏡、磁束イメージング、そしてこの方式における感度-分解能のトレードオフを決めるピックアップコイルのスケーリングです。</p>
+<p><strong>主要トピック</strong> : 磁束量子化 · ジョセフソン効果 · dc SQUIDとRSJモデル · $V$-$\Phi$ 特性 · 磁束ロックループ · 磁束ノイズと $1/f$ ノイズ · 表面スピンと2準位系 · ピックアップコイル設計とスケーリング · 磁化率測定 · 走査SQUID顕微鏡</p>
+<p>💻 コード例5個 ⏱️ 45-50分 📊 中級</p>
+<p><a href="chapter-3.html">第3章を読む →</a></p>
+<h3>第4章: 原子時計と原子干渉計</h3>
+<p>Ramseyプロトコルが最高精度に達する場所、そして安定度の語彙が発明された場所。基準となる測定としての時間と周波数: 分数安定度、時計をその本来の応用としたAllan偏差の再訪、そして時計の仕事が要求する系統誤差の作法。量子ハードウェア編がすでに確立した物理から組み立てる光格子時計とイオン時計。光パルス原子干渉計: ビームスプリッタとしてのレーザーパルス、重力位相とSagnac位相、そして慣性測定の感度の式。そして時計の共同体の外で最も重要な設計上の取引 — 光ポンピングされスピン交換緩和フリー（SERF）領域で動作する蒸気セル磁力計であり、極低温をまったく使わずに並外れた感度に達します。</p>
+<p><strong>主要トピック</strong> : 時間標準としてのRamsey · 分数周波数安定度 · 系統誤差の見積もり · 光格子時計とイオン時計 · 光パルスビームスプリッタ · Mach-Zehnder原子干渉計 · 重力計測と回転計測 · 光ポンピング · 蒸気セル磁力計 · SERF領域</p>
+<p>💻 コード例6個 ⏱️ 40-45分 📊 上級</p>
+<p><a href="chapter-4.html">第4章を読む →</a></p>
+<h3>第5章: 量子限界を超える</h3>
+<p>エンタングルメントが何を買い、何を要求し、そして何が残るか。スピンスクイージングとエンタングルメント増強干渉計: $1/\sqrt{N}$ の標準量子限界から $1/N$ のHeisenberg限界へ向かう道筋を、スローガンではなく物理として述べます。そして誠実な評価 — スクイーズド状態やもつれ状態を準備し保持する実装コストと、現実的なデコヒーレンスの下でその優位がどれほど速く蒸発するかを示す数値実験です。脆さを伴わずに報告された脆い利得は結果ではないからです。<em>量子データ</em>としてのセンサ出力は、<a href="../../MI/quantum-machine-learning-introduction/index.html">量子機械学習入門</a>第5章が開いたままにした展望の具体的な形です。そして材料研究のロードマップ: どの計測課題に量子センサが現実的に効くか — ナノスケール磁性、デバイスの自己発熱、電池内部の電流 — を発表ではなく原理から評価します。最後に量子シリーズ全体を総括します。</p>
+<p><strong>主要トピック</strong> : スピンスクイージング · エンタングルメント増強計量 · Heisenberg限界 · N00N状態と損失への脆弱性 · デコヒーレンスと消える優位 · 量子データ · 材料研究ロードマップ · シリーズ総括</p>
+<p>💻 コード例5個 ⏱️ 45-50分 📊 上級</p>
+<p><a href="chapter-5.html">第5章を読む →</a></p>
+<hr />
+<h2>🔤 記法と共通規約</h2>
+<p>第1章で固定し変更せずに用いるので、どの章の式もどの章と一緒に読めます。</p>
+<table>
+<thead>
+<tr>
+<th>記号</th>
+<th>意味</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>$\gamma$</td>
+<td>角回転比、rad s$^{-1}$ T$^{-1}$。数値として引用するのは $\gamma/2\pi$（Hz/T）</td>
+</tr>
+<tr>
+<td>$\phi$</td>
+<td>蓄積された干渉位相、$\phi = \int_0^\tau \delta\omega\,dt$</td>
+</tr>
+<tr>
+<td>$\tau$</td>
+<td>1ショットの干渉（自由歳差）時間</td>
+</tr>
+<tr>
+<td>$t_d$</td>
+<td>1ショットあたりのデッドタイム: 初期化と読み出し</td>
+</tr>
+<tr>
+<td>$T$</td>
+<td>総測定時間。到達する分解能は $\eta/\sqrt{T}$</td>
+</tr>
+<tr>
+<td>$C$</td>
+<td>縞のコントラスト $0 &lt; C \le 1$。あらゆる不完全性を吸収する</td>
+</tr>
+<tr>
+<td>$N$</td>
+<td>1ショットで読み出す独立なプローブ数</td>
+</tr>
+<tr>
+<td>$\eta$</td>
+<td>感度、$\eta = \delta X_\mathrm{min}\sqrt{T}$、単位は「信号 / $\sqrt{\mathrm{Hz}}$」</td>
+</tr>
+<tr>
+<td>$\sigma_y(\tau)$</td>
+<td>平均時間 $\tau$ におけるAllan偏差</td>
+</tr>
+<tr>
+<td>$\lvert\tilde{s}(f,\tau)\rvert^2$</td>
+<td>パルス系列のフィルター関数</td>
+</tr>
+<tr>
+<td>$T_1, T_2, T_2^\ast$</td>
+<td><a href="../../FM/quantum-hardware-introduction/chapter-1.html">量子ハードウェア編第1章</a>1.4節の定義そのまま、再定義しない</td>
+</tr>
+<tr>
+<td>$\Phi_0$</td>
+<td>磁束量子 $h/2e$</td>
+</tr>
+</tbody>
+</table>
+<p><strong>感度は振幅スペクトル密度です。</strong> $\eta$ の単位は「信号 / ルートヘルツ」であり、その<em>2乗</em>がパワースペクトル密度です。文献には両方の規約が現れ、それらは2乗だけ違うので、本コースの比較はすべてどちらの意味かを明記します。</p>
+<p><strong>角周波数と循環周波数。</strong> $\Omega$、$\Delta$、$\gamma$ は角量であり、数値として引用するのは循環量で、$2\pi$ を明示して書きます。コード中の $2\pi$ の因子をすべて明示しているのはこのためです。</p>
+<p><strong>性能指標は $N T_2$ です。</strong> 第1章は、射影ノイズ律速の感度がプローブ数とコヒーレンス時間の積だけに依存すること — そしてデッドタイムがその対称性を破ること — を示します。本コースのあらゆる方式比較は、各方式がその積をどう使うかの比較です。</p>
+<hr />
+<h2>🔍 本シリーズの範囲</h2>
+<p><strong>本シリーズは</strong> 物理と手法のコースです。あらゆる式が導出され、あらゆる数値が本文中に印字したコードによって式から計算され、あらゆるスケーリング則が断言ではなく数値的に検証されています。</p>
+<p><strong>感度レコードの表ではありません。</strong> どの章も、いずれかの技術が達成した最良の感度を述べません。そのような数値はこの分野で最も速く動く量であり、読まれる前に陳腐化しており — そしてより重要なことに — 説明的ではありません。代わりに述べるのはスケーリングです。$\eta \propto 1/\sqrt{N T_2}$、$\eta_B \propto d^{-3/2}$、$B \propto z^{-3}$。これらは古びず、そして野外で出会った主張を評価させてくれるのはこちらです。</p>
+<p><strong>装置カタログではありません。</strong> ベンダーも製品名も型番も購買の助言もありません。どの計測器を買うべきかを知りたい読者は誤った文書を読んでおり、ある種類の任意の計測器が<em>何をでき何をできないか、そしてそれはなぜか</em>を知りたい読者は正しい文書を読んでいます。</p>
+<p><strong>量子コンピューティングのコースではありません。</strong> 物理の重なりは大きく、目的の重なりは零です。2準位系の物理が必要になる場所では、本コースは再導出せずに<a href="../../FM/quantum-hardware-introduction/index.html">量子ハードウェア入門</a>を引用し、2つを並べて読めるように同じ記号を用います。</p>
+<p><strong>従来手法の代替でもありません。</strong> 第1章の地図には量子センサが誤った選択である場合も含まれており、第5章もその誠実さを保ちます。バルクの磁化率測定や電子顕微鏡がその問いにより良く答える場合には、そう述べます。</p>
+<h2>📚 推奨学習パス</h2>
+<h3>パターン1: 完全習得コース（5〜6日）</h3>
+<ul>
+<li>1日目: 第1章 1.1〜1.5節 — テンプレート、感度、安定度、地図</li>
+<li>2日目: 第1章 1.6節 — 6つの例をすべて実行し、$1/\sqrt{N}$ とAllanの結果を自分で再現する</li>
+<li>3日目: 第2章 — NV中心、準位構造からイメージングまで</li>
+<li>4日目: 第3章 — SQUID、磁束量子化から走査顕微鏡まで</li>
+<li>5日目: 第4章 — 時計、原子干渉計、蒸気セル</li>
+<li>6日目: 第5章と演習 — スクイージング、その脆さ、そしてロードマップ</li>
+</ul>
+<h3>パターン2: 磁気イメージングコース（2日）</h3>
+<ul>
+<li>第1章 1.2節・1.3節・1.5節 — テンプレート、$\eta$、分解能のトレードオフ</li>
+<li>第2章を通読 — これがイメージングの章です</li>
+<li>第3章 3.4節以降 — 比較のための走査SQUID顕微鏡</li>
+<li>第5章 5.4節 — ナノスケール磁気計測の行き先</li>
+</ul>
+<h3>パターン3: 計測科学コース（1日）</h3>
+<ul>
+<li>第1章 1.3節・1.4節 — 感度、Allan偏差、フィルター関数</li>
+<li>第4章 4.1節・4.2節 — 安定度と系統誤差の見積もりを本式で</li>
+<li>第1章 演習1〜4 — 計測科学者が暗算でできるべき4つの計算</li>
+</ul>
+<h2>🎯 全体的な学習成果</h2>
+<h3>知識レベル</h3>
+<ul>
+<li>✅ Ramseyのテンプレートを述べ、物理的に無関係な4つの計測器の中にそれを見出せる</li>
+<li>✅ $\eta$、$C$、$N T_2$、$\sigma_y(\tau)$ を定義し、それぞれが何を指定し何を指定しないかを説明できる</li>
+<li>✅ 感度-分解能のトレードオフの物理的な起源と、それを工学で回避できない理由を説明できる</li>
+<li>✅ 標準量子限界が何を禁じ、何を禁じていないかを述べられる</li>
+</ul>
+<h3>実践スキル</h3>
+<ul>
+<li>✅ 射影ノイズ・コントラスト・デッドタイムを含めてパルス系列の感度を計算できる</li>
+<li>✅ データ記録からAllan偏差を計算し、その傾きから領域を読み取れる</li>
+<li>✅ フィルター関数を厳密に評価し、目標周波数帯に合わせたパルス系列を設計できる</li>
+<li>✅ ODMRスペクトル、SQUIDの $V$-$\Phi$ 曲線、原子干渉計の縞をシミュレートできる</li>
+</ul>
+<h3>応用力</h3>
+<ul>
+<li>✅ スケーリング則だけから、計測課題に走査探針・広視野アンサンブル・ピックアップコイル・蒸気セルのどれが必要かを選べる</li>
+<li>✅ 量子センシングの論文を読み、その感度の定義・平均時間・欠けている安定度曲線を特定できる</li>
+<li>✅ 従来の特性評価手法のほうが良い計測器である場合を認識できる</li>
+<li>✅ コヒーレンス測定をホスト材料中の欠陥についての主張に変換できる</li>
+</ul>
+<h2>🛠️ 使用技術・ツール</h2>
+<h3>主要ライブラリ</h3>
+<ul>
+<li><strong>numpy</strong> — あらゆるシミュレーション、フィルター関数、Allan偏差</li>
+<li><strong>scipy</strong> — 積分、根の探索、最適化、特殊関数</li>
+<li><strong>matplotlib</strong> — 縞、スペクトル、安定度曲線、感度の地図</li>
+</ul>
+<h3>開発環境</h3>
+<ul>
+<li><strong>Python</strong> : 3.8以上</li>
+<li><strong>Jupyter Notebook</strong> : 各章が1つの連続したセッションとして書かれているため推奨</li>
+<li>Google Colabですべての例が動きます。GPUも計測器もアカウントも不要です</li>
+</ul>
+<h2>🚀 次のステップ</h2>
+<h3>さらに深く学ぶ</h3>
+<ul>
+<li>量子計量理論: 量子Fisher情報量、Cramér-Rao限界、そしてエンタングルメントが証明可能に効く条件</li>
+<li>ノイズ分光: コヒーレンス曲線の族をスペクトル密度に反転する手法と、それが欠陥集団について明らかにすること</li>
+<li>浅い欠陥中心によるナノスケールNMRと単一分子検出</li>
+<li>オプトメカニカル・フォトニックセンサ: プローブがスピンではなく光の場である場合</li>
+</ul>
+<h3>関連シリーズ</h3>
+<ul>
+<li><a href="../../FM/quantum-hardware-introduction/index.html">量子ハードウェア入門</a> — 姉妹コースであり、本コースのコヒーレンス語彙の出所</li>
+<li><a href="../../FM/quantum-computing-introduction/index.html">量子コンピューティング入門</a> — 2準位系の形式についての前提</li>
+<li><a href="../../MI/quantum-machine-learning-introduction/index.html">量子機械学習入門</a> — これらのセンサが生む量子データが消費される場所</li>
+<li><a href="../superconductivity-introduction/index.html">超伝導入門</a> — 第3章の背後にある物理</li>
+<li><a href="../spintronics-introduction/index.html">スピントロニクス入門</a> — 第2章の顕微鏡が向けられる対象</li>
+<li><a href="../electrical-magnetic-testing-introduction/index.html">電気・磁気測定入門</a> — 本コースが並び立つ従来の磁気特性評価</li>
+</ul>
+<h3>実践プロジェクト</h3>
+<ul>
+<li>公表された感度の主張を1つ取り、第1章の式から再構成し、著者がどのパラメータを最適化したかを特定する</li>
+<li>ゆっくりドリフトする実験室の信号を記録してAllan偏差を計算し、次に何かを平均する前に最適平均時間を見つける</li>
+<li>実際に気にしているノイズ帯域に対してCPMG系列を設計し、スペクトルの残りをどれだけ排除できるかを計算する</li>
+<li>自分の計測課題を第1章の地図の上に置き、スケーリング則だけで量子センサの是非を論じる</li>
+</ul>
+<h3>⚠️ 免責事項</h3>
+<ul>
+<li>本コンテンツは教育・研究・情報提供のみを目的としており、専門的な助言(法律・会計・技術的保証など)を提供するものではありません。</li>
+<li>本コンテンツおよび付随するCode examplesは「現状有姿(AS IS)」で提供され、明示または黙示を問わず、商品性、特定目的適合性、権利非侵害、正確性・完全性、動作・安全性等いかなる保証もしません。</li>
+<li>本コースの感度の数値はすべて、明記した式と明記した仮定から計算したものです。数値はスケーリング則を例示するためのものであり、測定値・仕様・特定の計測器についての主張ではありません。</li>
+<li>外部リンク、第三者が提供するデータ・ツール・ライブラリ等の内容・可用性・安全性について、作成者および東北大学は一切の責任を負いません。</li>
+<li>本コンテンツの利用・実行・解釈により直接的・間接的・付随的・特別・結果的・懲罰的損害が生じた場合でも、適用法で許容される最大限の範囲で、作成者および東北大学は責任を負いません。</li>
+<li>本コンテンツの内容は、予告なく変更・更新・提供停止されることがあります。</li>
+<li>本コンテンツの著作権・ライセンスは明記された条件(例: CC BY 4.0)に従います。当該ライセンスは通常、無保証条項を含みます。</li>
+</ul><div class="navigation">
+    <a href="index.html" class="nav-button">シリーズ目次に戻る</a>
+    <a href="chapter-2.html" class="nav-button">次の章 →</a>
+</div>
+    </main>
+
+    <footer>
+        <p><strong>作成者</strong>: AI Terakoya Content Team</p>
+        <p><strong>監修</strong>: Dr. Yusuke Hashimoto（東北大学）</p>
+        <p><strong>バージョン</strong>: 1.0 | <strong>作成日</strong>: 2025-10-17</p>
+        <p><strong>ライセンス</strong>: Creative Commons BY 4.0</p>
+        <p>© 2025 AI Terakoya. All rights reserved.</p>
+    </footer>
+</body>
+</html>

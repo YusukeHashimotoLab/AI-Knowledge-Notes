@@ -237,6 +237,7 @@ Paulトラップの物理：Mathieu方程式、擬ポテンシャル、そして
 
   * [量子コンピューティング入門](<../quantum-computing-introduction/index.html>) — この対のアルゴリズム側
   * [量子機械学習入門](<../../MI/quantum-machine-learning-introduction/index.html>) — MI側での応用と、古典ベースラインに勝てるかの誠実な検証
+  * [量子センシング入門](<../../MS/quantum-sensing-introduction/index.html>) — 同じ量子系を材料の計測器として使う
   * [量子力学入門](<../quantum-mechanics/index.html>) — 2準位系、調和振動子、摂動論
   * [超伝導入門](<../../MS/superconductivity-introduction/index.html>) — Cooper対形成とジョセフソン効果を本格的に
   * [スピントロニクス入門](<../../MS/spintronics-introduction/index.html>) — スピン輸送、交換相互作用、磁性材料

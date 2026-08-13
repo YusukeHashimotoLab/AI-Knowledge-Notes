@@ -104,7 +104,7 @@ subtitle: Materials Science Fundamentals Dojo - 実験と計算で理解する�
 
 [開始 →](<./3d-printing-introduction/index.html>)
 
-🧪 材料評価・特性評価（5シリーズ）
+🧪 材料評価・特性評価（6シリーズ）
 
 📗
 
@@ -155,6 +155,16 @@ SEM/TEM/STEM原理、組成分析（EDS、EELS）、結晶構造解析、Python�
 中級 110-130分 4章・35例
 
 [開始 →](<./electrical-magnetic-testing-introduction/index.html>)
+
+📗
+
+量子センシング入門
+
+計測器としての量子系 — NV中心磁気計測とODMR、RSJモデルから導くdc SQUID、原子時計と原子干渉計、そしてもつれによる感度向上とその脆さの定量。感度・Allan偏差・フィルター関数をすべて式からNumPyで計算
+
+中級〜上級 215-240分 5章・29例
+
+[開始 →](<./quantum-sensing-introduction/index.html>)
 
 🎯 材料別各論（4シリーズ）
 

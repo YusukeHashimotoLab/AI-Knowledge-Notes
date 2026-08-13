@@ -1,0 +1,1581 @@
+---
+title: "Chapter 5: Beyond the Standard Quantum Limit"
+chapter_title: "Chapter 5: Beyond the Standard Quantum Limit"
+subtitle: Spin Squeezing, What Decoherence Does to It, and Where Quantum Sensing Meets Materials Research
+reading_time: 45-50 minutes
+difficulty: Advanced
+code_examples: 5
+exercises: 5
+---
+
+🌐 EN | [🇯🇵 JP](<../../../jp/MS/quantum-sensing-introduction/chapter-5.html>) | Last sync: 2026-08-13
+
+[Materials Science Dojo](<../index.html>) > [Introduction to Quantum Sensing](<index.html>) > Chapter 5
+
+Every sensitivity in the four preceding chapters contains a factor $1/\sqrt{N}$, and every derivation of it assumed the same thing: that the $N$ probes are independent, so that their projection noises add in quadrature. That assumption is a choice, not a law. Entangle the probes and the noise can add differently — in the best case the phase uncertainty falls as $1/N$ instead of $1/\sqrt{N}$, which is the **Heisenberg limit**. For $N = 10^{4}$ atoms that is a factor of 100.
+
+This chapter works out what actually happens to that factor of 100. The answer requires care in both directions, and the two failure modes are equally common in the literature. One is to quote the ideal scaling and stop, which produces a promise no apparatus keeps. The other is to conclude from the fragility that entanglement is useless in metrology, which is contradicted by the fact that quantum-noise-limited interferometers already use squeezed light as a load-bearing component. The honest position is quantitative and it is computable in five worked examples: entanglement buys a bounded improvement, the bound is a specific constant that this chapter derives numerically, and the circumstances under which that constant is worth its cost are identifiable in advance.
+
+The chapter then turns outward. Section 5.3 takes the output of a quantum sensor seriously as *data* — a topic that [Introduction to Quantum Machine Learning](<../../MI/quantum-machine-learning-introduction/index.html>) explicitly deferred to a course on quantum sensing — and Section 5.4 asks which materials-characterization problems quantum sensors can realistically address, from the physics of the sources rather than from anybody's roadmap. Section 5.5 closes the four-course arc: computing, hardware, machine learning, sensing.
+
+**Units and conventions.** As in Chapters 1 to 4. Collective spin operators are $J_a = \frac{1}{2}\sum_i \sigma_a^{(i)}$ for $N$ spin-$\frac{1}{2}$ probes, so a fully polarized state has $|\langle \mathbf{J}\rangle| = N/2$ and a coherent spin state has transverse variance $N/4$. The squeezing parameter $\xi^2$ is normalized so that $\xi^2 = 1$ is the standard quantum limit and $\xi^2 = 1/N$ the Heisenberg limit; $\xi^2$ in decibels means $10\log_{10}\xi^2$, so more negative is better. The dephasing parameter is $\eta = 1 - 2p$ for a per-spin dephasing probability $p$, and $\eta = e^{-T/T_2}$ links it to the coherence time of §1.4. Optical loss is a transmission $\eta$ as well; the two usages are distinguished by context and both are "how much coherence survives".
+
+## Learning Objectives
+
+After completing this chapter, you will be able to:
+
+  * State the standard quantum limit and the Heisenberg limit in terms of the quantum Fisher information, and explain why $4\,\mathrm{Var}(J_z)$ is the resource for estimating a rotation about $z$
+  * Simulate one-axis twisting in the collective-spin basis, show that the twist alone provides no metrological gain, and explain why a local rotation is what converts it into sensitivity
+  * Confirm numerically that one-axis twisting saturates at $\xi^2 \propto N^{-2/3}$ rather than reaching $1/N$, and extract the prefactor honestly from a finite range of $N$
+  * Derive and validate the exact action of independent single-spin dephasing on the moments of a collective spin, and use it to price the squeezing gain against decoherence
+  * Show that when the interrogation time is re-optimized for both sensors, entanglement under uncorrelated dephasing buys a bounded factor approaching $\sqrt{e}$ rather than a change of scaling
+  * Contrast the exponential loss fragility of a N00N state with the linear degradation of squeezed vacuum, and explain why the second is the route used where squeezing is load-bearing
+  * Compute the gap between the quantum Fisher information and the information a fixed quadrature read-out collects, and explain why closing that gap is a learning problem
+  * Assess a materials-characterization measurement by source geometry, standoff and required averaging time, and choose a sensor family on principled grounds
+  * Place the four courses of this series on one map and say what each one answers
+
+* * *
+
+## 5.1 Spin Squeezing and Entanglement-Enhanced Sensing
+
+### What the standard quantum limit actually assumes
+
+Consider $N$ two-level probes prepared in a coherent spin state pointing along $x$ — the state that a $\pi/2$ pulse produces from a fully polarized ensemble, and the starting point of every Ramsey sequence in this course. A field along $z$ rotates the mean spin in the $xy$ plane by $\varphi = \gamma B T$, and the read-out measures $J_y$. The signal is $\partial\langle J_y\rangle/\partial\varphi = \langle J_x\rangle = N/2$, the noise is $\sqrt{\mathrm{Var}(J_y)} = \sqrt{N}/2$, and therefore
+
+$$ \Delta\varphi_\mathrm{SQL} = \frac{\sqrt{\mathrm{Var}(J_y)}}{\left|\partial\langle J_y\rangle/\partial\varphi\right|} = \frac{\sqrt{N}/2}{N/2} = \frac{1}{\sqrt{N}} $$
+
+The $\sqrt{N}$ in the numerator is where the assumption hides. A coherent spin state is a product state, so the $N$ projections are independent and their variances add: $\mathrm{Var}(J_y) = N\times\frac{1}{4}$. Correlate them and that sum changes. It cannot change without limit — the general bound is the **quantum Cramér-Rao bound**,
+
+$$ \Delta\varphi \ge \frac{1}{\sqrt{F_Q}}, \qquad F_Q = 4\,\mathrm{Var}(\hat{G}) \;\; \text{for a pure state} $$
+
+where $\hat{G}$ is the generator of the parameter, here $J_z$. For a coherent spin state $\mathrm{Var}(J_z) = N/4$ and $F_Q = N$, reproducing the standard quantum limit. The largest variance any state of $N$ spins can have along $z$ is $N^2/4$, attained by the GHZ state $(|0\cdots0\rangle + |1\cdots1\rangle)/\sqrt{2}$, giving $F_Q = N^2$ and $\Delta\varphi = 1/N$: the Heisenberg limit.
+
+Note carefully what the resource turns out to be. It is a *large* variance along the generator axis, not a small one. This is the opposite of what the phrase "squeezed state" suggests, and getting it the right way round is the first substantive point of the chapter.
+
+### Squeezing, and the parameter that measures it
+
+The standard way to correlate atomic spins without needing a quantum computer is the **one-axis twisting** Hamiltonian
+
+$$ H = \chi J_z^2 $$
+
+which arises naturally from an interaction proportional to the square of a collective variable: the collisional interaction in a Bose-Einstein condensate, the light shift from a common cavity mode, the dipolar interaction in a dense ensemble. Its effect on a coherent spin state along $x$ is a shear. Atoms with $J_z > 0$ precess one way and those with $J_z < 0$ the other, at a rate proportional to $J_z$, so the initially circular uncertainty disc in the $yz$ plane is sheared into a tilted ellipse. One direction in that plane has variance below $N/4$ — it is squeezed — and the perpendicular one above.
+
+The figure of merit is the **Wineland squeezing parameter**
+
+$$ \xi^2 = N\,\frac{\left(\Delta J_\perp\right)^2}{\left|\langle \mathbf{J}\rangle\right|^2} $$
+
+normalized so that a coherent spin state gives exactly 1. It contains a numerator that squeezing reduces and a denominator that squeezing also reduces, because the twisting curls the mean spin vector and shrinks its length. That competition is what makes the optimum interior: twist too little and there is no squeezing, twist too much and the contrast is gone.
+
+There is a subtlety here that most presentations skip and that the code makes unavoidable. $J_z$ commutes with $H = \chi J_z^2$, so twisting cannot change $\mathrm{Var}(J_z)$ at all — and by the Cramér-Rao bound above, a state whose $\mathrm{Var}(J_z)$ is still $N/4$ has $F_Q = N$ and *cannot* beat the standard quantum limit for a rotation about $z$. The resolution is that the squeezed direction of a twisted state is tilted out of the read-out plane, and a single local rotation about the mean-spin axis — one pulse, no entanglement created or destroyed — is needed to align it. That rotation is what raises $\mathrm{Var}(J_z)$ above $N/4$. Example 1 shows both halves of this explicitly.
+
+### Code Example 1: One-Axis Twisting, and the Pulse That Makes It Useful
+
+```python
+"""Chapter 5, Example 1: one-axis twisting, the shear that makes it useful,
+and the N^(-2/3) wall."""
+import numpy as np
+from scipy.special import gammaln
+
+TWO_PI = 2.0 * np.pi
+
+
+def dicke_setup(N):
+    """Return (m, off) for the maximal-spin ladder of N spin-1/2 particles.
+
+    m holds the J_z eigenvalues from -N/2 to +N/2, and off[k] is the matrix
+    element <m_k + 1| J_+ |m_k> = sqrt(j(j+1) - m(m+1)).
+    """
+    j = 0.5 * N
+    m = np.arange(-j, j + 1.0)
+    off = np.sqrt(j * (j + 1.0) - m[:-1] * (m[:-1] + 1.0))
+    return m, off
+
+
+def css_x(N):
+    """Coherent spin state along +x, written in the J_z basis.
+
+    The amplitudes are binomial; using log-gamma keeps them exact for N in the
+    tens of thousands, where the binomial coefficient itself overflows.
+    """
+    k = np.arange(N + 1)
+    logc = 0.5 * (gammaln(N + 1.0) - gammaln(k + 1.0) - gammaln(N - k + 1.0))
+    return np.exp(logc - 0.5 * N * np.log(2.0)).astype(complex)
+
+
+def j_plus(psi, off):
+    out = np.zeros_like(psi)
+    out[1:] = off * psi[:-1]
+    return out
+
+
+def j_minus(psi, off):
+    out = np.zeros_like(psi)
+    out[:-1] = off * psi[1:]
+    return out
+
+
+def spin_moments(psi, m, off):
+    """All first and second moments of J, in O(N) operations.
+
+    The keys are "x", "y", "z" for the means, "xx", "yy", "zz" for the squares
+    and "xy", "xz", "yz" for the symmetrized cross terms <{J_a, J_b}>.
+    """
+    jp, jm = j_plus(psi, off), j_minus(psi, off)
+    jx = 0.5 * (jp + jm)
+    jy = (jp - jm) / 2.0j
+    jz = m * psi
+    return {
+        "x": np.vdot(psi, jx).real, "y": np.vdot(psi, jy).real,
+        "z": np.vdot(psi, jz).real,
+        "xx": np.vdot(jx, jx).real, "yy": np.vdot(jy, jy).real,
+        "zz": np.vdot(jz, jz).real,
+        "xy": 2.0 * np.vdot(jx, jy).real,
+        "xz": 2.0 * np.vdot(jx, jz).real,
+        "yz": 2.0 * np.vdot(jy, jz).real,
+    }
+
+
+def moments_to_tensors(d):
+    """Split the moment dictionary into the mean vector and the tensor M_ab."""
+    mean = np.array([d["x"], d["y"], d["z"]])
+    M = np.array([
+        [d["xx"], 0.5 * d["xy"], 0.5 * d["xz"]],
+        [0.5 * d["xy"], d["yy"], 0.5 * d["yz"]],
+        [0.5 * d["xz"], 0.5 * d["yz"], d["zz"]],
+    ])
+    return mean, M
+
+
+def tensors_to_moments(mean, M):
+    return {"x": mean[0], "y": mean[1], "z": mean[2],
+            "xx": M[0, 0], "yy": M[1, 1], "zz": M[2, 2],
+            "xy": 2.0 * M[0, 1], "xz": 2.0 * M[0, 2], "yz": 2.0 * M[1, 2]}
+
+
+def rotate_x(d, alpha):
+    """Rotate the moment set about x by alpha.
+
+    J is a vector operator, so the means transform as a vector and M_ab as a
+    rank-2 tensor. This is a LOCAL, non-entangling operation -- a single pulse.
+    """
+    c, s = np.cos(alpha), np.sin(alpha)
+    R = np.array([[1.0, 0.0, 0.0], [0.0, c, -s], [0.0, s, c]])
+    mean, M = moments_to_tensors(d)
+    return tensors_to_moments(R @ mean, R @ M @ R.T)
+
+
+def xi2_operational(d, N):
+    """Squeezing parameter for a rotation about z, with the read-out optimized.
+
+    A field along z rotates the mean spin, and the signal in the quadrature
+    J_theta = cos(theta) J_y + sin(theta) J_z is d<J_theta>/dphi =
+    cos(theta) <J_x>: the J_z part carries no signal at all. Optimizing theta
+    gives Dphi^2 = det(C_2) / (C_zz <J_x>^2), and xi^2 = N Dphi^2 compares that
+    with the standard quantum limit 1/N.
+    """
+    mean, M = moments_to_tensors(d)
+    C = M - np.outer(mean, mean)
+    Cyy, Czz, Cyz = C[1, 1], C[2, 2], C[1, 2]
+    return N * (Cyy * Czz - Cyz ** 2) / (Czz * mean[0] ** 2)
+
+
+def oat_state(N, mu, m, psi0):
+    """One-axis twisting: exp(-i mu J_z^2)|CSS_x>, with mu = chi t."""
+    return psi0 * np.exp(-1j * mu * m ** 2)
+
+
+ALPHAS = np.linspace(-0.5 * np.pi, 0.5 * np.pi, 2001)
+
+
+def best_squeezing(N, eta=1.0, mu_grid=None, alpha_grid=ALPHAS):
+    """Minimize xi^2 over the twisting strength and the shear angle."""
+    m, off = dicke_setup(N)
+    psi0 = css_x(N)
+    if mu_grid is None:
+        centre = N ** (-2.0 / 3.0)
+        mu_grid = np.logspace(np.log10(0.1 * centre),
+                              np.log10(10.0 * centre), 200)
+    best = (np.inf, None, None)
+    for mu in mu_grid:
+        d0 = spin_moments(oat_state(N, mu, m, psi0), m, off)
+        for a in alpha_grid[::8]:
+            x = xi2_operational(dephase_moments(rotate_x(d0, a), N, eta), N)
+            if x < best[0]:
+                best = (x, mu, a)
+    d0 = spin_moments(oat_state(N, best[1], m, psi0), m, off)
+    for a in alpha_grid:
+        x = xi2_operational(dephase_moments(rotate_x(d0, a), N, eta), N)
+        if x < best[0]:
+            best = (x, best[1], a)
+    return best
+
+
+def dephase_moments(d, N, eta):
+    """Exact action of independent single-spin dephasing on the moments of J.
+
+    Each spin sees rho -> (1-p) rho + p Z rho Z, and eta = 1 - 2p. In the
+    Heisenberg picture sigma_x and sigma_y are multiplied by eta while sigma_z
+    is untouched, and the channel factorizes over sites. The i = j terms of
+    J_a^2 contribute (sigma_a^i)^2 = 1 and are therefore immune, which is why
+    the transverse variances are pushed back towards N/4 instead of being
+    scaled: that immune floor is what destroys squeezing.
+    """
+    q = 0.25 * N
+    return {
+        "x": eta * d["x"], "y": eta * d["y"], "z": d["z"],
+        "xx": q + eta ** 2 * (d["xx"] - q),
+        "yy": q + eta ** 2 * (d["yy"] - q),
+        "zz": d["zz"],
+        "xy": eta ** 2 * d["xy"],
+        "xz": eta * d["xz"],
+        "yz": eta * d["yz"],
+    }
+
+
+# --- The unsqueezed reference ----------------------------------------------
+N0 = 100
+m0, off0 = dicke_setup(N0)
+psi_css = css_x(N0)
+d_css = spin_moments(psi_css, m0, off0)
+print(f"Coherent spin state, N = {N0}")
+print(f"  norm                              "
+      f"{np.vdot(psi_css, psi_css).real:.12f}")
+print(f"  <Jx>  (expect N/2 = {N0 / 2:.1f})        {d_css['x']:.9f}")
+print(f"  <Jy>, <Jz>                        {d_css['y']:.2e}, "
+      f"{d_css['z']:.2e}")
+print(f"  Var(Jy), Var(Jz)  (N/4 = {N0 / 4:.1f})   {d_css['yy']:.6f}, "
+      f"{d_css['zz']:.6f}")
+print(f"  xi^2 = {xi2_operational(d_css, N0):.9f}"
+      f"   -- exactly the standard quantum limit")
+
+# --- Twisting alone buys nothing -------------------------------------------
+print(f"\nOne-axis twisting at N = {N0}. The middle column is the twisted")
+print("state read out directly; the right-hand one adds a single local pulse.")
+head = (f"{'mu = chi t':>12}{'xi^2, no shear':>16}{'xi^2, best shear':>18}"
+        f"{'alpha (rad)':>13}{'|<J>|/(N/2)':>13}")
+print(head)
+print("-" * len(head))
+for mu in [0.005, 0.01, 0.02, 0.05, 0.1]:
+    d0 = spin_moments(oat_state(N0, mu, m0, psi_css), m0, off0)
+    raw = xi2_operational(d0, N0)
+    bb = (np.inf, None)
+    for a in ALPHAS:
+        x = xi2_operational(rotate_x(d0, a), N0)
+        if x < bb[0]:
+            bb = (x, a)
+    print(f"{mu:>12.4f}{raw:>16.5f}{bb[0]:>18.6f}{bb[1]:>13.4f}"
+          f"{abs(d0['x']) / (N0 / 2):>13.6f}")
+print("  The middle column never goes below 1. J_z commutes with the twisting")
+print("  Hamiltonian, so twisting cannot change Var(J_z), and for a rotation")
+print("  ABOUT z the un-sheared state is exactly as sensitive as a coherent")
+print("  one. The entanglement is real and metrologically inert until a local")
+print("  rotation turns the squeezed direction into the one being read.")
+
+x_best, mu_best, a_best = best_squeezing(N0)
+print(f"\n  best xi^2 = {x_best:.6f} ({10 * np.log10(x_best):.3f} dB) at "
+      f"mu = {mu_best:.5f}, alpha = {a_best:.4f}")
+print(f"  N^(-2/3) = {N0 ** (-2 / 3):.6f}; Heisenberg 1/N = {1 / N0:.6f}")
+
+# --- The scaling, and the correction that hides it -------------------------
+print("\nHow the optimum scales with N")
+head = (f"{'N':>8}{'best xi^2':>13}{'dB':>9}{'mu_opt':>10}{'1/N':>11}"
+        f"{'xi^2 N^(2/3)':>15}")
+print(head)
+print("-" * len(head))
+Ns = [10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000]
+xi2s = []
+for N in Ns:
+    x, mu, _ = best_squeezing(N)
+    xi2s.append(x)
+    print(f"{N:>8d}{x:>13.6f}{10 * np.log10(x):>9.3f}{mu:>10.5f}"
+          f"{1.0 / N:>11.6f}{x * N ** (2 / 3):>15.4f}")
+xi2s = np.array(xi2s, dtype=float)
+Nsa = np.array(Ns, dtype=float)
+naive = np.polyfit(np.log(Nsa), np.log(xi2s), 1)[0]
+tail = Nsa >= 200
+A, B = np.polyfit(Nsa[tail] ** (-1 / 3), xi2s[tail] * Nsa[tail] ** (2 / 3), 1)[::-1]
+print(f"\n  naive exponent fit over all N        : {naive:.4f}")
+print(f"  fit xi^2 N^(2/3) = A + B N^(-1/3)    : A = {A:.4f}, B = {B:.4f}")
+print(f"  analytic prefactor (1/2) 3^(2/3)     : "
+      f"{0.5 * 3 ** (2 / 3):.4f}")
+print("  The exponent IS -2/3; the naive fit misses it because the leading")
+print("  correction is only one power of N^(-1/3) down. Extracting A is the")
+print("  honest way to confirm a scaling law from a finite range of N.")
+print(f"\n  One-axis twisting does not reach the Heisenberg limit: at "
+      f"N = {Ns[-1]}")
+print(f"  the gap to 1/N is a factor {xi2s[-1] * Ns[-1]:.1f}.")
+```
+
+```text
+Coherent spin state, N = 100
+  norm                              1.000000000000
+  <Jx>  (expect N/2 = 50.0)        50.000000000
+  <Jy>, <Jz>                        0.00e+00, -1.37e-15
+  Var(Jy), Var(Jz)  (N/4 = 25.0)   25.000000, 25.000000
+  xi^2 = 1.000000000   -- exactly the standard quantum limit
+
+One-axis twisting at N = 100. The middle column is the twisted
+state read out directly; the right-hand one adds a single local pulse.
+  mu = chi t  xi^2, no shear  xi^2, best shear  alpha (rad)  |<J>|/(N/2)
+------------------------------------------------------------------------
+      0.0050         1.00001          0.613518       0.9048     0.998763
+      0.0100         1.00016          0.388194       1.0116     0.995062
+      0.0200         1.00330          0.180448       1.1687     0.980393
+      0.0500         1.33159          0.062957       1.3572     0.883555
+      0.1000        18.91619          0.425454       1.4326     0.609067
+  The middle column never goes below 1. J_z commutes with the twisting
+  Hamiltonian, so twisting cannot change Var(J_z), and for a rotation
+  ABOUT z the un-sheared state is exactly as sensitive as a coherent
+  one. The entanglement is real and metrologically inert until a local
+  rotation turns the squeezed direction into the one being read.
+
+  best xi^2 = 0.062946 (-12.010 dB) at mu = 0.05033, alpha = 1.3572
+  N^(-2/3) = 0.046416; Heisenberg 1/N = 0.010000
+
+How the optimum scales with N
+       N    best xi^2       dB    mu_opt        1/N   xi^2 N^(2/3)
+------------------------------------------------------------------
+      10     0.309903   -5.088   0.19868   0.100000         1.4384
+      20     0.197897   -7.036   0.13416   0.050000         1.4581
+      50     0.104063   -9.827   0.07807   0.020000         1.4123
+     100     0.062946  -12.010   0.05033   0.010000         1.3561
+     200     0.038002  -14.202   0.03245   0.005000         1.2996
+     500     0.019600  -17.077   0.01803   0.002000         1.2347
+    1000     0.011953  -19.225   0.01162   0.001000         1.1953
+    2000     0.007326  -21.352   0.00732   0.000500         1.1629
+    5000     0.003866  -24.127   0.00398   0.000200         1.1306
+   10000     0.002395  -26.207   0.00256   0.000100         1.1116
+
+  naive exponent fit over all N        : -0.7100
+  fit xi^2 N^(2/3) = A + B N^(-1/3)    : A = 1.0425, B = 1.5133
+  analytic prefactor (1/2) 3^(2/3)     : 1.0400
+  The exponent IS -2/3; the naive fit misses it because the leading
+  correction is only one power of N^(-1/3) down. Extracting A is the
+  honest way to confirm a scaling law from a finite range of N.
+
+  One-axis twisting does not reach the Heisenberg limit: at N = 10000
+  the gap to 1/N is a factor 23.9.
+```
+
+**What to look for.** Start with the middle column of the second table. The twisted state, read out directly, has $\xi^2 = 1.00001$, $1.00016$, $1.00330$, and then *worse* than 1 as the twisting grows: at $\mu = 0.1$ it is $18.9$. The state is heavily entangled and its metrological value for a rotation about $z$ is nil or negative. The right-hand column, differing only by one local rotation, reaches $\xi^2 = 0.062957$ at $\mu = 0.05$ — a factor of 300 better than the same state read a moment earlier. The entanglement was necessary and it was not sufficient; a non-entangling pulse did the rest. Anybody assessing a squeezing claim should ask which of the two columns is being quoted.
+
+The scaling table is the honest version of "beyond the standard quantum limit". One-axis twisting reaches $\xi^2 = 0.0629$ at $N = 100$ and $0.002395$ at $N = 10^{4}$: real gains, $-12.0$ dB and $-26.2$ dB, and nowhere near the Heisenberg limit, which at $N = 10^{4}$ is a factor $23.9$ further down. The scaling is $N^{-2/3}$, not $N^{-1}$, and this is a property of the twisting Hamiltonian rather than a technical shortcoming: shearing a disc produces an ellipse whose aspect ratio grows only as fast as the shear before the curvature of the sphere folds it over.
+
+The fitting block is a small lesson in numerical honesty. A naive log-log fit over the whole range returns an exponent of $-0.7100$, and one could report that and claim to have measured $-2/3$ to within $7\%$, or claim to have refuted it. Neither is right: the leading correction is only one power of $N^{-1/3}$ below the leading term, so no finite range of $N$ gives a clean exponent. Fitting $\xi^2 N^{2/3} = A + BN^{-1/3}$ instead returns $A = 1.0425$ against the analytic prefactor $\frac{1}{2}3^{2/3} = 1.0400$ — agreement to a quarter of a per cent, which *does* confirm the scaling law. When a fitted exponent disagrees with theory by less than the size of the known correction term, fit the correction.
+
+* * *
+
+## 5.2 What Decoherence Costs
+
+### Why squeezed states are the fragile ones
+
+A squeezed state has a variance below $N/4$ in one direction. Dephasing puts it back. The mechanism is worth stating precisely because it explains the whole of this section.
+
+Let each spin independently undergo the dephasing channel $\rho \to (1-p)\rho + p\,Z\rho Z$, and write $\eta = 1 - 2p$. In the Heisenberg picture this multiplies $\sigma_x$ and $\sigma_y$ by $\eta$ and leaves $\sigma_z$ alone. Now look at what that does to a collective second moment:
+
+$$ \left\langle J_y^2 \right\rangle = \frac{1}{4}\left( N + \sum_{i \ne j}\sigma_y^{(i)}\sigma_y^{(j)} \right) \;\longrightarrow\; \frac{N}{4} + \eta^2\left( \left\langle J_y^2\right\rangle - \frac{N}{4} \right) $$
+
+The $i = j$ terms are $\left(\sigma_y^{(i)}\right)^2 = 1$ and are therefore **immune to the channel**. Only the correlations between different spins are damped. Since squeezing consists entirely of those correlations — a variance below $N/4$ requires negative correlations between spins — dephasing does not scale a squeezed variance, it drags it back up towards the uncorrelated value $N/4$. The initial slope is $\left(N/4\right)\times(1-\eta^2) \approx N p$, independent of how good the squeezing was, so the *better* the squeezing, the smaller the $p$ that ruins it.
+
+The relations for all nine first and second moments are exact and elementary, which means a squeezed ensemble of $10^{4}$ spins under dephasing can be treated without ever writing down a $2^{N}$-dimensional density matrix. Example 2 validates the map against a brute-force calculation before using it.
+
+### Code Example 2: The Gain, and the Interrogation Time Nobody Re-Optimizes
+
+```python
+"""Chapter 5, Example 2: what a per-cent of dephasing does to 12 dB of
+squeezing, and what is left once the interrogation time is re-optimized.
+Continues from Example 1 (same session)."""
+
+
+def brute_force_moments(N, mu, eta):
+    """The same moments from the full 2^N density matrix, with no shortcuts.
+
+    Local dephasing is exactly a damping of each coherence by eta raised to
+    the Hamming distance between the two computational-basis strings, so the
+    channel is one elementwise multiplication.
+    """
+    dim = 2 ** N
+    bits = ((np.arange(dim)[:, None] >> np.arange(N)[::-1]) & 1).astype(float)
+    Jz_diag = (0.5 - bits).sum(axis=1)
+    Jz = np.diag(Jz_diag).astype(complex)
+    Jx = np.zeros((dim, dim), dtype=complex)
+    for q in range(N):
+        flip = np.arange(dim) ^ (1 << (N - 1 - q))
+        Jx[np.arange(dim), flip] += 0.5
+    Jy = -1j * (Jz @ Jx - Jx @ Jz)             # [J_z, J_x] = i J_y
+    psi = np.ones(dim, dtype=complex) / np.sqrt(dim)      # CSS along +x
+    psi = psi * np.exp(-1j * mu * Jz_diag ** 2)
+    rho = np.outer(psi, psi.conj())
+    ham = (bits[:, None, :] != bits[None, :, :]).sum(axis=2)
+    rho = rho * eta ** ham
+
+    def ev(A):
+        return np.trace(rho @ A).real
+
+    return {"x": ev(Jx), "y": ev(Jy), "z": ev(Jz),
+            "xx": ev(Jx @ Jx), "yy": ev(Jy @ Jy), "zz": ev(Jz @ Jz),
+            "xy": ev(Jx @ Jy + Jy @ Jx), "xz": ev(Jx @ Jz + Jz @ Jx),
+            "yz": ev(Jy @ Jz + Jz @ Jy)}
+
+
+N_chk, mu_chk = 6, 0.25
+m_c, off_c = dicke_setup(N_chk)
+d_pure = spin_moments(oat_state(N_chk, mu_chk, m_c, css_x(N_chk)), m_c, off_c)
+print(f"Validating the dephasing map against a full 2^N calculation "
+      f"(N = {N_chk}, mu = {mu_chk})")
+keys = ["x", "y", "z", "xx", "yy", "zz", "xy", "xz", "yz"]
+print(f"{'eta':>7}{'worst |map - exact|':>22}{'worst relative':>18}")
+print("-" * 47)
+for eta_chk in [1.0, 0.9, 0.6, 0.2]:
+    d_map = dephase_moments(d_pure, N_chk, eta_chk)
+    d_bf = brute_force_moments(N_chk, mu_chk, eta_chk)
+    diffs = [abs(d_map[k] - d_bf[k]) for k in keys]
+    # relative error only where the exact value is not itself essentially zero
+    rels = [abs(d_map[k] - d_bf[k]) / abs(d_bf[k])
+            for k in keys if abs(d_bf[k]) > 1e-2]
+    print(f"{eta_chk:>7.2f}{max(diffs):>22.3e}{max(rels):>18.3e}")
+print("  The moment map is exact, so everything below runs in O(N) instead")
+print("  of O(4^N) and N = 10,000 is as cheap as N = 6.")
+
+# --- The collapse ---------------------------------------------------------
+N_g = 100
+m_g, off_g = dicke_setup(N_g)
+psi0_g = css_x(N_g)
+d_css_g = spin_moments(psi0_g, m_g, off_g)
+centre_g = N_g ** (-2.0 / 3.0)
+mu_scan_g = np.logspace(np.log10(0.1 * centre_g),
+                        np.log10(10.0 * centre_g), 200)
+x0_g, mu0_g, a0_g = best_squeezing(N_g, 1.0, mu_scan_g)
+d_sheared = rotate_x(spin_moments(oat_state(N_g, mu0_g, m_g, psi0_g),
+                                  m_g, off_g), a0_g)
+
+print(f"\nMetrological gain against dephasing, N = {N_g}. "
+      f"eta = 1 - 2p = exp(-T/T2),")
+print("so the third column is also 'interrogate for this fraction of a T2'.")
+head = (f"{'p':>7}{'eta':>8}{'T/T2':>8}{'xi^2 CSS':>10}{'xi^2 fixed':>12}"
+        f"{'xi^2 re-opt':>13}{'gain (dB)':>11}{'mu_opt':>9}")
+print(head)
+print("-" * len(head))
+for p in [0.0, 0.003, 0.01, 0.03, 0.05, 0.1, 0.2, 0.3]:
+    eta = 1.0 - 2.0 * p
+    x_css = xi2_operational(dephase_moments(d_css_g, N_g, eta), N_g)
+    x_fix = xi2_operational(dephase_moments(d_sheared, N_g, eta), N_g)
+    x_opt, mu_o, _ = best_squeezing(N_g, eta, mu_scan_g)
+    print(f"{p:>7.3f}{eta:>8.3f}{abs(np.log(eta)):>8.3f}{x_css:>10.4f}"
+          f"{x_fix:>12.4f}{x_opt:>13.4f}"
+          f"{10 * np.log10(x_css / x_opt):>11.3f}{mu_o:>9.5f}")
+print(f"  The ideal gain is {-10 * np.log10(x0_g):.2f} dB. One per cent of "
+      f"per-spin dephasing")
+print("  removes 2.4 dB of it, ten per cent removes 8.6 dB, and by thirty")
+print("  per cent there is nothing left that would justify the apparatus.")
+print("  Re-optimizing the twisting helps at the margin and cannot repair it:")
+print("  the immune N/4 floor in the map above is a hard obstruction.")
+
+# --- The comparison that is usually left out -----------------------------
+print("\nThe honest comparison: let BOTH sensors choose their interrogation")
+print("time. The figure of merit is xi^2/T -- variance per unit averaging")
+print("time -- and eta = exp(-T/T2) is Chapter 1's coherence envelope.")
+head = (f"{'N':>8}{'ideal gain':>13}{'T/T2 plain':>12}{'T/T2 sq':>10}"
+        f"{'real gain':>12}{'amplitude':>12}")
+print(head)
+print("-" * len(head))
+u_grid = np.logspace(-2.5, 0.4, 120)
+N_list = [100, 1000, 10000]
+amp_gains = []
+for N in N_list:
+    m_n, off_n = dicke_setup(N)
+    psi_n = css_x(N)
+    d_css_n = spin_moments(psi_n, m_n, off_n)
+    ideal = best_squeezing(N)[0]
+    centre = N ** (-2.0 / 3.0)
+    mus_n = np.logspace(np.log10(0.1 * centre), np.log10(10.0 * centre), 60)
+    f_css, f_sq = [], []
+    for u in u_grid:
+        eta = np.exp(-u)
+        f_css.append(xi2_operational(dephase_moments(d_css_n, N, eta), N) / u)
+        f_sq.append(best_squeezing(N, eta, mus_n)[0] / u)
+    f_css, f_sq = np.array(f_css), np.array(f_sq)
+    kc, ks = int(np.argmin(f_css)), int(np.argmin(f_sq))
+    g = f_css[kc] / f_sq[ks]
+    amp_gains.append(np.sqrt(g))
+    print(f"{N:>8d}{-10 * np.log10(ideal):>10.2f} dB{u_grid[kc]:>12.3f}"
+          f"{u_grid[ks]:>10.3f}{10 * np.log10(g):>9.2f} dB"
+          f"{np.sqrt(g):>11.2f}x")
+print("  The plain sensor interrogates for half a T2, which is the textbook")
+print("  optimum. The squeezed one must stop far earlier, and the time it")
+print("  gives up costs more than the squeezing gains.")
+print(f"\n  Amplitude gains found: "
+      f"{', '.join(f'{a:.3f}' for a in amp_gains)}")
+print(f"  sqrt(e) = {np.sqrt(np.e):.4f}")
+# Three points do not confirm a limit by inspection. Fit the leading
+# correction instead, as Example 1 did for the N^(-2/3) wall: the finite-N
+# deficit is one power of N^(-1/3) below the leading term.
+x_fit = np.array(N_list, dtype=float) ** (-1.0 / 3.0)
+A_g, B_g = np.polyfit(x_fit, np.array(amp_gains), 1)[::-1]
+resid = np.array(amp_gains) - (A_g + B_g * x_fit)
+print(f"  fit gain = A + B N^(-1/3): A = {A_g:.4f}, B = {B_g:.4f}, "
+      f"max resid {np.abs(resid).max():.4f}")
+print(f"  extrapolated A / sqrt(e) = {A_g/np.sqrt(np.e):.4f}, i.e. "
+      f"{abs(A_g/np.sqrt(np.e)-1)*100:.1f} per cent low")
+print("  So the sequence is consistent with sqrt(e) as its limit, to a couple")
+print("  of per cent on a three-point extrapolation -- not proof, but the")
+print("  right constant. And it is not a coincidence: for uncorrelated")
+print("  dephasing the maximum improvement over the standard quantum limit is")
+print("  a CONSTANT factor sqrt(e), reached by the optimal probe state.")
+print("  Entanglement does not change the exponent here; it moves the")
+print("  prefactor, by at most 65 per cent in amplitude.")
+print("\n  Three ways in which this estimate is OPTIMISTIC, not pessimistic:")
+print("   * the squeezing is generated instantaneously and for free, with no")
+print("     decoherence during the twisting;")
+print("   * the read-out is assumed noiseless, although resolving a variance")
+print("     below N/4 requires resolution better than sqrt(N)/2;")
+print("   * the dephasing is independent between spins. Even under that mild")
+print("     model a GHZ state loses coherence N times faster than one spin")
+print("     (Example 4); under common-mode field noise, where every spin sees")
+print("     the SAME fluctuation, an N-particle entangled state accumulates N")
+print("     times the phase error and does worse still.")
+```
+
+```text
+Validating the dephasing map against a full 2^N calculation (N = 6, mu = 0.25)
+    eta   worst |map - exact|    worst relative
+-----------------------------------------------
+   1.00             4.441e-15         1.027e-15
+   0.90             4.441e-15         9.631e-16
+   0.60             1.554e-15         7.920e-16
+   0.20             8.882e-16         1.083e-15
+  The moment map is exact, so everything below runs in O(N) instead
+  of O(4^N) and N = 10,000 is as cheap as N = 6.
+
+Metrological gain against dephasing, N = 100. eta = 1 - 2p = exp(-T/T2),
+so the third column is also 'interrogate for this fraction of a T2'.
+      p     eta    T/T2  xi^2 CSS  xi^2 fixed  xi^2 re-opt  gain (dB)   mu_opt
+------------------------------------------------------------------------------
+  0.000   1.000   0.000    1.0000      0.0629       0.0629     12.010  0.05033
+  0.003   0.994   0.006    1.0121      0.0785       0.0784     11.107  0.04918
+  0.010   0.980   0.020    1.0412      0.1159       0.1152      9.561  0.04696
+  0.030   0.940   0.062    1.1317      0.2322       0.2256      7.004  0.04280
+  0.050   0.900   0.105    1.2346      0.3644       0.3466      5.516  0.03902
+  0.100   0.800   0.223    1.5625      0.7859       0.7170      3.383  0.03243
+  0.200   0.600   0.511    2.7778      2.3477       2.0227      1.378  0.02345
+  0.300   0.400   0.916    6.2500      6.8102       5.6236      0.459  0.01619
+  The ideal gain is 12.01 dB. One per cent of per-spin dephasing
+  removes 2.4 dB of it, ten per cent removes 8.6 dB, and by thirty
+  per cent there is nothing left that would justify the apparatus.
+  Re-optimizing the twisting helps at the margin and cannot repair it:
+  the immune N/4 floor in the map above is a hard obstruction.
+
+The honest comparison: let BOTH sensors choose their interrogation
+time. The figure of merit is xi^2/T -- variance per unit averaging
+time -- and eta = exp(-T/T2) is Chapter 1's coherence envelope.
+       N   ideal gain  T/T2 plain   T/T2 sq   real gain   amplitude
+-------------------------------------------------------------------
+     100     12.01 dB       0.493     0.170     2.32 dB       1.31x
+    1000     19.23 dB       0.493     0.082     3.33 dB       1.47x
+   10000     26.21 dB       0.493     0.040     3.86 dB       1.56x
+  The plain sensor interrogates for half a T2, which is the textbook
+  optimum. The squeezed one must stop far earlier, and the time it
+  gives up costs more than the squeezing gains.
+
+  Amplitude gains found: 1.307, 1.468, 1.560
+  sqrt(e) = 1.6487
+  fit gain = A + B N^(-1/3): A = 1.6234, B = -1.4808, max resid 0.0075
+  extrapolated A / sqrt(e) = 0.9847, i.e. 1.5 per cent low
+  So the sequence is consistent with sqrt(e) as its limit, to a couple
+  of per cent on a three-point extrapolation -- not proof, but the
+  right constant. And it is not a coincidence: for uncorrelated
+  dephasing the maximum improvement over the standard quantum limit is
+  a CONSTANT factor sqrt(e), reached by the optimal probe state.
+  Entanglement does not change the exponent here; it moves the
+  prefactor, by at most 65 per cent in amplitude.
+
+  Three ways in which this estimate is OPTIMISTIC, not pessimistic:
+   * the squeezing is generated instantaneously and for free, with no
+     decoherence during the twisting;
+   * the read-out is assumed noiseless, although resolving a variance
+     below N/4 requires resolution better than sqrt(N)/2;
+   * the dephasing is independent between spins. Even under that mild
+     model a GHZ state loses coherence N times faster than one spin
+     (Example 4); under common-mode field noise, where every spin sees
+     the SAME fluctuation, an N-particle entangled state accumulates N
+     times the phase error and does worse still.
+```
+
+**What to look for.** The validation block first: the moment map agrees with an exact $2^6$ density-matrix calculation to $4\times10^{-15}$ absolute and $10^{-15}$ relative across four values of $\eta$, which is floating-point noise. That licenses the rest.
+
+The collapse table is the headline of the section. At $N = 100$ the ideal gain is $12.01$ dB. One per cent of per-spin dephasing removes $2.4$ dB of it; five per cent removes $6.5$ dB; ten per cent removes $8.6$ dB; at thirty per cent, $0.46$ dB survives and no laboratory would build the apparatus for that. Re-optimizing the twisting strength at each noise level — the `xi^2 re-opt` column, with `mu_opt` falling from $0.050$ to $0.016$ — recovers only a few tenths of a decibel, because the obstruction is the immune $N/4$ floor and not a bad choice of parameter. The third column translates $p$ into interrogation time through $\eta = e^{-T/T_2}$: one per cent of dephasing means interrogating for $2\%$ of a coherence time.
+
+And that is the observation the second table makes decisive. Chapter 1 §1.3 and Chapter 4 §4.1 both established that an *unsqueezed* Ramsey sensor should interrogate for $T \approx T_2/2$; the numerics here find $0.493$, confirming it. But a squeezed sensor cannot afford $T_2/2$, because $p \approx 0.2$ at that point and the squeezing is gone. It must interrogate for a fraction of the time — $0.170\,T_2$ at $N = 100$, $0.040\,T_2$ at $N = 10^{4}$ — and shorter interrogation is itself a loss of sensitivity, since $\eta_B \propto \xi/\sqrt{T}$. Comparing the two sensors *each at its own optimum*, using the figure of merit $\xi^2/T$ that is exactly the $\eta^2$ of §1.3:
+
+| $N$ | ideal squeezing | gain actually available | in amplitude |
+| --- | --- | --- | --- |
+| 100 | $-12.01$ dB | $2.32$ dB | $1.31\times$ |
+| 1000 | $-19.23$ dB | $3.33$ dB | $1.47\times$ |
+| 10 000 | $-26.21$ dB | $3.86$ dB | $1.56\times$ |
+
+Twenty-six decibels of ideal squeezing is worth $3.9$ dB of real sensitivity. And the sequence of amplitude gains — $1.307$, $1.468$, $1.560$ — is climbing towards $\sqrt{e} = 1.6487$. Three points do not establish a limit by inspection, so the example fits the approach the same way Example 1 fitted the $N^{-2/3}$ wall: the finite-$N$ deficit is one power of $N^{-1/3}$ below the leading term, and fitting gain $= A + BN^{-1/3}$ gives $A = 1.6234$ with a worst residual of $0.0075$. That extrapolated intercept is $1.5\%$ below $\sqrt{e}$ — good enough to identify the constant, not good enough to call it measured, and honest about which. The constant itself is not a numerical accident: for uncorrelated dephasing there is a theorem that the best possible improvement over the standard quantum limit is exactly a factor $\sqrt{e}$ in amplitude, achieved by the optimal probe state, with the $1/\sqrt{N}$ *scaling* left intact. The numerics have recovered it to a per cent or two from a specific state family. That is the single most important number in this chapter.
+
+Read it in both directions, because both readings are true.
+
+**Against hype.** Entanglement under uncorrelated dephasing does not change the exponent. There is no $1/N$, there is no factor of 100 at $N = 10^{4}$, and a proposal that budgets for one is wrong on physics rather than on engineering. The three caveats printed at the end of the example all point the same way: the calculation assumed free instantaneous squeezing, noiseless read-out, and the mildest noise model. A real apparatus does worse.
+
+**Against dismissal.** A factor of $1.65$ in amplitude is a factor of $2.7$ in averaging time, and there are measurements where that is decisive and cannot be obtained any other way. The circumstances are identifiable: entanglement is worth its cost precisely when **$N$ cannot be increased**. In an optical lattice clock the atom number is capped by the cold-collision density shift of §4.2 — adding atoms adds a systematic — so the $\sqrt{N}$ route is closed and the entanglement route is the only one left. In a nanoscale NV measurement the probe volume is fixed by the required spatial resolution, so again $N$ is not a free parameter. In a gravitational-wave interferometer the circulating power is limited by thermal distortion of the optics and by radiation-pressure noise. Wherever the resource is capped by a systematic rather than by cost, a bounded constant factor is exactly what is for sale, and it is worth buying.
+
+### Loss, and the same fragility in photons
+
+The spin case had dephasing; the optical case has loss, and the structure of the result is identical but sharper. Two states illustrate the extremes.
+
+The **N00N state** $(|N,0\rangle + |0,N\rangle)/\sqrt{2}$ puts $N$ photons into a superposition of "all in arm 1" and "all in arm 2". Its phase sensitivity is $1/N$, the Heisenberg limit, and it is the photonic analogue of GHZ. Its fragility is immediate: losing a single photon reveals which arm it came from, so the coherence between the two terms survives only if *every* photon survives, with probability $\eta^N$ for transmission $\eta$.
+
+**Squeezed vacuum** is the state actually used where optical squeezing is load-bearing. It is not a fixed-photon-number state at all; it is a Gaussian state whose quadrature variance is $e^{-2r}$ below vacuum in one direction. Under loss the measured variance is a *mixture*,
+
+$$ V(\eta, r) = \eta\, e^{-2r} + (1-\eta) $$
+
+because the attenuated squeezed quadrature is replenished by vacuum entering through the loss port. That is a linear degradation, and the difference between $\eta^N$ and a linear mixture is the whole story of this section.
+
+### Code Example 3: Exponential Against Linear
+
+```python
+"""Chapter 5, Example 3: two ways to use squeezed light, and what loss does
+to each.
+Continues from Examples 1-2 (same session)."""
+
+
+def noon_gain(N, eta):
+    """Fisher-information gain of N00N over a classical probe, at fixed budget.
+
+    A N00N state of N photons carries Fisher information N^2, and the coherence
+    between |N,0> and |0,N> survives only if no photon is lost, with
+    probability eta^N. Spending a total budget of M photons gives M/N
+    repetitions and M N eta^N; a classical probe of the same M photons through
+    the same channel gives M eta. The ratio is N eta^(N-1).
+    """
+    return N * eta ** (N - 1.0)
+
+
+def squeezed_gain_db(eta, r):
+    """Noise reduction of squeezed vacuum after transmission eta, in dB.
+
+    The measured variance relative to vacuum is eta e^(-2r) + (1 - eta): the
+    squeezed quadrature is attenuated and vacuum leaks in to replace it. The
+    degradation is LINEAR in the loss, and the ceiling as r grows without
+    bound is -10 log10(1 - eta).
+    """
+    return -10.0 * np.log10(eta * np.exp(-2.0 * r) + (1.0 - eta))
+
+
+def db_to_r(x_db):
+    """Convert a squeezing figure in dB to the squeeze parameter r."""
+    return x_db * np.log(10.0) / 20.0
+
+
+etas = [1.0, 0.99, 0.95, 0.9, 0.7, 0.5]
+print("N00N states: the gain N eta^(N-1) over a classical probe")
+head = f"{'N':>6}" + "".join(f"{'eta=' + f'{e:.2f}':>11}" for e in etas)
+print(head)
+print("-" * len(head))
+for N in [2, 4, 10, 20, 50, 100, 200]:
+    print(f"{N:>6d}" + "".join(f"{noon_gain(N, e):>11.3f}" for e in etas))
+
+print("\nThe optimum over N, and the ceiling it implies")
+head = (f"{'eta':>7}{'loss':>8}{'-1/ln eta':>12}{'best N':>9}"
+        f"{'best gain':>11}{'in dB':>9}")
+print(head)
+print("-" * len(head))
+Ns_try = np.arange(1, 200001)
+for eta in [0.999, 0.99, 0.95, 0.9, 0.7, 0.5, 0.3]:
+    g = noon_gain(Ns_try, eta)
+    k = int(np.argmax(g))
+    print(f"{eta:>7.3f}{1 - eta:>8.3f}{-1.0 / np.log(eta):>12.2f}"
+          f"{Ns_try[k]:>9d}{g[k]:>11.3f}{10 * np.log10(g[k]):>9.3f}")
+print("  Heisenberg scaling is gone. For any fixed loss the best achievable")
+print("  gain is a constant of order 1/(e |ln eta|): making N larger than")
+print("  N* makes the sensor worse, and the useful N is bounded by the loss.")
+
+print("\nSqueezed vacuum, the route that survives loss")
+etas2 = [1.0, 0.95, 0.9, 0.8, 0.5]
+head = f"{'source':>10}" + "".join(f"{'eta=' + f'{e:.2f}':>11}" for e in etas2)
+print(head)
+print("-" * len(head))
+for r_db in [3.0, 6.0, 10.0, 15.0, 20.0]:
+    r = db_to_r(r_db)
+    print(f"{r_db:>7.0f} dB" + "".join(f"{squeezed_gain_db(e, r):>11.2f}"
+                                       for e in etas2))
+print("\n  ceiling as the source is squeezed harder, and what 10 dB delivers")
+print(f"{'eta':>7}{'ceiling (dB)':>15}{'10 dB source gives':>21}")
+print("-" * 43)
+r10 = db_to_r(10.0)
+for eta in [0.99, 0.95, 0.9, 0.8, 0.5]:
+    print(f"{eta:>7.2f}{-10 * np.log10(1 - eta):>15.2f}"
+          f"{squeezed_gain_db(eta, r10):>18.2f} dB")
+eta_grid = np.linspace(0.5, 1.0, 500001)
+k = int(np.argmin(np.abs(squeezed_gain_db(eta_grid, r10) - 6.0)))
+print(f"\n  a 10 dB source still delivers 6 dB provided eta > "
+      f"{eta_grid[k]:.4f},")
+print(f"  i.e. a total loss budget of {100 * (1 - eta_grid[k]):.1f} per cent "
+      f"from source to detector.")
+
+print("\nSide by side, the degradation law is the whole story")
+head = (f"{'loss 1-eta':>12}{'N00N, best over N':>21}"
+        f"{'10 dB squeezed vacuum':>24}")
+print(head)
+print("-" * len(head))
+for eta in [0.99, 0.95, 0.9, 0.7, 0.5]:
+    g = noon_gain(Ns_try, eta).max()
+    print(f"{1 - eta:>12.2f}{10 * np.log10(g):>18.2f} dB"
+          f"{squeezed_gain_db(eta, r10):>21.2f} dB")
+print("  At one per cent loss the N00N column is nominally ahead -- and the")
+print("  entry requires a 99-photon N00N state, whose preparation cost grows")
+print("  steeply with N, while the squeezed-vacuum entry needs one nonlinear")
+print("  element and clean optics. Read the trend, not the ceiling:")
+print("  N00N loses its advantage as eta^N, exponentially in the size of the")
+print("  entangled state. Squeezed vacuum loses it as a linear mixture with")
+print("  vacuum. That difference -- not the ideal scaling -- is why the")
+print("  quantum-noise-limited interferometers that do use squeezing in")
+print("  earnest, the gravitational-wave detectors, inject squeezed vacuum.")
+print("  There the shot noise of the read-out light IS the dominant noise")
+print("  over part of the band, so a few dB of variance is a few dB of reach,")
+print("  and the loss budget of the optics is the design constraint.")
+```
+
+```text
+N00N states: the gain N eta^(N-1) over a classical probe
+     N   eta=1.00   eta=0.99   eta=0.95   eta=0.90   eta=0.70   eta=0.50
+------------------------------------------------------------------------
+     2      2.000      1.980      1.900      1.800      1.400      1.000
+     4      4.000      3.881      3.429      2.916      1.372      0.500
+    10     10.000      9.135      6.302      3.874      0.404      0.020
+    20     20.000     16.523      7.547      2.702      0.023      0.000
+    50     50.000     30.556      4.050      0.286      0.000      0.000
+   100    100.000     36.973      0.623      0.003      0.000      0.000
+   200    200.000     27.067      0.007      0.000      0.000      0.000
+
+The optimum over N, and the ceiling it implies
+    eta    loss   -1/ln eta   best N  best gain    in dB
+--------------------------------------------------------
+  0.999   0.001      999.50      999    368.063   25.659
+  0.990   0.010       99.50       99     36.973   15.679
+  0.950   0.050       19.50       19      7.547    8.778
+  0.900   0.100        9.49        9      3.874    5.882
+  0.700   0.300        2.80        3      1.470    1.673
+  0.500   0.500        1.44        1      1.000    0.000
+  0.300   0.700        0.83        1      1.000    0.000
+  Heisenberg scaling is gone. For any fixed loss the best achievable
+  gain is a constant of order 1/(e |ln eta|): making N larger than
+  N* makes the sensor worse, and the useful N is bounded by the loss.
+
+Squeezed vacuum, the route that survives loss
+    source   eta=1.00   eta=0.95   eta=0.90   eta=0.80   eta=0.50
+-----------------------------------------------------------------
+      3 dB       3.00       2.79       2.59       2.21       1.25
+      6 dB       6.00       5.40       4.87       3.97       2.04
+     10 dB      10.00       8.39       7.21       5.53       2.60
+     15 dB      15.00      10.97       8.91       6.47       2.88
+     20 dB      20.00      12.25       9.63       6.82       2.97
+
+  ceiling as the source is squeezed harder, and what 10 dB delivers
+    eta   ceiling (dB)   10 dB source gives
+-------------------------------------------
+   0.99          20.00              9.63 dB
+   0.95          13.01              8.39 dB
+   0.90          10.00              7.21 dB
+   0.80           6.99              5.53 dB
+   0.50           3.01              2.60 dB
+
+  a 10 dB source still delivers 6 dB provided eta > 0.8320,
+  i.e. a total loss budget of 16.8 per cent from source to detector.
+
+Side by side, the degradation law is the whole story
+  loss 1-eta    N00N, best over N   10 dB squeezed vacuum
+---------------------------------------------------------
+        0.01             15.68 dB                 9.63 dB
+        0.05              8.78 dB                 8.39 dB
+        0.10              5.88 dB                 7.21 dB
+        0.30              1.67 dB                 4.32 dB
+        0.50              0.00 dB                 2.60 dB
+  At one per cent loss the N00N column is nominally ahead -- and the
+  entry requires a 99-photon N00N state, whose preparation cost grows
+  steeply with N, while the squeezed-vacuum entry needs one nonlinear
+  element and clean optics. Read the trend, not the ceiling:
+  N00N loses its advantage as eta^N, exponentially in the size of the
+  entangled state. Squeezed vacuum loses it as a linear mixture with
+  vacuum. That difference -- not the ideal scaling -- is why the
+  quantum-noise-limited interferometers that do use squeezing in
+  earnest, the gravitational-wave detectors, inject squeezed vacuum.
+  There the shot noise of the read-out light IS the dominant noise
+  over part of the band, so a few dB of variance is a few dB of reach,
+  and the loss budget of the optics is the design constraint.
+```
+
+**What to look for.** The first table is the N00N state meeting reality. At perfect transmission the gain is $N$, as advertised. At $\eta = 0.95$ — five per cent loss, which is optimistic for a real optical path with a detector — the gain peaks at $7.55$ for $N = 19$ and then *falls*, reaching $0.007$ at $N = 200$: a 200-photon N00N state through a 5%-loss channel is four orders of magnitude worse than a laser beam. At fifty per cent loss the best available $N$ is 1, which is to say there is nothing to gain at all.
+
+The second table makes the structural point. The optimal $N$ is $-1/\ln\eta$, and the gain there is a *constant* set by the loss: about $37$ at one per cent loss, $7.5$ at five per cent, $3.9$ at ten per cent. Heisenberg scaling has not been degraded, it has been abolished — for any fixed loss, the improvement over a classical probe is bounded no matter how large the entangled state, and pushing $N$ past the optimum makes things worse. This is the same statement as §5.2's $\sqrt{e}$, in a different physical system, and it is the general pattern: **a fixed per-particle decoherence probability converts a scaling advantage into a constant one**.
+
+The squeezed-vacuum tables show the alternative. A 10 dB source through a 10% loss channel still delivers $7.21$ dB; through 20% loss, $5.53$ dB. The ceiling as the source is squeezed harder is $-10\log_{10}(1-\eta)$, so 10% loss caps the useful squeezing at 10 dB no matter how good the crystal — which is why the engineering effort in such systems goes into the *loss budget* rather than into the squeezer. The computed requirement is concrete: for a 10 dB source to deliver 6 dB, total loss from source to detector must stay below $16.8\%$, and that is a specification about mirror coatings, mode matching and photodiode quantum efficiency.
+
+The side-by-side table needs its caveat read carefully, because at one per cent loss the N00N column is nominally ahead, $15.7$ dB against $9.6$ dB. That entry assumes a 99-photon N00N state. The preparation cost of such states grows steeply with $N$ and there is no known scalable route to them, whereas squeezed vacuum comes out of a single nonlinear element at whatever $r$ the pump power supports. The comparison that matters is therefore not the ceiling but the trend and the preparability — and on both, squeezed vacuum wins by a margin that no ideal-case calculation captures.
+
+**Where this is already load-bearing.** Gravitational-wave interferometers are the physics precedent, and it is worth being precise about why they are the case where squeezing genuinely pays. Such an instrument is *quantum-noise-limited* over part of its band: after the seismic, thermal and technical noise sources have been suppressed, what remains at high frequency is the photon shot noise of the read-out light itself. In that regime a decibel of variance reduction on the read-out quadrature is a decibel of noise reduction on the measurement, directly and with no intermediary. Injecting squeezed vacuum into the dark port does exactly that. It works because the apparatus is at its quantum limit, because squeezed vacuum degrades gracefully, and because the circulating power — the classical route to the same improvement — is capped by thermal deformation of the mirrors. That triad, and not the ideal scaling, is the criterion to apply to any proposed entanglement-enhanced sensor: is the instrument actually quantum-noise-limited, does the chosen state degrade gracefully, and is the classical resource genuinely capped?
+
+* * *
+
+## 5.3 Sensor Output as Quantum Data
+
+### The read-out is part of the model
+
+There is a gap in every table of Example 2 and 3 that has not yet been named. The quantum Fisher information $F_Q$ is the information available to the *best possible* measurement. The number a laboratory actually obtains is set by the measurement it performs — usually a quadrature, because that is what a population read-out gives. The ratio of the two is the fraction of the available information that the chosen read-out collects, and it is neither 1 nor constant.
+
+### Code Example 4: What a Fixed Read-Out Leaves Behind
+
+```python
+"""Chapter 5, Example 4: the quantum Fisher information, and what a fixed
+read-out leaves on the table.
+Continues from Examples 1-3 (same session)."""
+from scipy.linalg import expm
+
+N_f = 8
+dim = 2 ** N_f
+bits_f = ((np.arange(dim)[:, None] >> np.arange(N_f)[::-1]) & 1).astype(float)
+Jz_diag = (0.5 - bits_f).sum(axis=1)
+Jz_f = np.diag(Jz_diag).astype(complex)
+Jx_f = np.zeros((dim, dim), dtype=complex)
+for q in range(N_f):
+    flip = np.arange(dim) ^ (1 << (N_f - 1 - q))
+    Jx_f[np.arange(dim), flip] += 0.5
+Jy_f = -1j * (Jz_f @ Jx_f - Jx_f @ Jz_f)
+ham_f = (bits_f[:, None, :] != bits_f[None, :, :]).sum(axis=2)
+
+
+def dephase_rho(rho, eta):
+    """Independent single-spin dephasing, as a Hamming-distance damping."""
+    return rho * eta ** ham_f
+
+
+def qfi(rho, gen=Jz_f, tol=1e-11):
+    """Quantum Fisher information for the generator gen.
+
+    F_Q = 2 sum_kl |<k|drho|l>|^2 / (lam_k + lam_l), with drho = -i[gen, rho]:
+    the largest Fisher information any measurement whatsoever could deliver.
+    """
+    lam, U = np.linalg.eigh(rho)
+    drho = -1j * (gen @ rho - rho @ gen)
+    A = U.conj().T @ drho @ U
+    s = lam[:, None] + lam[None, :]
+    mask = s > tol
+    return float(2.0 * np.sum(np.abs(A[mask]) ** 2 / s[mask]))
+
+
+def moment_fisher(rho):
+    """Fisher information of the best linear quadrature read-out.
+
+    Returns (F, theta*, 4 Var(Jz)). F = <Jx>^2 Czz / det(C_2) is the same
+    quantity as N/xi^2 from Example 1, and 4 Var(Jz) is the quantum Fisher
+    information for a pure state.
+    """
+    def ev(A):
+        return np.trace(rho @ A).real
+
+    ex, ey, ez = ev(Jx_f), ev(Jy_f), ev(Jz_f)
+    Cyy = ev(Jy_f @ Jy_f) - ey ** 2
+    Czz = ev(Jz_f @ Jz_f) - ez ** 2
+    Cyz = 0.5 * ev(Jy_f @ Jz_f + Jz_f @ Jy_f) - ey * ez
+    det = Cyy * Czz - Cyz ** 2
+    return ex ** 2 * Czz / det, np.arctan2(-Cyz, Czz), 4.0 * Czz
+
+
+psi_css_f = np.ones(dim, dtype=complex) / np.sqrt(dim)
+x_f, mu_f, a_f = best_squeezing(N_f)
+psi_twist = psi_css_f * np.exp(-1j * mu_f * Jz_diag ** 2)
+psi_shear = expm(-1j * a_f * Jx_f) @ psi_twist
+psi_ghz = np.zeros(dim, dtype=complex)
+psi_ghz[0] = psi_ghz[-1] = 1.0 / np.sqrt(2.0)
+
+print(f"N = {N_f} spins; twisting mu = {mu_f:.5f}, shear alpha = {a_f:.4f}")
+print(f"  xi^2 from the Dicke-basis calculation of Example 1: {x_f:.6f}")
+F_chk = moment_fisher(np.outer(psi_shear, psi_shear.conj()))[0]
+print(f"  N / F_moments from the full 2^N state             : "
+      f"{N_f / F_chk:.6f}")
+print("  The two agree, so the O(N) machinery of Example 1 and the O(4^N)")
+print("  machinery here describe the same physics.")
+
+states = [("coherent spin state", psi_css_f),
+          ("twisted, no shear", psi_twist),
+          ("twisted + shear", psi_shear),
+          ("GHZ", psi_ghz)]
+print(f"\nGenerator J_z. The standard quantum limit is F = N = {N_f}; the")
+print(f"Heisenberg limit is F = N^2 = {N_f ** 2}.")
+head = (f"{'state':<22}{'4 Var(Jz)':>12}{'F_Q':>11}{'F_moments':>12}"
+        f"{'F_mom/F_Q':>11}{'theta*':>9}")
+print(head)
+print("-" * len(head))
+for label, psi in states:
+    rho = np.outer(psi, psi.conj())
+    Fq = qfi(rho)
+    Fm, th, four_var = moment_fisher(rho)
+    print(f"{label:<22}{four_var:>12.4f}{Fq:>11.4f}{Fm:>12.4f}"
+          f"{Fm / Fq:>11.4f}{th:>9.4f}")
+print("  Row 2 is the lesson of Example 1 in Fisher-information language:")
+print("  twisting leaves 4 Var(Jz) = N untouched, so no measurement of the")
+print("  un-sheared state can beat the standard quantum limit. Row 3 shows")
+print("  the local shear raising 4 Var(Jz) far above N -- what a squeezed")
+print("  sensor spends is the ANTI-squeezed variance, and the squeezed")
+print("  direction is only what makes the read-out able to collect it.")
+print("  Row 4 is the extreme case: GHZ has all of its variance along z,")
+print("  and F_moments = 0 because <Jx> = 0 -- a GHZ state has no mean spin")
+print("  to rotate, so a linear quadrature read-out sees nothing at all and")
+print("  the information has to be taken out with a parity measurement.")
+
+print("\nUnder dephasing, and the gap between the two Fisher informations")
+head = (f"{'p':>6}  {'state':<22}{'F_Q':>11}{'F_moments':>12}"
+        f"{'F_mom/F_Q':>11}{'theta*':>9}{'F_mom/N':>10}")
+print(head)
+print("-" * len(head))
+for p in [0.0, 0.01, 0.05, 0.2]:
+    eta = 1.0 - 2.0 * p
+    for label, psi in [("coherent spin state", psi_css_f),
+                       ("twisted + shear", psi_shear), ("GHZ", psi_ghz)]:
+        rho = dephase_rho(np.outer(psi, psi.conj()), eta)
+        Fq = qfi(rho)
+        Fm, th, _ = moment_fisher(rho)
+        print(f"{p:>6.2f}  {label:<22}{Fq:>11.4f}{Fm:>12.4f}"
+              f"{Fm / Fq:>11.4f}{th:>9.4f}{Fm / N_f:>10.3f}")
+
+print("\nThe GHZ row against its analytic form N^2 eta^(2N)")
+print(f"{'p':>7}{'eta':>8}{'F_Q(GHZ)':>12}{'N^2 eta^(2N)':>15}"
+      f"{'F_Q / N':>11}")
+print("-" * 53)
+for p in [0.0, 0.01, 0.02, 0.05, 0.1, 0.2]:
+    eta = 1.0 - 2.0 * p
+    rho = dephase_rho(np.outer(psi_ghz, psi_ghz.conj()), eta)
+    print(f"{p:>7.2f}{eta:>8.2f}{qfi(rho):>12.5f}"
+          f"{N_f ** 2 * eta ** (2 * N_f):>15.5f}{qfi(rho) / N_f:>11.5f}")
+print(f"  GHZ falls below the standard quantum limit of N = {N_f} at a few")
+print("  per cent of dephasing, and the exponent 2N is the same eta^N")
+print("  fragility as the N00N state of Example 3: one mechanism, two names.")
+print("\n  Now read the F_mom/F_Q column. It is the fraction of the available")
+print("  information that a fixed quadrature read-out actually collects, and")
+print("  theta* -- the read-out that collects it -- MOVES as the noise")
+print("  changes. A read-out tuned to the noise model is an estimator fitted")
+print("  to data. That is the point at which a sensor output stops being a")
+print("  number and becomes a quantum data set.")
+```
+
+```text
+N = 8 spins; twisting mu = 0.22528, shear alpha = 1.0587
+  xi^2 from the Dicke-basis calculation of Example 1: 0.354129
+  N / F_moments from the full 2^N state             : 0.354129
+  The two agree, so the O(N) machinery of Example 1 and the O(4^N)
+  machinery here describe the same physics.
+
+Generator J_z. The standard quantum limit is F = N = 8; the
+Heisenberg limit is F = N^2 = 64.
+state                    4 Var(Jz)        F_Q   F_moments  F_mom/F_Q   theta*
+-----------------------------------------------------------------------------
+coherent spin state         8.0000     8.0000      8.0000     1.0000  -0.0000
+twisted, no shear           8.0000     8.0000      6.6641     0.8330  -0.9301
+twisted + shear            27.1191    27.1191     22.5906     0.8330  -0.0007
+GHZ                        64.0000    64.0000      0.0000     0.0000  -0.0000
+  Row 2 is the lesson of Example 1 in Fisher-information language:
+  twisting leaves 4 Var(Jz) = N untouched, so no measurement of the
+  un-sheared state can beat the standard quantum limit. Row 3 shows
+  the local shear raising 4 Var(Jz) far above N -- what a squeezed
+  sensor spends is the ANTI-squeezed variance, and the squeezed
+  direction is only what makes the read-out able to collect it.
+  Row 4 is the extreme case: GHZ has all of its variance along z,
+  and F_moments = 0 because <Jx> = 0 -- a GHZ state has no mean spin
+  to rotate, so a linear quadrature read-out sees nothing at all and
+  the information has to be taken out with a parity measurement.
+
+Under dephasing, and the gap between the two Fisher informations
+     p  state                         F_Q   F_moments  F_mom/F_Q   theta*   F_mom/N
+-----------------------------------------------------------------------------------
+  0.00  coherent spin state        8.0000      8.0000     1.0000  -0.0000     1.000
+  0.00  twisted + shear           27.1191     22.5906     0.8330  -0.0007     2.824
+  0.00  GHZ                       64.0000      0.0000     0.0000  -0.0000     0.000
+  0.01  coherent spin state        7.6832      7.6832     1.0000  -0.0000     0.960
+  0.01  twisted + shear           23.7227     19.3645     0.8163  -0.0007     2.421
+  0.01  GHZ                       46.3231      0.0000     0.0000  -0.0000     0.000
+  0.05  coherent spin state        6.4800      6.4800     1.0000  -0.0000     0.810
+  0.05  twisted + shear           14.3804     11.5981     0.8065  -0.0006     1.450
+  0.05  GHZ                       11.8593      0.0000     0.0000  -0.0000     0.000
+  0.20  coherent spin state        2.8800      2.8800     1.0000  -0.0000     0.360
+  0.20  twisted + shear            3.0563      2.7606     0.9033  -0.0004     0.345
+  0.20  GHZ                        0.0181      0.0000     0.0000  -0.0000     0.000
+
+The GHZ row against its analytic form N^2 eta^(2N)
+      p     eta    F_Q(GHZ)   N^2 eta^(2N)    F_Q / N
+-----------------------------------------------------
+   0.00    1.00    64.00000       64.00000    8.00000
+   0.01    0.98    46.32305       46.32305    5.79038
+   0.02    0.96    33.30579       33.30579    4.16322
+   0.05    0.90    11.85933       11.85933    1.48242
+   0.10    0.80     1.80144        1.80144    0.22518
+   0.20    0.60     0.01806        0.01806    0.00226
+  GHZ falls below the standard quantum limit of N = 8 at a few
+  per cent of dephasing, and the exponent 2N is the same eta^N
+  fragility as the N00N state of Example 3: one mechanism, two names.
+
+  Now read the F_mom/F_Q column. It is the fraction of the available
+  information that a fixed quadrature read-out actually collects, and
+  theta* -- the read-out that collects it -- MOVES as the noise
+  changes. A read-out tuned to the noise model is an estimator fitted
+  to data. That is the point at which a sensor output stops being a
+  number and becomes a quantum data set.
+```
+
+**What to look for.** The consistency check first: $\xi^2$ from the $O(N)$ collective-spin machinery of Example 1 and $N/F_\mathrm{moments}$ from a full $2^8$ density-matrix calculation agree to six digits. Two independent implementations of the same physics.
+
+The state table restates §5.1's subtlety in Fisher-information language and settles it. The coherent spin state has $F_Q = N = 8$ and a quadrature read-out collects all of it: $F_\mathrm{mom}/F_Q = 1$. A Gaussian state is optimally read by a Gaussian measurement, which is why nobody worries about read-out optimality at the standard quantum limit. The twisted state has $F_Q = 8$ still — the twist did not change $\mathrm{Var}(J_z)$ — so no measurement whatsoever can beat the standard quantum limit with it. After the shear, $4\,\mathrm{Var}(J_z) = 27.1$, and the state is genuinely sub-SQL: $F_\mathrm{mom} = 22.6 = N/\xi^2$. What the sensor spends is the anti-squeezed variance; the squeezed direction is what allows a practical read-out to collect it. And the GHZ row is the extreme: $F_Q = N^2 = 64$, the largest possible, with $F_\mathrm{mom} = 0$ exactly, because $\langle J_x \rangle = 0$ and a GHZ state has no mean spin to rotate. All of its information sits in a parity observable. A state can be maximally useful and completely unreadable by the standard instrument.
+
+The dephasing table then shows the read-out gap moving. For the sheared state $F_\mathrm{mom}/F_Q$ runs $0.833 \to 0.816 \to 0.807 \to 0.903$ as $p$ grows, and the optimal quadrature angle $\theta^\ast$ shifts with it. Roughly one sixth of the available information is being discarded by a fixed quadrature, and how much is discarded depends on the noise. The GHZ column collapses as $N^2\eta^{2N}$ — matched to five decimals by the analytic form — and drops below the standard quantum limit of $N = 8$ by $p \approx 0.05$. That $\eta^{2N}$ is the $\eta^N$ of the N00N state in §5.2 squared, because Fisher information is quadratic in the coherence. One mechanism, two names, two chapters.
+
+### Why this makes a sensor output a data set
+
+Assemble the pieces. The information a quantum sensor carries depends on the probe state; the fraction of it recovered depends on the measurement; and the optimal measurement depends on the noise, which is a property of the sample and the apparatus and is generally not known in advance. The consequence is that the estimator — the map from measurement records to the physical quantity — is not fixed by theory but has to be *fitted*, and the measurement setting itself is a parameter that can be optimized against data.
+
+This is precisely the situation the sister course [Introduction to Quantum Machine Learning](<../../MI/quantum-machine-learning-introduction/index.html>) anticipated. Its §5.4, [When Quantum Data Changes the Picture](<../../MI/quantum-machine-learning-introduction/chapter-5.html>), argues that every negative result in that course rests on the premise that the data is classical — four numbers in a table, loaded into a register at a cost charged entirely to the quantum side — and identifies quantum metrology as one of the narrow places where the premise fails. Its exact words are that measurements whose signal lives in the coherence of a quantum probe rather than in a classical read-out "produce quantum data in the relevant sense", and that a treatment of it "belongs to a course on quantum sensing rather than to this one". This section is that treatment, and it is worth being precise about what does and does not follow.
+
+**What does follow.** Three things, in increasing order of speculativeness.
+
+  * **The estimator is a learning problem, today.** Multi-parameter estimation, adaptive measurement settings, and inference of a noise spectrum from a family of coherence curves (the CPMG inversion of §1.4 and §2.3) are all statistical inverse problems on data that a laboratory already produces. Nothing quantum is needed in the *processing*; what is quantum is that the model class comes from the Fisher-information structure above rather than from a generic regression.
+  * **The measurement setting is a control problem.** $\theta^\ast$ moves with the noise, so a protocol that measures the noise and adapts the read-out does better than a fixed one. This is variational metrology, and it is the same optimization loop as the variational circuits of that course's Chapter 4, with an apparatus in place of a simulator.
+  * **Coherent processing of sensor output is the genuinely new regime, and it is not near-term.** The rigorous separations are sample-complexity statements: there exist estimation tasks on quantum states for which any strategy restricted to single copies needs exponentially many experiments while a strategy that processes two or more copies coherently needs polynomially many. To exploit that, the sensor and the processor must be the same apparatus or be connected by a quantum channel, which excludes essentially every existing instrument. It is a reason to understand the direction, not a pipeline to build.
+
+**What does not follow.** That a quantum sensor plus a quantum computer beats a quantum sensor plus a laptop on any problem a materials group currently has. The classical baseline for learning from randomized measurements of quantum states is strong, and the honest statement — the same one that course makes about dequantization — is that the separations which survive are the ones where the quantity of interest is not a low-weight observable. Most of what a magnetometer measures is a low-weight observable.
+
+* * *
+
+## 5.4 A Materials-Research Roadmap, From the Physics of the Sources
+
+The question a materials researcher should ask about this course is not which sensor is most sensitive but which measurements are newly possible. That question is answerable from source physics alone: compute the signal a given sample produces, compare it with what a probe of the required size can resolve, and check whether the probe can be brought close enough. No vendor specifications and no roadmaps are needed, and the conclusions do not expire.
+
+### Code Example 5: Three Measurement Problems, Priced
+
+```python
+"""Chapter 5, Example 5: which materials measurements a quantum sensor can
+reach, from the physics of the source alone.
+Continues from Examples 1-4 (same session)."""
+
+mu_0 = 4.0 * np.pi * 1e-7          # H/m
+mu_B = 9.2740100783e-24            # J/T
+
+
+def dipole_field(m_moment, d):
+    """Peak stray field of a point dipole at standoff d: mu0 m / (2 pi d^3)."""
+    return mu_0 * m_moment / (TWO_PI * d ** 3)
+
+
+def wire_field(current, d):
+    """Field of a long straight current at distance d: mu0 I / (2 pi d)."""
+    return mu_0 * current / (TWO_PI * d)
+
+
+def averaging_time(eta_B, B_target, snr=1.0):
+    """Time to reach a given signal-to-noise ratio: t = (snr eta_B / B)^2."""
+    return (snr * eta_B / B_target) ** 2
+
+
+M_s = 1.4e6                        # A/m, a representative saturated moment
+print("Source 1: a magnetic nanostructure, as a point dipole at standoff "
+      "d = 2a.")
+print("The dipole form needs d larger than the object, so d = 2a is about the")
+print("closest this estimate can be trusted; closer in it overestimates.")
+head = (f"{'island a x t (nm)':>19}{'moment (mu_B)':>15}{'standoff':>11}"
+        f"{'peak field':>14}")
+print(head)
+print("-" * len(head))
+for edge_nm, thick_nm in [(100.0, 2.0), (50.0, 2.0), (20.0, 1.0),
+                          (10.0, 1.0), (5.0, 1.0)]:
+    V = (edge_nm * 1e-9) ** 2 * thick_nm * 1e-9
+    m_mom = M_s * V
+    B = dipole_field(m_mom, 2.0 * edge_nm * 1e-9)
+    print(f"{edge_nm:>13.0f} x{thick_nm:>4.0f}{m_mom / mu_B:>15.3e}"
+          f"{2 * edge_nm:>8.0f} nm{B * 1e3:>11.3f} mT")
+print("  These islands are thin films of fixed thickness t, so m = M_s a^2 t")
+print("  and at d = 2a the peak field is mu_0 M_s t / (16 pi a): it grows as")
+print("  1/a as the island shrinks, and it does not depend on a at all for a")
+print("  3D island with m proportional to a^3. Either way the field a scanning")
+print("  probe sees does not fall as the object shrinks. Sensitivity is not the")
+print("  obstacle here -- getting a probe that close to the surface is.")
+
+print("\nSource 2: a current distribution, as a long straight wire")
+print(f"{'current':>12}{'standoff':>11}{'field':>15}")
+print("-" * 38)
+for I, d_um in [(1e-3, 1000.0), (1e-3, 100.0), (1e-6, 100.0),
+                (1e-9, 10.0), (1e-12, 10.0)]:
+    print(f"{I:>10.0e} A{d_um:>8.0f} um{wire_field(I, d_um * 1e-6) * 1e12:>12.3e} pT")
+
+print("\nSource 3: temperature, through the NV zero-field splitting D(T)")
+dDdT = -74e3                       # Hz/K
+print(f"  |dD/dT| = {abs(dDdT) / 1e3:.0f} kHz/K, so a frequency resolution "
+      f"becomes a temperature one:")
+print(f"{'eta_nu (Hz/rtHz)':>18}{'eta_T (mK/rtHz)':>18}")
+print("-" * 36)
+for eta_nu in [1.0, 10.0, 100.0, 1000.0]:
+    print(f"{eta_nu:>18.0f}{eta_nu / abs(dDdT) * 1e3:>18.3f}")
+
+# The sensitivities below are ROUND NUMBERS spanning the range that each
+# physical mechanism allows at the stated probe size, taken from the scaling
+# arguments of Chapters 2 to 4. They are not specifications of any instrument,
+# and the argument depends only on the ratios between columns.
+sensors = [
+    ("single NV",         1e-6,  10e-9),
+    ("NV ensemble film",  1e-9,  1e-6),
+    ("scanning SQUID",    1e-12, 1e-6),
+    ("vapour cell",       1e-15, 3e-3),
+]
+targets = [
+    ("T1", "20 nm island, probe at 40 nm",
+     dipole_field(M_s * (20e-9) ** 2 * 1e-9, 40e-9), 40e-9),
+    ("T2", "1 mA track, probe at 100 um", wire_field(1e-3, 100e-6), 100e-6),
+    ("T3", "1 uA track, probe at 100 um", wire_field(1e-6, 100e-6), 100e-6),
+    ("T4", "1 nA cell current at 10 um", wire_field(1e-9, 10e-6), 10e-6),
+]
+print("\nTargets:")
+for tag, tname, B, need_d in targets:
+    print(f"  {tag}: {tname:<30} field {B * 1e12:>9.2e} pT")
+print("\nSeconds to reach signal-to-noise 1, or whether the probe fits at all")
+head = (f"{'probe':<17}{'eta_B':>10}{'size':>12}"
+        + "".join(f"{t[0]:>12}" for t in targets))
+print(head)
+print("-" * len(head))
+for sname, eta_B, size in sensors:
+    cells = []
+    for tag, tname, B, need_d in targets:
+        if size > 2.0 * need_d:
+            cells.append(f"{'too big':>12}")
+        else:
+            cells.append(f"{averaging_time(eta_B, B):>12.2e}")
+    print(f"{sname:<17}{eta_B:>10.0e}{size * 1e6:>9.2f} um"
+          + "".join(cells))
+print("  'too big' means the probe cannot be brought within the standoff the")
+print("  field estimate assumes. That entry, not the sensitivity column, is")
+print("  what decides most materials measurements.")
+
+print("\nWhy a less sensitive probe is often the better instrument")
+print("  An ensemble probe of edge a has eta_B proportional to a^(-3/2)")
+print("  (Chapter 4, Example 6). Held at standoff d = a from a point dipole,")
+print("  the field it sees grows as a^(-3). Signal-to-noise therefore improves")
+print("  as a^(-3/2) as the probe shrinks.")
+eta_ref, a_ref = 1e-15, 3e-3
+m_test = M_s * (20e-9) ** 2 * 1e-9
+head = (f"{'probe edge':>13}{'eta_B':>15}{'B at d = a':>15}{'B/eta_B':>13}"
+        f"{'slope':>9}")
+print(head)
+print("-" * len(head))
+prev = None
+for a in [3e-3, 3e-4, 3e-5, 3e-6, 3e-7, 3e-8]:
+    eta_a = eta_ref * (a / a_ref) ** -1.5
+    B_a = dipole_field(m_test, a)
+    snr = B_a / eta_a
+    sl = "      ---" if prev is None else \
+        f"{np.log(snr / prev[1]) / np.log(a / prev[0]):>9.3f}"
+    print(f"{a * 1e6:>10.4f} um{eta_a * 1e15:>12.3e} fT"
+          f"{B_a * 1e12:>12.3e} pT{snr:>13.3e}{sl}")
+    prev = (a, snr)
+print("  The measured slope is -3/2, so every decade of miniaturization is")
+print("  worth a factor 31.6 in signal-to-noise for a point-like source --")
+print("  and worth nothing at all for a uniform field, where the large cell")
+print("  wins outright. The geometry of the source chooses the sensor.")
+
+print("\nA constraint that is easy to forget: the probe must not disturb the "
+      "sample")
+head = (f"{'optical power':>15}{'absorbed in 1 um^3':>21}"
+        f"{'steady dT, kappa = 1 W/m/K':>28}")
+print(head)
+print("-" * len(head))
+for P_uW in [1.0, 10.0, 100.0, 1000.0]:
+    P = P_uW * 1e-6
+    absorbed = 0.01 * P                       # one per cent in the focal volume
+    dT = absorbed / (4.0 * np.pi * 1.0 * 1e-6)   # around a 1 um sphere
+    print(f"{P_uW:>12.0f} uW{absorbed * 1e9:>17.1f} nW{dT * 1e3:>25.2f} mK")
+print("  A thermometry experiment with millikelvin resolution and a laser")
+print("  that heats its sample by tens of millikelvin is measuring its own")
+print("  read-out. The sensitivity figure is never the whole specification.")
+```
+
+```text
+Source 1: a magnetic nanostructure, as a point dipole at standoff d = 2a.
+The dipole form needs d larger than the object, so d = 2a is about the
+closest this estimate can be trusted; closer in it overestimates.
+  island a x t (nm)  moment (mu_B)   standoff    peak field
+-----------------------------------------------------------
+          100 x   2      3.019e+06     200 nm      0.700 mT
+           50 x   2      7.548e+05     100 nm      1.400 mT
+           20 x   1      6.038e+04      40 nm      1.750 mT
+           10 x   1      1.510e+04      20 nm      3.500 mT
+            5 x   1      3.774e+03      10 nm      7.000 mT
+  These islands are thin films of fixed thickness t, so m = M_s a^2 t
+  and at d = 2a the peak field is mu_0 M_s t / (16 pi a): it grows as
+  1/a as the island shrinks, and it does not depend on a at all for a
+  3D island with m proportional to a^3. Either way the field a scanning
+  probe sees does not fall as the object shrinks. Sensitivity is not the
+  obstacle here -- getting a probe that close to the surface is.
+
+Source 2: a current distribution, as a long straight wire
+     current   standoff          field
+--------------------------------------
+     1e-03 A    1000 um   2.000e+05 pT
+     1e-03 A     100 um   2.000e+06 pT
+     1e-06 A     100 um   2.000e+03 pT
+     1e-09 A      10 um   2.000e+01 pT
+     1e-12 A      10 um   2.000e-02 pT
+
+Source 3: temperature, through the NV zero-field splitting D(T)
+  |dD/dT| = 74 kHz/K, so a frequency resolution becomes a temperature one:
+  eta_nu (Hz/rtHz)   eta_T (mK/rtHz)
+------------------------------------
+                 1             0.014
+                10             0.135
+               100             1.351
+              1000            13.514
+
+Targets:
+  T1: 20 nm island, probe at 40 nm   field  1.75e+09 pT
+  T2: 1 mA track, probe at 100 um    field  2.00e+06 pT
+  T3: 1 uA track, probe at 100 um    field  2.00e+03 pT
+  T4: 1 nA cell current at 10 um     field  2.00e+01 pT
+
+Seconds to reach signal-to-noise 1, or whether the probe fits at all
+probe                 eta_B        size          T1          T2          T3          T4
+---------------------------------------------------------------------------------------
+single NV             1e-06     0.01 um    3.27e-07    2.50e-01    2.50e+05    2.50e+09
+NV ensemble film      1e-09     1.00 um     too big    2.50e-07    2.50e-01    2.50e+03
+scanning SQUID        1e-12     1.00 um     too big    2.50e-13    2.50e-07    2.50e-03
+vapour cell           1e-15  3000.00 um     too big     too big     too big     too big
+  'too big' means the probe cannot be brought within the standoff the
+  field estimate assumes. That entry, not the sensitivity column, is
+  what decides most materials measurements.
+
+Why a less sensitive probe is often the better instrument
+  An ensemble probe of edge a has eta_B proportional to a^(-3/2)
+  (Chapter 4, Example 6). Held at standoff d = a from a point dipole,
+  the field it sees grows as a^(-3). Signal-to-noise therefore improves
+  as a^(-3/2) as the probe shrinks.
+   probe edge          eta_B     B at d = a      B/eta_B    slope
+-----------------------------------------------------------------
+ 3000.0000 um   1.000e+00 fT   4.148e-06 pT    4.148e-03      ---
+  300.0000 um   3.162e+01 fT   4.148e-03 pT    1.312e-01   -1.500
+   30.0000 um   1.000e+03 fT   4.148e+00 pT    4.148e+00   -1.500
+    3.0000 um   3.162e+04 fT   4.148e+03 pT    1.312e+02   -1.500
+    0.3000 um   1.000e+06 fT   4.148e+06 pT    4.148e+03   -1.500
+    0.0300 um   3.162e+07 fT   4.148e+09 pT    1.312e+05   -1.500
+  The measured slope is -3/2, so every decade of miniaturization is
+  worth a factor 31.6 in signal-to-noise for a point-like source --
+  and worth nothing at all for a uniform field, where the large cell
+  wins outright. The geometry of the source chooses the sensor.
+
+A constraint that is easy to forget: the probe must not disturb the sample
+  optical power   absorbed in 1 um^3  steady dT, kappa = 1 W/m/K
+----------------------------------------------------------------
+           1 uW             10.0 nW                     0.80 mK
+          10 uW            100.0 nW                     7.96 mK
+         100 uW           1000.0 nW                    79.58 mK
+        1000 uW          10000.0 nW                   795.77 mK
+  A thermometry experiment with millikelvin resolution and a laser
+  that heats its sample by tens of millikelvin is measuring its own
+  read-out. The sensitivity figure is never the whole specification.
+```
+
+**What to look for.** Three problems, three different binding constraints, and none of them is field sensitivity.
+
+**Nanoscale magnetism.** The dipole table contains a result that surprises people: as a magnetic island shrinks, its moment falls but the standoff falls with it, and the field at the probe does not follow the moment down. The table's islands are thin films of fixed thickness $t$, so the moment is $m = M_sa^2t$ rather than $M_sa^3$, and at $d = 2a$ the peak field is $\mu_0m/2\pi d^3 = \mu_0M_st/16\pi a$ — it *rises* as $1/a$. A $100$ nm island $2$ nm thick at $200$ nm standoff produces $0.700$ mT; a $5$ nm island $1$ nm thick at $10$ nm produces $7.00$ mT — *ten times more*, which is exactly the ratio of $t/a$ between the two rows. Had the islands scaled in all three dimensions, $m \propto a^3$ against $d^3 \propto a^3$ would have left the field flat instead of rising; either way it does not fall. The field available from a nanostructure to a probe that can get close does not decrease as the structure shrinks. Combined with the timing table, where a single NV reaches signal-to-noise 1 on the 20 nm island in $3.3\times10^{-7}$ s, the conclusion is unambiguous: for [nanoscale magnetism](<../spintronics-introduction/index.html>) — domain walls, skyrmions, two-dimensional magnets, antiferromagnetic textures — sensitivity is not the obstacle. Standoff and probe size are. The research problem is diamond surface preparation, tip fabrication and the depth distribution of shallow NV centres, which is a materials problem about surface termination and implantation damage.
+
+**Device self-heating.** The NV zero-field splitting moves at $74$ kHz/K, so a frequency resolution of $10$ Hz$/\sqrt{\mathrm{Hz}}$ is a temperature resolution of $0.135$ mK$/\sqrt{\mathrm{Hz}}$. That looks like an easy measurement and the last table of the example says why it is not: one per cent absorption of $100$ µW in a cubic micron raises the local temperature by $80$ mK in steady state, several hundred times the resolution. A thermometry measurement at this level is dominated by the heat its own read-out deposits, and the binding constraint is the *optical* power budget, not the spin. The design response is to reduce the duty cycle, use all-optical or lower-power protocols, and calibrate the self-heating rather than ignore it.
+
+**Battery and device current imaging.** A micro-amp in a track produces $2$ nT at 100 µm, and a nano-amp cell current produces $20$ pT at 10 µm. Both are far above the projection-noise floor of an NV ensemble film or a scanning SQUID, and the timing table gives fractions of a second. Here the binding constraint is neither sensitivity nor standoff but **the inverse problem**: a magnetometer measures a field, and recovering a current *distribution* from a field map is an ill-posed inversion whose conditioning degrades exponentially with the ratio of standoff to feature size. Halving the standoff is worth more than any improvement in $\eta_B$, and that is a geometry and packaging question — how thin can the separator, the window and the sensor substrate be made. Linking this to the [battery informatics](<../../MI/battery-mi-application/index.html>) side of the series: the measurement produces a field map, and turning it into a current density is a regularized inversion, which is a data problem of exactly the kind §5.3 described.
+
+**The scaling that decides between families.** The final scan is the general principle. An ensemble probe of edge $a$ has $\eta_B \propto a^{-3/2}$ (§4.4, Example 6) and sees a localized dipole at $d = a$ with a field $\propto a^{-3}$. Signal-to-noise therefore improves as $a^{-3/2}$: the measured slope is exactly $-1.500$ down five decades. Every decade of miniaturization is worth a factor $31.6$ in signal-to-noise *for a point-like source*, even though the small probe is a million times less sensitive in absolute terms. For a uniform field the same argument runs the other way and the large cell wins outright. Sensitivity comparisons between sensor families are meaningless without the source geometry, and this scan is the reason.
+
+### What is not on the roadmap
+
+Three exclusions, for symmetry with the inclusions.
+
+  * **Anything requiring a quantum channel between the sensor and a processor.** Section 5.3 explained why; it is not a near-term materials-characterization technique.
+  * **Entanglement-enhanced versions of the three measurements above.** In every one of them $N$ is either not the binding constraint or can be raised classically, so §5.2's bounded constant factor is not worth its cost. The exception, as always, is where $N$ is capped by a systematic — which in this list is nowhere.
+  * **Replacing an established technique on sensitivity grounds.** A SQUID magnetometer measures bulk magnetization better than an NV centre will, a Hall probe is simpler where its resolution suffices, and magnetic force microscopy has spatial resolution that quantum sensors do not obviously beat. Quantum sensors earn their place by measuring *quantitatively* and *non-invasively* at nanometre standoff: calibrated field in tesla, no stray field applied to the sample, at 300 K. Those are the axes on which the comparison should be made.
+
+* * *
+
+## 5.5 The Series in One Map
+
+Four courses, one subject, four different questions. It is worth setting them out explicitly, because the physics overlaps almost completely and the engineering does not overlap at all.
+
+| Course | The question it answers | What a two-level system is for | Where the difficulty is |
+| --- | --- | --- | --- |
+| [Introduction to Quantum Computing](<../../FM/quantum-computing-introduction/index.html>) | What can be computed, and with what speed-up | a qubit: a unit of computational state | algorithms, error correction, and the threshold theorem |
+| [Introduction to Quantum Hardware](<../../FM/quantum-hardware-introduction/index.html>) | What must a physical system be to hold a qubit | a device whose Hamiltonian is a design parameter | materials: interfaces, amorphous oxides, isotopic purity |
+| [Introduction to Quantum Machine Learning](<../../MI/quantum-machine-learning-introduction/index.html>) | Does quantum computing help with learning | a feature map, or a variational model | loading classical data, and strong classical baselines |
+| Introduction to Quantum Sensing (this course) | What can be measured, and how well | a probe: a frequency standard and a phase integrator | systematics, standoff, and the fragility of entanglement |
+
+The relationships between them are specific rather than decorative.
+
+**Sensing and hardware are the same physics with the roles reversed.** [Chapter 1](<chapter-1.html>) of this course and Chapter 1 of the hardware course define $T_1$, $T_2$, $T_2^\ast$ and the Ramsey and echo sequences identically, because they are the same quantities. What differs is the sign of the objective. A hardware engineer wants the qubit not to notice its environment; a sensor designer wants the probe to notice one specific part of it and nothing else. The filter-function machinery of §1.4 is *dynamical decoupling* in one course and *noise spectroscopy* in the other, and it is the same integral. The NV centre, the trapped ion, the superconducting circuit and the neutral atom appear in both courses as the same objects with different job descriptions.
+
+**Sensing supplies what quantum machine learning was missing.** That course's pessimism is entirely about classical data loading, and its own §5.4 identifies quantum sensing as one of the few directions in which the premise changes. Section 5.3 above is the specific content of that: what a sensor's output is, what the estimator problem looks like, and which parts of it are learning problems now rather than later.
+
+**Computing and sensing share a limit and not a road map.** Both are bounded by decoherence, and in both cases the bound is a materials statement. But error correction is a way of *beating* decoherence that has no clean analogue in sensing, because a sensor must remain coupled to the field it is measuring — the very coupling that error correction would have to protect against. There are quantum error-correcting metrology protocols, and they work when the noise and the signal have different structure; they do not work when the noise is indistinguishable from the signal, which is the common case. That asymmetry is why a fault-tolerant quantum computer is a scaling proposition and a quantum sensor is not.
+
+**And the common thread, across all four.** In every one of these courses the binding constraint turned out to be a surface, an interface, an amorphous layer or an impurity. The diamond surface that limits shallow NV centres, the oxide that limits a transmon and a SQUID, the electrode adsorbates that heat an ion, the cell coating that relaxes an alkali spin. That is not a coincidence and it is the reason this course sits in a materials-science dojo rather than a physics one: the questions the field is actually stuck on are the oldest questions in materials science, asked at a sensitivity no previous instrument had.
+
+* * *
+
+## Exercises
+
+#### Exercise 1: Reading a Squeezing Claim
+
+A paper reports "$-8$ dB of spin squeezing" in an ensemble of $N = 500$ atoms.
+
+  1. What is $\xi^2$, and what phase uncertainty does it imply relative to the standard quantum limit?
+  2. How far is this from the Heisenberg limit for $N = 500$, in dB?
+  3. From Example 1, what would one-axis twisting give at $N = 500$? Is $-8$ dB consistent with that mechanism?
+  4. The paper reports the variance reduction but not the contrast $|\langle\mathbf{J}\rangle|/(N/2)$. Why does that omission matter, and what is the worst case it could hide?
+
+<details>
+<summary>Solution</summary>
+
+<p><strong>1.</strong> \(\xi^2 = 10^{-8/10} = 0.1585\). The phase uncertainty is \(\Delta\varphi = \xi/\sqrt{N} = 0.398/\sqrt{500}\), i.e. \(0.398\) times the standard quantum limit — a factor \(2.51\) better in amplitude.</p>
+
+<p><strong>2.</strong> The Heisenberg limit is \(\xi^2 = 1/N = 0.002\), i.e. \(-27.0\) dB. The claim is \(19.0\) dB short of it, a factor of 79 in variance.</p>
+
+<p><strong>3.</strong> Example 1 gives \(\xi^2 = 0.0196\) (\(-17.08\) dB) as the optimum for one-axis twisting at \(N = 500\). A reported \(-8\) dB is well inside that, so it is entirely consistent with one-axis twisting — indeed it suggests the twisting was stopped short of its optimum, or that technical noise cost about 9 dB. It would <em>not</em> be consistent with a claim of Heisenberg scaling.</p>
+
+<p><strong>4.</strong> Because \(\xi^2\) has the contrast in its denominator, and a squeezing parameter computed from the variance alone is not \(\xi^2\) at all. A state can have a variance far below \(N/4\) and be metrologically useless if the twisting has curled the mean spin so that \(|\langle\mathbf{J}\rangle|\) has collapsed — Example 1's \(\mu = 0.1\) row, where the variance-only figure looks good and \(\xi^2 = 18.9\), is exactly that case. The worst case an omitted contrast hides is a state with sub-\(N/4\) variance and \(\xi^2 > 1\): a measurement that is worse than doing nothing, reported as squeezing.</p>
+
+```python
+import numpy as np
+xi2 = 10 ** (-8 / 10)
+print(f"xi^2 = {xi2:.4f}, amplitude factor {1/np.sqrt(xi2):.3f}")
+print(f"Heisenberg at N=500: {1/500:.4f} = {10*np.log10(1/500):.1f} dB")
+print(f"short of Heisenberg by {10*np.log10(xi2*500):.1f} dB")
+# xi^2 = 0.1585, amplitude factor 2.512
+# Heisenberg at N=500: 0.0020 = -27.0 dB
+# short of Heisenberg by 19.0 dB
+```
+
+</details>
+
+#### Exercise 2: Pricing Squeezing for a Real Sensor
+
+A magnetometer has $N = 10^{4}$ spins and $T_2 = 1$ ms. A collaborator offers to squeeze it, delivering the ideal one-axis-twisting optimum instantaneously and for free.
+
+  1. Without squeezing, what interrogation time should the sensor use, and what is the resulting $\eta_B$ in units of $1/(\gamma\sqrt{N T_2})$?
+  2. From Example 2, what interrogation time will the squeezed sensor use, and what improvement in $\eta_B$ results?
+  3. Express the improvement as an equivalent increase in $N$. Is it cheaper to accept the offer or to find that many more spins?
+  4. The collaborator's squeezing in fact takes $50$ µs to generate, during which the same dephasing acts. Estimate qualitatively what happens, and state which term in Example 2's caveat list this violates.
+
+<details>
+<summary>Solution</summary>
+
+<p><strong>1.</strong> From §1.3 and Example 2, \(T_\mathrm{opt} = T_2/2 = 0.5\) ms (the numerics give \(0.493\,T_2\)), and \(\eta_{B,\min} = \sqrt{2e}/(\gamma\sqrt{N T_2}) = 2.33/(\gamma\sqrt{N T_2})\).</p>
+
+<p><strong>2.</strong> Example 2 gives \(T/T_2 = 0.040\) for \(N = 10^4\), i.e. \(40\) µs, and a gain of \(3.86\) dB in variance, \(1.56\times\) in amplitude. So \(\eta_B\) improves to \(2.33/1.56 = 1.49\) in the same units.</p>
+
+<p><strong>3.</strong> Since \(\eta_B \propto 1/\sqrt{N}\) classically, a \(1.56\times\) amplitude gain is equivalent to \(1.56^2 = 2.43\) times as many spins — from \(10^4\) to \(2.43\times10^4\). Whether that is cheaper depends entirely on whether \(N\) can be raised at all. If the probe volume is fixed by a spatial-resolution requirement, or if adding spins adds a systematic (density shift, dipolar broadening), then a factor \(2.4\) in \(N\) is not for sale and the offer is worth taking. If the ensemble can simply be made 2.4 times larger, the offer is not worth the apparatus.</p>
+
+<p><strong>4.</strong> Fifty microseconds is \(0.05\,T_2\), which is <em>larger</em> than the \(0.040\,T_2\) interrogation time the squeezed sensor wants to use. The squeezing would therefore be substantially degraded before the measurement even starts, and the accumulated \(p \approx (1 - e^{-0.05})/2 \approx 0.024\) is already enough (Example 2's table) to remove several dB. This violates the first caveat — that the squeezing is generated instantaneously and for free — and it is the usual reason laboratory gains fall short of the numbers computed here. The generation time is part of the coherence budget, not outside it.</p>
+
+```python
+import numpy as np
+print(f"eta_min classical = sqrt(2e) = {np.sqrt(2*np.e):.4f}")
+print(f"with 1.56x gain   = {np.sqrt(2*np.e)/1.56:.4f}")
+print(f"equivalent N factor {1.56**2:.2f}")
+print(f"p accumulated in 0.05 T2 = {(1-np.exp(-0.05))/2:.4f}")
+# eta_min classical = sqrt(2e) = 2.3316
+# with 1.56x gain   = 1.4946
+# equivalent N factor 2.43
+# p accumulated in 0.05 T2 = 0.0244
+```
+
+</details>
+
+#### Exercise 3: The N00N Ceiling
+
+An optical interferometer has a total transmission-and-detection efficiency of $\eta = 0.85$.
+
+  1. What is the optimal N00N photon number, and what gain does it give over a classical probe of the same photon budget?
+  2. At what $N$ does the N00N strategy become *worse* than classical?
+  3. A squeezed-vacuum source of $12$ dB is available. What does it deliver through the same channel, and what is the ceiling for this $\eta$ no matter how good the source?
+  4. Which of the two would you build, and what single measurement would change your answer?
+
+<details>
+<summary>Solution</summary>
+
+<p><strong>1.</strong> \(N^\ast = -1/\ln 0.85 = 6.15\), so \(N = 6\); the gain is \(N\eta^{N-1} = 6 \times 0.85^5 = 2.66\), i.e. \(4.25\) dB.</p>
+
+<p><strong>2.</strong> The gain \(N\eta^{N-1}\) crosses 1 between \(N = 19\) (gain \(1.019\)) and \(N = 20\) (gain \(0.912\)), so from \(N = 20\) upwards a N00N state is worse than a laser through this channel. A "Heisenberg-limited" interferometer with 30 photons per shot would be a downgrade.</p>
+
+<p><strong>3.</strong> \(V = \eta e^{-2r} + (1-\eta)\) with \(e^{-2r} = 10^{-1.2} = 0.0631\): \(V = 0.85\times0.0631 + 0.15 = 0.2036\), i.e. \(6.91\) dB delivered. The ceiling as \(r \to \infty\) is \(-10\log_{10}(0.15) = 8.24\) dB, so the 12 dB source is already within \(1.3\) dB of everything this channel can ever give, and buying a better squeezer would be close to pointless.</p>
+
+<p><strong>4.</strong> Squeezed vacuum, on three grounds: it delivers more here (\(6.91\) dB against \(4.25\) dB), it is preparable with one nonlinear element, and its degradation is graceful so improvements in the loss budget translate directly into improvements in performance. The measurement that would change the answer is the loss budget itself: if \(\eta\) could be pushed above about \(0.97\), a N00N state of \(N \approx 33\) would overtake — but so would the squeezed-vacuum ceiling, to \(15\) dB, so in practice reducing loss favours <em>both</em> and the preparability argument still decides. The real answer is that the loss measurement is the experiment worth doing first, whichever state one intends to use.</p>
+
+```python
+import numpy as np
+eta = 0.85
+Ns = np.arange(1, 200)
+g = Ns * eta ** (Ns - 1.0)
+print(f"N* = {-1/np.log(eta):.2f}, best N = {Ns[g.argmax()]}, "
+      f"gain = {g.max():.3f} = {10*np.log10(g.max()):.2f} dB")
+print(f"gain < 1 from N = {Ns[g < 1.0][0]}")
+V = eta * 10 ** (-1.2) + (1 - eta)
+print(f"12 dB source delivers {-10*np.log10(V):.2f} dB; "
+      f"ceiling {-10*np.log10(1-eta):.2f} dB")
+# N* = 6.15, best N = 6, gain = 2.662 = 4.25 dB
+# gain < 1 from N = 20
+# 12 dB source delivers 6.91 dB; ceiling 8.24 dB
+```
+
+</details>
+
+#### Exercise 4: Fisher Information and the Read-Out
+
+Using Example 4's numbers for $N = 8$:
+
+  1. The GHZ state has $F_Q = 64$ and $F_\mathrm{moments} = 0$. Explain both numbers physically and state what measurement is needed instead.
+  2. The sheared twisted state has $F_\mathrm{mom}/F_Q = 0.833$. What phase uncertainty does each imply, and how many more shots does the quadrature read-out need to match the optimal measurement?
+  3. At $p = 0.05$, GHZ has $F_Q = 11.86$ against the standard quantum limit of $8$. Is a GHZ-based sensor still worth building at that noise level? Consider preparation cost.
+  4. $\theta^\ast$ for the sheared state changes from $-0.0007$ to $-0.0004$ between $p = 0$ and $p = 0.2$. This is a small change. Construct a situation in which the corresponding change would be large, and say what that implies for a fixed-read-out instrument.
+
+<details>
+<summary>Solution</summary>
+
+<p><strong>1.</strong> \(F_Q = N^2 = 64\) because a GHZ state has the maximum possible \(\mathrm{Var}(J_z) = N^2/4\): the two branches differ by \(N\) units of \(J_z\), so a rotation about \(z\) imprints \(N\varphi\) of relative phase. \(F_\mathrm{moments} = 0\) because \(\langle \mathbf{J}\rangle = 0\) — there is no mean spin, so no quadrature has a signal that varies with \(\varphi\) to first order. The information is entirely in the relative phase of the two branches, and the observable that reads it is the parity \(\prod_i \sigma_z^{(i)}\) after a \(\pi/2\) rotation, whose expectation oscillates as \(\cos(N\varphi)\).</p>
+
+<p><strong>2.</strong> \(\Delta\varphi = 1/\sqrt{F}\): \(1/\sqrt{27.12} = 0.1920\) for the optimal measurement, \(1/\sqrt{22.59} = 0.2104\) for the quadrature. Since the variance scales as \(1/\nu\) in the number of shots \(\nu\), matching the optimal measurement requires \(1/0.833 = 1.20\) times as many shots — a \(20\%\) overhead. That is small enough that it is usually the right trade against the difficulty of implementing the optimal measurement, and knowing it is \(20\%\) rather than a factor of 2 is the point of computing it.</p>
+
+<p><strong>3.</strong> \(F_Q = 11.86\) against \(8\) is a \(1.48\times\) improvement in variance, \(1.22\times\) in amplitude. Preparing an 8-particle GHZ state requires a full entangling circuit — for \(N = 8\), seven two-qubit gates, each with its own error — whereas the coherent spin state requires one \(\pi/2\) pulse. For a \(22\%\) amplitude improvement that is not a defensible trade, and it gets worse with \(N\) because the GHZ preparation cost grows while \(\eta^{2N}\) shrinks. The honest conclusion is that GHZ-based magnetometry is a demonstration of principle rather than an instrument, and Example 2's one-axis twisting — which needs no gates at all, only an interaction that is already present — is the practical route.</p>
+
+<p><strong>4.</strong> The change is small here because the shear already put the squeezed axis on the read-out quadrature and \(z\)-dephasing does not rotate the ellipse much. It would be large whenever the noise has a component that is <em>not</em> aligned with the generator: transverse relaxation, an anisotropic noise spectrum, or a magnetic field with a fluctuating direction rather than a fluctuating magnitude. In such a case a fixed read-out drifts away from optimal as conditions change, so its efficiency varies during a measurement session and the instrument's calibration becomes noise-dependent. That is the concrete argument for adaptive read-out, and it is the bridge of §5.3: the estimator has to learn the noise.</p>
+
+```python
+import numpy as np
+for F in (27.1191, 22.5906):
+    print(f"F = {F:8.4f}  dphi = {1/np.sqrt(F):.4f}")
+print(f"shot overhead {27.1191/22.5906:.3f}")
+print(f"GHZ at p=0.05: {11.8593/8:.3f}x variance, "
+      f"{np.sqrt(11.8593/8):.3f}x amplitude")
+# F =  27.1191  dphi = 0.1920
+# F =  22.5906  dphi = 0.2104
+# shot overhead 1.200
+# GHZ at p=0.05: 1.482x variance, 1.218x amplitude
+```
+
+</details>
+
+#### Exercise 5: Choosing an Instrument for a Materials Problem
+
+You are asked to image the current distribution inside a working thin-film device: a $500$ nm thick film carrying $100$ µA total, with features of $2$ µm, and the nearest achievable sensor standoff is $3$ µm through a passivation layer.
+
+  1. Estimate the field at the sensor, treating a $2$ µm feature carrying $10$ µA as a wire.
+  2. Which of the sensors in Example 5 can be placed at $3$ µm, and what averaging time does each need for signal-to-noise 10?
+  3. The reconstruction of current density from a field map is ill-posed with a conditioning that degrades with standoff over feature size. What is that ratio here, and what would halving the standoff be worth compared with a tenfold improvement in $\eta_B$?
+  4. State the single most valuable experimental change you could make, and justify it from the numbers rather than from the sensor.
+
+<details>
+<summary>Solution</summary>
+
+<p><strong>1.</strong> \(B = \mu_0 I/(2\pi d) = 2\times10^{-7} \times 10^{-5}/3\times10^{-6} = 6.67\times10^{-7}\) T, i.e. \(667\) nT. That is a large field by the standards of this course.</p>
+
+<p><strong>2.</strong> The single NV (10 nm) and the NV ensemble film and scanning SQUID (1 µm) all fit within \(3\) µm; the vapour cell does not. For signal-to-noise 10, \(t = (10\eta_B/B)^2\): single NV at \(\eta_B = 10^{-6}\), \(t = (10\times10^{-6}/6.67\times10^{-7})^2 = 225\) s; NV ensemble at \(10^{-9}\), \(t = 2.25\times10^{-4}\) s; scanning SQUID at \(10^{-12}\), \(t = 2.25\times10^{-10}\) s. Every one of them is fast enough except the single NV, and the SQUID's margin is absurd — which is the signal that sensitivity is not the binding constraint.</p>
+
+<p><strong>3.</strong> The ratio is \(3\ \mu\mathrm{m}/2\ \mu\mathrm{m} = 1.5\). Halving the standoff to \(1.5\) µm both increases the field by a factor 2 and, more importantly, reduces the ratio to \(0.75\), which improves the conditioning of the inversion — the spatial-frequency components of the current distribution are attenuated by roughly \(e^{-2\pi d/\lambda}\), so a feature at \(\lambda = 2\) µm is attenuated by \(e^{-9.42} = 8.07\times10^{-5}\) at \(d = 3\) µm and by \(e^{-4.71} = 8.98\times10^{-3}\) at \(1.5\) µm: a factor of 111 in recoverable signal at that spatial frequency. A tenfold improvement in \(\eta_B\) is worth a factor of 10. Halving the standoff is worth eleven times more, and that is before the factor 2 in the field itself.</p>
+
+<p><strong>4.</strong> Thin the passivation layer, or move the sensor into the passivation stack. The numbers say the measurement is limited by an exponential in standoff over feature size, not by a square root in averaging time, and no sensitivity improvement available anywhere in this course competes with an exponential. Concretely: an NV ensemble in a diamond membrane bonded to the device, or a scanning probe on a thinned substrate. This is a fabrication and packaging problem, and it is where the effort should go — which is the general conclusion of §5.4 and, arguably, of the whole course.</p>
+
+```python
+import numpy as np
+mu0, I, d, lam = 4e-7*np.pi, 10e-6, 3e-6, 2e-6
+B = mu0 * I / (2 * np.pi * d)
+print(f"B = {B*1e9:.1f} nT")
+for name, eta in [("single NV", 1e-6), ("NV ensemble", 1e-9),
+                  ("scanning SQUID", 1e-12)]:
+    print(f"{name:<16} t(SNR 10) = {(10*eta/B)**2:.3e} s")
+for dd in (3e-6, 1.5e-6):
+    print(f"d = {dd*1e6:.1f} um: attenuation at lambda = 2 um is "
+          f"{np.exp(-2*np.pi*dd/lam):.2e}")
+print(f"ratio {np.exp(-2*np.pi*1.5e-6/lam)/np.exp(-2*np.pi*3e-6/lam):.0f}")
+# B = 666.7 nT
+# single NV        t(SNR 10) = 2.250e+02 s
+# NV ensemble      t(SNR 10) = 2.250e-04 s
+# scanning SQUID   t(SNR 10) = 2.250e-10 s
+# d = 3.0 um: attenuation at lambda = 2 um is 8.07e-05
+# d = 1.5 um: attenuation at lambda = 2 um is 8.98e-03
+# ratio 111
+```
+
+</details>
+
+* * *
+
+## Summary
+
+### Key Takeaways
+
+**1\. The resource for beating the standard quantum limit is a large variance, not a small one**
+
+  * $F_Q = 4\,\mathrm{Var}(J_z)$ for a pure state and a rotation about $z$; a coherent spin state gives $F_Q = N$, GHZ gives $N^2$.
+  * One-axis twisting leaves $\mathrm{Var}(J_z)$ untouched, so the twisted state read out directly has $\xi^2 \ge 1$ — $1.00330$ at $\mu = 0.02$ and $18.9$ at $\mu = 0.1$.
+  * A single local rotation converts the same state to $\xi^2 = 0.0630$. The entanglement is necessary and not sufficient, and a squeezing claim should say which state was measured.
+
+**2\. One-axis twisting saturates at $N^{-2/3}$**
+
+  * Measured $\xi^2$ falls from $0.310$ at $N = 10$ to $0.002395$ at $N = 10^{4}$, which is $-26.2$ dB and still a factor $23.9$ from the Heisenberg limit.
+  * A naive exponent fit gives $-0.7100$; fitting $\xi^2N^{2/3} = A + BN^{-1/3}$ gives $A = 1.0425$ against the analytic $\frac{1}{2}3^{2/3} = 1.0400$.
+  * When a fitted exponent misses theory by less than the known correction term, fit the correction rather than arguing about the exponent.
+
+**3\. Dephasing attacks squeezing through a term that cannot be attenuated**
+
+  * The exact moment map is $\langle J_{y}^{2}\rangle \to N/4 + \eta^2(\langle J_y^2\rangle - N/4)$: only inter-spin correlations are damped, and the $N/4$ floor is immune.
+  * At $N = 100$, one per cent of per-spin dephasing removes $2.4$ dB of a $12.0$ dB gain, ten per cent removes $8.6$ dB, thirty per cent leaves $0.46$ dB.
+  * Re-optimizing the twisting recovers tenths of a decibel. The obstruction is structural.
+
+**4\. Once the interrogation time is re-optimized, entanglement buys a constant**
+
+  * The plain sensor uses $T = 0.493\,T_2$ as §1.3 predicts; the squeezed one must use $0.170\,T_2$ at $N = 100$ and $0.040\,T_2$ at $N = 10^{4}$.
+  * The gains actually available are $2.32$, $3.33$ and $3.86$ dB for $N = 10^2$, $10^3$, $10^4$ — amplitude factors $1.307$, $1.468$, $1.560$, approaching the theoretical $\sqrt{e} = 1.6487$ for uncorrelated dephasing.
+  * The scaling is unchanged; the prefactor improves by at most $65\%$. Both halves of that sentence are load-bearing.
+
+**5\. Loss converts Heisenberg scaling into a bounded constant, and the two optical states differ in kind**
+
+  * N00N gain is $N\eta^{N-1}$, maximized at $N^\ast = -1/\ln\eta$: $37$ at $1\%$ loss, $7.5$ at $5\%$, $3.9$ at $10\%$, and pushing $N$ higher makes it worse.
+  * Squeezed vacuum degrades as the mixture $\eta e^{-2r} + (1-\eta)$, with a ceiling $-10\log_{10}(1-\eta)$; a 10 dB source needs total loss under $16.8\%$ to deliver 6 dB.
+  * GHZ Fisher information falls as $N^2\eta^{2N}$, matched to five decimals — the same $\eta^N$ mechanism as N00N, squared.
+  * Squeezing is load-bearing where an instrument is genuinely quantum-noise-limited, the state degrades gracefully, and the classical resource is capped — the gravitational-wave interferometer is the physics precedent for exactly that combination.
+
+**6\. A sensor's output is a data set whose estimator depends on the noise**
+
+  * A quadrature read-out collects $83\%$ of the available Fisher information for the sheared state, $0\%$ for GHZ, and $100\%$ for a coherent spin state.
+  * The optimal read-out angle moves with the noise, so the estimator has to be fitted rather than derived — the concrete content of the quantum-data direction that [the QML course](<../../MI/quantum-machine-learning-introduction/chapter-5.html>) §5.4 deferred to this one.
+  * The rigorous separations require coherent processing of multiple copies, hence a quantum channel between sensor and processor. That is a reason to understand the direction, not a pipeline to build.
+
+**7\. For materials measurements, sensitivity is usually not the binding constraint**
+
+  * A shrinking magnetic island produces *more* field at a probe that shrinks with it — $0.700$ mT for a 100 nm island, $7.00$ mT for a 5 nm one — so nanoscale magnetism is limited by standoff and probe size, i.e. by diamond surface preparation.
+  * NV thermometry at $0.135$ mK$/\sqrt{\mathrm{Hz}}$ is limited by its own read-out heating: $100$ µW with $1\%$ absorption raises a cubic micron by $80$ mK.
+  * Current imaging is limited by the ill-posedness of the field-to-current inversion, which is exponential in standoff over feature size: halving the standoff was worth a factor 111 here, against a factor 10 for a decade of $\eta_B$.
+  * Signal-to-noise for a localized source improves as $a^{-3/2}$ as the probe shrinks — measured slope $-1.500$ — so a million-fold less sensitive probe can be the better instrument. The source geometry chooses the sensor.
+
+**Practical implications**
+
+  * Ask of any squeezing claim: which state was read out, what was the contrast, and what was the interrogation time compared with $T_2$.
+  * Before proposing entanglement enhancement, check whether $N$ is capped by a systematic. If it is not, raise $N$.
+  * Before proposing a better sensor, compute the standoff and the source geometry. Fabrication that halves the standoff usually beats a decade of sensitivity.
+  * Quote sensitivity, bandwidth, standoff and averaging time together, or quote none of them.
+
+### Where This Leaves the Series
+
+This course set out to treat quantum sensing as a tool for materials characterization rather than as a branch of quantum information, and the four chapters before this one did that by taking each platform apart: the Ramsey template that all of them share, the NV centre as a scanning magnetometer, the SQUID as a flux transformer, the atomic clock and the atom interferometer as the instruments in which the discipline of an error budget was invented. This chapter added the ceiling and the honest price of trying to exceed it.
+
+What remains is the part no course can supply, which is the measurement someone actually needs. The framework for deciding whether a quantum sensor is the right instrument for it is now complete and it is short: name the source, compute its signal at the achievable standoff, compare with what a probe of the necessary size can resolve, check the bandwidth, write the systematic budget, and only then look at $\eta_B$. If that procedure says a Hall probe suffices, use a Hall probe. If it says the answer requires a calibrated, non-invasive, nanometre-standoff field measurement at room temperature, then there is exactly one family of instruments that can do it, and this course was about how they work.
+
+[← Chapter 4: Atomic Clocks and Atom Interferometry](<chapter-4.html>) [Series Top →](<index.html>)
+
+### Disclaimer
+
+  * This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical warranty, etc.).
+  * This content and accompanying code examples are provided "AS IS" without any warranty, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.
+  * Squeezing figures, decoherence rates, loss budgets, sensitivities, moments, standoffs and averaging times quoted here are illustrative order-of-magnitude values chosen for teaching, computed from stated models; they are not specifications of any instrument or state-of-the-art claims, and must be verified against primary sources before use in any design, assessment or proposal.
+  * The author and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.
+  * To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.
+  * The content may be changed, updated, or discontinued without notice.
+  * The copyright and license of this content are subject to the stated conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.

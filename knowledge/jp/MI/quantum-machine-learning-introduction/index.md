@@ -239,6 +239,7 @@ QMLの中で理論的に最も満足のいく一角であり、悪い知らせ�
 
   * [量子コンピューティング入門](<../../FM/quantum-computing-introduction/index.html>) — 必須の前提であり、本コースのシミュレータの出典
   * [量子ハードウェア入門](<../../FM/quantum-hardware-introduction/index.html>) — ショットレートやエラー率が物理的にどこから来るのか
+  * [量子センシング入門](<../../MS/quantum-sensing-introduction/index.html>) — 同じ量子系を材料の計測器として使う。第5章が残した量子データの出所
   * [マテリアルズ・インフォマティクス入門](<../mi-introduction/index.html>) — 本コースが照らし合わせる古典の現職
   * [モデル評価入門](<../../ML/model-evaluation-introduction/index.html>) — 無修正で移せる古典的な評価の規律
   * [機械学習ポテンシャル（MLP）入門](<../mlp-introduction/index.html>) — 量子技術がすでに貢献している象限

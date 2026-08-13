@@ -1,0 +1,1638 @@
+---
+title: "Chapter 2: NV-Center Magnetometry"
+chapter_title: "Chapter 2: NV-Center Magnetometry"
+subtitle: Spin-Dependent Fluorescence, ODMR, Filter Functions, and Diamond as a Scanning Probe of Magnetic Matter
+reading_time: 45-50 minutes
+difficulty: Intermediate
+code_examples: 7
+exercises: 5
+---
+
+🌐 EN | [🇯🇵 JP](<../../../jp/MS/quantum-sensing-introduction/chapter-2.html>) | Last sync: 2026-08-13
+
+[Materials Science Dojo](<../index.html>) > [Introduction to Quantum Sensing](<index.html>) > Chapter 2
+
+A nitrogen atom sits where a carbon atom should be, and the lattice site next to it is empty. That is the whole of the nitrogen-vacancy centre: two adjacent point defects in diamond, of the kind that a crystal grower spends a career trying to eliminate. Chapter 1 built the general machinery of quantum sensing — a two-level system as a phase integrator, projection noise, the sensitivity $\eta$ in units of field per root hertz, and the filter function that decides which frequencies of the environment a pulse sequence can see. This chapter takes that machinery and installs it in a defect.
+
+The reason to start here, rather than with the SQUID of Chapter 3 or the atomic devices of Chapter 4, is that the NV centre inverts the relationship between materials science and quantum technology in a way the reader of the sister course [Introduction to Quantum Hardware](<../../FM/quantum-hardware-introduction/index.html>) will recognise immediately. There, every platform's coherence time was limited by a defect: an unpaired spin on a surface, a two-level fluctuator in an oxide, a $^{29}\mathrm{Si}$ nucleus in a channel. Here the defect *is* the device. The same physics that makes a defect a nuisance in a qubit — it couples to local fields, it responds to what is nearby, its spectrum reports on its surroundings — is what makes it an instrument. And because the instrument is a single atom-scale object embedded a few tens of nanometres below a crystal surface, it can be brought closer to a sample than any other magnetometer.
+
+What follows is organised around one question: given a magnetic phenomenon in a material — a domain wall, a monolayer magnet, a current distribution, a bath of fluctuating spins — what does it take to see it? The answer is always a sensitivity, a bandwidth and a standoff distance, all three coming out of the machinery of Chapter 1 applied to the specific level structure of this defect, and seven worked examples build the calculation from the Hamiltonian to the image.
+
+## Learning Objectives
+
+After completing this chapter, you will be able to:
+
+  * Write down the ground-state spin Hamiltonian of the NV centre, diagonalise it for an arbitrary field, and explain why four crystallographic orientations turn a scalar measurement into a vector one
+  * Explain the optical cycle that makes the fluorescence spin-dependent, and identify the two places where it costs sensitivity — low contrast and few photons per shot
+  * Derive the continuous-wave ODMR sensitivity $\eta_{\mathrm{CW}} = \frac{4}{3\sqrt{3}}\frac{\Gamma}{\gamma C \sqrt{R}}$ from the slope of a Lorentzian and photon shot noise, and locate the self-consistent optimum in microwave power
+  * Derive the Ramsey sensitivity from projection noise, show that the optimal free-precession time is $T_2^\ast/2$, and quantify the penalty imposed by a non-projective optical readout
+  * Compute the filter function of any pulse sequence exactly, show that the resonant response of CPMG-$N$ and XY8-$N$ is $2T/\pi$ independent of $N$, and read the same filter in two directions — as an AC magnetometer and as a noise spectrometer
+  * Relate $T_1$ to the transverse field noise at the NV transition frequency, and explain why relaxometry is the only route to the gigahertz band
+  * Estimate stray fields from magnetic domains, monolayer magnets, uncompensated antiferromagnetic surfaces and current distributions, and explain why the reconstruction of a source from a field map is exponentially ill-conditioned in the standoff
+
+### Conventions
+
+This chapter uses the conventions fixed in Chapter 1 without restating them. Three are worth recalling because every number below depends on them.
+
+**Sensitivity.** $\eta$ is the field equivalent of the noise in a 1 Hz bandwidth, in T/$\sqrt{\mathrm{Hz}}$, defined so that averaging for a time $t$ gives an uncertainty $\eta/\sqrt{t}$. Smaller is better, and a sensitivity quoted without a bandwidth is not a number.
+
+**Coherence times.** $T_1$, $T_2$ and $T_2^\ast$ mean exactly what they mean in [Chapter 1 of the quantum-hardware course](<../../FM/quantum-hardware-introduction/chapter-1.html>), including the bound $T_2 \le 2T_1$, the identification of $T_2^\ast$ with a *static* spread of transition frequencies, and the definition of the filter function $|\tilde{s}(f,t)|^2$. The Ramsey, Hahn-echo and CPMG-$N$ sequences are the ones defined there. Nothing is re-derived; the closed forms are quoted and then checked numerically in Code Example 4. Chapter 1 of *this* course fixed the optimal-time and best-sensitivity results in the form $\tau_{\mathrm{opt}} = T_2/(2p)^{1/p}$ and $\eta^{\min} = \sqrt{2e}/(\gamma\sqrt{N T_2})$ for exponential decay; §2.2 rederives both in NV notation and they agree term by term. Numerically the two chapters agree to $1.7\times10^{-6}$ and not better: Chapter 1's single-spin figure at $T_2^\ast = 1\ \mu$s is 13.241510 nT/$\sqrt{\mathrm{Hz}}$ from the exact $\gamma_e = 1.76085963\times10^{11}$ rad s$^{-1}$T$^{-1}$, while this chapter computes 13.241487 nT/$\sqrt{\mathrm{Hz}}$ from the rounded $\gamma_e/2\pi = 28.025$ GHz/T that every table here quotes, and $28.025/28.024951 - 1 = 1.7\times10^{-6}$ accounts for the whole difference. The six-digit agreement reported inside Code Example 3 is a different check — this chapter's closed form against this chapter's numerics, at one value of $\gamma$ — and it says nothing about the cross-chapter reconciliation.
+
+**Gyromagnetic ratio.** Confusing the two symbols costs a factor $2\pi$. The cyclic ratio $\gamma_e/2\pi = 28.025$ GHz/T converts a field into a *frequency shift*; the angular one, $\gamma_e = 1.7609 \times 10^{11}$ rad s$^{-1}$T$^{-1}$, appears in golden-rule rates. In the code the cyclic quantity is `GAMMA` in Examples 1 to 5 and `GAMMA_C` in Example 6, where the angular one is also needed.
+
+* * *
+
+## 2.1 A Defect That Happens to Be a Magnetometer
+
+### The Object
+
+The negatively charged nitrogen-vacancy centre, NV$^-$, consists of a substitutional nitrogen and an adjacent lattice vacancy in diamond, with a sixth electron captured from a nearby donor. Its symmetry is $C_{3v}$, and the symmetry axis lies along one of the four $\langle 111 \rangle$ crystal directions — which will matter shortly. The six electrons of the defect leave a ground state that is a spin **triplet**, $S = 1$, labelled $^3A_2$.
+
+A triplet is not the two-level system of Chapter 1, and the difference is the source of everything useful: three states mean two transitions rather than one, which makes the measurement vectorial, and the triplet is split even at zero field by the dipolar interaction between the two unpaired electrons, which makes the defect a self-referenced frequency standard.
+
+### The Ground-State Hamiltonian
+
+In the frame of the NV axis, taken as the local $z$, the ground-state spin Hamiltonian divided by $h$ is
+
+$$ \frac{H}{h} = D\, S_z^2 + E\left( S_x^2 - S_y^2 \right) + \frac{\gamma_e}{2\pi}\, \mathbf{B}\cdot\mathbf{S} $$
+
+with $D = 2.870$ GHz the **zero-field splitting**, $E$ a transverse term from local strain or electric field, and the last term the Zeeman interaction. Each symbol carries a physical story.
+
+$D$ is the dipolar interaction between the two unpaired electrons of the defect, and its value is fixed by the geometry of a diamond lattice, so it is the same for every NV centre in every diamond to a part in $10^4$ — which is what allows a measurement to be calibrated against nothing but the microwave source. It is also weakly temperature-dependent, $\mathrm{d}D/\mathrm{d}T \approx -74$ kHz/K near room temperature, because thermal expansion changes the electron-electron distance: the basis of NV thermometry, and a systematic error in magnetometry that must be either stabilised or measured away. $E$ is a nuisance and a probe at once. It splits the $m_s = \pm 1$ pair at zero field by $2E$, which is why an unbiased ODMR spectrum shows a doublet. Typical values in good bulk material are a few MHz, rising sharply for shallow centres near a distorted surface: a map of $E$ is a map of strain.
+
+The Zeeman term is what the instrument measures, and only its **axial** component does so to first order. For $\gamma_e B \ll D$ the two transition frequencies from $m_s = 0$ are
+
+$$ f_{\pm} = D \pm \frac{\gamma_e}{2\pi} B_{\parallel} + \frac{3}{4}\left(\frac{\gamma_e}{2\pi}\right)^2 B_{\perp}^2 \left[ \frac{1}{D + \gamma_e B_{\parallel}/2\pi} + \frac{1}{D - \gamma_e B_{\parallel}/2\pi} \right] + \ldots $$
+
+Written that way the second-order term is exact for the *centre* of the pair and only for the centre. Abbreviating $A_\pm = [D \pm \gamma_e B_\parallel/2\pi]^{-1}$, the individual transitions carry $(\gamma_e/2\pi)^2B_\perp^2(A_+ + A_-/2)$ and $(\gamma_e/2\pi)^2B_\perp^2(A_- + A_+/2)$, whose half-sum is the $\tfrac{3}{4}(A_+ + A_-)$ above and whose difference, $\tfrac{1}{2}(\gamma_e/2\pi)^2B_\perp^2(A_+ - A_-)$, is a small bias on the *splitting* — $-2.7$ kHz at $B_\parallel = B_\perp = 1$ mT against a 56 MHz splitting. So $f_+ - f_- = 2(\gamma_e/2\pi)B_\parallel$ is linear in the axial field and independent of everything else at first order, and the second-order residual is exactly what limits the vector reconstruction of Code Example 1 to a part in $10^3$ at millitesla fields. (One term is outside this expansion: as $B_\parallel \to 0$ the $m_s = \pm 1$ pair becomes degenerate and $B_\perp$ mixes the two through $m_s = 0$, splitting them by $(\gamma_e/2\pi)^2B_\perp^2/D$ — 274 kHz at $B_\perp = 1$ mT — which is why an unbiased spectrum is read for $E$ and strain rather than for a field.) The transverse field is in every case suppressed by $B_\perp/D$, and away from zero bias it shifts the centre far more than the splitting. Code Example 1 verifies both statements against exact diagonalisation, including the coefficient $3/4$ in the centre shift, which is easy to get wrong.
+
+### Four Orientations, One Vector
+
+A single NV centre measures one projection $B_\parallel$. But the $\langle 111 \rangle$ family has four members, and a macroscopic diamond contains all four sub-ensembles in equal numbers. Eight resonances appear in the spectrum, four splittings are read off, and the four projections onto four known axes overdetermine a three-component vector. This is the standard route to **vector magnetometry**, and Code Example 1 carries it out.
+
+Two caveats belong with it. Only $|B_\parallel|$ follows from a splitting, so the relative signs need a small combinatorial search and the overall sign of $\mathbf{B}$ is never fixed by splittings alone — a known bias field breaks the degeneracy. And when $B_\perp$ approaches $D/(\gamma_e/2\pi) \approx 102$ mT the linear relation fails and the full diagonalisation must be inverted numerically.
+
+### Why the Fluorescence Knows the Spin State
+
+None of the above would be useful without a way to read the spin, and the NV centre's answer is the reason it is used at all: the optical cycle is spin-selective, so the defect reports its own spin state in visible light.
+
+Green excitation, conventionally around 532 nm, drives the $^3A_2$ ground state to the $^3E$ excited triplet. The optical transition is **spin-conserving**: $m_s$ is unchanged by absorption and by the radiative decay that follows, which produces the broad red photoluminescence that is actually detected. If that were the whole story the fluorescence would carry no spin information.
+
+The extra ingredient is a pair of **singlet** states, $^1A_1$ and $^1E$, lying between the two triplets. Intersystem crossing from $^3E$ into the singlets is much faster from $m_s = \pm 1$ than from $m_s = 0$, because spin-orbit coupling connects those states more strongly. Two consequences follow, and they are the two halves of NV readout.
+
+**Spin-dependent fluorescence.** A centre in $m_s = \pm 1$ is preferentially shelved into the singlet manifold, where it spends of order 200 ns without emitting in the detection band. A centre in $m_s = 0$ cycles radiatively. Averaged over the first few hundred nanoseconds of illumination, $m_s = 0$ is therefore **brighter**, and the fractional difference is the ODMR **contrast** $C$ — typically 0.2 to 0.3 for a good single centre under pulsed readout, much less under continuous illumination.
+
+**Optical pumping.** The singlet decays back into the ground state without preserving $m_s$, and preferentially into $m_s = 0$. A few microseconds of green light therefore leaves the centre in $m_s = 0$ with probability of order 0.8 to 0.9, regardless of where it started and regardless of temperature. This is dissipative initialisation, criterion 2 of the DiVincenzo list in the sister course, and it is why an NV magnetometer works at 300 K while a transmon needs 20 mK.
+
+The cost is stated plainly because every sensitivity in this chapter carries it: the readout is neither projective nor efficient. A single shot yields of order $0.01$ to $0.1$ detected photons, so the measurement must be repeated $10^4$ to $10^6$ times, and §2.2 quantifies that as a multiplicative factor $\sigma_R$.
+
+### ODMR
+
+Put the three ingredients together. Illuminate continuously to pump the centre into $m_s = 0$ and to read it out; sweep a microwave field; when the microwave hits $f_-$ or $f_+$ it drives population into $m_s = \mp 1$, which is darker; the fluorescence dips. That is **optically detected magnetic resonance**, and in its continuous-wave form it is a magnetic resonance experiment performed on a single spin with an optical readout instead of an inductive one.
+
+### Code Example 1: The Level Structure and the ODMR Spectrum
+
+The Hamiltonian above, diagonalised for the four orientations, gives the whole spectrum. The example also runs the vector reconstruction and checks the second-order transverse shift.
+
+```python
+import numpy as np
+
+# Ground-state parameters of the negatively charged NV centre. D, E and gamma_e
+# are properties of a defect in diamond, not specifications of an instrument.
+D_GS = 2.870e9        # zero-field splitting, Hz
+E_ST = 2.0e6          # transverse strain / electric-field splitting, Hz
+GAMMA = 28.025e9      # gamma_e / 2 pi, Hz per tesla
+
+# Spin-1 operators in the basis (|+1>, |0>, |-1>).
+r2 = 1.0 / np.sqrt(2.0)
+Sx = np.array([[0, r2, 0], [r2, 0, r2], [0, r2, 0]], dtype=complex)
+Sy = np.array([[0, -1j * r2, 0], [1j * r2, 0, -1j * r2], [0, 1j * r2, 0]])
+Sz = np.diag([1.0, 0.0, -1.0]).astype(complex)
+
+# The four crystallographically equivalent NV axes, along the <111> directions.
+AXES = np.array([[1, 1, 1], [1, -1, -1], [-1, 1, -1], [-1, -1, 1]],
+                dtype=float) / np.sqrt(3.0)
+
+
+def nv_triad(axis):
+    """Orthonormal triad (e1, e2, axis) with the NV axis as the local z."""
+    seed = np.array([1.0, 0.0, 0.0])
+    if abs(np.dot(seed, axis)) > 0.9:
+        seed = np.array([0.0, 1.0, 0.0])
+    e1 = seed - np.dot(seed, axis) * axis
+    e1 /= np.linalg.norm(e1)
+    e2 = np.cross(axis, e1)
+    return e1, e2, axis
+
+
+def transitions(B_lab, axis, D=D_GS, E=E_ST):
+    """Two ODMR frequencies (Hz) of one NV orientation in field B_lab (tesla).
+
+    H / h = D Sz^2 + E (Sx^2 - Sy^2) + gamma (B . S), with S in the NV frame.
+    """
+    e1, e2, e3 = nv_triad(axis)
+    Bx, By, Bz = np.dot(B_lab, e1), np.dot(B_lab, e2), np.dot(B_lab, e3)
+    H = (D * (Sz @ Sz) + E * (Sx @ Sx - Sy @ Sy)
+         + GAMMA * (Bx * Sx + By * Sy + Bz * Sz))
+    w = np.linalg.eigvalsh(H)          # ascending
+    return w[1] - w[0], w[2] - w[0]    # both transitions from the lowest level
+
+
+def odmr(freqs, resonances, contrast, fwhm):
+    """CW-ODMR trace: unit baseline with one Lorentzian dip per resonance."""
+    y = np.ones_like(freqs)
+    a = fwhm / 2.0
+    for f0 in resonances:
+        y -= contrast * a**2 / ((freqs - f0) ** 2 + a**2)
+    return y
+
+
+# --- Zero field, then a field along one NV axis ------------------------------
+print("NV ground-state triplet: D = %.3f GHz, E = %.1f MHz, "
+      "gamma_e/2pi = %.3f GHz/T" % (D_GS / 1e9, E_ST / 1e6, GAMMA / 1e9))
+print("\nResonances for B along the [111] NV axis:")
+print(f"{'B (mT)':>8}{'f- (GHz)':>11}{'f+ (GHz)':>11}{'split (MHz)':>13}"
+      f"{'2 gamma B (MHz)':>17}")
+print("-" * 60)
+for B_mT in [0.0, 0.5, 2.0, 5.0, 20.0]:
+    B = B_mT * 1e-3 * AXES[0]
+    fm, fp = transitions(B, AXES[0])
+    print(f"{B_mT:>8.1f}{fm/1e9:>11.5f}{fp/1e9:>11.5f}"
+          f"{(fp-fm)/1e6:>13.4f}{2*GAMMA*B_mT*1e-3/1e6:>17.4f}")
+
+# --- All four orientations in a general field --------------------------------
+B_true = np.array([1.20e-3, -0.70e-3, 2.10e-3])      # tesla, arbitrary direction
+print(f"\nApplied field (mT): [{B_true[0]*1e3:.3f}, {B_true[1]*1e3:.3f}, "
+      f"{B_true[2]*1e3:.3f}]   |B| = {np.linalg.norm(B_true)*1e3:.4f} mT")
+print(f"\n{'family':>7}{'axis':>16}{'B_par (mT)':>12}{'f- (GHz)':>11}"
+      f"{'f+ (GHz)':>11}{'split (MHz)':>13}")
+print("-" * 70)
+res_all, splits = [], []
+for k, ax in enumerate(AXES):
+    fm, fp = transitions(B_true, ax)
+    res_all += [fm, fp]
+    splits.append(fp - fm)
+    lbl = "[" + " ".join(f"{int(round(c*np.sqrt(3))):+d}" for c in ax) + "]"
+    print(f"{k+1:>7}{lbl:>16}{np.dot(B_true, ax)*1e3:>12.4f}"
+          f"{fm/1e9:>11.5f}{fp/1e9:>11.5f}{(fp-fm)/1e6:>13.4f}")
+
+# --- Vector reconstruction from the four splittings --------------------------
+# Each splitting gives |B . axis| = split / (2 gamma) to leading order. The
+# relative signs are fixed by trying all combinations and keeping the most
+# consistent one; the overall sign of B is not observable this way, so the
+# first projection is declared positive.
+proj = np.array(splits) / (2.0 * GAMMA)
+best = None
+for bits in range(8):
+    signs = np.array([1.0] + [1.0 if (bits >> i) & 1 else -1.0
+                              for i in range(3)])
+    B_fit, *_ = np.linalg.lstsq(AXES, signs * proj, rcond=None)
+    resid = np.linalg.norm(AXES @ B_fit - signs * proj)
+    if best is None or resid < best[0]:
+        best = (resid, B_fit)
+resid, B_fit = best
+print("\nVector reconstruction from the four splittings (least squares):")
+print(f"  recovered B (mT) : [{B_fit[0]*1e3:.4f}, {B_fit[1]*1e3:.4f}, "
+      f"{B_fit[2]*1e3:.4f}]")
+print(f"  error (uT)       : [{(B_fit[0]-B_true[0])*1e6:.3f}, "
+      f"{(B_fit[1]-B_true[1])*1e6:.3f}, {(B_fit[2]-B_true[2])*1e6:.3f}]")
+print(f"  residual (uT)    : {resid*1e6:.4f}")
+print(f"  |B| recovered    : {np.linalg.norm(B_fit)*1e3:.4f} mT "
+      f"(true {np.linalg.norm(B_true)*1e3:.4f} mT)")
+
+# The centre of each pair is pushed up by the transverse field: a second
+# observable, quadratic in B_perp, that a single splitting cannot supply.
+print(f"\n{'family':>7}{'centre - D (MHz)':>18}{'B_perp (mT)':>13}"
+      f"{'2nd-order prediction':>22}")
+print("-" * 60)
+for k, ax in enumerate(AXES):
+    fm, fp = transitions(B_true, ax)
+    Bpar = np.dot(B_true, ax)
+    Bperp = np.sqrt(max(np.dot(B_true, B_true) - Bpar**2, 0.0))
+    shift = (0.75 * GAMMA**2 * Bperp**2
+             * (1.0 / (D_GS + GAMMA * Bpar) + 1.0 / (D_GS - GAMMA * Bpar)))
+    print(f"{k+1:>7}{((fp+fm)/2 - D_GS)/1e6:>18.4f}{Bperp*1e3:>13.4f}"
+          f"{shift/1e6:>19.4f} MHz")
+
+# --- The CW-ODMR trace ------------------------------------------------------
+f = np.linspace(2.60e9, 3.14e9, 20001)
+trace = odmr(f, res_all, contrast=0.10, fwhm=6.0e6)
+print(f"\nODMR trace: 8 dips, contrast 0.10 each, FWHM 6 MHz")
+print(f"  deepest point            : {trace.min():.4f} of baseline")
+print(f"  number of resolved minima: "
+      f"{int(np.sum((trace[1:-1] < trace[:-2]) & (trace[1:-1] < trace[2:])))}")
+```
+
+```text
+NV ground-state triplet: D = 2.870 GHz, E = 2.0 MHz, gamma_e/2pi = 28.025 GHz/T
+
+Resonances for B along the [111] NV axis:
+  B (mT)   f- (GHz)   f+ (GHz)  split (MHz)  2 gamma B (MHz)
+------------------------------------------------------------
+     0.0    2.86800    2.87200       4.0000           0.0000
+     0.5    2.85585    2.88415      28.3090          28.0250
+     2.0    2.81391    2.92609     112.1713         112.1000
+     5.0    2.72986    3.01014     280.2785         280.2500
+    20.0    2.30950    3.43050    1121.0071        1121.0000
+
+Applied field (mT): [1.200, -0.700, 2.100]   |B| = 2.5179 mT
+
+ family            axis  B_par (mT)   f- (GHz)   f+ (GHz)  split (MHz)
+----------------------------------------------------------------------
+      1      [+1 +1 +1]      1.5011    2.82959    2.91377      84.1745
+      2      [+1 -1 -1]     -0.1155    2.86880    2.87639       7.5853
+      3      [-1 +1 -1]     -2.3094    2.80567    2.93516     129.4897
+      4      [-1 -1 +1]      0.9238    2.84624    2.89826      52.0134
+
+Vector reconstruction from the four splittings (least squares):
+  recovered B (mT) : [1.1902, -0.6933, 2.1111]
+  error (uT)       : [-9.771, 6.691, 11.085]
+  residual (uT)    : 7.9138
+  |B| recovered    : 2.5207 mT (true 2.5179 mT)
+
+ family  centre - D (MHz)  B_perp (mT)  2nd-order prediction
+------------------------------------------------------------
+      1            1.6783       2.0216             1.6779 MHz
+      2            2.5959       2.5153             2.5970 MHz
+      3            0.4137       1.0033             0.4134 MHz
+      4            2.2502       2.3424             2.2524 MHz
+
+ODMR trace: 8 dips, contrast 0.10 each, FWHM 6 MHz
+  deepest point            : 0.8820 of baseline
+  number of resolved minima: 8
+```
+
+**What to look for.** The first table is the calibration of the instrument. At 20 mT along the NV axis the splitting is 1121.007 MHz against the linear prediction $2(\gamma_e/2\pi)B = 1121.000$ MHz: six digits of linearity, with the residual 7 kHz coming from the $E = 2$ MHz strain term, which contributes at second order. At zero field the splitting is exactly $2E = 4$ MHz, the doublet mentioned above. That degree of linearity over three decades of field, with no calibration against a reference magnet, is the practical content of "the zero-field splitting is a property of the lattice".
+
+The vector reconstruction recovers a 2.5 mT field to about 10 $\mu$T per component from four splittings, with a least-squares residual of 7.9 $\mu$T. The error is not statistical — there is no noise in this calculation — it is the neglected second-order transverse term, which biases each splitting slightly, so vector NV magnetometry is linear to a part in $10^3$ at millitesla fields and needs the full diagonalisation beyond that. The last table is the check on that second-order formula: the measured centre shift, family by family, agrees with $\frac{3}{4}(\gamma_e/2\pi)^2 B_\perp^2 [\,(D+\gamma_e B_\parallel/2\pi)^{-1} + (D-\gamma_e B_\parallel/2\pi)^{-1}]$ to four digits. The coefficient is $3/4$ and not $1/2$ because the transverse field pushes the $m_s = \pm 1$ levels up *and* the $m_s = 0$ level down, and both displacements enter the transition frequency with the same sign. This is worth having correct: the centre shift is a second, independent observable, and it is the only handle on $B_\perp$ that a single orientation provides.
+
+* * *
+
+## 2.2 DC Magnetometry
+
+### Continuous-Wave ODMR, and What Sets Its Sensitivity
+
+The CW-ODMR experiment produces a Lorentzian dip in a photon count rate. Its sensitivity follows from two ingredients and one choice of operating point.
+
+Write the detected rate as
+
+$$ R(\delta) = R_0 \left[ 1 - C\, \frac{(\Gamma/2)^2}{\delta^2 + (\Gamma/2)^2} \right] $$
+
+with $\delta$ the microwave detuning from resonance, $\Gamma$ the full width at half maximum, $C$ the contrast and $R_0$ the off-resonant count rate. Park the microwave frequency where the line is steepest. Writing $a = \Gamma/2$ and $L(\delta) = a^2/(\delta^2+a^2)$,
+
+$$ \frac{\mathrm{d}L}{\mathrm{d}\delta} = -\frac{2a^2\delta}{(\delta^2+a^2)^2}, \qquad \frac{\mathrm{d}}{\mathrm{d}\delta}\left[\frac{\delta}{(\delta^2+a^2)^2}\right] = 0 \;\Longrightarrow\; \delta = \frac{a}{\sqrt{3}} $$
+
+and at that point $|\mathrm{d}L/\mathrm{d}\delta| = 9/(8\sqrt{3}\,a) = 3\sqrt{3}/(4\Gamma)$ while $L = 3/4$. In a time $t$ the number of detected photons is $N = Rt$ with Poisson uncertainty $\sqrt{R_0 t}$, and a field change $\delta B$ shifts the line by $(\gamma_e/2\pi)\delta B$. Dividing the noise by the slope,
+
+$$ \sigma_B = \frac{\sqrt{R_0 t}}{t\, R_0 C\, \dfrac{3\sqrt{3}}{4\Gamma}\, \dfrac{\gamma_e}{2\pi}} \qquad\Longrightarrow\qquad \boxed{\ \eta_{\mathrm{CW}} = \sigma_B \sqrt{t} = \frac{4}{3\sqrt{3}}\; \frac{2\pi}{\gamma_e}\; \frac{\Gamma}{C\sqrt{R_0}}\ } $$
+
+Three factors, one geometric constant. The prefactor $4/(3\sqrt{3}) = 0.7698$ is the price of a Lorentzian lineshape and nothing else. The physics is in $\Gamma/(C\sqrt{R_0})$, and read as three independent knobs it says: narrow lines matter most because the linewidth enters linearly, contrast next, and brightness least because the count rate enters only as a square root. That reading of the exponents is correct and it is also the last point at which the three can be treated as independent. The next two subsections dismantle the independence twice over — microwave power ties $\Gamma$ to $C$, and the laser light that sets $R_0$ broadens $\Gamma$ as well — after which the ranking is a statement about the formula rather than a recipe for the experiment.
+
+### The Trap in CW-ODMR
+
+The formula invites an obvious optimisation — narrow the line — and the obvious optimisation fails, for a reason that recurs throughout quantum sensing: $\Gamma$ and $C$ are not independent, because contrast requires driving the spin transition and driving it broadens the line. With $s = \Omega^2 T_1 T_2$ the saturation parameter of the microwave drive, the standard saturated-resonance forms are
+
+$$ \Gamma(s) = \Gamma_0\sqrt{1+s}, \qquad C(s) = C_{\max}\frac{s}{1+s} $$
+
+so that $\eta_{\mathrm{CW}} \propto (1+s)^{3/2}/s$, which has an interior minimum. Differentiating, $\frac{3}{2}s = 1+s$, so
+
+$$ s_{\mathrm{opt}} = 2, \qquad \Gamma = \sqrt{3}\,\Gamma_0, \qquad C = \tfrac{2}{3}C_{\max}, \qquad \eta_{\mathrm{CW}}^{\min} = \frac{2\,\Gamma_0}{(\gamma_e/2\pi)\, C_{\max}\sqrt{R_0}} $$
+
+because $\frac{4}{3\sqrt{3}}\cdot\frac{3^{3/2}}{2} = 2$ exactly. The optimum sits at $\sqrt{3}$ times the unbroadened width with two thirds of the maximum contrast, and the result depends on the *microwave-free* linewidth $\Gamma_0$ alone.
+
+And $\Gamma_0$ is not $1/(\pi T_2^\ast)$. The laser that produces the photons also repolarises the spin, at a rate proportional to the same optical excitation rate that sets $R_0$; that repumping is an additional homogeneous broadening, present whenever the light is on. A CW-ODMR line is therefore of order a megahertz wide even at vanishing microwave power, when the $T_2^\ast$-limited width would be a few hundred kilohertz.
+
+This has a consequence that the sensitivity formula hides, and it is the second optimum in this subsection. Write the microwave-free width as $\Gamma_0 = \Gamma_{\mathrm{int}} + \kappa R_0$, with $\Gamma_{\mathrm{int}}$ the width in the dark and $\kappa$ the repumping broadening per unit count rate. Then
+
+$$ \eta_{\mathrm{CW}}^{\min} \;\propto\; \frac{\Gamma_{\mathrm{int}} + \kappa R_0}{\sqrt{R_0}} $$
+
+which falls as $1/\sqrt{R_0}$ only while $\kappa R_0 \ll \Gamma_{\mathrm{int}}$, reaches an interior minimum at $\kappa R_0 = \Gamma_{\mathrm{int}}$ — where the laser-induced broadening equals the residual width — and *rises* as $\sqrt{R_0}$ beyond it. There is therefore an optimum laser power as well as an optimum microwave power, and past it more light makes the magnetometer worse. This is why "bright emitters" from the ranking above holds only at fixed $\Gamma_0$, which optical readout of a single centre does not permit: on one defect, brightness and linewidth are bought from the same account.
+
+That is also the precise sense in which CW-ODMR is inefficient, and the precise reason a pulsed sequence does better: it turns both the laser and the microwave off while the phase is accumulating, which separates the two accounts entirely.
+
+### Code Example 2: The CW-ODMR Sensitivity, Verified
+
+```python
+import numpy as np
+
+GAMMA = 28.025e9        # gamma_e / 2 pi, Hz per tesla
+
+
+def lorentz(detuning, fwhm):
+    """Lorentzian normalised to 1 at line centre."""
+    a = fwhm / 2.0
+    return a**2 / (detuning**2 + a**2)
+
+
+def eta_cw(fwhm, contrast, rate, gamma=GAMMA):
+    """Shot-noise-limited CW-ODMR sensitivity in T/sqrt(Hz)."""
+    return 4.0 / (3.0 * np.sqrt(3.0)) * fwhm / (gamma * contrast * np.sqrt(rate))
+
+
+# --- Step 1: the maximum slope of a Lorentzian ------------------------------
+fwhm = 6.0e6
+d = np.linspace(-3 * fwhm, 3 * fwhm, 4000001)
+slope = np.abs(np.gradient(lorentz(d, fwhm), d))
+i = int(np.argmax(slope))
+print("Maximum slope of a Lorentzian dip")
+print(f"  FWHM                          : {fwhm/1e6:.3f} MHz")
+print(f"  numerical |dL/d(delta)|_max   : {slope[i]*1e6:.6f} per MHz")
+print(f"  analytic (3 sqrt3 / 4) / FWHM : "
+      f"{3*np.sqrt(3)/4/fwhm*1e6:.6f} per MHz")
+print(f"  numerical |detuning| at maximum: {abs(d[i])/1e6:.5f} MHz")
+print(f"  analytic FWHM/(2 sqrt3)       : {fwhm/(2*np.sqrt(3))/1e6:.5f} MHz")
+print(f"  L at that detuning            : {lorentz(d[i], fwhm):.6f} "
+      f"(analytic 0.750000)")
+
+# --- Step 2: the sensitivity formula, and a Monte-Carlo check ---------------
+C, R0 = 0.20, 1.0e5          # ODMR contrast; detected photons per second
+delta_op = fwhm / (2 * np.sqrt(3.0))
+R_op = R0 * (1.0 - C * lorentz(delta_op, fwhm))
+dRdB = R0 * C * (3 * np.sqrt(3) / 4) / fwhm * GAMMA     # photons/s per tesla
+
+eta = eta_cw(fwhm, C, R0)
+print(f"\nCW-ODMR sensitivity, C = {C:.2f}, R = {R0:.0e} counts/s")
+print(f"  slope dR/dB                   : {dRdB:.6e} counts/s/T")
+print(f"  formula eta                   : {eta*1e6:.4f} uT/sqrt(Hz)")
+
+rng = np.random.default_rng(20260813)
+print(f"\n{'t (ms)':>8}{'trials':>8}{'std(B_est) (uT)':>17}"
+      f"{'eta/sqrt(t) (uT)':>18}{'ratio':>8}")
+print("-" * 59)
+for t_ms in [1.0, 10.0, 100.0]:
+    t = t_ms * 1e-3
+    n_trials = 20000
+    counts = rng.poisson(R_op * t, n_trials)
+    B_est = (counts - R_op * t) / (dRdB * t)
+    pred = eta / np.sqrt(t)
+    print(f"{t_ms:>8.1f}{n_trials:>8d}{B_est.std(ddof=1)*1e6:>17.4f}"
+          f"{pred*1e6:>18.4f}{B_est.std(ddof=1)/pred:>8.4f}")
+print(f"  The Monte Carlo runs {np.sqrt(R_op/R0):.4f} times quieter than the")
+print(f"  formula because the operating point sits at "
+      f"{R_op/R0:.4f} of the baseline rate,")
+print("  and the standard formula uses sqrt(R_baseline) for the shot noise.")
+
+# --- Step 3: the self-consistent optimum in microwave power ------------------
+# Linewidth and contrast are not independent. Microwave power buys contrast and
+# pays with broadening: with saturation parameter s = Omega^2 T1 T2,
+#   FWHM = Gamma_0 sqrt(1 + s),   C = C_max s / (1 + s),
+# so eta is proportional to (1 + s)^(3/2) / s and has an interior minimum.
+Gamma_0, C_max = 2.0e6, 0.30
+print(f"\nSelf-consistent CW optimum, Gamma_0 = {Gamma_0/1e6:.1f} MHz, "
+      f"C_max = {C_max:.2f}, R = 1e5/s")
+print(f"{'s':>8}{'FWHM (MHz)':>12}{'contrast':>10}"
+      f"{'eta (uT/sqrt(Hz))':>19}")
+print("-" * 49)
+for sat in [0.25, 0.5, 1.0, 2.0, 4.0, 8.0, 20.0]:
+    fw = Gamma_0 * np.sqrt(1.0 + sat)
+    c = C_max * sat / (1.0 + sat)
+    print(f"{sat:>8.2f}{fw/1e6:>12.4f}{c:>10.4f}"
+          f"{eta_cw(fw, c, 1e5)*1e6:>19.4f}")
+sat = np.linspace(0.05, 50.0, 200000)
+etas = eta_cw(Gamma_0 * np.sqrt(1 + sat), C_max * sat / (1 + sat), 1e5)
+j = int(np.argmin(etas))
+print(f"  numerical optimum  : s = {sat[j]:.4f}, "
+      f"eta = {etas[j]*1e6:.4f} uT/sqrt(Hz)")
+print(f"  analytic optimum   : s = 2, eta_min = 2 Gamma_0 / "
+      f"(gamma C_max sqrt(R)) = "
+      f"{2*Gamma_0/(GAMMA*C_max*np.sqrt(1e5))*1e6:.4f} uT/sqrt(Hz)")
+print("  Gamma_0 is the microwave-free width. It is NOT 1/(pi T2*): the laser")
+print("  that produces the photons also repolarises the spin during the sweep,")
+print("  and that repumping rate dominates the residual width.")
+
+# --- Step 4: ensembles ------------------------------------------------------
+print("\nEnsemble scaling at fixed collection efficiency "
+      "(R proportional to N):")
+print(f"{'N spins':>10}{'R (1/s)':>12}{'eta (uT/sqrt(Hz))':>19}"
+      f"{'eta * sqrt(N)':>16}")
+print("-" * 57)
+for N in [1, 100, 10000, 1000000]:
+    r = 1e5 * N
+    e = eta_cw(6.0e6, 0.20, r)
+    print(f"{N:>10d}{r:>12.0e}{e*1e6:>19.6f}{e*np.sqrt(N)*1e6:>16.4f}")
+```
+
+```text
+Maximum slope of a Lorentzian dip
+  FWHM                          : 6.000 MHz
+  numerical |dL/d(delta)|_max   : 0.216506 per MHz
+  analytic (3 sqrt3 / 4) / FWHM : 0.216506 per MHz
+  numerical |detuning| at maximum: 1.73205 MHz
+  analytic FWHM/(2 sqrt3)       : 1.73205 MHz
+  L at that detuning            : 0.750000 (analytic 0.750000)
+
+CW-ODMR sensitivity, C = 0.20, R = 1e+05 counts/s
+  slope dR/dB                   : 1.213518e+08 counts/s/T
+  formula eta                   : 2.6059 uT/sqrt(Hz)
+
+  t (ms)  trials  std(B_est) (uT)  eta/sqrt(t) (uT)   ratio
+-----------------------------------------------------------
+     1.0   20000          76.2912           82.4050  0.9258
+    10.0   20000          24.0765           26.0588  0.9239
+   100.0   20000           7.6149            8.2405  0.9241
+  The Monte Carlo runs 0.9220 times quieter than the
+  formula because the operating point sits at 0.8500 of the baseline rate,
+  and the standard formula uses sqrt(R_baseline) for the shot noise.
+
+Self-consistent CW optimum, Gamma_0 = 2.0 MHz, C_max = 0.30, R = 1e5/s
+       s  FWHM (MHz)  contrast  eta (uT/sqrt(Hz))
+-------------------------------------------------
+    0.25      2.2361    0.0600             3.2372
+    0.50      2.4495    0.1000             2.1277
+    1.00      2.8284    0.1500             1.6379
+    2.00      3.4641    0.2000             1.5045
+    4.00      4.4721    0.2400             1.6186
+    8.00      6.0000    0.2667             1.9544
+   20.00      9.1652    0.2857             2.7864
+  numerical optimum  : s = 2.0001, eta = 1.5045 uT/sqrt(Hz)
+  analytic optimum   : s = 2, eta_min = 2 Gamma_0 / (gamma C_max sqrt(R)) = 1.5045 uT/sqrt(Hz)
+  Gamma_0 is the microwave-free width. It is NOT 1/(pi T2*): the laser
+  that produces the photons also repolarises the spin during the sweep,
+  and that repumping rate dominates the residual width.
+
+Ensemble scaling at fixed collection efficiency (R proportional to N):
+   N spins     R (1/s)  eta (uT/sqrt(Hz))   eta * sqrt(N)
+---------------------------------------------------------
+         1       1e+05           2.605876          2.6059
+       100       1e+07           0.260588          2.6059
+     10000       1e+09           0.026059          2.6059
+   1000000       1e+11           0.002606          2.6059
+```
+
+**What to look for.** The first block confirms the geometry: the numerical maximum slope of the Lorentzian is $0.216506$ per MHz against the analytic $3\sqrt{3}/(4\Gamma)$ to six digits, the steepest point sits at $\Gamma/(2\sqrt{3}) = 1.73205$ MHz off resonance, and $L = 0.750000$ there. These are properties of the lineshape, not of the defect.
+
+The Monte Carlo is the honest part. Simulated Poisson photon counting, converted to a field estimate through the analytic slope, reproduces $\eta/\sqrt{t}$ across three decades of averaging time — and lands consistently 7.6% *below* it. That is not an error: the standard formula uses $\sqrt{R_0}$ for the shot noise, but the operating point sits at $1 - 3C/4 = 0.85$ of the baseline rate, so the true noise is $\sqrt{0.85} = 0.922$ of the assumed value. The formula is conservative by a few per cent at ordinary contrast, and the size of the discrepancy is $\sqrt{1-3C/4}$, which is worth knowing before attributing a 10% disagreement to physics.
+
+The self-consistent optimisation confirms $s_{\mathrm{opt}} = 2$ to four digits and reproduces the closed form $2\Gamma_0/(\gamma C_{\max}\sqrt{R_0})$ exactly. With a microwave-free width of 2 MHz, a maximum contrast of 0.30 and $10^5$ counts per second — representative single-centre numbers, quoted to one significant figure because they are not device specifications — the answer is 1.50 $\mu$T/$\sqrt{\mathrm{Hz}}$. The last block is then the reason ensembles exist, and the reason has to be attributed carefully. The table raises $R_0$ in proportion to $N$ at *fixed illumination per centre*: more emitters under the same beam intensity, not a brighter beam on one emitter. That is what leaves $\Gamma_0$ alone, and it is the only version of "raise $R_0$" for which $\eta \propto 1/\sqrt{N}$ holds exactly — as it does here, with $\eta\sqrt{N}$ constant to six digits, so a million centres buy three decades. Turning the laser up on a single centre is the other version, and it buys nothing past the optimum derived above, because there $R_0$ and $\Gamma_0$ rise together. What the table does not show, because it cannot, is the cost: raising the nitrogen density shortens $T_2^\ast$ through dipolar coupling between the centres themselves, so the linewidth $\Gamma_0$ in the numerator grows as the $N$ in the denominator does. The optimum density is a materials question, and it is the central materials question in ensemble NV magnetometry.
+
+### The Pulsed Alternative: Ramsey
+
+The Ramsey sequence of Chapter 1 removes both laser-induced broadening and power broadening by construction: initialise optically, turn the laser off, apply $\pi/2$, wait $\tau$ in the dark with no microwave, apply $\pi/2$, then turn the laser on to read out. The phase accumulated in the dark is
+
+$$ \varphi = 2\pi \frac{\gamma_e}{2\pi} B_\parallel \tau $$
+
+and the measured population is $P = \frac{1}{2}\left[1 - C\cos\varphi\right]$ with $C = C_0 \exp[-(\tau/T_2^\ast)^p]$. Bias the sequence to the steepest point $\varphi = \pi/2$, where $P = 1/2$ and
+
+$$ \left|\frac{\mathrm{d}P}{\mathrm{d}B}\right| = \pi \frac{\gamma_e}{2\pi} \tau\, C $$
+
+A single spin measured projectively gives a binomial outcome with $\sigma_P = 1/2$ per shot, so $N$ shots in a total time $T = N(\tau + t_d)$, with $t_d$ the dead time for readout and repolarisation, give
+
+$$ \sigma_B = \frac{1}{2\sqrt{N}}\left|\frac{\mathrm{d}P}{\mathrm{d}B}\right|^{-1} \qquad\Longrightarrow\qquad \boxed{\ \eta_{\mathrm{Ramsey}}(\tau) = \frac{\sqrt{\tau + t_d}}{2\pi (\gamma_e/2\pi)\, C_0\, \tau}\, e^{(\tau/T_2^\ast)^p}\ } $$
+
+The structure of this expression is the structure of every sensitivity in the course: the numerator grows as $\sqrt{\tau}$ because longer sequences mean fewer repetitions, the denominator grows as $\tau$ because a longer sequence accumulates more phase, and the exponential eventually wins because coherence is finite. Setting $t_d = 0$ and differentiating the logarithm,
+
+$$ \frac{\mathrm{d}}{\mathrm{d}\tau}\left[\left(\frac{\tau}{T_2^\ast}\right)^p - \frac{1}{2}\ln\tau\right] = 0 \qquad\Longrightarrow\qquad \tau^p = \frac{(T_2^\ast)^p}{2p} $$
+
+which for $p = 1$ gives $\tau_{\mathrm{opt}} = T_2^\ast/2$ and for $p = 2$ gives $\tau_{\mathrm{opt}} = T_2^\ast/2$ as well. The coincidence is not deep, but it is convenient, and it makes "run at half the coherence time" a rule that does not depend on knowing the decay shape. The minimum is
+
+$$ \eta^{\min} = \frac{e^{1/(2p)}}{2\pi(\gamma_e/2\pi) C_0}\sqrt{\frac{2}{T_2^\ast}} \;\propto\; \frac{1}{\sqrt{T_2^\ast}} $$
+
+and the $1/\sqrt{T_2^\ast}$ scaling is the single most important consequence: doubling the coherence time buys a factor $\sqrt{2}$, not 2. Sensitivity is expensive in coherence.
+
+### The Readout Penalty
+
+Everything above assumed a projective single-shot measurement. NV optical readout is nothing of the kind. Let $\alpha_0$ and $\alpha_1$ be the mean numbers of detected photons per shot for $m_s = 0$ and $m_s = \pm 1$. The standard result is that the sensitivity is multiplied by
+
+$$ \sigma_R = \sqrt{1 + \frac{2(\alpha_0 + \alpha_1)}{(\alpha_0 - \alpha_1)^2}} \;\ge\; 1 $$
+
+which reduces to 1 when the photon numbers are large and their difference is resolved in a single shot. For a single centre with $\alpha_0 \approx 0.03$ the factor is above 30, and it is the dominant term in the sensitivity of a single NV magnetometer. Everything that improves it — better photon collection through a nanostructured surface, repetitive readout via a nuclear ancilla, spin-to-charge conversion — attacks $\sigma_R$ rather than the spin physics.
+
+### Code Example 3: Ramsey Sensitivity, With Projection Noise
+
+```python
+"""Chapter 2, Example 3: DC magnetometry with a Ramsey sequence.
+Continues from Example 2 (same session)."""
+
+from scipy.optimize import minimize_scalar
+
+
+def eta_ramsey(tau, T2s, C0=1.0, t_dead=0.0, p=1.0, gamma=GAMMA):
+    """Projection-noise-limited Ramsey sensitivity in T/sqrt(Hz).
+
+    eta = sqrt(tau + t_dead) * exp((tau/T2s)^p) / (2 pi gamma C0 tau)
+    """
+    return (np.sqrt(tau + t_dead) * np.exp((tau / T2s) ** p)
+            / (2 * np.pi * gamma * C0 * tau))
+
+
+def readout_factor(a0, a1):
+    """Overhead of a noisy optical readout: sigma_R >= 1, equals 1 when the
+    single-shot measurement is projective."""
+    return np.sqrt(1.0 + 2.0 * (a0 + a1) / (a0 - a1) ** 2)
+
+
+T2s = 1.0e-6
+print("Ramsey DC magnetometry, T2* = %.2f us" % (T2s * 1e6))
+print(f"\n{'decay p':>9}{'t_dead (us)':>13}{'tau_opt (us)':>14}"
+      f"{'tau_opt / T2*':>15}{'eta_min (nT/sqrt(Hz))':>23}")
+print("-" * 74)
+for p in (1.0, 2.0):
+    for td in (0.0, 0.3e-6, 3.0e-6):
+        r = minimize_scalar(eta_ramsey, bracket=(1e-9, T2s, 20 * T2s),
+                            args=(T2s, 1.0, td, p))
+        print(f"{p:>9.1f}{td*1e6:>13.2f}{r.x*1e6:>14.5f}{r.x/T2s:>15.5f}"
+              f"{r.fun*1e9:>23.4f}")
+print("  With no dead time the optimum is exactly T2*/2 for both decay shapes,")
+print("  because d/dtau [ (tau/T2*)^p - (1/2) ln tau ] = 0 gives "
+      "tau^p = T2*^p/(2p).")
+
+# --- The analytic minimum, for p = 1 and p = 2, with no dead time -----------
+print("\nClosed form at t_dead = 0, tau = T2*/2:")
+for p, coef in ((1.0, np.exp(0.5)), (2.0, np.exp(0.25))):
+    ana = coef / (2 * np.pi * GAMMA) * np.sqrt(2.0 / T2s)
+    num = eta_ramsey(T2s / 2, T2s, 1.0, 0.0, p)
+    print(f"  p = {p:.0f}: exp(1/(2p)) sqrt(2/T2*) / (2 pi gamma) = "
+          f"{ana*1e9:.6f} nT/sqrt(Hz)   numeric {num*1e9:.6f}")
+
+# --- Monte Carlo: projection noise, one spin, biased to the steepest fringe -
+rng = np.random.default_rng(4712)
+tau = T2s / 2
+C = np.exp(-(tau / T2s))            # p = 1 contrast at the optimum
+slope = np.pi * GAMMA * tau * C     # dP/dB at the pi/2 bias point
+print(f"\nMonte Carlo at tau = T2*/2 = {tau*1e6:.3f} us, contrast "
+      f"{C:.6f}, dP/dB = {slope:.6e} /T")
+print(f"{'shots N':>10}{'T = N tau (ms)':>16}{'std(B) (nT)':>14}"
+      f"{'eta/sqrt(T) (nT)':>18}{'ratio':>8}")
+print("-" * 66)
+for N in (1000, 10000, 100000):
+    k = rng.binomial(N, 0.5, size=4000)
+    B_est = (k / N - 0.5) / slope
+    T_tot = N * tau
+    pred = eta_ramsey(tau, T2s, 1.0, 0.0, 1.0) / np.sqrt(T_tot)
+    print(f"{N:>10d}{T_tot*1e3:>16.4f}{B_est.std(ddof=1)*1e9:>14.5f}"
+          f"{pred*1e9:>18.5f}{B_est.std(ddof=1)/pred:>8.4f}")
+
+# --- The optical readout penalty --------------------------------------------
+print("\nOptical readout is not projective: sigma_R multiplies every eta.")
+print(f"{'alpha_0':>9}{'alpha_1':>9}{'contrast':>10}{'sigma_R':>10}"
+      f"{'eta (nT/sqrt(Hz))':>19}")
+print("-" * 57)
+eta_pn = eta_ramsey(T2s / 2, T2s, 1.0, 0.0, 1.0)
+for a0, a1 in [(0.030, 0.020), (0.30, 0.20), (3.0, 2.0), (1000.0, 700.0)]:
+    sR = readout_factor(a0, a1)
+    print(f"{a0:>9.3f}{a1:>9.3f}{(a0-a1)/a0:>10.4f}{sR:>10.3f}"
+          f"{eta_pn*sR*1e9:>19.3f}")
+print("  The last row is a repetitive or spin-to-charge readout: many photons")
+print("  per shot, sigma_R close to 1, and the projection limit within reach.")
+
+# --- Pulsed against CW, on the same spin ------------------------------------
+# CW-ODMR is continuous, so its eta already carries a 100% duty cycle. A
+# Ramsey eta at t_dead = 0 does not, so that comparison is an upper bound;
+# the like-for-like one uses the same 3 us readout the table above assumed.
+sR = readout_factor(0.030, 0.020)
+eta_R = eta_pn * sR
+r3 = minimize_scalar(eta_ramsey, bracket=(1e-9, T2s, 20 * T2s),
+                     args=(T2s, 1.0, 3.0e-6, 1.0))
+eta_R3 = r3.fun * sR
+eta_C = 2.0 * 2.0e6 / (GAMMA * 0.30 * np.sqrt(1e5))     # CW optimum, Example 2
+print(f"\nSame single NV, T2* = {T2s*1e6:.1f} us, R = 1e5 counts/s, "
+      f"sigma_R = {sR:.2f}:")
+print(f"  CW-ODMR at its own optimum : {eta_C*1e9:9.1f} nT/sqrt(Hz)")
+print(f"  Ramsey, t_dead = 0         : {eta_R*1e9:9.1f} nT/sqrt(Hz)"
+      f"   ratio {eta_C/eta_R:5.2f}")
+print(f"  Ramsey, t_dead = 3 us      : {eta_R3*1e9:9.1f} nT/sqrt(Hz)"
+      f"   ratio {eta_C/eta_R3:5.2f}")
+print("  Only the second Ramsey row is like for like, so the first ratio is")
+print("  an upper bound on the gain. What the gain is not is a narrower line")
+print("  for its own sake: it is that during the free evolution the laser and")
+print("  the microwave are both off, so neither repumping nor power")
+print("  broadening enters the phase accumulation.")
+```
+
+```text
+Ramsey DC magnetometry, T2* = 1.00 us
+
+  decay p  t_dead (us)  tau_opt (us)  tau_opt / T2*  eta_min (nT/sqrt(Hz))
+--------------------------------------------------------------------------
+      1.0         0.00       0.50000        0.50000                13.2415
+      1.0         0.30       0.65678        0.65678                16.3116
+      1.0         3.00       0.88600        0.88600                30.6462
+      2.0         0.00       0.50000        0.50000                10.3125
+      2.0         0.30       0.57906        0.57906                12.8583
+      2.0         3.00       0.67390        0.67390                25.4375
+  With no dead time the optimum is exactly T2*/2 for both decay shapes,
+  because d/dtau [ (tau/T2*)^p - (1/2) ln tau ] = 0 gives tau^p = T2*^p/(2p).
+
+Closed form at t_dead = 0, tau = T2*/2:
+  p = 1: exp(1/(2p)) sqrt(2/T2*) / (2 pi gamma) = 13.241487 nT/sqrt(Hz)   numeric 13.241487
+  p = 2: exp(1/(2p)) sqrt(2/T2*) / (2 pi gamma) = 10.312480 nT/sqrt(Hz)   numeric 10.312480
+
+Monte Carlo at tau = T2*/2 = 0.500 us, contrast 0.606531, dP/dB = 2.670043e+04 /T
+   shots N  T = N tau (ms)   std(B) (nT)  eta/sqrt(T) (nT)   ratio
+------------------------------------------------------------------
+      1000          0.5000     602.54211         592.17729  1.0175
+     10000          5.0000     187.48253         187.26290  1.0012
+    100000         50.0000      58.57488          59.21773  0.9891
+
+Optical readout is not projective: sigma_R multiplies every eta.
+  alpha_0  alpha_1  contrast   sigma_R  eta (nT/sqrt(Hz))
+---------------------------------------------------------
+    0.030    0.020    0.3333    31.639            418.942
+    0.300    0.200    0.3333    10.050            133.075
+    3.000    2.000    0.3333     3.317             43.917
+ 1000.000  700.000    0.3000     1.019             13.489
+  The last row is a repetitive or spin-to-charge readout: many photons
+  per shot, sigma_R close to 1, and the projection limit within reach.
+
+Same single NV, T2* = 1.0 us, R = 1e5 counts/s, sigma_R = 31.64:
+  CW-ODMR at its own optimum :    1504.5 nT/sqrt(Hz)
+  Ramsey, t_dead = 0         :     418.9 nT/sqrt(Hz)   ratio  3.59
+  Ramsey, t_dead = 3 us      :     969.6 nT/sqrt(Hz)   ratio  1.55
+  Only the second Ramsey row is like for like, so the first ratio is
+  an upper bound on the gain. What the gain is not is a narrower line
+  for its own sake: it is that during the free evolution the laser and
+  the microwave are both off, so neither repumping nor power
+  broadening enters the phase accumulation.
+```
+
+**What to look for.** The optimum sits at exactly $\tau = T_2^\ast/2$ for both decay shapes when there is no dead time, as the algebra requires, and the closed forms $e^{1/(2p)}\sqrt{2/T_2^\ast}/(2\pi\gamma)$ reproduce the numerical minimum to six digits. The Gaussian decay ($p = 2$) is 22% better than the exponential at the same $T_2^\ast$, because it stays flat longer before collapsing.
+
+The dead-time rows are the honest correction, and for the NV centre they are not a small one. Readout and repolarisation take of order 1 to 3 $\mu$s, while $T_2^\ast$ in a natural-abundance diamond is of order 1 $\mu$s. With $t_d = 3\ \mu$s the optimum stretches to $0.886\,T_2^\ast$ and the sensitivity degrades by a factor 2.3, purely from duty cycle. This is why isotopically purified $^{12}$C diamond matters twice over: a longer $T_2^\ast$ improves $\eta$ as $1/\sqrt{T_2^\ast}$ *and* improves the duty cycle, because the dead time stops being comparable to the sequence.
+
+The Monte Carlo confirms the projection-noise arithmetic to about 1% over two decades of shot count: binomial sampling of a biased fringe, converted through the analytic slope, reproduces $\eta/\sqrt{T}$ with no free parameters. The readout table then applies the penalty. A single centre collecting 0.03 photons per shot pays a factor 31.6 and lands at 419 nT/$\sqrt{\mathrm{Hz}}$ against a projection limit of 13.2 nT/$\sqrt{\mathrm{Hz}}$. Improving the photon budget by two decades, to a few photons per shot, recovers one decade of sensitivity; reaching a thousand photons per shot recovers essentially all of it. That is the whole argument for spin-to-charge readout, stated as a number.
+
+Finally, the comparison, which needs one correction before it can be read. On the same centre with the same photon rate, the optimised CW measurement gives 1.50 $\mu$T/$\sqrt{\mathrm{Hz}}$ and the Ramsey measurement 419 nT/$\sqrt{\mathrm{Hz}}$, a factor 3.6 — but the 419 nT figure is the $t_d = 0$ row, and CW-ODMR is continuous by construction, so its number already carries a 100% duty cycle. Compared at the same 3 $\mu$s of readout and repolarisation that the dead-time table above assumed, Ramsey gives 970 nT/$\sqrt{\mathrm{Hz}}$ and the ratio is 1.55. Both numbers are in the output: 3.6 is the zero-dead-time upper bound on the pulsed advantage, 1.55 is what a real single-centre experiment gets. The gain is therefore modest rather than merely modest-sounding, and its origin is worth being precise about: it is not that a Ramsey fringe is intrinsically better than a resonance line, it is that during the free evolution both the laser and the microwave are off, so neither optical repumping nor power broadening enters the phase accumulation.
+
+* * *
+
+## 2.3 AC Magnetometry, Dynamical Decoupling, and Noise Spectroscopy
+
+### Why Ramsey Cannot See an Oscillating Field
+
+A Ramsey sequence integrates the field over $\tau$ with unit weight. An oscillating field averages to zero over an integer number of periods, so a Ramsey measurement of a signal at $f \gg 1/\tau$ returns nothing. This is the same statement, read backwards, as the fact from Chapter 1 that free induction is maximally sensitive at DC: $|\tilde{s}_{\mathrm{FID}}(f,\tau)|^2 = \sin^2(\pi f\tau)/(\pi f)^2 \to \tau^2$ as $f \to 0$, and falls as $1/f^2$ thereafter.
+
+The fix is the fix of Chapter 1, used for the opposite purpose. A $\pi$ pulse in the middle of the sequence flips the sign of the accumulated phase, turning the sequence into a **lock-in amplifier**: blind at DC and sensitive in a passband. For dephasing that is a filter which rejects noise; for a coherent signal it is a demodulator.
+
+### The Echo as a Demodulator
+
+Take the modulation function $s(t) = \pm 1$ of Chapter 1, $+1$ before the $\pi$ pulse and $-1$ after. For a field $B(t) = B_{\mathrm{AC}}\sin(2\pi f t)$ the accumulated phase is
+
+$$ \varphi = 2\pi \frac{\gamma_e}{2\pi}\int_0^T s(t)\,B(t)\,\mathrm{d}t $$
+
+With one $\pi$ pulse at $T/2$ and $f = 1/T$ — one full period of the signal per sequence, with its zero crossing at the pulse — the two halves contribute $+T/\pi$ and $+T/\pi$, so
+
+$$ \varphi = 2\pi \frac{\gamma_e}{2\pi} B_{\mathrm{AC}} \cdot \frac{2T}{\pi} = 4\frac{\gamma_e}{2\pi}\, B_{\mathrm{AC}}\, T $$
+
+Compare a DC field of the same amplitude measured for the same time, $\varphi_{\mathrm{DC}} = 2\pi(\gamma_e/2\pi)BT$: the AC measurement is less efficient by exactly $2/\pi = 0.6366$, which is the fundamental Fourier coefficient of a square wave. That factor is the price of demodulation, and it is paid once.
+
+What is bought is very much larger. The echo measures $T_2$ rather than $T_2^\ast$, and in a solid-state host those differ by one to two decades, because the noise limiting $T_2^\ast$ is concentrated at low frequency where the echo filter has a zero. A factor $\pi/2$ lost in signal against 10 to 100 gained in coherence time — hence $\sqrt{10}$ to $10$ in sensitivity — is a trade worth making, and it is why AC magnetometry is where NV sensing is most competitive.
+
+### CPMG, XY8, and What More Pulses Buy
+
+Adding $\pi$ pulses moves the passband up and lengthens the coherence. CPMG-$N$ places $N$ pulses at $t_j = (j-\tfrac{1}{2})T/N$, so the modulation function is a square wave of period $2T/N$ and the sequence responds to a signal at
+
+$$ f_{\mathrm{res}} = \frac{N}{2T} $$
+
+**XY8** is CPMG with the rotation axes cycled as $X, Y, X, Y, Y, X, Y, X$. The cycling makes the sequence robust against pulse amplitude and detuning errors, which matters because a train of hundreds of pulses accumulates control error faster than it accumulates signal. It does not change the filter function at all: only the pulse *times* enter $\tilde{s}(f,T)$, so XY8-$N$ has exactly the filter of CPMG-$8N$.
+
+The central result about the resonant response is easier to state than to guess. For CPMG-$N$ at $f = f_{\mathrm{res}}$, each of the $N-1$ interior half-periods contributes $2T/(\pi N)$ and the two end segments contribute $T/(\pi N)$ each, so
+
+$$ \left|\tilde{s}(f_{\mathrm{res}}, T)\right| = \frac{2T}{\pi} \qquad \text{for every } N $$
+
+**More pulses do not buy signal.** The resonant response depends only on the total sequence time. What more pulses buy is permission to make $T$ longer, because $T_2(N)$ grows with $N$ — and, since $\eta \propto 1/\sqrt{T_2}$, the gain from decoupling is only the square root of the gain in coherence.
+
+### Code Example 4: Filter Functions, Exactly
+
+The filter function of a piecewise-constant modulation has a closed form: sum the Fourier transform of each segment. No quadrature is needed, and the result can be checked against the two closed forms quoted in Chapter 1.
+
+```python
+import numpy as np
+import matplotlib.pyplot as plt
+
+GAMMA = 28.025e9        # gamma_e / 2 pi, Hz per tesla
+
+
+def cpmg_times(n_pulses, T):
+    """pi-pulse times of CPMG-N: t_j = (j - 1/2) T / N, j = 1 ... N."""
+    if n_pulses == 0:
+        return np.array([])
+    return (np.arange(1, n_pulses + 1) - 0.5) * T / n_pulses
+
+
+def s_tilde(freqs, T, pulse_times):
+    """Exact Fourier transform of the +-1 modulation function s(t).
+
+    s(t) flips sign at every pulse time, so its transform is a closed sum over
+    piecewise-constant segments and needs no quadrature.
+    """
+    edges = np.concatenate(([0.0], np.asarray(pulse_times, float), [T]))
+    signs = (-1.0) ** np.arange(len(edges) - 1)
+    f = np.atleast_1d(np.asarray(freqs, float))
+    out = np.zeros(f.shape, dtype=complex)
+    nz = f != 0.0
+    w = -2j * np.pi * f[nz]
+    for k, sgn in enumerate(signs):
+        out[nz] += sgn * (np.exp(w * edges[k + 1]) - np.exp(w * edges[k])) / w
+    out[~nz] = np.sum(signs * np.diff(edges))
+    return out if np.ndim(freqs) else out[0]
+
+
+# --- Verification against the two closed forms of Chapter 1 -----------------
+T = 10.0e-6
+f = np.array([0.03, 0.1, 0.37, 1.0, 2.5]) / T
+fid = np.abs(s_tilde(f, T, [])) ** 2
+echo = np.abs(s_tilde(f, T, cpmg_times(1, T))) ** 2
+print("Filter functions against the closed forms of quantum-hardware ch1")
+print(f"{'f T':>8}{'|s~_FID|^2 num':>17}{'analytic':>15}"
+      f"{'|s~_echo|^2 num':>18}{'analytic':>15}")
+print("-" * 73)
+for fi, a, b in zip(f, fid, echo):
+    ana_f = np.sin(np.pi * fi * T) ** 2 / (np.pi * fi) ** 2
+    ana_e = 4 * np.sin(np.pi * fi * T / 2) ** 4 / (np.pi * fi) ** 2
+    print(f"{fi*T:>8.2f}{a:>17.8e}{ana_f:>15.8e}{b:>18.8e}{ana_e:>15.8e}")
+
+# --- The resonance of a CPMG / XY8 filter -----------------------------------
+# For CPMG-N the modulation is a square wave of period 2T/N, so a signal at
+# f_res = N/(2T) accumulates phase without cancelling. XY8-N has exactly the
+# same pulse *timing* as CPMG-8N; the alternating X and Y axes buy robustness
+# against pulse errors, not a different filter.
+print(f"\nResonant response, total sequence time T = {T*1e6:.1f} us")
+print(f"{'sequence':>12}{'N':>5}{'f_res (MHz)':>13}{'|s~(f_res)|/T':>15}"
+       f"{'2/pi':>9}{'max|s~|/T':>12}{'f_max/f_res':>13}")
+print("-" * 79)
+grid = np.linspace(1e2, 40e6, 400001)
+for label, N in [("FID", 0), ("Hahn echo", 1), ("CPMG-2", 2), ("CPMG-8", 8),
+                 ("XY8-1", 8), ("XY8-4", 32), ("CPMG-64", 64)]:
+    tp = cpmg_times(N, T)
+    if N == 0:
+        print(f"{label:>12}{N:>5}{'-':>13}{'-':>15}{'-':>9}"
+              f"{abs(s_tilde(1e-9, T, tp))/T:>12.6f}{'DC':>13}")
+        continue
+    f_res = N / (2 * T)
+    amp = abs(s_tilde(f_res, T, tp)) / T
+    prof = np.abs(s_tilde(grid, T, tp)) / T
+    j = int(np.argmax(prof))
+    print(f"{label:>12}{N:>5}{f_res/1e6:>13.4f}{amp:>15.8f}{2/np.pi:>9.6f}"
+          f"{prof[j]:>12.6f}{grid[j]/f_res:>13.5f}")
+print("  The resonant amplitude is exactly 2T/pi for every N: more pulses do")
+print("  not buy signal, they buy permission to make T longer.")
+
+# --- Harmonics and the odd-only rule ----------------------------------------
+N = 8
+tp = cpmg_times(N, T)
+f_res = N / (2 * T)
+print(f"\nHarmonic response of CPMG-{N} (square-wave modulation):")
+print(f"{'k':>4}{'k f_res (MHz)':>15}{'|s~|/T':>12}{'2/(pi k)':>11}")
+print("-" * 42)
+for k in range(1, 8):
+    print(f"{k:>4}{k*f_res/1e6:>15.4f}{abs(s_tilde(k*f_res, T, tp))/T:>12.8f}"
+          f"{2/(np.pi*k) if k % 2 else 0.0:>11.8f}")
+print("  Even harmonics are blind; odd harmonics respond as 1/k. A signal at")
+print("  3 f_res is therefore recorded at one third amplitude and can be")
+print("  mistaken for a weaker signal on resonance.")
+
+# --- Parseval check and the DC blindness ------------------------------------
+fine = np.linspace(0.0, 400e6, 4000001)
+for label, N in [("FID", 0), ("Hahn echo", 1), ("CPMG-8", 8)]:
+    prof = np.abs(s_tilde(fine, T, cpmg_times(N, T))) ** 2
+    integ = np.trapezoid(prof, fine)
+    print(f"  {label:<10} integral of |s~|^2 over f>0 = {integ/T:.6f} T "
+          f"(Parseval: 0.500000 T);  |s~(0)|/T = "
+          f"{abs(s_tilde(0.0, T, cpmg_times(N, T)))/T:.6f}")
+
+fig, ax = plt.subplots(figsize=(7, 4))
+fg = np.linspace(1e3, 20e6, 60001)
+for label, N in [("FID", 0), ("Hahn echo", 1), ("CPMG-8", 8), ("XY8-4", 32)]:
+    ax.loglog(fg / 1e6, np.abs(s_tilde(fg, T, cpmg_times(N, T)))**2 / T**2,
+              lw=1.0, label=label)
+ax.set_xlabel("frequency (MHz)"); ax.set_ylabel(r"$|\tilde{s}(f,T)|^2/T^2$")
+ax.set_ylim(1e-8, 2); ax.legend(fontsize=8)
+ax.set_title(f"Filter functions, T = {T*1e6:.0f} us")
+plt.tight_layout()
+plt.show()
+```
+
+```text
+Filter functions against the closed forms of quantum-hardware ch1
+     f T   |s~_FID|^2 num       analytic   |s~_echo|^2 num       analytic
+-------------------------------------------------------------------------
+    0.03   9.97042623e-11 9.97042623e-11    2.21737562e-13 2.21737562e-13
+    0.10   9.67531209e-11 9.67531209e-11    2.42711308e-12 2.42711308e-12
+    0.37   6.23375846e-11 6.23375846e-11    2.68979001e-11 2.68979001e-11
+    1.00   1.51957436e-43 1.51957436e-43    4.05284735e-11 4.05284735e-11
+    2.50   1.62113894e-12 1.62113894e-12    1.62113894e-12 1.62113894e-12
+
+Resonant response, total sequence time T = 10.0 us
+    sequence    N  f_res (MHz)  |s~(f_res)|/T     2/pi   max|s~|/T  f_max/f_res
+-------------------------------------------------------------------------------
+         FID    0            -              -        -    1.000000           DC
+   Hahn echo    1       0.0500     0.63661977 0.636620    0.724611      1.48400
+      CPMG-2    2       0.1000     0.63661977 0.636620    0.663953      1.14800
+      CPMG-8    8       0.4000     0.63661977 0.636620    0.638568      1.01075
+       XY8-1    8       0.4000     0.63661977 0.636620    0.638568      1.01075
+       XY8-4   32       1.6000     0.63661977 0.636620    0.636743      1.00068
+     CPMG-64   64       3.2000     0.63661977 0.636620    0.636650      1.00018
+  The resonant amplitude is exactly 2T/pi for every N: more pulses do
+  not buy signal, they buy permission to make T longer.
+
+Harmonic response of CPMG-8 (square-wave modulation):
+   k  k f_res (MHz)      |s~|/T   2/(pi k)
+------------------------------------------
+   1         0.4000  0.63661977 0.63661977
+   2         0.8000  0.00000000 0.00000000
+   3         1.2000  0.21220659 0.21220659
+   4         1.6000  0.00000000 0.00000000
+   5         2.0000  0.12732395 0.12732395
+   6         2.4000  0.00000000 0.00000000
+   7         2.8000  0.09094568 0.09094568
+  Even harmonics are blind; odd harmonics respond as 1/k. A signal at
+  3 f_res is therefore recorded at one third amplitude and can be
+  mistaken for a weaker signal on resonance.
+  FID        integral of |s~|^2 over f>0 = 0.499987 T (Parseval: 0.500000 T);  |s~(0)|/T = 1.000000
+  Hahn echo  integral of |s~|^2 over f>0 = 0.499962 T (Parseval: 0.500000 T);  |s~(0)|/T = 0.000000
+  CPMG-8     integral of |s~|^2 over f>0 = 0.499785 T (Parseval: 0.500000 T);  |s~(0)|/T = 0.000000
+```
+
+**What to look for.** The first table is the verification: the segment-sum transform reproduces $\sin^2(\pi fT)/(\pi f)^2$ and $4\sin^4(\pi fT/2)/(\pi f)^2$ to eight digits across two decades of $fT$, including the exact zero of the FID filter at $fT = 1$, which the code returns as $1.5\times10^{-43}$ — floating-point zero for a quantity of order $10^{-11}$.
+
+The resonance table is the main result, and it is worth reading twice. The resonant amplitude is $0.63661977\,T$ for CPMG-2, CPMG-8, XY8-1, XY8-4 and CPMG-64 alike, and $2/\pi = 0.636620$. XY8-1 and CPMG-8 produce identical numbers, confirming that the axis cycling is invisible to the filter. The last two columns record the one caveat: the *global* maximum of $|\tilde{s}|$ is slightly above the resonant value, by 13.8% for the Hahn echo at $f = 1.484 f_{\mathrm{res}}$, falling to 0.02% by $N = 64$. A single $\pi$ pulse is a poor comb; a long CPMG train is a good one.
+
+The harmonic table is the practical warning. The response at odd harmonics falls as $1/k$ — $0.2122\,T$ at $3f_{\mathrm{res}}$, $0.1273\,T$ at $5f_{\mathrm{res}}$ — and vanishes identically at even harmonics, so a real signal at three times the resonance is recorded at one third of its amplitude and is indistinguishable from a weaker signal on resonance unless $T$ is varied. Every nanoscale NMR measurement made with XY8 has to contend with this. The Parseval check closes the loop: the integral of $|\tilde{s}|^2$ over positive frequencies is $T/2$ for every sequence, to five digits, and $|\tilde{s}(0)|$ is exactly $T$ for free induction and exactly zero for anything with a $\pi$ pulse. The total sensitivity is conserved; the sequence only decides where to put it.
+
+### AC Sensitivity
+
+The resonant phase is $\varphi = 2\pi(\gamma_e/2\pi)B_{\mathrm{AC}}\cdot 2T/\pi = 4(\gamma_e/2\pi)B_{\mathrm{AC}}T$, so repeating the derivation of §2.2 with this slope gives
+
+$$ \eta_{\mathrm{AC}}(T) = \frac{\sqrt{T + t_d}}{4(\gamma_e/2\pi)\, C_0\, T}\, e^{(T/T_2)^p} $$
+
+which differs from the Ramsey expression only by $2\pi \to 4$ in the denominator — the $\pi/2$ demodulation penalty — and by $T_2^\ast \to T_2$ in the exponent, which is where the entire gain lives.
+
+The exponent $p$ is not free. Chapter 1 of the quantum-hardware course established that noise with spectral density $S(f) = A/f^\alpha$ produces a *Gaussian* echo decay, and Code Example 5 makes that quantitative: the mean-square phase under a self-similar filter is
+
+$$ \left\langle \varphi^2 \right\rangle = \left(2\pi\frac{\gamma_e}{2\pi}\right)^2 A\, T^{1+\alpha}\, I_N(\alpha), \qquad I_N(\alpha) = \int_0^\infty u^{-\alpha}\,\frac{\left|\tilde{s}(u/T, T)\right|^2}{T^2}\,\mathrm{d}u $$
+
+where $u = fT$ and $I_N(\alpha)$ is a pure number, because $|\tilde{s}(f,T)|^2/T^2$ depends on $fT$ alone. So the coherence decays as $\exp[-(T/T_2)^{1+\alpha}]$: $p = 2$ for $1/f$ noise. And since $T_2^{1+\alpha} \propto 1/I_N$, the pulse-number scaling of the coherence time is the pulse-number scaling of one integral.
+
+### Noise Spectroscopy: the Same Filter, Read Backwards
+
+The two uses of a filter are worth stating side by side, because they are the same calculation with the environment described differently.
+
+| | Coherent signal at $f$ | Noise spectrum $S(f)$ |
+| --- | --- | --- |
+| What the field is | $B_{\mathrm{AC}}\sin(2\pi f t + \phi)$ | stationary, described by $S(f)$ |
+| What the sequence returns | a phase $\varphi = 2\pi\gamma B_{\mathrm{AC}}\|\tilde{s}(f,T)\|$ | a decay $\exp(-\langle\varphi^2\rangle/2)$ |
+| The integral involved | $\tilde{s}$ at one frequency | $\int S(f)\|\tilde{s}(f,T)\|^2\mathrm{d}f$ |
+| What is swept | $T$, to find $f$ | $N$, to move $f_{\mathrm{res}}$ |
+| What is learned | the amplitude of a tone | the spectral density of the host |
+
+The second column is the noise-spectroscopy technique of the sister course, and it is the reason a magnetometer is also a characterisation tool. Approximating the filter by a delta function at $f_{\mathrm{res}}$ gives the working inversion
+
+$$ \left\langle \varphi^2 \right\rangle \approx \left(2\pi\frac{\gamma_e}{2\pi}\right)^2 S_B(f_{\mathrm{res}})\, \kappa\, T $$
+
+with $\kappa$ a pure number that Code Example 5 evaluates. Inverting a family of measured decays for $S_B(f)$ over several decades is then arithmetic.
+
+### Code Example 5: AC Sensitivity and the Noise-Spectroscopy Dual
+
+```python
+"""Chapter 2, Example 5: AC sensitivity, and the same filter read as a
+noise spectrometer. Continues from Example 4 (same session)."""
+
+from scipy.optimize import minimize_scalar
+
+
+def eta_ac(T_seq, T2, C0=1.0, t_dead=0.0, p=2.0, gamma=GAMMA):
+    """AC sensitivity in T/sqrt(Hz) for a sequence of duration T_seq.
+
+    The resonant phase is phi = 2 pi gamma B |s~| = 4 gamma B T_seq, hence the
+    factor 4 gamma T_seq in the denominator instead of the Ramsey 2 pi gamma tau.
+    """
+    return (np.sqrt(T_seq + t_dead) * np.exp((T_seq / T2) ** p)
+            / (4.0 * gamma * C0 * T_seq))
+
+
+# --- The dimensionless filter integrals -------------------------------------
+# For S_B(f) = A / f^alpha the mean-square phase is
+#   <phi^2> = (2 pi gamma)^2 A T^(1+alpha) I_N(alpha),
+#   I_N(alpha) = integral over u of u^(-alpha) |s~(u/T, T)|^2 / T^2,  u = f T,
+# a pure number: the filter function is self-similar in u. So the decay is
+# exp(-(T/T2)^(1+alpha)) - Gaussian for 1/f noise - and T2 follows from I_N.
+def filter_integrals(N, alphas=(1.0, 2.0), T=1.0):
+    u_lo = np.logspace(-6, -2, 4001)
+    u_hi = np.arange(1e-2, 100.0 * max(N, 1) + 1e-2, 5e-3)
+    u = np.concatenate((u_lo, u_hi))
+    prof = np.abs(s_tilde(u / T, T, cpmg_times(N, T))) ** 2 / T**2
+    return {a: np.trapezoid(u**(-a) * prof, u) for a in alphas}
+
+
+print("Dimensionless filter integrals I_N(alpha) and the T2(N) they imply")
+print(f"{'N':>5}{'I_N(1)':>12}{'N I_N(1)':>11}{'I_N(2)':>12}{'N^2 I_N(2)':>13}"
+      f"{'T2(N)/T2(1) a=1':>17}{'sqrt(N)':>10}")
+print("-" * 80)
+Ns = [1, 2, 4, 8, 16, 32]
+I1, I2 = {}, {}
+for N in Ns:
+    d = filter_integrals(N)
+    I1[N], I2[N] = d[1.0], d[2.0]
+    # T2 ~ I_N^(-1/(1+alpha))
+    print(f"{N:>5}{I1[N]:>12.6f}{N*I1[N]:>11.6f}{I2[N]:>12.6f}"
+          f"{N**2*I2[N]:>13.6f}{(I1[1]/I1[N])**0.5:>17.5f}"
+          f"{np.sqrt(N):>10.5f}")
+c1 = np.polyfit(np.log(Ns), np.log([I1[N] for N in Ns]), 1)[0]
+c2 = np.polyfit(np.log(Ns), np.log([I2[N] for N in Ns]), 1)[0]
+print(f"  fitted exponent of I_N vs N : alpha=1 -> {c1:.4f} (asymptote -1), "
+      f"alpha=2 -> {c2:.4f} (asymptote -2)")
+print(f"  hence T2(N) ~ N^{{alpha/(alpha+1)}}: "
+      f"{-c1/2:.4f} vs 0.5000 and {-c2/3:.4f} vs 0.6667")
+print(f"  N^2 I_N(2) is pi^2/6 = {np.pi**2/6:.6f} for every N, exactly: the")
+print("  odd-harmonic comb gives I_N(2) = (16/(pi^2 N^2)) sum_odd 1/k^4")
+print("  = (16/(pi^2 N^2))(pi^4/96) = pi^2/(6 N^2), so T2 grows as N^(2/3).")
+
+# --- Noise spectroscopy: the same integral, inverted ------------------------
+# Approximating the filter by a delta at f_res = N/(2T) gives
+#   <phi^2> = (2 pi gamma)^2 S_B(f_res) kappa T,  kappa = N I_N(1) / 2.
+kappa_inf = 4 / np.pi**2 * (7.0 / 8.0) * 1.2020569031595943      # (4/pi^2) zeta(3) 7/8
+print("\nThe delta-filter approximation used to invert a decay into S_B(f):")
+print(f"{'N':>5}{'kappa = N I_N(1)/2':>21}{'large-N limit':>15}")
+print("-" * 41)
+for N in Ns:
+    print(f"{N:>5}{N*I1[N]/2:>21.6f}{kappa_inf:>15.6f}")
+print("  kappa becomes N-independent once the filter is a proper comb. The")
+print("  limit is (4/pi^2) x (7/8) zeta(3): half the Parseval weight T, times")
+print("  the 8/pi^2 of square-wave power in the fundamental, times the sum over")
+print("  odd harmonics of 1/k^3 that 1/f noise adds on top. The Hahn echo (N=1)")
+print("  is 19 percent below it because a single pulse is a poor comb.")
+
+# --- AC sensitivity ---------------------------------------------------------
+T2_1 = 100e-6                      # Hahn-echo T2, 1/f-limited
+sigma_R = np.sqrt(1.0 + 2.0 * (0.030 + 0.020) / (0.030 - 0.020) ** 2)
+print(f"\nAC magnetometry, echo T2 = {T2_1*1e6:.0f} us, sigma_R = "
+      f"{sigma_R:.2f}, 1/f noise so p = 2")
+print(f"{'sequence':>10}{'N':>5}{'T2(N) (us)':>12}{'T_opt (us)':>12}"
+      f"{'f_res (kHz)':>13}{'eta_PN (nT)':>13}{'eta (nT)':>11}")
+print("-" * 76)
+etas = []
+for label, N in [("echo", 1), ("CPMG-2", 2), ("XY8-1", 8), ("XY8-2", 16),
+                 ("XY8-4", 32)]:
+    T2N = T2_1 * (I1[1] / I1[N]) ** 0.5
+    r = minimize_scalar(eta_ac, bracket=(1e-9, T2N, 20 * T2N),
+                        args=(T2N, 1.0, 0.0, 2.0))
+    etas.append((N, r.fun * sigma_R))
+    print(f"{label:>10}{N:>5}{T2N*1e6:>12.3f}{r.x*1e6:>12.3f}"
+          f"{N/(2*r.x)/1e3:>13.3f}{r.fun*1e9:>13.4f}"
+          f"{r.fun*sigma_R*1e9:>11.3f}")
+sl = np.polyfit(np.log([e[0] for e in etas]), np.log([e[1] for e in etas]), 1)[0]
+print(f"  T_opt = T2(N)/2 in every row, and eta_min scales as "
+      f"N^{{{sl:.4f}}}")
+print(f"  predicted -alpha/(2(alpha+1)) = {-1/4:.4f}: doubling the pulse count")
+print(f"  buys only {2**0.25:.3f} in sensitivity, and moves f_res up by 2.")
+
+# --- The two readings of one filter, side by side ---------------------------
+N, T_seq = 8, 50e-6
+f_res = N / (2 * T_seq)
+A_1f = 2.0 / ((2 * np.pi * GAMMA) ** 2 * T2_1**2 * I1[1])
+phi_coh = 2 * np.pi * GAMMA * 100e-9 * abs(s_tilde(f_res, T_seq,
+                                                   cpmg_times(N, T_seq)))
+phi2_inc = (2 * np.pi * GAMMA) ** 2 * A_1f * T_seq**2 * I1[N]
+print(f"\nOne filter, two uses, at N = {N} and T = {T_seq*1e6:.0f} us "
+      f"(f_res = {f_res/1e3:.1f} kHz):")
+print(f"  a 100 nT tone on resonance    -> phase {phi_coh:.6f} rad")
+print(f"  the 1/f bath, S_B = {A_1f/f_res:.4e} T^2/Hz -> rms phase "
+      f"{np.sqrt(phi2_inc):.6f} rad")
+print(f"  signal-to-noise in phase      : "
+      f"{phi_coh/np.sqrt(phi2_inc):.4f}")
+print(f"  the bath as a field, sqrt(<phi^2>)/(4 gamma T) = "
+      f"{np.sqrt(phi2_inc)/(4*GAMMA*T_seq)*1e9:.2f} nT")
+print("  A coherent tone gives a phase; a spectrum gives a decay. Sweeping N")
+print("  scans f_res and turns the second reading into a spectrum of the host.")
+```
+
+```text
+Dimensionless filter integrals I_N(alpha) and the T2(N) they imply
+    N      I_N(1)   N I_N(1)      I_N(2)   N^2 I_N(2)  T2(N)/T2(1) a=1   sqrt(N)
+--------------------------------------------------------------------------------
+    1    0.693134   0.693134    1.644932     1.644932          1.00000   1.00000
+    2    0.392433   0.784866    0.411233     1.644934          1.32900   1.41421
+    4    0.204399   0.817596    0.102808     1.644934          1.84149   2.00000
+    8    0.104363   0.834906    0.025702     1.644934          2.57712   2.82843
+   16    0.052732   0.843707    0.006426     1.644934          3.62554   4.00000
+   32    0.026504   0.848126    0.001606     1.644934          5.11391   5.65685
+  fitted exponent of I_N vs N : alpha=1 -> -0.9486 (asymptote -1), alpha=2 -> -2.0000 (asymptote -2)
+  hence T2(N) ~ N^{alpha/(alpha+1)}: 0.4743 vs 0.5000 and 0.6667 vs 0.6667
+  N^2 I_N(2) is pi^2/6 = 1.644934 for every N, exactly: the
+  odd-harmonic comb gives I_N(2) = (16/(pi^2 N^2)) sum_odd 1/k^4
+  = (16/(pi^2 N^2))(pi^4/96) = pi^2/(6 N^2), so T2 grows as N^(2/3).
+
+The delta-filter approximation used to invert a decay into S_B(f):
+    N   kappa = N I_N(1)/2  large-N limit
+-----------------------------------------
+    1             0.346567       0.426278
+    2             0.392433       0.426278
+    4             0.408798       0.426278
+    8             0.417453       0.426278
+   16             0.421853       0.426278
+   32             0.424063       0.426278
+  kappa becomes N-independent once the filter is a proper comb. The
+  limit is (4/pi^2) x (7/8) zeta(3): half the Parseval weight T, times
+  the 8/pi^2 of square-wave power in the fundamental, times the sum over
+  odd harmonics of 1/k^3 that 1/f noise adds on top. The Hahn echo (N=1)
+  is 19 percent below it because a single pulse is a poor comb.
+
+AC magnetometry, echo T2 = 100 us, sigma_R = 31.64, 1/f noise so p = 2
+  sequence    N  T2(N) (us)  T_opt (us)  f_res (kHz)  eta_PN (nT)   eta (nT)
+----------------------------------------------------------------------------
+      echo    1     100.000      50.000       10.000       1.6199     51.251
+    CPMG-2    2     132.900      66.450       15.049       1.4051     44.457
+     XY8-1    8     257.712     128.856       31.042       1.0091     31.925
+     XY8-2   16     362.554     181.277       44.131       0.8507     26.916
+     XY8-4   32     511.391     255.696       62.574       0.7163     22.663
+  T_opt = T2(N)/2 in every row, and eta_min scales as N^{-0.2367}
+  predicted -alpha/(2(alpha+1)) = -0.2500: doubling the pulse count
+  buys only 1.189 in sensitivity, and moves f_res up by 2.
+
+One filter, two uses, at N = 8 and T = 50 us (f_res = 80.0 kHz):
+  a 100 nT tone on resonance    -> phase 0.560500 rad
+  the 1/f bath, S_B = 1.1632e-19 T^2/Hz -> rms phase 0.274378 rad
+  signal-to-noise in phase      : 2.0428
+  the bath as a field, sqrt(<phi^2>)/(4 gamma T) = 48.95 nT
+  A coherent tone gives a phase; a spectrum gives a decay. Sweeping N
+  scans f_res and turns the second reading into a spectrum of the host.
+```
+
+**What to look for.** The filter integrals are the numerical heart of the example. For $\alpha = 1$, $N\,I_N(1)$ creeps from 0.693 at $N = 1$ towards 0.848 at $N = 32$, so $I_N \propto N^{-1}$ asymptotically and $T_2(N) \propto N^{1/2}$. The fitted exponent over this range is $0.4743$, which should be compared with the $0.476$ that Code Example 7 of the quantum-hardware course obtained from an entirely different method — explicit noise trajectories rather than a filter integral — against the same prediction of $0.5$. Two independent routes to the same finite-$N$ deficit is a good sign that both are right.
+
+For $\alpha = 2$ something exact happens: $N^2 I_N(2) = 1.644934 = \pi^2/6$ for every $N$, to six digits, including $N = 1$. The odd-harmonic comb makes this transparent — $I_N(2) = (16/\pi^2 N^2)\sum_{k\ \mathrm{odd}}k^{-4} = (16/\pi^2N^2)(\pi^4/96) = \pi^2/(6N^2)$ — and it delivers $T_2(N) \propto N^{2/3}$ with no fitting at all. Exercise 3 asks you to verify the $N = 1$ case analytically.
+
+The $\kappa$ table quantifies the delta-filter approximation. $\kappa = N I_N(1)/2$ converges to $(4/\pi^2)\cdot\frac{7}{8}\zeta(3) = 0.426278$: half the Parseval weight $T$, times the $8/\pi^2$ of square-wave power in the fundamental, times $\sum_{k\ \mathrm{odd}}k^{-3}$ for the harmonics that $1/f$ noise still reaches. The Hahn echo is 19% below the limit; by XY8-4 the error is under 0.6%. Noise spectroscopy with a single $\pi$ pulse needs the exact integral; with a long train the delta approximation is fine. The sensitivity table is the payoff, and it is deliberately unexciting. Going from a Hahn echo to XY8-4 stretches $T_2$ by a factor 5.1 and improves $\eta$ by a factor 2.26 — the square root, as promised — from 51.3 to 22.7 nT/$\sqrt{\mathrm{Hz}}$, while moving the passband from 10 kHz to 63 kHz. The fitted scaling is $N^{-0.237}$ against the predicted $-\alpha/(2(\alpha+1)) = -0.25$. Thirty-two pulses buy a factor of two. Anyone promising more from dynamical decoupling alone is promising something the filter function does not deliver.
+
+The final block puts both readings on the same sequence: a 100 nT tone at 80 kHz gives 0.5605 rad of phase while the $1/f$ bath of the same host contributes 0.2744 rad of rms phase, a signal-to-noise ratio of 2.04. Expressed as a field, the bath is worth 49 nT over that sequence. The instrument and its own noise floor are computed by the same integral.
+
+* * *
+
+## 2.4 $T_1$ Relaxometry: the Gigahertz Window
+
+### The Frequency a Pulse Sequence Cannot Reach
+
+Everything in §2.3 lives below a few tens of megahertz, and the reason is elementary: the highest passband a CPMG train can produce is set by how closely the $\pi$ pulses can be spaced, $f_{\max} \approx 1/(2t_\pi)$. A 20 ns $\pi$ pulse caps the sequence at 25 MHz. Nothing in the pulse-sequence toolbox reaches the gigahertz band where magnons propagate, where spin waves in a ferromagnetic film resonate, where Johnson noise in a metal has most of its power, and where paramagnetic spins with nanosecond correlation times put their noise.
+
+The NV centre reaches that band with no pulses at all, because its own transition frequency is 2.87 GHz. Magnetic noise at $f_0$ drives transitions out of $m_s = 0$, and the resulting relaxation is a direct measurement of the noise power at $f_0$. This is **relaxometry**, and it is the least glamorous and most transferable NV technique in this chapter.
+
+### From a Relaxation Rate to a Spectral Density
+
+Let one transverse field component have one-sided power spectral density $S_\perp(f)$ in T$^2$/Hz, normalised so that $\langle B_\perp^2\rangle = \int_0^\infty S_\perp\,\mathrm{d}f$, and let $x$ and $y$ be uncorrelated with equal power. The interaction is $H_{\mathrm{int}} = \hbar\gamma_e(B_x S_x + B_y S_y)$ with $S_x$, $S_y$ the spin-1 operators, whose matrix elements between $m_s = 0$ and $m_s = \mp 1$ have modulus $1/\sqrt{2}$. Fermi's golden rule gives
+
+$$ \Gamma_{0\to\mp1} = \int_{-\infty}^{\infty}\mathrm{d}t\; e^{i\omega_0 t}\left\langle \left(H_{\mathrm{int}}/\hbar\right)_{\mp1,0}(t)\, \left(H_{\mathrm{int}}/\hbar\right)^\ast_{\mp1,0}(0)\right\rangle = \gamma_e^2\left[\tfrac{1}{2}\tfrac{S_\perp(f_0)}{2} + \tfrac{1}{2}\tfrac{S_\perp(f_0)}{2}\right] = \frac{\gamma_e^2 S_\perp(f_0)}{2} $$
+
+where the factor $S_\perp(f_0)/2$ is the Fourier transform of the autocorrelation of a real stationary process at $\omega_0 = 2\pi f_0$ expressed through the one-sided density. With symmetric up and down rates $\Gamma$ — the high-temperature limit, which at 2.87 GHz and 300 K is excellent — the population of $m_s = 0$ obeys $\dot{P_0} = -2\Gamma P_0 + \Gamma(1 - P_0) = -3\Gamma(P_0 - \tfrac{1}{3})$, so
+
+$$ \boxed{\ \frac{1}{T_1} = 3\Gamma = \frac{3\gamma_e^2}{2}\, S_\perp(f_0) \qquad\Longleftrightarrow\qquad S_\perp(f_0) = \frac{2}{3\gamma_e^2 T_1}\ } $$
+
+A measured $T_1$ is a measured spectral density. Note that $\gamma_e$ here is the **angular** gyromagnetic ratio, $1.7609\times10^{11}$ rad s$^{-1}$T$^{-1}$; using the cyclic one costs a factor of 39.
+
+### What Sets the Intrinsic $T_1$, and What Can Be Added to It
+
+At room temperature the intrinsic $T_1$ of a bulk NV centre is of order milliseconds and is set by a two-phonon Raman process — a lattice property, strongly temperature-dependent, and not magnetic at all. Below about 100 K it lengthens by orders of magnitude. Everything a relaxometry experiment detects appears as an *addition* to that intrinsic rate, which is why the intrinsic $T_1$ is the noise floor of the technique, and why cooling improves it.
+
+The probe frequency is tunable, because $f_\pm = D \pm (\gamma_e/2\pi)B_\parallel$. A bias field sweeps the lower branch from 2.87 GHz down through zero at $B = D/(\gamma_e/2\pi) = 102.4$ mT, and the upper branch up to 5.7 GHz and beyond. That is a spectrum analyser with a tuning range of several gigahertz, and the point where the lower branch crosses zero is the **ground-state level anticrossing**, where the NV becomes degenerate with a bare electron spin in its environment and cross-relaxation is at its strongest.
+
+### Code Example 6: Relaxometry as Spectroscopy
+
+```python
+import numpy as np
+
+GAMMA_C = 28.025e9              # gamma_e / 2 pi, Hz per tesla
+GAMMA = 2 * np.pi * GAMMA_C     # gamma_e, rad/s per tesla
+D_GS = 2.870e9                  # zero-field splitting, Hz
+MU_B = 9.2740100783e-24         # Bohr magneton, J/T
+MU0_4PI = 1.0e-7                # mu_0 / 4 pi, T m / A
+
+
+def s_perp_from_T1(T1):
+    """One-sided PSD of one transverse field component, T^2/Hz.
+
+    1/T1 = 3 gamma^2 S_perp(f_0) / 2 for the m_s = 0 population of a spin-1
+    with symmetric up and down rates.
+    """
+    return 2.0 / (3.0 * GAMMA**2 * T1)
+
+
+def T1_from_s_perp(S_perp):
+    return 2.0 / (3.0 * GAMMA**2 * S_perp)
+
+
+print("T1 relaxometry: the NV as a GHz spectrum analyser")
+print(f"  gamma_e = {GAMMA:.6e} rad/s/T,  3 gamma^2 / 2 = "
+      f"{1.5*GAMMA**2:.6e} (rad/s)^2/T^2")
+print(f"\n{'T1':>10}{'1/T1 (1/s)':>13}{'S_perp (T^2/Hz)':>18}"
+      f"{'sqrt(S_perp)':>16}")
+print("-" * 57)
+for label, T1 in [("6 ms", 6.0e-3), ("1 ms", 1.0e-3), ("100 us", 1.0e-4),
+                  ("10 us", 1.0e-5)]:
+    S = s_perp_from_T1(T1)
+    print(f"{label:>10}{1/T1:>13.4f}{S:>18.4e}"
+          f"{np.sqrt(S)*1e12:>13.3f} pT/rtHz")
+
+# --- Where the passband sits, and how it is tuned ---------------------------
+print("\nThe probe frequency is the NV transition itself, tuned by the bias "
+      "field:")
+print(f"{'B (mT)':>9}{'f- = D - gamma B (GHz)':>25}"
+      f"{'f+ = D + gamma B (GHz)':>25}")
+print("-" * 59)
+for B_mT in [0.0, 25.0, 50.0, 90.0, 102.4]:
+    print(f"{B_mT:>9.1f}{(D_GS - GAMMA_C*B_mT*1e-3)/1e9:>25.4f}"
+          f"{(D_GS + GAMMA_C*B_mT*1e-3)/1e9:>25.4f}")
+print("  At 102.4 mT the lower branch reaches zero: that is the ground-state")
+print("  level anticrossing, where the NV is resonant with a bare electron spin")
+print("  in the environment and cross-relaxation is strongest.")
+
+# --- A fluctuating spin bath at a surface -----------------------------------
+# Order-of-magnitude forward model: a sheet of paramagnetic moments of areal
+# density sigma_s at distance d, each with correlation time tau_c. The mean
+# square field is (mu_0 mu / 4 pi)^2 sigma_s integrated over the sheet,
+# integral 2 pi rho drho / (rho^2 + d^2)^3 = pi / (2 d^4).
+def bath_noise(sigma_s, d, tau_c, moment=MU_B, f=D_GS):
+    b2 = (MU0_4PI * moment) ** 2 * sigma_s * np.pi / (2.0 * d**4)
+    lorentz = 4.0 * tau_c / (1.0 + (2 * np.pi * f * tau_c) ** 2)
+    return b2, b2 * lorentz
+
+
+print("\nA fluctuating surface-spin sheet, seen at f_0 = 2.870 GHz")
+print(f"{'sigma_s (1/nm^2)':>18}{'d (nm)':>8}{'tau_c (ns)':>12}"
+      f"{'B_rms (uT)':>12}{'S_perp (T^2/Hz)':>18}{'added 1/T1 (1/s)':>18}")
+print("-" * 86)
+for sig_nm, d_nm, tc_ns in [(0.1, 5.0, 1.0), (0.1, 10.0, 1.0),
+                            (0.1, 5.0, 0.1), (1.0, 5.0, 1.0),
+                            (0.1, 20.0, 1.0)]:
+    b2, S = bath_noise(sig_nm * 1e18, d_nm * 1e-9, tc_ns * 1e-9)
+    print(f"{sig_nm:>18.2f}{d_nm:>8.1f}{tc_ns:>12.2f}"
+          f"{np.sqrt(b2)*1e6:>12.4f}{S:>18.4e}{1.5*GAMMA**2*S:>18.4f}")
+print("  The 1/d^4 dependence is the whole design rule of relaxometry: halving")
+print("  the standoff multiplies the detected noise power by sixteen.")
+
+# --- What a relaxation measurement can resolve ------------------------------
+T1_0 = 6.0e-3
+G0 = 1.0 / T1_0
+print(f"\nResolving an added rate against an intrinsic T1 = {T1_0*1e3:.0f} ms "
+      f"(Gamma_0 = {G0:.2f} /s)")
+print(f"{'rate resolution':>17}{'delta Gamma (1/s)':>19}"
+      f"{'delta S_perp (T^2/Hz)':>23}{'field equivalent':>19}")
+print("-" * 78)
+for frac in [0.10, 0.01, 0.001]:
+    dG = frac * G0
+    dS = 2.0 * dG / (3.0 * GAMMA**2)
+    print(f"{frac*100:>15.1f} %{dG:>19.4f}{dS:>23.4e}"
+          f"{np.sqrt(dS)*1e12:>16.3f} pT/rtHz")
+```
+
+```text
+T1 relaxometry: the NV as a GHz spectrum analyser
+  gamma_e = 1.760863e+11 rad/s/T,  3 gamma^2 / 2 = 4.650956e+22 (rad/s)^2/T^2
+
+        T1   1/T1 (1/s)   S_perp (T^2/Hz)    sqrt(S_perp)
+---------------------------------------------------------
+      6 ms     166.6667        3.5835e-21       59.862 pT/rtHz
+      1 ms    1000.0000        2.1501e-20      146.632 pT/rtHz
+    100 us   10000.0000        2.1501e-19      463.691 pT/rtHz
+     10 us  100000.0000        2.1501e-18     1466.320 pT/rtHz
+
+The probe frequency is the NV transition itself, tuned by the bias field:
+   B (mT)   f- = D - gamma B (GHz)   f+ = D + gamma B (GHz)
+-----------------------------------------------------------
+      0.0                   2.8700                   2.8700
+     25.0                   2.1694                   3.5706
+     50.0                   1.4688                   4.2713
+     90.0                   0.3478                   5.3922
+    102.4                   0.0002                   5.7398
+  At 102.4 mT the lower branch reaches zero: that is the ground-state
+  level anticrossing, where the NV is resonant with a bare electron spin
+  in the environment and cross-relaxation is strongest.
+
+A fluctuating surface-spin sheet, seen at f_0 = 2.870 GHz
+  sigma_s (1/nm^2)  d (nm)  tau_c (ns)  B_rms (uT)   S_perp (T^2/Hz)  added 1/T1 (1/s)
+--------------------------------------------------------------------------------------
+              0.10     5.0        1.00     14.7024        2.6508e-21          123.2878
+              0.10    10.0        1.00      3.6756        1.6568e-22            7.7055
+              0.10     5.0        0.10     14.7024        2.0336e-20          945.8116
+              1.00     5.0        1.00     46.4930        2.6508e-20         1232.8782
+              0.10    20.0        1.00      0.9189        1.0355e-23            0.4816
+  The 1/d^4 dependence is the whole design rule of relaxometry: halving
+  the standoff multiplies the detected noise power by sixteen.
+
+Resolving an added rate against an intrinsic T1 = 6 ms (Gamma_0 = 166.67 /s)
+  rate resolution  delta Gamma (1/s)  delta S_perp (T^2/Hz)   field equivalent
+------------------------------------------------------------------------------
+           10.0 %            16.6667             3.5835e-22          18.930 pT/rtHz
+            1.0 %             1.6667             3.5835e-23           5.986 pT/rtHz
+            0.1 %             0.1667             3.5835e-24           1.893 pT/rtHz
+```
+
+**What to look for.** The first table is the conversion table of the technique. A 6 ms $T_1$ corresponds to $3.58\times10^{-21}$ T$^2$/Hz of transverse field noise at 2.87 GHz, an amplitude of 60 pT/$\sqrt{\mathrm{Hz}}$. That number deserves to be compared with the 22 nT/$\sqrt{\mathrm{Hz}}$ of the best pulsed sequence in §2.3. Relaxometry is nearly three decades more sensitive to field *noise* than dynamical decoupling is to a field *tone* — because it integrates for milliseconds instead of hundreds of microseconds, and because a relaxation rate is a first-order rather than a second-order effect. It buys that with a total loss of phase information: relaxometry measures a power, never an amplitude and never a direction.
+
+The surface-spin table shows the design rule. The mean square field from a sheet of moments at distance $d$ scales as $1/d^4$ — the dipole field falls as $1/d^3$ and the number of spins within range grows as $d^2$, so the power goes as $d^{-6}\cdot d^2$ — and halving the standoff multiplies the detected noise power by 16. A sheet of 0.1 unpaired spins per square nanometre at 5 nm, fluctuating with a 1 ns correlation time, adds 123 s$^{-1}$ to a relaxation rate whose intrinsic value is 167 s$^{-1}$: a change of 74%, trivially detectable. Move the same sheet to 20 nm and it adds 0.48 s$^{-1}$, a 0.3% change, at the edge of what a careful measurement resolves. Relaxometry is a surface technique whether or not that was the intention.
+
+The Lorentzian in the model is doing real work. The 0.1 ns row has the *same* rms field as the 1 ns row and produces almost eight times the relaxation, because shortening the correlation time moves spectral weight up to 2.87 GHz. Relaxometry is sensitive to the dynamics of the bath rather than to its magnitude, so a static or very slow bath is invisible however strong it is — the exact complement of the Ramsey measurement of §2.2, which sees static fields and is blind to fast ones. The resolution table converts a fractional precision on $\Gamma$ into a detectable spectral density: 1% resolution on a 6 ms $T_1$ corresponds to 6 pT/$\sqrt{\mathrm{Hz}}$ of added field noise at 2.87 GHz. That closes the division of labour stated at the start of this section — pulse sequences own kilohertz to tens of megahertz, relaxometry owns the gigahertz — and a complete characterisation of a material's magnetic noise uses both windows on the same $S(f)$.
+
+* * *
+
+## 2.5 Imaging Magnetic Matter
+
+### Two Geometries
+
+Everything so far concerned one sensor and one field. Imaging requires a spatial arrangement, and there are two.
+
+**Scanning NV microscopy** puts a single centre in the apex of a diamond tip and raster-scans it over a sample. The resolution is set by the **standoff** $d$ and not by any optical wavelength, because the field is measured locally; shallow implantation and tip fabrication deliver 20 to 100 nm. The price is throughput: one pixel at a time, at the sensitivity of a single centre.
+
+**Wide-field ensemble imaging** places the sample on a diamond with a near-surface NV layer and images the fluorescence onto a camera. Every pixel is an independent magnetometer with $\eta$ improved by $\sqrt{N}$, so the whole field of view is acquired at once — but the resolution is diffraction-limited to a few hundred nanometres and the standoff is the thickness of the NV layer. The trade-off is the one Chapter 1 mapped.
+
+### What There Is to See
+
+The following are the magnetic phenomena of materials science that an NV magnetometer addresses, ordered roughly by how much field they produce.
+
+**Magnetic domains and domain walls in perpendicular films.** A uniformly magnetised infinite sheet produces no external field; all the stray field comes from edges and walls. A wall in a film with areal moment $m_s = M_s t$ acts as a line of magnetic charge and produces $\mu_0 m_s/(2\pi d)$ at standoff $d$, which for a nanometre of a typical transition-metal ferromagnet is millitesla at tens of nanometres — enormous by NV standards, and large enough that the linear Zeeman approximation of §2.1 fails. Domain-wall imaging is therefore easy in signal and hard in interpretation, and the useful measurements are of wall *structure*: the internal magnetisation profile, the chirality of Dzyaloshinskii-Moriya walls, the profile of a skyrmion.
+
+**Two-dimensional van der Waals magnets.** A monolayer magnet carries of order 10 to 20 Bohr magnetons per square nanometre, one to two decades below a metallic film, and produces edge fields of hundreds of microtesla at tens of nanometres. The scientific value is high because the alternatives are poor: the sample is a flake a few micrometres across whose total moment is far below the resolution of a bulk magnetometer, and NV magnetometry measures the absolute magnetisation of a *single layer* without a reference.
+
+**Antiferromagnets.** A compensated antiferromagnet produces no net stray field, which is exactly why it is difficult and why it is interesting. What NV magnetometry sees is the *imperfection*: uncompensated moments at a surface or a domain wall, and the magnetoelectric response of a multiferroic. The signal is one to three decades below a ferromagnet. Relaxometry offers a second route, since antiferromagnetic resonances can fall inside the gigahertz window of §2.4.
+
+**Current distributions.** A magnetic image is an image of current, after an inversion — and there is no other way to see where current flows inside a working device: hydrodynamic electron flow in graphene, current crowding at contacts, filamentary conduction in a resistive switch, non-uniform current in a battery electrode. The inversion is the difficulty, and Code Example 7 quantifies it.
+
+**Fluctuating spins and gigahertz noise.** Relaxometry, §2.4: paramagnetic labels, surface spin baths, magnons in an adjacent film, Johnson noise in a metal.
+
+Spintronics supplies most of the samples in that list, and the [Introduction to Spintronics](<../spintronics-introduction/index.html>) course in this dojo covers the magnetism that produces the fields measured here: domain walls, Dzyaloshinskii-Moriya interaction, spin-orbit torques, antiferromagnetic order and magnon transport. Read the two together and the sensor and the sample are in the same picture.
+
+### The Standoff Sets the Resolution, Exponentially
+
+One result governs all of it. Above a planar source there are no currents and no charges, so the field satisfies Laplace's equation, and a Fourier component of in-plane wavevector $k$ decays as $e^{-kd}$. A source feature of period $L$ is therefore attenuated by $e^{-2\pi d/L}$ at standoff $d$: features finer than $d$ are suppressed by more than $e^{-2\pi} \approx 2\times10^{-3}$.
+
+The consequences run in both directions. Forward, it means the resolution of a scanning magnetometer is the standoff, however fine the scan grid. Backward, it means that recovering a source from a field map requires multiplying the measured Fourier components by $e^{+kd}$ — which multiplies the *noise* by the same factor. The inverse problem is exponentially ill-conditioned in $kd$, and no amount of averaging changes the exponent. Regularisation, in the form of a cutoff at $k \approx 1/d$ or a Tikhonov penalty, is not a numerical convenience; it is the statement that information beyond $k \approx 1/d$ was never measured.
+
+### Code Example 7: Stray Fields, and the Cost of Inverting Them
+
+```python
+import numpy as np
+
+MU0_4PI = 1.0e-7                # mu_0 / 4 pi, T m / A
+MU0 = 4 * np.pi * 1e-7          # T m / A
+MU_B = 9.2740100783e-24         # J/T
+MU_P = 1.41060679736e-26        # J/T
+
+ETA_DC = 419e-9                 # single-NV Ramsey sensitivity, Example 3
+ETA_AC = 51.3e-9                # single-NV Hahn-echo AC sensitivity, Example 5
+
+
+def b_dipole(moment, d):
+    """Field of a point moment on its axis, at distance d: mu_0 m / (2 pi d^3)."""
+    return 2.0 * MU0_4PI * moment / d**3
+
+
+def b_edge(sheet_moment, d):
+    """Field a distance d above the edge of an out-of-plane magnetised sheet.
+
+    The edge is a line of magnetic charge of linear density lambda = m_s
+    (areal moment times unit length), giving mu_0 lambda / (2 pi d).
+    """
+    return MU0 * sheet_moment / (2.0 * np.pi * d)
+
+
+def b_wire(current, d):
+    """Field of a straight wire: mu_0 I / (2 pi d)."""
+    return MU0 * current / (2.0 * np.pi * d)
+
+
+d = 20e-9
+print(f"Stray fields at a standoff of {d*1e9:.0f} nm, and what they cost to "
+      f"detect")
+print(f"  single-NV DC sensitivity {ETA_DC*1e9:.0f} nT/sqrt(Hz), "
+      f"AC {ETA_AC*1e9:.1f} nT/sqrt(Hz)")
+
+# Areal moments. Co-like: M_s = 1.4e6 A/m over 1 nm. Monolayer vdW magnet:
+# about 15 mu_B per nm^2. Uncompensated antiferromagnet surface: 0.01 mu_B
+# per (0.4 nm)^2 surface cell.
+m_co = 1.4e6 * 1e-9
+m_vdw = 15.0 * MU_B / 1e-18
+m_afm = 0.01 * MU_B / (0.4e-9) ** 2
+sources = [
+    ("single electron spin",       b_dipole(MU_B, d)),
+    ("single proton",              b_dipole(MU_P, d)),
+    ("1 nm Co-like film, edge",    b_edge(m_co, d)),
+    ("monolayer vdW magnet, edge", b_edge(m_vdw, d)),
+    ("uncompensated AFM surface",  b_edge(m_afm, d)),
+    ("1 uA current line",          b_wire(1e-6, d)),
+    ("1 nA current line",          b_wire(1e-9, d)),
+]
+print(f"\n{'source':>28}{'B (T)':>13}{'B':>14}{'t for SNR 1, DC':>18}"
+      f"{'AC':>14}")
+print("-" * 87)
+for name, B in sources:
+    unit = ("%9.3f mT" % (B * 1e3)) if B > 1e-4 else (
+        ("%9.3f uT" % (B * 1e6)) if B > 1e-7 else ("%9.3f nT" % (B * 1e9)))
+    t_dc, t_ac = (ETA_DC / B) ** 2, (ETA_AC / B) ** 2
+    print(f"{name:>28}{B:>13.4e}{unit:>14}{t_dc:>15.3e} s{t_ac:>11.3e} s")
+
+# --- Standoff sets resolution, exponentially ---------------------------------
+# Above a planar source the field obeys Laplace's equation, so a Fourier
+# component of wavevector k in the source plane arrives attenuated by
+# exp(-k d). Spatial frequencies finer than 1/d are gone, whatever the pixel
+# size of the scan.
+print(f"\nThe Laplace filter exp(-k d): a source feature of period L, "
+      f"seen at standoff d")
+print(f"{'L / d':>8}{'k d = 2 pi d / L':>19}{'exp(-k d)':>13}"
+      f"{'exp(+k d) needed to invert':>29}")
+print("-" * 69)
+for ratio in [10.0, 4.0, 2.0, 1.0, 0.5, 0.25]:
+    kd = 2 * np.pi / ratio
+    print(f"{ratio:>8.2f}{kd:>19.5f}{np.exp(-kd):>13.4e}"
+          f"{np.exp(kd):>29.4e}")
+print("  Features finer than about the standoff are attenuated by more than")
+print("  e^{-2 pi} = 1.9e-3. Reconstructing them means multiplying the measured")
+print("  map by e^{+k d}, which multiplies the noise by the same factor: the")
+print("  inverse problem is exponentially ill-conditioned, and regularisation")
+print("  is not optional.")
+
+# --- Current reconstruction, with and without regularisation ----------------
+# A 200 nm wide strip carrying 1 uA has sheet current density K = I/w = 5 A/m.
+rng = np.random.default_rng(881)
+n, dx = 512, 5e-9
+x = (np.arange(n) - n // 2) * dx
+w, K0 = 200e-9, 1.0e-6 / 200e-9
+Ky = np.where(np.abs(x) < w / 2, K0, 0.0)
+k = 2 * np.pi * np.fft.fftfreq(n, dx)
+for standoff in (20e-9, 50e-9):
+    # Forward map for a sheet current: Bz(k) = (mu_0/2) i sign(k) K(k) e^{-|k| d}
+    kernel = 0.5 * MU0 * 1j * np.sign(k) * np.exp(-np.abs(k) * standoff)
+    Bz = np.real(np.fft.ifft(kernel * np.fft.fft(Ky)))
+    Bm = Bz + ETA_AC * rng.standard_normal(n)        # 1 s of averaging per pixel
+    good = np.abs(kernel) > 0.0
+    inv = np.zeros(n, dtype=complex)
+    inv[good] = np.fft.fft(Bm)[good] / kernel[good]
+    K_naive = np.real(np.fft.ifft(inv))
+    K_reg = np.real(np.fft.ifft(np.where(np.abs(k) < 1.0 / standoff, inv, 0.0)))
+    inside = np.abs(x) < w / 2
+    print(f"\n  standoff {standoff*1e9:.0f} nm: peak |Bz| = "
+          f"{np.abs(Bz).max()*1e6:.3f} uT, noise {ETA_AC*1e9:.1f} nT/pixel, "
+          f"SNR {np.abs(Bz).max()/ETA_AC:.0f}")
+    print(f"    true sheet current density      : {K0:.4f} A/m")
+    print(f"    naive inversion, mean over strip: "
+          f"{np.mean(K_naive[inside]):.4e} A/m")
+    print(f"    cut at k = 1/d, mean over strip : "
+          f"{np.mean(K_reg[inside]):.4f} A/m")
+    print(f"    cut at k = 1/d, rms error       : "
+          f"{np.sqrt(np.mean((K_reg - Ky)**2)):.4f} A/m")
+    print(f"    residual at k = 0 (kernel null)  : "
+          f"{np.abs(kernel[0]):.1e} - a uniform sheet current is invisible")
+```
+
+```text
+Stray fields at a standoff of 20 nm, and what they cost to detect
+  single-NV DC sensitivity 419 nT/sqrt(Hz), AC 51.3 nT/sqrt(Hz)
+
+                      source        B (T)             B   t for SNR 1, DC            AC
+---------------------------------------------------------------------------------------
+        single electron spin   2.3185e-07      0.232 uT      3.266e+00 s  4.896e-02 s
+               single proton   3.5265e-10      0.353 nT      1.412e+06 s  2.116e+04 s
+     1 nm Co-like film, edge   1.4000e-02     14.000 mT      8.957e-10 s  1.343e-11 s
+  monolayer vdW magnet, edge   1.3911e-03      1.391 mT      9.072e-08 s  1.360e-09 s
+   uncompensated AFM surface   5.7963e-06      5.796 uT      5.226e-03 s  7.833e-05 s
+           1 uA current line   1.0000e-05     10.000 uT      1.756e-03 s  2.632e-05 s
+           1 nA current line   1.0000e-08     10.000 nT      1.756e+03 s  2.632e+01 s
+
+The Laplace filter exp(-k d): a source feature of period L, seen at standoff d
+   L / d   k d = 2 pi d / L    exp(-k d)   exp(+k d) needed to invert
+---------------------------------------------------------------------
+   10.00            0.62832   5.3349e-01                   1.8745e+00
+    4.00            1.57080   2.0788e-01                   4.8105e+00
+    2.00            3.14159   4.3214e-02                   2.3141e+01
+    1.00            6.28319   1.8674e-03                   5.3549e+02
+    0.50           12.56637   3.4873e-06                   2.8675e+05
+    0.25           25.13274   1.2162e-11                   8.2226e+10
+  Features finer than about the standoff are attenuated by more than
+  e^{-2 pi} = 1.9e-3. Reconstructing them means multiplying the measured
+  map by e^{+k d}, which multiplies the noise by the same factor: the
+  inverse problem is exponentially ill-conditioned, and regularisation
+  is not optional.
+
+  standoff 20 nm: peak |Bz| = 2.280 uT, noise 51.3 nT/pixel, SNR 44
+    true sheet current density      : 5.0000 A/m
+    naive inversion, mean over strip: 4.3526e+01 A/m
+    cut at k = 1/d, mean over strip : 4.2810 A/m
+    cut at k = 1/d, rms error       : 0.5168 A/m
+    residual at k = 0 (kernel null)  : 0.0e+00 - a uniform sheet current is invisible
+
+  standoff 50 nm: peak |Bz| = 1.411 uT, noise 51.3 nT/pixel, SNR 27
+    true sheet current density      : 5.0000 A/m
+    naive inversion, mean over strip: -1.8706e+09 A/m
+    cut at k = 1/d, mean over strip : 3.9271 A/m
+    cut at k = 1/d, rms error       : 0.6404 A/m
+    residual at k = 0 (kernel null)  : 0.0e+00 - a uniform sheet current is invisible
+```
+
+**What to look for.** The first table is the one to keep. At 20 nm standoff, a single electron spin gives 232 nT and needs 3 s of DC averaging or 49 ms of AC averaging for unit signal-to-noise; a single proton gives 0.35 nT and needs $1.4\times10^6$ s or $2.1\times10^4$ s. That is the quantitative statement of the well-known fact that single *electron* spin detection is routine and single *nuclear* spin detection is at the edge of the possible — the two moments differ by a factor 657, so the times differ by $4\times10^5$. A domain wall in a metallic film, at 14 mT, is detected in a picosecond of averaging; the measurement is not sensitivity-limited at all, and the experimental difficulty lies entirely in maintaining a stable 20 nm standoff.
+
+The uncompensated antiferromagnetic surface, at 5.8 $\mu$T, sits between: comfortably detectable, three decades below the ferromagnet, and it is exactly this gap that made antiferromagnetic imaging wait for a technique with nanotesla sensitivity at nanometre standoff. The Laplace table then explains why standoff is the parameter that matters most: going from $L = 10d$ to $L = d/4$ costs ten decades of signal, a far steeper penalty than any sensitivity factor discussed earlier, which is why shallow implantation, tip sharpness and surface cleanliness dominate the design of a scanning NV microscope — they set $d$, and $d$ enters exponentially.
+
+The reconstruction block makes the ill-conditioning concrete. A 200 nm strip carrying 1 $\mu$A produces 2.3 $\mu$T at 20 nm, a signal-to-noise ratio of 44 against a second of AC averaging per pixel. Inverting naively — dividing every Fourier component by the kernel — returns a mean sheet current density of $4\times10^{1}$ A/m for a true value of 5 A/m at 20 nm, and $-2\times10^{9}$ A/m at 50 nm: the answer is not merely imprecise, it is meaningless, and it gets worse as the standoff grows. Truncating at $k = 1/d$ returns 4.28 A/m and 3.93 A/m, low by 14% and 21% because the sharp edges of the strip live at high $k$ that was genuinely not measured. That bias is the honest cost of regularisation, and reporting a reconstructed current density without stating the cutoff is reporting a number whose error bar is unknown.
+
+The last line records a subtlety worth knowing: the forward kernel vanishes at $k = 0$, so a spatially uniform sheet current produces no out-of-plane field at all and is invisible in a $B_z$ map. Total current has to come from a line integral of the in-plane field, or from a two-dimensional map, not from the $B_z$ image alone.
+
+* * *
+
+## Exercises
+
+#### Exercise 1: Reading a Field From an ODMR Spectrum
+
+An ODMR spectrum on a single NV centre shows two dips, at 2.6980 GHz and 3.0460 GHz. A second spectrum, taken after the sample is changed, shows dips at 2.7150 GHz and 3.0350 GHz.
+
+  1. For each spectrum, find the axial field $B_\parallel$ in millitesla.
+  2. For each spectrum, find the centre of the pair and hence the apparent zero-field splitting.
+  3. The second spectrum's centre has moved. Give two physically distinct explanations, and state one further measurement that distinguishes them.
+  4. If the shift were entirely due to a transverse field, how large would $B_\perp$ be?
+
+<details>
+<summary>Solution</summary>
+
+<p><strong>1.</strong> The splitting is \(2(\gamma_e/2\pi)B_\parallel\). First spectrum: \(3.0460 - 2.6980 = 0.3480\) GHz, so \(B_\parallel = 0.3480\times10^9/(2\times28.025\times10^9) = 6.208\) mT. Second: \(3.0350 - 2.7150 = 0.3200\) GHz, so \(B_\parallel = 5.7092\) mT.</p>
+
+<p><strong>2.</strong> Centres: \((2.6980+3.0460)/2 = 2.8720\) GHz and \((2.7150+3.0350)/2 = 2.8750\) GHz. The apparent \(D\) has risen by 3.0 MHz.</p>
+
+<p><strong>3.</strong> Either the temperature fell, since \(\mathrm{d}D/\mathrm{d}T \approx -74\) kHz/K and \(-3.0\ \mathrm{MHz}/(-74\ \mathrm{kHz/K}) = 40.5\) K of cooling would do it; or a transverse field appeared, which pushes the centre up quadratically. A third possibility is a change in local strain, which enters \(E\) and shifts the centre only at second order in \(E/D\), so it is a much weaker effect. The measurements that distinguish them: repeat at a second, deliberately different bias field, since the transverse contribution scales as \(B_\perp^2/D\) and the thermal one does not; or use a second NV orientation, since a transverse field for one orientation is not transverse for another, while temperature is common to all four.</p>
+
+<p><strong>4.</strong> From \(\Delta f_{\mathrm{centre}} \approx \tfrac{3}{2}(\gamma_e/2\pi)^2B_\perp^2/D\) at small \(B_\parallel\), and being slightly more careful with the two denominators, \(B_\perp^2 = \Delta f \cdot D / (\tfrac{3}{2}(\gamma_e/2\pi)^2)\). With \(\Delta f = 3.0\) MHz and \(D = 2.872\) GHz: \(B_\perp^2 = 3.0\times10^6\times2.872\times10^9/(1.5\times(2.8025\times10^{10})^2) = 7.31\times10^{-6}\) T\(^2\), so \(B_\perp = 2.7043\) mT. That is comparable to \(B_\parallel\), so the assumption is at least self-consistent — but a transverse field of that size would also have to come from somewhere, and 40 K of cooling is usually the likelier story.</p>
+
+```python
+import numpy as np
+G = 28.025e9
+for f1, f2 in [(2.6980e9, 3.0460e9), (2.7150e9, 3.0350e9)]:
+    print(f"B_par = {(f2-f1)/(2*G)*1e3:.4f} mT   centre = {(f1+f2)/2/1e9:.4f} GHz")
+# B_par = 6.2087 mT   centre = 2.8720 GHz
+# B_par = 5.7092 mT   centre = 2.8750 GHz
+D = 2.872e9
+print(round(float(np.sqrt(3.0e6 * D / (1.5 * G**2)) * 1e3), 4))   # 2.7043  mT
+print(round(-3.0e6 / -74e3, 4))                                   # 40.5405 K
+```
+
+</details>
+
+#### Exercise 2: Where the Sensitivity Goes
+
+A single NV centre has $T_2^\ast = 1.5\ \mu$s, a readout dead time of $t_d = 2\ \mu$s, and an optical readout with $\alpha_0 = 0.045$ and $\alpha_1 = 0.030$ photons per shot. Take the Ramsey decay to be Gaussian, $p = 2$.
+
+  1. Compute the projection-noise-limited $\eta$ at $\tau = T_2^\ast/2$, ignoring dead time.
+  2. Compute the readout factor $\sigma_R$ and the resulting $\eta$.
+  3. Now include the dead time. By what factor does $\eta$ degrade, and where does the optimum $\tau$ move?
+  4. A colleague proposes isotopic purification, which would raise $T_2^\ast$ to $15\ \mu$s. Estimate the improvement in $\eta$, and identify which of the two effects — longer coherence or better duty cycle — contributes more.
+
+<details>
+<summary>Solution</summary>
+
+<p><strong>1.</strong> \(\eta = e^{1/4}\sqrt{2/T_2^\ast}/(2\pi\gamma_c)\) with \(\gamma_c = 28.025\times10^9\) Hz/T. \(\sqrt{2/1.5\times10^{-6}} = 1154.7\), \(2\pi\gamma_c = 1.7609\times10^{11}\), so \(\eta = 1.2840\times1154.7/1.7609\times10^{11} = 8.421\times10^{-9}\) T/\(\sqrt{\mathrm{Hz}}\), i.e. 8.42 nT/\(\sqrt{\mathrm{Hz}}\).</p>
+
+<p><strong>2.</strong> \((\alpha_0-\alpha_1)^2 = 2.25\times10^{-4}\), \(2(\alpha_0+\alpha_1) = 0.15\), so \(\sigma_R = \sqrt{1+0.15/2.25\times10^{-4}} = \sqrt{667.7} = 25.84\). Hence \(\eta = 217.6\) nT/\(\sqrt{\mathrm{Hz}}\).</p>
+
+<p><strong>3.</strong> Minimising \(\sqrt{\tau+t_d}\,e^{(\tau/T_2^\ast)^2}/\tau\) numerically gives \(\tau_{\mathrm{opt}} = 0.970\ \mu\mathrm{s} = 0.647\,T_2^\ast\) and a projection-limited \(\eta\) of 15.33 nT/\(\sqrt{\mathrm{Hz}}\), a degradation of 1.82. With \(\sigma_R\), \(\eta = 396\) nT/\(\sqrt{\mathrm{Hz}}\). A dead time larger than the coherence time is a substantial loss for a single NV, and it is a duty-cycle problem, not a physics problem.</p>
+
+<p><strong>4.</strong> Two effects compound. The \(1/\sqrt{T_2^\ast}\) scaling alone gives \(\sqrt{10} = 3.16\). The duty cycle improves as well, because \(t_d = 2\ \mu\)s is now small compared with \(\tau_{\mathrm{opt}}\): the numerical minimum with \(T_2^\ast = 15\ \mu\)s and \(t_d = 2\ \mu\)s is 2.98 nT/\(\sqrt{\mathrm{Hz}}\) projection-limited, against 15.33 before — a factor 5.14 in total, of which 3.16 is coherence and the remaining 1.63 is duty cycle. The coherence term is the larger one, but the duty-cycle term is worth a further 60 per cent and is often forgotten.</p>
+
+```python
+import numpy as np
+from scipy.optimize import minimize_scalar
+gc = 28.025e9
+sR = np.sqrt(1 + 2 * (0.045 + 0.030) / (0.045 - 0.030) ** 2)
+def eta(tau, T2s, td):
+    return np.sqrt(tau + td) * np.exp((tau / T2s) ** 2) / (2 * np.pi * gc * tau)
+print(round(sR, 2))                                            # 25.84
+for T2s, td in [(1.5e-6, 0.0), (1.5e-6, 2e-6), (15e-6, 2e-6)]:
+    r = minimize_scalar(eta, bracket=(1e-9, T2s, 20 * T2s), args=(T2s, td))
+    print(f"T2*={T2s*1e6:5.1f} us td={td*1e6:3.1f} us  tau_opt={r.x*1e6:.3f} us "
+          f"eta={r.fun*1e9:7.3f} nT  with sigma_R {r.fun*sR*1e9:7.1f} nT")
+# T2*=  1.5 us td=0.0 us  tau_opt=0.750 us eta=  8.420 nT  with sigma_R   217.6 nT
+# T2*=  1.5 us td=2.0 us  tau_opt=0.970 us eta= 15.328 nT  with sigma_R   396.1 nT
+# T2*= 15.0 us td=2.0 us  tau_opt=8.202 us eta=  2.982 nT  with sigma_R    77.1 nT
+```
+
+</details>
+
+#### Exercise 3: The Echo Filter Integral, Analytically
+
+Chapter 1 gives $|\tilde{s}_{\mathrm{echo}}(f,T)|^2 = 4\sin^4(\pi f T/2)/(\pi f)^2$.
+
+  1. Show that $I_1(\alpha=2) \equiv \int_0^\infty u^{-2}\,|\tilde{s}(u/T,T)|^2/T^2\,\mathrm{d}u = \pi^2/6$, using $\int_0^\infty \sin^4(au)/u^4\,\mathrm{d}u = \pi a^3/3$.
+  2. Code Example 5 reports $N^2 I_N(2) = \pi^2/6$ for every $N$. Derive this from the odd-harmonic comb, using $\sum_{k\ \mathrm{odd}}k^{-4} = \pi^4/96$.
+  3. What coherence-time scaling with $N$ does this imply for noise with $S(f) = A/f^2$?
+  4. Why does the same argument give a *finite-$N$ correction* for $\alpha = 1$ but none for $\alpha = 2$?
+
+<details>
+<summary>Solution</summary>
+
+<p><strong>1.</strong> With \(u = fT\), \(|\tilde{s}|^2/T^2 = 4\sin^4(\pi u/2)/(\pi u)^2\). Then \(I_1(2) = \int_0^\infty u^{-2}\cdot 4\sin^4(\pi u/2)/(\pi u)^2\,\mathrm{d}u = (4/\pi^2)\int_0^\infty \sin^4(\pi u/2)/u^4\,\mathrm{d}u\). With \(a = \pi/2\) the quoted integral is \(\pi(\pi/2)^3/3 = \pi^4/24\), so \(I_1(2) = (4/\pi^2)(\pi^4/24) = \pi^2/6 = 1.644934\), matching the numerics to six digits.</p>
+
+<p><strong>2.</strong> For large \(N\) the filter is a comb at odd harmonics of \(f_{\mathrm{res}} = N/2T\), i.e. at \(u_k = kN/2\). Parseval puts total weight \(T/2\) at positive frequencies and the square wave puts a fraction \((8/\pi^2)k^{-2}\) of it in harmonic \(k\). Hence \(I_N(2) = \sum_{k\ \mathrm{odd}} \tfrac{1}{2}(8/\pi^2)k^{-2}u_k^{-2} = (4/\pi^2)(4/N^2)\sum_{k\ \mathrm{odd}}k^{-4} = (16/\pi^2N^2)(\pi^4/96) = \pi^2/(6N^2)\).</p>
+
+<p><strong>3.</strong> \(\langle\varphi^2\rangle \propto T^{1+\alpha}I_N = T^3\pi^2/(6N^2)\), so \(T_2^3 \propto N^2\) and \(T_2 \propto N^{2/3}\) — which is \(N^{\alpha/(\alpha+1)}\) with \(\alpha = 2\), exactly as Chapter 1 predicts. Note that the sensitivity gain is only \(N^{1/3}\), since \(\eta \propto 1/\sqrt{T_2}\).</p>
+
+<p><strong>4.</strong> The comb approximation replaces each passband by a delta function of the same weight. Its error comes from the finite width of the passbands and from the variation of \(S(f)\) across them. For \(\alpha = 2\) the exact result happens to coincide with the comb result even at \(N = 1\), as part 1 shows by explicit integration; for \(\alpha = 1\) the weight \(u^{-1}\) is flatter, so the low-frequency shoulder of the first passband — which the comb ignores — contributes a larger relative share, and that share shrinks as the passbands narrow with increasing \(N\). Hence \(N I_N(1)\) drifts from 0.693 to 0.848 while \(N^2 I_N(2)\) does not drift at all.</p>
+
+</details>
+
+#### Exercise 4: Relaxometry Against Decoupling
+
+A magnetic film is placed on a diamond with NV centres 10 nm below the surface. The film's spin waves produce transverse field noise at the NV with a spectral density that is roughly flat at $S_\perp = 2\times10^{-20}$ T$^2$/Hz between 1 and 4 GHz and negligible below 100 MHz.
+
+  1. What relaxation rate does this add, and what $T_1$ results if the intrinsic value is 5 ms?
+  2. Could an XY8 sequence detect the same noise? Support your answer with the highest passband a 10 ns $\pi$ pulse allows.
+  3. The film is now driven at 2.87 GHz so that a *coherent* transverse field of 5 nT reaches the NV. Which technique detects it, and in how long?
+  4. A colleague proposes to detect the spin waves by their effect on $T_2$ instead. Explain, using the filter-function argument, why this fails.
+
+<details>
+<summary>Solution</summary>
+
+<p><strong>1.</strong> \(\Delta(1/T_1) = \tfrac{3}{2}\gamma_e^2 S_\perp = 1.5\times(1.7609\times10^{11})^2\times2\times10^{-20} = 930.2\ \mathrm{s}^{-1}\). Adding the intrinsic \(200\ \mathrm{s}^{-1}\) gives \(1130.2\ \mathrm{s}^{-1}\), i.e. \(T_1 = 0.885\) ms — a factor 5.65 shorter than the intrinsic value. Easily measured.</p>
+
+<p><strong>2.</strong> No. A 10 ns \(\pi\) pulse limits the passband to \(1/(2\times10\ \mathrm{ns}) = 50\) MHz, and the noise is specified to be negligible below 100 MHz. The pulse sequence is looking at frequencies where there is nothing to see. Reaching 2.87 GHz would require a \(\pi\) pulse under 0.2 ns, i.e. a Rabi frequency of 2.9 GHz, which is comparable to the transition frequency itself and therefore outside the rotating-frame description entirely.</p>
+
+<p><strong>3.</strong> Neither of the two techniques of this chapter, as written. Relaxometry does respond — a coherent tone exactly on resonance drives Rabi oscillations rather than relaxation, so the correct treatment is a driven two-level system, not a golden-rule rate. The natural measurement is a Rabi experiment on the NV using the film's field as the drive: with \(\Omega/2\pi = (\gamma_e/2\pi)B/\sqrt{2} = 28.025\times10^9\times5\times10^{-9}/1.414 = 99.1\) Hz, a full Rabi period takes 10 ms, which exceeds \(T_1\). The tone is too weak to see this way, and the honest answer is that a 5 nT coherent field at 2.87 GHz is at the edge of detectability for a single NV. (The \(1/\sqrt{2}\) is the spin-1 matrix element.)</p>
+
+<p><strong>4.</strong> The mean-square phase is \(\int S(f)|\tilde{s}(f,T)|^2\mathrm{d}f\), and \(|\tilde{s}|^2\) falls as \(1/f^2\) beyond the first passband. Noise at 2.87 GHz is therefore suppressed by \((f_{\mathrm{res}}/f)^2\) relative to noise in the passband — six decades of power for \(f_{\mathrm{res}} = 3\) MHz — and contributes nothing measurable to \(T_2\). The one caveat is that noise at \(\omega_0\) does shorten \(T_1\), and \(T_2 \le 2T_1\), so a large enough relaxation rate does eventually cap \(T_2\). That is a consequence of relaxation, not a dephasing measurement, and reading it as one would attribute a \(T_1\) process to the wrong spectral region.</p>
+
+```python
+import numpy as np
+g = 2 * np.pi * 28.025e9
+dG = 1.5 * g**2 * 2e-20
+print(round(dG, 1), round(1 / (dG + 200) * 1e3, 4))     # 930.2 0.8848  (1/s, ms)
+print(round(28.025e9 * 5e-9 / np.sqrt(2), 1))           # 99.1  Hz Rabi
+```
+
+</details>
+
+#### Exercise 5: Designing an Imaging Experiment
+
+You are asked to image the current distribution in a 2 $\mu$m wide metallic wire carrying 100 $\mu$A, with the aim of resolving 100 nm features in the current density.
+
+  1. What standoff is required, and what does the Laplace filter do to a 100 nm feature at twice that standoff?
+  2. Estimate the field at the required standoff, treating the wire as a sheet of uniform current density.
+  3. Given the single-NV AC sensitivity of 51 nT/$\sqrt{\mathrm{Hz}}$ from §2.3, and 200 by 200 pixels, estimate the total acquisition time for a signal-to-noise ratio of 100 per pixel. Then repeat for a wide-field ensemble measurement with $\eta = 1$ nT/$\sqrt{\mathrm{Hz}}$ per pixel.
+  4. Which of the two would you choose, and what is the one physical assumption that decides it?
+
+<details>
+<summary>Solution</summary>
+
+<p><strong>1.</strong> Resolution is the standoff, so \(d \approx 100\) nm at best; to have margin, \(d = 50\) nm. At \(d = 200\) nm a 100 nm feature has \(kd = 2\pi\times200/100 = 12.57\) and is attenuated by \(e^{-12.57} = 3.5\times10^{-6}\). It is gone, and no averaging recovers it: the exponent is in the physics, not the noise.</p>
+
+<p><strong>2.</strong> Sheet current density \(K = 100\ \mu\mathrm{A}/2\ \mu\mathrm{m} = 50\) A/m. Well inside the wire and close to it, the field approaches that of an infinite sheet, \(B = \mu_0 K/2 = 1.2566\times10^{-6}\times50/2 = 31.4\ \mu\)T. This is the in-plane component; the out-of-plane component that carries the spatial information is comparable near the edges and smaller in the middle, so 10 \(\mu\)T is a fair working figure.</p>
+
+<p><strong>3.</strong> Per pixel, a signal-to-noise ratio of 100 on 10 \(\mu\)T needs \(\sigma_B = 100\) nT, hence \(t = (\eta/\sigma_B)^2\). Single NV: \((51/100)^2 = 0.26\) s per pixel, times 40 000 pixels, is \(1.04\times10^4\) s, about 2.9 hours — plus the scanning overhead, which in practice dominates. Wide field: \((1/100)^2 = 10^{-4}\) s, and every pixel is acquired simultaneously, so \(10^{-4}\) s in total. The difference is nine orders of magnitude and is entirely parallelism.</p>
+
+<p><strong>4.</strong> The wide-field measurement is faster by any margin one cares to name, and it is the wrong choice here, because its resolution is diffraction-limited to a few hundred nanometres and its standoff is the thickness of the NV layer plus the gap to the sample. The requirement was 100 nm. The physical assumption that decides the question is not sensitivity at all — it is whether the required spatial resolution is above or below the optical diffraction limit. Above it, use wide field and accept the standoff; below it, use a scanning tip and accept the hours. This is the trade-off map of Chapter 1 section 1.5, applied to a specific request.</p>
+
+</details>
+
+* * *
+
+## Summary
+
+### Key Takeaways
+
+**1\. A point defect makes a good magnetometer for three reasons at once**
+
+  * The $S = 1$ ground state is split at zero field by $D = 2.870$ GHz, a property of the diamond lattice rather than of the apparatus, so the instrument is self-calibrating.
+  * The optical cycle is spin-selective, which gives both initialisation at any temperature and a fluorescence readout — the two things a solid-state spin normally lacks.
+  * Four $\langle 111 \rangle$ orientations turn four scalar splittings into a vector, linear to a part in $10^3$ at millitesla fields, with the transverse field appearing separately in the centre shift at coefficient $3/4$.
+
+**2\. DC sensitivity has three factors, and they are not independent**
+
+  * $\eta_{\mathrm{CW}} = \frac{4}{3\sqrt{3}}\frac{2\pi}{\gamma_e}\frac{\Gamma}{C\sqrt{R_0}}$, verified against Monte-Carlo photon counting to within the $\sqrt{1-3C/4}$ correction that the standard formula neglects.
+  * Microwave power buys contrast and pays with broadening; the self-consistent optimum is at saturation $s = 2$, giving $\eta^{\min}_{\mathrm{CW}} = 2\Gamma_0/(\gamma C_{\max}\sqrt{R_0})$ and 1.50 $\mu$T/$\sqrt{\mathrm{Hz}}$ for representative single-centre numbers.
+  * Ramsey removes both broadening mechanisms, optimises at $\tau = T_2^\ast/2$ for either decay shape, and scales as $1/\sqrt{T_2^\ast}$: coherence is expensive, buying only a square root. On the same centre it beats optimised CW-ODMR by 1.55 at a realistic 3 $\mu$s dead time; the often-quoted factor 3.6 is the zero-dead-time bound, and CW is continuous by construction.
+  * The optical readout multiplies every sensitivity by $\sigma_R = \sqrt{1 + 2(\alpha_0+\alpha_1)/(\alpha_0-\alpha_1)^2}$, which is above 30 for a single centre and is the dominant term. 419 nT/$\sqrt{\mathrm{Hz}}$ against a 13.2 nT/$\sqrt{\mathrm{Hz}}$ projection limit.
+
+**3\. One filter function, two uses**
+
+  * A $\pi$ pulse turns the sequence into a demodulator: the resonant response is $|\tilde{s}| = 2T/\pi$ for CPMG-$N$ at $f = N/2T$, for **every** $N$, verified to eight digits. XY8-$N$ has the filter of CPMG-$8N$ exactly, because only pulse times enter.
+  * More pulses do not buy signal; they buy a longer $T_2$, and $\eta \propto 1/\sqrt{T_2}$ means XY8-4 improves on a Hahn echo by only 2.26, from 51.3 to 22.7 nT/$\sqrt{\mathrm{Hz}}$.
+  * Odd harmonics respond as $1/k$ and even harmonics not at all — a systematic error in every nanoscale NMR measurement.
+  * The same integral read as a spectrometer gives $S_B(f_{\mathrm{res}})$ from a decay, with $\kappa \to (4/\pi^2)\frac{7}{8}\zeta(3) = 0.4263$; and it reproduces $T_2(N) \propto N^{\alpha/(\alpha+1)}$, with the exact result $N^2 I_N(2) = \pi^2/6$ for $\alpha = 2$.
+
+**4\. $T_1$ is the gigahertz window, and nothing else reaches it**
+
+  * $1/T_1 = \frac{3}{2}\gamma_e^2 S_\perp(f_0)$, so a 6 ms $T_1$ is 60 pT/$\sqrt{\mathrm{Hz}}$ of transverse field noise at 2.87 GHz — three decades better than any pulse sequence, at the price of losing amplitude and direction.
+  * A CPMG train stops at $1/(2t_\pi)$, tens of megahertz. The NV transition itself is at 2.87 GHz and tunable over several gigahertz by a bias field.
+  * The detected noise power scales as $1/d^4$, and depends on the bath's correlation time through a Lorentzian: a static bath is invisible to relaxometry however strong, and a fast one is invisible to Ramsey however strong.
+
+**5\. Imaging is limited by standoff, exponentially**
+
+  * $e^{-kd}$ from Laplace's equation: resolution equals standoff, and inverting a field map into a source requires $e^{+kd}$, which amplifies noise by the same factor. Regularisation is a statement about what was measured, not a numerical convenience.
+  * Signal magnitudes at 20 nm run from 14 mT for a metallic domain wall, through 1.4 mT for a monolayer van der Waals magnet and 5.8 $\mu$T for an uncompensated antiferromagnetic surface, to 0.35 nT for a single proton. The first is not sensitivity-limited at all; the last needs $10^4$ s.
+  * A naive current reconstruction returns $10^9$ A/m for a true 5 A/m; a cutoff at $k = 1/d$ returns the right answer low by 14 to 21%, and the bias is the honest cost.
+
+**6\. Every limit in the chapter is a materials limit**
+
+  * $T_2^\ast$ is the $^{13}$C concentration; $T_2$ is the surface spin bath for shallow centres; $\sigma_R$ is photon collection, hence surface nanostructuring; the standoff is implantation depth and tip fabrication; the ensemble density optimum is a dipolar-broadening calculation.
+  * The defect a diamond grower spends a career eliminating is the instrument here, and the same surface spins that limit a shallow NV's $T_2$ limit a superconducting qubit's flux noise — as Chapter 3 shows.
+
+**Practical implications**
+
+  * Quote $\eta$ with its bandwidth and its sequence, and say whether the number is projection-limited or readout-limited; for a single centre the two differ by more than a decade.
+  * Before improving sensitivity, check whether the measurement is sensitivity-limited at all. For domain walls it is not; for antiferromagnets and single nuclei it is.
+  * Never report a reconstructed current or magnetisation without the regularisation cutoff, and never a spatial resolution better than the standoff.
+
+Chapter 3 turns to the other end of the trade-off map. A SQUID gives up four decades of spatial resolution and the ability to work above 10 K, and takes in exchange five to eight decades of field sensitivity, eight only when a large pickup loop is compared against a single NV — because it measures flux, and flux comes in units of $\Phi_0 = h/2e$. It will also turn out that the noise which limits the best SQUIDs comes from the same defect populations that limit superconducting qubits, and that is the materials thread this course is built around.
+
+[← Series Top](<index.html>) [Chapter 3: SQUIDs →](<chapter-3.html>)
+
+### Disclaimer
+
+  * This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical warranty, etc.).
+  * This content and accompanying code examples are provided "AS IS" without any warranty, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.
+  * The NV parameters, stray-field magnitudes and sensitivity figures used here are representative order-of-magnitude values chosen to make the physics computable; they are not device specifications, and the surface-spin and stray-field models are deliberately simplified forward models whose prefactors are uncertain at the order-of-magnitude level.
+  * The author and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.
+  * To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.
+  * The content may be changed, updated, or discontinued without notice.
+  * The copyright and license of this content are subject to the stated conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.
