@@ -1,0 +1,1372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 2: QFT and Phase Estimation - AI Terakoya</title>
+
+    <link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+    <style>
+        /* page-specific residual: the rules the shared sheet does not provide.
+           Everything else that used to live here is now in knowledge-base.css;
+           re-declaring it would only risk drifting out of sync with the sheet. */
+        details { background-color: var(--color-bg-alt); margin-bottom: var(--spacing-md) }
+        summary { user-select: none; margin: calc(-1 * var(--spacing-md)); border-radius: var(--border-radius) }
+        summary:hover {
+            /* accent wash; the literal is the FM/MI/ML purple and is the fallback
+               for engines without color-mix() (Chrome <111 / Safari <16.2). */
+            background-color: rgba(123, 44, 191, 0.1);
+            background-color: color-mix(in srgb, var(--color-accent) 10%, transparent);
+        }
+        details[open] summary { margin-bottom: var(--spacing-md); border-bottom: 1px solid var(--color-border) }
+        .learning-objectives {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: var(--spacing-lg);
+            border-radius: var(--border-radius);
+            border-left: 4px solid var(--color-accent);
+            margin-bottom: var(--spacing-xl);
+        }
+        .learning-objectives h2 { margin-top: 0; border-bottom: none }
+        @media (max-width: 768px) {
+            th { padding: var(--spacing-xs) }
+            td { padding: var(--spacing-xs) }
+        }
+    </style>
+
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+
+    <!-- MathJax for LaTeX equation rendering -->
+    <script>
+        MathJax = {
+            tex: {
+                // The HTML must carry a DOUBLE backslash before ( ) [ ] so the
+                // JS string is backslash-paren; a single one collapses to a bare
+                // paren and turns every prose parenthesis into a math delimiter
+                // (non-raw Python template: 4 backslashes -> 2 in HTML -> 1 in JS).
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" id="MathJax-script" async></script>
+</head>
+<body class="dojo-fm">
+    <header>
+        <div class="header-content">
+            <h1>Chapter 2: QFT and Phase Estimation</h1>
+            <p class="subtitle">An O(n²) Circuit Whose Output Nobody Can Read, and the Eigenvalue Algorithm Built Out of It</p>
+            <div class="meta">
+                <span class="meta-item">📖 Reading Time: 45-50 minutes</span>
+                <span class="meta-item">📊 Difficulty: Intermediate</span>
+                <span class="meta-item">💻 Code Examples: 7</span>
+                <span class="meta-item">📝 Exercises: 5</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+<p>🌐 EN | <a href="../../../jp/FM/quantum-algorithms-intermediate/chapter-2.html">🇯🇵 JP</a> | Last sync: 2026-08-13</p>
+<p><a href="../index.html">Fundamental Mathematics Dojo</a> &gt; <a href="index.html">Intermediate Quantum Algorithms</a> &gt; Chapter 2</p>
+<p>Chapter 1 was about amplitude: Grover's algorithm moves probability towards a marked state and its speedup is quadratic, with all the qualifications that word deserves. This chapter is about phase, and the qualifications are different in kind. The <strong>quantum Fourier transform</strong> costs $O(n^2)$ gates where the classical fast Fourier transform on the same number of amplitudes costs $O(n 2^n)$, which sounds like an exponential speedup and is not one. The <strong>phase estimation</strong> algorithm built from it extracts an eigenvalue of a unitary to $t$ bits of precision using $2^t - 1$ controlled applications of that unitary, which sounds modest and is the single most important primitive in fault-tolerant quantum computing.</p>
+<p>Getting both of those statements right is the work of this chapter. The QFT is not a faster FFT because its input must already be a quantum state and its output amplitudes cannot be read; what it can do is convert a <em>period</em> hidden in a state's structure into a <em>measurable</em> peak, and that is a much narrower and much more useful capability. Phase estimation is the machine that exploits it. Section 2.4 collects the consequence that matters for a materials researcher: an eigenvalue problem is exactly what electronic structure is, and phase estimation is the fault-tolerant successor to the variational algorithms of the introductory course — the thing that VQE is a near-term substitute for.</p>
+<p>Everything here runs on the same NumPy state-vector simulator built in <a href="../quantum-computing-introduction/chapter-2.html">Introduction to Quantum Computing, Chapter 2</a>, re-listed below so that this chapter is self-contained. Chapter 3 then takes the QFT and the phase-estimation circuit constructed here and factors an integer with them, so the implementations below are load-bearing rather than illustrative.</p>
+<h2>Learning Objectives</h2>
+<p>After completing this chapter, you will be able to:</p>
+<ul>
+<li>Write the quantum Fourier transform as a product of Hadamards and controlled phase rotations, count its gates as $n(n+1)/2 + \lfloor n/2 \rfloor$, and verify the circuit against the dense DFT matrix numerically</li>
+<li>State precisely why the QFT is not an exponentially faster FFT — the input-loading problem, the unreadability of output amplitudes, and the $1/\delta^2$ cost of estimating even one of them</li>
+<li>Show that the QFT converts a period into a set of measurable peaks while leaving the offset entirely in the phases, and explain what happens when the period does not divide $2^n$</li>
+<li>Derive the phase-estimation circuit from controlled powers of $U$ plus an inverse QFT, and use the standard bound $t = n + \lceil \log_2(2 + 1/(2\varepsilon)) \rceil$ to choose a register size for a target accuracy $2^{-n}$</li>
+<li>Recover the eigenphases of two-, three- and four-qubit unitaries to arbitrary precision, and demonstrate that the phase error halves with each added counting qubit while the depth doubles</li>
+<li>Implement iterative phase estimation with a single ancilla and classical feedback, and state what it trades against the textbook circuit</li>
+<li>Explain why phase estimation is the fault-tolerant route to electronic structure, and why the overlap of the trial state with the target eigenvector is the quantity that decides whether it works at all</li>
+</ul>
+<hr />
+<h2>2.1 The Quantum Fourier Transform</h2>
+<h3>The transform</h3>
+<p>The discrete Fourier transform of a vector of $2^n$ complex numbers is the unitary map</p>
+<p>$$ \tilde{x}_k = \frac{1}{\sqrt{2^n}} \sum_{j=0}^{2^n-1} e^{2\pi i jk/2^n}\, x_j $$</p>
+<p>The quantum Fourier transform is that same matrix, applied to the amplitudes of an $n$-qubit register. On a basis state it reads</p>
+<p>$$ \mathrm{QFT}\, \lvert j \rangle = \frac{1}{\sqrt{2^n}} \sum_{k=0}^{2^n-1} e^{2\pi i jk/2^n}\, \lvert k \rangle $$</p>
+<p>and on a general state it acts by linearity. Nothing about the definition is quantum: it is the ordinary DFT, and the sign convention here — $e^{+2\pi i jk/2^n}$ in the forward direction — is the one this course uses throughout, so that the <em>inverse</em> QFT is the transform with the conjugated phases.</p>
+<h3>Why the circuit is short</h3>
+<p>Write $k$ in binary as $k = \sum_{l=1}^{n} k_l 2^{n-l}$, so that $k/2^n = \sum_l k_l 2^{-l} = 0.k_1k_2\ldots k_n$. Then the exponential factorizes over the bits of $k$:</p>
+<p>$$ \frac{1}{\sqrt{2^n}}\sum_k e^{2\pi i jk/2^n}\lvert k \rangle = \bigotimes_{l=1}^{n} \frac{\lvert 0 \rangle + e^{2\pi i j/2^{l}}\lvert 1 \rangle}{\sqrt{2}} $$</p>
+<p>This is the whole content of the algorithm. The Fourier transform of a basis state is a <strong>product state</strong>, with no entanglement at all, and each factor needs only one phase that depends on the bits of $j$. Reading $j = 0.j_1 j_2 \ldots j_n$ in the same way, the $l$-th output factor carries the phase $2\pi \times 0.j_{n-l+1}\ldots j_n$, which is a Hadamard on qubit $n-l+1$ followed by a controlled phase rotation from each less significant qubit. Writing</p>
+<p>$$ R_m = \begin{pmatrix} 1 &amp; 0 \cr 0 &amp; e^{2\pi i/2^m} \end{pmatrix} $$</p>
+<p>the circuit is: Hadamard on qubit 1, controlled-$R_2$ from qubit 2, controlled-$R_3$ from qubit 3, and so on; then Hadamard on qubit 2 and its controlled rotations; and finally a reversal of the qubit order, because the construction produces the output bits backwards. The count is</p>
+<p>$$ \underbrace{n}_{\text{Hadamards}} + \underbrace{\frac{n(n-1)}{2}}_{\text{controlled phases}} + \underbrace{\left\lfloor n/2 \right\rfloor}_{\text{swaps}} = \frac{n(n+1)}{2} + \left\lfloor \frac{n}{2} \right\rfloor $$</p>
+<p>gates, and the depth can be reduced to $O(n)$ by running rotations on disjoint pairs in parallel. Two practical remarks. The phase $2\pi/2^m$ becomes unresolvably small for large $m$, and dropping all rotations with $m &gt; O(\log n)$ changes the result by an amount that is provably harmless — this <strong>approximate QFT</strong> has $O(n\log n)$ gates and is what any real implementation uses. And the final swaps can usually be deleted entirely by relabelling the qubits in whatever consumes the output.</p>
+<h3>What the QFT is not</h3>
+<p>The comparison that invites an overstatement is with the classical FFT, which needs $\Theta(n 2^n)$ arithmetic operations on $2^n$ numbers against the QFT's $\Theta(n^2)$ gates. Three separate facts block the conclusion.</p>
+<p><strong>The input has to be there already.</strong> The FFT takes $2^n$ numbers in memory. The QFT takes a quantum state whose amplitudes <em>are</em> those numbers. Preparing an arbitrary $2^n$-amplitude state from a classical list requires $\Theta(2^n)$ gates in general — the state-preparation problem, and the reason the QRAM question discussed in Chapter 1 is not a detail. If the state comes out of a previous quantum computation, as it does in Shor's algorithm, this cost does not arise; if the data is classical, it does, and it wipes out the advantage by itself.</p>
+<p><strong>The output cannot be read.</strong> After the QFT the transformed coefficients are amplitudes. A measurement returns one index $k$ with probability $\lvert \tilde{x}_k \rvert^2$, not the number $\tilde{x}_k$. Estimating a single probability to additive precision $\delta$ costs $O(1/\delta^2)$ repetitions by sampling — not a lower bound, since amplitude estimation reaches $O(1/\delta)$ by spending coherent depth instead; recovering all $2^n$ of them costs at least $2^n$ numbers of output, so no exponential saving can survive. Recovering the <em>phases</em> needs further interference experiments on top.</p>
+<p><strong>Nothing useful is being asked for.</strong> Even granting free input and free output, the classical FFT is rarely anyone's bottleneck: $n2^n$ with a tiny constant is one of the fastest algorithms in scientific computing. The QFT earns its place not by being a faster transform but by sitting inside a circuit that asks a <em>single</em> question of the transformed state — "where is the peak?" — which is exactly one measurement's worth of information.</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Classical FFT</th>
+<th>Quantum FFT (QFT)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Input</td>
+<td>$2^n$ numbers in memory</td>
+<td>amplitudes of an $n$-qubit state</td>
+</tr>
+<tr>
+<td>Cost</td>
+<td>$\Theta(n 2^n)$ arithmetic ops</td>
+<td>$\Theta(n^2)$ gates, or $\Theta(n \log n)$ approximate</td>
+</tr>
+<tr>
+<td>Output</td>
+<td>all $2^n$ transformed numbers</td>
+<td>one sampled index per run</td>
+</tr>
+<tr>
+<td>Reading one coefficient</td>
+<td>free</td>
+<td>$O(1/\delta^2)$ repetitions by sampling, magnitude only</td>
+</tr>
+<tr>
+<td>Useful for</td>
+<td>filtering, convolution, spectra</td>
+<td>extracting a period or a phase, then measuring once</td>
+</tr>
+</tbody>
+</table>
+<p>The honest one-line summary: the QFT is not a transform you use to transform data. It is a change of basis in which a hidden periodicity becomes the answer to a single measurement.</p>
+<h3>Code Example 1: The Simulator, Re-listed</h3>
+<p>The whole of this course runs on the state-vector simulator of the introductory series. It is reproduced here verbatim — all ninety-nine lines, unchanged — so that nothing in this chapter depends on a file you have to go and find. Save it as <code>qcsim.py</code>; every subsequent example begins with <code>from qcsim import *</code>.</p>
+<pre><code class="language-python">&quot;&quot;&quot;Minimal state-vector simulator (big-endian: qubit 0 = leftmost = most significant).
+
+Save this file as qcsim.py; every later example does `from qcsim import *`.
+&quot;&quot;&quot;
+import numpy as np
+
+# ---- single-qubit gates -------------------------------------------------
+I2 = np.eye(2, dtype=complex)
+X = np.array([[0, 1], [1, 0]], dtype=complex)
+Y = np.array([[0, -1j], [1j, 0]], dtype=complex)
+Z = np.array([[1, 0], [0, -1]], dtype=complex)
+H = np.array([[1, 1], [1, -1]], dtype=complex) / np.sqrt(2)
+S = np.array([[1, 0], [0, 1j]], dtype=complex)
+T = np.array([[1, 0], [0, np.exp(1j * np.pi / 4)]], dtype=complex)
+
+
+def rx(theta):
+    c, s = np.cos(theta / 2), np.sin(theta / 2)
+    return np.array([[c, -1j * s], [-1j * s, c]], dtype=complex)
+
+
+def ry(theta):
+    c, s = np.cos(theta / 2), np.sin(theta / 2)
+    return np.array([[c, -s], [s, c]], dtype=complex)
+
+
+def rz(theta):
+    e = np.exp(-1j * theta / 2)
+    return np.array([[e, 0], [0, np.conj(e)]], dtype=complex)
+
+
+# ---- states -------------------------------------------------------------
+def ket(bits: str) -&gt; np.ndarray:
+    &quot;&quot;&quot;'01' -&gt; the 4-dimensional basis state |01&gt; (big-endian).&quot;&quot;&quot;
+    n = len(bits)
+    psi = np.zeros(2 ** n, dtype=complex)
+    psi[int(bits, 2)] = 1.0
+    return psi
+
+
+def apply_gate(state, U, targets, n):
+    &quot;&quot;&quot;Apply the 2^k x 2^k unitary U to the listed target qubits of an n-qubit state.&quot;&quot;&quot;
+    k = len(targets)
+    psi = state.reshape([2] * n)          # 1. view as an n-index tensor
+    psi = np.moveaxis(psi, targets, range(k))   # 2. bring targets to the front
+    rest = psi.shape[k:]
+    psi = psi.reshape(2 ** k, -1)         # 3. flatten and multiply
+    psi = U @ psi
+    psi = psi.reshape(list((2,) * k) + list(rest))
+    psi = np.moveaxis(psi, range(k), targets)   # 4. put the axes back
+    return psi.reshape(-1)
+
+
+CNOT4 = np.array([[1, 0, 0, 0],
+                  [0, 1, 0, 0],
+                  [0, 0, 0, 1],
+                  [0, 0, 1, 0]], dtype=complex)
+
+
+def cnot(state, control, target, n):
+    &quot;&quot;&quot;CNOT with the given control and target; any pair of qubits, any order.&quot;&quot;&quot;
+    return apply_gate(state, CNOT4, [control, target], n)
+
+
+def probs(state):
+    &quot;&quot;&quot;Born-rule probabilities of all 2^n outcomes.&quot;&quot;&quot;
+    return np.abs(state) ** 2
+
+
+def sample(state, shots, seed=None):
+    &quot;&quot;&quot;Simulated measurement: {bitstring: count}.&quot;&quot;&quot;
+    n = int(np.log2(state.size))
+    rng = np.random.default_rng(seed)
+    idx = rng.choice(state.size, size=shots, p=probs(state))
+    out = {}
+    for i in idx:
+        b = format(i, f'0{n}b')
+        out[b] = out.get(b, 0) + 1
+    return dict(sorted(out.items()))
+
+
+PAULI = {'I': I2, 'X': X, 'Y': Y, 'Z': Z}
+
+
+def expval(state, pauli, coeff_map=None):
+    &quot;&quot;&quot;Expectation value of a Pauli string such as 'ZZ', 'XI' (one character per qubit).
+
+    If coeff_map is given, the result is multiplied by coeff_map[pauli], so that a
+    whole Hamiltonian is one line:  sum(expval(psi, p, terms) for p in terms).
+    &quot;&quot;&quot;
+    n = len(pauli)
+    phi = state.copy()
+    for q, ch in enumerate(pauli):
+        if ch != 'I':
+            phi = apply_gate(phi, PAULI[ch], [q], n)
+    val = np.vdot(state, phi).real
+    if coeff_map is not None:
+        val *= coeff_map.get(pauli, 1.0)
+    return val
+</code></pre>
+<p>Two conventions from that file are used constantly below and are worth restating. Qubit ordering is <strong>big-endian</strong>: qubit 0 is the leftmost symbol in a ket and the most significant bit of the amplitude index, so on a $t$-qubit counting register the measured integer is $k = \sum_j q_j 2^{t-1-j}$. And <code>apply_gate</code> accepts a $2^k \times 2^k$ matrix acting on any $k$ named qubits, which is what makes controlled multi-qubit operations below a one-liner rather than an exercise in index arithmetic.</p>
+<h3>Code Example 2: The QFT Circuit Against the DFT Matrix</h3>
+<p>A circuit claim deserves a matrix check. The following builds the QFT from Hadamards and controlled phases exactly as derived above, then extracts the matrix it implements by running it on every basis state and compares that, column by column, with the dense DFT matrix.</p>
+<pre><code class="language-python">import numpy as np
+from qcsim import *
+
+SWAP4 = np.array([[1, 0, 0, 0],
+                  [0, 0, 1, 0],
+                  [0, 1, 0, 0],
+                  [0, 0, 0, 1]], dtype=complex)
+
+
+def cphase(theta):
+    &quot;&quot;&quot;Controlled phase gate diag(1, 1, 1, exp(i theta)) on a qubit pair.&quot;&quot;&quot;
+    return np.diag([1.0, 1.0, 1.0, np.exp(1j * theta)]).astype(complex)
+
+
+def qft(state, qubits, n):
+    &quot;&quot;&quot;QFT on the listed qubits; qubits[0] is the most significant bit.
+
+    Hadamard on each qubit in turn, then a controlled phase from every less
+    significant qubit, then a reversal of the qubit order. Gate count is
+    m(m+1)/2 rotations plus floor(m/2) swaps.
+    &quot;&quot;&quot;
+    m = len(qubits)
+    for j in range(m):
+        state = apply_gate(state, H, [qubits[j]], n)
+        for k in range(j + 1, m):
+            state = apply_gate(state, cphase(np.pi / 2 ** (k - j)),
+                               [qubits[k], qubits[j]], n)
+    for j in range(m // 2):
+        state = apply_gate(state, SWAP4, [qubits[j], qubits[m - 1 - j]], n)
+    return state
+
+
+def iqft(state, qubits, n):
+    &quot;&quot;&quot;Inverse QFT: the same gates in reverse order with conjugated phases.&quot;&quot;&quot;
+    m = len(qubits)
+    for j in range(m // 2):
+        state = apply_gate(state, SWAP4, [qubits[j], qubits[m - 1 - j]], n)
+    for j in reversed(range(m)):
+        for k in reversed(range(j + 1, m)):
+            state = apply_gate(state, cphase(-np.pi / 2 ** (k - j)),
+                               [qubits[k], qubits[j]], n)
+        state = apply_gate(state, H, [qubits[j]], n)
+    return state
+
+
+def qft_matrix_from_circuit(m):
+    &quot;&quot;&quot;Column j is the circuit's output on the basis state |j&gt;.&quot;&quot;&quot;
+    cols = []
+    for j in range(2 ** m):
+        psi = np.zeros(2 ** m, dtype=complex)
+        psi[j] = 1.0
+        cols.append(qft(psi, list(range(m)), m))
+    return np.column_stack(cols)
+
+
+def dft_matrix(m):
+    &quot;&quot;&quot;The unitary DFT matrix F[k, j] = exp(2 pi i j k / 2^m) / sqrt(2^m).&quot;&quot;&quot;
+    d = 2 ** m
+    j, k = np.meshgrid(np.arange(d), np.arange(d))
+    return np.exp(2j * np.pi * j * k / d) / np.sqrt(d)
+
+
+print(&quot;QFT circuit against the DFT matrix&quot;)
+print(&quot;-&quot; * 68)
+print(f&quot;  {'m':&gt;3}{'dim':&gt;7}{'H+phase gates':&gt;14}{'swaps':&gt;7}&quot;
+      f&quot;{'max |U_circ - F|':&gt;20}&quot;)
+for m in range(1, 8):
+    U = qft_matrix_from_circuit(m)
+    F = dft_matrix(m)
+    n_hp = m * (m + 1) // 2          # m Hadamards + m(m-1)/2 phase gates
+    print(f&quot;  {m:&gt;3}{2**m:&gt;7}{n_hp:&gt;14}{m//2:&gt;7}&quot;
+          f&quot;{np.max(np.abs(U - F)):&gt;20.2e}&quot;)
+
+print(&quot;\nUnitarity and inversion, m = 5&quot;)
+print(&quot;-&quot; * 68)
+m = 5
+U = qft_matrix_from_circuit(m)
+print(f&quot;  max |U^dag U - I|            = &quot;
+      f&quot;{np.max(np.abs(U.conj().T @ U - np.eye(2**m))):.2e}&quot;)
+rng = np.random.default_rng(7)
+psi = rng.normal(size=2 ** m) + 1j * rng.normal(size=2 ** m)
+psi /= np.linalg.norm(psi)
+back = iqft(qft(psi, list(range(m)), m), list(range(m)), m)
+print(f&quot;  max |iqft(qft(psi)) - psi|   = {np.max(np.abs(back - psi)):.2e}&quot;)
+fwd = qft(psi, list(range(m)), m)
+print(f&quot;  max |qft(psi) - F psi|       = &quot;
+      f&quot;{np.max(np.abs(fwd - dft_matrix(m) @ psi)):.2e}&quot;)
+
+print(&quot;\nQFT of a uniform state and of a single basis state, m = 3&quot;)
+print(&quot;-&quot; * 68)
+m = 3
+unif = np.ones(2 ** m, dtype=complex) / np.sqrt(2 ** m)
+out = qft(unif, list(range(m)), m)
+print(&quot;  QFT|+++&gt;  amplitudes:&quot;,
+      &quot;  &quot;.join(f&quot;{v if abs(v) &gt; 5e-4 else 0.0:+.3f}&quot; for v in out.real))
+out = qft(ket('001'), list(range(m)), m)
+print(&quot;  QFT|001&gt;  |amp|     :&quot;,
+      &quot;  &quot;.join(f&quot;{abs(v):.3f}&quot; for v in out))
+print(&quot;  QFT|001&gt;  phase/2pi :&quot;,
+      &quot;  &quot;.join(f&quot;{np.angle(v)/(2*np.pi) % 1.0:.3f}&quot; for v in out))
+
+print(&quot;\nGate count: QFT versus a classical FFT on 2^m numbers&quot;)
+print(&quot;-&quot; * 68)
+print(f&quot;  {'m':&gt;4}{'2^m':&gt;22}{'QFT gates':&gt;12}{'FFT ops ~ m 2^m':&gt;22}&quot;)
+for m in [3, 10, 20, 30, 50]:
+    print(f&quot;  {m:&gt;4}{2**m:&gt;22d}{m*(m+1)//2 + m//2:&gt;12d}{m*2**m:&gt;22d}&quot;)
+</code></pre>
+<pre><code class="language-text">QFT circuit against the DFT matrix
+--------------------------------------------------------------------
+    m    dim H+phase gates  swaps    max |U_circ - F|
+    1      2             1      0            8.66e-17
+    2      4             3      1            2.69e-16
+    3      8             6      1            1.42e-15
+    4     16            10      2            3.78e-15
+    5     32            15      2            5.62e-15
+    6     64            21      3            7.98e-15
+    7    128            28      3            1.21e-14
+
+Unitarity and inversion, m = 5
+--------------------------------------------------------------------
+  max |U^dag U - I|            = 9.99e-16
+  max |iqft(qft(psi)) - psi|   = 3.86e-16
+  max |qft(psi) - F psi|       = 2.73e-15
+
+QFT of a uniform state and of a single basis state, m = 3
+--------------------------------------------------------------------
+  QFT|+++&gt;  amplitudes: +1.000  +0.000  +0.000  +0.000  +0.000  +0.000  +0.000  +0.000
+  QFT|001&gt;  |amp|     : 0.354  0.354  0.354  0.354  0.354  0.354  0.354  0.354
+  QFT|001&gt;  phase/2pi : 0.000  0.125  0.250  0.375  0.500  0.625  0.750  0.875
+
+Gate count: QFT versus a classical FFT on 2^m numbers
+--------------------------------------------------------------------
+     m                   2^m   QFT gates       FFT ops ~ m 2^m
+     3                     8           7                    24
+    10                  1024          60                 10240
+    20               1048576         220              20971520
+    30            1073741824         480           32212254720
+    50      1125899906842624        1300     56294995342131200
+</code></pre>
+<p><strong>What to look for.</strong> The circuit reproduces the DFT matrix to $10^{-14}$ at $m = 7$, with the deviation growing only as accumulated rounding — this is a verification, not an approximation. The gate count column is the $m(m+1)/2$ predicted above, and <code>iqft(qft(psi))</code> returns the input to $4 \times 10^{-16}$, confirming that the reversed-order conjugated-phase construction really is the inverse.</p>
+<p>The last two blocks are the ones to remember. $\mathrm{QFT}\lvert +++ \rangle = \lvert 000 \rangle$: the uniform superposition is the zero-frequency state, exactly as in the classical transform. $\mathrm{QFT}\lvert 001 \rangle$ has <em>uniform magnitude</em> over all eight outcomes, with the information entirely in the phases, which advance by $1/8$ of a turn per index. A basis state and its transform are the two extremes of localization, and the second one is unmeasurable in the computational basis — a preview of the section above, in three lines of output. Finally, at $m = 50$ the QFT needs 1300 gates where the FFT needs $5.6 \times 10^{16}$ operations; the comparison is real arithmetic and still does not amount to a useful speedup, for the three reasons already given.</p>
+<h3>Code Example 3: A Period You Can Read and a Phase You Cannot</h3>
+<p>The capability the QFT actually provides is period detection. This example prepares a state supported on an arithmetic progression of stride $r$, transforms it, and looks at what a measurement returns — first when $r$ divides the register size and then when it does not, which is the situation Chapter 3 has to live with.</p>
+<pre><code class="language-python">&quot;&quot;&quot;Chapter 2, Example 3: what the QFT gives you, and what it does not.
+Continues from Example 2 (same session).&quot;&quot;&quot;
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+
+def periodic_state(m, r, offset):
+    &quot;&quot;&quot;Uniform superposition over {j : j = offset (mod r)} in a 2^m register.&quot;&quot;&quot;
+    psi = np.zeros(2 ** m, dtype=complex)
+    psi[np.arange(offset, 2 ** m, r)] = 1.0
+    return psi / np.linalg.norm(psi)
+
+
+m = 6
+print(f&quot;Case 1: period r = 8 divides 2^m = {2**m}&quot;)
+print(&quot;-&quot; * 70)
+p0 = probs(qft(periodic_state(m, 8, 0), list(range(m)), m))
+print(&quot;  nonzero probabilities of the QFT output (offset s = 0):&quot;)
+print(&quot;   &quot; + &quot;   &quot;.join(f&quot;k={k}: {p0[k]:.4f}&quot;
+                         for k in np.flatnonzero(p0 &gt; 1e-9)))
+print(&quot;\n  the same distribution for every offset s:&quot;)
+for s in range(1, 8):
+    ps = probs(qft(periodic_state(m, 8, s), list(range(m)), m))
+    print(f&quot;    s = {s}: max |p_s - p_0| = {np.max(np.abs(ps - p0)):.2e}&quot;)
+
+print(&quot;\n  the offset lives in the phases, which no measurement returns:&quot;)
+a0 = qft(periodic_state(m, 8, 0), list(range(m)), m)
+a3 = qft(periodic_state(m, 8, 3), list(range(m)), m)
+print(f&quot;  {'k':&gt;4}{'|amp| s=0':&gt;12}{'|amp| s=3':&gt;12}&quot;
+      f&quot;{'phase diff/2pi':&gt;17}{'k s / 2^m mod 1':&gt;18}&quot;)
+for k in np.flatnonzero(p0 &gt; 1e-9):
+    d = (np.angle(a3[k]) - np.angle(a0[k])) / (2 * np.pi) % 1.0
+    print(f&quot;  {k:&gt;4}{abs(a0[k]):&gt;12.4f}{abs(a3[k]):&gt;12.4f}{d:&gt;17.4f}&quot;
+          f&quot;{(k*3/2**m) % 1.0:&gt;18.4f}&quot;)
+
+print(f&quot;\nCase 2: period r = 5 does not divide 2^m = {2**m}&quot;)
+print(&quot;-&quot; * 70)
+out5 = qft(periodic_state(m, 5, 0), list(range(m)), m)
+p5 = probs(out5)
+top = np.sort(np.argsort(p5)[::-1][:5])
+print(f&quot;  2^m / r = {2**m/5:.2f}; the five largest peaks:&quot;)
+print(&quot;   &quot; + &quot;   &quot;.join(f&quot;k={k}: {p5[k]:.4f}&quot; for k in top))
+print(f&quot;  total probability in those five bins: {p5[top].sum():.4f}&quot;)
+print(&quot;  peaks near, not at, multiples of 12.80 -- the leakage that &quot;
+      &quot;Chapter 3 has to postprocess&quot;)
+
+print(&quot;\nCost of reading the output amplitudes&quot;)
+print(&quot;-&quot; * 70)
+rng = np.random.default_rng(11)
+psi = rng.normal(size=2 ** m) + 1j * rng.normal(size=2 ** m)
+psi /= np.linalg.norm(psi)
+p_exact = probs(qft(psi, list(range(m)), m))
+print(f&quot;  {'shots':&gt;10}{'max |p_hat - p|':&gt;18}{'1/sqrt(shots)':&gt;16}&quot;)
+for shots in [10 ** 2, 10 ** 3, 10 ** 4, 10 ** 5, 10 ** 6]:
+    counts = rng.multinomial(shots, p_exact) / shots
+    print(f&quot;  {shots:&gt;10d}{np.max(np.abs(counts - p_exact)):&gt;18.5f}&quot;
+          f&quot;{1/np.sqrt(shots):&gt;16.5f}&quot;)
+print(&quot;\n  shots to pin all 2^m probabilities to 1 per cent:&quot;
+      f&quot; ~ m ln2/delta^2 = {m * np.log(2) * 10**4:.0e}&quot;)
+print(&quot;  (logarithmic in the number of bins, not linear: the table above&quot;
+      &quot; crosses&quot;)
+print(&quot;  1 per cent nearer 3e+03 shots)&quot;)
+print(&quot;  and the phases would need separate interference experiments.&quot;)
+
+fig, ax = plt.subplots(1, 3, figsize=(13, 3.6))
+for s, style in [(0, &quot;-o&quot;), (3, &quot;--s&quot;)]:
+    ax[0].plot(probs(qft(periodic_state(m, 8, s), list(range(m)), m)),
+               style, ms=4, lw=1, label=f&quot;offset s = {s}&quot;)
+ax[0].set_title(&quot;r = 8 divides 64: exact peaks&quot;)
+ax[0].legend(fontsize=8)
+ax[1].plot(p5, &quot;-o&quot;, ms=4, lw=1, color=&quot;tab:red&quot;)
+for j in range(1, 5):
+    ax[1].axvline(j * 2 ** m / 5, color=&quot;k&quot;, ls=&quot;:&quot;, lw=0.8)
+ax[1].set_title(&quot;r = 5 does not: peaks leak&quot;)
+ax[2].bar(np.arange(2 ** m), p_exact, color=&quot;tab:purple&quot;, width=0.8)
+ax[2].set_title(&quot;random state: nothing to read&quot;)
+for a in ax:
+    a.set_xlabel(&quot;measured index k&quot;); a.set_ylabel(&quot;probability&quot;)
+plt.tight_layout()
+plt.show()
+</code></pre>
+<pre><code class="language-text">Case 1: period r = 8 divides 2^m = 64
+----------------------------------------------------------------------
+  nonzero probabilities of the QFT output (offset s = 0):
+   k=0: 0.1250   k=8: 0.1250   k=16: 0.1250   k=24: 0.1250   k=32: 0.1250   k=40: 0.1250   k=48: 0.1250   k=56: 0.1250
+
+  the same distribution for every offset s:
+    s = 1: max |p_s - p_0| = 1.60e-50
+    s = 2: max |p_s - p_0| = 4.28e-50
+    s = 3: max |p_s - p_0| = 2.14e-50
+    s = 4: max |p_s - p_0| = 2.14e-50
+    s = 5: max |p_s - p_0| = 2.14e-50
+    s = 6: max |p_s - p_0| = 2.14e-50
+    s = 7: max |p_s - p_0| = 4.81e-50
+
+  the offset lives in the phases, which no measurement returns:
+     k   |amp| s=0   |amp| s=3   phase diff/2pi   k s / 2^m mod 1
+     0      0.3536      0.3536           0.0000            0.0000
+     8      0.3536      0.3536           0.3750            0.3750
+    16      0.3536      0.3536           0.7500            0.7500
+    24      0.3536      0.3536           0.1250            0.1250
+    32      0.3536      0.3536           0.5000            0.5000
+    40      0.3536      0.3536           0.8750            0.8750
+    48      0.3536      0.3536           0.2500            0.2500
+    56      0.3536      0.3536           0.6250            0.6250
+
+Case 2: period r = 5 does not divide 2^m = 64
+----------------------------------------------------------------------
+  2^m / r = 12.80; the five largest peaks:
+   k=0: 0.2031   k=13: 0.1771   k=26: 0.1146   k=38: 0.1146   k=51: 0.1771
+  total probability in those five bins: 0.7865
+  peaks near, not at, multiples of 12.80 -- the leakage that Chapter 3 has to postprocess
+
+Cost of reading the output amplitudes
+----------------------------------------------------------------------
+       shots   max |p_hat - p|   1/sqrt(shots)
+         100           0.04393         0.10000
+        1000           0.01644         0.03162
+       10000           0.00339         0.01000
+      100000           0.00210         0.00316
+     1000000           0.00047         0.00100
+
+  shots to pin all 2^m probabilities to 1 per cent: ~ m ln2/delta^2 = 4e+04
+  (logarithmic in the number of bins, not linear: the table above crosses
+  1 per cent nearer 3e+03 shots)
+  and the phases would need separate interference experiments.
+</code></pre>
+<p><strong>What to look for.</strong> For $r = 8$ in a 64-dimensional register the output is supported on exactly eight indices, the multiples of $2^m/r = 8$, each with probability $1/8$. Shifting the offset $s$ changes the distribution by $10^{-50}$ — that is, not at all. The offset is not lost, it is stored in the phases, and the table confirms that the phase difference between $s = 0$ and $s = 3$ is exactly $ks/2^m$ at every peak. <strong>The QFT trades the offset for the period</strong>, and a measurement collects the half of the information that is measurable.</p>
+<p>The $r = 5$ block is the honest version. Five does not divide 64, the peaks land near but not on multiples of $12.8$, and only $79\%$ of the probability sits in the five best bins; the rest is spread over the other 59. Nothing is broken — the peaks are still where the period says they should be, to within one bin — but a classical postprocessing step is now needed to turn a measured index into a period, and that step is continued fractions in Chapter 3.</p>
+<p>The last block prices the alternative, and the price is not the one the shape of the problem suggests. Estimating the transformed probabilities by sampling converges as $1/\sqrt{\text{shots}}$, and the number of shots that holds the <em>worst</em> of the $2^m$ bins to an absolute $\delta$ grows only logarithmically in the number of bins — $O(m/\delta^2)$, about $4 \times 10^4$ for $m = 6$ and $\delta = 0.01$, with the measured table crossing one per cent nearer $3 \times 10^3$. What makes the Fourier-engine reading hopeless is not that count but what an absolute $\delta$ buys: the probabilities are themselves of order $2^{-m}$, so a <em>relative</em> precision — what a Fourier transform is expected to deliver — needs $\delta \sim \varepsilon 2^{-m}$ and therefore $O(2^m m/\varepsilon^2)$ shots, and even then the $2^m$ numbers come out one measured index at a time.</p>
+<hr />
+<h2>2.2 Phase Estimation</h2>
+<h3>The problem</h3>
+<p>Let $U$ be a unitary and $\lvert u \rangle$ an eigenvector,</p>
+<p>$$ U \lvert u \rangle = e^{2\pi i \varphi} \lvert u \rangle, \qquad \varphi \in [0, 1) $$</p>
+<p>Given the ability to apply $U$, controlled on another qubit, and given a copy of $\lvert u \rangle$, estimate $\varphi$. That is the whole specification, and its reach comes from how many problems fit it. Take $U = e^{-iH\tau}$ for a Hamiltonian $H$: the eigenphases are the energies, rescaled. Take $U$ to be multiplication by $a$ modulo $N$: the eigenphases are $s/r$ with $r$ the multiplicative order, which is Chapter 3. Take $U$ to be a reflection in Grover's algorithm: estimating its phase counts the solutions, which is amplitude estimation.</p>
+<h3>Where the interference happens</h3>
+<p>Prepare $t$ counting qubits in the uniform superposition and the system in $\lvert u \rangle$. Apply $U^{2^{t-1-j}}$ controlled on counting qubit $j$. Because $\lvert u \rangle$ is an eigenvector, each controlled operation multiplies the branch in which qubit $j$ is $\lvert 1 \rangle$ by the number $e^{2\pi i \varphi 2^{t-1-j}}$ and leaves the system register untouched. Collecting the factors,</p>
+<p>$$ \frac{1}{\sqrt{2^t}}\sum_{k=0}^{2^t-1} e^{2\pi i \varphi k}\, \lvert k \rangle \otimes \lvert u \rangle $$</p>
+<p>with $k = \sum_j q_j 2^{t-1-j}$ as usual. Compare that with the QFT of a basis state: it is exactly $\mathrm{QFT}\lvert 2^t \varphi \rangle$ whenever $2^t\varphi$ is an integer. So applying the <strong>inverse</strong> QFT to the counting register produces $\lvert 2^t \varphi \rangle$ and measuring it returns the first $t$ binary digits of $\varphi$ with certainty. Phase estimation is the QFT run backwards, and the controlled powers are what write the phase into the register in the first place.</p>
+<p>Two consequences follow at once. The total cost in applications of $U$ is $1 + 2 + \cdots + 2^{t-1} = 2^t - 1$, so precision $\varepsilon \sim 2^{-t}$ costs $\Theta(1/\varepsilon)$ applications: the depth is inversely proportional to the accuracy. And the eigenvector was never disturbed, which means an input that is a superposition $\sum_l c_l \lvert u_l \rangle$ produces a superposition of <em>estimates</em>, and a measurement of the counting register returns eigenphase $\varphi_l$ with probability $\lvert c_l \rvert^2$ — exactly so when every $\varphi_l$ has an exact $t$-bit expansion, and otherwise with each $\lvert c_l \rvert^2$ spread over the bins around $\varphi_l$ in the pattern of $P_{\text{best}}$ below. Phase estimation is a spectrometer, and the input state is the choice of what to look at.</p>
+<h3>Bits, precision and the standard bound</h3>
+<p>When $2^t \varphi$ is not an integer the peak is no longer a delta function. Writing $\delta$ for the distance from $\varphi$ to the nearest multiple of $2^{-t}$, the probability of measuring that nearest index is</p>
+<p>$$ P_{\text{best}} = \frac{1}{2^{2t}} \frac{\sin^2\left(2^t \pi \delta\right)}{\sin^2\left(\pi \delta\right)} \; \ge \; \frac{4}{\pi^2} \approx 0.405 $$</p>
+<p>with the worst case at $\delta = 2^{-t-1}$, exactly halfway between bins. The standard statement that follows is worth memorizing because it is how register sizes are chosen in practice: to obtain an estimate $\tilde{\varphi}$ accurate to $\lvert \tilde{\varphi} - \varphi \rvert &lt; 2^{-n}$ with probability at least $1-\varepsilon$, use</p>
+<p>$$ t = n + \left\lceil \log_2\left(2 + \frac{1}{2\varepsilon}\right) \right\rceil $$</p>
+<p>counting qubits. The extra bits are insurance, not resolution: they buy the probability of landing in the right bin, and the cost is a factor $2^{\text{extra}}$ in circuit depth. The guarantee is on the <em>number</em> $\tilde{\varphi}$ and not on the leading bit string, and the difference is real: for $\varphi = 1/2 - 2^{-12}$ the nearest four-bit grid point is $0.1000_2$, whose bits are the complement of $\varphi$'s own leading bits, yet it is within $2^{-4}$ and is the right answer. Example 4's third block therefore measures $\Pr[\lvert \tilde{\varphi} - \varphi \rvert &lt; 2^{-n}]$, which is what the theorem bounds. Note also what the theorem does <em>not</em> promise — it says nothing about whether the eigenvector you supplied is the one you wanted, which is Section 2.4's problem.</p>
+<h3>Code Example 4: Phase Estimation on a Known Phase</h3>
+<p>The cleanest possible test case: a one-qubit unitary $\mathrm{diag}(1, e^{2\pi i \varphi})$, whose eigenvector $\lvert 1 \rangle$ is a basis state and whose eigenphase we chose ourselves.</p>
+<pre><code class="language-python">&quot;&quot;&quot;Chapter 2, Example 4: phase estimation on a known phase.
+Continues from Example 3 (same session).&quot;&quot;&quot;
+
+import numpy as np
+
+
+def controlled(U):
+    &quot;&quot;&quot;Block-diagonal controlled version of U; the control is the first qubit.&quot;&quot;&quot;
+    d = U.shape[0]
+    C = np.eye(2 * d, dtype=complex)
+    C[d:, d:] = U
+    return C
+
+
+def qpe_state(U, sys_state, t):
+    &quot;&quot;&quot;Run textbook QPE: t counting qubits (qubit 0 = MSB) then the system.
+
+    Returns the full state after the inverse QFT. The controlled powers cost
+    2^t - 1 applications of U in total.
+    &quot;&quot;&quot;
+    n_sys = int(np.log2(sys_state.size))
+    n = t + n_sys
+    state = np.kron(ket('0' * t), sys_state)
+    for j in range(t):
+        state = apply_gate(state, H, [j], n)
+    for j in range(t):
+        Up = np.linalg.matrix_power(U, 2 ** (t - 1 - j))
+        state = apply_gate(state, controlled(Up), [j] + list(range(t, n)), n)
+    return iqft(state, list(range(t)), n)
+
+
+def counting_probs(state, t):
+    &quot;&quot;&quot;Marginal distribution of the t counting qubits.&quot;&quot;&quot;
+    return probs(state).reshape(2 ** t, -1).sum(axis=1)
+
+
+def phase_gate(phi):
+    &quot;&quot;&quot;One-qubit U = diag(1, exp(2 pi i phi)); |1&gt; is an eigenvector.&quot;&quot;&quot;
+    return np.array([[1.0, 0.0], [0.0, np.exp(2j * np.pi * phi)]],
+                    dtype=complex)
+
+
+print(&quot;A phase that is exactly representable: phi = 0.375 = 0.011 (binary)&quot;)
+print(&quot;-&quot; * 74)
+phi = 0.375
+print(f&quot;  {'t':&gt;3}{'best k':&gt;8}{'k/2^t':&gt;12}{'|error|':&gt;12}&quot;
+      f&quot;{'P(best)':&gt;10}{'ctrl-U calls':&gt;14}&quot;)
+for t in [3, 4, 6]:
+    p = counting_probs(qpe_state(phase_gate(phi), ket('1'), t), t)
+    k = int(np.argmax(p))
+    print(f&quot;  {t:&gt;3}{k:&gt;8}{k/2**t:&gt;12.6f}{abs(k/2**t - phi):&gt;12.2e}&quot;
+          f&quot;{p[k]:&gt;10.6f}{2**t - 1:&gt;14d}&quot;)
+
+print(&quot;\nA phase that is not: phi = 1/3 = 0.0101010101... (binary)&quot;)
+print(&quot;-&quot; * 74)
+phi = 1.0 / 3.0
+print(f&quot;  {'t':&gt;3}{'best k':&gt;8}{'k/2^t':&gt;12}{'|error|':&gt;12}{'2^-t':&gt;10}&quot;
+      f&quot;{'P(best)':&gt;10}{'P(best 2)':&gt;11}&quot;)
+for t in range(3, 13):
+    p = counting_probs(qpe_state(phase_gate(phi), ket('1'), t), t)
+    order = np.argsort(p)[::-1]
+    k = int(order[0])
+    print(f&quot;  {t:&gt;3}{k:&gt;8}{k/2**t:&gt;12.6f}{abs(k/2**t - phi):&gt;12.2e}&quot;
+          f&quot;{2.0**-t:&gt;10.2e}{p[k]:&gt;10.6f}{p[order[0]]+p[order[1]]:&gt;11.6f}&quot;)
+
+print(&quot;\nThe standard guarantee: t = n + ceil(log2(2 + 1/(2 eps)))&quot;)
+print(&quot;-&quot; * 74)
+print(f&quot;  {'n bits':&gt;7}{'eps':&gt;9}{'extra':&gt;7}{'t':&gt;5}&quot;
+      f&quot;{'measured P(|err| &lt; 2^-n)':&gt;27}&quot;)
+for n_bits, eps in [(2, 0.25), (2, 0.05), (4, 0.25), (4, 0.05), (6, 0.05)]:
+    extra = int(np.ceil(np.log2(2.0 + 1.0 / (2 * eps))))
+    t = n_bits + extra
+    p = counting_probs(qpe_state(phase_gate(phi), ket('1'), t), t)
+    ks = np.arange(2 ** t)
+    err = np.minimum(np.abs(ks / 2 ** t - phi), 1.0 - np.abs(ks / 2 ** t - phi))
+    good = p[err &lt; 2.0 ** -n_bits].sum()
+    print(f&quot;  {n_bits:&gt;7}{eps:&gt;9.2f}{extra:&gt;7}{t:&gt;5}{good:&gt;27.6f}&quot;)
+
+print(&quot;\nSuperposition input: the register measures which eigenvalue it found&quot;)
+print(&quot;-&quot; * 74)
+U = np.diag([np.exp(2j * np.pi * 0.25), np.exp(2j * np.pi * 0.75)])
+mix = np.array([np.sqrt(0.8), np.sqrt(0.2)], dtype=complex)
+t = 4
+p = counting_probs(qpe_state(U, mix, t), t)
+for k in np.flatnonzero(p &gt; 1e-9):
+    print(f&quot;  k = {k:&gt;2}  -&gt;  phi = {k/2**t:.4f}   probability {p[k]:.4f}&quot;)
+print(&quot;  the two eigenphases are returned with the input's own weights, &quot;
+      &quot;0.8 and 0.2&quot;)
+</code></pre>
+<pre><code class="language-text">A phase that is exactly representable: phi = 0.375 = 0.011 (binary)
+--------------------------------------------------------------------------
+    t  best k       k/2^t     |error|   P(best)  ctrl-U calls
+    3       3    0.375000    0.00e+00  1.000000             7
+    4       6    0.375000    0.00e+00  1.000000            15
+    6      24    0.375000    0.00e+00  1.000000            63
+
+A phase that is not: phi = 1/3 = 0.0101010101... (binary)
+--------------------------------------------------------------------------
+    t  best k       k/2^t     |error|      2^-t   P(best)  P(best 2)
+    3       3    0.375000    4.17e-02  1.25e-01  0.687838   0.862778
+    4       5    0.312500    2.08e-02  6.25e-02  0.684895   0.856855
+    5      11    0.343750    1.04e-02  3.12e-02  0.684162   0.855386
+    6      21    0.328125    5.21e-03  1.56e-02  0.683979   0.855020
+    7      43    0.335938    2.60e-03  7.81e-03  0.683933   0.854928
+    8      85    0.332031    1.30e-03  3.91e-03  0.683922   0.854905
+    9     171    0.333984    6.51e-04  1.95e-03  0.683919   0.854899
+   10     341    0.333008    3.26e-04  9.77e-04  0.683918   0.854898
+   11     683    0.333496    1.63e-04  4.88e-04  0.683918   0.854898
+   12    1365    0.333252    8.14e-05  2.44e-04  0.683918   0.854898
+
+The standard guarantee: t = n + ceil(log2(2 + 1/(2 eps)))
+--------------------------------------------------------------------------
+   n bits      eps  extra    t   measured P(|err| &lt; 2^-n)
+        2     0.25      2    4                   0.970284
+        2     0.05      4    6                   0.992542
+        4     0.25      2    6                   0.962624
+        4     0.05      4    8                   0.990626
+        6     0.05      4   10                   0.990511
+
+Superposition input: the register measures which eigenvalue it found
+--------------------------------------------------------------------------
+  k =  4  -&gt;  phi = 0.2500   probability 0.8000
+  k = 12  -&gt;  phi = 0.7500   probability 0.2000
+  the two eigenphases are returned with the input's own weights, 0.8 and 0.2
+</code></pre>
+<p><strong>What to look for.</strong> For $\varphi = 0.375 = 0.011_2$ the algorithm is exact: three counting qubits return $k = 3$ with probability 1, and adding more qubits changes nothing except the depth. This is the deterministic case, and it is the case Chapter 3's $N = 15$ turns out to be.</p>
+<p>For $\varphi = 1/3$ the picture is generic and the table is the one to internalize. The error tracks $2^{-t}$ down to $8 \times 10^{-5}$ at $t = 12$, halving with each added qubit as promised, while $P_{\text{best}}$ settles at $0.6839$ and the best two bins hold $0.8549$ — both comfortably above the $4/\pi^2$ floor, and both <em>independent of $t$</em>. That is the important structural fact: extra counting qubits buy resolution, not confidence. Confidence comes from the $\lceil \log_2(2 + 1/(2\varepsilon))\rceil$ padding bits, and the third block confirms the bound empirically — the measured probability of landing within $2^{-n}$ of $\varphi$, which is what the theorem promises, exceeds $1 - \varepsilon$ in every row, by a comfortable margin because the bound is conservative.</p>
+<p>The last block is phase estimation used as a spectrometer. An input that is a superposition of two eigenvectors with weights $0.8$ and $0.2$ returns the two eigenphases with probabilities $0.8$ and $0.2$. Nothing averages; the register reports which eigenvalue this particular run found.</p>
+<h3>Code Example 5: Eigenphases of a Many-Qubit Unitary</h3>
+<p>Now the case of interest: $U = e^{-iH\tau}$ for a Hamiltonian on two, three and four qubits. Two practical points appear here for the first time. A constant shift of $H$ costs nothing and is needed to place the whole spectrum inside the phase window $[0,1)$; and $\tau$ should be as large as that window allows, because it sets the resolution per bit.</p>
+<pre><code class="language-python">&quot;&quot;&quot;Chapter 2, Example 5: eigenphases of a many-qubit unitary, and how the
+error falls with the number of counting qubits.
+Continues from Example 4 (same session).&quot;&quot;&quot;
+
+import numpy as np
+import matplotlib.pyplot as plt
+from functools import reduce
+
+
+def kron_all(mats):
+    return reduce(np.kron, mats)
+
+
+def tfim_matrix(n, h):
+    &quot;&quot;&quot;Transverse-field Ising chain: H = -sum Z_i Z_{i+1} - h sum X_i.&quot;&quot;&quot;
+    M = np.zeros((2 ** n, 2 ** n), dtype=complex)
+    for i in range(n - 1):
+        M -= kron_all([Z if q in (i, i + 1) else I2 for q in range(n)])
+    for i in range(n):
+        M -= h * kron_all([X if q == i else I2 for q in range(n)])
+    return M
+
+
+def unitary_from_h(M, tau):
+    &quot;&quot;&quot;exp(-i M tau) by eigendecomposition; M must be Hermitian.&quot;&quot;&quot;
+    w, v = np.linalg.eigh(M)
+    return (v * np.exp(-1j * w * tau)) @ v.conj().T
+
+
+def phase_window(w, frac=0.87, pad=0.05):
+    &quot;&quot;&quot;Constant shift c and evolution time tau putting every eigenphase in (0, 1).
+
+    The ground state is placed at phi = frac and the top of the spectrum near
+    phi = frac*pad/(1+pad). Shifting the Hamiltonian by a constant is free: it
+    moves no eigenvector and no energy difference. Choosing tau as large as the
+    spectral span allows is what makes the window worth having.
+    &quot;&quot;&quot;
+    span = w[-1] - w[0]
+    c = w[-1] + pad * span
+    tau = 2 * np.pi * frac / (c - w[0])
+    return c, tau
+
+
+h_field = 0.5
+print(f&quot;Transverse-field Ising chain, h = {h_field}: eigenphases from QPE&quot;)
+print(&quot;-&quot; * 76)
+for n_sys, t in [(2, 8), (3, 8), (4, 8)]:
+    M = tfim_matrix(n_sys, h_field)
+    w, v = np.linalg.eigh(M)
+    c, tau = phase_window(w)
+    U = unitary_from_h(M - c * np.eye(2 ** n_sys), tau)
+    print(f&quot;\n  n = {n_sys} system qubits, t = {t} counting qubits, &quot;
+          f&quot;tau = {tau:.6f}, shift c = {c:.6f}&quot;)
+    print(f&quot;  {'level':&gt;6}{'E exact':&gt;12}{'phi exact':&gt;12}{'best k':&gt;8}&quot;
+          f&quot;{'phi QPE':&gt;11}{'E from QPE':&gt;13}{'|dE|':&gt;10}{'P(best)':&gt;10}&quot;)
+    for k_lev in range(min(4, 2 ** n_sys)):
+        phi_ex = (-(w[k_lev] - c) * tau / (2 * np.pi)) % 1.0
+        p = counting_probs(qpe_state(U, v[:, k_lev].astype(complex), t), t)
+        k = int(np.argmax(p))
+        E_qpe = c - (k / 2 ** t) * 2 * np.pi / tau
+        print(f&quot;  {k_lev:&gt;6}{w[k_lev].real:&gt;12.6f}{phi_ex:&gt;12.6f}{k:&gt;8}&quot;
+              f&quot;{k/2**t:&gt;11.6f}{E_qpe:&gt;13.6f}&quot;
+              f&quot;{abs(E_qpe - w[k_lev].real):&gt;10.2e}{p[k]:&gt;10.4f}&quot;)
+
+print(&quot;\nPrecision scaling: ground state of the n = 3 chain&quot;)
+print(&quot;-&quot; * 76)
+n_sys = 3
+M = tfim_matrix(n_sys, h_field)
+w, v = np.linalg.eigh(M)
+c, tau = phase_window(w)
+U = unitary_from_h(M - c * np.eye(2 ** n_sys), tau)
+psi0 = v[:, 0].astype(complex)
+print(f&quot;  exact E_0 = {w[0].real:.9f},  exact phi_0 = &quot;
+      f&quot;{(-(w[0]-c)*tau/(2*np.pi)) % 1.0:.9f}&quot;)
+print(f&quot;  {'t':&gt;3}{'ctrl-U calls':&gt;14}{'phi QPE':&gt;12}{'|d phi|':&gt;11}&quot;
+      f&quot;{'2^-(t+1)':&gt;11}{'|dE| (energy)':&gt;15}{'P(best)':&gt;10}&quot;)
+errs = []
+ts = list(range(4, 15))
+for t in ts:
+    p = counting_probs(qpe_state(U, psi0, t), t)
+    k = int(np.argmax(p))
+    dphi = abs(k / 2 ** t - (-(w[0] - c) * tau / (2 * np.pi)) % 1.0)
+    dE = abs((c - (k / 2 ** t) * 2 * np.pi / tau) - w[0].real)
+    errs.append(dE)
+    print(f&quot;  {t:&gt;3}{2**t - 1:&gt;14d}{k/2**t:&gt;12.6f}{dphi:&gt;11.2e}&quot;
+          f&quot;{2.0**-(t+1):&gt;11.2e}{dE:&gt;15.2e}{p[k]:&gt;10.4f}&quot;)
+
+sl = np.polyfit(np.array(ts, float), np.log2(np.array(errs)), 1)[0]
+print(f&quot;\n  log2(energy error) versus t: slope = {sl:.3f} &quot;
+      f&quot;(exact halving would be -1)&quot;)
+print(&quot;  Cost is 2^t - 1 controlled applications of U, so precision eps &quot;
+      &quot;costs O(1/eps) depth.&quot;)
+
+fig, ax = plt.subplots(1, 2, figsize=(11, 4))
+for t, style in [(5, &quot;-o&quot;), (8, &quot;--s&quot;)]:
+    p = counting_probs(qpe_state(U, psi0, t), t)
+    ax[0].plot(np.arange(2 ** t) / 2 ** t, p, style, ms=3, lw=1,
+               label=f&quot;t = {t}&quot;)
+ax[0].axvline((-(w[0] - c) * tau / (2 * np.pi)) % 1.0, color=&quot;k&quot;, ls=&quot;:&quot;,
+              lw=1, label=&quot;exact $\\phi_0$&quot;)
+ax[0].set_xlabel(&quot;$k/2^t$&quot;); ax[0].set_ylabel(&quot;probability&quot;)
+ax[0].set_title(&quot;QPE output, ground state of the 3-site chain&quot;)
+ax[0].legend(fontsize=8)
+
+ax[1].semilogy(ts, errs, &quot;o-&quot;, color=&quot;tab:red&quot;, label=&quot;measured&quot;)
+ax[1].semilogy(ts, [2.0 ** -(t + 1) * 2 * np.pi / tau for t in ts], &quot;k--&quot;,
+               label=&quot;$2^{-(t+1)} \\cdot 2\\pi/\\tau$&quot;)
+ax[1].set_xlabel(&quot;counting qubits $t$&quot;); ax[1].set_ylabel(&quot;energy error&quot;)
+ax[1].set_title(&quot;One extra qubit, one more bit&quot;)
+ax[1].legend(fontsize=8)
+plt.tight_layout()
+plt.show()
+</code></pre>
+<pre><code class="language-text">Transverse-field Ising chain, h = 0.5: eigenphases from QPE
+----------------------------------------------------------------------------
+
+  n = 2 system qubits, t = 8 counting qubits, tau = 1.840623, shift c = 1.555635
+   level     E exact   phi exact  best k    phi QPE   E from QPE      |dE|   P(best)
+       0   -1.414214    0.870000     223   0.871094    -1.417947  3.73e-03    0.7673
+       1   -1.000000    0.748659     192   0.750000    -1.004579  4.58e-03    0.6675
+       2    1.000000    0.162770      42   0.164062     0.995588  4.41e-03    0.6879
+       3    1.414214    0.041429      11   0.042969     1.408956  5.26e-03    0.5825
+
+  n = 3 system qubits, t = 8 counting qubits, tau = 1.083148, shift c = 2.643533
+   level     E exact   phi exact  best k    phi QPE   E from QPE      |dE|   P(best)
+       0   -2.403212    0.870000     223   0.871094    -2.409557  6.34e-03    0.7673
+       1   -2.209275    0.836568     214   0.835938    -2.205620  3.66e-03    0.9173
+       2   -0.500000    0.541908     139   0.542969    -0.506151  6.15e-03    0.7799
+       3   -0.306063    0.508476     130   0.507812    -0.302214  3.85e-03    0.9086
+
+  n = 4 system qubits, t = 8 counting qubits, tau = 0.759559, shift c = 3.769737
+   level     E exact   phi exact  best k    phi QPE   E from QPE      |dE|   P(best)
+       0   -3.427034    0.870000     223   0.871094    -3.436082  9.05e-03    0.7673
+       1   -3.332247    0.858541     220   0.859375    -3.339142  6.90e-03    0.8589
+       2   -1.826838    0.676556     173   0.675781    -1.820427  6.41e-03    0.8770
+       3   -1.732051    0.665098     170   0.664062    -1.723488  8.56e-03    0.7893
+
+Precision scaling: ground state of the n = 3 chain
+----------------------------------------------------------------------------
+  exact E_0 = -2.403211926,  exact phi_0 = 0.870000000
+    t  ctrl-U calls     phi QPE    |d phi|   2^-(t+1)  |dE| (energy)   P(best)
+    4            15    0.875000   5.00e-03   3.12e-02       2.90e-02    0.9792
+    5            31    0.875000   5.00e-03   1.56e-02       2.90e-02    0.9186
+    6            63    0.875000   5.00e-03   7.81e-03       2.90e-02    0.7054
+    7           127    0.867188   2.81e-03   3.91e-03       1.63e-02    0.6401
+    8           255    0.871094   1.09e-03   1.95e-03       6.34e-03    0.7673
+    9           511    0.869141   8.59e-04   9.77e-04       4.99e-03    0.5050
+   10          1023    0.870117   1.17e-04   4.88e-04       6.80e-04    0.9535
+   11          2047    0.870117   1.17e-04   2.44e-04       6.80e-04    0.8243
+   12          4095    0.870117   1.17e-04   1.22e-04       6.80e-04    0.4380
+   13          8191    0.869995   4.88e-06   6.10e-05       2.83e-05    0.9947
+   14         16383    0.869995   4.88e-06   3.05e-05       2.83e-05    0.9791
+
+  log2(energy error) versus t: slope = -1.079 (exact halving would be -1)
+  Cost is 2^t - 1 controlled applications of U, so precision eps costs O(1/eps) depth.
+</code></pre>
+<p><strong>What to look for.</strong> Every eigenvalue of every chain is recovered to a few times $10^{-3}$ in energy at $t = 8$, which is $2^{-9}$ of the spectral span — the resolution the register size allows and no better. The recovered energies are not fitted or averaged; they are one arithmetic step from one measured integer.</p>
+<p>The precision table is the chapter's central scaling result. The phase error stays below $2^{-(t+1)}$ at every $t$, the energy error falls by a factor of two per added counting qubit, and the fitted slope of $\log_2(\text{error})$ against $t$ is $-1.079$ — the excess over $-1$ being the discreteness of the bins rather than a systematic effect. The number in the second column is what this costs: $2^{14}-1 = 16383$ controlled applications of $U$ to reach an energy error of $2.8 \times 10^{-5}$ (the $6.10 \times 10^{-5}$ on the $t = 13$ row is that row's $2^{-(t+1)}$ bound, not an achieved error). Precision is bought linearly in circuit depth, and this is the trade that Chapter 4 has to make concrete, because in a real problem each application of $U$ is itself an expensive simulation of $e^{-iH\tau}$.</p>
+<p>The success probability column wanders between $0.44$ and $0.99$ with no trend, which is the same lesson as Example 4 seen from a different angle: the peak height depends on where $\varphi$ happens to sit relative to the bin boundaries, and never on how many bins there are.</p>
+<hr />
+<h2>2.3 Iterative Phase Estimation</h2>
+<h3>One ancilla instead of $t$</h3>
+<p>The textbook circuit needs $t$ counting qubits held coherently while $2^t - 1$ applications of $U$ run. On hardware, qubits are the scarcer resource and mid-circuit measurement is available, and there is an exchange rate between them. Notice that the counting register is measured at the end and never used again, and that the inverse QFT's only non-Clifford content is controlled phase rotations by angles determined by <em>other</em> measurement outcomes. Both observations point the same way: replace the quantum controls by classical ones.</p>
+<p><strong>Iterative phase estimation</strong> does this. Write $\varphi = 0.b_1b_2\ldots b_t$ in binary and extract the bits from the least significant upwards. At round $k$, with $b_{k+1},\ldots,b_t$ already known:</p>
+<ol>
+<li>Hadamard the ancilla.</li>
+<li>Apply $U^{2^{k-1}}$ controlled on it. This writes the phase $2\pi \left(2^{k-1}\varphi\right) = 2\pi\left(\text{integer} + 0.b_k b_{k+1}\ldots b_t\right)$ onto the $\lvert 1 \rangle$ branch.</li>
+<li>Rotate the ancilla by $-2\pi \times 0.0b_{k+1}\ldots b_t$, cancelling every bit already known.</li>
+<li>Hadamard and measure. The residual relative phase is $\pi b_k$, so the outcome is $b_k$ with certainty.</li>
+</ol>
+<p>The feedback in step 3 is the inverse QFT's controlled rotations, executed classically. If $\varphi$ is exactly $t$ bits long every round is deterministic; otherwise the tail $0.b_{k+1}\ldots$ that step 3 cannot know biases each round, and a wrong bit corrupts every bit above it. The remedy is to repeat each round and take a majority vote, which costs applications of $U$ but no qubits.</p>
+<p>The exchange rate, stated plainly: iterative QPE uses $1 + n_{\text{sys}}$ qubits instead of $t + n_{\text{sys}}$, needs the same $2^t - 1$ applications of $U$ in the best case and a small multiple of that in practice, and requires $t$ rounds of mid-circuit measurement with classical feedback inside the coherence time. It also requires the system register to survive all $t$ rounds — which for an exact eigenvector is automatic, since $U$ does not move it, and is the reason this variant is the practical one for eigenvalue problems.</p>
+<h3>Code Example 6: Iterative Phase Estimation</h3>
+<pre><code class="language-python">&quot;&quot;&quot;Chapter 2, Example 6: iterative phase estimation with a single ancilla.
+Continues from Example 5 (same session).&quot;&quot;&quot;
+
+import numpy as np
+
+
+def iqpe_round(U, sys_state, power, feedback):
+    &quot;&quot;&quot;One round: ancilla + system, controlled U^power, Rz feedback, readout.
+
+    Returns P(ancilla = 1). The ancilla is qubit 0; the system occupies the
+    rest. Because sys_state is an eigenvector of U it is returned unchanged,
+    which is why the rounds can be run one after another on one ancilla.
+    &quot;&quot;&quot;
+    n_sys = int(np.log2(sys_state.size))
+    n = 1 + n_sys
+    state = np.kron(ket('0'), sys_state)
+    state = apply_gate(state, H, [0], n)
+    Up = np.linalg.matrix_power(U, power)
+    state = apply_gate(state, controlled(Up), list(range(n)), n)
+    state = apply_gate(state, rz(-2 * np.pi * feedback), [0], n)
+    state = apply_gate(state, H, [0], n)
+    p = probs(state)
+    return float(p[p.size // 2:].sum())
+
+
+def iqpe(U, sys_state, t, rng, reps=1):
+    &quot;&quot;&quot;Iterative QPE: t rounds from the least significant bit upwards.
+
+    bits[j] is the (j+1)-th binary digit of phi, so phi = sum bits[j] 2^-(j+1).
+    Round k measures bits[k-1] after subtracting the digits already known.
+    Each round is repeated `reps` times and decided by majority vote.
+    &quot;&quot;&quot;
+    bits = [0] * t
+    for k in range(t, 0, -1):
+        feedback = sum(bits[j] / 2.0 ** (j - k + 2) for j in range(k, t))
+        p1 = iqpe_round(U, sys_state, 2 ** (k - 1), feedback)
+        votes = sum(1 for _ in range(reps) if rng.random() &lt; p1)
+        bits[k - 1] = 1 if 2 * votes &gt; reps else 0
+    return sum(b / 2.0 ** (j + 1) for j, b in enumerate(bits)), bits
+
+
+print(&quot;A dyadic phase is returned bit by bit, deterministically&quot;)
+print(&quot;-&quot; * 74)
+rng = np.random.default_rng(2024)
+for phi in [0.375, 0.8125, 0.65625]:
+    t = 5
+    est, bits = iqpe(phase_gate(phi), ket('1'), t, rng)
+    print(f&quot;  phi = {phi:.5f} = 0.{''.join(str(int(b)) for b in bits)} &quot;
+          f&quot;(binary)   estimate {est:.5f}   error {abs(est-phi):.1e}&quot;)
+print(&quot;  every round had P(1) equal to 0 or 1, so no sampling was involved:&quot;)
+for phi in [0.375, 0.8125]:
+    exact = [int(phi * 2 ** (j + 1)) % 2 for j in range(5)]
+    ps = []
+    for k in range(5, 0, -1):
+        fb = sum(exact[j] / 2.0 ** (j - k + 2) for j in range(k, 5))
+        ps.append(iqpe_round(phase_gate(phi), ket('1'), 2 ** (k - 1), fb))
+    print(f&quot;    phi = {phi:.5f}: P(1) per round = &quot;
+          + &quot;  &quot;.join(f&quot;{p:.3f}&quot; for p in ps))
+
+print(&quot;\nA non-dyadic phase needs repetition: phi = 1/3, t = 6&quot;)
+print(&quot;-&quot; * 74)
+phi = 1.0 / 3.0
+t = 6
+n_trials = 2000
+print(f&quot;  {'reps/round':&gt;11}{'U calls/trial':&gt;15}{'mean |error|':&gt;14}&quot;
+      f&quot;{'P(|error| &lt; 2^-t)':&gt;20}&quot;)
+for reps in [1, 3, 5, 9, 25]:
+    rng = np.random.default_rng(7)
+    errs = np.array([abs(iqpe(phase_gate(phi), ket('1'), t, rng, reps)[0] - phi)
+                     for _ in range(n_trials)])
+    errs = np.minimum(errs, 1.0 - errs)
+    calls = reps * (2 ** t - 1)
+    print(f&quot;  {reps:&gt;11}{calls:&gt;15}{errs.mean():&gt;14.5f}&quot;
+          f&quot;{float((errs &lt; 2.0**-t).mean()):&gt;20.4f}&quot;)
+print(f&quot;  textbook QPE with t = {t}: {2**t - 1} calls, &quot;
+      f&quot;{t} counting qubits, P(best bin) = &quot;
+      f&quot;{counting_probs(qpe_state(phase_gate(phi), ket('1'), t), t).max():.4f}&quot;)
+
+print(&quot;\nSame comparison on the 3-site Ising ground state, t = 8&quot;)
+print(&quot;-&quot; * 74)
+M = tfim_matrix(3, h_field)
+w, v = np.linalg.eigh(M)
+c, tau = phase_window(w)
+U = unitary_from_h(M - c * np.eye(8), tau)
+psi0 = v[:, 0].astype(complex)
+phi_ex = (-(w[0] - c) * tau / (2 * np.pi)) % 1.0
+t = 8
+print(f&quot;  exact phi_0 = {phi_ex:.6f},  exact E_0 = {w[0].real:.6f}&quot;)
+print(f&quot;  {'method':&lt;28}{'qubits':&gt;8}{'U calls':&gt;10}{'phi':&gt;12}&quot;
+      f&quot;{'E':&gt;13}{'|dE|':&gt;11}&quot;)
+p = counting_probs(qpe_state(U, psi0, t), t)
+k = int(np.argmax(p))
+E = c - (k / 2 ** t) * 2 * np.pi / tau
+print(f&quot;  {'textbook QPE':&lt;28}{t+3:&gt;8}{2**t-1:&gt;10}{k/2**t:&gt;12.6f}&quot;
+      f&quot;{E:&gt;13.6f}{abs(E-w[0].real):&gt;11.2e}&quot;)
+for reps in [1, 9]:
+    rng = np.random.default_rng(31)
+    est, _ = iqpe(U, psi0, t, rng, reps)
+    E = c - est * 2 * np.pi / tau
+    print(f&quot;  {f'iterative QPE, reps = {reps}':&lt;28}{1+3:&gt;8}&quot;
+          f&quot;{reps*(2**t-1):&gt;10}{est:&gt;12.6f}{E:&gt;13.6f}&quot;
+          f&quot;{abs(E-w[0].real):&gt;11.2e}&quot;)
+print(&quot;  The counting register is gone: t qubits become one, at the price of &quot;
+      &quot;t rounds\n  of measurement and classical feedback.&quot;)
+</code></pre>
+<pre><code class="language-text">A dyadic phase is returned bit by bit, deterministically
+--------------------------------------------------------------------------
+  phi = 0.37500 = 0.01100 (binary)   estimate 0.37500   error 0.0e+00
+  phi = 0.81250 = 0.11010 (binary)   estimate 0.81250   error 0.0e+00
+  phi = 0.65625 = 0.10101 (binary)   estimate 0.65625   error 0.0e+00
+  every round had P(1) equal to 0 or 1, so no sampling was involved:
+    phi = 0.37500: P(1) per round = 0.000  0.000  1.000  1.000  0.000
+    phi = 0.81250: P(1) per round = 0.000  1.000  0.000  1.000  1.000
+
+A non-dyadic phase needs repetition: phi = 1/3, t = 6
+--------------------------------------------------------------------------
+   reps/round  U calls/trial  mean |error|   P(|error| &lt; 2^-t)
+            1             63       0.01367              0.8510
+            3            189       0.00689              0.9665
+            5            315       0.00593              0.9900
+            9            567       0.00551              0.9970
+           25           1575       0.00522              1.0000
+  textbook QPE with t = 6: 63 calls, 6 counting qubits, P(best bin) = 0.6840
+
+Same comparison on the 3-site Ising ground state, t = 8
+--------------------------------------------------------------------------
+  exact phi_0 = 0.870000,  exact E_0 = -2.403212
+  method                        qubits   U calls         phi            E       |dE|
+  textbook QPE                      11       255    0.871094    -2.409557   6.34e-03
+  iterative QPE, reps = 1            4       255    0.867188    -2.386897   1.63e-02
+  iterative QPE, reps = 9            4      2295    0.871094    -2.409557   6.34e-03
+  The counting register is gone: t qubits become one, at the price of t rounds
+  of measurement and classical feedback.
+</code></pre>
+<p><strong>What to look for.</strong> For dyadic phases the round-by-round probabilities are exactly 0 or 1: the algorithm reads off the binary expansion, no sampling involved, and the estimate is exact. That is the case the construction was designed for. One reading detail: the per-round list is printed in the order the rounds run, which is least-significant bit first — the reverse of the binary expansion printed on the line above it, so $0.01100$ appears as $0, 0, 1, 1, 0$.</p>
+<p>For $\varphi = 1/3$ the middle table shows the trade explicitly. One repetition per round gives the correct $t$-bit answer $85\%$ of the time; nine repetitions give $99.7\%$ at nine times the number of applications of $U$; twenty-five give certainty in 2000 trials, with the mean error converging to $0.00522$, which is the truncation error $\lvert 1/3 - 21/64 \rvert$ and not an algorithmic failure. Textbook QPE with the same $t$ costs 63 applications and needs six counting qubits, so the comparison is: same depth, six qubits saved, at $9\times$ the total number of applications for comparable reliability.</p>
+<p>The last block runs both variants on a real eigenvector, and the arithmetic is the point. Eleven qubits become four. A single-shot iterative run lands one bin away from the textbook answer; with nine repetitions per round it lands on exactly the same bin, meaning exactly the same energy. Whether that trade is worth making is a hardware question — it depends on the cost of a mid-circuit measurement relative to the cost of a qubit — and both answers are in use.</p>
+<hr />
+<h2>2.4 What Phase Estimation Is For</h2>
+<h3>Eigenvalues are the point</h3>
+<p>Almost everything a materials researcher wants from a quantum computer is an eigenvalue. A ground-state energy is the lowest eigenvalue of an electronic Hamiltonian; a band structure is a family of eigenvalues; a reaction barrier is a difference of two of them; a vibrational spectrum, a magnetic exchange constant, an optical gap. <a href="../quantum-computing-introduction/chapter-4.html">Introduction to Quantum Computing, Chapter 4</a> set this up in detail, mapped an electronic Hamiltonian onto qubits through second quantization and the Jordan-Wigner transformation, and then compared two ways of extracting the eigenvalue. That comparison is the reason this chapter exists, and it can now be completed.</p>
+<p>The <strong>variational quantum eigensolver</strong> prepares a parameterized trial state, measures $\langle H \rangle$ by sampling Pauli terms, and lets a classical optimizer minimize. Its circuits are shallow, which is why it runs on noisy hardware. It pays in two places: the answer is a variational upper bound whose error is unknown unless the ansatz is exact, and the measurement cost to reach precision $\varepsilon$ scales as $1/\varepsilon^2$ because it is estimating an expectation value by averaging.</p>
+<p><strong>Phase estimation</strong> does something categorically different. It does not average anything. It writes the eigenvalue into a register, digit by digit, and reads it. The precision cost is $1/\varepsilon$ rather than $1/\varepsilon^2$ — the Heisenberg scaling — and the answer is an eigenvalue of the Hamiltonian you gave it, with no variational gap. The price is the depth: $\Theta(1/\varepsilon)$ coherent applications of $e^{-iH\tau}$, which is far beyond any uncorrected device and is the single strongest argument for building a fault-tolerant one.</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>VQE</th>
+<th>Phase estimation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>What it returns</td>
+<td>variational upper bound $\ge E_0$</td>
+<td>an eigenvalue of $H$</td>
+</tr>
+<tr>
+<td>Error if the ansatz is wrong</td>
+<td>unknown, one-sided</td>
+<td>none — but possibly the wrong eigenvalue</td>
+</tr>
+<tr>
+<td>Precision cost</td>
+<td>$O(1/\varepsilon^2)$ measurements</td>
+<td>$O(1/\varepsilon)$ applications of $U$</td>
+</tr>
+<tr>
+<td>Circuit depth</td>
+<td>shallow, fixed</td>
+<td>$\Theta(1/\varepsilon)$, coherent</td>
+</tr>
+<tr>
+<td>Needs error correction</td>
+<td>no</td>
+<td>yes</td>
+</tr>
+<tr>
+<td>Needs a good trial state</td>
+<td>yes, to be accurate</td>
+<td>yes, to succeed at all</td>
+</tr>
+<tr>
+<td>Excited states</td>
+<td>hard; needs constraints or folding</td>
+<td>free — they are the other peaks</td>
+</tr>
+</tbody>
+</table>
+<p>The last two rows are the ones usually skipped. Phase estimation gets excited states for nothing, because they are simply the other peaks in the same distribution, and that is a genuine structural advantage over any variational method. And both algorithms need a good trial state, but for different reasons: VQE needs it to be <em>accurate</em>, and phase estimation needs it to <em>overlap</em>.</p>
+<h3>The overlap problem, stated honestly</h3>
+<p>Feed phase estimation a trial state $\lvert \psi \rangle = \sum_l c_l \lvert u_l \rangle$ and it returns $E_l$ with probability $\lvert c_l \rvert^2$ — as Example 4 already showed. To learn the ground-state energy you therefore need $p_0 = \lvert \langle \psi_0 \vert \psi \rangle \rvert^2$ to be not too small, and the number of repetitions scales as $1/p_0$. For small molecules a Hartree-Fock determinant has $p_0$ close to one and this is a non-issue. For the strongly correlated systems that motivate the whole enterprise it is exactly the hard case: the ground state is a superposition of exponentially many determinants, and $p_0$ can fall off exponentially with system size. There is no known general solution. Adiabatic state preparation, quantum-selected configuration interaction, and using a converged VQE state as the input for phase estimation are the standard responses, and each of them is a research problem rather than a subroutine.</p>
+<p>This is the honest boundary of the algorithm, and it is worth being precise about where it lies. Phase estimation does not "solve" electronic structure. It converts the problem of <em>computing</em> an eigenvalue into the problem of <em>preparing a state with decent overlap</em> — a real and substantial reduction, since the second problem is at least sometimes easy and the first never is, but not the same thing as a solution.</p>
+<h3>Code Example 7: Phase Estimation as an Electronic-Structure Method</h3>
+<p>The concrete version, on the two-qubit H$_2$ Hamiltonian that the introductory course's Chapter 3 solved variationally. The same matrix, the same reference energy, a completely different algorithm.</p>
+<pre><code class="language-python">&quot;&quot;&quot;Chapter 2, Example 7: phase estimation as an electronic-structure method.
+Continues from Example 6 (same session).&quot;&quot;&quot;
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+# The same two-qubit H2 Hamiltonian used in the introductory course, Chapter 3:
+# STO-3G, R = 0.735 A, frozen-core two-qubit reduction.
+H2_TERMS = {'II': 0.252992, 'ZI': 0.344368, 'IZ': -0.451507,
+            'ZZ': 0.574116, 'YY': 0.090466, 'XX': 0.090466}
+
+
+def pauli_matrix(pauli):
+    M = np.array([[1.0 + 0j]])
+    for ch in pauli:
+        M = np.kron(M, PAULI[ch])
+    return M
+
+
+Hm = sum(c * pauli_matrix(p) for p, c in H2_TERMS.items())
+w, v = np.linalg.eigh(Hm)
+c_shift, tau = phase_window(w)
+U = unitary_from_h(Hm - c_shift * np.eye(4), tau)
+phi_exact = [(-(e - c_shift) * tau / (2 * np.pi)) % 1.0 for e in w.real]
+
+print(&quot;H2 at R = 0.735 A, STO-3G, two-qubit reduction&quot;)
+print(&quot;-&quot; * 72)
+print(f&quot;  exact spectrum (Ha): &quot; + &quot;  &quot;.join(f&quot;{e:+.6f}&quot; for e in w.real))
+print(f&quot;  tau = {tau:.6f}, constant shift c = {c_shift:.6f} Ha&quot;)
+print(f&quot;  eigenphases:         &quot; + &quot;  &quot;.join(f&quot;{p:.6f}&quot; for p in phi_exact))
+print(f&quot;  ground state = &quot; + &quot;  &quot;.join(
+    f&quot;{v[i,0].real:+.4f}|{b}&gt;&quot; for i, b in enumerate(['00', '01', '10', '11'])
+    if abs(v[i, 0]) &gt; 1e-8))
+
+hf = ket('10')          # Hartree-Fock: the sigma_g orbital doubly occupied
+p0 = abs(np.vdot(v[:, 0], hf)) ** 2
+print(f&quot;  Hartree-Fock overlap |&lt;HF|psi_0&gt;|^2 = {p0:.6f}&quot;)
+
+print(&quot;\nQPE from the Hartree-Fock state: energy versus counting qubits&quot;)
+print(&quot;-&quot; * 72)
+print(f&quot;  {'t':&gt;3}{'ctrl-U calls':&gt;14}{'best k':&gt;8}{'E (Ha)':&gt;13}&quot;
+      f&quot;{'error (Ha)':&gt;13}{'P(peak)':&gt;10}{'chem. acc.':&gt;12}&quot;)
+for t in range(4, 13):
+    p = counting_probs(qpe_state(U, hf, t), t)
+    k = int(np.argmax(p))
+    E = c_shift - (k / 2 ** t) * 2 * np.pi / tau
+    err = E - w[0].real
+    print(f&quot;  {t:&gt;3}{2**t-1:&gt;14d}{k:&gt;8}{E:&gt;13.6f}{err:&gt;13.2e}{p[k]:&gt;10.4f}&quot;
+          f&quot;{'yes' if abs(err) &lt; 1.6e-3 else 'no':&gt;12}&quot;)
+print(&quot;  chemical accuracy is 1 kcal/mol = 1.6 mHa&quot;)
+
+print(&quot;\nThe overlap is the whole story: four trial states, t = 9&quot;)
+print(&quot;-&quot; * 72)
+t = 9
+trials = [(&quot;Hartree-Fock |10&gt;&quot;, ket('10')),
+          (&quot;doubly excited |01&gt;&quot;, ket('01')),
+          (&quot;equal mixture&quot;, (ket('10') + ket('01')) / np.sqrt(2)),
+          (&quot;exact first excited&quot;, v[:, 1].astype(complex))]
+k_ground = int(round(phi_exact[0] * 2 ** t))
+for label, psi in trials:
+    p = counting_probs(qpe_state(U, psi, t), t)
+    overlaps = [abs(np.vdot(v[:, j], psi)) ** 2 for j in range(4)]
+    near = p[max(0, k_ground - 2):k_ground + 3].sum()
+    k = int(np.argmax(p))
+    E = c_shift - (k / 2 ** t) * 2 * np.pi / tau
+    print(f&quot;  {label:&lt;22} |&lt;psi_0|trial&gt;|^2 = {overlaps[0]:.4f}&quot;
+          f&quot;   peak E = {E:+.6f} Ha   P(within 2 bins of E_0) = {near:.4f}&quot;)
+print(&quot;  A trial state with no ground-state amplitude returns a different &quot;
+      &quot;eigenvalue,\n  correctly and confidently. QPE does not know which &quot;
+      &quot;eigenvalue you wanted.&quot;)
+
+print(&quot;\nWhat the depth costs, extrapolated&quot;)
+print(&quot;-&quot; * 72)
+print(f&quot;  {'target error (Ha)':&gt;19}{'t needed':&gt;10}{'ctrl-U calls':&gt;15}&quot;
+      f&quot;{'x100 Trotter steps':&gt;21}&quot;)
+for eps in [1e-2, 1.6e-3, 1e-4, 1e-6]:
+    t_need = int(np.ceil(np.log2(2 * np.pi / tau / eps)))
+    calls = 2 ** t_need - 1
+    print(f&quot;  {eps:&gt;19.1e}{t_need:&gt;10}{calls:&gt;15d}&quot;
+          f&quot;{calls * 100:&gt;21d}&quot;)
+print(&quot;  The last column assumes a merely nominal 100 Trotter steps per &quot;
+      &quot;controlled U;\n  Chapter 4 replaces that guess with a real &quot;
+      &quot;block-encoding cost.&quot;)
+
+fig, ax = plt.subplots(1, 2, figsize=(11, 4))
+for t_, style in [(6, &quot;-o&quot;), (9, &quot;-&quot;)]:
+    p = counting_probs(qpe_state(U, hf, t_), t_)
+    E_axis = c_shift - (np.arange(2 ** t_) / 2 ** t_) * 2 * np.pi / tau
+    ax[0].plot(E_axis, p, style, ms=3, lw=1, label=f&quot;t = {t_}&quot;)
+for e in w.real:
+    ax[0].axvline(e, color=&quot;k&quot;, ls=&quot;:&quot;, lw=0.8)
+ax[0].set_xlabel(&quot;energy (Ha)&quot;); ax[0].set_ylabel(&quot;probability&quot;)
+ax[0].set_title(&quot;QPE spectrum of H$_2$ from the HF state&quot;)
+ax[0].legend(fontsize=8)
+
+t_ = 9
+for label, psi in [(&quot;HF |10&gt;&quot;, ket('10')), (&quot;|01&gt;&quot;, ket('01'))]:
+    p = counting_probs(qpe_state(U, psi, t_), t_)
+    E_axis = c_shift - (np.arange(2 ** t_) / 2 ** t_) * 2 * np.pi / tau
+    ax[1].plot(E_axis, p, lw=1, label=label)
+for e in w.real:
+    ax[1].axvline(e, color=&quot;k&quot;, ls=&quot;:&quot;, lw=0.8)
+ax[1].set_xlabel(&quot;energy (Ha)&quot;); ax[1].set_ylabel(&quot;probability&quot;)
+ax[1].set_title(&quot;The trial state selects the eigenvalue&quot;)
+ax[1].legend(fontsize=8)
+plt.tight_layout()
+plt.show()
+</code></pre>
+<pre><code class="language-text">H2 at R = 0.735 A, STO-3G, two-qubit reduction
+------------------------------------------------------------------------
+  exact spectrum (Ha): -1.137306  +0.495058  +0.719969  +0.934247
+  tau = 2.513123, constant shift c = 1.037825 Ha
+  eigenphases:         0.870000  0.217094  0.127135  0.041429
+  ground state = -0.1115|01&gt;  +0.9938|10&gt;
+  Hartree-Fock overlap |&lt;HF|psi_0&gt;|^2 = 0.987560
+
+QPE from the Hartree-Fock state: energy versus counting qubits
+------------------------------------------------------------------------
+    t  ctrl-U calls  best k       E (Ha)   error (Ha)   P(peak)  chem. acc.
+    4            15      14    -1.149807    -1.25e-02    0.9671          no
+    5            31      28    -1.149807    -1.25e-02    0.9072          no
+    6            63      56    -1.149807    -1.25e-02    0.6967          no
+    7           127     111    -1.130275     7.03e-03    0.6321          no
+    8           255     223    -1.140041    -2.73e-03    0.7577          no
+    9           511     445    -1.135158     2.15e-03    0.4987          no
+   10          1023     891    -1.137599    -2.93e-04    0.9417         yes
+   11          2047    1782    -1.137599    -2.93e-04    0.8140         yes
+   12          4095    3564    -1.137599    -2.93e-04    0.4326         yes
+  chemical accuracy is 1 kcal/mol = 1.6 mHa
+
+The overlap is the whole story: four trial states, t = 9
+------------------------------------------------------------------------
+  Hartree-Fock |10&gt;      |&lt;psi_0|trial&gt;|^2 = 0.9876   peak E = -1.135158 Ha   P(within 2 bins of E_0) = 0.9090
+  doubly excited |01&gt;    |&lt;psi_0|trial&gt;|^2 = 0.0124   peak E = +0.495800 Ha   P(within 2 bins of E_0) = 0.0115
+  equal mixture          |&lt;psi_0|trial&gt;|^2 = 0.3892   peak E = +0.495800 Ha   P(within 2 bins of E_0) = 0.3582
+  exact first excited    |&lt;psi_0|trial&gt;|^2 = 0.0000   peak E = +0.495800 Ha   P(within 2 bins of E_0) = 0.0000
+  A trial state with no ground-state amplitude returns a different eigenvalue,
+  correctly and confidently. QPE does not know which eigenvalue you wanted.
+
+What the depth costs, extrapolated
+------------------------------------------------------------------------
+    target error (Ha)  t needed   ctrl-U calls   x100 Trotter steps
+              1.0e-02         8            255                25500
+              1.6e-03        11           2047               204700
+              1.0e-04        15          32767              3276700
+              1.0e-06        22        4194303            419430300
+  The last column assumes a merely nominal 100 Trotter steps per controlled U;
+  Chapter 4 replaces that guess with a real block-encoding cost.
+</code></pre>
+<p><strong>What to look for.</strong> The exact ground-state energy of this Hamiltonian is $-1.137306$ Ha and phase estimation reaches chemical accuracy — $1.6$ mHa, the threshold at which a computed reaction energy becomes chemically meaningful — at $t = 10$, using 1023 controlled applications of $e^{-iH\tau}$. Not by optimizing anything: the answer is $c - (k/2^t)\cdot 2\pi/\tau$ for one measured integer $k$. Compare the introductory course's VQE on the same Hamiltonian, which reached $10^{-15}$ Ha because the ansatz happened to be exact and the simulation noiseless, and which would have needed of order $10^6$ shots per energy evaluation at $1.6$ mHa on real hardware.</p>
+<p>The trial-state table is the overlap problem in four lines. The Hartree-Fock determinant has $98.8\%$ overlap with the ground state, and $90.9\%$ of the QPE outcomes land within two bins of $E_0$. The doubly excited determinant has $1.2\%$ overlap and the peak moves to the <em>first excited</em> energy, $+0.4958$ Ha — reported confidently and correctly, because that is genuinely the eigenvalue this input mostly contains. The equal mixture has $38.9\%$ ground-state weight and still peaks on the excited state, since $61\%$ beats $39\%$. Phase estimation answers the question it was asked, and the question is set by the input state.</p>
+<p>The last block extrapolates the depth. Chemical accuracy costs $2 \times 10^3$ controlled applications of $U$ for this toy; $10^{-6}$ Ha costs $4 \times 10^6$. Multiply by whatever it costs to implement one $e^{-iH\tau}$ — the nominal factor of 100 in the last column is a placeholder, and Chapter 4 replaces it with a real block-encoding cost — and the reason phase estimation is a fault-tolerance argument rather than a near-term proposal is arithmetic, not opinion. <a href="../quantum-computing-introduction/chapter-5.html">Chapter 5 of the introductory course</a> puts the matching error-rate requirement at $p \lesssim 10^{-9}$ for a two-site Hubbard model, six orders of magnitude below uncorrected hardware.</p>
+<hr />
+<h2>Exercises</h2>
+<h4>Exercise 1: The Product Form by Hand</h4>
+<p>Take $n = 3$ and $j = 5 = 101_2$.</p>
+<ol>
+<li>Write out $\mathrm{QFT}\lvert 101 \rangle$ as a sum over the eight basis states, giving each amplitude as $\frac{1}{\sqrt{8}}e^{i\theta_k}$ with $\theta_k$ in units of $2\pi$.</li>
+<li>Write the same state in the product form $\bigotimes_l (\lvert 0 \rangle + e^{2\pi i j/2^l}\lvert 1 \rangle)/\sqrt{2}$ and verify that expanding it reproduces part 1.</li>
+<li>Which single-qubit phase in the product form is $-1$, and which qubit of the <em>circuit</em> output does it correspond to, before and after the final swaps?</li>
+<li>How many of the eight amplitudes have different magnitudes? What does that say about measuring the output in the computational basis?</li>
+</ol>
+<details>
+<summary>Solution</summary>
+
+<p><strong>1.</strong> \(\theta_k/2\pi = 5k/8 \bmod 1\), i.e. \(0, \tfrac{5}{8}, \tfrac{2}{8}, \tfrac{7}{8}, \tfrac{4}{8}, \tfrac{1}{8}, \tfrac{6}{8}, \tfrac{3}{8}\) for \(k = 0,\ldots,7\). All eight magnitudes are \(1/\sqrt{8}\).</p>
+
+<p><strong>2.</strong> The three factors carry phases \(e^{2\pi i \cdot 5/2} = e^{i\pi} = -1\), \(e^{2\pi i \cdot 5/4} = e^{i\pi/2} = i\), and \(e^{2\pi i \cdot 5/8}\). Expanding the product gives \(2^{-3/2}\sum_{k_1k_2k_3} (-1)^{k_1} i^{k_2} e^{2\pi i \cdot 5k_3/8}\lvert k_1k_2k_3\rangle\); with \(k = 4k_1 + 2k_2 + k_3\) the exponent is \(2\pi i \cdot 5k/8\) modulo 1, matching part 1.</p>
+
+<p><strong>3.</strong> The factor with \(l = 1\), phase \(-1\). In the product form it is the <em>first</em> tensor factor, which the derivation shows carries the <em>least</em> significant bit \(j_n\)'s worth of phase; the circuit produces it on the last qubit and the final swaps move it to the front. Deleting the swaps and relabelling the output is exactly equivalent, which is why most implementations do that.</p>
+
+<p><strong>4.</strong> One: all eight magnitudes are equal. A computational-basis measurement of \(\mathrm{QFT}\lvert j \rangle\) is therefore uniformly random and carries no information about \(j\) at all. The transform of a <em>single</em> basis state is maximally uninformative, and only a state with structure — a period, as in Example 3 — produces a peaked output.</p>
+
+</details>
+
+<h4>Exercise 2: Choosing the Register Size</h4>
+<p>You need the eigenphase of a unitary to 6 correct binary digits with probability at least $0.99$.</p>
+<ol>
+<li>Use $t = n + \lceil \log_2(2 + 1/(2\varepsilon)) \rceil$ to find $t$, and state how many applications of $U$ that implies.</li>
+<li>How does the number of applications change if the required confidence goes from $0.99$ to $0.999$? And if the required precision goes from 6 bits to 7?</li>
+<li>A colleague proposes to reach $0.999$ by running the $t$ from part 1 three times and taking the majority. Estimate the total number of applications of $U$ and compare with part 2.</li>
+<li>Which of the two strategies fails first on hardware with a fixed coherence time, and why?</li>
+</ol>
+<details>
+<summary>Solution</summary>
+
+<p><strong>1.</strong> \(\varepsilon = 0.01\), so \(1/(2\varepsilon) = 50\) and \(\lceil \log_2 52 \rceil = 6\); \(t = 12\), and \(2^{12}-1 = 4095\) applications of \(U\).</p>
+
+<p><strong>2.</strong> For \(\varepsilon = 0.001\), \(\lceil \log_2 502 \rceil = 9\), so \(t = 15\) and 32767 applications — a factor of 8 for one extra decimal of confidence. For 7 bits at \(\varepsilon = 0.01\), \(t = 13\) and 8191 applications — a factor of 2 per bit of precision. Confidence is expensive and precision is cheap, per unit of what you get.</p>
+
+<p><strong>3.</strong> Three runs at \(t = 12\) is \(3 \times 4095 = 12285\) applications, against 32767 for the single deeper run: repetition is cheaper by a factor of 2.7 in total work. The majority vote over three independent samples of a distribution whose best bin has probability \(\ge 0.99\) fails with probability \(\approx 3 \times 10^{-4}\), so it does reach the target.</p>
+
+<p><strong>4.</strong> The deeper single run fails first. Its maximum coherent depth is 8 times larger, and coherent depth is the resource a decoherence time limits; the repeated shallower runs need only the same depth as part 1 and can be separated in time arbitrarily. This is the general principle behind every "trade depth for repetitions" scheme, including the \(\alpha\)-QPE family — and its limit is the bound \(\varepsilon \gtrsim 1/(D\sqrt{N})\) at fixed maximum depth \(D\), which is why full Heisenberg scaling genuinely requires depth \(\propto 1/\varepsilon\).</p>
+
+</details>
+
+<h4>Exercise 3: The Peak Height Formula</h4>
+<p>Verify the claim $P_{\text{best}} \ge 4/\pi^2$ and its context.</p>
+<ol>
+<li>Starting from the pre-QFT state $2^{-t/2}\sum_k e^{2\pi i \varphi k}\lvert k \rangle$, show that the amplitude of outcome $m$ after the inverse QFT is $2^{-t}\sum_k e^{2\pi i (\varphi - m/2^t) k}$, and sum the geometric series.</li>
+<li>Write $\delta = \varphi - m/2^t$ and show $P(m) = \sin^2(2^t\pi\delta) / \left(2^{2t}\sin^2(\pi\delta)\right)$.</li>
+<li>Evaluate this at the worst case $\delta = 2^{-t-1}$ and take $t \to \infty$.</li>
+<li>Evaluate it for $\varphi = 1/3$, $t = 8$, $m = 85$ and compare with the $0.683922$ printed by Code Example 4.</li>
+</ol>
+<details>
+<summary>Solution</summary>
+
+<p><strong>1.</strong> The inverse QFT sends \(\lvert k \rangle \mapsto 2^{-t/2}\sum_m e^{-2\pi i km/2^t}\lvert m \rangle\), so the amplitude of \(\lvert m \rangle\) is \(2^{-t}\sum_k e^{2\pi i(\varphi - m/2^t)k}\). The geometric sum with ratio \(z = e^{2\pi i \delta}\) is \((z^{2^t}-1)/(z-1)\).</p>
+
+<p><strong>2.</strong> \(\lvert (z^{2^t}-1)/(z-1) \rvert = \lvert \sin(2^t \pi \delta)/\sin(\pi\delta)\rvert\), and squaring with the \(2^{-t}\) prefactor gives the stated \(P(m)\).</p>
+
+<p><strong>3.</strong> At \(\delta = 2^{-t-1}\): \(\sin^2(2^t \pi \delta) = \sin^2(\pi/2) = 1\) and \(2^{2t}\sin^2(\pi 2^{-t-1}) \to 2^{2t}(\pi 2^{-t-1})^2 = \pi^2/4\). So \(P \to 4/\pi^2 = 0.4053\).</p>
+
+<p><strong>4.</strong> \(\delta = 1/3 - 85/256 = 1/768\). Then \(\sin^2(256\pi/768) = \sin^2(\pi/3) = 3/4\) and \(2^{16}\sin^2(\pi/768) = 65536 \times 1.673304\times10^{-5} = 1.096617\), giving \(P = 0.75/1.096617 = 0.683922\) — exactly the printed value, because the formula is exact and nothing was approximated. (The small-angle limit \(2^{16}(\pi/768)^2 = 1.096623\) would give the same five digits, which is why the difference is easy to miss.)</p>
+
+</details>
+
+<h4>Exercise 4: Iterative Phase Estimation Fails Gracefully</h4>
+<p>Consider iterative QPE on $\varphi$ with $t$ rounds and one repetition per round.</p>
+<ol>
+<li>Argue that if $\varphi$ has an exact $t$-bit expansion, every round measures its bit with probability 1. Where in the argument is exactness used?</li>
+<li>Suppose the tail beyond bit $t$ is $0.0\ldots0b_{t+1}b_{t+2}\ldots$. Show that round $k$ measures the correct $b_k$ with probability $\cos^2(\pi \eta_k)$ for some residual $\eta_k$, and identify $\eta_k$.</li>
+<li>Why does an error on a <em>low</em> bit corrupt the bits above it, whereas in textbook QPE a mis-measurement affects only that outcome?</li>
+<li>Code Example 6 reports mean errors of $0.01367$ at one repetition per round and $0.00522$ at twenty-five, for $t = 6$, $\varphi = 1/3$. Explain both numbers.</li>
+</ol>
+<details>
+<summary>Solution</summary>
+
+<p><strong>1.</strong> If \(\varphi = 0.b_1\ldots b_t\) then \(2^{k-1}\varphi = \text{integer} + 0.b_kb_{k+1}\ldots b_t\), and the feedback subtracts \(0.0b_{k+1}\ldots b_t\) exactly, leaving a relative phase of \(\pi b_k\). The Hadamard then maps \((\lvert 0\rangle + e^{i\pi b_k}\lvert 1 \rangle)/\sqrt{2}\) to \(\lvert b_k \rangle\) with certainty. Exactness is used twice: the tail must terminate at bit \(t\), and the previously measured bits must be correct.</p>
+
+<p><strong>2.</strong> The residual relative phase is \(2\pi(0.b_k + \text{tail})\) minus \(\pi b_k\), i.e. \(2\pi \eta_k\) with \(\eta_k = 2^{k-1}\varphi - (\text{known bits}) - b_k/2 \bmod 1\), the un-cancelled tail \(0.00b_{t+1}b_{t+2}\ldots\) scaled by \(2^{k-1}\). The Hadamard-then-measure step returns \(b_k\) with probability \(\cos^2(\pi\eta_k)\).</p>
+
+<p><strong>3.</strong> Because the feedback angle at round \(k\) is computed from the bits measured in rounds \(k+1,\ldots,t\). A wrong bit there makes the cancellation wrong by a known-to-be-wrong amount, so the residual phase in every later round is displaced and the errors compound. Textbook QPE has no feedback: each shot is an independent sample of a fixed distribution.</p>
+
+<p><strong>4.</strong> At twenty-five repetitions the per-round votes are essentially always correct, so the estimate is the best 6-bit truncation \(21/64 = 0.328125\), and \(\lvert 1/3 - 21/64\rvert = 0.005208\) — the printed \(0.00522\) is the residual failure rate on top of that floor. At one repetition the extra \(0.0085\) is the contribution of runs in which a bit flipped; because low-bit errors propagate upwards, those runs are wrong by much more than one least significant bit, which is why the mean error is 2.6 times the floor rather than slightly above it.</p>
+
+</details>
+
+<h4>Exercise 5: Reading a Resource Claim</h4>
+<p>A seminar speaker states: "Our method computes the ground-state energy of a 100-orbital active space to chemical accuracy using phase estimation with 200 logical qubits."</p>
+<ol>
+<li>Which three quantities does that sentence leave out, each of which can change the cost by orders of magnitude?</li>
+<li>Estimate the number of applications of $e^{-iH\tau}$ implied, assuming the spectral span of a 100-orbital Hamiltonian is of order 100 Ha.</li>
+<li>The speaker's trial state is a single Hartree-Fock determinant and the system is strongly correlated. What does that do to the number of repetitions, and how would you ask about it politely?</li>
+<li>What would make the claim checkable rather than merely plausible?</li>
+</ol>
+<details>
+<summary>Solution</summary>
+
+<p><strong>1.</strong> (i) The circuit depth, or equivalently the total non-Clifford gate count — 200 logical qubits is the <em>cheapest</em> of the three resources, as the introductory course's Chapter 4 emphasized. (ii) The cost of implementing one \(e^{-iH\tau}\), which depends entirely on the simulation method (Trotter order, block encoding, qubitization) and on the Hamiltonian's structure. (iii) The overlap \(p_0\) of the trial state with the target eigenvector, which multiplies the whole runtime by \(1/p_0\).</p>
+
+<p><strong>2.</strong> Chemical accuracy is \(1.6\times10^{-3}\) Ha. With a spectral span \(\Lambda \sim 100\) Ha the phase resolution needed is \(\varepsilon_\varphi \sim 1.6\times10^{-3}/100 = 1.6\times10^{-5}\), so \(t \approx \lceil \log_2(1/1.6\times10^{-5})\rceil = 16\) plus padding bits, and \(2^t - 1 \sim 10^5\) applications of \(e^{-iH\tau}\). Each of those is itself \(10^3\)–\(10^6\) gates depending on the method, giving \(10^8\)–\(10^{11}\) — the range that the published fault-tolerant estimates for chemistry actually occupy.</p>
+
+<p><strong>3.</strong> A strongly correlated ground state has a Hartree-Fock overlap that can be small and that generally shrinks with system size, so the expected number of repetitions is \(1/p_0\) and may be large. The polite question is simply "what is \(p_0\) for your trial state, and how does it scale with the active-space size?" — a question with a definite numerical answer that any complete analysis has already computed.</p>
+
+<p><strong>4.</strong> A T-count or Toffoli count for the full circuit, the assumed physical error rate and code distance behind any physical-qubit number, the value of \(p_0\), and a smaller instance of the same pipeline benchmarked against exact diagonalization. The last of these is the one this course insists on: every claim in this chapter is checked against <code>numpy.linalg.eigh</code> on the same Hamiltonian.</p>
+
+</details>
+
+<hr />
+<h2>Summary</h2>
+<h3>Key Takeaways</h3>
+<p><strong>1. The QFT is a short circuit for a familiar matrix</strong></p>
+<ul>
+<li>$\mathrm{QFT}\lvert j \rangle$ factorizes into a product state, one phase per qubit, which is why the circuit is $n$ Hadamards, $n(n-1)/2$ controlled phase rotations and $\lfloor n/2 \rfloor$ swaps.</li>
+<li>Verified against the dense DFT matrix to $10^{-14}$ at $n = 7$; dropping the smallest rotations gives the $O(n\log n)$ approximate QFT used in practice.</li>
+<li>The comparison with the classical FFT is not an exponential speedup: the input must already be a quantum state, one run returns one sampled index, and estimating a single output probability costs $O(1/\delta^2)$ shots by sampling.</li>
+</ul>
+<p><strong>2. What the QFT actually delivers is a period</strong></p>
+<ul>
+<li>A state supported on a stride-$r$ progression transforms into peaks at multiples of $2^n/r$, with the offset stored entirely in phases — the distributions for different offsets agree to $10^{-50}$.</li>
+<li>When $r$ divides $2^n$ the peaks are exact and $100\%$ of the probability is on them; when it does not, $79\%$ sits in the best bins and classical postprocessing is required.</li>
+<li>That postprocessing is continued fractions, and it is the subject of Chapter 3.</li>
+</ul>
+<p><strong>3. Phase estimation is the QFT run backwards</strong></p>
+<ul>
+<li>Controlled powers $U^{2^j}$ write $2^{-t/2}\sum_k e^{2\pi i \varphi k}\lvert k \rangle$ into the counting register; the inverse QFT reads it as $\lvert 2^t\varphi \rangle$.</li>
+<li>Cost $2^t - 1$ applications of $U$, so precision $\varepsilon$ costs $\Theta(1/\varepsilon)$ depth; the phase error stayed below $2^{-(t+1)}$ at every $t$ tested, and the energy error halved per added qubit with fitted slope $-1.079$.</li>
+<li>Extra qubits buy resolution, not confidence: $P_{\text{best}}$ for $\varphi = 1/3$ is $0.6839$ independent of $t$, floored at $4/\pi^2$. Confidence comes from the $\lceil\log_2(2+1/(2\varepsilon))\rceil$ padding bits, which buy $\Pr[\lvert\tilde{\varphi}-\varphi\rvert &lt; 2^{-n}] \ge 1-\varepsilon$ — an accuracy guarantee, not a promise about the leading $n$ bits.</li>
+</ul>
+<p><strong>4. Iterative QPE trades qubits for rounds</strong></p>
+<ul>
+<li>One ancilla and $t$ rounds of measurement with classical feedback replace $t$ counting qubits and the inverse QFT.</li>
+<li>Exact for dyadic phases; for generic phases a low-bit error propagates upwards, so rounds are repeated and majority-voted — $85\%$ success at one repetition, $99.7\%$ at nine, at nine times the applications of $U$.</li>
+<li>On the three-site chain it turned 11 qubits into 4 and returned the identical energy.</li>
+</ul>
+<p><strong>5. The application is eigenvalues, and the obstacle is overlap</strong></p>
+<ul>
+<li>Electronic structure is an eigenvalue problem, so phase estimation is the fault-tolerant successor to VQE: an eigenvalue instead of a variational bound, $1/\varepsilon$ instead of $1/\varepsilon^2$, excited states for free, at $\Theta(1/\varepsilon)$ coherent depth.</li>
+<li>On the two-qubit H$_2$ Hamiltonian it reached chemical accuracy at $t = 10$ with 1023 controlled applications of $e^{-iH\tau}$ — no optimizer, no averaging.</li>
+<li>Feed it a state with $1.2\%$ ground-state overlap and it confidently returns the first excited energy. The number of repetitions scales as $1/p_0$, and for strongly correlated systems $p_0$ is the open problem.</li>
+</ul>
+<p><strong>Practical implications</strong></p>
+<ul>
+<li>Choose $t$ from the required precision <em>and</em> the required confidence; they are separate purchases with different prices.</li>
+<li>Always report the overlap of your trial state alongside any phase-estimation cost. A resource estimate without $p_0$ is incomplete.</li>
+<li>When comparing against a variational method, compare $1/\varepsilon$ against $1/\varepsilon^2$ and coherent depth against shot count — those are the axes on which the two differ.</li>
+</ul>
+<h3>Where This Leads</h3>
+<p>Chapter 3 takes the two circuits built here — the QFT of Example 2 and the phase-estimation machinery of Examples 4 and 5 — and points them at a unitary whose eigenphases are $s/r$ for the multiplicative order $r$ of an integer modulo $N$. The result is Shor's algorithm, and it is the one case in this course where the speedup is superpolynomial and not in dispute. The chapter factors 15 and 21 end to end on the simulator, including the continued-fraction postprocessing that Example 3 showed to be unavoidable, and then states plainly what the same circuit costs at cryptographic sizes and what the standard response to that cost already is.</p>
+<p><a href="chapter-1.html">← Chapter 1: Amplitude Amplification and Grover's Algorithm</a> <a href="chapter-3.html">Chapter 3: Shor's Algorithm →</a></p>
+<h3>Disclaimer</h3>
+<ul>
+<li>This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical warranty, etc.).</li>
+<li>This content and accompanying code examples are provided "AS IS" without any warranty, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
+<li>The resource figures in this chapter — gate counts, Trotter-step placeholders and error-rate requirements — are order-of-magnitude teaching estimates derived from the stated assumptions, not measurements or predictions. Verify against primary sources before using them in a proposal or a paper.</li>
+<li>The author and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.</li>
+<li>To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+<li>The content may be changed, updated, or discontinued without notice.</li>
+<li>The copyright and license of this content are subject to the stated conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.</li>
+</ul><div class="navigation">
+    <a href="chapter-1.html" class="nav-button">← Previous Chapter</a>
+    <a href="index.html" class="nav-button">Back to Series Index</a>
+    <a href="chapter-3.html" class="nav-button">Next Chapter →</a>
+</div>
+    </main>
+
+    <footer>
+        <p><strong>Created by</strong>: AI Terakoya Content Team</p>
+        <p><strong>Supervised by</strong>: Dr. Yusuke Hashimoto (Tohoku University)</p>
+        <p><strong>Version</strong>: 1.0 | <strong>Created</strong>: 2025-01-01</p>
+        <p><strong>License</strong>: Creative Commons BY 4.0</p>
+        <p>© 2025 AI Terakoya. All rights reserved.</p>
+    </footer>
+</body>
+</html>

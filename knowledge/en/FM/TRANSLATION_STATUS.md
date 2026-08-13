@@ -2,17 +2,17 @@
 
 **Dojo**: Fundamental Mathematics & Physics
 **Generated**: 2026-07-04
-**Total Series**: 15
-**Total Files**: 86 (15 index + 71 chapters)
-**Complete Series** (index + chapters): 15/15
+**Total Series**: 16
+**Total Files**: 92 (16 index + 76 chapters)
+**Complete Series** (index + chapters): 16/16
 
 ---
 
 ## Summary Statistics
 
-- **Series Translated**: 16/16 (100%)
-- **Index Pages**: 16/16 (100%)
-- **Total Chapter Files**: 76
+- **Series Translated**: 17/17 (100%)
+- **Index Pages**: 17/17 (100%)
+- **Total Chapter Files**: 81
 - **Average Chapters per Series**: 4.8
 
 ---
@@ -231,7 +231,25 @@
 
 ---
 
-### 13. ⚛️ Introduction to Quantum Computing - AI Terakoya ✅
+### 13. 🧮 Intermediate Quantum Algorithms - AI Terakoya ✅
+
+**Directory**: `quantum-algorithms-intermediate`
+**Location**: `/FM/quantum-algorithms-intermediate/`
+**Files**: 6 total (1 index + 5 chapters)
+**Last Update**: 2026-08-13
+
+- ✅ `index.html` - Series overview page
+
+**Chapters** (5):
+- ✅ `chapter-1.html`
+- ✅ `chapter-2.html`
+- ✅ `chapter-3.html`
+- ✅ `chapter-4.html`
+- ✅ `chapter-5.html`
+
+---
+
+### 14. ⚛️ Introduction to Quantum Computing - AI Terakoya ✅
 
 **Directory**: `quantum-computing-introduction`
 **Location**: `/FM/quantum-computing-introduction/`
@@ -249,7 +267,7 @@
 
 ---
 
-### 14. Introduction to Quantum Field Theory | Fundamentals Mathematics - AI Terakoya ✅
+### 15. Introduction to Quantum Field Theory | Fundamentals Mathematics - AI Terakoya ✅
 
 **Directory**: `quantum-field-theory-introduction`
 **Location**: `/FM/quantum-field-theory-introduction/`
@@ -267,7 +285,7 @@
 
 ---
 
-### 15. 🔧 Introduction to Quantum Hardware - AI Terakoya ✅
+### 16. 🔧 Introduction to Quantum Hardware - AI Terakoya ✅
 
 **Directory**: `quantum-hardware-introduction`
 **Location**: `/FM/quantum-hardware-introduction/`
@@ -285,7 +303,7 @@
 
 ---
 
-### 16. Introduction to Quantum Mechanics | Fundamentals of Mathematics Dojo - AI Terakoya ✅
+### 17. Introduction to Quantum Mechanics | Fundamentals of Mathematics Dojo - AI Terakoya ✅
 
 **Directory**: `quantum-mechanics`
 **Location**: `/FM/quantum-mechanics/`

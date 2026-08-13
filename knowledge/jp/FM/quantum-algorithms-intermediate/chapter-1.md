@@ -1,0 +1,1512 @@
+---
+title: "第1章: 振幅増幅とGroverのアルゴリズム"
+chapter_title: "第1章: 振幅増幅とGroverのアルゴリズム"
+subtitle: オラクルモデル、2つの鏡映、そして二次高速化が実際にもつ価値
+reading_time: 45-50分
+difficulty: 中級
+code_examples: 7
+exercises: 5
+---
+
+🌐 JP | [🇬🇧 EN](<../../../en/FM/quantum-algorithms-intermediate/chapter-1.html>) | Last sync: 2026-08-13
+
+[基礎数理道場](<../index.html>) > [量子アルゴリズム（中級）](<index.html>) > 第1章
+
+Groverのアルゴリズムは、量子コンピューティングで最も広く引用され、最も広く誤解されている結果です。主張自体は短いものです。解を認識する関数 $f$ が与えられたとき、$N$ 個の候補の中から解を $O(\sqrt{N})$ 回の $f$ の評価で見つけられる。古典的な方法はどれも $\Omega(N)$ を要する。この主張は*正しく*、証明可能であり、しかも証明可能に最適です。これより良いものは存在しません。それにもかかわらず、通俗的な説明はほぼ例外なく誤っており、しかも誤り方はたいてい同じ2箇所です。データベースを検索するものとして説明されますが、そうではありません。そして二次的優位が、あたかも二次的優位なら自動的にもつ価値があるかのように提示されますが、そうではありません。
+
+本章は3つのことを行います。第1に、アルゴリズムを2次元平面内の回転として正しく構成します。そうすると最適反復数は暗記すべき公式ではなく三角法の一片になります。第2に、**振幅増幅**へ一般化します。これはこの技法が他のアルゴリズムの内部に現れるときに実際にとる形であり、本コースの後の章にも複数登場します。第3に、通俗的な説明が飛ばす算術を行います。オラクルの費用、量子と古典のクロック速度の比、エラー訂正のオーバーヘッド、そして古典的な総当たりは完璧に並列化されるのにGroverはそうならないという事実を数えたとき、二次高速化はどうなるのか。
+
+順序は意図的です。1.1節でオラクルモデルを固定します。本章の残りのすべての主張はモデル*の中*での主張であり、仮定が隠れているのはモデルだからです。1.2節と1.3節が数学です。1.4節でモデルを離れ、何が生き残るかを問います。1.5節では入門コースのシミュレータ上で全体を走らせます。$n = 4$ から $10$ 量子ビットまで、最適反復数を数値的に検証し、扱いにくい場合 — 解が複数の場合、解数が未知の場合 — を仮定で片付けずに処理します。
+
+## 学習目標
+
+本章を修了すると、以下のことができるようになります。
+
+  * クエリモデルを厳密に述べ、ビット反転オラクルと位相オラクルを区別し、両者を結ぶ位相キックバックの恒等式を説明できる
+  * モデルが何を仮定しているか — $f$ をユニタリかつ可逆かつコヒーレントに単位費用で評価できること — を説明し、明示的な3-SATオラクルのゲートを数えることでその仮定が隠している量を示せる
+  * Groverの反復を2つの鏡映の積として導き、それが $\sin\theta = \sqrt{M/N}$ をもつ $2\theta$ 回転であることを示し、成功確率の閉じた式と最適反復数の両方を得られる
+  * 過回転を説明し、Grover探索を「より長く」走らせると悪くなる理由を述べられる
+  * 任意の状態準備 $A$ のまわりの振幅増幅へ一般化し、その一般化が必要とする2つの条件（$A$ が可逆であること、良い部分空間が認識可能であること）を述べられる
+  * 二次高速化を食う4つの別々の機構 — オラクルの費用、クロック速度、不完全な並列化、比較の基準 — を定量化し、構造なし探索がデータベース検索ではない理由を説明できる
+  * 状態ベクトルシミュレータ上でアルゴリズム全体を実装し、$n = 4$ から $10$ について $\lfloor \pi/(4\theta) \rfloor$ を数値的に検証し、解が複数または解数が未知の場合を扱える
+
+### 引き継ぐ規約
+
+3つの規約を[量子コンピューティング入門](<../quantum-computing-introduction/index.html>)からそのまま引き継ぎ、本コースでは一切変更しません。
+
+**ビッグエンディアンの量子ビット順序。** 量子ビット0がケットの最左の記号であり、振幅の添字の最上位ビットです。したがって3量子ビットでは $\lvert 000 \rangle, \lvert 001 \rangle, \ldots, \lvert 111 \rangle$ が添字 $0$ から $7$ を占めます。Qiskitの文献の多くは逆の規約を用いており、この食い違いはこの分野で結果が黙って狂う最大の原因です。
+
+**シミュレータ。** すべてのコード例は同コース第2章の99行の状態ベクトルシミュレータ上で走ります。Code Example 1 は本章が使う関数のみを逐語で再掲します。
+
+**クエリ数とゲート数。** *クエリ*はオラクルの1回の適用です。*ゲート*は機械ができることの1回の適用です。オラクルモデルにおける計算量の主張はクエリで数え、機械についての主張はゲートで数えます。1.4節の全体は、両者の換算レートについての節です。
+
+* * *
+
+## 1.1 オラクルモデル：何を仮定し、何を仮定しないか
+
+### モデルを厳密に述べる
+
+$n$ を固定し、$N = 2^n$ と書き、
+
+$$ f : \lbrace 0, 1 \rbrace^n \to \lbrace 0, 1 \rbrace $$
+
+を解の個数が $M = \lvert f^{-1}(1) \rvert$ である関数とします。**探索問題**とは、$f(x) = 1$ となる $x$ を1つ見つけることです。**クエリモデル**は $f$ へのアクセスをユニタリを通じてのみ許します。標準的な形が2つあります。**ビット反転オラクル**は探索レジスタと補助1量子ビットに作用し、
+
+$$ O_f \lvert x \rangle \lvert y \rangle = \lvert x \rangle \lvert y \oplus f(x) \rangle $$
+
+**位相オラクル**は探索レジスタのみに作用します。
+
+$$ O \lvert x \rangle = (-1)^{f(x)} \lvert x \rangle $$
+
+この2つは同じ対象です。補助量子ビットを $\lvert - \rangle = (\lvert 0 \rangle - \lvert 1 \rangle)/\sqrt{2}$ に置くと、
+
+$$ O_f \lvert x \rangle \lvert - \rangle = \lvert x \rangle \frac{\lvert f(x) \rangle - \lvert 1 \oplus f(x) \rangle}{\sqrt{2}} = (-1)^{f(x)} \lvert x \rangle \lvert - \rangle $$
+
+となり、補助量子ビットは変化せず、効果のすべてが探索レジスタ上の位相になります。これが**位相キックバック**です。ここで認識しておく価値があるのは、同じ仕掛けが第2章の位相推定と第3章のShorのアルゴリズムの機構でもあるからです。以降「オラクル」は位相形を指します。
+
+費用の測り方は**クエリ計算量**です。アルゴリズムが $O$ を何回適用するかを数え、それ以外はすべて無料とします。Groverの定理はまさにこの測度における主張であり、しかも一致する下界を伴います。定数の確率でマークされた要素を見つける量子アルゴリズムはどれも $\Omega(\sqrt{N/M})$ 回のクエリを要します。この下界 — Bennett、Bernstein、Brassard、Vazirani によって証明され、多項式法とadversary法によっても独立に得られたもの — が、Groverのアルゴリズムを*最適*にしています。見つかるのを待っているより賢い量子探索は存在しません。
+
+### モデルが仮定していること
+
+「$f$ へのアクセスをユニタリを通じて許す」には4つの仮定が詰め込まれており、そのそれぞれが実際の制約です。
+
+**1. $f$ は可逆かつコヒーレントに計算される。** $f$ の古典回路は中間結果を捨てますが、量子回路は捨てられません。すべての中間結果を補助ビットに計算し、そのうえで*逆計算*して補助ビットを $\lvert 0 \rangle$ に戻し、オラクルが探索レジスタ上の清浄な対角行列として作用するようにしなければなりません。補助ビットが汚れたまま残ると、それが経路情報を担い、アルゴリズムが依存している干渉が壊れ、アルゴリズムは黙って劣化します。逆計算はゲート数をおよそ2倍にし、Code Example 2 は補助ビットが実際に戻ることを検証します。
+
+**2. 1クエリの費用は1単位である。** これが最も効いていて、最も検討されない仮定です。実際の $f$ — SAT論理式、ハッシュ関数、物理シミュレーション — に対して、1クエリは数百から数百万ゲートの回路であり、*同じ*回路を候補の検査のために古典的に走らせる必要もあります。したがって*クエリ*における二次的優位が*ゲート*数に受け継がれるのは、両者がクエリ1回あたり同じ費用を払う場合に限られます。そして多くの場合そうなりません。量子側は可逆性、補助ビット、エラー訂正の代金を払うからです。
+
+**3. $f$ は規則であって表ではない。** モデルは $f$ がどこから来るかを何も言いません。$f$ が短い述語 — 「この割り当ては論理式を充足する」「この鍵は平文らしいものに復号する」 — なら、それは小さな回路であり、モデルは誠実です。$f$ が $N$ 件の格納レコードへの参照なら回路は小さくなく、1.4節が示すとおり、この1点の変更だけで結論が反転します。
+
+**4. 利用できる構造がない。** 下界は、ブラックボックスとして与えられた*任意*の $f$ について証明されます。実際の問題には構造があり、古典アルゴリズムはそれを使います。SATソルバーは $2^n$ 通りの割り当てを列挙しませんし、SATに対するGroverの誠実な比較相手は列挙ではなくソルバーです。
+
+### モデルが与えてくれない3つのこと
+
+| モデルが言っていること | モデルが言っていないこと |
+| --- | --- |
+| $O$ は重ね合わせに作用するユニタリである | $O$ が安価であること、そもそも回路が存在すること |
+| 1クエリの費用は1単位である | その1単位が何ゲートに相当するか |
+| $\Theta(\sqrt{N/M})$ クエリで足り、かつ必要である | $M$ が既知であること — そして反復数は $M$ に依存する |
+| 探索空間の大きさは $N$ である | 大きさ $N$ の何かが格納されたこと、あるいは格納しうること |
+
+第3行は強調に値します。最適反復数は $M$ に依存し、$M$ の推測を誤ると*間違い*になります。1.2節の過回転は現実の失敗様式であって、余談ではありません。Code Example 7 は $M$ 未知の場合をきちんと扱います。
+
+### Code Example 1: シミュレータの再掲
+
+これは[量子コンピューティング入門](<../quantum-computing-introduction/index.html>)第2章の状態ベクトルシミュレータであり、本章が使う関数のみを逐語で再掲したものです。`qcsim.py` として保存してください。以下のすべてのコード例は `from qcsim import *` から始まります。ここに新しいものは何もなく、変更も一切ありません。入門コースのファイルをすでにお持ちなら、そちらを使ってください。
+
+```python
+"""Minimal state-vector simulator (big-endian: qubit 0 = leftmost = most significant).
+
+Save this file as qcsim.py; every later example does `from qcsim import *`.
+"""
+import numpy as np
+
+# ---- 1量子ビットゲート --------------------------------------------------
+I2 = np.eye(2, dtype=complex)
+X = np.array([[0, 1], [1, 0]], dtype=complex)
+Z = np.array([[1, 0], [0, -1]], dtype=complex)
+H = np.array([[1, 1], [1, -1]], dtype=complex) / np.sqrt(2)
+
+
+def ry(theta):
+    c, s = np.cos(theta / 2), np.sin(theta / 2)
+    return np.array([[c, -s], [s, c]], dtype=complex)
+
+
+# ---- 状態 ---------------------------------------------------------------
+def ket(bits: str) -> np.ndarray:
+    """'01' -> 4次元の基底状態 |01>（ビッグエンディアン）"""
+    n = len(bits)
+    psi = np.zeros(2 ** n, dtype=complex)
+    psi[int(bits, 2)] = 1.0
+    return psi
+
+
+def apply_gate(state, U, targets, n):
+    """n量子ビット状態の targets に 2^k x 2^k ユニタリ U を作用させる"""
+    k = len(targets)
+    psi = state.reshape([2] * n)          # 1. n添字テンソルとして見る
+    psi = np.moveaxis(psi, targets, range(k))   # 2. 標的軸を先頭へ
+    rest = psi.shape[k:]
+    psi = psi.reshape(2 ** k, -1)         # 3. 平坦化して行列積
+    psi = U @ psi
+    psi = psi.reshape(list((2,) * k) + list(rest))
+    psi = np.moveaxis(psi, range(k), targets)   # 4. 軸を元に戻す
+    return psi.reshape(-1)
+
+
+CNOT4 = np.array([[1, 0, 0, 0],
+                  [0, 1, 0, 0],
+                  [0, 0, 0, 1],
+                  [0, 0, 1, 0]], dtype=complex)
+
+
+def cnot(state, control, target, n):
+    """任意の量子ビット対・任意の向きのCNOT"""
+    return apply_gate(state, CNOT4, [control, target], n)
+
+
+def probs(state):
+    """Born則による全 2^n 通りの確率"""
+    return np.abs(state) ** 2
+
+
+def sample(state, shots, seed=None):
+    """測定のシミュレーション: {ビット列: 回数}"""
+    n = int(np.log2(state.size))
+    rng = np.random.default_rng(seed)
+    idx = rng.choice(state.size, size=shots, p=probs(state))
+    out = {}
+    for i in idx:
+        b = format(i, f'0{n}b')
+        out[b] = out.get(b, 0) + 1
+    return dict(sorted(out.items()))
+```
+
+この再掲について、使う前に2点だけ触れておきます。`apply_gate` は標的量子ビットのリストと $2^k \times 2^k$ 行列を受け取るので、どの部分集合に対するゲートも $O(2^k \cdot 2^n)$ 演算で済み、追加のメモリは不要です。これが $n = 10$ が快適で $n = 24$ でも可能な理由です。そしてこの中にオラクルはありません。オラクルはゲートではなく、問題の述語を計算する回路そのものであり、それが次のコード例の主題です。
+
+### Code Example 2: 同じオラクルを2通りに書く
+
+このコード例の目的は、上の仮定2を目に見えるようにすることです。オラクルの第1版はクエリモデルのブラックボックスで、マークされた添字の集合を渡され、1行でその符号を反転します。第2版は具体的な3-SAT論理式のための回路で、Toffoliゲートと補助ビットと逆計算から組み立てられており、機械が走らせなければならないのはこちらです。両者は同じ対角ユニタリを実装し、それを機械精度で検証します。そして一方は19個のToffoliゲートと4個の補助量子ビットを要し、他方は「定義により1クエリ」です。
+
+```python
+"""第1章 Code Example 2: 同じオラクルを2通りに書く。
+
+位相オラクルは対角ユニタリ O|x> = (-1)^{f(x)}|x> です。以下の第1版はクエリ
+モデルのブラックボックスで、マークされた集合を渡されて1行で済みます。第2版は
+3-SAT論理式を可逆に評価する回路であり、2つのうち機械が走らせられるのはこちら
+だけです。
+"""
+import numpy as np
+from qcsim import *
+
+COUNT = dict(toffoli=0, cnot=0, x=0, h=0)     # 実際に作用させたゲート数
+
+
+# ---- 第1版: ブラックボックス -------------------------------------------
+def phase_oracle(state, marked):
+    """指定した基底状態の符号を反転します。1クエリ、と宣言によって定めます。"""
+    psi = state.copy()
+    psi[list(marked)] *= -1.0
+    return psi
+
+
+# ---- 第2版: 同じ写像を可逆回路として ------------------------------------
+TOFF8 = np.eye(8, dtype=complex)
+TOFF8[[6, 7]] = TOFF8[[7, 6]]      # |110> <-> |111>: 制御 q0, q1、標的 q2
+
+
+def toffoli(state, c0, c1, t, n):
+    COUNT["toffoli"] += 1
+    return apply_gate(state, TOFF8, [c0, c1, t], n)
+
+
+def xgate(state, q, n):
+    COUNT["x"] += 1
+    return apply_gate(state, X, [q], n)
+
+
+def hgate(state, q, n):
+    COUNT["h"] += 1
+    return apply_gate(state, H, [q], n)
+
+
+def cz(state, c, t, n):
+    """CZ = (I x H) CNOT (I x H) です。2つの量子ビットについて対称です。"""
+    COUNT["cnot"] += 1
+    return hgate(cnot(hgate(state, t, n), c, t, n), t, n)
+
+
+def ccc_x(state, controls, t, work, n):
+    """3量子ビット制御のXを、作業用1量子ビット（清浄に戻る）を使って作ります。"""
+    a, b, c = controls
+    state = toffoli(state, a, b, work, n)
+    state = toffoli(state, c, work, t, n)
+    return toffoli(state, a, b, work, n)
+
+
+# 4変数の3-SATインスタンスです。各節は (変数, 符号) のリストで、
+# 符号 +1 が肯定リテラル、-1 が否定リテラルを表します。
+CLAUSES = [[(0, +1), (1, -1), (2, +1)],
+           [(0, -1), (1, +1), (3, +1)],
+           [(1, +1), (2, -1), (3, -1)]]
+FLAG, WORK, N_TOT = [4, 5, 6], 7, 8       # 節ごとにフラグ1個、加えて作業ビット
+
+
+def sat_value(bits):
+    """ビット列に対する論理式の古典評価です。充足なら1を返します。"""
+    for clause in CLAUSES:
+        if not any((bits[v] == 1) if s > 0 else (bits[v] == 0) for v, s in clause):
+            return 0
+    return 1
+
+
+def clause_flags(state, order):
+    """節ごとのフラグを計算します。2度目に呼ぶと逆計算になります。"""
+    for clause, flag in order:
+        for v, s in clause:
+            if s > 0:
+                state = xgate(state, v, N_TOT)    # 「全部1」が不充足を意味するように
+        state = ccc_x(state, [v for v, _ in clause], flag, WORK, N_TOT)
+        for v, s in clause:
+            if s > 0:
+                state = xgate(state, v, N_TOT)
+        state = xgate(state, flag, N_TOT)         # flag = 1 は節が充足のとき
+    return state
+
+
+def sat_phase_oracle(state):
+    """CLAUSES の位相オラクル: |x>|0000> -> (-1)^{f(x)}|x>|0000>。"""
+    order = list(zip(CLAUSES, FLAG))
+    state = clause_flags(state, order)
+    state = hgate(state, FLAG[2], N_TOT)                    # 3つのフラグにCCZ
+    state = toffoli(state, FLAG[0], FLAG[1], FLAG[2], N_TOT)
+    state = hgate(state, FLAG[2], N_TOT)
+    return clause_flags(state, order[::-1])       # 補助ビットを |0000> に戻す
+
+
+ALL_BITS = [tuple(int(b) for b in format(i, "04b")) for i in range(16)]
+SOLUTIONS = [i for i, b in enumerate(ALL_BITS) if sat_value(b)]
+
+print("3-SAT instance:  " + " AND ".join(
+    "(" + " OR ".join(("" if s > 0 else "NOT ") + f"x{v}" for v, s in c) + ")"
+    for c in CLAUSES))
+print(f"古典的な真理値表: 16通りのうち {len(SOLUTIONS)} 通りが充足します")
+print("  " + " ".join(format(i, "04b") for i in SOLUTIONS))
+
+psi = ket("0" * N_TOT)
+for q in range(4):
+    psi = apply_gate(psi, H, [q], N_TOT)
+amp = sat_phase_oracle(psi).reshape(16, 16)      # (変数レジスタ, 補助ビット)
+diag = amp[:, 0] * np.sqrt(16.0)                # 1/sqrt(16) を割り戻します
+bb = phase_oracle(np.ones(16) / 4.0, SOLUTIONS) * 4.0
+
+print(f"\n補助ビットは |0000> に戻ったか: 最大の漏れ = "
+      f"{np.max(np.abs(amp[:, 1:])):.2e}")
+print(f"回路の対角成分はブラックボックスと一致するか: 最大誤差 = "
+      f"{np.max(np.abs(diag.real - bb)):.2e}")
+print("16個の位相を添字順に並べます:")
+print("  circuit  " + " ".join(f"{d.real:+.0f}" for d in diag))
+print("  blackbox " + " ".join(f"{v:+.0f}" for v in bb))
+
+print("\n1クエリの費用を、1と仮定せずに数えます:")
+print(f"  Toffoli / CNOT / X / H   : {COUNT['toffoli']} / {COUNT['cnot']} / "
+      f"{COUNT['x']} / {COUNT['h']}")
+print(f"  補助量子ビット数         : {len(FLAG) + 1}")
+print(f"  CNOT換算のゲート数       : "
+      f"{6 * COUNT['toffoli'] + COUNT['cnot']}  (Toffoli 1個あたりCNOT 6個)")
+print(f"  ブラックボックス版       : 定義により1クエリ")
+
+
+# ---- 安価な特殊例: マーク文字列が1つ、しかも既知の場合 ------------------
+def mcz_oracle(state, s):
+    """ビット列 s 1つを多重制御Zでマークする回路です。
+
+    変数 nv = len(s) 個に加えて nv - 2 個の補助ビットを使い、それらは |0> で
+    始まり |0> で終わります。
+    """
+    nv = len(s)
+    n = 2 * nv - 2
+    anc = list(range(nv, n))
+    for q, b in enumerate(s):
+        if b == "0":
+            state = xgate(state, q, n)
+    state = toffoli(state, 0, 1, anc[0], n)                 # ANDのはしごを登る
+    for i in range(2, nv - 1):
+        state = toffoli(state, i, anc[i - 2], anc[i - 1], n)
+    state = cz(state, anc[-1], nv - 1, n)                   # 位相そのもの
+    for i in range(nv - 2, 1, -1):                          # はしごを降りる
+        state = toffoli(state, i, anc[i - 2], anc[i - 1], n)
+    state = toffoli(state, 0, 1, anc[0], n)
+    for q, b in enumerate(s):
+        if b == "0":
+            state = xgate(state, q, n)
+    return state
+
+
+print("\n教科書的な特殊例: マーク文字列1つを多重制御Zで実現します。")
+print(f"{'variables':>11}{'ancillas':>10}{'Toffolis':>10}{'CNOT-equiv':>12}"
+      f"{'max error vs black box':>25}")
+print("-" * 68)
+for nv in [3, 4, 5, 6]:
+    s = format(2 ** nv - 3, f"0{nv}b")
+    n = 2 * nv - 2
+    before = dict(COUNT)
+    psi = ket("0" * n)
+    for q in range(nv):
+        psi = apply_gate(psi, H, [q], n)
+    out = mcz_oracle(psi, s).reshape(2 ** nv, -1)
+    want = np.ones(2 ** nv)
+    want[int(s, 2)] = -1.0
+    err = (np.max(np.abs(out[:, 0].real * np.sqrt(2.0 ** nv) - want))
+           + np.max(np.abs(out[:, 1:])))
+    nt = COUNT["toffoli"] - before["toffoli"]
+    nc = COUNT["cnot"] - before["cnot"]
+    print(f"{nv:>11}{nv - 2:>10}{nt:>10}{6 * nt + nc:>12}{err:>25.2e}")
+print("  Toffoli数は 2(n-2) で増えます。線形であり、安価です。しかしこの")
+print("  オラクルを書き下すには答えを知っている必要があり、それは問題ではありません。")
+```
+
+```text
+3-SAT instance:  (x0 OR NOT x1 OR x2) AND (NOT x0 OR x1 OR x3) AND (x1 OR NOT x2 OR NOT x3)
+古典的な真理値表: 16通りのうち 10 通りが充足します
+  0000 0001 0010 0110 0111 1001 1100 1101 1110 1111
+
+補助ビットは |0000> に戻ったか: 最大の漏れ = 5.90e-18
+回路の対角成分はブラックボックスと一致するか: 最大誤差 = 4.44e-16
+16個の位相を添字順に並べます:
+  circuit  -1 -1 -1 +1 +1 +1 -1 -1 +1 -1 +1 +1 -1 -1 -1 -1
+  blackbox -1 -1 -1 +1 +1 +1 -1 -1 +1 -1 +1 +1 -1 -1 -1 -1
+
+1クエリの費用を、1と仮定せずに数えます:
+  Toffoli / CNOT / X / H   : 19 / 0 / 26 / 2
+  補助量子ビット数         : 4
+  CNOT換算のゲート数       : 114  (Toffoli 1個あたりCNOT 6個)
+  ブラックボックス版       : 定義により1クエリ
+
+教科書的な特殊例: マーク文字列1つを多重制御Zで実現します。
+  variables  ancillas  Toffolis  CNOT-equiv   max error vs black box
+--------------------------------------------------------------------
+          3         1         2          13                 3.33e-16
+          4         2         4          25                 5.55e-16
+          5         3         6          37                 4.44e-16
+          6         4         8          49                 6.66e-16
+  Toffoli数は 2(n-2) で増えます。線形であり、安価です。しかしこの
+  オラクルを書き下すには答えを知っている必要があり、それは問題ではありません。
+```
+
+**注目すべき点。** 2つのオラクルは厳密に一致します。16個の位相が一致し、補助ビットは $6 \times 10^{-18}$ の精度で $\lvert 0000 \rangle$ に戻ります。この検査こそが重要です。補助ビットが探索レジスタとエンタングルしたまま残るオラクルは位相オラクルではまったくなく、増幅も起こりません。費用の行が誠実な会計です。4変数の論理式に対する*1回*のクエリで、Toffoli 19個、$X$ ゲート26個、補助ビット4個、CNOT換算114個。そのToffoliのおよそ半分は純粋な逆計算です。可逆性の代金を、クエリごとに毎回払っています。
+
+最後の表は教科書が示す特殊例で、なぜそれが誤解を招くのかを明確にしておく価値があります。既知のビット列 $s$ 1つをマークするには多重制御 $Z$ が必要で、Toffoli $2(n-2)$ 個と補助ビット $n-2$ 個、$n$ について線形で本当に安価です。しかしその回路を書き下せるのは、すでに $s$ を知っている場合だけです。それは探索問題のオラクルではなく、すでに解いた問題のオラクルであり、アルゴリズムの検査には使えますが、それ以外の用途はありません。1.5節のGroverの実演はすべてこの種のオラクルを使っており、そう述べておくのが誠実です。
+
+ここで選んだ論理式についてもう一点。16通りのうち10通りが充足解です。これは非常に*密*な解集合であり、Code Example 7 はこの論理式に対してGroverが本質的に何も得ないことを示します。難しさの閾値付近の実際の3-SATインスタンスは指数的にわずかな解しかもたず、そこがこのアルゴリズムが興味深い領域です。ここで小さなインスタンスを使ったのは、そのオラクルが8量子ビットに収まり、全体を印字できるからです。
+
+* * *
+
+## 1.2 Groverのアルゴリズムの幾何学
+
+### 2つの状態と、1つの平面
+
+すべては、このアルゴリズムが2つの状態しか必要としないことに気づくところから従います。
+
+$$ \lvert \mathrm{good} \rangle = \frac{1}{\sqrt{M}} \sum_{f(x)=1} \lvert x \rangle, \qquad \lvert \mathrm{bad} \rangle = \frac{1}{\sqrt{N-M}} \sum_{f(x)=0} \lvert x \rangle $$
+
+とします。これらは正規直交です。$H^{\otimes n} \lvert 0 \cdots 0 \rangle$ が作る一様重ね合わせは、これらで
+
+$$ \lvert s \rangle = \sqrt{\frac{M}{N}} \lvert \mathrm{good} \rangle + \sqrt{\frac{N-M}{N}} \lvert \mathrm{bad} \rangle = \sin\theta \lvert \mathrm{good} \rangle + \cos\theta \lvert \mathrm{bad} \rangle $$
+
+と分解され、これが角度
+
+$$ \theta = \arcsin\sqrt{\frac{M}{N}} $$
+
+を*定義*します。$M \ll N$ ではこれは小さな角度で $\theta \approx \sqrt{M/N}$ となり、初期の成功確率は $\sin^2\theta = M/N$ です。無作為に当てる確率であり、そうでなければなりません。
+
+### 2つの鏡映が1つの回転を作る
+
+Groverの反復は $G = DO$ であり、どちらも鏡映である2つの演算子から組み立てられます。
+
+オラクル $O = I - 2P_{\mathrm{good}}$（$P_{\mathrm{good}}$ はマークされた部分空間への射影）は $\lvert \mathrm{good} \rangle$ 成分の符号を反転し、$\lvert \mathrm{bad} \rangle$ をそのままにします。平面内ではこれは鏡の線を $\lvert \mathrm{bad} \rangle$ 軸とする鏡映です。
+
+**拡散演算子**は $\lvert s \rangle$ についての鏡映
+
+$$ D = 2 \lvert s \rangle \langle s \rvert - I = H^{\otimes n} \left( 2 \lvert 0 \cdots 0 \rangle \langle 0 \cdots 0 \rvert - I \right) H^{\otimes n} $$
+
+であり、Hadamard $2n$ 個と $n$ 重制御位相1個で実装されます。$f$ についての知識は要りません。だからこそクエリモデルでは $D$ は無料です。振幅に作用させると $D$ は $a_x \mapsto 2\langle a \rangle - a_x$（$\langle a \rangle$ は平均振幅）を行い、「平均についての反転」という呼び名はその形から来ています。正しい呼び名ですが、幾何学的な見方のほうが有用です。
+
+平面内で鏡の線が角 $\theta$ で交わる2つの鏡映の積は $2\theta$ 回転です。$\lvert s \rangle$ は $\lvert \mathrm{bad} \rangle$ 軸と角 $\theta$ をなすので、$G = DO$ は適用ごとに状態を $\lvert \mathrm{good} \rangle$ に向けて $2\theta$ 回転させます。角 $\theta$ の $\lvert s \rangle$ から始めると、
+
+$$ G^k \lvert s \rangle = \sin\left((2k+1)\theta\right) \lvert \mathrm{good} \rangle + \cos\left((2k+1)\theta\right) \lvert \mathrm{bad} \rangle $$
+
+であり、測定がマークされた文字列を返す確率は
+
+$$ P_k = \sin^2\left((2k+1)\theta\right) $$
+
+です。ここから3つの帰結がただちに出て、どれも追加の計算を要しません。状態は平面を離れないので、$N = 2^n$ 個の振幅にわたる探索は実は2次元の問題です（Code Example 3 で数値的に検証します）。ダイナミクスは収束ではなく周期的です。そしてこのアルゴリズムは*厳密に*解けています。上の式に漸近的なところはありません。
+
+### 最適反復数
+
+$(2k+1)\theta$ を $\pi/2$ にできるだけ近づけたいので、理想的な実数値の $k$ は
+
+$$ k^\ast = \frac{\pi}{4\theta} - \frac{1}{2} $$
+
+であり、最良の整数はこれに最も近いもので、$\pi/(4\theta)$ がちょうど整数になって2つの反復数が同値になる場合を除いて、
+
+$$ k_{\mathrm{opt}} = \left\lfloor \frac{\pi}{4\theta} \right\rfloor = \left\lfloor \frac{\pi}{4 \arcsin\sqrt{M/N}} \right\rfloor $$
+
+に等しくなります。小角領域 $\theta \approx \sqrt{M/N}$ では、これがよく知られた
+
+$$ k_{\mathrm{opt}} \approx \left\lfloor \frac{\pi}{4} \sqrt{\frac{N}{M}} \right\rfloor $$
+
+になります。$M = 1$ については Code Example 6 で試したすべての $n$ で両者は一致し、Code Example 7 が示すように $M/N$ が小さくなくなると食い違います。
+
+$k_{\mathrm{opt}}$ での結果はどれくらい良いのでしょうか。整数への丸めは $2\theta$ の半歩を超えて損をしないので $\lvert (2k_{\mathrm{opt}}+1)\theta - \pi/2 \rvert \le \theta$ であり、したがって
+
+$$ P_{k_{\mathrm{opt}}} \ge \cos^2\theta = 1 - \frac{M}{N} $$
+
+です。失敗確率は高々 $M/N$、すなわち*初期*の成功確率です。心地よい対称性であり、$n = 10$ でのGrover 1回の実行が確率 $0.999$ 超で成功する理由でもあります。$M = 1$ ならこれは $1 - 1/N$ で、残った失敗確率は測定された文字列を古典的に検証して繰り返すことで完全に除去できます。費用はクエリ1回です。
+
+### 過回転、そして「反復を増やす」が「良くなる」ではない理由
+
+$P_k$ は周期的なので、$k_{\mathrm{opt}}$ を越えて回すと状態は $\lvert \mathrm{good} \rangle$ から*離れて*いきます。$k \approx 2k_{\mathrm{opt}}$ では状態はほぼ $\pi$ 回っており、成功確率はゼロ付近に戻っています。Code Example 6 は $n = 8$ について $k = 12$ で $0.99995$、$k = 24$ で $0.0059$ を測定します。これは片付けておける細部ではありません。反復数は*アルゴリズムの一部*であり、$M$ に依存し、$M$ が未知なら前もって計算できないということです。1.5節がその場合を扱い、第2章がもう1つの答え — 位相推定でまず $M$ を測る量子カウンティング — を与えます。
+
+これは古典的な探索との構造的な違いも説明します。見落としやすい違いです。古典的な走査は*いつでも打ち切れる*性質をもち、好きなところで止めれば有効な部分探索になります。Groverはそうではありません。早く止めても遅く止めても、測定はほぼ無意味な状態を返し、保険をかける手段はありません。
+
+### Code Example 3: 2次元の回転を検証する
+
+上の主張は厳密なので、近似的にではなく機械精度で検証できるはずです。このコード例はそれを行います。$n = 3$ について全振幅を追い、$\lvert \mathrm{good} \rangle$ と $\lvert \mathrm{bad} \rangle$ が張る平面の外側の成分が $10^{-16}$ の水準にとどまることを確認し、続いて $n = 6$ について曲線を最大値を越えて反対側まで追います。
+
+```python
+"""第1章 Code Example 3: 2次元の回転を検証します。
+Code Example 2 の続き（同一セッション）"""
+
+
+def uniform(n):
+    """Groverの出発点である一様重ね合わせ H^n|0...0> を作ります。"""
+    psi = ket("0" * n)
+    for q in range(n):
+        psi = apply_gate(psi, H, [q], n)
+    return psi
+
+
+def diffuser(state, n):
+    """D = H^n (2|0><0| - I) H^n = 2|s><s| - I、すなわち |s> についての鏡映です。"""
+    for q in range(n):
+        state = apply_gate(state, H, [q], n)
+    state = -state
+    state[0] = -state[0]
+    for q in range(n):
+        state = apply_gate(state, H, [q], n)
+    return state
+
+
+def grover_step(state, marked, n):
+    """Groverの1反復 G = D O です。オラクル1回、続いて拡散1回。"""
+    return diffuser(phase_oracle(state, marked), n)
+
+
+def subspace_coords(state, marked, n):
+    """状態の |good>、|bad>、およびそれ以外への成分を返します。"""
+    N = 2 ** n
+    M = len(marked)
+    good = np.zeros(N)
+    good[list(marked)] = 1.0 / np.sqrt(M)
+    bad = np.ones(N) / np.sqrt(N - M)
+    bad[list(marked)] = 0.0
+    cg = float(np.vdot(good, state).real)
+    cb = float(np.vdot(bad, state).real)
+    residual = state - cg * good - cb * bad
+    return cg, cb, float(np.max(np.abs(residual)))
+
+
+# --- n = 3、マーク文字列1つ: 全振幅を反復ごとに追います ---------------------
+n, marked = 3, [int("101", 2)]
+N, M = 2 ** n, len(marked)
+theta = np.arcsin(np.sqrt(M / N))
+print(f"n = {n}, N = {N}, M = {M}:  theta = arcsin(sqrt(M/N)) = {theta:.6f} rad"
+      f" = {np.degrees(theta):.3f} deg")
+print(f"マーク文字列 '101' は添字 {marked[0]} です\n")
+
+hdr = (f"{'k':>3}{'amp(101)':>12}{'amp(other)':>12}{'(2k+1)theta':>13}"
+       f"{'sin((2k+1)th)':>15}{'P(marked)':>11}{'off-plane':>11}")
+print(hdr)
+print("-" * len(hdr))
+psi = uniform(n)
+for k in range(6):
+    cg, cb, res = subspace_coords(psi, marked, n)
+    other = [psi[i].real for i in range(N) if i not in marked]
+    ang = (2 * k + 1) * theta
+    print(f"{k:>3}{psi[marked[0]].real:>12.6f}{other[0]:>12.6f}{ang:>13.6f}"
+          f"{np.sin(ang):>15.6f}{probs(psi)[marked[0]]:>11.6f}{res:>11.1e}")
+    psi = grover_step(psi, marked, n)
+
+# --- n = 6: 過回転を含む曲線の全体 ----------------------------------------
+n, marked = 6, [int("101101", 2)]
+N, M = 2 ** n, len(marked)
+theta = np.arcsin(np.sqrt(M / N))
+k_opt = int(np.floor(np.pi / (4 * theta)))
+print(f"\nn = {n}, N = {N}, M = {M}:  theta = {theta:.6f} rad, "
+      f"floor(pi/(4 theta)) = {k_opt}")
+print(f"よく使われる近似 floor(pi sqrt(N/M)/4) = "
+      f"{int(np.floor(np.pi * np.sqrt(N / M) / 4))}")
+print(f"\n{'k':>4}{'P(marked)':>12}{'sin^2((2k+1)theta)':>21}{'angle (deg)':>14}")
+print("-" * 51)
+psi = uniform(n)
+record = []
+for k in range(17):
+    p = probs(psi)[marked[0]]
+    ang = (2 * k + 1) * theta
+    record.append((k, p))
+    mark = "  <-- optimal" if k == k_opt else ""
+    if k <= 8 or k in (12, 16):
+        print(f"{k:>4}{p:>12.6f}{np.sin(ang) ** 2:>21.6f}"
+              f"{np.degrees(ang):>14.3f}{mark}")
+    psi = grover_step(psi, marked, n)
+
+best_k = max(record, key=lambda r: r[1])[0]
+print(f"\n測定した成功確率の k についての argmax : {best_k}")
+print(f"floor(pi/(4 theta))                   : {k_opt}")
+print(f"P at k = {k_opt}: {dict(record)[k_opt]:.6f}    "
+      f"P at k = {k_opt + 1}: {dict(record)[k_opt + 1]:.6f}    "
+      f"P at k = {2 * k_opt + 1}: {dict(record)[2 * k_opt + 1]:.6f}")
+```
+
+```text
+n = 3, N = 8, M = 1:  theta = arcsin(sqrt(M/N)) = 0.361367 rad = 20.705 deg
+マーク文字列 '101' は添字 5 です
+
+  k    amp(101)  amp(other)  (2k+1)theta  sin((2k+1)th)  P(marked)  off-plane
+-----------------------------------------------------------------------------
+  0    0.353553    0.353553     0.361367       0.353553   0.125000    5.6e-17
+  1    0.883883    0.176777     1.084101       0.883883   0.781250    2.8e-17
+  2    0.972272   -0.088388     1.806836       0.972272   0.945312    8.3e-17
+  3    0.574524   -0.309359     2.529570       0.574524   0.330078    2.2e-16
+  4   -0.110485   -0.375650     3.252304      -0.110485   0.012207    1.7e-16
+  5   -0.740252   -0.254116     3.975038      -0.740252   0.547974    2.2e-16
+
+n = 6, N = 64, M = 1:  theta = 0.125328 rad, floor(pi/(4 theta)) = 6
+よく使われる近似 floor(pi sqrt(N/M)/4) = 6
+
+   k   P(marked)   sin^2((2k+1)theta)   angle (deg)
+---------------------------------------------------
+   0    0.015625             0.015625         7.181
+   1    0.134827             0.134827        21.542
+   2    0.343895             0.343895        35.904
+   3    0.591380             0.591380        50.265
+   4    0.816377             0.816377        64.627
+   5    0.963515             0.963515        78.988
+   6    0.996586             0.996586        93.350  <-- optimal
+   7    0.907449             0.907449       107.711
+   8    0.718042             0.718042       122.073
+  12    0.000071             0.000071       179.519
+  16    0.702809             0.702809       236.965
+
+測定した成功確率の k についての argmax : 6
+floor(pi/(4 theta))                   : 6
+P at k = 6: 0.996586    P at k = 7: 0.907449    P at k = 13: 0.057550
+```
+
+**注目すべき点。** $n = 3$ では、マーク文字列の振幅がすべての段で $\sin((2k+1)\theta)$ と6桁一致します。$k = 4$ では両者が*負*であることを含めて一致します。状態が $\lvert \mathrm{good} \rangle$ を通り越して振幅の符号が変わったのであり、「振幅が答えに向かって育つ」という描像では予測できない挙動です。off-plane の列が構造的な主張です。$2.2 \times 10^{-16}$ を超えることがなく、$2^n$ 次元の問題が厳密に2次元の問題に帰着されています。
+
+$n = 6$ では閉じた式とシミュレーションが17回の反復すべてで一致し、曲線の形がこのアルゴリズムの物語のすべてです。$k = 6$ で $0.9966$ まで上がり、それが $\lfloor \pi/(4\theta) \rfloor$ です。$k = 12$ で $7.1 \times 10^{-5}$ まで落ち、そこでの累積角は $179.5$ 度です。そこから再び上がってきます。測定された argmax と閉じた式の反復数は一致します。$n = 6$ では $\theta = 0.1253$ rad なので、小角近似 $\theta \approx \sqrt{M/N} = 0.125$ はすでに $0.3\%$ の精度で当たっていることにも注目してください。これが、マーク要素が1つの場合に $k_{\mathrm{opt}}$ の2つの式が実際にはめったに食い違わない理由です。
+
+* * *
+
+## 1.3 振幅増幅の一般形
+
+### $H^{\otimes n}$ を何に置き換えてもよい
+
+1.2節では、初期状態が一様であることをどこにも使っていません。導出が必要としたのは、初期状態が good 方向と bad 方向が張る平面の中にあること、そして2つの鏡映がその平面を保つことだけです。そこで $A$ を*任意*のユニタリ、すなわち「状態準備」とし、$\lvert \psi_A \rangle = A \lvert 0 \cdots 0 \rangle$ と書きます。
+
+$$ a = \lVert P_{\mathrm{good}} \lvert \psi_A \rangle \rVert^2, \qquad \theta = \arcsin\sqrt{a} $$
+
+と定義し、拡散演算子を $\lvert \psi_A \rangle$ についての鏡映
+
+$$ R_A = 2 \lvert \psi_A \rangle \langle \psi_A \rvert - I = A \left( 2 \lvert 0 \cdots 0 \rangle \langle 0 \cdots 0 \rvert - I \right) A^{\dagger} $$
+
+に置き換えます。すると**振幅増幅**演算子 $Q = R_A O$ はまた平面内の $2\theta$ 回転であり、1.2節のすべてがそのまま引き継がれます。
+
+$$ P_k = \sin^2\left((2k+1)\theta\right), \qquad k_{\mathrm{opt}} = \left\lfloor \frac{\pi}{4\theta} \right\rfloor \approx \frac{\pi}{4\sqrt{a}} $$
+
+Groverのアルゴリズムは $A = H^{\otimes n}$ の特別な場合であり、そこでは $a = M/N$ です。他に何も変わりません。
+
+| | Grover探索 | 振幅増幅 |
+| --- | --- | --- |
+| 準備 | $H^{\otimes n}$ | 任意のユニタリ $A$ |
+| 初期の成功振幅 | $a = M/N$ | $a = \lVert P_{\mathrm{good}} A \lvert 0 \rangle \rVert^2$ |
+| 鏡映 | $D = 2\lvert s \rangle\langle s \rvert - I$ | $R_A = A(2\lvert 0 \rangle\langle 0 \rvert - I)A^{\dagger}$ |
+| 1反復の費用 | オラクル1回、Hadamard $2n$ 個 | オラクル1回、$A$ 1回、$A^{\dagger}$ 1回 |
+| 反復数 | $\approx \frac{\pi}{4}\sqrt{N/M}$ | $\approx \frac{\pi}{4}/\sqrt{a}$ |
+
+### 一般形こそが重要である理由
+
+最後の行をもう一度読んでください。反復数は*準備の成功確率*に依存し、探索空間の大きさには依存しません。これが振幅増幅を汎用の包み紙にします。正しい答えを確率 $a$ で作る量子サブルーチンと、正しい答えを認識する手段があれば、$\Theta(1/\sqrt{a})$ 回の繰り返しで確率をほぼ1まで押し上げられます。古典的な繰り返しは $\Theta(1/a)$ を要します。これが「二次高速化」の誠実な一般形であり、この技法が独立した探索アルゴリズムとしてよりもサブルーチンとしてはるかに頻繁に現れる理由です。量子カウンティング（第2章）、量子平均推定・振幅推定、そして量子化モンテカルロ法はすべてこの上に乗っています。
+
+必要な条件は2つあり、どちらも実質的です。
+
+**$A$ を逆向きに走らせられなければならない。** $R_A$ は $A^{\dagger}$ を含みます。量子回路はユニタリなのでこれは無料です。しかしこれはまさに古典的なランダム化アルゴリズムが提供できないものです。古典アルゴリズムは乱数ビットを消費し、中間状態を捨てるからです。したがって「モンテカルロを振幅増幅で包めばよい」は、そのモンテカルロを乱数を補助ビットに保持した可逆回路として書き直すことを要求し、そのための費用は会計の実際の一部です。
+
+**良い部分空間が認識可能でなければならない。** $O$ は $f$ を必要とします。候補は作れても検証できないなら、増幅するものがありません。だからこそこの技法は効率的な検証子をもつ判定問題や探索問題に適合し、独立な検査なしの「基底状態エネルギーを求めよ」には適合しません。
+
+Code Example 4 が具体化する微妙な点もあります。一般には $\pi/(4\theta) - 1/2$ は整数ではないので、達成できる最大確率は $1$ ではなく $1 - O(a)$ です。$A$ を調整できるなら — たとえば探索空間を詰め物で広げる、あるいは回転角を1つ調整する — $(2k+1)\theta = \pi/2$ がちょうど成り立つように $a$ を選べて、増幅は*厳密*になります。成功確率は機械精度で $1$ です。$a$ が範囲でしか分からない場合の代替が**不動点増幅**で、厳密な回転を諦める代わりに、確率が反復数について単調に増加して過回転しえないようにします。
+
+### Code Example 4: 任意の状態準備による増幅
+
+```python
+"""第1章 Code Example 4: 任意の状態準備による振幅増幅。
+Code Example 3 の続き（同一セッション）"""
+
+
+def prepare(angles, n):
+    """A|0...0>: 量子ビットごとに異なるRy角をもつ直積状態を作ります。"""
+    psi = ket("0" * n)
+    for q, a in enumerate(angles):
+        psi = apply_gate(psi, ry(a), [q], n)
+    return psi
+
+
+def reflect_about(state, psi_A, n):
+    """R = 2|psi_A><psi_A| - I、すなわち A を作らずに A (2|0><0| - I) A^dag を作ります。"""
+    return 2.0 * np.vdot(psi_A, state) * psi_A - state
+
+
+def aa_step(state, psi_A, marked, n):
+    """振幅増幅の1反復 Q = R_A O です。"""
+    return reflect_about(phase_oracle(state, marked), psi_A, n)
+
+
+# 5量子ビット上のわざと偏らせた準備と、それを参照せずに選んだ3つのマーク文字列
+# です。
+n = 5
+angles = [0.7, 1.9, 2.6, 1.1, 0.4]
+marked = [int(b, 2) for b in ["00110", "10101", "11011"]]
+psi_A = prepare(angles, n)
+a = float(sum(probs(psi_A)[m] for m in marked))
+theta = np.arcsin(np.sqrt(a))
+
+print(f"n = {n}, Ry angles = {angles}")
+print(f"マーク文字列: {[format(m, '05b') for m in marked]}")
+print(f"初期の成功振幅 a = |<good|A|0>|^2 = {a:.8f}")
+print(f"theta = arcsin(sqrt(a))           = {theta:.8f} rad")
+print(f"一様な準備なら a = M/N            = {len(marked) / 2 ** n:.8f}")
+
+print(f"\n{'k':>4}{'P(good) measured':>19}{'sin^2((2k+1)theta)':>21}{'off-plane':>12}")
+print("-" * 56)
+good = np.zeros(2 ** n, dtype=complex)
+good[marked] = psi_A[marked]
+good /= np.linalg.norm(good)
+bad = psi_A.copy()
+bad[marked] = 0.0
+bad /= np.linalg.norm(bad)
+psi = psi_A.copy()
+for k in range(7):
+    p = float(sum(probs(psi)[m] for m in marked))
+    resid = psi - np.vdot(good, psi) * good - np.vdot(bad, psi) * bad
+    print(f"{k:>4}{p:>19.8f}{np.sin((2 * k + 1) * theta) ** 2:>21.8f}"
+          f"{np.max(np.abs(resid)):>12.1e}")
+    psi = aa_step(psi, psi_A, marked, n)
+
+k_opt = int(np.round(np.pi / (4 * theta) - 0.5))
+print(f"\nround(pi/(4 theta) - 1/2) = {k_opt} であり、表の最大値もそこにあります。")
+
+# --- 厳密増幅: pi/(4 theta) - 1/2 が整数になるように a を選びます
+print("\n厳密増幅です。準備を調整できるなら (2k+1) theta = pi/2 となる a を選び、")
+print("k 回目の反復が 1 - O(a) ではなく確率1で成功するようにできます。")
+print(f"{'k':>4}{'required a':>14}{'P(good) at k':>16}{'1 - P':>12}")
+print("-" * 46)
+for k in [1, 2, 3, 5]:
+    a_star = np.sin(np.pi / (2 * (2 * k + 1))) ** 2
+    # 構造をすべて1量子ビットに担わせます: '1...1' に振幅 sqrt(a_star) を置きます
+    ang = [2 * np.arcsin(a_star ** (1 / (2 * n)))] * n
+    psi_A2 = prepare(ang, n)
+    marked2 = [2 ** n - 1]
+    a2 = float(probs(psi_A2)[marked2[0]])
+    th2 = np.arcsin(np.sqrt(a2))
+    psi2 = psi_A2.copy()
+    for _ in range(k):
+        psi2 = aa_step(psi2, psi_A2, marked2, n)
+    p = float(probs(psi2)[marked2[0]])
+    print(f"{k:>4}{a2:>14.8f}{p:>16.10f}{1 - p:>12.2e}")
+
+# --- 平方根がサブルーチンの高速化としてもつ価値 ----------------------------
+print("\n成功確率 a のランダム化サブルーチンを包む道具としての振幅増幅です。")
+print("古典的には約 1/a 回繰り返します。")
+print(f"{'a':>12}{'classical 1/a':>16}{'quantum pi/(4 arcsin sqrt a)':>31}"
+      f"{'ratio':>12}")
+print("-" * 71)
+for a_ in [1e-1, 1e-2, 1e-3, 1e-4, 1e-6, 1e-8]:
+    cl = 1.0 / a_
+    qu = np.pi / (4 * np.arcsin(np.sqrt(a_)))
+    print(f"{a_:>12.0e}{cl:>16.4g}{qu:>31.4g}{cl / qu:>12.4g}")
+```
+
+```text
+n = 5, Ry angles = [0.7, 1.9, 2.6, 1.1, 0.4]
+マーク文字列: ['00110', '10101', '11011']
+初期の成功振幅 a = |<good|A|0>|^2 = 0.07386401
+theta = arcsin(sqrt(a))           = 0.27524148 rad
+一様な準備なら a = M/N            = 0.09375000
+
+   k   P(good) measured   sin^2((2k+1)theta)   off-plane
+--------------------------------------------------------
+   0         0.07386401           0.07386401     1.7e-16
+   1         0.54028258           0.54028258     1.1e-16
+   2         0.96261067           0.96261067     4.2e-17
+   3         0.87859755           0.87859755     8.3e-17
+   4         0.38019811           0.38019811     2.2e-16
+   5         0.01292541           0.01292541     2.8e-16
+   6         0.17877041           0.17877041     1.1e-16
+
+round(pi/(4 theta) - 1/2) = 2 であり、表の最大値もそこにあります。
+
+厳密増幅です。準備を調整できるなら (2k+1) theta = pi/2 となる a を選び、
+k 回目の反復が 1 - O(a) ではなく確率1で成功するようにできます。
+   k    required a    P(good) at k       1 - P
+----------------------------------------------
+   1    0.25000000    1.0000000000    4.44e-16
+   2    0.09549150    1.0000000000    1.78e-15
+   3    0.04951557    1.0000000000    1.11e-15
+   5    0.02025351    1.0000000000    1.78e-15
+
+成功確率 a のランダム化サブルーチンを包む道具としての振幅増幅です。
+古典的には約 1/a 回繰り返します。
+           a   classical 1/a   quantum pi/(4 arcsin sqrt a)       ratio
+-----------------------------------------------------------------------
+       1e-01              10                          2.441       4.097
+       1e-02             100                          7.841       12.75
+       1e-03            1000                          24.83       40.27
+       1e-04           1e+04                          78.54       127.3
+       1e-06           1e+06                          785.4        1273
+       1e-08           1e+08                           7854   1.273e+04
+```
+
+**注目すべき点。** ここでの準備は5つの異なる $R_y$ 回転の積なので、初期の振幅分布は徹底して非一様であり、マーク文字列はそれを参照せずに選びました。それでも測定された成功確率はすべての反復で $\sin^2((2k+1)\theta)$ と8桁一致します。$\theta$ は $M/N = 0.0938$ からではなく*実際の*重なり $a = 0.0739$ から計算しています。平面外の残差は $10^{-16}$ にとどまります。この幾何学は一様重ね合わせの性質ではなく、平面内の2つの鏡映の性質です。
+
+厳密増幅のブロックが実践上の注意点です。$a = \sin^2(\pi/(2(2k+1)))$ を選ぶと $k$ 回目の反復が $2 \times 10^{-15}$ の精度で確率 $1$ に達します。$k = 1$ には $a = 1/4$、$k = 5$ には $a = 0.0203$ が必要です。準備を制御できるならこれを使うべきです。残りの失敗確率を小さくするのではなく、完全に除去できます。
+
+最後の表は一般の主張を数値にしたもので、同時に警告でもあります。$a = 10^{-8}$ では古典的な繰り返しが $10^8$ 回を要し、振幅増幅は $7854$ 回で済みます。$1.3 \times 10^4$ 倍であり、本当に大きな差です。しかし量子側の列が何を数えているかに注意してください。$7854$ 回の*逐次的*な反復であり、それぞれがオラクル1回、$A$ 1回、$A^{\dagger}$ 1回を含み、すべてがコヒーレントに走らなければなりません。古典側の列は $10^8$ 回の*独立な*試行を数えており、買えるだけの台数に分散できます。1.4節はまさにこの非対称性についての節です。
+
+* * *
+
+## 1.4 二次高速化が実際にもつ価値
+
+### 主張を厳密に述べる
+
+クエリモデルの中では話は完全に決着しており、議論の余地はありません。
+
+$$ \text{構造なし探索のクエリ計算量} = \Theta\left(\sqrt{N/M}\right) $$
+
+上界をGroverが達成し、下界をadversary法が与えます。量子コンピュータが構造なしの空間を $\sqrt{N}$ より速く探索できるという主張は偽であり、$N$ より速くできないという主張も偽です。本節はモデルを離れたときに何が起こるかについての節であり、実践的な問いはすべてそこに住んでいます。
+
+### 平方根が食われる4つの経路
+
+**1. 1クエリの費用は1ではない。** 1クエリは $f$ の可逆回路であり、Code Example 2 は4変数の3-SAT論理式について114 CNOT換算を測定しました。古典側は同じ述語をひと握りの機械命令で評価します。量子側のクエリ単価が古典側を係数 $\gamma$ だけ上回るなら、二次的優位が現れるのは $N \gtrsim \gamma^2$ より上だけです。そして $\gamma$ には可逆性のオーバーヘッド、補助ビットの管理、誤り耐性ゲート集合へのコンパイルが含まれます。
+
+**2. クロック速度が何桁も違う。** ここで関係する量子側の単位は物理ゲート時間ではなく**論理**ゲート時間です。誤り耐性の論理演算は多数の物理量子ビット上で多数回のシンドローム抽出を要し、オラクルを支配する非Cliffordゲートについてはマジック状態を要し、それは蒸留しなければなりません。物理サイクル時間がいくらであれ、論理周期 $t_L$ はそれより相当大きな係数だけ長くなります。一方で古典側は1コアあたり毎秒何十億回の述語評価を実行します。Code Example 5 は $t_L$ と古典速度を数桁にわたってスイープし、実時間のクロスオーバーがどこにあるかを報告します。
+
+**3. Groverは並列化しない。** これが最も語られず、最も大きな損害を与える機構です。空間を $P$ 個に分けて1台ずつに割り当てると、古典的な時間は $1/P$ で落ちますが、Groverの時間は $\sqrt{1/P}$ しか落ちません。各台が大きさ $N/P$ の空間を探索し、$\sqrt{N/P} = \sqrt{N}/\sqrt{P}$ だからです。したがって並列ハードウェアが $100$ 倍になるたび、量子側は相対的な優位を $10$ 分の1だけ失います。大規模な古典計算は圧倒的に並列であり、Groverの実行は本質的に逐次なので、比較はクエリ数が示唆するよりずっと不利です。
+
+**4. 逐次的な深さがコヒーレントでなければならない。** $\Theta(\sqrt{N})$ 回のクエリは1本の途切れない回路を作ります。Grover探索を短い独立なショットに分けて結果を合成する方法はありません。増幅は列全体にわたって積み上がる干渉効果だからです。$10^{10}$ 論理ゲートの回路のどこか1箇所で訂正されない誤りが起きれば台無しになります。これは構成上、完全な誤り耐性を要する仕事です。Groverは近い将来のアルゴリズムではなく、どれだけ誤り緩和をしてもそれは変わりません。
+
+### 構造なし探索はデータベース検索ではない
+
+Groverの結果の最もよくある言い誤りは「量子コンピュータは $N$ 件のデータベースを $\sqrt{N}$ ステップで検索できる」です。それに何が必要かを考えてみましょう。レコードはデータなので、オラクルはそれを参照しなければなりません。$N$ 個の格納値へのコヒーレントな参照は小さな回路ではありません。標準的な構成である **QRAM** には2つの流儀があり、どちらもこの主張を救いません。
+
+  * *逐次的*な参照は、1クエリあたり $\Theta(N)$ ゲートの回路です。
+  * *バケツリレー*方式の参照は、深さは $O(\log N)$ ですが、木状に配置された $\Theta(N)$ 個の物理量子ビットを要し、そのすべてをコヒーレントに保ち誤り訂正しなければなりません。
+
+どちらにしても1クエリの費用は資源と時間の積で $\Theta(N)$ です。したがってGroverは全体で $\Theta(N^{3/2})$ を払い、古典的な走査の $\Theta(N)$ に対して $\sqrt{N}$ 倍だけ*悪い*ことになります。Code Example 5 がそれを表にします。しかも比較はそれよりさらに厳しいものです。$\Theta(N)$ 個のハードウェアを作る覚悟があるなら、古典的には $N$ 件すべてを並列に一定時間で見られます。
+
+したがって **QRAM問題**は解決を待っている工学上の細部ではありません。それは、大きさ $N$ のデータ集合へのコヒーレントなアクセスに高速化が依存する量子アルゴリズムはどこかで $\Theta(N)$ を払わなければならず、それが $\sqrt{N}$ の優位を打ち消して余りある、という主張です。同じ異議は多くの量子機械学習の提案にも当てはまり、だからこそそこでの誠実な会計はアルゴリズムではなく入力モデルから始まります。
+
+Groverが適用できるのは、評価は安価で反転は高価な**規則**として与えられた関数です。ハッシュ、暗号、SAT論理式、物理的な述語。大きさ $N$ のものは何も格納されないので、読み込むものもありません。
+
+### 比較の基準
+
+規則の場合でも、指数はそれが何の指数であるかより重要ではありません。Groverが平方根をとるのは**総当たり**の費用です。ある問題の最良の古典アルゴリズムがすでに $2^{cn}$（$c < 1/2$）で走るなら、総当たりに対するGroverの $2^{n/2}$ はそれより遅く、正しい結論は量子アルゴリズムが負けるというものです。これは仮想の話ではありません。多くのNP困難問題で、最良の既知の古典手法の指数は1を十分下回っており、列挙に対する二次高速化はそれらと競争になりません。Groverを良い古典アルゴリズムと組み合わせる — たとえばバックトラッキング探索の内部で増幅する — ことは可能で、活発な主題ですが、「SATに二次高速化」とはまったく別の、はるかに繊細な主張です。
+
+### 何が生き残るか
+
+以上を経ても、本物で擁護可能な核は残ります。
+
+| 応用 | 上の異議が効かない理由 |
+| --- | --- |
+| 暗号鍵探索と原像探索 | $f$ は暗号かハッシュであり、規則で、安価で、何も格納されない。最良の古典攻撃が本当に総当たりなので比較の基準も正しい。耐量子の推奨で対称鍵長が倍にされるのはこのためで、$2^{128}$ の探索が $2^{64}$ になるから $256$ ビット鍵が指定される |
+| モンテカルロのための振幅推定 | 推定される量が確率であり、標本数の二次的削減は任意の可逆サンプラーに適用でき、「データベース」は格納ではなく生成される |
+| 他の量子アルゴリズム内部でのサブルーチン増幅 | 増幅される成功確率がすでに量子回路の内部にあり、入力モデルが関与しない |
+| 最良の古典アルゴリズムが列挙である問題 | 比較の基準が構成上総当たりである |
+
+そして否定的な結果も同じくらい携えておく価値があります。
+
+  * Groverはデータベース検索には役立ちません。理由は上のとおりです。
+  * GroverはNP困難問題を扱いやすくしません。$2^{n/2}$ はなお指数関数であり、二次高速化は扱える問題サイズを $n$ について2倍に動かすだけで、難しさの桁を動かしません。
+  * 二次高速化には価値がありうるのですが、それは定数倍、クロック比、並列性のすべてを計上したうえで、なお答えが正になるときだけです。それは算術の問題であり、Code Example 5 がその算術です。
+
+### Code Example 5: 誠実な算術
+
+以下の速度はすべて、引用ではなく数桁にわたってスイープします。まさに、いかなる結論も装置の仕様や記録に依存しないようにするためです。4つのブロックは上の4つの機構を順に扱います。
+
+```python
+"""第1章 Code Example 5: 二次高速化の価値を算術で確かめます。
+Code Example 4 の続き（同一セッション）
+
+以下の速度はすべて、数桁にわたってスイープする**パラメータ**であり、装置の仕様
+でも記録でもありません。結論はパラメータがどの桁にあるかにしか依存せず、だから
+こそ単一の数値ではなくスイープを表示します。
+"""
+
+# --- 1. 定数倍を残したままの実時間クロスオーバー ---------------------------
+# 古典: N/2 回の述語評価を毎秒 r_c 回の速度で行います。
+# 量子: (pi/4) sqrt(N) 回のオラクル呼び出し、各 G_q 論理ゲート、各 t_L 秒。
+G_q = 100                      # オラクル1回あたりの論理ゲート数（桁の見積り）
+
+print("Groverの実時間が古典的な走査を初めて上回るビット幅 n のクロスオーバーです。")
+print("t_L は**論理**ゲート周期、すなわち物理サイクル時間にエラー訂正の費用を"
+      "掛けたものです。")
+print(f"\n{'t_L':>10}{'r_c = 1e9/s':>14}{'1e10/s':>10}{'1e12/s':>10}"
+      f"{'1e15/s':>10}")
+print("-" * 54)
+for t_L, label in [(1e-9, "1 ns"), (1e-7, "100 ns"), (1e-6, "1 us"),
+                   (1e-4, "100 us"), (1e-3, "1 ms")]:
+    row = f"{label:>10}"
+    for r_c in [1e9, 1e10, 1e12, 1e15]:
+        n_cross = None
+        for n in range(1, 401):
+            N = 2.0 ** n
+            t_classical = 0.5 * N / r_c
+            t_quantum = (np.pi / 4) * np.sqrt(N) * G_q * t_L
+            if t_quantum < t_classical:
+                n_cross = n
+                break
+        row += f"{n_cross:>14}" if r_c == 1e9 else f"{n_cross:>10}"
+    print(row)
+
+print("\nt_L = 1 us、r_c = 1e12/s でのクロスオーバー近傍で機械が行うべき仕事です:")
+t_L, r_c = 1e-6, 1e12
+print(f"{'n':>4}{'queries':>12}{'logical gates':>15}{'quantum (s)':>13}"
+      f"{'classical (s)':>15}")
+print("-" * 59)
+for n in [40, 50, 60, 80, 100]:
+    N = 2.0 ** n
+    q_calls = (np.pi / 4) * np.sqrt(N)
+    print(f"{n:>4}{q_calls:>12.3g}{q_calls * G_q:>15.3g}"
+          f"{q_calls * G_q * t_L:>13.3g}{0.5 * N / r_c:>15.3g}")
+print("  'logical gates' 列は**逐次的**な深さです。Groverは展開できません。")
+
+# --- 2. 二次高速化は並列化に耐えません -----------------------------------
+print("\n探索空間を P 台の機械に分割します。古典的な時間は 1/P で減りますが、")
+print("空間の 1/P に対するGroverは 1/sqrt(P) しか減りません。")
+print(f"{'P':>10}{'classical N/(2P)':>20}{'quantum sqrt(N/P)':>20}"
+      f"{'quantum advantage':>20}")
+print("-" * 70)
+N = 2.0 ** 60
+for P in [1, 1e2, 1e4, 1e6, 1e8]:
+    cl = 0.5 * N / P
+    qu = (np.pi / 4) * np.sqrt(N / P)
+    print(f"{P:>10.0e}{cl:>20.4g}{qu:>20.4g}{cl / qu:>20.4g}")
+print("  並列ハードウェアが100倍になるたび、量子側は優位を10分の1だけ失います。")
+print("  高速化はクエリ数について二次であって、資源について二次ではありません。")
+
+# --- 3. 構造なし探索はデータベース検索ではありません ----------------------
+print("\nN 件の**格納された**表を探索する場合です。コヒーレントな表引きは1クエリ")
+print("あたり Theta(N) ゲート（あるいは Theta(N) 量子ビットのハードウェア）を要し、")
+print("Groverは合計で N^{3/2} を払います。")
+print(f"\n{'n':>4}{'N':>12}{'classical scan':>17}{'Grover queries':>16}"
+      f"{'x lookup cost':>16}{'ratio':>12}")
+print("-" * 77)
+for n in [10, 20, 30, 40, 50]:
+    N = 2.0 ** n
+    scan = N
+    q = (np.pi / 4) * np.sqrt(N)
+    tot = q * N
+    print(f"{n:>4}{N:>12.4g}{scan:>17.4g}{q:>16.4g}{tot:>16.4g}"
+          f"{tot / scan:>12.4g}")
+print("  比は sqrt(N) だけ**逆向き**です。真のデータベースではGroverは負けます。")
+print("  勝てるのは f(x) が安価に評価できる規則であり、格納されていない場合だけです。")
+
+# --- 4. 指数よりも比較の基準のほうが効きます -----------------------------
+print("\nGroverが平方根をとるのは**総当たり**の費用です。最良の古典アルゴリズムが")
+print("すでに 2^{c n}（c < 1）で走るなら、誠実な比較は 2^{0.5 n} 対 2^{c n} です。")
+print(f"\n{'classical exponent c':>22}{'verdict':>14}"
+      f"{'n = 50':>12}{'n = 100':>12}{'n = 200':>12}")
+print("-" * 72)
+for c in [1.0, 0.75, 0.6, 0.5, 0.4, 0.3]:
+    verdict = "Grover wins" if c > 0.5 else ("tie" if c == 0.5 else "Grover loses")
+    cells = "".join(f"{2.0 ** (c * n) / 2.0 ** (0.5 * n):>12.3g}"
+                    for n in [50, 100, 200])
+    print(f"{c:>22.2f}{verdict:>14}{cells}")
+print("  数値は古典の費用をGroverの費用で割った値です。1より大きければGrover有利。")
+print("  1/2 より小さい古典指数は珍しいものではなく、SATをはじめ多くのNP困難問題は")
+print("  まさにそういう性質のヒューリスティクスをもっています。")
+```
+
+```text
+Groverの実時間が古典的な走査を初めて上回るビット幅 n のクロスオーバーです。
+t_L は**論理**ゲート周期、すなわち物理サイクル時間にエラー訂正の費用を掛けたものです。
+
+       t_L   r_c = 1e9/s    1e10/s    1e12/s    1e15/s
+------------------------------------------------------
+      1 ns            15        22        35        55
+    100 ns            28        35        48        68
+      1 us            35        42        55        75
+    100 us            48        55        68        88
+      1 ms            55        62        75        95
+
+t_L = 1 us、r_c = 1e12/s でのクロスオーバー近傍で機械が行うべき仕事です:
+   n     queries  logical gates  quantum (s)  classical (s)
+-----------------------------------------------------------
+  40    8.24e+05       8.24e+07         82.4           0.55
+  50    2.64e+07       2.64e+09     2.64e+03            563
+  60    8.43e+08       8.43e+10     8.43e+04       5.76e+05
+  80    8.64e+11       8.64e+13     8.64e+07       6.04e+11
+ 100    8.84e+14       8.84e+16     8.84e+10       6.34e+17
+  'logical gates' 列は**逐次的**な深さです。Groverは展開できません。
+
+探索空間を P 台の機械に分割します。古典的な時間は 1/P で減りますが、
+空間の 1/P に対するGroverは 1/sqrt(P) しか減りません。
+         P    classical N/(2P)   quantum sqrt(N/P)   quantum advantage
+----------------------------------------------------------------------
+     1e+00           5.765e+17           8.433e+08           6.836e+08
+     1e+02           5.765e+15           8.433e+07           6.836e+07
+     1e+04           5.765e+13           8.433e+06           6.836e+06
+     1e+06           5.765e+11           8.433e+05           6.836e+05
+     1e+08           5.765e+09           8.433e+04           6.836e+04
+  並列ハードウェアが100倍になるたび、量子側は優位を10分の1だけ失います。
+  高速化はクエリ数について二次であって、資源について二次ではありません。
+
+N 件の**格納された**表を探索する場合です。コヒーレントな表引きは1クエリ
+あたり Theta(N) ゲート（あるいは Theta(N) 量子ビットのハードウェア）を要し、
+Groverは合計で N^{3/2} を払います。
+
+   n           N   classical scan  Grover queries   x lookup cost       ratio
+-----------------------------------------------------------------------------
+  10        1024             1024           25.13       2.574e+04       25.13
+  20   1.049e+06        1.049e+06           804.2       8.433e+08       804.2
+  30   1.074e+09        1.074e+09       2.574e+04       2.763e+13   2.574e+04
+  40     1.1e+12          1.1e+12       8.235e+05       9.055e+17   8.235e+05
+  50   1.126e+15        1.126e+15       2.635e+07       2.967e+22   2.635e+07
+  比は sqrt(N) だけ**逆向き**です。真のデータベースではGroverは負けます。
+  勝てるのは f(x) が安価に評価できる規則であり、格納されていない場合だけです。
+
+Groverが平方根をとるのは**総当たり**の費用です。最良の古典アルゴリズムが
+すでに 2^{c n}（c < 1）で走るなら、誠実な比較は 2^{0.5 n} 対 2^{c n} です。
+
+  classical exponent c       verdict      n = 50     n = 100     n = 200
+------------------------------------------------------------------------
+                  1.00   Grover wins    3.36e+07    1.13e+15    1.27e+30
+                  0.75   Grover wins    5.79e+03    3.36e+07    1.13e+15
+                  0.60   Grover wins          32    1.02e+03    1.05e+06
+                  0.50           tie           1           1           1
+                  0.40  Grover loses      0.0312    0.000977    9.54e-07
+                  0.30  Grover loses    0.000977    9.54e-07    9.09e-13
+  数値は古典の費用をGroverの費用で割った値です。1より大きければGrover有利。
+  1/2 より小さい古典指数は珍しいものではなく、SATをはじめ多くのNP困難問題は
+  まさにそういう性質のヒューリスティクスをもっています。
+```
+
+**注目すべき点。** 最初の表が結論です。論理ゲート周期 $1\ \mu$s、オラクル100論理ゲート、古典速度が毎秒 $10^{12}$ 回の述語評価のとき、Groverが勝つのは $n = 55$ より上、すなわち探索空間 $3.6 \times 10^{16}$ より上だけです。論理周期を $1$ ms に押し上げるとクロスオーバーは $n = 75$ へ動きます。$1$ ns まで下げると $n = 35$ に落ちます。表の規則性は単純で、身につけておく価値があります。**クロックの不利1桁はクロスオーバーのおよそ6.6ビットに相当します**。量子側の費用が $2^{n/2}$、古典側が $2^n$ でスケールするので、$10$ 倍は $\log_2 10 \times 2 \approx 6.6$ ビット余分に必要となって償われるからです。
+
+第2ブロックはクロスオーバー近傍で機械が何をしなければならないかを述べます。$n = 60$ では、Groverは $8.4 \times 10^8$ 回のクエリ、すなわち $8.4 \times 10^{10}$ 論理ゲートを*逐次に*必要とします。それが誤り耐性の要求であり、これが近い将来ではなく遠い将来の仕事である理由です。
+
+第3ブロックは並列性の議論で、明快です。古典的な並列ハードウェアが $100$ 倍になるたび量子側の優位は $10$ 分の1になり、$P = 1$ での $6.8 \times 10^8$ から $P = 10^8$ での $6.8 \times 10^4$ まで落ちます。優位ではありますが、スケーリングの形だけから4桁が蒸発しています。
+
+第4ブロックはデータベースの計算です。$n = 30$ では比が $2.6 \times 10^4$ でGroverに*不利*です。第5ブロックは比較の基準の計算で、古典指数 $c = 0.4$、$n = 100$ では古典アルゴリズムが $10^3$ 倍速く、「二次高速化」は誤ったベースラインに対する二次高速化になっています。
+
+* * *
+
+## 1.5 シミュレータ上のGrover
+
+以上のすべてを、状態ベクトルシミュレータが快適に扱える最大の規模で検証します。コード例は2つです。きれいな場合、すなわちマーク文字列1つで $n$ を4から10まで動かす場合。そして扱いにくい場合、すなわち解が複数の場合と解数が未知の場合。どちらも Code Example 2 のブラックボックスオラクルを使います。そこで述べたとおり、これは検査には正当で、有用性の実演としては不誠実なので、そう明記しておきます。
+
+### Code Example 6: 探索の全体、$n = 4$ から $10$
+
+```python
+"""第1章 Code Example 6: 探索の全体、n = 4 から 10 まで。
+Code Example 5 の続き（同一セッション）"""
+import matplotlib.pyplot as plt
+
+
+def grover_run(n, marked, k):
+    """一様な準備に続いてGroverの反復を k 回行います。"""
+    psi = uniform(n)
+    for _ in range(k):
+        psi = grover_step(psi, marked, n)
+    return psi
+
+
+def success_curve(n, marked, k_max):
+    """反復 0, 1, ..., k_max 回後の P(いずれかのマーク文字列) を返します。"""
+    psi = uniform(n)
+    out = []
+    for _ in range(k_max + 1):
+        out.append(float(sum(probs(psi)[m] for m in marked)))
+        psi = grover_step(psi, marked, n)
+    return np.array(out)
+
+
+print("マーク文字列1つ、n = 4 から 10 まで。k_opt は測定値（曲線の argmax）であり、")
+print("2つの閉じた式と比較します。\n")
+hdr = (f"{'n':>3}{'N':>7}{'theta (rad)':>13}{'argmax k':>10}"
+       f"{'floor(pi/4th)':>15}{'floor(pi sqrtN/4)':>19}{'P(k_opt)':>11}"
+       f"{'1-P':>10}")
+print(hdr)
+print("-" * len(hdr))
+curves = {}
+for n in range(4, 11):
+    N = 2 ** n
+    marked = [int(N * 0.7) | 1]              # 任意だが再現可能な添字を1つ
+    theta = np.arcsin(np.sqrt(1.0 / N))
+    k_max = int(np.ceil(3.2 * np.pi / (4 * theta)))
+    p = success_curve(n, marked, k_max)
+    curves[n] = p
+    k_zero = int(np.round(np.pi / (2 * theta) - 0.5))   # 曲線の最初のゼロ点
+    k_star = int(np.argmax(p[:k_zero + 1]))
+    k_form = int(np.floor(np.pi / (4 * theta)))
+    k_apx = int(np.floor(np.pi * np.sqrt(N) / 4))
+    print(f"{n:>3}{N:>7}{theta:>13.6f}{k_star:>10}{k_form:>15}{k_apx:>19}"
+          f"{p[k_star]:>11.6f}{1 - p[k_star]:>10.2e}")
+
+print("\nargmax は最初の周期、すなわち曲線の最初のゼロ点までで取っています。M = 1 では")
+print("厳密な反復数と小角形式が上のすべての n で一致します。両者が分かれるのは M/N が")
+print("小さくなくなったときです（Code Example 7）。")
+
+print("\n過回転です。曲線は単調ではなく周期的です。n = 8, N = 256。")
+p8 = curves[8]
+print(f"{'k':>5}{'P(marked)':>12}")
+print("-" * 17)
+for k in range(0, len(p8), 4):
+    bar = "#" * int(round(50 * p8[k]))
+    print(f"{k:>5}{p8[k]:>12.6f}   {bar}".rstrip())
+k_form8 = int(np.floor(np.pi / (4 * np.arcsin(np.sqrt(1 / 256)))))
+print(f"\n  最適な k = {k_form8}, P = {p8[k_form8]:.6f}")
+print(f"  2倍長く回した場合 k = {2 * k_form8}: P = {p8[2 * k_form8]:.6f}")
+print(f"  3倍長く回した場合 k = {3 * k_form8}: P = {p8[3 * k_form8]:.6f}")
+print("  「反復を増やせばよい」ではありません。反復数はアルゴリズムの一部であり、")
+print("  M に依存します。そして実際の問題では M は未知です。")
+
+# --- 実際に走らせる手順: 準備・反復・測定・検証 ---------------------------
+print("\n手順としてのアルゴリズムです。k_opt で2000ショット測定し、測定された")
+print("文字列を古典的に検証します。")
+print(f"{'n':>4}{'k_opt':>7}{'shots hitting the mark':>25}{'empirical P':>14}"
+      f"{'predicted P':>14}")
+print("-" * 64)
+for n in [4, 6, 8, 10]:
+    N = 2 ** n
+    marked = [int(N * 0.7) | 1]
+    theta = np.arcsin(np.sqrt(1.0 / N))
+    k_form = int(np.floor(np.pi / (4 * theta)))
+    psi = grover_run(n, marked, k_form)
+    counts = sample(psi, 2000, seed=20260813 + n)
+    target = format(marked[0], f"0{n}b")
+    hit = counts.get(target, 0)
+    print(f"{n:>4}{k_form:>7}{hit:>25}{hit / 2000:>14.4f}"
+          f"{float(probs(psi)[marked[0]]):>14.4f}")
+
+# --- 横軸を規格化すると曲線が重なります ----------------------------------
+fig, ax = plt.subplots(1, 2, figsize=(11, 4))
+for n in [4, 6, 8, 10]:
+    p = curves[n]
+    ax[0].plot(np.arange(len(p)), p, marker="o", ms=2.5, lw=0.9,
+               label=f"n = {n}")
+    theta = np.arcsin(np.sqrt(1.0 / 2 ** n))
+    ax[1].plot(np.arange(len(p)) * theta / (np.pi / 2), p, lw=0.9,
+               label=f"n = {n}")
+ax[0].set_xlabel("Grover iterations k"); ax[0].set_ylabel("P(marked)")
+ax[0].set_title("Success probability"); ax[0].legend(fontsize=8)
+ax[1].set_xlabel(r"$k\theta/(\pi/2)$"); ax[1].set_ylabel("P(marked)")
+ax[1].set_title("The same curves, rescaled"); ax[1].legend(fontsize=8)
+ax[1].axvline(1.0, ls="--", color="k", lw=1)
+plt.tight_layout()
+plt.show()
+```
+
+```text
+マーク文字列1つ、n = 4 から 10 まで。k_opt は測定値（曲線の argmax）であり、
+2つの閉じた式と比較します。
+
+  n      N  theta (rad)  argmax k  floor(pi/4th)  floor(pi sqrtN/4)   P(k_opt)       1-P
+----------------------------------------------------------------------------------------
+  4     16     0.252680         3              3                  3   0.961319  3.87e-02
+  5     32     0.177711         4              4                  4   0.999182  8.18e-04
+  6     64     0.125328         6              6                  6   0.996586  3.41e-03
+  7    128     0.088504         8              8                  8   0.995620  4.38e-03
+  8    256     0.062541        12             12                 12   0.999947  5.30e-05
+  9    512     0.044209        17             17                 17   0.999448  5.52e-04
+ 10   1024     0.031255        25             25                 25   0.999461  5.39e-04
+
+argmax は最初の周期、すなわち曲線の最初のゼロ点までで取っています。M = 1 では
+厳密な反復数と小角形式が上のすべての n で一致します。両者が分かれるのは M/N が
+小さくなくなったときです（Code Example 7）。
+
+過回転です。曲線は単調ではなく周期的です。n = 8, N = 256。
+    k   P(marked)
+-----------------
+    0    0.003906
+    4    0.284743   ##############
+    8    0.763722   ######################################
+   12    0.999947   ##################################################
+   16    0.775974   #######################################
+   20    0.297969   ###############
+   24    0.005932
+   28    0.168681   ########
+   32    0.636407   ################################
+   36    0.978571   #################################################
+   40    0.880214   ############################################
+
+  最適な k = 12, P = 0.999947
+  2倍長く回した場合 k = 24: P = 0.005932
+  3倍長く回した場合 k = 36: P = 0.978571
+  「反復を増やせばよい」ではありません。反復数はアルゴリズムの一部であり、
+  M に依存します。そして実際の問題では M は未知です。
+
+手順としてのアルゴリズムです。k_opt で2000ショット測定し、測定された
+文字列を古典的に検証します。
+   n  k_opt   shots hitting the mark   empirical P   predicted P
+----------------------------------------------------------------
+   4      3                     1924        0.9620        0.9613
+   6      6                     1995        0.9975        0.9966
+   8     12                     2000        1.0000        0.9999
+  10     25                     1999        0.9995        0.9995
+```
+
+**注目すべき点。** 測定された最適反復数は $n = 4$ から $10$ のすべてで $\lfloor \pi/(4\theta) \rfloor$ と一致します。3, 4, 6, 8, 12, 17, 25。マーク要素が1つの場合の小角形式 $\lfloor \pi\sqrt{N}/4 \rfloor$ も一致します。最適点での成功確率は $n = 4$ の $0.961$ から $n = 10$ の $0.9995$ まで上がり、失敗確率は1.2節で導いたとおり $M/N$ で押さえられています。$n = 4$ では上界が $1/16 = 0.0625$ で、測定された失敗は $0.0387$ です。
+
+argmax を最初の周期に限って取っていることに注意してください。この制限がないと、探索は $\pi/2$ にわずかに近く着地する*後の*復活を見つけてしまいます。$n = 10$ では80反復にわたる素の argmax は $k = 75$ であり、それは曲線の正しい最大値であって役に立たない答えです。同じ確率のために3倍のクエリを払うからです。最初の最大値を報告することは便宜ではなく、アルゴリズムの一部です。
+
+棒グラフは過回転の図を一目で示します。$k = 12$ で $0.9999$、$k = 24$ で $0.0059$、$k = 36$ で $0.979$ まで戻ります。そしてショット標本のブロックは、状態ベクトルとしてではなく手順としてのアルゴリズムです。準備し、$k_{\mathrm{opt}}$ 回反復し、測定し、古典的に検証する。2000ショットの実測頻度は予測確率と小数第3位まで一致します。
+
+図の右パネルは立ち止まる価値があります。同じ曲線を $k\theta/(\pi/2)$ に対して描くと1本の正弦曲線に重なります。ずっと重要だったのは累積角だけだからです。どの $n$ でもGroverのアルゴリズムは同じ回転であり、$n$ は1歩の大きさだけを決めます。
+
+### Code Example 7: 解が複数のとき、そして解数が未知のとき
+
+```python
+"""第1章 Code Example 7: 解が複数のとき、そして解数が未知のとき。
+Code Example 6 の続き（同一セッション）"""
+
+
+def k_exact(N, M):
+    """厳密な角度から求めた最適反復数です。"""
+    return int(np.floor(np.pi / (4 * np.arcsin(np.sqrt(M / N)))))
+
+
+print("n = 10, N = 1024。マーク文字列 M 個を、7 の倍数の小さい方から選びます。")
+n, N = 10, 1024
+hdr = (f"{'M':>6}{'M/N':>9}{'theta':>10}{'k exact':>9}{'k approx':>10}"
+       f"{'argmax':>8}{'P(k_exact)':>12}{'P(k=0)':>9}{'gain':>8}")
+print(hdr)
+print("-" * len(hdr))
+for M in [1, 2, 4, 8, 16, 64, 128, 256, 384, 512]:
+    marked = [(7 * i) % N for i in range(M)]
+    marked = sorted(set(marked))[:M]
+    theta = np.arcsin(np.sqrt(len(marked) / N))
+    k_e = k_exact(N, len(marked))
+    k_a = int(np.floor(np.pi * np.sqrt(N / len(marked)) / 4))
+    k_lim = max(2, int(np.round(np.pi / (2 * theta) - 0.5)))
+    p = success_curve(n, marked, k_lim)
+    k_star = int(np.argmax(p))
+    p0 = p[0]
+    print(f"{len(marked):>6}{len(marked) / N:>9.4f}{theta:>10.5f}{k_e:>9}"
+          f"{k_a:>10}{k_star:>8}{p[k_e]:>12.6f}{p0:>9.4f}"
+          f"{p[k_e] / p0:>8.2f}")
+
+print("\nM = N/2 では角度がちょうど pi/4 になるので、1回の反復で状態は pi/2 だけ")
+print("回り、50% に戻ってきます。k_exact = 0 であり、Groverは何も得ません。")
+print("解が密なら探索する必要がありません。だからこそ興味深いのは M << N の領域で、")
+print("だからこそ M/N が大きいと近似的な反復数は使えません。")
+
+# --- Code Example 2 の3-SATオラクルを探索として走らせます -----------------
+print("\nCode Example 2 の3-SATインスタンスは16通り中10通りが解で、M/N = 0.625 です。")
+theta_sat = np.arcsin(np.sqrt(10 / 16))
+print(f"theta = {theta_sat:.6f} rad = {np.degrees(theta_sat):.2f} deg, "
+      f"k_exact = {k_exact(16, 10)}")
+p_sat = success_curve(4, SOLUTIONS, 4)
+print(f"{'k':>4}{'P(satisfying)':>16}{'queries used':>14}"
+      f"{'classical, same q':>19}")
+print("-" * 53)
+for k, p in enumerate(p_sat):
+    q = k + 1                       # オラクル k 回に検証1回を加えます
+    print(f"{k:>4}{p:>16.6f}{q:>14}{1 - (1 - 10 / 16) ** q:>19.6f}")
+print("  無作為に当てるだけで確率 0.625 で成功し、Groverの最初の反復はそれを")
+print("  **悪化**させます。k = 2 に復活はありますが、意味をもつ比較は最後の列です。")
+print("  独立な古典的抽出 q 回の成功確率は 1 - (1 - M/N)^q であり、q = 3 では")
+print("  0.947、対するGroverは 0.977 です。このインスタンスについての誠実な結論は、")
+print("  量子コンピュータを必要としないというものです。")
+
+# --- 解数未知: ランダム化した指数的探索の戦略 -----------------------------
+print("\nM が未知のとき、反復数を前もって計算することはできません。標準的な対処")
+print("（Boyer, Brassard, Hoyer, Tapp）は、幾何級数的に広がる窓から反復数を無作為に")
+print("引き、測定された文字列を毎回古典的に検証することです。")
+
+
+def bbht(n, marked, rng, lam=6 / 5):
+    """M が未知のときの探索です。(見つかったか, 使ったオラクル回数) を返します。"""
+    N = 2 ** n
+    m, queries = 1.0, 0
+    while queries < 20 * np.sqrt(N):
+        j = int(rng.integers(0, max(1, int(np.ceil(m)))))
+        psi = uniform(n)
+        for _ in range(j):
+            psi = grover_step(psi, marked, n)
+        queries += j + 1                      # オラクル j 回に検証1回
+        idx = int(rng.choice(N, p=probs(psi)))
+        if idx in marked:
+            return True, queries
+        m = min(lam * m, np.sqrt(N))
+    return False, queries
+
+
+rng = np.random.default_rng(20260813)
+print(f"\n{'n':>4}{'M':>5}{'trials':>8}{'success rate':>14}{'mean queries':>14}"
+      f"{'sqrt(N/M)':>12}{'ratio':>8}")
+print("-" * 65)
+for n_, M in [(8, 1), (8, 4), (8, 16), (10, 1), (10, 4), (10, 16)]:
+    N_ = 2 ** n_
+    marked = sorted({(7 * i) % N_ for i in range(M)})[:M]
+    trials, tot, ok = 200, 0, 0
+    for _ in range(trials):
+        found, q = bbht(n_, marked, rng)
+        ok += found
+        tot += q
+    ref = np.sqrt(N_ / len(marked))
+    print(f"{n_:>4}{len(marked):>5}{trials:>8}{ok / trials:>14.3f}"
+          f"{tot / trials:>14.2f}{ref:>12.2f}{tot / trials / ref:>8.2f}")
+print("  平均クエリ数は sqrt(N/M) を 1 のオーダーの定数倍で追い、どの試行も検証済み")
+print("  の答えで終わります。M を知らない代償は定数倍であって、スケーリングの変化")
+print("  ではありません。")
+```
+
+```text
+n = 10, N = 1024。マーク文字列 M 個を、7 の倍数の小さい方から選びます。
+     M      M/N     theta  k exact  k approx  argmax  P(k_exact)   P(k=0)    gain
+---------------------------------------------------------------------------------
+     1   0.0010   0.03126       25        25      25    0.999461   0.0010 1023.45
+     2   0.0020   0.04421       17        17      17    0.999448   0.0020  511.72
+     4   0.0039   0.06254       12        12      12    0.999947   0.0039  255.99
+     8   0.0078   0.08850        8         8       8    0.995620   0.0078  127.44
+    16   0.0156   0.12533        6         6       6    0.996586   0.0156   63.78
+    64   0.0625   0.25268        3         3       3    0.961319   0.0625   15.38
+   128   0.1250   0.36137        2         2       2    0.945312   0.1250    7.56
+   256   0.2500   0.52360        1         1       1    1.000000   0.2500    4.00
+   384   0.3750   0.65906        1         1       1    0.843750   0.3750    2.25
+   512   0.5000   0.78540        0         1       0    0.500000   0.5000    1.00
+
+M = N/2 では角度がちょうど pi/4 になるので、1回の反復で状態は pi/2 だけ
+回り、50% に戻ってきます。k_exact = 0 であり、Groverは何も得ません。
+解が密なら探索する必要がありません。だからこそ興味深いのは M << N の領域で、
+だからこそ M/N が大きいと近似的な反復数は使えません。
+
+Code Example 2 の3-SATインスタンスは16通り中10通りが解で、M/N = 0.625 です。
+theta = 0.911738 rad = 52.24 deg, k_exact = 0
+   k   P(satisfying)  queries used  classical, same q
+-----------------------------------------------------
+   0        0.625000             1           0.625000
+   1        0.156250             2           0.859375
+   2        0.976562             3           0.947266
+   3        0.009766             4           0.980225
+   4        0.881348             5           0.992584
+  無作為に当てるだけで確率 0.625 で成功し、Groverの最初の反復はそれを
+  **悪化**させます。k = 2 に復活はありますが、意味をもつ比較は最後の列です。
+  独立な古典的抽出 q 回の成功確率は 1 - (1 - M/N)^q であり、q = 3 では
+  0.947、対するGroverは 0.977 です。このインスタンスについての誠実な結論は、
+  量子コンピュータを必要としないというものです。
+
+M が未知のとき、反復数を前もって計算することはできません。標準的な対処
+（Boyer, Brassard, Hoyer, Tapp）は、幾何級数的に広がる窓から反復数を無作為に
+引き、測定された文字列を毎回古典的に検証することです。
+
+   n    M  trials  success rate  mean queries   sqrt(N/M)   ratio
+-----------------------------------------------------------------
+   8    1     200         1.000         27.86       16.00    1.74
+   8    4     200         1.000         13.21        8.00    1.65
+   8   16     200         1.000          6.15        4.00    1.54
+  10    1     200         1.000         47.72       32.00    1.49
+  10    4     200         1.000         26.34       16.00    1.65
+  10   16     200         1.000         12.52        8.00    1.56
+  平均クエリ数は sqrt(N/M) を 1 のオーダーの定数倍で追い、どの試行も検証済み
+  の答えで終わります。M を知らない代償は定数倍であって、スケーリングの変化
+  ではありません。
+```
+
+**注目すべき点。** 最初の表は $n = 10$ で $M$ を1から $N/2$ までスイープします。反復数は $\sqrt{N/M}$ に従って落ち（25, 17, 12, 8, 6, 3, 2, 1）、無作為な推測に対する利得もそれとともに落ちます。$M = 1$ での $1023$ 倍から $M = N/4$ での $4$ 倍まで。$M = N/2$ では角度がちょうど $\pi/4$、1回の反復で状態は $\pi/2$ 回り、成功確率は $1/2$ に戻ります。厳密な反復数と近似的な反復数は $k = 0$ と $k = 1$ で同値になり、どちらもちょうど $1/2$ を与え、Groverは何も得ません。ここは小角形式が厳密な式と分かれる場所でもあり、厳密な式が0を返すところで1を返します。
+
+Code Example 2 の3-SATインスタンスがこの点を具体的にし、最後の列は密な解集合について常に行うべき比較です。$M/N = 0.625$ では、独立な無作為抽出3回で確率 $0.947$、Groverの2反復＋検証1回、これも3クエリで $0.977$ です。本物ではあるが無視できる利得を、誤り耐性量子コンピュータが、硬貨で解ける問題に対して得たわけです。誠実な結論はこのインスタンスは量子コンピュータを必要としないというもので、そう言えることが本節全体の目的です。
+
+最後のブロックが $M$ 未知の場合の正しい扱いです。戦略は Boyer、Brassard、Høyer、Tapp によるもので、反復数を窓から一様に引き、失敗ごとに窓を幾何級数的に広げ、測定された文字列を毎回古典的に検証します。1200回の試行のすべてが検証済みの解を返し、平均クエリ数は $1.5$ から $1.75$ の定数倍で $\sqrt{N/M}$ を追いました。したがって $M$ を知らない代償は定数倍であってスケーリングの変化ではありません。これは望ましい結果であり、引用ではなく測定しておく価値があります。
+
+### ここで作った道具箱
+
+| 関数 | 導入 | 用途 |
+| --- | --- | --- |
+| `phase_oracle` | Code Example 2 | 検査用のブラックボックスクエリ |
+| `sat_phase_oracle`、`mcz_oracle` | Code Example 2 | 実際の回路としてのオラクルとゲート数 |
+| `uniform`、`diffuser`、`grover_step` | Code Example 3 | Groverのアルゴリズムそのもの |
+| `subspace_coords` | Code Example 3 | 状態が平面にとどまることの検査 |
+| `prepare`、`reflect_about`、`aa_step` | Code Example 4 | 一般の振幅増幅 |
+| `success_curve`、`grover_run` | Code Example 6 | $k$ の関数としての成功確率 |
+| `bbht` | Code Example 7 | 解数が未知のときの探索 |
+
+この道具箱にできないことも同じくらい述べる価値があります。ノイズモデルがないので、ここで挙げた確率はすべて理想値です。この深さの回路に脱分極チャネルが何をするかは入門コース第5章が示しており、$10^{10}$ ゲートについての答えは、エラー訂正なしでは何も残らないというものです。解を*数える*手段もありません。それが第2章が補う欠けた部品です。量子カウンティングはGrover演算子そのものに位相推定を適用し、$\theta$ を読み取り、したがって $M$ を得ます。Code Example 7 の当て推量を測定に変えるのです。
+
+* * *
+
+## 演習
+
+#### 演習1: 角度と反復数
+
+以下のそれぞれについて、$\theta = \arcsin\sqrt{M/N}$、厳密な最適反復数 $\lfloor \pi/(4\theta) \rfloor$、小角形式の反復数 $\lfloor \pi\sqrt{N/M}/4 \rfloor$、そして最適点での成功確率を計算してください。
+
+  1. $N = 4$、$M = 1$。
+  2. $N = 1024$、$M = 1$。
+  3. $N = 1024$、$M = 4$。
+  4. $N = 1024$、$M = 400$。
+  5. 4つのうちどれで小角形式の反復数が誤りになるか、そしてなぜか。
+
+<details>
+<summary>解答</summary>
+
+<p><strong>1.</strong> \(\sin\theta = 1/2\) なので \(\theta = \pi/6\) がちょうど成り立ちます。すると \(\pi/(4\theta) = 1.5\) なので \(k_{\mathrm{opt}} = 1\) であり、\((2k+1)\theta = 3 \times \pi/6 = \pi/2\) がちょうど成り立って \(P = 1\) です。これはGroverが<em>決定論的</em>になる唯一の場合です。2量子ビット、マーク文字列1つ、クエリ1回、確実な成功。小角形式の反復数は \(\lfloor \pi \times 2/4 \rfloor = 1\) で、これも正しいです。</p>
+
+<p><strong>2.</strong> \(\theta = \arcsin(1/32) = 0.031255\) rad。\(\pi/(4\theta) = 25.13\) なので \(k_{\mathrm{opt}} = 25\)、小角形式も \(\lfloor \pi \times 32/4 \rfloor = \lfloor 25.13 \rfloor = 25\)。\(P = \sin^2(51 \times 0.031255) = 0.99946\) で、上界 \(1 - M/N = 0.99902\) と整合します。</p>
+
+<p><strong>3.</strong> \(\theta = \arcsin(1/16) = 0.062541\) rad、\(\pi/(4\theta) = 12.56\)、\(k_{\mathrm{opt}} = 12\)、小角形式も12、\(P = 0.99995\)。</p>
+
+<p><strong>4.</strong> \(M/N = 0.390625\)、\(\theta = \arcsin(0.625) = 0.67513\) rad。\(\pi/(4\theta) = 1.164\) なので \(k_{\mathrm{opt}} = 1\)、\(P = \sin^2(3\theta) = \sin^2(2.0254) = 0.80719\)。小角形式は \(\lfloor \pi\sqrt{2.56}/4 \rfloor = \lfloor 1.257 \rfloor = 1\) で、ここでは偶然一致します。</p>
+
+<p><strong>5.</strong> 結果としてはこの4つではどれも誤りになりません。しかしこの一致は幸運であって規則ではありません。小角形式は \(\theta \approx \sqrt{M/N}\) を使い、これは \(\theta\) を過小評価するので \(\pi/(4\theta)\) を過大評価します。2つの実数が整数をまたぐときに反復数が食い違い、それは \(M/N\) が小さくなくなると起こりやすくなります。極端な場合が \(M/N = 1/2\)、Code Example 7 の表の最後の行です。そこでは \(\theta = \pi/4\) かつ \(\pi/(4\theta) = 1\) がちょうど成り立つので、\(k = 0\) と \(k = 1\) が \(P_0 = P_1 = 1/2\) で同値になり、アルゴリズムには提供できるものがありません。一方で小角形式は自信をもって \(k = 1\) を返します。浮動小数点では厳密な式が \(1 - 10^{-16}\) と評価され、floor は0を返しますが、それは同値な2つの答えの一方です。教訓は、厳密な式を使うこと。<code>arcsin</code> 1回で済みます。</p>
+
+</details>
+
+#### 演習2: 回転の導出
+
+  1. $O = I - 2P_{\mathrm{good}}$ と $D = 2\lvert s \rangle\langle s \rvert - I$ がどちらもエルミートかつユニタリであり、それぞれ2乗が恒等演算子になることを示してください。
+  2. 2次元基底 $\lbrace \lvert \mathrm{good} \rangle, \lvert \mathrm{bad} \rangle \rbrace$ で $O$ と $D$ の $2 \times 2$ 行列を書き下し、掛けてください。結果を回転として同定し、角度を読み取ってください。
+  3. $P_{k_{\mathrm{opt}}} \ge 1 - M/N$ を証明してください。
+  4. $M = 1$ で、Groverの1反復が厳密に $P = 1$ を与える最小の $N$ は何か、そしてそのような $N$ が1つしかないのはなぜか。
+
+<details>
+<summary>解答</summary>
+
+<p><strong>1.</strong> \(P_{\mathrm{good}}\) は射影なので \(P^{\dagger} = P\) かつ \(P^2 = P\) です。すると \(O^{\dagger} = O\) かつ \(O^2 = I - 4P + 4P^2 = I\) なので、\(O\) はエルミートな対合であり、したがってユニタリです。同じ議論が射影 \(\lvert s \rangle\langle s \rvert\) をもつ \(D\) にも当てはまります。エルミートな対合はどれも鏡映です。固有値が \(\pm 1\) だからです。</p>
+
+<p><strong>2.</strong> 順序づけた基底 \((\lvert \mathrm{good} \rangle, \lvert \mathrm{bad} \rangle)\) で、\(c = \cos\theta\)、\(s = \sin\theta\) と書き \(\lvert s \rangle = (s, c)^{T}\) とすると、</p>
+
+<p>\[ O = \begin{pmatrix} -1 & 0 \cr 0 & 1 \end{pmatrix}, \qquad D = 2\begin{pmatrix} s^2 & sc \cr sc & c^2 \end{pmatrix} - I = \begin{pmatrix} s^2 - c^2 & 2sc \cr 2sc & c^2 - s^2 \end{pmatrix} = \begin{pmatrix} -\cos 2\theta & \sin 2\theta \cr \sin 2\theta & \cos 2\theta \end{pmatrix} \]</p>
+
+<p>\[ DO = \begin{pmatrix} \cos 2\theta & \sin 2\theta \cr -\sin 2\theta & \cos 2\theta \end{pmatrix} \]</p>
+
+<p>これは \(2\theta\) 回転です（角度を \(\lvert \mathrm{bad} \rangle\) 軸から測る符号の約束のもとで \(\lvert \mathrm{good} \rangle\) へ向かう向き）。角度 \(\theta\) をもつ \(\lvert s \rangle\) に \(k\) 回作用させると角度は \((2k+1)\theta\) になります。</p>
+
+<p><strong>3.</strong> \(k_{\mathrm{opt}}\) は \(k^\ast = \pi/(4\theta) - 1/2\) に最も近い整数なので \(\lvert k_{\mathrm{opt}} - k^\ast \rvert \le 1/2\) です。\(k\) 回の反復後の角度は \((2k+1)\theta\) で、1歩あたり \(2\theta\) 変化するので \(\lvert (2k_{\mathrm{opt}}+1)\theta - \pi/2 \rvert \le \theta\) となります。\(\sin^2\) は \(\pi/2\) について対称でそこから離れると減少するので、\(P_{k_{\mathrm{opt}}} \ge \sin^2(\pi/2 - \theta) = \cos^2\theta = 1 - \sin^2\theta = 1 - M/N\) です。</p>
+
+<p><strong>4.</strong> 1反復後に \(P = 1\) となるには \(3\theta = \pi/2\)、すなわち \(\theta = \pi/6\) かつ \(\sin^2\theta = 1/4 = M/N\) が必要です。\(M = 1\) ならこれは \(N = 4\) です。これが唯一であることは、\(\sin\theta\) ではなく \(\cos 2\theta\) で見るときれいに示せます。\(k\) 回の反復で厳密に成功するには \((2k+1)\theta = \pi/2\) が必要なので \(2\theta = \pi/(2k+1)\) は \(\pi\) の有理数倍であり、他方 \(\cos 2\theta = 1 - 2\sin^2\theta = 1 - 2M/N\) は有理数です。Nivenの定理の余弦版 — \(\theta/\pi\) が有理数で \(\cos\theta\) も有理数なら \(\cos\theta \in \lbrace 0, \pm 1/2, \pm 1 \rbrace\) — により可能性は有限個に絞られ、\(k \ge 2\) では \(\cos(\pi/(2k+1))\) が \(1/2\) と \(1\) の間に真に入るため不可能です。残るのは \(k = 1\) だけで、\(\cos(\pi/3) = 1/2\)、したがって \(M/N = 1/4\) です。Nivenの定理を \(\sin\theta\) に直接当てはめてはいけません。\(\sin^2\theta\) が有理数でも \(\sin\theta\) が有理数とは限らず、\(\sin(\pi/4) = \sqrt{2}/2\) が標準的な反例です。ただし Code Example 4 が示すとおり、<em>調整可能な</em>準備なら任意の \(k\) で確率1に達します。\(a = M/N\) に縛られないからです。</p>
+
+</details>
+
+#### 演習3: オラクルの本当の費用
+
+$n$ ビット上の述語 $f$ が、古典的には $c_c = 30$ 機械演算で、毎秒 $10^{10}$ 演算の速度で評価できるとします。その可逆量子回路は逆計算を含めて $g_q = 500$ 論理ゲートを要し、論理ゲート周期は $t_L$ です。
+
+  1. 古典的な全数走査とGrover探索の実時間を $N$ の関数として書き、$t_L$ の関数としてのクロスオーバー $N$ を求めてください。
+  2. $t_L = 10^{-6}$ s と $t_L = 10^{-9}$ s についてクロスオーバーのビット幅 $n$ を評価してください。
+  3. $t_L = 10^{-6}$ s のクロスオーバーで、逐次に走らせるべき論理ゲートは何個で、量子の実行は何秒かかりますか。
+  4. 古典側が $10^5$ コアで走るとします。クロスオーバーはどうなりますか。
+
+<details>
+<summary>解答</summary>
+
+<p><strong>1.</strong> 古典: \(T_c = (N/2)(c_c/r) = (N/2)(30/10^{10}) = 1.5\times10^{-9} N\) 秒。量子: \(T_q = (\pi/4)\sqrt{N} g_q t_L = 392.7\sqrt{N}\,t_L\)。\(T_q = T_c\) とすると \(\sqrt{N} = 392.7\,t_L/1.5\times10^{-9} = 2.618\times10^{11} t_L\) なので \(N_{\times} = 6.85\times10^{22}\,t_L^2\) です。</p>
+
+<p><strong>2.</strong> \(t_L = 10^{-6}\) では \(N_{\times} = 6.85\times10^{10}\)、すなわち \(n = \log_2 N_{\times} = 36.0\) なので、クロスオーバーはおよそ36ビットです。\(t_L = 10^{-9}\) では \(N_{\times} = 6.85\times10^{4}\)、すなわち \(n = 16.1\)。クロックの3桁の改善はおよそ20ビットに相当し、1.4節の「1桁あたり \(6.6\) ビット」の規則と整合します。</p>
+
+<p><strong>3.</strong> \(n = 36\) では \(N = 6.9\times10^{10}\)、\(\sqrt{N} = 2.62\times10^{5}\) なので \((\pi/4)\sqrt{N} = 2.06\times10^{5}\) クエリ、\(1.03\times10^{8}\) 論理ゲートを逐次に走らせ、\(103\) 秒かかります。古典的な走査も構成上およそ \(103\) 秒です。1億個の逐次論理ゲートというのは、ノートパソコンが2分未満で解く問題でクロスオーバーに達するために、すでに相当なエラー訂正機械を要求することに注意してください。</p>
+
+<p><strong>4.</strong> 古典時間は \(10^5\) 分の1になり、量子時間は変わりません（1本のコヒーレントな実行は台数を増やせず、空間を \(P\) 台の量子機械に分けても \(\sqrt{P}\) しか得られません）。よって \(\sqrt{N_{\times}}\) が \(10^5\) 倍、\(N_{\times}\) が \(10^{10}\) 倍になり、クロスオーバーは36ビットからおよそ69ビットへ動きます。量子側にも \(10^5\) 台を許すなら量子側は \(\sqrt{10^5} = 316\) 倍得るので、クロスオーバーは53ビット付近に落ちます。並列化は古典側を二次的に多く助けます。</p>
+
+</details>
+
+#### 演習4: 包み紙としての振幅増幅
+
+量子サブルーチン $A$ が、認識可能な良い部分空間に入る確率が $a = 10^{-4}$ である状態を準備するとします。
+
+  1. 振幅増幅の反復は何回必要で、それは古典的な繰り返しと比べてどうですか。
+  2. 各反復はオラクル1回、$A$ 1回、$A^{\dagger}$ 1回を使います。$A$ が1000ゲート、$O$ が200ゲートなら合計ゲート数はいくらで、古典的な戦略の合計は（古典1試行が1000ゲート相当なら）いくらですか。
+  3. そのサブルーチンが実は内部で40個の乱数ビットを引くモンテカルロサンプラーだったとします。$A$ として使う前に何を変える必要があり、その費用は何ですか。
+  4. 1の答えが状態空間の大きさに依存しないのはなぜですか。
+
+<details>
+<summary>解答</summary>
+
+<p><strong>1.</strong> \(\theta = \arcsin\sqrt{10^{-4}} = \arcsin(0.01) = 0.0100002\) rad なので \(k_{\mathrm{opt}} = \lfloor \pi/(4\theta) \rfloor = \lfloor 78.54 \rfloor = 78\)、\(P = \sin^2(157 \times 0.0100002) = 0.999999\) です。古典的な繰り返しは定数の成功確率のために約 \(1/a = 10^4\) 回を要し、比は \(127\) です。</p>
+
+<p><strong>2.</strong> 量子: \(78 \times (1000 + 1000 + 200) = 1.72\times10^{5}\) ゲート、加えて最初の \(A\) 1回で \(1.73\times10^{5}\)。古典: \(10^4 \times 1000 = 10^7\) ゲート相当。優位は \(58\) 倍で、クエリでの \(127\) 倍より小さいのは、増幅の各反復が \(A\) の代金を2回払うからです。</p>
+
+<p><strong>3.</strong> 乱数を明示的かつ可逆にしなければなりません。40個の乱数ビットは \(H^{\otimes 40}\lvert 0 \rangle\) で準備した40個の補助量子ビットになり、サンプラーはそれらに作用する可逆回路として書き直され、測定も中間結果の破棄もなくなります。費用は、余分な40量子ビット、サンプラーの算術に対する可逆性のオーバーヘッド（典型的にはゲート数で2倍以上、加えて逆計算用の補助ビット）、そして早期打ち切りの近道を失うことです。可逆回路はどの分岐でも最後まで走らなければならないからです。だからこそ「振幅増幅で包めばよい」がめったに無料でないのです。</p>
+
+<p><strong>4.</strong> 反復数は \(a\)、すなわち準備された状態と良い部分空間の重なりにしか依存せず、\(a\) は \(A\) と述語の性質であって次元の性質ではないからです。Groverの \(\sqrt{N/M}\) は \(A = H^{\otimes n}\) が \(a = M/N\) にする特別な場合であり、空間の大きさが入ってくるのはそこだけです。</p>
+
+</details>
+
+#### 演習5: 主張を読む
+
+ある論文の要旨に「$N$ 件の未整列データベースを $O(\sqrt{N})$ 時間で検索し、最良の古典アルゴリズムに対して二次高速化を与える量子アルゴリズムを提示する」とあります。
+
+  1. この文のうち1.4節が異議を唱えるであろう仮定をすべて挙げてください。
+  2. その論文の手法節に「データは $O(N)$ 量子ビット、クエリ深さ $O(\log N)$ のバケツリレー型QRAMに読み込む」とあります。これで主張は救われますか。資源と時間の会計を示してください。
+  3. 擁護可能になるように文を書き直してください。
+  4. 「データベース」を適切に置き換えれば元の文が擁護*できる*探索問題の例を1つ挙げ、その理由を述べてください。
+
+<details>
+<summary>解答</summary>
+
+<p><strong>1.</strong> 問題は4つです。(i) 「データベース」は格納されたデータを含意し、オラクルが \(N\) 件のレコードを読む必要が生じますが、クエリモデルはそれに何も課金しません。(ii) 「\(O(\sqrt{N})\) 時間」はクエリと時間を混同しています。時間にはクロック速度とクエリあたりのゲート数が必要です。(iii) 格納された表の走査に対する「最良の古典アルゴリズム」は線形走査で、逐次には \(O(N)\) ですが \(O(N)\) の並列ハードウェアがあれば \(O(1)\) です。QRAMが要求するのと同じ資源です。(iv) 逐次的なコヒーレンスの要求が省かれており、それがこのアルゴリズムを完全な誤り耐性の領域に置きます。</p>
+
+<p><strong>2.</strong> 救われません。バケツリレー型QRAMは<em>深さ</em>が \(O(\log N)\) ですが<em>量子ビット数</em>が \(\Theta(N)\) で、そのすべてを実行の全期間にわたって誤り訂正しコヒーレントに保たなければなりません。したがってクエリあたりの資源と時間の積は \(\Theta(N \log N)\) であり、\(\Theta(\sqrt{N})\) クエリにわたる合計は \(\Theta(N^{3/2}\log N)\) です。古典的な \(\Theta(N)\) の走査（作業メモリは \(O(1)\) 量子ビット相当）より悪くなります。\(\Theta(N)\) のハードウェアを作る覚悟があるなら、古典側の比較相手は \(O(N)\) 個の古典プロセッサによる \(O(\log N)\) 時間の並列走査になり、量子側は大差で負けます。バケツリレー型QRAMが変えるのは深さであって資源と時間の積ではなく、比較が使わなければならないのは資源と時間の積です。</p>
+
+<p><strong>3.</strong> たとえば次のようにです。「\(n\) ビット上の述語 \(f\) が可逆回路として与えられたとき、充足入力を \(f\) への \(\Theta(\sqrt{2^n/M})\) 回のクエリで見つける量子アルゴリズムを提示する。これはクエリモデルにおいて最適である。これが実時間の優位をもたらすかどうかは \(f\) のゲート費用、論理クロックと古典クロックの比、古典ベースラインが使える並列資源に依存する。格納されたデータに対する探索には適用されない。そこでは入力の読み込み費用が支配的である。」</p>
+
+<p><strong>4.</strong> 暗号ハッシュの原像探索です。\(y\) が与えられ \(h(x) = y\) となる \(x\) を求める問題。述語は短い回路で、候補は生成されるので大きさ \(N\) のものは格納されず、よく設計されたハッシュに対する最良の古典攻撃は本当に総当たりなので比較の基準も正しいです。その帰結 — \(m\) ビットの原像探索が量子クエリ \(2^{m/2}\) 回で済むこと — がまさに、耐量子の推奨が対称鍵長とハッシュ出力長を倍にする理由です。ここでも並列性の異議は生き残ることに注意してください。だからこそ倍にすることは、ぎりぎりの余裕ではなく保守的な余裕とみなされています。</p>
+
+</details>
+
+* * *
+
+## まとめ
+
+### 要点
+
+**1\. 仮定が住んでいるのはオラクルモデルである**
+
+  * 位相オラクル $O\lvert x \rangle = (-1)^{f(x)}\lvert x \rangle$ とビット反転オラクルは同じ対象であり、位相キックバックで結ばれます。第2章と第3章で再利用される機構です。
+  * モデルは、$f$ が可逆かつコヒーレントに単位費用で評価されること、$f$ が表ではなく規則であること、利用できる構造がないことを仮定します。どの仮定も実際の制限です。
+  * Code Example 2 は同じオラクルを2度作りました。ブラックボックスとして1行、4変数の3-SAT論理式の回路としてToffoli 19個と補助ビット4個。そのToffoliの半分は逆計算です。
+
+**2\. Groverのアルゴリズムは2次元の回転である**
+
+  * $O$ は $\lvert \mathrm{bad} \rangle$ についての鏡映、$D = 2\lvert s \rangle\langle s \rvert - I$ は $\lvert s \rangle$ についての鏡映で、角 $\theta$ の2つの鏡映が $\sin\theta = \sqrt{M/N}$ をもつ $2\theta$ 回転を作ります。
+  * $P_k = \sin^2((2k+1)\theta)$ が厳密に成り立ち、6桁で検証され、平面外成分は $2.2\times10^{-16}$ 以下でした。
+  * $k_{\mathrm{opt}} = \lfloor \pi/(4\theta) \rfloor$ かつ $P_{k_{\mathrm{opt}}} \ge 1 - M/N$。$n = 4$ から $10$ の測定された最適値は 3, 4, 6, 8, 12, 17, 25 で、毎回この式と一致しました。
+
+**3\. 長く回すと悪くなる**
+
+  * 成功確率は周期的です。$n = 8$ では $k = 12$ で $0.99995$、$k = 24$ で $0.0059$。
+  * 反復数は $M$ に依存するので、$M$ を知らずには決められません。Code Example 7 のランダム化した幾何級数戦略、あるいは第2章の位相推定による $M$ の測定で扱います。
+  * 古典的な走査と違い、Groverはいつでも打ち切れるアルゴリズムではありません。
+
+**4\. 振幅増幅が一般の主張である**
+
+  * $H^{\otimes n}$ を任意の $A$ に置き換えます。$a = \lVert P_{\mathrm{good}}A\lvert 0 \rangle \rVert^2$、$\theta = \arcsin\sqrt{a}$ とすれば、すべてがそのまま引き継がれ、$k_{\mathrm{opt}} \approx \pi/(4\sqrt{a})$ は次元に依存しません。
+  * $A^{\dagger}$、すなわち可逆な準備と、認識可能な良い部分空間を要します。$A$ として書き直された古典的なランダム化アルゴリズムにとって、どちらも無料ではありません。
+  * $(2k+1)\theta = \pi/2$ となるように $a$ を調整すると*厳密*な増幅になります。Code Example 4 では $2\times10^{-15}$ の精度で確率1でした。
+
+**5\. 二次高速化は4つの別々の機構に食われる**
+
+  * オラクルの費用、論理と古典のクロック比、不完全な並列化（$1/P$ に対して $1/\sqrt{P}$）、そして $\Theta(\sqrt{N})$ 回のクエリを逐次にコヒーレントに走らせる要求。
+  * クロックの不利1桁はクロスオーバーのおよそ6.6ビットに相当します。論理周期 $1\ \mu$s 対毎秒 $10^{12}$ 回の古典評価では、クロスオーバーは $n = 55$ 付近にあり、$n = 60$ では $10^{10}$ の逐次論理ゲートを要します。
+  * Groverが平方根をとるのは*総当たり*の費用です。指数 $c < 1/2$ の古典アルゴリズムに対しては完敗します。
+
+**6\. 構造なし探索はデータベース検索ではない**
+
+  * $N$ 件の格納レコードへのコヒーレントな参照は、逐次でもバケツリレー型の木でも、資源と時間の積で $\Theta(N)$ を要するので、データベースに対するGroverは $\Theta(N^{3/2})$、古典は $\Theta(N)$ です。
+  * QRAM問題は工学上の細部ではなく、入力モデルに対する下界であり、大きさ $N$ のデータ集合へのコヒーレントなアクセスを優位が必要とするあらゆるアルゴリズムに当てはまります。
+  * 生き残るのは*規則*に対する探索です。暗号の原像探索と鍵探索、モンテカルロのための振幅推定、他の量子アルゴリズム内部での増幅、そして最良の古典手法が本当に列挙である問題。
+
+**実践上の含意**
+
+  * オラクルに基づく高速化の主張に出会ったら、3つの問いをこの順に立ててください。オラクルは何でできているか、比較の基準は何か、大きさ $N$ の何かを読み込む必要があるか。
+  * 小角形式ではなく厳密な反復数 $\lfloor \pi/(4\arcsin\sqrt{M/N}) \rfloor$ を使ってください。`arcsin` 1回の費用で、どの $M$ でも正しくなります。
+  * 測定された文字列は必ず古典的に検証してください。クエリ1回の費用で、残った失敗確率が消えます。
+  * 状態準備を制御できるなら、$1 - O(a)$ を受け入れるのではなく厳密増幅になるよう調整してください。
+
+### この先へ
+
+本章で2度開いたままにした隙間 — 最適反復数が $M$ を必要とすること、そして $M$ は一般に未知であること — は、回転角そのものを測ることで閉じられます。Grover演算子 $G$ は作用する平面内で固有値 $e^{\pm 2i\theta}$ をもつので、その位相を推定すれば $\theta$ が推定でき、したがって $M = N\sin^2\theta$ が得られます。位相を推定する道具が第2章の主題であり、そしてそれはカウンティングの応用よりはるかに重要であることが分かります。位相推定はユニタリの固有値を取り出すアルゴリズムであり、そのユニタリがハミルトニアン $H$ に対する $e^{-iHt}$ になった瞬間、入門コースの変分法の誤り耐性版の後継になります。第2章は量子フーリエ変換を作り、その上に位相推定を建て、そしてフーリエ変換ができない唯一のこと — いま計算した振幅を読み出すこと — について誠実に述べます。
+
+[← シリーズトップ](<index.html>) [第2章: QFTと位相推定 →](<chapter-2.html>)
+
+### 免責事項
+
+  * 本コンテンツは教育・研究・情報提供のみを目的としており、専門的な助言(法律・会計・技術的保証など)を提供するものではありません。
+  * 本コンテンツおよび付随するCode examplesは「現状有姿(AS IS)」で提供され、明示または黙示を問わず、商品性、特定目的適合性、権利非侵害、正確性・完全性、動作・安全性等いかなる保証もしません。
+  * 本コースのリソース見積りはすべて、本文中に明記した式からの母数的な計算です。速度やオーバーヘッドはスケーリングと定数倍を露わにするために数桁にわたってスイープしており、測定値・装置仕様・特定の機械についての予測ではありません。
+  * 外部リンク、第三者が提供するデータ・ツール・ライブラリ等の内容・可用性・安全性について、作成者および東北大学は一切の責任を負いません。
+  * 本コンテンツの利用・実行・解釈により直接的・間接的・付随的・特別・結果的・懲罰的損害が生じた場合でも、適用法で許容される最大限の範囲で、作成者および東北大学は責任を負いません。
+  * 本コンテンツの内容は、予告なく変更・更新・提供停止されることがあります。
+  * 本コンテンツの著作権・ライセンスは明記された条件(例: CC BY 4.0)に従います。当該ライセンスは通常、無保証条項を含みます。

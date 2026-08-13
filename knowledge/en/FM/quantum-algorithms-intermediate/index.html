@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧮 Intermediate Quantum Algorithms - AI Terakoya</title>
+
+    <link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+    <style>
+        /* page-specific residual: the rules the shared sheet does not provide.
+           Everything else that used to live here is now in knowledge-base.css;
+           re-declaring it would only risk drifting out of sync with the sheet. */
+        details { background-color: var(--color-bg-alt); margin-bottom: var(--spacing-md) }
+        summary { user-select: none; margin: calc(-1 * var(--spacing-md)); border-radius: var(--border-radius) }
+        summary:hover {
+            /* accent wash; the literal is the FM/MI/ML purple and is the fallback
+               for engines without color-mix() (Chrome <111 / Safari <16.2). */
+            background-color: rgba(123, 44, 191, 0.1);
+            background-color: color-mix(in srgb, var(--color-accent) 10%, transparent);
+        }
+        details[open] summary { margin-bottom: var(--spacing-md); border-bottom: 1px solid var(--color-border) }
+        .learning-objectives {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: var(--spacing-lg);
+            border-radius: var(--border-radius);
+            border-left: 4px solid var(--color-accent);
+            margin-bottom: var(--spacing-xl);
+        }
+        .learning-objectives h2 { margin-top: 0; border-bottom: none }
+        @media (max-width: 768px) {
+            th { padding: var(--spacing-xs) }
+            td { padding: var(--spacing-xs) }
+        }
+    </style>
+
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+
+    <!-- MathJax for LaTeX equation rendering -->
+    <script>
+        MathJax = {
+            tex: {
+                // The HTML must carry a DOUBLE backslash before ( ) [ ] so the
+                // JS string is backslash-paren; a single one collapses to a bare
+                // paren and turns every prose parenthesis into a math delimiter
+                // (non-raw Python template: 4 backslashes -> 2 in HTML -> 1 in JS).
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" id="MathJax-script" async></script>
+</head>
+<body class="dojo-fm">
+    <header>
+        <div class="header-content">
+            <h1>🧮 Intermediate Quantum Algorithms</h1>
+            <p class="subtitle">Where Provable Speedups Live, and What Each One Assumes</p>
+            <div class="meta">
+                <span class="meta-item">📖 Reading Time: 20-25 minutes</span>
+                <span class="meta-item">📊 Difficulty: Beginner</span>
+                <span class="meta-item">💻 Code Examples: 0</span>
+                <span class="meta-item">📝 Exercises: 0</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+<p>🌐 EN | <a href="../../../jp/FM/quantum-algorithms-intermediate/index.html">🇯🇵 JP</a> | Last sync: 2026-08-13</p>
+<p><a href="../../index.html">AI Terakoya Top</a>›<a href="../index.html">Fundamental Mathematics Dojo</a>›<a href="index.html">Intermediate Quantum Algorithms</a></p>
+<p><a href="../index.html">← Back to Fundamental Mathematics Dojo</a></p>
+<h2>🎯 Series Overview</h2>
+<p>This series is the sequel to <a href="../quantum-computing-introduction/index.html">Introduction to Quantum Computing</a>. That course took the shortest honest path from a single qubit to a variational calculation of a molecular ground state, and it was explicit about what it was leaving out: Grover's algorithm, the quantum Fourier transform, phase estimation, Shor's algorithm, the modern Hamiltonian-simulation methods, and QAOA all appeared as names in a table of contents that was never written. This course writes it.</p>
+<p>The organizing question is in the subtitle. Quantum algorithms are usually presented as a list of speedups, and the list is misleading, because the speedups are not the same kind of object. Grover's quadratic speedup is provable and optimal, and it is also small enough that constant factors, clock rates and error-correction overhead can eat it entirely. Shor's speedup is superpolynomial, and it applies to one problem with a very particular algebraic structure. Phase estimation with qubitization gives a provable advantage on a problem — the eigenvalues of a many-body Hamiltonian — that a materials researcher actually has. QAOA gives no proven advantage at all. Presenting these as five entries in the same list is the central dishonesty of the popular account, and this course does not commit it: <strong>every speedup in these five chapters is stated together with the assumptions it needs, and the assumptions are checked.</strong></p>
+<p>The second commitment is that <strong>everything runs</strong>. The introductory course built a state-vector simulator out of ninety-nine lines of NumPy; every algorithm here is implemented on that same simulator, from Grover on ten qubits to the end-to-end factorization of 15 and 21. There is no SDK, no hardware backend, and no result you cannot reproduce and take apart. Where an algorithm is too large to run — a resource estimate for an industrially relevant Hamiltonian — the estimate is computed from the formulas rather than quoted.</p>
+<h3>Learning Path</h3>
+<div class="mermaid">
+flowchart LR
+    P1["Prerequisite<br/>Quantum computing<br/>introduction"]
+    A["Chapter 1<br/>Amplitude<br/>amplification"]
+    B["Chapter 2<br/>QFT and phase<br/>estimation"]
+    C["Chapter 3<br/>Shor's<br/>algorithm"]
+    D["Chapter 4<br/>Hamiltonian<br/>simulation"]
+    E["Chapter 5<br/>QAOA and<br/>optimization"]
+    P1 --> A
+    A --> B
+    B --> C
+    B --> D
+    A --> E
+    B --> E
+    C --> E
+    D --> E
+    style P1 fill:#e2e8f0,stroke:#94a3b8,stroke-width:1px,color:#334155
+    style A fill:#667eea,stroke:#764ba2,stroke-width:2px,color:#fff
+    style B fill:#7b2cbf,stroke:#764ba2,stroke-width:2px,color:#fff
+    style C fill:#7b2cbf,stroke:#764ba2,stroke-width:2px,color:#fff
+    style D fill:#7b2cbf,stroke:#764ba2,stroke-width:2px,color:#fff
+    style E fill:#9d4edd,stroke:#764ba2,stroke-width:2px,color:#fff
+</div>
+
+<p>Chapter 1 is self-contained and can be read first or last; it is placed first because the oracle model and the honest accounting it introduces are used in every later chapter. Chapter 2 is the load-bearing one: Chapter 3 cannot be read without its phase-estimation implementation, and Chapter 4's block encodings are built on the same controlled-unitary machinery. Chapter 5 assumes all four, because its closing section is a map of the whole subject.</p>
+<h3>📋 Learning Objectives</h3>
+<p>On finishing this series you will be able to:</p>
+<ul>
+<li>State the oracle (query) model precisely, and say for any claimed oracle-based speedup what the oracle would have to be built out of and what that costs</li>
+<li>Derive Grover's algorithm as a rotation in a two-dimensional subspace, compute the optimal iteration count, and generalize it to amplitude amplification around an arbitrary state preparation</li>
+<li>Build the quantum Fourier transform from $O(n^2)$ gates, explain why its output amplitudes cannot be read out, and implement both textbook and iterative phase estimation</li>
+<li>Implement Shor's algorithm end to end — order finding, the continued-fraction post-processing, and the classical reduction — and explain why modular exponentiation, not the Fourier transform, is what makes it expensive</li>
+<li>Explain Trotterization, block encoding, qubitization and qDRIFT, and state the query complexity each one achieves</li>
+<li>Formulate a combinatorial optimization problem as an Ising model, run QAOA on it, and compare the result against classical heuristics at equal budget</li>
+<li>Say, for any quantum algorithm you meet, which of the three kinds of speedup it claims, what the base of the comparison is, and which assumption is doing the work</li>
+</ul>
+<h3>📖 Prerequisites</h3>
+<p><strong>Required.</strong> <a href="../quantum-computing-introduction/index.html">Introduction to Quantum Computing</a>, or equivalent fluency with: state vectors and unitary gates, the big-endian qubit convention, the ninety-nine-line state-vector simulator of that course's Chapter 2, and the variational eigensolver of its Chapter 3. This course re-lists the simulator functions each chapter needs, but it does not re-derive them.</p>
+<p><strong>Required.</strong> Linear algebra — eigenvalues and eigenvectors, tensor products, unitary and Hermitian matrices — and enough elementary number theory to be comfortable with modular arithmetic. Chapter 3 develops the number theory it needs from scratch, including continued fractions.</p>
+<p><strong>Required.</strong> Python 3.8 or later with NumPy, SciPy and Matplotlib. There is no quantum SDK and no hardware backend anywhere in this series.</p>
+<p><strong>Recommended.</strong> <a href="../quantum-hardware-introduction/index.html">Introduction to Quantum Hardware</a>, for the physical meaning of the gate times and error rates that Chapters 1 and 4 use in their resource estimates. <a href="../../MI/quantum-machine-learning-introduction/index.html">Introduction to Quantum Machine Learning</a>, for the same evaluation discipline applied to a different subfield.</p>
+<hr />
+<h2>📚 Chapters</h2>
+<h3>Chapter 1: Amplitude Amplification and Grover's Algorithm</h3>
+<p>The oracle model stated honestly: what a phase oracle is, what it is not, and what happens to the accounting when you write one out as a circuit and count the gates. Grover's algorithm derived as a product of two reflections, which is a rotation by $2\theta$ in the two-dimensional plane spanned by the marked and unmarked states, with the exact optimal iteration count $\lfloor \pi/(4\arcsin\sqrt{M/N}) \rfloor$ and the over-rotation that follows from running longer. The general form — amplitude amplification around any state preparation $A$ — which is the version that appears as a subroutine everywhere else. Closes with the honest assessment: four separate ways in which constant factors, clock rates, imperfect parallelism and error-correction overhead consume a quadratic speedup, why unstructured search is not database search, and what the QRAM problem does to the latter.</p>
+<p><strong>Key topics</strong> : phase oracle · query model · oracle as a circuit · two reflections · optimal iteration count · over-rotation · amplitude amplification · exact amplification · quadratic speedup accounting · QRAM · unknown number of solutions</p>
+<p>💻 7 Code Examples ⏱️ 45-50 minutes 📊 Intermediate</p>
+<p><a href="chapter-1.html">Read Chapter 1 →</a></p>
+<h3>Chapter 2: QFT and Phase Estimation</h3>
+<p>The QFT as a circuit of $O(n^2)$ gates, and the crucial difference from the classical FFT: the transform is applied to amplitudes that cannot be read out, so the QFT is never a data-processing routine but always a step that converts a period into a measurable bit string. Phase estimation built on top of it — controlled unitaries, the inverse transform, and the exact relation between the number of ancilla bits and the achievable precision and success probability. The iterative single-ancilla variant, which is the form that a near-term device could actually run. Closes on what phase estimation is for: it is the eigenvalue algorithm, and the eigenvalue problem a materials researcher cares about is electronic structure — the fault-tolerant successor to the variational methods of the introductory course.</p>
+<p><strong>Key topics</strong> : QFT circuit · controlled phase rotations · $O(n^2)$ gate count · unreadable amplitudes · phase estimation · precision and ancilla count · iterative QPE · eigenvalue estimation for electronic structure</p>
+<p>💻 7 Code Examples ⏱️ 45-50 minutes 📊 Intermediate</p>
+<p><a href="chapter-2.html">Read Chapter 2 →</a></p>
+<h3>Chapter 3: Shor's Algorithm</h3>
+<p>The classical reduction first: factoring reduces to order finding, and the reduction is elementary number theory that runs on a laptop. The quantum part is then one application of phase estimation to modular multiplication, and the honest observation that the modular exponentiation circuit — not the Fourier transform — is where essentially all of the cost lives. A complete implementation follows: factoring 15 and 21 end to end on the simulator, with the measured probability distribution, the continued-fraction post-processing that turns a measured fraction into a period, and the failure modes that make the algorithm probabilistic. Closes with what this means for cryptography, argued from resource-count scaling rather than from dates, and why the migration to lattice-based schemes is a rational response to a superpolynomial speedup even though no machine can run it yet.</p>
+<p><strong>Key topics</strong> : factoring to order finding · modular exponentiation cost · continued fractions · end-to-end factorization of 15 and 21 · failure modes and repetition · resource scaling · post-quantum cryptography</p>
+<p>💻 7 Code Examples ⏱️ 45-50 minutes 📊 Intermediate</p>
+<p><a href="chapter-3.html">Read Chapter 3 →</a></p>
+<h3>Chapter 4: Modern Hamiltonian Simulation</h3>
+<p>Trotterization revisited from the introductory course, with its error scaling made explicit and its limitations made quantitative. Then the methods that replaced it: linear combinations of unitaries, block encoding, and qubitization, developed to the level of explicit matrices and circuits rather than left as citations, with the optimal query complexity they achieve. Randomized compilation via qDRIFT, and when a random ordering beats a systematic one. Closes with the arithmetic of resource estimation as it is actually practised — counts of T gates and logical qubits — and with why electronic structure of materials and molecules, and not optimization or machine learning, is the application where a fault-tolerant machine has a defensible advantage.</p>
+<p><strong>Key topics</strong> : Trotter error scaling · linear combination of unitaries · block encoding · qubitization and the quantum walk · optimal query complexity · qDRIFT · T counts and logical qubit counts · electronic structure as the target application</p>
+<p>💻 7 Code Examples ⏱️ 45-50 minutes 📊 Advanced</p>
+<p><a href="chapter-4.html">Read Chapter 4 →</a></p>
+<h3>Chapter 5: QAOA and Optimization</h3>
+<p>Combinatorial optimization written as an Ising model: MaxCut, spin glasses, and the reason this formulation is familiar to anyone who has looked at a magnetic material. The structure of QAOA — alternating cost and mixer layers, and the adiabatic limit it approaches as the depth grows. A complete implementation on small graphs at depths one to three, with the parameter landscape drawn out. Then the evaluation, conducted with the same discipline the quantum machine learning course applies to its own subject: QAOA against greedy, against simulated annealing, and against the Goemans-Williamson relaxation at equal budget, with the conclusion stated plainly. The chapter closes the series with a map of where provable speedups actually live — Grover-type, Shor-type, and phase-estimation-type — and the preconditions each one carries.</p>
+<p><strong>Key topics</strong> : Ising formulation · MaxCut · cost and mixer layers · adiabatic limit · parameter landscape · classical baselines at equal budget · approximation ratios · the map of provable speedups</p>
+<p>💻 8 Code Examples ⏱️ 45-50 minutes 📊 Advanced</p>
+<p><a href="chapter-5.html">Read Chapter 5 →</a></p>
+<hr />
+<h2>🔤 Notation and Conventions</h2>
+<p>Everything is inherited from <a href="../quantum-computing-introduction/index.html">Introduction to Quantum Computing</a> and never changed, so that code from any chapter of either course can be combined with any other.</p>
+<table>
+<thead>
+<tr>
+<th>Symbol</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>$\lvert q_0 q_1 \cdots q_{n-1}\rangle$</td>
+<td>big-endian: qubit 0 is leftmost and most significant. The opposite of Qiskit's convention</td>
+</tr>
+<tr>
+<td>$N = 2^n$</td>
+<td>size of the search space or of the register</td>
+</tr>
+<tr>
+<td>$M$</td>
+<td>number of marked strings; $\theta = \arcsin\sqrt{M/N}$</td>
+</tr>
+<tr>
+<td>$O$, $D$</td>
+<td>phase oracle and diffusion operator; $G = DO$ is one Grover iteration</td>
+</tr>
+<tr>
+<td>$A$</td>
+<td>a state preparation unitary; amplitude amplification uses $Q = (2A\lvert 0\rangle\langle 0\rvert A^{\dagger} - I)\,O$</td>
+</tr>
+<tr>
+<td>$\mathrm{QFT}_n$</td>
+<td>quantum Fourier transform on $n$ qubits (Chapter 2)</td>
+</tr>
+<tr>
+<td>$\varphi$</td>
+<td>a phase to be estimated, $U\lvert u\rangle = e^{2\pi i \varphi}\lvert u\rangle$ (Chapters 2-4)</td>
+</tr>
+<tr>
+<td>$r$</td>
+<td>multiplicative order of $a$ modulo $N$ (Chapter 3)</td>
+</tr>
+<tr>
+<td>$\lVert H \rVert_1$</td>
+<td>sum of the absolute values of Hamiltonian coefficients, the natural cost parameter (Chapter 4)</td>
+</tr>
+<tr>
+<td>$p$</td>
+<td>QAOA depth (Chapter 5)</td>
+</tr>
+<tr>
+<td>$X, Y, Z, H$, CNOT</td>
+<td>gate symbols, identical to the introductory course</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Query counts versus gate counts.</strong> Complexity in this course is quoted in <em>queries</em> when the statement is about the oracle model, and in <em>gates</em> when the statement is about a machine. The two differ by whatever the oracle costs, and Chapter 1 makes a point of the difference because most confusion about quantum speedups lives exactly there.</p>
+<p><strong>Reduced units.</strong> Where a Hamiltonian appears, $\hbar = 1$.</p>
+<hr />
+<h2>🔍 What This Series Is and Is Not</h2>
+<p><strong>It is not an algorithm zoo.</strong> Six algorithms in five chapters, each developed far enough to run and to be taken apart. A catalogue of forty algorithm names with one paragraph each would be shorter to write and useless to read; the useful skill is being able to see, in an algorithm you have never met, which of a small number of mechanisms it is using.</p>
+<p><strong>It is not speed bragging.</strong> Every speedup is stated with its assumptions. That means saying that Grover's quadratic advantage is real and provably optimal, <em>and</em> that it is small enough to be destroyed by constant factors — both halves, because omitting either one is a distortion. It also means saying that QAOA currently has no proven advantage over classical heuristics, and that phase estimation for electronic structure does.</p>
+<p><strong>It is not a hardware course.</strong> Gate times, error rates and error-correction overheads appear only as parameters in resource estimates, and always as sweeps over decades rather than as specifications. For where those parameters come from, read <a href="../quantum-hardware-introduction/index.html">Introduction to Quantum Hardware</a>.</p>
+<p><strong>It is not a cryptography course.</strong> Chapter 3 covers what Shor's algorithm implies for RSA and why post-quantum cryptography exists, from the scaling of resource counts. It does not cover the schemes themselves.</p>
+<p><strong>It is not framework documentation.</strong> As in the introductory course, everything is NumPy. You will finish knowing what a quantum SDK computes, which is the only durable way to use one.</p>
+<h2>📚 Recommended Learning Paths</h2>
+<h3>Pattern 1: Complete path (6-7 days)</h3>
+<ul>
+<li>Day 1: Chapter 1, Sections 1.1-1.4 — the oracle model and the honest accounting</li>
+<li>Day 2: Chapter 1, Section 1.5 — run the Grover implementation, reproduce the success-probability curves yourself</li>
+<li>Day 3: Chapter 2 — QFT and phase estimation, both variants</li>
+<li>Day 4: Chapter 3 — Shor's algorithm, factoring 15 and 21 end to end</li>
+<li>Day 5: Chapter 4, Sections 4.1-4.3 — Trotter, block encoding, qubitization</li>
+<li>Day 6: Chapter 4, Sections 4.4-4.5 and Chapter 5, Sections 5.1-5.3 — resource estimation, then QAOA</li>
+<li>Day 7: Chapter 5, Sections 5.4-5.5 and the exercises — the classical baselines, and the map of speedups</li>
+</ul>
+<h3>Pattern 2: The fault-tolerant electronic-structure path (2 days)</h3>
+<ul>
+<li>Chapter 2 in full — phase estimation is the algorithm</li>
+<li>Chapter 4 in full — block encoding, qubitization, and the resource arithmetic</li>
+<li>Section 5.5 — where this sits relative to everything else</li>
+</ul>
+<h3>Pattern 3: The sceptic's path (half a day)</h3>
+<ul>
+<li>Section 1.4 — what a quadratic speedup is actually worth</li>
+<li>Section 3.4 — a superpolynomial speedup, and what it does and does not imply</li>
+<li>Sections 5.4 and 5.5 — the equal-budget comparison, and the map</li>
+</ul>
+<h2>🎯 Overall Learning Outcomes</h2>
+<h3>Knowledge Level</h3>
+<ul>
+<li>✅ State the oracle model and identify the assumption it hides in any given application</li>
+<li>✅ Explain Grover, QFT, phase estimation, Shor, qubitization and QAOA in terms of the mechanism each one uses</li>
+<li>✅ Distinguish the three kinds of quantum speedup and name the preconditions of each</li>
+<li>✅ Explain why the amplitudes of a quantum Fourier transform cannot be read out, and what that rules out</li>
+</ul>
+<h3>Practical Skills</h3>
+<ul>
+<li>✅ Implement Grover and general amplitude amplification, and verify the optimal iteration count numerically</li>
+<li>✅ Implement the QFT, textbook phase estimation and iterative phase estimation, and measure their precision</li>
+<li>✅ Factor a composite number end to end on a state-vector simulator, including the classical post-processing</li>
+<li>✅ Construct and verify a block encoding of a small Hamiltonian, and compare Trotter against qDRIFT error</li>
+<li>✅ Run QAOA against classical heuristics at equal budget and report the comparison honestly</li>
+</ul>
+<h3>Application Ability</h3>
+<ul>
+<li>✅ Read a quantum-algorithms paper and locate its speedup claim, its base of comparison, and its load-bearing assumption</li>
+<li>✅ Produce an order-of-magnitude resource estimate for a quantum algorithm from its query complexity</li>
+<li>✅ Decide, for a computational problem in your own work, whether any of these mechanisms could apply</li>
+</ul>
+<h2>🛠️ Technologies and Tools Used</h2>
+<h3>Main Libraries</h3>
+<ul>
+<li><strong>numpy</strong> — the state-vector simulator, and every algorithm built on it</li>
+<li><strong>scipy</strong> — classical optimizers for QAOA, eigenvalue problems, and the classical baselines</li>
+<li><strong>matplotlib</strong> — success-probability curves, measured distributions, parameter landscapes</li>
+</ul>
+<h3>Development Environment</h3>
+<ul>
+<li><strong>Python</strong> : 3.8 or higher</li>
+<li><strong>Jupyter Notebook</strong> : recommended; the chapters are written as sessions in which later examples reuse earlier definitions</li>
+<li>Google Colab runs every example; nothing needs a GPU or a quantum backend</li>
+</ul>
+<h2>🚀 Next Steps</h2>
+<h3>Deep Dive Learning</h3>
+<ul>
+<li>Quantum signal processing and the quantum singular value transformation, which unify the Chapter 4 methods</li>
+<li>Fault-tolerant compilation: magic-state distillation, and where T counts come from</li>
+<li>Quantum linear-systems algorithms, and the input/output assumptions that decide whether they help</li>
+<li>Lower bounds: the adversary method, and why $\Omega(\sqrt{N})$ for unstructured search cannot be beaten</li>
+</ul>
+<h3>Related Series</h3>
+<ul>
+<li><a href="../quantum-computing-introduction/index.html">Introduction to Quantum Computing</a> — the prerequisite, and the source of the simulator</li>
+<li><a href="../quantum-hardware-introduction/index.html">Introduction to Quantum Hardware</a> — where gate times and error rates come from</li>
+<li><a href="../../MI/quantum-machine-learning-introduction/index.html">Introduction to Quantum Machine Learning</a> — the same evaluation discipline, applied to learning</li>
+<li><a href="../../MS/quantum-sensing-introduction/index.html">Introduction to Quantum Sensing</a> — quantum systems as instruments rather than computers</li>
+<li><a href="../quantum-mechanics/index.html">Introduction to Quantum Mechanics</a> — the physics underneath all of it</li>
+</ul>
+<h3>Practical Projects</h3>
+<ul>
+<li>Extend the Chapter 1 code to Grover with a noisy oracle, and measure how the optimal iteration count moves</li>
+<li>Implement quantum counting with the Chapter 2 phase estimation, and use it to remove the guesswork from Chapter 1</li>
+<li>Factor 33 or 35 on the simulator, and count the qubits and gates the modular exponentiation actually took</li>
+<li>Build a block encoding of a four-site Hubbard Hamiltonian and estimate the T count of a phase-estimation run</li>
+<li>Take a real optimization problem from your own work, cast it as an Ising model, and run the Chapter 5 comparison</li>
+</ul>
+<h3>⚠️ Disclaimer</h3>
+<ul>
+<li>This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical warranty, etc.).</li>
+<li>This content and accompanying code examples are provided "AS IS" without any warranty, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
+<li>The author and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.</li>
+<li>To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+<li>The content may be changed, updated, or discontinued without notice.</li>
+<li>The copyright and license of this content are subject to the stated conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.</li>
+</ul><div class="navigation">
+    <a href="index.html" class="nav-button">Back to Series Index</a>
+    <a href="chapter-2.html" class="nav-button">Next Chapter →</a>
+</div>
+    </main>
+
+    <footer>
+        <p><strong>Created by</strong>: AI Terakoya Content Team</p>
+        <p><strong>Supervised by</strong>: Dr. Yusuke Hashimoto (Tohoku University)</p>
+        <p><strong>Version</strong>: 1.0 | <strong>Created</strong>: 2025-01-01</p>
+        <p><strong>License</strong>: Creative Commons BY 4.0</p>
+        <p>© 2025 AI Terakoya. All rights reserved.</p>
+    </footer>
+</body>
+</html>

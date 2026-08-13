@@ -1,0 +1,1489 @@
+---
+title: "第5章: QAOAと最適化"
+chapter_title: "第5章: QAOAと最適化"
+subtitle: MaxCutのIsing定式化、断熱極限、古典ヒューリスティクスとの同予算比較、そして高速化の地図
+reading_time: 45-50分
+difficulty: 上級
+code_examples: 8
+exercises: 5
+---
+
+🌐 JP | [🇬🇧 EN](<../../../en/FM/quantum-algorithms-intermediate/chapter-5.html>) | Last sync: 2026-08-13
+
+[基礎数理道場](<../index.html>) > [量子アルゴリズム（中級）](<index.html>) > 第5章
+
+ここまでの4章は、高速化が定理であるアルゴリズムを扱ってきました。Groverはクエリモデルにおける定理、Shorは素因数分解の困難性という予想を法とした定理、qubitizationによる位相推定はクエリ計算量についての定理です。本章は、そうした定理をもたないアルゴリズムを扱います。そしてそれは、おそらくこの10年で最もよく研究された量子アルゴリズムです。量子近似最適化アルゴリズム（QAOA）は短く、ハードウェアに素直で、実在する機械の上で浅い深さで走り、そして材料研究者がすでに知っている物理に直結します。組合せ最適化問題の目的関数は、正しい変数で書けば古典スピングラスのハミルトニアン*そのもの*なのです。
+
+したがって本章は同時に2つのことをやり、両方をきちんとやらなければなりません。第一は、QAOAが何であり、なぜ興味深いのかの真っ当な説明です。コスト層とミキサー層、パラメータ地形、実例間での最適角度の集中、そして $p \to \infty$ の極限が断熱量子計算を再現するという、得られる唯一の厳密な漸近的言明です。第二は、この分野のプレスリリースがふつう省く比較です。貪欲探索、1反転局所探索、焼きなまし法、Goemans-Williamson丸めに対して、同予算で、同じ20実例の上で、すべての差に対応のある区間を付けて対決させます — [量子機械学習入門](<../../MI/quantum-machine-learning-introduction/index.html>)コースの評価規律を最適化に適用するのです。その比較が何を示そうと、ここに公表します。5.5節はそれからシリーズを、証明可能な高速化が実際にどこに住んでいて、それぞれが何を前提にしているかの地図で締めくくります。
+
+## 学習目標
+
+本章を読み終えると、以下ができるようになります：
+
+  * MaxCutをIsingハミルトニアン $\sum_{(i,j) \in E} w_{ij}(I - Z_i Z_j)/2$ として書き、カット値の表と突き合わせて写像を検証し、符号つき重みの版がEdwards-Andersonスピングラスであると認識できる
+  * QAOA回路を2つの層から組み立て、コスト層を辺あたり CNOT-$R_z$-CNOT にコンパイルし、コンパイルされた回路が実装すべき対角位相と一致することを確認できる
+  * $p \to \infty$ がどんな意味で断熱発展を再現するのかを説明し、最適化器を一切使わない固定スケジュールで数値的に実演できる
+  * $p = 1, 2, 3$ の近似比を測り、$p = 1$ の地形を描き、期待値の比と実務家が報告するショット最良値の比を区別できる
+  * パラメータの集中 — 同じ族の実例間で最適角度が転用できること — を実演し、それが変分ループがどれだけ仕事をしているかについて何を意味するかを述べられる
+  * 4つの古典ベースラインに対して対応のあるブートストラップ区間つきの同予算比較を走らせ、Goemans-Williamsonの0.87856ベンチマークを正しく述べ、比の表が隠すショットコストを計上できる
+  * 本シリーズの4つのアルゴリズム族それぞれについて、高速化が何であり、主張の位置づけが何であり、どの前提が崩れると壊れるかを述べられる
+
+### 引き継ぐもの
+
+すべては[量子コンピューティング入門 第2章](<../quantum-computing-introduction/chapter-2.html>)のミニシミュレータの上で走ります。Code Example 1に再掲します。規約は変わらず**ビッグエンディアン**で、量子ビット0が左端かつ最上位です。本章に固有の規約が1つあります。ビット値 $0$ をスピン $z_i = +1$、ビット値 $1$ を $z_i = -1$ に対応させるので、カットは頂点を上向きスピンと下向きスピンに分割することになります。この点も論文によって流儀が異なり、ここでの符号の誤りは最大化を静かに最小化に変えてしまいます。
+
+* * *
+
+## 5.1 組合せ最適化のIsing定式化
+
+### MaxCut
+
+$\lvert V \rvert = n$ 頂点をもつ無向グラフ $G = (V, E)$ と非負の辺重み $w_{ij}$ を取ります。**カット**とは各頂点をどちらか一方の側に割り当てることであり、その値は両端が反対側に落ちた辺の重みの総和です。MaxCutはその最大値を求めます。$\pm 1$ のスピン変数 $z_i$ で書くと、辺 $(i,j)$ が切られるのはちょうど $z_i z_j = -1$ のときなので、
+
+$$ C(z) = \sum_{(i,j) \in E} w_{ij}\, \frac{1 - z_i z_j}{2} $$
+
+となります。これは2値変数の2次多項式 — QUBO — であり、したがってIsingエネルギーです。$z_i$ をPauli演算子 $Z_i$ に持ち上げると対角ハミルトニアン
+
+$$ \hat{H}_C = \sum_{(i,j) \in E} w_{ij}\, \frac{I - Z_i Z_j}{2} = \frac{1}{2}\left(\sum_{(i,j) \in E} w_{ij}\right) I \; - \; \frac{1}{2}\sum_{(i,j) \in E} w_{ij} Z_i Z_j $$
+
+が得られ、その固有値はちょうど $2^n$ 個のカット値、固有ベクトルは計算基底状態です。カットを最大化することは $\hat{H}_C$ の*最上位*固有ベクトルを求めること、同じことですが $-\hat{H}_C$ の基底状態を求めることです。この段階で失われるものも近似されるものもありません。写像は恒等式であり、QUBOとして表せるあらゆる最適化問題 — グラフ分割、罰則つき最大独立集合、ポートフォリオ選択、多くのスケジューリング問題 — が同じ形で到着します。
+
+一般のグラフ上のMaxCutはNP困難であり、ある比を超えて近似することさえNP困難です。また標準的なQAOAベンチマークでもあります。理由は正当で、そのハミルトニアンがIsingハミルトニアンとしてありうる限り単純 — 2局所、対角、辺ごとに1項 — だからです。
+
+### 材料研究者がこのハミルトニアンを見分けるべき理由
+
+すでに研究しているものだからです。重みが両符号を取れるようにすると $-\hat{H}_C$ は
+
+$$ \hat{H}_{\text{EA}} = \sum_{\langle ij \rangle} J_{ij} Z_i Z_j $$
+
+すなわち**Edwards-Anderson**模型 — ランダムに凍結した結合をもつIsing磁性体 — になります。正の $J_{ij}$ はスピンを反平行にしたがり、負は平行にしたがり、負結合が奇数個ある任意のループではどちらも満たせません。それが**フラストレーション**です。2次元または3次元のEdwards-Anderson模型の基底状態を求めることは乱れた磁性の代表的な難問であり、符号を除いて同じグラフ上のMaxCutと同一の計算問題です。
+
+その結果、統計物理の道具立て全体がすでにこの問題に向けられており、それが50年続いています。焼きなまし法はIsing模型の上で*発明*されました。パラレルテンパリング、クラスター更新、population annealing、スピングラス専用サーバー、そしてフラストレート系の自由エネルギー地形についての文献の全体が、量子最適化器が打ち負かさなければならない既存勢力です。これは材料系の読者にとって異例に良い知らせ — 直観がそのまま移る — であり、量子優位の主張にとっては異例に悪い知らせです。この特定の分野の古典側の基準は、まさにこれらの実例に対して何十年も刃を研いできた人々が設定しているからです。
+
+### Code Example 1: ミニシミュレータの再掲
+
+```python
+"""Minimal state-vector simulator (big-endian: qubit 0 = leftmost = most significant).
+
+Save this file as qcsim.py; every later example does `from qcsim import *`.
+"""
+import numpy as np
+
+# ---- 1量子ビットゲート --------------------------------------------------
+I2 = np.eye(2, dtype=complex)
+X = np.array([[0, 1], [1, 0]], dtype=complex)
+Y = np.array([[0, -1j], [1j, 0]], dtype=complex)
+Z = np.array([[1, 0], [0, -1]], dtype=complex)
+H = np.array([[1, 1], [1, -1]], dtype=complex) / np.sqrt(2)
+S = np.array([[1, 0], [0, 1j]], dtype=complex)
+T = np.array([[1, 0], [0, np.exp(1j * np.pi / 4)]], dtype=complex)
+
+
+def rx(theta):
+    c, s = np.cos(theta / 2), np.sin(theta / 2)
+    return np.array([[c, -1j * s], [-1j * s, c]], dtype=complex)
+
+
+def ry(theta):
+    c, s = np.cos(theta / 2), np.sin(theta / 2)
+    return np.array([[c, -s], [s, c]], dtype=complex)
+
+
+def rz(theta):
+    e = np.exp(-1j * theta / 2)
+    return np.array([[e, 0], [0, np.conj(e)]], dtype=complex)
+
+
+# ---- 状態 ---------------------------------------------------------------
+def ket(bits: str) -> np.ndarray:
+    """'01' -> 4次元の基底状態 |01>（ビッグエンディアン）"""
+    n = len(bits)
+    psi = np.zeros(2 ** n, dtype=complex)
+    psi[int(bits, 2)] = 1.0
+    return psi
+
+
+def apply_gate(state, U, targets, n):
+    """n量子ビット状態の targets に 2^k x 2^k ユニタリ U を作用させる"""
+    k = len(targets)
+    psi = state.reshape([2] * n)          # 1. n添字テンソルとして見る
+    psi = np.moveaxis(psi, targets, range(k))   # 2. 標的軸を先頭へ
+    rest = psi.shape[k:]
+    psi = psi.reshape(2 ** k, -1)         # 3. 平坦化して行列積
+    psi = U @ psi
+    psi = psi.reshape(list((2,) * k) + list(rest))
+    psi = np.moveaxis(psi, range(k), targets)   # 4. 軸を元に戻す
+    return psi.reshape(-1)
+
+
+CNOT4 = np.array([[1, 0, 0, 0],
+                  [0, 1, 0, 0],
+                  [0, 0, 0, 1],
+                  [0, 0, 1, 0]], dtype=complex)
+
+
+def cnot(state, control, target, n):
+    """任意の量子ビット対・任意の向きのCNOT"""
+    return apply_gate(state, CNOT4, [control, target], n)
+
+
+def probs(state):
+    """Born則による全 2^n 通りの確率"""
+    return np.abs(state) ** 2
+
+
+def sample(state, shots, seed=None):
+    """測定のシミュレーション: {ビット列: 回数}"""
+    n = int(np.log2(state.size))
+    rng = np.random.default_rng(seed)
+    idx = rng.choice(state.size, size=shots, p=probs(state))
+    out = {}
+    for i in idx:
+        b = format(i, f'0{n}b')
+        out[b] = out.get(b, 0) + 1
+    return dict(sorted(out.items()))
+
+
+PAULI = {'I': I2, 'X': X, 'Y': Y, 'Z': Z}
+
+
+def expval(state, pauli, coeff_map=None):
+    """'ZZ' や 'XI' のようなPauli文字列（1量子ビット1文字）の期待値。
+
+    coeff_map を与えると結果に coeff_map[pauli] を掛けるので、ハミルトニアン
+    全体が1行で書ける:  sum(expval(psi, p, terms) for p in terms)
+    """
+    n = len(pauli)
+    phi = state.copy()
+    for q, ch in enumerate(pauli):
+        if ch != 'I':
+            phi = apply_gate(phi, PAULI[ch], [q], n)
+    val = np.vdot(state, phi).real
+    if coeff_map is not None:
+        val *= coeff_map.get(pauli, 1.0)
+    return val
+```
+
+99行、NumPy以外の依存はゼロです。`qcsim.py` として保存してください。本章の以降のすべての例は `from qcsim import *` で始まります。
+
+### Code Example 2: MaxCut、そのIsing形、そしてスピングラスの実例
+
+```python
+"""第5章 Code Example 2: MaxCut、そのIsing形、そしてスピングラスの実例。
+Code Example 1 の qcsim.py の上で走ります。"""
+import numpy as np
+from functools import reduce
+from scipy.optimize import minimize
+from qcsim import *
+
+def spin_table(n):
+    """全 2^n ビット列について、ビット0を z_i = +1、ビット1を -1 とします（ビッグエンディアン）"""
+    k = np.arange(2 ** n)
+    return np.stack([1 - 2 * ((k >> (n - 1 - i)) & 1) for i in range(n)],
+                    axis=1)
+
+
+def cut_values(n, edges, weights=None):
+    """MaxCutの目的関数 C(z) を 2^n 通りすべてのビット列で評価します"""
+    z = spin_table(n)
+    w = np.ones(len(edges)) if weights is None else np.asarray(weights)
+    C = np.zeros(2 ** n)
+    for (i, j), wij in zip(edges, w):
+        C += wij * (1 - z[:, i] * z[:, j]) / 2
+    return C
+
+
+def ising_terms(n, edges, weights=None):
+    """MaxCutをPauliハミルトニアンとして: sum_ij w_ij (I - Z_i Z_j)/2"""
+    w = np.ones(len(edges)) if weights is None else np.asarray(weights)
+    terms = {}
+    for (i, j), wij in zip(edges, w):
+        s = ''.join('Z' if q in (i, j) else 'I' for q in range(n))
+        terms[s] = terms.get(s, 0.0) - wij / 2
+    terms['I' * n] = terms.get('I' * n, 0.0) + float(w.sum()) / 2
+    return terms
+
+
+C5 = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 0)]
+G8 = [(0, 1), (0, 3), (1, 2), (1, 4), (2, 5), (3, 4), (3, 6),
+      (4, 5), (4, 7), (5, 7), (6, 7), (0, 6)]
+
+print("MaxCutをIsing問題として見る")
+print("=" * 70)
+for name, n, edges in [("C5（5サイクル）", 5, C5), ("G8（8頂点グラフ）", 8, G8)]:
+    C = cut_values(n, edges)
+    best = C.max()
+    argb = [format(k, f'0{n}b') for k in np.flatnonzero(C == best)]
+    print(f"\n  {name}: n = {n}, |E| = {len(edges)}")
+    print(f"    最大カット = {best:.0f}")
+    print(f"    最適なビット列 = {argb[:4]}"
+          f"{' ...' if len(argb) > 4 else ''} (合計 {len(argb)} 個)")
+    print(f"    2^n 通り全体でのカットの平均 = {C.mean():.4f}"
+          f"   (= |E|/2 = {len(edges)/2:.1f}: ランダム推測の基準値)")
+    print(f"    ランダム推測の比 = {C.mean()/best:.4f}")
+
+print("\nPauli形を、カット値の表と突き合わせて検証します")
+print("-" * 70)
+for name, n, edges in [("C5", 5, C5), ("G8", 8, G8)]:
+    terms = ising_terms(n, edges)
+    C = cut_values(n, edges)
+    diag = np.zeros(2 ** n)
+    z = spin_table(n)
+    for s, c in terms.items():
+        col = np.ones(2 ** n)
+        for q, ch in enumerate(s):
+            if ch == 'Z':
+                col = col * z[:, q]
+        diag += c * col
+    print(f"  {name}: Pauli項は {len(terms)} 個（すべて対角、すべてZ型）。"
+          f"  max |diag - C| = {np.max(np.abs(diag - C)):.2e}")
+    print(f"      恒等演算子の係数 = {terms['I'*n]:+.1f},"
+          f"  各ZZの係数 = -1/2")
+
+print("\nスピングラスの実例: 同じ目的関数に符号をランダムに入れます")
+print("-" * 70)
+rng = np.random.default_rng(5)
+wg = rng.choice([-1.0, 1.0], size=len(G8))
+Cg = cut_values(8, G8, wg)
+print(f"  重み = {wg.astype(int).tolist()}")
+print(f"  最大 = {Cg.max():+.1f}（正の辺をすべて切れたときの sum_+ w = "
+      f"{wg[wg > 0].sum():+.1f} に対して）")
+print(f"  最小 = {Cg.min():+.1f},  平均 = {Cg.mean():+.4f}")
+print(f"  縮退した基底状態の数: {int((Cg == Cg.max()).sum())}")
+print("  符号つきの結合はフラストレーションです。これはスピングラスの")
+print("  Edwards-Andersonハミルトニアンであり、「最大カットを求める」ことは")
+print("  「基底状態を求める」ことです。同じ一文が、組合せ最適化器と")
+print("  乱れた磁性体の両方を記述しています。")
+```
+
+```text
+MaxCutをIsing問題として見る
+======================================================================
+
+  C5（5サイクル）: n = 5, |E| = 5
+    最大カット = 4
+    最適なビット列 = ['00101', '01001', '01010', '01011'] ... (合計 10 個)
+    2^n 通り全体でのカットの平均 = 2.5000   (= |E|/2 = 2.5: ランダム推測の基準値)
+    ランダム推測の比 = 0.6250
+
+  G8（8頂点グラフ）: n = 8, |E| = 12
+    最大カット = 10
+    最適なビット列 = ['01010101', '01010110', '10101001', '10101010'] (合計 4 個)
+    2^n 通り全体でのカットの平均 = 6.0000   (= |E|/2 = 6.0: ランダム推測の基準値)
+    ランダム推測の比 = 0.6000
+
+Pauli形を、カット値の表と突き合わせて検証します
+----------------------------------------------------------------------
+  C5: Pauli項は 6 個（すべて対角、すべてZ型）。  max |diag - C| = 0.00e+00
+      恒等演算子の係数 = +2.5,  各ZZの係数 = -1/2
+  G8: Pauli項は 13 個（すべて対角、すべてZ型）。  max |diag - C| = 0.00e+00
+      恒等演算子の係数 = +6.0,  各ZZの係数 = -1/2
+
+スピングラスの実例: 同じ目的関数に符号をランダムに入れます
+----------------------------------------------------------------------
+  重み = [1, 1, -1, 1, -1, 1, 1, -1, 1, -1, -1, -1]
+  最大 = +4.0（正の辺をすべて切れたときの sum_+ w = +6.0 に対して）
+  最小 = -4.0,  平均 = +0.0000
+  縮退した基底状態の数: 6
+  符号つきの結合はフラストレーションです。これはスピングラスの
+  Edwards-Andersonハミルトニアンであり、「最大カットを求める」ことは
+  「基底状態を求める」ことです。同じ一文が、組合せ最適化器と
+  乱れた磁性体の両方を記述しています。
+```
+
+**注目すべき点。** Pauli形と総当たりのカット値表は*ちょうど*0で一致します。写像が近似ではなく恒等式なので、そうならなければなりません。恒等演算子の係数は総重みの半分で、各 $Z_iZ_j$ の係数は $-w_{ij}/2$ です。
+
+本章の残りで頭に入れておくべき数値が2つあります。**ランダム推測の基準値**は $\lvert E \rvert / 2$ です。各頂点を独立に反転させれば各辺は確率1/2で切られるので、5サイクルで比0.625、8頂点グラフで0.600になります。近似比はゼロではなくこれと比べなければなりません。そして5サイクルは32通りのうち10通りが最適です。MaxCutでは縮退が典型的であり、素朴な状態空間の大きさが示唆するよりも問題が易しくなります。
+
+符号つき重みのブロックがスピングラスです。縮退した基底状態は6個、最大値は満たせる結合をすべて同時に満たせたなら到達する $+6$ に対して $+4$、平均はちょうど0です。4と6の隔たりが、測定されたフラストレーションです。
+
+* * *
+
+## 5.2 QAOAの構造
+
+### 2つの層、$2p$ 個のパラメータ
+
+QAOAはパラメータ化された状態を準備し、その中で $\hat{H}_C$ を測定します。一様重ね合わせ — 符号を除いてミキサーハミルトニアン $\hat{H}_B = \sum_i X_i$ の基底状態 — から出発し、2つのユニタリを $p$ 回交互に作用させます：
+
+$$ \lvert \psi_p(\boldsymbol{\gamma}, \boldsymbol{\beta}) \rangle = \prod_{k=1}^{p} e^{-i\beta_k \hat{H}_B}\, e^{-i\gamma_k \hat{H}_C} \; \lvert + \rangle^{\otimes n} $$
+
+目的関数は $\langle \hat{H}_C \rangle$ で、$2p$ 個の実パラメータについて古典最適化器が最大化します。これがアルゴリズムのすべてです。
+
+どちらの層も安価です。$\hat{H}_C$ は対角なので $e^{-i\gamma \hat{H}_C}$ は辺ごとの2量子ビット位相回転の積であり、各々は
+
+$$ e^{i\gamma Z_i Z_j / 2} = \mathrm{CNOT}_{i \to j}\; R_z(-\gamma)_j\; \mathrm{CNOT}_{i \to j} $$
+
+に、恒等部分からの大域位相を除いてコンパイルされます。ミキサーはすべての量子ビットへの単一量子ビット $R_x(2\beta)$ 1個です。したがってQAOA 1層のコストはCNOT $2\lvert E \rvert$ 個、$R_z$ $\lvert E \rvert$ 個、$R_x$ $n$ 個であり、深さはハードウェアのルーティング前で $\lvert E \rvert$ に線形、ルーティング後はもっと増えます。全結合でない装置では、すべての辺の両端を引き合わせるSWAPネットワークがふつう支配的なコストであり、QAOAの「ハードウェアに素直」という評価が完全に妥当なのは装置の結合と一致するグラフに限られる理由でもあります。
+
+### 断熱極限
+
+QAOAについて予想ではない漸近的な言明はこれです。補間ハミルトニアン
+
+$$ \hat{H}(s) = (1-s)\,\hat{H}_B + s\,\hat{H}_C, \qquad s: 0 \to 1 $$
+
+を考えます。断熱定理は、系が $\hat{H}(0)$ の基底状態 — これは一様重ね合わせです — から出発し、$s$ を最小スペクトルギャップの逆二乗に比べてゆっくり進めるなら、最後に $\hat{H}(1)$ の基底状態、つまり最適解に到達すると述べます。その連続的な発展をTrotter化するとちょうどQAOA回路が現れ、$\gamma_k$ が増加し $\beta_k$ が減少するスケジュールになります。したがって大きい $p$ で*固定した最適化なしの*スケジュールをもつQAOAは厳密解に収束し、パラメータを最適化したQAOAは同じ $p$ でそれ以上にしかなりません。
+
+これは本物の保証であり、切り捨てるべきではありません。しかし何を述べていないかを正確に見てください。全時間 $T$ をどれだけ大きくしなければならないかについて何も述べておらず、そして $T$ は $\hat{H}(s)$ の最小ギャップに支配され、難しい実例ではそのギャップは $n$ に対して指数的に閉じます。つまりこれはQAOAが*いつかは*厳密になることを立証しており、それは総当たり探索がいつかは厳密になるのと同じ意味です。興味ある問い — *小さい* $p$ のQAOAが古典ヒューリスティクスを打ち負かすか — には触れていません。
+
+### Code Example 3: QAOA回路と $p = 1$ のパラメータ地形
+
+```python
+"""第5章 Code Example 3: QAOA回路と p = 1 のパラメータ地形。
+Code Example 2 の続き（同一セッション）。"""
+def qaoa_state(n, edges, gammas, betas, C=None):
+    """|+...+> から出発した p = len(gammas) の |psi(gamma, beta)>"""
+    if C is None:
+        C = cut_values(n, edges)
+    psi = np.ones(2 ** n, dtype=complex) / np.sqrt(2 ** n)
+    for g, b in zip(gammas, betas):
+        psi = psi * np.exp(-1j * g * C)          # コスト層（対角）
+        for q in range(n):
+            psi = apply_gate(psi, rx(2 * b), [q], n)   # ミキサー層
+    return psi
+
+
+def cost_layer_circuit(n, edges, gamma, psi):
+    """同じコスト層を、辺ごとの CNOT . Rz(-gamma) . CNOT から組み立てます"""
+    for (i, j) in edges:
+        psi = cnot(psi, i, j, n)
+        psi = apply_gate(psi, rz(-gamma), [j], n)
+        psi = cnot(psi, i, j, n)
+    return psi * np.exp(-1j * gamma * len(edges) / 2)
+
+
+def expected_cut(psi, C):
+    return float(np.dot(probs(psi), C))
+
+
+n, edges = 5, C5
+C = cut_values(n, edges)
+Cmax = C.max()
+
+print("コスト層を2通りの方法で")
+print("=" * 70)
+psi0 = np.ones(2 ** n, dtype=complex) / np.sqrt(2 ** n)
+for gamma in (0.3, 0.9, 1.7):
+    a = psi0 * np.exp(-1j * gamma * C)
+    b = cost_layer_circuit(n, edges, gamma, psi0.copy())
+    print(f"  gamma = {gamma}:  max |対角経路 - CNOT/Rz/CNOT経路|"
+          f" = {np.max(np.abs(a - b)):.2e}")
+print(f"  回路は辺あたりCNOT 2個とRz 1個を使います: "
+      f"コスト層あたりCNOT {2*len(edges)} 個、Rz {len(edges)} 個、")
+print("  さらにミキサー層あたり n = 5 個のRxです。互いに素な辺を同一層に")
+print("  詰めれば深さは辺数に比例し、実機では隣接しない量子ビット対を")
+print("  引き合わせるSWAPの数にも比例します。")
+
+print("\nC5 上の p = 1 パラメータ地形: (gamma, beta) 格子上の <C>")
+print("-" * 70)
+gs = np.linspace(0, np.pi, 25)
+bs = np.linspace(0, np.pi / 2, 13)
+land = np.array([[expected_cut(qaoa_state(n, edges, [g], [b], C), C)
+                  for b in bs] for g in gs])
+print("  行: gamma / pi   列: beta / pi   値: <C> / C_max")
+hdr = "  gamma\\beta " + " ".join(f"{b/np.pi:6.3f}" for b in bs[::2])
+print(hdr)
+for gi in range(0, len(gs), 2):
+    row = " ".join(f"{land[gi, bi]/Cmax:6.3f}" for bi in range(0, len(bs), 2))
+    print(f"  {gs[gi]/np.pi:10.3f} {row}")
+gi, bi = np.unravel_index(np.argmax(land), land.shape)
+print(f"\n  格子上の最大: gamma = {gs[gi]:.4f}, beta = {bs[bi]:.4f},"
+      f" <C> = {land[gi, bi]:.6f}, 比 = {land[gi, bi]/Cmax:.6f}")
+print(f"  地形の範囲: <C>/C_max は {land.min()/Cmax:.4f}"
+      f" から {land.max()/Cmax:.4f} まで")
+print("  この窓の中では曲面は滑らかかつ周期的で、広い最適領域が1つあります。")
+print("  p = 1 ならそれは容易に見つかります。困難さは大きい p についての話です。")
+
+res = minimize(lambda x: -expected_cut(qaoa_state(n, edges, x[:1], x[1:], C), C),
+               x0=[gs[gi], bs[bi]], method='Nelder-Mead',
+               options={'xatol': 1e-8, 'fatol': 1e-10, 'maxfev': 2000})
+print(f"\n  磨き上げた p = 1 の最適点: gamma = {res.x[0]:.6f},"
+      f" beta = {res.x[1]:.6f}, <C> = {-res.fun:.6f},"
+      f" 比 = {-res.fun/Cmax:.6f}")
+psi_best = qaoa_state(n, edges, res.x[:1], res.x[1:], C)
+pr = probs(psi_best)
+opt_mask = (C == Cmax)
+print(f"  最適なビット列に当たる確率 = "
+      f"{pr[opt_mask].sum():.6f}  ({2**n} 通りのうち {int(opt_mask.sum())} 個)")
+sh = sample(psi_best, 1000, seed=7)
+top6 = sorted(sh.items(), key=lambda kv: -kv[1])[:6]
+print("  1000ショット、頻度上位6つの測定結果:")
+for b, ct in top6:
+    print(f"    |{b}>  {ct:4d}   cut = {C[int(b, 2)]:.0f}"
+          f"{'  <- 最適' if C[int(b, 2)] == Cmax else ''}")
+```
+
+```text
+コスト層を2通りの方法で
+======================================================================
+  gamma = 0.3:  max |対角経路 - CNOT/Rz/CNOT経路| = 8.89e-17
+  gamma = 0.9:  max |対角経路 - CNOT/Rz/CNOT経路| = 3.47e-17
+  gamma = 1.7:  max |対角経路 - CNOT/Rz/CNOT経路| = 3.10e-17
+  回路は辺あたりCNOT 2個とRz 1個を使います: コスト層あたりCNOT 10 個、Rz 5 個、
+  さらにミキサー層あたり n = 5 個のRxです。互いに素な辺を同一層に
+  詰めれば深さは辺数に比例し、実機では隣接しない量子ビット対を
+  引き合わせるSWAPの数にも比例します。
+
+C5 上の p = 1 パラメータ地形: (gamma, beta) 格子上の <C>
+----------------------------------------------------------------------
+  行: gamma / pi   列: beta / pi   値: <C> / C_max
+  gamma\beta  0.000  0.083  0.167  0.250  0.333  0.417  0.500
+       0.000  0.625  0.625  0.625  0.625  0.625  0.625  0.625
+       0.083  0.625  0.760  0.760  0.625  0.490  0.490  0.625
+       0.167  0.625  0.859  0.859  0.625  0.391  0.391  0.625
+       0.250  0.625  0.896  0.896  0.625  0.354  0.354  0.625
+       0.333  0.625  0.859  0.859  0.625  0.391  0.391  0.625
+       0.417  0.625  0.760  0.760  0.625  0.490  0.490  0.625
+       0.500  0.625  0.625  0.625  0.625  0.625  0.625  0.625
+       0.583  0.625  0.490  0.490  0.625  0.760  0.760  0.625
+       0.667  0.625  0.391  0.391  0.625  0.859  0.859  0.625
+       0.750  0.625  0.354  0.354  0.625  0.896  0.896  0.625
+       0.833  0.625  0.391  0.391  0.625  0.859  0.859  0.625
+       0.917  0.625  0.490  0.490  0.625  0.760  0.760  0.625
+       1.000  0.625  0.625  0.625  0.625  0.625  0.625  0.625
+
+  格子上の最大: gamma = 2.3562, beta = 1.1781, <C> = 3.750000, 比 = 0.937500
+  地形の範囲: <C>/C_max は 0.3125 から 0.9375 まで
+  この窓の中では曲面は滑らかかつ周期的で、広い最適領域が1つあります。
+  p = 1 ならそれは容易に見つかります。困難さは大きい p についての話です。
+
+  磨き上げた p = 1 の最適点: gamma = 2.356194, beta = 1.178097, <C> = 3.750000, 比 = 0.937500
+  最適なビット列に当たる確率 = 0.878906  (32 通りのうち 10 個)
+  1000ショット、頻度上位6つの測定結果:
+    |01001>   105   cut = 4  <- 最適
+    |00101>    93   cut = 4  <- 最適
+    |01011>    90   cut = 4  <- 最適
+    |01101>    89   cut = 4  <- 最適
+    |10101>    89   cut = 4  <- 最適
+    |11010>    88   cut = 4  <- 最適
+```
+
+**注目すべき点。** コンパイルしたコスト層と対角位相が $10^{-16}$ で一致するので、CNOT-$R_z$-CNOT の恒等式は主張ではなく検証済みです。これが重要なのは、以降の章では速度のために対角経路を使うからで、符号の規約が実機で走らせる回路とずれることは容易に起こりえます。
+
+地形の表は絵として読む価値があります。滑らかで、$\gamma$ に周期 $\pi$、$\beta$ に周期 $\pi/2$ をもち、$(\gamma, \beta) \to (\pi - \gamma, \pi/2 - \beta)$ について対称で、針状ではなく広い最適領域をもちます。値はランダム推測より*悪い* 0.3125 から 0.9375 まで分布します。$p = 1$ では2次元の格子探索が即座に最適点を見つけ、磨き上げた値 $\langle C \rangle = 3.75$ ちょうど、比 $3/4$ は5サイクルについて知られた閉形式の結果です。
+
+最後のブロックがその状態の正直な読み方です。最適なビット列を測る確率は0.879なので、*期待値*が最適の4分の3しかなくても、10ショットのうち9ショットは最大カットに当たります。この2つの数値の隔たりがQAOAの評価について理解すべき最重要の点であり、5.4節はそれを軸に組み立てられています。
+
+* * *
+
+## 5.3 小グラフでの実装
+
+### 深さが何を買うか
+
+分かりやすいつまみは $p$ です。層を1つ足すごとにパラメータが2つとハミルトニアン指数関数の対が1つ増え、変分族は下の族を真に含む（$\gamma_{p+1} = \beta_{p+1} = 0$ とすればよい）ので、最適比は $p$ について単調非減少です。問題はその速さです。
+
+### Code Example 4: $p = 1, 2, 3$ と断熱極限
+
+```python
+"""第5章 Code Example 4: p = 1, 2, 3 と断熱極限。
+Code Example 3 の続き（同一セッション）。"""
+def optimise_qaoa(n, edges, p, C, restarts=3, seed=0, maxfev=400):
+    """`restarts` 個の初期点からのNelder-Mead。(最良の <C>, パラメータ, 評価回数) を返します"""
+    rng = np.random.default_rng(seed)
+    calls = [0]
+
+    def neg(x):
+        calls[0] += 1
+        return -expected_cut(qaoa_state(n, edges, x[:p], x[p:], C), C)
+
+    best = (-np.inf, None)
+    for r in range(restarts):
+        if r == 0:
+            x0 = np.concatenate([np.linspace(0.2, 0.8, p) * np.pi / 2,
+                                 np.linspace(0.8, 0.2, p) * np.pi / 4])
+        else:
+            x0 = np.concatenate([rng.uniform(0, np.pi, p),
+                                 rng.uniform(0, np.pi / 2, p)])
+        r_ = minimize(neg, x0=x0, method='Nelder-Mead',
+                      options={'maxfev': maxfev, 'fatol': 1e-9, 'xatol': 1e-7})
+        if -r_.fun > best[0]:
+            best = (-r_.fun, r_.x)
+    return best[0], best[1], calls[0]
+
+
+print("2つのグラフ上での p = 1, 2, 3 のQAOA")
+print("=" * 70)
+print(f"{'graph':>6} {'p':>3} {'params':>7} {'<C>':>10} {'C_max':>7}"
+      f" {'ratio':>8} {'P(optimal)':>11} {'best of 1000 shots':>19} {'evals':>7}")
+STORE = {}
+for name, nn, ee in [("C5", 5, C5), ("G8", 8, G8)]:
+    CC = cut_values(nn, ee)
+    cmx = CC.max()
+    for p in (1, 2, 3):
+        val, x, ev = optimise_qaoa(nn, ee, p, CC, restarts=3, seed=100 + p)
+        psi = qaoa_state(nn, ee, x[:p], x[p:], CC)
+        pr = probs(psi)
+        popt = pr[CC == cmx].sum()
+        sh = sample(psi, 1000, seed=3)
+        bestshot = max(CC[int(k, 2)] for k in sh)
+        STORE[(name, p)] = (val / cmx, popt, bestshot / cmx)
+        print(f"{name:>6} {p:3d} {2*p:7d} {val:10.5f} {cmx:7.0f}"
+              f" {val/cmx:8.5f} {popt:11.5f} {bestshot/cmx:19.5f} {ev:7d}")
+print("\n  期待値の比は p とともに、ゆっくり上がります。'best of 1000 shots'")
+print("  の列こそ実務家が実際に報告する数値であり、期待値よりずっと早く最適に")
+print("  達します。だからこそ <C>/C_max はQAOAを過小評価しており、だからこそ")
+print("  サンプリングのコストを併記しなければなりません。")
+
+print("\n断熱極限は実在します: 大きい p での線形スケジュール")
+print("-" * 70)
+print("  gamma_k = (k/p) dt,  beta_k = (1 - k/p) dt,  dt = T/p:")
+print("  ミキサーからコストハミルトニアンへのTrotter化された補間です。")
+print(f"{'graph':>6} {'p':>5} {'T':>6} {'<C>/C_max':>11} {'P(optimal)':>11}")
+for name, nn, ee in [("C5", 5, C5), ("G8", 8, G8)]:
+    CC = cut_values(nn, ee)
+    cmx = CC.max()
+    for p, T in [(5, 2.0), (10, 4.0), (20, 8.0), (40, 16.0), (80, 32.0)]:
+        k = np.arange(1, p + 1)
+        dt = T / p
+        gam = (k / p) * dt
+        bet = (1 - k / p) * dt + 1e-12
+        psi = qaoa_state(nn, ee, gam, bet, CC)
+        pr = probs(psi)
+        print(f"{name:>6} {p:5d} {T:6.1f} {expected_cut(psi, CC)/cmx:11.5f}"
+              f" {pr[CC == cmx].sum():11.5f}")
+print("  最適化器は一切使っていません。スケジュールは事前に固定されており、")
+print("  T と p をともに大きくすると比は1へ登っていきます。これが断熱定理であり、")
+print("  QAOAの漸近的性質について得られる唯一の厳密な言明です。ただしこれは")
+print("  T をどれだけ大きくしなければならないかについて何も語りません。そこに")
+print("  補間ハミルトニアンのギャップが入ってきて、難しい実例ではそのギャップは")
+print("  指数的に閉じます。")
+```
+
+```text
+2つのグラフ上での p = 1, 2, 3 のQAOA
+======================================================================
+ graph   p  params        <C>   C_max    ratio  P(optimal)  best of 1000 shots   evals
+    C5   1       2    3.75000       4  0.93750     0.87891             1.00000     338
+    C5   2       4    4.00000       4  1.00000     1.00000             1.00000    1088
+    C5   3       6    4.00000       4  1.00000     1.00000             1.00000    1095
+    G8   1       2    7.99684      10  0.79968     0.14507             1.00000     339
+    G8   2       4    8.85754      10  0.88575     0.34841             1.00000     911
+    G8   3       6    9.31716      10  0.93172     0.51657             1.00000    1200
+
+  期待値の比は p とともに、ゆっくり上がります。'best of 1000 shots'
+  の列こそ実務家が実際に報告する数値であり、期待値よりずっと早く最適に
+  達します。だからこそ <C>/C_max はQAOAを過小評価しており、だからこそ
+  サンプリングのコストを併記しなければなりません。
+
+断熱極限は実在します: 大きい p での線形スケジュール
+----------------------------------------------------------------------
+  gamma_k = (k/p) dt,  beta_k = (1 - k/p) dt,  dt = T/p:
+  ミキサーからコストハミルトニアンへのTrotter化された補間です。
+ graph     p      T   <C>/C_max  P(optimal)
+    C5     5    2.0     0.87205     0.74698
+    C5    10    4.0     0.94929     0.89892
+    C5    20    8.0     0.99816     0.99633
+    C5    40   16.0     0.99939     0.99877
+    C5    80   32.0     0.99986     0.99971
+    G8     5    2.0     0.80330     0.14384
+    G8    10    4.0     0.87502     0.29453
+    G8    20    8.0     0.94953     0.59814
+    G8    40   16.0     0.99041     0.90769
+    G8    80   32.0     0.99854     0.98565
+  最適化器は一切使っていません。スケジュールは事前に固定されており、
+  T と p をともに大きくすると比は1へ登っていきます。これが断熱定理であり、
+  QAOAの漸近的性質について得られる唯一の厳密な言明です。ただしこれは
+  T をどれだけ大きくしなければならないかについて何も語りません。そこに
+  補間ハミルトニアンのギャップが入ってきて、難しい実例ではそのギャップは
+  指数的に閉じます。
+```
+
+**注目すべき点。** 5サイクルでは $p = 2$ で確率1で厳密な最適解に到達します。8頂点グラフでは期待値の比が $p = 1, 2, 3$ で0.800、0.886、0.932 と進みます。実質的な進歩で1層あたり約9ポイントと5ポイント、そして減速は明らかです。
+
+`best of 1000 shots` の列は全行で1.00000 であり、期待値が0.800、最適ビット列の確率が0.145しかない8頂点グラフの $p = 1$ も含みます。1ショットあたりの成功確率が0.145なら、1000ショットで最適を外す確率は $(1-0.145)^{1000} \approx 10^{-68}$ です。これは些細な話ではなく、QAOAが実務でどう使われるかそのものであり、**期待値の近似比はショット予算を併記しない限り指標にならない**という意味です。同時にあらゆる比較が通貨を固定しなければならないという意味でもあり、5.4節がそれを行います。
+
+断熱の表がこの節の主要な肯定的結果で、最適化器を一切使っていません。スケジュールは事前に書き下されており — $\gamma_k$ が線形に上がり、$\beta_k$ が線形に下がり、全時間 $T$ を $p$ とともに増やす — 比は $p = 80$ で5サイクル0.9999、8頂点グラフ0.9985 まで単調に登ります。断熱定理は約束どおりのことをきちんとやっています。代価は深さ80層の回路で、最小のグラフ以外では現行ハードウェアの手に余ります。しかも必要な $T$ は、難しい実例では誰も事前に計算できないギャップの逆二乗とともに増えます。
+
+### パラメータの集中
+
+QAOAには、本当に有用でありながら時に「威力の証拠」と誤解される、際立った経験的性質があります。同じ族 — 同じ $n$、同じ辺密度 — から引いたランダム実例に対して、*最適角度*がほぼ同じになるのです。つまり高価な変分最適化を1度だけ行って得た角度を転用でき、実行時間から古典外側ループをほぼ完全に取り除けます。
+
+### Code Example 5: 最適な角度は実例に依るのか
+
+```python
+"""第5章 Code Example 5: 最適な角度は実例に依るのか。
+Code Example 4 の続き（同一セッション）。"""
+def random_graph(n, prob, rng):
+    e = [(i, j) for i in range(n) for j in range(i + 1, n)
+         if rng.random() < prob]
+    return e
+
+
+print("p = 1 の最適な角度は実例に依るのか")
+print("=" * 70)
+rng = np.random.default_rng(2026)
+INST = []
+while len(INST) < 20:
+    e = random_graph(10, 0.5, rng)
+    deg = np.zeros(10, dtype=int)
+    for (i, j) in e:
+        deg[i] += 1
+        deg[j] += 1
+    if deg.min() > 0:
+        INST.append(e)
+
+print(f"  Erdos-Renyiグラフ20個、n = 10、辺の確率0.5")
+print(f"{'inst':>5} {'|E|':>4} {'C_max':>6} {'gamma*':>9} {'beta*':>9}"
+      f" {'ratio':>8}")
+angs = []
+for k, e in enumerate(INST):
+    CC = cut_values(10, e)
+    cmx = CC.max()
+    val, x, _ = optimise_qaoa(10, e, 1, CC, restarts=4, seed=7 + k, maxfev=300)
+    angs.append((x[0] % np.pi, x[1] % (np.pi / 2), val / cmx))
+    if k < 8 or k > 17:
+        print(f"{k:5d} {len(e):4d} {cmx:6.0f} {angs[-1][0]:9.5f}"
+              f" {angs[-1][1]:9.5f} {val/cmx:8.5f}")
+    elif k == 8:
+        print(f"{'...':>5}")
+A = np.array(angs)
+print(f"\n  gamma* : 平均 {A[:,0].mean():.5f}, 標準偏差 {A[:,0].std():.5f}"
+      f"  (ばらつき/平均 = {A[:,0].std()/A[:,0].mean():.3f})")
+print(f"  beta*  : 平均 {A[:,1].mean():.5f}, 標準偏差 {A[:,1].std():.5f}"
+      f"  (ばらつき/平均 = {A[:,1].std()/A[:,1].mean():.3f})")
+print(f"  比     : 平均 {A[:,2].mean():.5f}, 標準偏差 {A[:,2].std():.5f},"
+      f" 最小 {A[:,2].min():.5f}, 最大 {A[:,2].max():.5f}")
+
+med = np.median(A[:, :2], axis=0)
+tr = []
+for k, e in enumerate(INST):
+    CC = cut_values(10, e)
+    psi = qaoa_state(10, e, [med[0]], [med[1]], CC)
+    tr.append(expected_cut(psi, CC) / CC.max())
+tr = np.array(tr)
+print(f"\n  中央値の角度 ({med[0]:.5f}, {med[1]:.5f}) を、最適化を一切せずに")
+print(f"  全実例へ転用すると平均比は {tr.mean():.5f} で、実例ごとに個別に")
+print(f"  最適化した場合の {A[:,2].mean():.5f} に対し、"
+      f"損失はわずか {100*(A[:,2].mean()-tr.mean()):.2f} ポイントです。")
+print("  パラメータの集中は本物で有用な性質です。最適化コストを実例間で")
+print("  償却できます。同時にこれは、p = 1 では変分探索がさほど仕事を")
+print("  していないことも意味します。")
+```
+
+```text
+p = 1 の最適な角度は実例に依るのか
+======================================================================
+  Erdos-Renyiグラフ20個、n = 10、辺の確率0.5
+ inst  |E|  C_max    gamma*     beta*    ratio
+    0   24     18   0.43784   0.31582  0.80459
+    1   23     19   0.46019   0.34194  0.75108
+    2   18     14   0.51308   0.34200  0.81710
+    3   26     20   0.40989   0.30491  0.77398
+    4   22     17   0.45872   0.33310  0.79808
+    5   21     16   0.44667   0.31171  0.79352
+    6   22     18   0.47126   0.34493  0.76263
+    7   21     16   0.46420   0.32309  0.80738
+  ...
+   18   17     13   0.52516   0.33362  0.82539
+   19   24     16   0.40780   0.28816  0.88294
+
+  gamma* : 平均 0.46939, 標準偏差 0.04411  (ばらつき/平均 = 0.094)
+  beta*  : 平均 0.32492, 標準偏差 0.01795  (ばらつき/平均 = 0.055)
+  比     : 平均 0.81687, 標準偏差 0.03343, 最小 0.75108, 最大 0.88294
+
+  中央値の角度 (0.46045, 0.33114) を、最適化を一切せずに
+  全実例へ転用すると平均比は 0.81500 で、実例ごとに個別に
+  最適化した場合の 0.81687 に対し、損失はわずか 0.19 ポイントです。
+  パラメータの集中は本物で有用な性質です。最適化コストを実例間で
+  償却できます。同時にこれは、p = 1 では変分探索がさほど仕事を
+  していないことも意味します。
+```
+
+**注目すべき点。** 10頂点のErdős-Rényiグラフ20個にわたり、最適な $\gamma^{\ast}$ の相対ばらつきは9.4%、$\beta^{\ast}$ は5.5%です。*中央値*の角度を最適化を一切せずに全実例へ転用すると、平均近似比の損失は0.19ポイント、0.81687に対して0.81500 です。
+
+これは両方向に読んでください。どちらの読み方も正しいのです。肯定的には、パラメータの集中は本物で有用であり、QAOAの古典側オーバーヘッドを償却できるという意味です。実例ごとの調整が必要な手法に対する真の実務的利点です。否定的には、固定した角度の対が完全な最適化の99.8%の性能を出すなら、$p = 1$ の変分ループはさほど仕事をしておらず、QAOAが実例を「学習している」と述べるのは起きていることを大げさに言い過ぎです。集中には疎なランダムグラフについて既知の説明 — どの辺から見た局所構造も実例間で統計的に同じ — もあるので、これはアルゴリズムの威力についてではなく実例の族についての言明です。
+
+* * *
+
+## 5.4 誠実な評価
+
+### 数値を見る前にルールを述べる
+
+評価規律は[量子機械学習入門](<../../MI/quantum-machine-learning-introduction/index.html>)コースからそのまま輸入します。破綻モードが同一だからです。ルールは4つで、いずれの結果も見る前に固定します。
+
+**予算の通貨を1つにする。** どの手法も目的関数の評価回数が同じです。古典ヒューリスティクスでは1評価は1つのカット値 $C(z)$、QAOAでは1評価は $\langle \hat{H}_C \rangle$ の推定1回であり、しかもQAOAには状態ベクトルからの*厳密な*期待値を与えます。これは実機が提供しない資源です。ハンディキャップは意図的にQAOA有利に置いてあります。
+
+**自明なベースラインと強いベースライン。** 自明なベースラインは $\lvert E \rvert / 2$ のランダム推測です。強いベースラインは貪欲構成法、再開始つき1反転局所探索、焼きなまし法、Goemans-Williamson丸めです。量子手法が15行の局所探索に勝てないなら、最先端ソルバーとの比較は走らせる価値がありません。
+
+**すべての差に対応のある区間を付ける。** 20実例で測った近似比は確率変数です。2手法の差は*同じ*実例を両方について再標本化して評価します。対応づけが、さもなければすべてを覆い隠す実例間分散を除くからです。
+
+**ショットの請求書を報告する。** 厳密な状態ベクトル期待値から得た比は数学についての言明です。それが実機で回路の繰り返しとしていくらかかったかは別の数値であり、必ず載せなければなりません。
+
+### Goemans-Williamsonベンチマークを正しく述べる
+
+Goemans-Williamsonアルゴリズムは、MaxCutを半正定値計画に緩和します。各 $z_i \in \lbrace -1, +1 \rbrace$ を単位ベクトル $v_i$ に置き換えて $\sum_{(i,j) \in E} w_{ij}(1 - v_i \cdot v_j)/2$ を最大化し、SDPを多項式時間で解いてから、原点を通るランダム超平面を引いてどちら側に落ちたかで頂点を割り当てて丸めます。保証は
+
+$$ \mathbb{E}\left[\text{カット}\right] \ge 0.87856 \times \mathrm{OPT} $$
+
+です。この数値については3つの点が日常的に取り違えられます。これはランダム超平面についての期待値であり、毎回の実行についての限界ではありません。これは*最悪ケース*の保証であり、典型的な実例ではGW丸めはずっと良く、しばしば厳密な最適解を見つけます。そしてこれは未知の真の最適値に対する限界です。SDP値はOPTの上界なので、OPTを知らなくても実際に比を検証できます。unique games予想の下で0.87856は任意の多項式時間アルゴリズムにとって最適なので、最悪ケースでこれを確実に上回るヒューリスティクスは、量子であれ古典であれ、古典計算量理論の大きな成果になります。
+
+### Code Example 6: 同予算でのQAOAと古典ヒューリスティクスの比較
+
+```python
+"""第5章 Code Example 6: 同予算でのQAOAと古典ヒューリスティクスの比較。
+Code Example 5 の続き（同一セッション）。"""
+print("誠実な比較: 同予算でのQAOAと古典ヒューリスティクス")
+print("=" * 70)
+
+
+class Objective:
+    """自分の呼び出し回数を数えるカット評価器。これが予算の通貨です"""
+
+    def __init__(self, n, edges):
+        self.n, self.edges, self.calls = n, edges, 0
+
+    def __call__(self, bits):
+        self.calls += 1
+        return sum(1 for (i, j) in self.edges if bits[i] != bits[j])
+
+
+def greedy(obj, rng):
+    """頂点をランダムな順に、その時点でより良い側へ割り当てます"""
+    bits = [0] * obj.n
+    order = rng.permutation(obj.n)
+    for v in order[1:]:
+        bits[v] = 0
+        a = obj(bits)
+        bits[v] = 1
+        b = obj(bits)
+        bits[v] = 1 if b >= a else 0
+    return obj(bits)
+
+
+def local_search(obj, rng, budget):
+    """1ビット反転の山登り法。予算を使い切るまでランダム再開始します"""
+    best = -1
+    while obj.calls < budget:
+        bits = list(rng.integers(0, 2, obj.n))
+        cur = obj(bits)
+        improved = True
+        while improved and obj.calls < budget:
+            improved = False
+            for v in range(obj.n):
+                if obj.calls >= budget:
+                    break
+                bits[v] ^= 1
+                cand = obj(bits)
+                if cand > cur:
+                    cur, improved = cand, True
+                else:
+                    bits[v] ^= 1
+        best = max(best, cur)
+    return best
+
+
+def annealing(obj, rng, budget, T0=2.0, T1=0.02):
+    """等比温度スケジュールによるMetropolis 1反転焼きなまし法"""
+    bits = list(rng.integers(0, 2, obj.n))
+    cur = obj(bits)
+    best = cur
+    steps = max(1, budget - obj.calls)
+    for s in range(steps):
+        if obj.calls >= budget:
+            break
+        T = T0 * (T1 / T0) ** (s / steps)
+        v = int(rng.integers(obj.n))
+        bits[v] ^= 1
+        cand = obj(bits)
+        if cand >= cur or rng.random() < np.exp((cand - cur) / T):
+            cur = cand
+            best = max(best, cur)
+        else:
+            bits[v] ^= 1
+    return best
+
+
+def gw_rounding(n, edges, rng, hyperplanes=100, iters=300):
+    """Goemans-Williamson法: 不動点反復でランク n 緩和を解き、
+    ランダム超平面で丸めます。(最良カット, SDP上界) を返します"""
+    V = rng.normal(size=(n, n))
+    V /= np.linalg.norm(V, axis=1, keepdims=True)
+    adj = [[] for _ in range(n)]
+    for (i, j) in edges:
+        adj[i].append(j)
+        adj[j].append(i)
+    for _ in range(iters):
+        for i in range(n):
+            g = -sum(V[j] for j in adj[i])
+            nrm = np.linalg.norm(g)
+            if nrm > 1e-12:
+                V[i] = g / nrm
+    sdp = sum((1 - V[i] @ V[j]) / 2 for (i, j) in edges)
+    best = 0
+    for _ in range(hyperplanes):
+        r = rng.normal(size=n)
+        s = np.sign(V @ r)
+        best = max(best, sum(1 for (i, j) in edges if s[i] != s[j]))
+    return best, sdp
+
+
+BUDGET = 300
+SHOTS = 1000
+rows = []
+rngc = np.random.default_rng(31337)
+for k, e in enumerate(INST):
+    CC = cut_values(10, e)
+    cmx = CC.max()
+    rec = {'inst': k, 'E': len(e), 'cmax': cmx}
+    # --- QAOA、p = 1..3、予算 = BUDGET 回の期待値評価
+    for p in (1, 2, 3):
+        val, x, _ = optimise_qaoa(10, e, p, CC, restarts=1, seed=500 + k,
+                                  maxfev=BUDGET)
+        psi = qaoa_state(10, e, x[:p], x[p:], CC)
+        sh = sample(psi, SHOTS, seed=11 + k)
+        rec[f'qaoa{p}'] = val / cmx
+        rec[f'qaoa{p}_shot'] = max(CC[int(b, 2)] for b in sh) / cmx
+    # --- 古典手法、予算 = BUDGET 回のカット評価
+    ob = Objective(10, e)
+    rec['greedy'] = max(greedy(ob, rngc) for _ in range(BUDGET // 20)) / cmx
+    ob = Objective(10, e)
+    rec['local'] = local_search(ob, rngc, BUDGET) / cmx
+    ob = Objective(10, e)
+    rec['sa'] = annealing(ob, rngc, BUDGET) / cmx
+    gwc, sdp = gw_rounding(10, e, rngc)
+    rec['gw'] = gwc / cmx
+    rec['sdp'] = sdp / cmx
+    rows.append(rec)
+
+KEYS = ['qaoa1', 'qaoa2', 'qaoa3', 'qaoa3_shot',
+        'greedy', 'local', 'sa', 'gw']
+LABEL = {'qaoa1': 'QAOA p=1 <C>', 'qaoa2': 'QAOA p=2 <C>',
+         'qaoa3': 'QAOA p=3 <C>', 'qaoa3_shot': 'QAOA p=3 best-of-1000',
+         'greedy': 'greedy (15 restarts)', 'local': '1-flip local search',
+         'sa': 'simulated annealing', 'gw': 'GW rounding'}
+
+print(f"  実例20個、n = 10、どの手法も予算は目的関数評価 {BUDGET} 回")
+print(f"  QAOAには厳密な期待値を {BUDGET} 回与えています。実機には"
+      "存在しない資源です")
+print(f"{'method':>24} {'mean ratio':>11} {'std':>8} {'min':>7}"
+      f" {'#optimal':>9}")
+means = {}
+for key in KEYS:
+    v = np.array([r[key] for r in rows])
+    means[key] = v
+    print(f"{LABEL[key]:>24} {v.mean():11.5f} {v.std():8.5f} {v.min():7.5f}"
+          f" {int((v > 0.99999).sum()):9d}")
+sdpv = np.array([r['sdp'] for r in rows])
+print(f"{'SDP relaxation bound':>24} {sdpv.mean():11.5f} {sdpv.std():8.5f}"
+      f" {sdpv.min():7.5f} {'-':>9}")
+print("\n  Goemans-Williamsonの保証は、厳密なSDPとランダム超平面丸めに対して")
+print("  期待値で最適値の0.87856倍です。上の古典手法の行はどれもこれらの実例で")
+print("  余裕をもってこれを超えています。この種の保証が実際にどう見えるかが")
+print("  ここに表れています。最悪ケースであって典型ケースではないのです。")
+```
+
+```text
+誠実な比較: 同予算でのQAOAと古典ヒューリスティクス
+======================================================================
+  実例20個、n = 10、どの手法も予算は目的関数評価 300 回
+  QAOAには厳密な期待値を 300 回与えています。実機には存在しない資源です
+                  method  mean ratio      std     min  #optimal
+            QAOA p=1 <C>     0.81687  0.03343 0.75108         0
+            QAOA p=2 <C>     0.88320  0.02852 0.82981         0
+            QAOA p=3 <C>     0.91892  0.02437 0.86576         0
+   QAOA p=3 best-of-1000     1.00000  0.00000 1.00000        20
+    greedy (15 restarts)     0.98080  0.02987 0.91667        14
+     1-flip local search     1.00000  0.00000 1.00000        20
+     simulated annealing     0.99643  0.01557 0.92857        19
+             GW rounding     1.00000  0.00000 1.00000        20
+    SDP relaxation bound     1.04045  0.02671 1.00000         -
+
+  Goemans-Williamsonの保証は、厳密なSDPとランダム超平面丸めに対して
+  期待値で最適値の0.87856倍です。上の古典手法の行はどれもこれらの実例で
+  余裕をもってこれを超えています。この種の保証が実際にどう見えるかが
+  ここに表れています。最悪ケースであって典型ケースではないのです。
+```
+
+### Code Example 7: 対応のある統計、予算の走査、そしてショットの請求書
+
+```python
+"""第5章 Code Example 7: 対応のある統計、予算の走査、そしてショットの請求書。
+Code Example 6 の続き（同一セッション）。"""
+
+
+def paired_bootstrap(a, b, B=20000, seed=0, alpha=0.05):
+    """実例を対応づけて再標本化し、mean(a - b) のパーセンタイル信頼区間を返します"""
+    d = np.asarray(a) - np.asarray(b)
+    rg = np.random.default_rng(seed)
+    idx = rg.integers(0, len(d), size=(B, len(d)))
+    boot = d[idx].mean(axis=1)
+    lo, hi = np.percentile(boot, [100 * alpha / 2, 100 * (1 - alpha / 2)])
+    return d.mean(), lo, hi
+
+
+print("\n同一の20実例を再標本化した、差の対応のあるブートストラップ")
+print("-" * 70)
+print(f"{'comparison':>44} {'mean diff':>10} {'95% CI':>22} {'verdict':>9}")
+pairs = [('sa', 'qaoa3'), ('local', 'qaoa3'), ('greedy', 'qaoa3'),
+         ('gw', 'qaoa3'), ('sa', 'qaoa3_shot'), ('gw', 'qaoa3_shot'),
+         ('local', 'qaoa3_shot'), ('qaoa3', 'qaoa1')]
+for si, (a, b) in enumerate(pairs):
+    m, lo, hi = paired_bootstrap(means[a], means[b], seed=1000 + si)
+    verdict = 'resolved' if lo > 0 or hi < 0 else 'no call'
+    print(f"{LABEL[a] + '  -  ' + LABEL[b]:>44} {m:+10.5f}"
+          f" {f'[{lo:+.5f}, {hi:+.5f}]':>22} {verdict:>9}")
+
+print("\n判定が予算にどう依存するか")
+print("-" * 70)
+print(f"{'budget':>8} {'QAOA p=3 <C>':>13} {'greedy':>9} {'local':>9}"
+      f" {'SA':>9} {'GW':>9}")
+rngs = np.random.default_rng(99991)
+for B in (20, 40, 80, 160, 320):
+    q, g, lo_, sa_ = [], [], [], []
+    for k, e in enumerate(INST):
+        CC = cut_values(10, e)
+        cmx = CC.max()
+        val, x, _ = optimise_qaoa(10, e, 3, CC, restarts=1, seed=500 + k,
+                                  maxfev=B)
+        q.append(val / cmx)
+        ob = Objective(10, e)
+        g.append(max(greedy(ob, rngs) for _ in range(max(1, B // 20))) / cmx)
+        ob = Objective(10, e)
+        lo_.append(local_search(ob, rngs, B) / cmx)
+        ob = Objective(10, e)
+        sa_.append(annealing(ob, rngs, B) / cmx)
+    gw_ = [gw_rounding(10, e, rngs, hyperplanes=max(1, B // 3))[0]
+           / cut_values(10, e).max() for e in INST]
+    print(f"{B:8d} {np.mean(q):13.5f} {np.mean(g):9.5f} {np.mean(lo_):9.5f}"
+          f" {np.mean(sa_):9.5f} {np.mean(gw_):9.5f}")
+print("  GWは同じ通貨で予算を揃えていません。緩和問題を解く部分は固定コストで、")
+print("  予算に比例するのは丸めの超平面の本数だけです。ここに載せているのは")
+print("  0.878が標準ベンチマークだからで、予算が揃っているからではありません。")
+print("  1反転局所探索は、これらの実例すべてでカット評価40回で厳密な最適値に")
+print("  到達します。QAOA p = 3 は厳密な期待値320回でも0.92に達していません。")
+print("  状態ベクトルシミュレータに載る実例は、古典ヒューリスティクスが厳密に")
+print("  解いてしまう実例です。これ自体が最適化で量子優位を示すうえでの中心的な")
+print("  障害であり、シミュレータを速くしても解消しません。")
+
+print("\n上の表が隠しているショットの請求書")
+print("-" * 70)
+print(f"{'method':>26} {'objective evals':>16} {'cut evaluations on hardware':>29}")
+print(f"{'QAOA p=3 (<C>)':>26} {BUDGET:16d} "
+      f"{BUDGET*SHOTS:29d}")
+print(f"{'QAOA p=3 (best of shots)':>26} {BUDGET:16d} "
+      f"{BUDGET*SHOTS + SHOTS:29d}")
+for key in ('greedy', 'local', 'sa'):
+    print(f"{LABEL[key]:>26} {BUDGET:16d} {BUDGET:29d}")
+print(f"{'exhaustive enumeration':>26} {2**10:16d} {2**10:29d}")
+print("\n  n = 10 では、1024通りすべてを列挙するコストは、1000ショットでの")
+print("  QAOAの期待値1個分より小さいのです。これは漸近論の話ではありません。")
+print("  実際に走らせている実例の算術であり、同予算比較がその通貨を明示")
+print("  しなければならない理由です。MaxCutについて、QAOAが古典ヒューリスティクス")
+print("  より漸近的に優位であるという証明は知られていません。")
+```
+
+```text
+
+同一の20実例を再標本化した、差の対応のあるブートストラップ
+----------------------------------------------------------------------
+                                  comparison  mean diff                 95% CI   verdict
+        simulated annealing  -  QAOA p=3 <C>   +0.07750   [+0.06611, +0.08922]  resolved
+        1-flip local search  -  QAOA p=3 <C>   +0.08108   [+0.07053, +0.09195]  resolved
+       greedy (15 restarts)  -  QAOA p=3 <C>   +0.06188   [+0.04675, +0.07655]  resolved
+                GW rounding  -  QAOA p=3 <C>   +0.08108   [+0.07047, +0.09189]  resolved
+simulated annealing  -  QAOA p=3 best-of-1000   -0.00357   [-0.01071, +0.00000]   no call
+       GW rounding  -  QAOA p=3 best-of-1000   +0.00000   [+0.00000, +0.00000]   no call
+1-flip local search  -  QAOA p=3 best-of-1000   +0.00000   [+0.00000, +0.00000]   no call
+               QAOA p=3 <C>  -  QAOA p=1 <C>   +0.10206   [+0.09400, +0.11039]  resolved
+
+判定が予算にどう依存するか
+----------------------------------------------------------------------
+  budget  QAOA p=3 <C>    greedy     local        SA        GW
+      20       0.86819   0.85327   0.96357   0.93941   1.00000
+      40       0.89713   0.88589   0.97990   0.97289   1.00000
+      80       0.91217   0.93527   0.98556   0.99393   1.00000
+     160       0.91782   0.95234   1.00000   1.00000   1.00000
+     320       0.91894   0.97579   1.00000   1.00000   1.00000
+  GWは同じ通貨で予算を揃えていません。緩和問題を解く部分は固定コストで、
+  予算に比例するのは丸めの超平面の本数だけです。ここに載せているのは
+  0.878が標準ベンチマークだからで、予算が揃っているからではありません。
+  1反転局所探索は、これらの実例すべてでカット評価40回で厳密な最適値に
+  到達します。QAOA p = 3 は厳密な期待値320回でも0.92に達していません。
+  状態ベクトルシミュレータに載る実例は、古典ヒューリスティクスが厳密に
+  解いてしまう実例です。これ自体が最適化で量子優位を示すうえでの中心的な
+  障害であり、シミュレータを速くしても解消しません。
+
+上の表が隠しているショットの請求書
+----------------------------------------------------------------------
+                    method  objective evals   cut evaluations on hardware
+            QAOA p=3 (<C>)              300                        300000
+  QAOA p=3 (best of shots)              300                        301000
+      greedy (15 restarts)              300                           300
+       1-flip local search              300                           300
+       simulated annealing              300                           300
+    exhaustive enumeration             1024                          1024
+
+  n = 10 では、1024通りすべてを列挙するコストは、1000ショットでの
+  QAOAの期待値1個分より小さいのです。これは漸近論の話ではありません。
+  実際に走らせている実例の算術であり、同予算比較がその通貨を明示
+  しなければならない理由です。MaxCutについて、QAOAが古典ヒューリスティクス
+  より漸近的に優位であるという証明は知られていません。
+```
+
+**この比較が示すこと、和らげずに。** 10頂点の実例20個、目的関数評価300回の予算で：
+
+  * QAOAの $p = 3$ の期待値の比は0.919 です。1反転局所探索とGoemans-Williamson丸めは20実例すべてで1.000 に達し、焼きなまし法は0.996、再開始つき貪欲法は0.981 です。
+  * これらの差はすべて対応のあるブートストラップで解像されます。局所探索マイナスQAOA $p=3$ は $+0.081$、区間 $[+0.070, +0.092]$ で完全に0より上です。焼きなまし法も、GWも、そして — $+0.062$、$[+0.047, +0.076]$ で — *貪欲構成法*もそうです。
+  * QAOAのショット1000回最良値の比は20実例すべてで1.000 で、局所探索とGWと統計的に区別できません。これは引き分けであり、引き分けとして報告します。対応のある比較のうち3つが*no call*を返します。
+  * 予算の走査は古典手法が飽和する場所を突き止めます。局所探索と焼きなまし法はカット評価160回で全実例の厳密な最適値に達し、局所探索は20回でもすでに0.964 です。QAOA $p = 3$ は厳密な期待値320回でも0.919 を超えていません。
+  * 決定的な列はショットの請求書です。期待値1個あたり1000ショットなら、QAOAの300評価は300 000回の回路繰り返しになります。$2^{10} = 1024$ 通りすべての総当たり列挙は目的関数評価1024回 — **QAOAの期待値2個分より少ない**のです。
+
+この規模では判定は明快であり、率直に述べるべきです。**状態ベクトルシミュレータに載る実例では、古典ヒューリスティクスがMaxCutを厳密に解き、その予算はQAOAが良い期待値を出すのに要する予算より3桁小さい。** そしてこれはサイズの人工物ではありません。中心的な障害そのものです。シミュレートできるほど小さい実例は古典手法が易しいと感じる実例であり、シミュレータを速くしても助けになりません。比較の両側を同時に動かすからです。
+
+### 何が主張され、何が主張されていないか
+
+3つの主張を、分けて述べます。
+
+**証明可能な優位は知られていません。** MaxCutについても他のどの組合せ最適化問題についても、どんな深さ $p$ でも、QAOAに古典アルゴリズムに対する漸近的優位を与える定理はありません。制限された族については両方向の結果があります — 固定 $p$ のQAOAは局所性の議論により一部の疎な実例で証明可能に制限され、うまくいく人工的な実例も構成されています — が、GroverやShorの保証に似たものは何もありません。理論の正直な要約は、問いは開いており2014年以来開いたままだということです。
+
+**この関心は不合理ではありません。** 断熱との関係は本物であり、願望ではなく真っ当な数学的言明です。この回路は、これまでに提案された有用なansatzの中で最も浅いものです。ネイティブな相互作用が $ZZ$ である装置 — 超伝導回路、イオントラップのMølmer-Sørensenゲート、Rydbergブロッケードの中性原子 — では、コスト層はコンパイルを一切必要とせず、QAOA型の回路は、出力がノイズにならない深さでノイジーな機械が走らせられる数少ないものの1つです。量子ハードウェアが古典ハードウェアを初めて打ち負かす実例が万一あるとすれば、それはハードウェアのグラフに正確に一致する実例である可能性が高く、これは「量子コンピュータはより良く最適化する」よりずっと狭く、ずっと擁護しやすい主張です。
+
+**基準は計算機科学者ではなく物理学者が置いた場所にあります。** MaxCutはEdwards-Anderson模型なので、関係する古典側の競合は教科書的な局所探索ではなく、まさにこれらの地形に向けられた50年のモンテカルロ方法論です。優位の主張は、同じ実例・同じ実時間でパラレルテンパリングを超えなければならず、公表された試みはそれを超えていません。それが現状であり、それを報告することは悲観ではありません。真の進展が到来したときにそれを見分けられる唯一の方法です。
+
+* * *
+
+## 5.5 証明可能な高速化の地図
+
+ここは量子シリーズの最終章の最終節なので、この一連のコースがずっと周りを回ってきた問いに答える場所です。**証明可能な量子高速化は実際にどこに住んでいて、それぞれ何を前提にしているのか。**
+
+### Code Example 8: 高速化の地図と、それぞれの前提条件
+
+```python
+"""第5章 Code Example 8: 高速化の地図と、それぞれの前提条件。
+Code Example 7 の続き（同一セッション）。"""
+print("高速化の地図: 証明はどこに住み、何を前提にしているか")
+print("=" * 70)
+T_LOGICAL = 1e-5          # 論理Toffoli 1個あたりの秒数
+T_CLASSICAL = 1e-9        # 古典の目的関数評価1回あたりの秒数
+
+print("\nA. Grover: 二次高速化、そして定数倍が勝敗を決めます")
+print("-" * 70)
+print(f"  古典: N/2 回の評価、1回 {T_CLASSICAL*1e9:.0f} ns")
+print(f"  量子: (pi/4) sqrt(N) 回の反復、各回オラクル回路1個で"
+      f" {T_LOGICAL*1e6:.0f} us")
+print(f"{'oracle cost':>12} {'crossover N':>12} {'log2 N':>8}"
+      f" {'q. time there (s)':>18} {'q. time at N=2^60 (days)':>25}")
+for gates in (1, 10, 100, 1000):
+    cq = gates * T_LOGICAL
+    Ncross = (np.pi * cq / (2 * T_CLASSICAL)) ** 2
+    tq = np.pi / 4 * np.sqrt(Ncross) * cq
+    t60 = np.pi / 4 * np.sqrt(2.0 ** 60) * cq
+    print(f"{gates:12d} {Ncross:12.2e} {np.log2(Ncross):8.1f}"
+          f" {tq:18.3e} {t60/86400:25.1f}")
+print("  交差点より下では古典機が完全に勝ちます。上では量子側の実行時間が")
+print("  すでに日の単位です。二次高速化は本物で、クエリモデルでは証明済みです。")
+print("  それが生き延びられないのは、10^4 のクロック比と、オラクルが誤り耐性")
+print("  回路でなければならないという要求です。")
+print("  前提: 構造のない探索（利用できる構造がないこと）、コヒーレントな")
+print("  オラクル、そして古典側の並列化がないこと。P 台の並列は古典時間を")
+print("  P で割りますが、量子時間は sqrt(P) でしか割りません。")
+
+print("\nB. Shor: 超多項式高速化、あらゆる定数倍を生き延びます")
+print("-" * 70)
+
+
+def nfs_ops(bits):
+    lnN = bits * np.log(2)
+    return np.exp(1.9230 * lnN ** (1 / 3) * np.log(lnN) ** (2 / 3))
+
+
+print(f"{'RSA modulus':>12} {'NFS operations':>16} {'classical time':>16}"
+      f" {'Toffolis':>11} {'quantum time':>14}")
+for bits in (1024, 2048, 4096):
+    ops = nfs_ops(bits)
+    t_c = ops / 1e18                          # エクサスケール級の機械1台
+    tof = 3.0e9 * (bits / 2048) ** 3          # ~n^3 スケーリング、2048基準
+    t_q = tof * T_LOGICAL
+    if bits == 2048:
+        r_ops, r_time = ops / tof, t_c / t_q
+    print(f"{bits:12d} {ops:16.2e} {t_c/3.15e7:12.2e} yr {tof:11.2e}"
+          f" {t_q/3600:11.1f} h")
+print(f"  この比は定数倍ではありません。2048ビットの行では素の演算回数で"
+      f" {r_ops:.1e}、")
+print(f"  実時間で {r_time:.1e} であり、しかも法とともに増えていきます。")
+print("  古典ハードウェアのどんな改良もこれには触れません。だからこそ")
+print("  耐量子暗号は、この1行の強さだけを根拠に配備が進んでいます。")
+print("  前提: 上記規模の誤り耐性機械が存在すること、そして古典計算機にとって")
+print("  素因数分解が難しいこと。後者は予想であり、証明ではありません。")
+
+print("\nC. QPEとqubitization: 固有値問題")
+print("-" * 70)
+from math import comb
+print(f"{'orbitals M':>11} {'electrons':>10} {'FCI dimension':>15}"
+      f" {'qubits':>7} {'lambda(Ha)':>11} {'Toffolis':>11}")
+for M, Ne, lam in ((10, 10, 3.0), (26, 26, 30.0), (50, 50, 120.0),
+                   (76, 113, 1000.0)):
+    n_a, n_b = (Ne + 1) // 2, Ne // 2      # alpha/beta の分割、姉妹コース
+    dim = comb(M, n_a) * comb(M, n_b)      # 第1章と同じ規約
+    tof = np.pi * lam / (2 * 1.6e-3) * 3.0e4
+    print(f"{M:11d} {Ne:10d} {dim:15.3e} {2*M:7d} {lam:11.1f} {tof:11.2e}")
+print("  古典側の列は組合せ的に増え、量子側の列は多項式的に、1ノルム lambda")
+print("  と 1/eps について増えます。これは3つのうち最大の隔たりであり、同時に")
+print("  最も脆い前提をもつものでもあります。")
+print("  前提: 目標の固有ベクトルと無視できない重なりをもつ初期状態。位相推定は")
+print("  確率 |<phi_0|psi>|^2 で成功し、強相関系ではその重なり自体が系のサイズに")
+print("  対して指数的に減衰しえます。アルゴリズムの中に、その状態を用意して")
+print("  くれる部分はありません。")
+
+print("\nD. 地図を1画面に")
+print("-" * 70)
+MAP = [("Grover / amplitude amplification", "quadratic", "query model, proved",
+        "constants and clock ratios eat it"),
+       ("Shor / period finding", "superpolynomial", "conjecture on factoring",
+        "needs FTQC; narrow problem class"),
+       ("QPE + qubitization", "exponential in dim", "no proof of classical hardness",
+        "needs state-preparation overlap"),
+       ("VQE / QAOA (variational)", "none known", "no theorem either way",
+        "classical heuristics are strong")]
+JA = [("二次（quadratic）", "クエリモデルで証明済み", "定数倍とクロック比が食い潰す"),
+      ("超多項式", "素因数分解の難しさという予想に依存", "FTQCが必要。問題クラスが狭い"),
+      ("次元に対して指数的", "古典的困難性の証明はない", "初期状態の重なりが必要"),
+      ("知られていない", "どちら向きの定理もない", "古典ヒューリスティクスが強い")]
+print("  アルゴリズム族 / 高速化 / 主張の位置づけ / 何が削り取るか")
+for (a, _, _, _), (b, c, d) in zip(MAP, JA):
+    print(f"  {a}")
+    print(f"      高速化: {b}")
+    print(f"      主張の位置づけ: {c}")
+    print(f"      何が削り取るか: {d}")
+```
+
+```text
+高速化の地図: 証明はどこに住み、何を前提にしているか
+======================================================================
+
+A. Grover: 二次高速化、そして定数倍が勝敗を決めます
+----------------------------------------------------------------------
+  古典: N/2 回の評価、1回 1 ns
+  量子: (pi/4) sqrt(N) 回の反復、各回オラクル回路1個で 10 us
+ oracle cost  crossover N   log2 N  q. time there (s)  q. time at N=2^60 (days)
+           1     2.47e+08     27.9          1.234e-01                       0.1
+          10     2.47e+10     34.5          1.234e+01                       1.0
+         100     2.47e+12     41.2          1.234e+03                       9.8
+        1000     2.47e+14     47.8          1.234e+05                      97.6
+  交差点より下では古典機が完全に勝ちます。上では量子側の実行時間が
+  すでに日の単位です。二次高速化は本物で、クエリモデルでは証明済みです。
+  それが生き延びられないのは、10^4 のクロック比と、オラクルが誤り耐性
+  回路でなければならないという要求です。
+  前提: 構造のない探索（利用できる構造がないこと）、コヒーレントな
+  オラクル、そして古典側の並列化がないこと。P 台の並列は古典時間を
+  P で割りますが、量子時間は sqrt(P) でしか割りません。
+
+B. Shor: 超多項式高速化、あらゆる定数倍を生き延びます
+----------------------------------------------------------------------
+ RSA modulus   NFS operations   classical time    Toffolis   quantum time
+        1024         1.32e+26     4.18e+00 yr    3.75e+08         1.0 h
+        2048         1.53e+35     4.87e+09 yr    3.00e+09         8.3 h
+        4096         1.29e+47     4.09e+21 yr    2.40e+10        66.7 h
+  この比は定数倍ではありません。2048ビットの行では素の演算回数で 5.1e+25、
+  実時間で 5.1e+12 であり、しかも法とともに増えていきます。
+  古典ハードウェアのどんな改良もこれには触れません。だからこそ
+  耐量子暗号は、この1行の強さだけを根拠に配備が進んでいます。
+  前提: 上記規模の誤り耐性機械が存在すること、そして古典計算機にとって
+  素因数分解が難しいこと。後者は予想であり、証明ではありません。
+
+C. QPEとqubitization: 固有値問題
+----------------------------------------------------------------------
+ orbitals M  electrons   FCI dimension  qubits  lambda(Ha)    Toffolis
+         10         10       6.350e+04      20         3.0    8.84e+07
+         26         26       1.082e+14      52        30.0    8.84e+08
+         50         50       1.598e+28     100       120.0    3.53e+09
+         76        113       4.169e+35     152      1000.0    2.95e+10
+  古典側の列は組合せ的に増え、量子側の列は多項式的に、1ノルム lambda
+  と 1/eps について増えます。これは3つのうち最大の隔たりであり、同時に
+  最も脆い前提をもつものでもあります。
+  前提: 目標の固有ベクトルと無視できない重なりをもつ初期状態。位相推定は
+  確率 |<phi_0|psi>|^2 で成功し、強相関系ではその重なり自体が系のサイズに
+  対して指数的に減衰しえます。アルゴリズムの中に、その状態を用意して
+  くれる部分はありません。
+
+D. 地図を1画面に
+----------------------------------------------------------------------
+  アルゴリズム族 / 高速化 / 主張の位置づけ / 何が削り取るか
+  Grover / amplitude amplification
+      高速化: 二次（quadratic）
+      主張の位置づけ: クエリモデルで証明済み
+      何が削り取るか: 定数倍とクロック比が食い潰す
+  Shor / period finding
+      高速化: 超多項式
+      主張の位置づけ: 素因数分解の難しさという予想に依存
+      何が削り取るか: FTQCが必要。問題クラスが狭い
+  QPE + qubitization
+      高速化: 次元に対して指数的
+      主張の位置づけ: 古典的困難性の証明はない
+      何が削り取るか: 初期状態の重なりが必要
+  VQE / QAOA (variational)
+      高速化: 知られていない
+      主張の位置づけ: どちら向きの定理もない
+      何が削り取るか: 古典ヒューリスティクスが強い
+```
+
+**注目すべき点。** 3つのパネルはそれぞれ、ふつう定性的にしか語られない主張に数値を与えます。
+
+**Grover。** 二次高速化は定理であり、同時に数学とは無関係な形で脆弱でもあります。ナノ秒の古典目的関数評価と10マイクロ秒の誤り耐性オラクル回路を比べると、交差点はToffoli 1個のオラクルで $N \approx 2.5 \times 10^{8}$、Toffoli 1000個のオラクルでは48ビット探索空間に当たる $N \approx 2.5 \times 10^{14}$ です。交差点より下では古典機が単純に勝ちます。上では量子側の実行時間が日の単位です。そして古典側の並列化は中立ではありません。$P$ 台の並列は古典時間を $P$ で割りますが量子時間は $\sqrt{P}$ でしか割らないので、データセンターは優位をさらに削ります。第1章がこの議論をしました。この表はそれを算術にします。ただし2つの章は同じ古典クロックを使っていません。第1章の走査は1ノード分の処理能力である毎秒 $10^{12}$ 回の評価と $1\ \mu$s の論理ゲートを中心に置き、この表は1コアの毎秒 $10^{9}$ 回と $10\ \mu$s の論理ゲートを仮定しています。交差点を決めるのはこの2つの積で、2つの流儀はそこで2桁違います。約13ビットに相当し、第1章の $n = 55$ と本表の $41.2$ の差がそれです。
+
+**Shor。** これが超多項式分離の見た目であり、Groverと同じ例に置いたのはその対比が要点だからです。2048ビットの法に対して数体篩は $10^{35}$ 演算の程度 — エクサスケール機で約 $5 \times 10^{9}$ 年 — を要し、一方 $3 \times 10^{9}$ Toffoliを1個10マイクロ秒で回せば約8時間です。比は素の演算回数で $5 \times 10^{25}$、すなわち26桁、実時間で $5 \times 10^{12}$、すなわち13桁であり、しかも法とともに*増えます*。（第3章は同じ法に対して8時間ではなく13.6時間を挙げました。入力が2つ違います。論理Toffoliを一律10マイクロ秒とせず $1\ \mu$s の syndrome サイクル $d$ 回として直列化しており、$d = 19$ では1個あたり19マイクロ秒になること。そしてToffoli数が $3 \times 10^{9}$ ではなく $2.6 \times 10^{9}$ であること。この2つの因子が両者の1.6倍を生んでおり、どちらもアルゴリズムについての言明ではありません。だからこそ資源見積りはサイクル時間と算術の仮定を明示しなければならないのです。）定数倍でも、クロック比でも、どれだけの古典ハードウェアでも、これには触れられません。誰もまだ大規模に走らせていないアルゴリズムの強さだけを根拠に耐量子暗号への移行が進んでいる理由は、これがすべてです。
+
+**qubitizationによる位相推定。** 3つのうち最大の隔たりです。76軌道・113電子の活性空間の古典FCI次元は $4 \times 10^{35}$ で、qubitized QPEは $10^{10}$ Toffoliの程度を要します。そして3つのうち最も脆い前提をもちます。位相推定は確率 $\lvert \langle \phi_0 \lvert \psi_{\text{init}} \rangle \rvert^2$ で成功し、$\lvert \psi_{\text{init}} \rangle$ を用意してくれる部分はアルゴリズムの中にありません。強相関系 — まさに興味のある系 — では、安価に準備できる参照状態の重なりが系のサイズに対して指数的に減衰しえます。またこれらの基底状態問題が古典的に難しいという証明もありません。根拠はDMRG・量子モンテカルロ・結合クラスターの観測された破綻であり、分離より弱いものです。
+
+**そしてQAOA。** 高速化なし、どちら向きの定理もなし、そして1970年代から同じハミルトニアンを最適化してきた古典の分野が相手です。地図に載るのは、まさにそれが誠実な4行目だからです。
+
+### 見えてくる構造
+
+4行をまとめて読むと、個々の項目より有用な構造が見えてきます。
+
+| 高速化の源 | 例 | 何を利用しているか | 何を要求するか |
+| --- | --- | --- | --- |
+| 群構造上の干渉 | Shor、QPE | 隠れた周期性や固有値をFourier変換で取り出す | 問題クラスが狭い。FTQCが必要 |
+| 振幅増幅 | Grover、LCUの事後選択 | 試行回数の平方根への削減 | 二次にとどまり、定数倍に食われる |
+| ハミルトニアンをユニタリに符号化 | qubitization、QSP | 最適なクエリコストで $H$ のスペクトルに直接触る | 1ノルム $\alpha$ が小さいことと良い初期状態 |
+| ヒューリスティックな変分探索 | VQE、QAOA | 証明可能なものは何もなし | 成熟した古典ヒューリスティクスと競合 |
+
+最初の3行が定理のある場所であり、3つともが興味あるサイズで有用になるには誤り耐性を要求します。4行目が近未来ハードウェアのある場所です。この食い違い — 証明のあるアルゴリズムは存在しない機械を要求し、存在する機械は証明のないアルゴリズムを走らせる — がこの分野についての最も重要な構造的事実であり、「量子コンピュータは私の研究に何をしてくれるのか」への誠実な答えです。
+
+### 覚えておく価値のある4つの前提
+
+文献の量子高速化の主張はどれも、少なくともこのどれかに依拠しています。どれかを問うことが、論文を評価する最短の道です。
+
+  1. **オラクル仮定。** Grover型の高速化はクエリ計算量の結果です。「データベース」をまずQRAMに読み込まなければならないなら、その読み込みコストが探索の節約を上回りえます。そしてスケーラブルなQRAMは存在しません。
+  2. **状態準備仮定。** 位相推定とほとんどの量子線形代数アルゴリズムは、答えと有用な重なりをもつ入力状態を必要とします。それを準備することはアルゴリズムの一部ではありません。
+  3. **古典的困難性の仮定。** 「効率的な古典アルゴリズムは知られていない」は「効率的な古典アルゴリズムは存在しない」ではありません。提案された量子機械学習の高速化のいくつかは、公表後に脱量子化されました。
+  4. **誤り耐性の仮定。** 本シリーズのすべてのToffoli数は誤り訂正を前提にしています。それなしで達成可能な物理誤り率では、これらの回路はどれも信号を出しません。
+
+### シリーズが到達した場所
+
+本コースは、入門編が意図的に省いた標準アルゴリズムを埋めること、そしてそのすべてを99行のシミュレータの上で走らせて何も鵜呑みにしなくてよいようにすることを目指しました。第1章はGroverを構成し、その二次的優位がどこで食われるかを測りました。第2章はQFTと位相推定 — 以降のすべての土台にある干渉の基本要素 — を構成しました。第3章はShorを端から端まで組み立て、実際に整数を分解しました。第4章はTrotter分解をブロック符号化とqubitizationで置き換え、誤り耐性の量子化学計算をToffoliで値付けしました。本章は近未来側を取り上げ、古典側の基準を全力の状態で当てて測りました。
+
+一貫していた筋は「量子コンピュータは速い」ではありませんでした。それぞれの高速化が条件つきの言明であること、条件は確認可能であること、そして確認することこそ実際の技能であることです。量子アルゴリズムの主張を見て*ここで働いているのは4つの前提のどれか*と問える研究者は、誰かがやってくれるのを待たずに、この分野の次の発表を自分で評価できる位置にいます。
+
+* * *
+
+## 演習
+
+#### 演習1: 重みつきグラフからハミルトニアンへ
+
+頂点 $0,1,2,3$ の4サイクルで、重みは $w_{01} = 2$、$w_{12} = 1$、$w_{23} = 3$、$w_{30} = 1$ とします。
+
+  1. $\hat{H}_C$ をPauli文字列の和として係数まで明示的に書いてください。
+  2. 最大カットはいくらで、それを達成する割り当ては何ですか。
+  3. ランダム推測の基準値を、値と比の両方で答えてください。
+  4. 重み4の辺 $(0,2)$ を加えます。新しい最大カットはいくらで、最大値と総重みの比はなぜ下がったのですか。
+
+<details>
+<summary>解答</summary>
+
+<p><strong>1.</strong> 総重みは7なので \(\hat{H}_C = 3.5\,IIII - 1.0\,ZZII - 0.5\,IZZI - 1.5\,IIZZ - 0.5\,ZIIZ\) です。Pauli項は5個で、恒等演算子1個と辺ごとの \(ZZ\) 1個、係数は \(-w_{ij}/2\) です。</p>
+
+<p><strong>2.</strong> 4サイクルは2部グラフなので全辺を同時に切れて、最大値は総重みの7です。割り当ては \(0101\) とその補 \(1010\) です。</p>
+
+<p><strong>3.</strong> 重みつきのランダム推測は \(\sum w/2 = 3.5\)、比は \(3.5/7 = 0.5\) です。ランダム基準値と最適値の比がちょうど1/2になるのはグラフが2部だからで、一般のグラフでは \(\sum w / (2\,\mathrm{OPT}) > 1/2\) です。</p>
+
+<p><strong>4.</strong> 新しい総重みは11ですが最大カットは9で、\(0110\) と \(1001\) が達成します。弦 \((0,2)\) を加えると奇サイクル \(0\text{-}1\text{-}2\) と \(0\text{-}2\text{-}3\) ができるのでグラフは2部でなくなり、どの割り当てでもどれかの辺が切れずに残ります。犠牲にするのに最も安いのは重み1の辺のどれかなので \(11 - 2 = 9\) です。これがフラストレーションであり、奇サイクルが現れた瞬間に現れます。</p>
+
+```python
+import numpy as np
+def cuts(n, edges, w):
+    k = np.arange(2**n)
+    z = np.stack([1 - 2*((k >> (n-1-i)) & 1) for i in range(n)], axis=1)
+    return sum(wij*(1 - z[:, i]*z[:, j])/2 for (i, j), wij in zip(edges, w))
+E, W = [(0,1),(1,2),(2,3),(3,0)], [2,1,3,1]
+C = cuts(4, E, W)
+print(sum(W), C.max(), [format(k,'04b') for k in np.flatnonzero(C == C.max())])
+C2 = cuts(4, E+[(0,2)], W+[4])
+print(sum(W)+4, C2.max(), [format(k,'04b') for k in np.flatnonzero(C2 == C2.max())])
+# 7 7.0 ['0101', '1010']
+# 11 9.0 ['0110', '1001']
+```
+
+</details>
+
+#### 演習2: 三角形上の $p = 1$
+
+重みなしの三角形 $K_3$ と4サイクル $C_4$ で $p = 1$ のQAOAを走らせてください。
+
+  1. それぞれの最大カットはいくらですか。
+  2. それぞれについて最適な $p = 1$ の角度と、得られる近似比を求めてください。
+  3. 三角形の結果は厳密です。出力分布を調べて理由を説明してください。
+  4. 2つのグラフの対比は、単一のグラフをベンチマークとして使うことについて何を語りますか。
+
+<details>
+<summary>解答</summary>
+
+<p><strong>1.</strong> \(K_3\): どの割り当てでも少なくとも1辺が切れずに残るので、最大は3のうち2です。\(C_4\): 2部なので最大は4のうち4です。</p>
+
+<p><strong>2.</strong> \(K_3\): \(\langle C \rangle = 2.000000\)、比はちょうど \(1.000000\)。\(\gamma^{\ast} = 0.615480 = \arccos\sqrt{2/3}\)、\(\beta^{\ast} = \gamma^{\ast}/2\) で達成されます。あるいは鏡映の相方 \(\pi - \gamma^{\ast} = 2.526113\)、\(\beta = 1.263056\) でもよく、下の多点探索が返すのはこちらです。Code Example 3 の地形の対称性 \((\gamma,\beta) \to (\pi-\gamma, \pi/2-\beta)\) が両者を等価にします。\(C_4\): \(\gamma^{\ast} = 2.356195 = 3\pi/4\)、\(\beta^{\ast} = 1.178092 \approx 3\pi/8\)、\(\langle C \rangle = 3.000000\)、比はちょうど \(0.750000\) です。</p>
+
+<p><strong>3.</strong> 出力分布はカット2をもつ6つのビット列上でちょうど一様で、\(000\) と \(111\) の振幅は正確に0です。\(p = 1\) で最悪の2状態を完全に消し去るのに十分なので、期待値が最適値に等しく、すべてのショットが最適カットを返します。これは \(K_3\) 特有の性質です。頂点推移的で、小さく、非最適な状態が2つの一様状態だけだからです。</p>
+
+<p><strong>4.</strong> 単一のグラフは何も証明しないということです。同じアルゴリズムが同じ深さで、ある3頂点グラフでは1.000、ある4頂点グラフでは0.750 を出し、どちらの数値も一般化しません。報告される近似比は、実例の族を明示し、ばらつきを付けた平均でなければなりません。だからCode Example 5 は20実例を使い、標準偏差を報告しています。</p>
+
+```python
+import numpy as np
+from scipy.optimize import minimize
+from qcsim import *
+def cuts(n, edges):
+    k = np.arange(2**n)
+    z = np.stack([1 - 2*((k >> (n-1-i)) & 1) for i in range(n)], axis=1)
+    return sum((1 - z[:, i]*z[:, j])/2 for (i, j) in edges)
+def state(n, edges, g, b, C):
+    psi = np.ones(2**n, dtype=complex)/np.sqrt(2**n)
+    psi = psi*np.exp(-1j*g*C)
+    for q in range(n):
+        psi = apply_gate(psi, rx(2*b), [q], n)
+    return psi
+for n, E in [(3, [(0,1),(1,2),(2,0)]), (4, [(0,1),(1,2),(2,3),(3,0)])]:
+    C = cuts(n, E)
+    f = lambda x: -float(np.dot(np.abs(state(n, E, x[0], x[1], C))**2, C))
+    r = min((minimize(f, x0=[g, b], method='Nelder-Mead') for g in
+             np.linspace(0.1, 3.0, 12) for b in np.linspace(0.05, 1.5, 8)),
+            key=lambda r: r.fun)
+    print(n, round(-r.fun, 6), round(-r.fun/C.max(), 6), np.round(r.x, 6))
+# 3 2.0 1.0 [2.526123 1.263056]
+# 4 3.0 0.75 [2.356195 1.178092]
+```
+
+</details>
+
+#### 演習3: 比較を設計する
+
+「16頂点MaxCut実例で $p=3$ のQAOAが近似比0.93を達成し、古典ヒューリスティクスと競合的である」と報告する原稿の査読を頼まれました。
+
+  1. この主張に欠けている情報を4つ挙げてください。
+  2. 著者は期待値1個あたり5000ショット、最適化器の反復400回を使ったと回答しました。回路の繰り返し総数はいくらで、$n = 16$ での総当たり列挙はいくらかかりますか。
+  3. さらに古典ベースラインは貪欲構成法の1回実行だと言います。何を要求しますか。
+  4. どんな状況なら16頂点での比0.93が興味深いものになりますか。
+
+<details>
+<summary>解答</summary>
+
+<p><strong>1.</strong> (i) 実例の族と生成法、実例数、そして平均だけでなくばらつき。(ii) 0.93が期待値の比かショット最良値の比か — Code Example 4 が示すように両者は大きく違います。(iii) 古典ベースラインと、共通の通貨で述べたその予算。(iv) 実例間で対応づけた差の不確かさ。5つ目を挙げるならランダム推測の基準値で、密なグラフでは \(\lvert E \rvert/2\) がすでに最適値の0.6から0.7になります。</p>
+
+<p><strong>2.</strong> \(400 \times 5000 = 2\times10^{6}\) 回の回路繰り返しです。\(n = 16\) の総当たり列挙は \(2^{16} = 65\,536\) 回のカット評価で31分の1、しかもその各回は実機のショットではなくナノ秒の古典算術です。この実例は、次善の答えの量子推定より安く厳密な最適値が得られるほど小さいのです。</p>
+
+<p><strong>3.</strong> 最低でも同予算での再開始つき局所探索と焼きなまし法、標準ベンチマークとしてのGoemans-Williamson丸め、そしてOPTの検証可能な上界としてのSDP値です。貪欲法1回実行はほぼ最弱のベースラインであり、Code Example 6 では評価300回でも貪欲法が局所探索に1.9ポイント負けています。</p>
+
+<p><strong>4.</strong> 実例が、同じ実時間で古典ヒューリスティクスが実証的に破綻する族から引かれている場合 — たとえば1反転局所探索ではなくパラレルテンパリングを相手にした、自由エネルギー地形の粗いフラストレート格子 — で、かつグラフがハードウェアの結合に一致してSWAPのオーバーヘッドなしに回路が走り、かつ比較が反復回数ではなく実時間で揃っている場合です。この3つがすべて欠けているなら、16頂点での0.93はアルゴリズムの振る舞いについての言明であって — それはそれとして公表する価値があります — 競合性についての言明ではありません。</p>
+
+</details>
+
+#### 演習4: Goemans-Williamson限界を使う
+
+ある実例でSDP緩和の値が11.4、ランダム超平面丸めを1回行うと値10のカットが得られました。
+
+  1. OPTについて何が言えますか。
+  2. 丸め1回の10という値は0.87856の保証に反していますか。
+  3. 10を改善する最も安い方法は何ですか。
+  4. 同じ実例でのQAOAが $\langle C \rangle = 9.6$ を報告しました。正しく言える最も強い言明は何ですか。
+
+<details>
+<summary>解答</summary>
+
+<p><strong>1.</strong> \(10 \le \mathrm{OPT} \le 11.4\) です。丸めたカットは実行可能解なので下界であり、SDPは緩和なのでその値は上界です。だからGWはOPTが未知でも有用で、自分の品質を自分で証明します。</p>
+
+<p><strong>2.</strong> いいえ。保証は \(\mathbb{E}[\text{カット}] \ge 0.87856 \times \mathrm{OPT}\) という超平面についての期待値であり、SDP値ではなくOPTに対して述べられています。ここで \(0.87856 \times 11.4 = 10.016\) なので、*期待*される丸めカットは10.016以上であり、1回の抽出がそれをわずかに下回る10に落ちることは完全に整合的です。1標本は期待値ではありません。</p>
+
+<p><strong>3.</strong> 超平面をもっと引いて最良を採ることです。各回はすでに支払い済みのSDP解に対する \(O(n)\) の内積掃きなので、100回引いてもコストは実質ゼロで、その最大値は期待値を上回ります。Code Example 6 はまさにこれを使っており、GWの行が20実例すべてで1.000 に達する理由です。</p>
+
+<p><strong>4.</strong> QAOAの期待値が、すでに手にあるカットの値を下回っている（\(9.6 < 10\)）ということです。9.6を11.4に対する近似比に換算するのは*正しくありません*（OPTの上界をOPTのように使うことになり、0.842 になります）。0.87856の保証と比べるのも正しくありません。保証は丸められたカットについてのもので、カットの分布についての期待値ではないからです。きれいな比較は、同じ実例でのショット最良値とGWのカットの比較だけであり、それはショット数を明示しなければなりません。</p>
+
+```python
+sdp, rounded, qaoa = 11.4, 10.0, 9.6
+print(rounded, "<= OPT <=", sdp)
+print("0.87856 * sdp =", round(0.87856*sdp, 4))   # 10.0156
+print("QAOAの期待値は手にあるカットを下回るか:", qaoa < rounded)   # True
+```
+
+</details>
+
+#### 演習5: 地図を読む
+
+以下のそれぞれについて、5.5節の4つの前提のどれが働いているかと、あなたが問う1つの質問を挙げてください。
+
+  1. 有限要素メッシュから生じる線形系を解くことについて指数的高速化を主張する論文。
+  2. $10^{9}$ 件の材料データベースの探索について二次高速化を主張する論文。
+  3. 量子コンピュータがFeMocoの基底状態を化学精度で $10^{10}$ Toffoliで計算すると主張する論文。
+  4. 127量子ビットのハードウェア上でQAOAが焼きなまし法を上回ると主張する論文。
+
+<details>
+<summary>解答</summary>
+
+<p><strong>1.</strong> 状態準備仮定、そしてその鏡像である読み出し仮定です。量子線形系アルゴリズムは解ベクトルに比例する*状態*を作りますが、ベクトルそのものは作りません。\(N\) 個の成分をすべて取り出すには \(O(N)\) 回の測定がかかり、高速化は消えます。質問: <em>解のどんな汎関数を出力し、それは少数の測定で推定できるのか。</em> もう1つ問う価値があるのは行列の条件数で、コストは条件数とともにスケールします。</p>
+
+<p><strong>2.</strong> オラクル仮定です。Groverが探索するのは関数であってメモリではありません。\(10^{9}\) 件のデータベースはコヒーレントにクエリする前に量子ランダムアクセスメモリに読み込まれなければならず、スケーラブルなQRAMは存在しません。質問: <em>データはどこにあり、読み込みのコストはいくらか。</em> 答えが「QRAMを仮定する」なら、その高速化は未構築のハードウェア — 誤り訂正の要求は計算本体よりむしろ厳しい — に条件づけられています。</p>
+
+<p><strong>3.</strong> 誤り耐性の仮定、そしてその背後の状態準備仮定です。\(10^{10}\) Toffoliには \(10^{-11}\) 程度の論理誤り率が必要で、したがって第4章の仮定では表面符号距離19、マジックステート工場を含めて \(10^{6}\) の程度の物理量子ビットになります。質問: <em>どんな初期状態の重なりを仮定しており、それが \(10^{-2}\) だったら見積りはどうなるのか。</em> Toffoli数は重なりに反比例してスケールする下限です。</p>
+
+<p><strong>4.</strong> 古典的困難性の仮定の、最もありふれた非形式的な形 — 古典ベースラインが最先端でなかった — です。質問: <em>古典手法のパラメータと実時間はいくらで、同じ実例・同じ実時間でパラレルテンパリングは両方を上回るのか。</em> ハードウェアグラフ上のMaxCutはEdwards-Andersonの実例なので、比較すべき相手はスピングラスのモンテカルロ文献であり、焼きなましのスケジュール1本はその文献ではありません。</p>
+
+</details>
+
+* * *
+
+## まとめ
+
+### 要点
+
+**1\. MaxCutはIsingハミルトニアンそのものである**
+
+  * $\hat{H}_C = \sum w_{ij}(I - Z_iZ_j)/2$ はカット値の表を誤差0で再現します。写像は近似ではなく恒等式です。
+  * ランダム推測の基準値は $\lvert E \rvert/2$ で、5サイクルでは最適値の0.625、8頂点グラフでは0.600 です。比はこれと比べて読まなければなりません。
+  * 符号つき重みはEdwards-Andersonスピングラスになるので、古典側の競合はフラストレート磁性体についてのモンテカルロ文献の全体です。基準は教科書的アルゴリズムではなく物理学者が置いています。
+
+**2\. QAOAは2層と $2p$ パラメータで、どちらの層も安価**
+
+  * コスト層はCNOT $2\lvert E \rvert$ 個と $R_z$ $\lvert E \rvert$ 個で、対角位相に対して $10^{-16}$ で検証しました。ミキサーは量子ビットあたり $R_x(2\beta)$ 1個です。
+  * $p=1$ の地形は滑らかで周期的、5サイクルではランダムより悪い0.3125 から0.9375 まで分布し、$p=1$ の厳密な最適値は最大カットの $3/4$ です。
+  * 実機での支配的コストは、上に挙げたゲートではなくふつうSWAPネットワークです。
+
+**3\. 断熱極限は、安価には到達できない極限についての本物の保証**
+
+  * 固定した線形スケジュールで*最適化器なし*に、比は5サイクルで0.9999（$p = 80$）、8頂点グラフで0.9985 まで登ります。
+  * 必要な全時間は最小ギャップの逆二乗で決まり、難しい実例ではそれが指数的に閉じます。「いつかは厳密」は総当たり探索についても真です。
+
+**4\. 期待値の比とショット最良値の比は別の量**
+
+  * 8頂点グラフの $p=1$ では $\langle C \rangle / C_{\max} = 0.800$ ですが最適ビット列の確率は0.145 なので、1000ショットは確率 $1 - 10^{-68}$ で最適を見つけます。
+  * $p = 1,2,3$ の表の全行でショット1000回最良値は1.000 です。ショット予算のないQAOAの比の報告は解釈できません。
+
+**5\. 最適角度は集中し、それは有用でもあり示唆的でもある**
+
+  * 10頂点のErdős-Rényi実例20個で、$\gamma^{\ast}$ の相対ばらつきは9.4%、$\beta^{\ast}$ は5.5% です。
+  * 中央値の角度を最適化なしに転用した損失は0.19ポイント、0.81687 に対して0.81500。古典外側ループは償却でき、そして $p=1$ ではそれがさほど仕事をしていません。
+
+**6\. 同予算では古典ヒューリスティクスが勝ち、その差は解像される**
+
+  * 20実例・目的関数評価300回: QAOA $p=3$ の期待値0.919、貪欲法0.981、焼きなまし法0.996、局所探索とGW丸めは全実例で1.000。
+  * 対応のあるブートストラップ: 局所探索 $-$ QAOA は $+0.081$、$[+0.070, +0.092]$。GW $-$ QAOA は $+0.081$、$[+0.070, +0.092]$。貪欲法 $-$ QAOA でさえ $+0.062$、$[+0.047, +0.076]$。すべて解像されます。
+  * QAOAのショット1000回最良値は局所探索とGWに1.000 で並びます。3つの比較が*no call*を返し、それを引き分けとして報告します。
+  * 局所探索はカット評価160回で全実例の厳密な最適値に達し、QAOAは厳密な期待値320回でも0.919 を超えません。1回1000ショットならそれは300 000回の繰り返しで、総当たり列挙の1024回と対比されます。
+  * **MaxCutについてQAOAが古典ヒューリスティクスより漸近的に優位であるという証明は知られていません。** 関心の根拠は定理ではなく、断熱との関係とハードウェアに素直な浅さです。
+
+**7\. 高速化の地図には3つの定理と1つの未解決問題がある**
+
+  * Grover: 二次、クエリモデルで証明済み、$10^4$ のクロック比（オラクルコストに応じて交差点は $N \sim 2.5\times10^{8}$ から $2.5\times10^{14}$）と古典並列化に削られる。
+  * Shor: 超多項式、素因数分解が古典的に難しいことに条件づけ。2048ビットで数体篩 $10^{35}$ 演算に対しToffoli $3\times10^{9}$ — $10^{30}$ の隔たりで、しかも増える。
+  * qubitizationによるQPE: FCI次元 $4\times10^{35}$ に対しToffoli $10^{10}$。ただし初期状態の重なりと、良い古典手法の不在に条件づけ。
+  * QAOA/VQE: どちら向きの定理もなく、成熟した古典ヒューリスティクスが相手。
+  * 問い詰めるべき4つの前提: オラクル／QRAM、状態準備、古典的困難性、誤り耐性。
+
+**実務上の含意**
+
+  * 予算比較の通貨を走らせる前に述べること。そしてショットの請求書を比とは別に報告すること。
+  * QAOAの近似比は、期待値かショット最良値か、そしてショット数を述べずに報告しないこと。
+  * どの最適化ベンチマークにも自明なベースラインと15行の局所探索を含めること。量子手法がそれに負けるなら、本物のソルバーとの比較は無意味です。
+  * すべての差に対応のある区間を付けること。Code Example 7 の8比較のうち3つが*no call*を返し、そうしなければ引き分けを勝利として誤報告していました。
+  * 量子優位が主張されたら、4つの前提のどれが重みを担っているかを特定すること。この1つの問いで文献の大半が片付きます。
+
+### 次章へ
+
+ここがシリーズの終わりであり、5つのコースからなる一群の終わりでもあります。[量子コンピューティング入門](<../quantum-computing-introduction/index.html>)がシミュレータと変分手法を構築し、本コースが証明のついた標準アルゴリズムを埋め、[量子ハードウェア入門](<../quantum-hardware-introduction/index.html>)があらゆるリソース見積りに出てくる $T_1$、$T_2$、ゲート忠実度の数値が何でできているか、そしてなぜそれが材料の問題なのかを説明し、[量子機械学習入門](<../../MI/quantum-machine-learning-introduction/index.html>)が同じ評価規律を学習課題に適用し、[量子センシング入門](<../../MS/quantum-sensing-introduction/index.html>)が実験室で既に測定可能な優位を出している唯一の量子技術を扱います。まとめて読むと、別々に読むのとは違う問いに答えてくれます。「量子コンピュータは何ができるか」ではなく「それができるためには物理的・数学的に何が真でなければならないか」であり、材料研究者にとって、そのいくつかはあなた自身の分野の問題です。
+
+[← 第4章: ハミルトニアンシミュレーションの現代的手法](<chapter-4.html>) [シリーズ目次に戻る →](<index.html>)
+
+### 免責事項
+
+  * 本コンテンツは教育・研究・情報提供のみを目的としており、専門的な助言(法律・会計・技術的保証など)を提供するものではありません。
+  * 本コンテンツおよび付随するCode examplesは「現状有姿(AS IS)」で提供され、明示または黙示を問わず、商品性、特定目的適合性、権利非侵害、正確性・完全性、動作・安全性等いかなる保証もしません。
+  * 本章のベンチマーク結果は、記載した予算と乱数シードにおける10頂点のランダム実例20個についてのものです。この特定の比較を特徴づけるものであり、他の実例族や他のサイズにおけるQAOAや任意の古典ソルバーについての一般的な言明として読んではなりません。
+  * 外部リンク、第三者が提供するデータ・ツール・ライブラリ等の内容・可用性・安全性について、作成者および東北大学は一切の責任を負いません。
+  * 本コンテンツの利用・実行・解釈により直接的・間接的・付随的・特別・結果的・懲罰的損害が生じた場合でも、適用法で許容される最大限の範囲で、作成者および東北大学は責任を負いません。
+  * 本コンテンツの内容は、予告なく変更・更新・提供停止されることがあります。
+  * 本コンテンツの著作権・ライセンスは明記された条件(例: CC BY 4.0)に従います。当該ライセンスは通常、無保証条項を含みます。

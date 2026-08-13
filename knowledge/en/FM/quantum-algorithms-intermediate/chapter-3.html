@@ -1,0 +1,1367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 3: Shor's Algorithm - AI Terakoya</title>
+
+    <link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+    <style>
+        /* page-specific residual: the rules the shared sheet does not provide.
+           Everything else that used to live here is now in knowledge-base.css;
+           re-declaring it would only risk drifting out of sync with the sheet. */
+        details { background-color: var(--color-bg-alt); margin-bottom: var(--spacing-md) }
+        summary { user-select: none; margin: calc(-1 * var(--spacing-md)); border-radius: var(--border-radius) }
+        summary:hover {
+            /* accent wash; the literal is the FM/MI/ML purple and is the fallback
+               for engines without color-mix() (Chrome <111 / Safari <16.2). */
+            background-color: rgba(123, 44, 191, 0.1);
+            background-color: color-mix(in srgb, var(--color-accent) 10%, transparent);
+        }
+        details[open] summary { margin-bottom: var(--spacing-md); border-bottom: 1px solid var(--color-border) }
+        .learning-objectives {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: var(--spacing-lg);
+            border-radius: var(--border-radius);
+            border-left: 4px solid var(--color-accent);
+            margin-bottom: var(--spacing-xl);
+        }
+        .learning-objectives h2 { margin-top: 0; border-bottom: none }
+        @media (max-width: 768px) {
+            th { padding: var(--spacing-xs) }
+            td { padding: var(--spacing-xs) }
+        }
+    </style>
+
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+
+    <!-- MathJax for LaTeX equation rendering -->
+    <script>
+        MathJax = {
+            tex: {
+                // The HTML must carry a DOUBLE backslash before ( ) [ ] so the
+                // JS string is backslash-paren; a single one collapses to a bare
+                // paren and turns every prose parenthesis into a math delimiter
+                // (non-raw Python template: 4 backslashes -> 2 in HTML -> 1 in JS).
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" id="MathJax-script" async></script>
+</head>
+<body class="dojo-fm">
+    <header>
+        <div class="header-content">
+            <h1>Chapter 3: Shor's Algorithm</h1>
+            <p class="subtitle">Factoring as Period Finding, Two Integers Factored End to End, and What the Same Circuit Costs at Cryptographic Size</p>
+            <div class="meta">
+                <span class="meta-item">📖 Reading Time: 45-50 minutes</span>
+                <span class="meta-item">📊 Difficulty: Intermediate</span>
+                <span class="meta-item">💻 Code Examples: 7</span>
+                <span class="meta-item">📝 Exercises: 5</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+<p>🌐 EN | <a href="../../../jp/FM/quantum-algorithms-intermediate/chapter-3.html">🇯🇵 JP</a> | Last sync: 2026-08-13</p>
+<p><a href="../index.html">Fundamental Mathematics Dojo</a> &gt; <a href="index.html">Intermediate Quantum Algorithms</a> &gt; Chapter 3</p>
+<p>This is the algorithm that made the field famous, and it is the one place in this course where the speedup is superpolynomial and nobody disputes it. Factoring an $n$-bit integer takes $\exp\left(O(n^{1/3}(\log n)^{2/3})\right)$ operations with the best known classical method and $O(n^3)$ gates with Shor's, and that gap is not a constant factor, not a conditional advantage, and not contingent on a data-loading assumption. Chapter 1's quadratic speedup came with a page of qualifications; this one does not.</p>
+<p>What it does come with is a size. The circuit that factors 15 in this chapter uses thirteen qubits; the circuit that would factor a 2048-bit RSA modulus needs of order $10^7$ physical qubits and $10^9$ Toffoli gates under standard error-correction assumptions, and Section 3.4 works that estimate through from stated premises. The honest position sits between two familiar errors. One is to say that quantum computers break RSA — they do not, because none of them can run this circuit at that size, and the distance is measured in orders of magnitude rather than in engineering refinements. The other is to conclude from that distance that the algorithm does not matter, which is equally wrong: the mathematics is settled, the migration to lattice-based cryptography is already specified and underway for exactly this reason, and a factoring circuit is the cleanest existence proof that quantum computation is not merely a different way of writing the same complexity classes.</p>
+<p>The technical content is short, because Chapter 2 did most of the work. Factoring reduces to finding the multiplicative order of a random integer modulo $N$; order finding is phase estimation applied to a particular unitary; and phase estimation is the inverse QFT applied after controlled powers. Everything new here is the number theory on either side of the quantum circuit — the reduction going in, and continued fractions coming out — plus the observation that the expensive part of the circuit is not the Fourier transform at all but the modular arithmetic.</p>
+<h2>Learning Objectives</h2>
+<p>After completing this chapter, you will be able to:</p>
+<ul>
+<li>Carry out the reduction from factoring to order finding, including the classical shortcuts that dispose of even $N$ and perfect powers, and state the two ways a randomly chosen base fails</li>
+<li>Explain why the failure probability per base is at most $1/2$ for an $N$ with two distinct odd prime factors, and verify the bound by enumeration for $N = 15$ and $N = 21$</li>
+<li>Construct the order-finding unitary $U_a\lvert y \rangle = \lvert ay \bmod N \rangle$, identify its eigenvalues as $e^{2\pi i s/r}$, and explain why $\lvert 1 \rangle$ is the right input</li>
+<li>Account for the circuit's cost correctly: $O(n^3)$ gates in the modular exponentiation against $O(n^2)$ in the QFT, so the Fourier transform is the cheap part</li>
+<li>Recover the order from a measured counting-register value using continued fractions, and explain why the convergent can return $r/\gcd(s,r)$ rather than $r$</li>
+<li>Run the complete algorithm on the simulator for $N = 15$ and $N = 21$, compute the exact per-run success probability, and reproduce it by sampling</li>
+<li>Convert a modulus size into logical qubits, Toffoli count, code distance and physical qubits from stated assumptions, and explain why lattice-based cryptography is the standard response while doubling a symmetric key length is enough against Grover</li>
+</ul>
+<hr />
+<h2>3.1 From Factoring to Order Finding</h2>
+<h3>The reduction</h3>
+<p>Let $N$ be an odd composite that is not a prime power, and pick an integer $a$ with $1 &lt; a &lt; N$ and $\gcd(a, N) = 1$. The <strong>multiplicative order</strong> of $a$ modulo $N$ is the least $r &gt; 0$ with</p>
+<p>$$ a^r \equiv 1 \pmod N $$</p>
+<p>Suppose $r$ is known and even. Then $x = a^{r/2}$ satisfies $x^2 \equiv 1 \pmod N$, so</p>
+<p>$$ (x-1)(x+1) \equiv 0 \pmod N $$</p>
+<p>which says $N$ divides the product. If neither factor is divisible by $N$ — that is, if $x \not\equiv \pm 1 \pmod N$ — then $N$ must share a nontrivial factor with each, and</p>
+<p>$$ \gcd\left(a^{r/2} - 1,\, N\right), \qquad \gcd\left(a^{r/2} + 1,\, N\right) $$</p>
+<p>are proper divisors of $N$, computable in microseconds by Euclid's algorithm. That is the entire reduction. Factoring is not attacked directly at any point; what the quantum computer supplies is one integer, $r$.</p>
+<p>The construction fails in exactly two ways, and both are visible in the derivation. If $r$ is <strong>odd</strong>, $a^{r/2}$ is not an integer and there is nothing to compute. If $x \equiv -1 \pmod N$, the second gcd is $N$ and the first is 1, so both divisors are trivial. Note that $x \equiv +1$ cannot happen, because it would make $r/2$ an order smaller than $r$.</p>
+<h3>Why a random base usually works</h3>
+<p>The standard theorem: if $N$ has $k \ge 2$ distinct odd prime factors and $a$ is drawn uniformly from the integers coprime to $N$, then</p>
+<p>$$ \Pr\left[r \text{ even and } a^{r/2} \not\equiv -1 \pmod N\right] \; \ge \; 1 - \frac{1}{2^{k-1}} \; \ge \; \frac{1}{2} $$</p>
+<p>The proof is Chinese-remainder bookkeeping on the 2-adic valuations of the orders modulo each prime power, and it is in every textbook; what matters here is the shape of the conclusion. A failure is not a wrong answer but a detected failure — $\gcd$ returns 1 or $N$, which is checked classically and immediately — so the algorithm simply draws a new base. Repetition converts a per-base probability of one half into failure probability $2^{-m}$ after $m$ bases, and $m = 30$ already makes it negligible.</p>
+<p>Two classes of $N$ never reach the quantum circuit. <strong>Even $N$</strong> is factored by inspection. <strong>Perfect powers</strong> $N = c^b$ are found by testing the $\lfloor \log_2 N \rfloor$ integer roots, which is why the theorem's hypothesis of two <em>distinct</em> prime factors is not a restriction: the excluded cases are the easy ones. There is also a free lunch on the way in: if the randomly drawn $a$ happens to satisfy $\gcd(a, N) &gt; 1$, that gcd is already a factor and no circuit runs at all. For the tiny $N$ of this chapter that happens often enough to matter, which Example 6 quantifies and which is a caution about reading small demonstrations.</p>
+<h3>Continued fractions</h3>
+<p>The quantum subroutine will not return $r$. It returns an integer $k$ from a $t$-bit register, and with probability at least $4/\pi^2 \approx 0.405$ that $k$ is the grid point nearest to $s/r$, in which case</p>
+<p>$$ \left\lvert \frac{k}{2^t} - \frac{s}{r} \right\rvert \le \frac{1}{2^{t+1}} $$</p>
+<p>for some unknown $s \in \lbrace 0, 1, \ldots, r-1 \rbrace$. The bound describes that best outcome and not every measurement: a $k$ further away is perfectly possible, the continued-fraction step then returns a denominator that fails the classical check $a^{q} \equiv 1$, and the circuit is simply re-run. Exercise 2 states the bound in that conditional form. Recovering $s/r$ in lowest terms from a real number known to that accuracy is a classical problem with a classical answer. If $2^t \ge N^2$ then $1/2^{t+1} &lt; 1/(2r^2)$ for every $r &lt; N$, and a rational with denominator below $N$ that is that close to $k/2^t$ is unique and appears among the <strong>continued-fraction convergents</strong> of $k/2^t$. The convergents are generated by the recurrence</p>
+<p>$$ \frac{h_i}{q_i}, \qquad h_i = c_i h_{i-1} + h_{i-2}, \qquad q_i = c_i q_{i-1} + q_{i-2} $$</p>
+<p>where $c_i$ are the partial quotients of the Euclidean algorithm on $k$ and $2^t$; the whole computation is integer arithmetic and costs $O(n^3)$ bit operations. This is why the counting register is $t = 2n + 1$ qubits and not $n$: the extra factor of two is what makes the rational reconstruction unique.</p>
+<p>One subtlety survives, and it is the reason the postprocessing in the code below tries more than one candidate. The convergent returns $s/r$ in <em>lowest terms</em>, so what comes out is $r/\gcd(s,r)$. When $\gcd(s,r) &gt; 1$ the denominator is a proper divisor of $r$, and the classical check $a^{q} \equiv 1 \pmod N$ detects this immediately. Multiplying the candidate by 2 or 3 repairs the common cases at the cost of a few modular exponentiations; running the circuit twice and taking the least common multiple of the two denominators is the other standard remedy.</p>
+<h3>Code Example 1: The Toolbox, Re-listed</h3>
+<p>This chapter needs the state-vector simulator of <a href="../quantum-computing-introduction/chapter-2.html">Introduction to Quantum Computing, Chapter 2</a> and the Fourier machinery of Chapter 2 of this course. Both are reproduced here — the functions this chapter needs, verbatim; only the module docstring is adapted, because two sources are being merged into one file — so that nothing below depends on a file you have to reconstruct. Save it as <code>shorlib.py</code>. The convention is the one inherited from the introductory course and never changed: <strong>big-endian</strong>, qubit 0 leftmost in the ket and most significant in the amplitude index, so the integer read out of a $t$-qubit counting register is $k = \sum_j q_j 2^{t-1-j}$.</p>
+<pre><code class="language-python">&quot;&quot;&quot;Chapter 3 toolbox. Save as shorlib.py and start every example with
+`from shorlib import *`.
+
+Part 1 is the state-vector simulator of Introduction to Quantum Computing,
+Chapter 2 -- the functions this chapter needs, verbatim. Part 2 is the Fourier
+machinery of Chapter 2 of this course, also verbatim.
+&quot;&quot;&quot;
+import numpy as np
+
+# ---- part 1: the mini-simulator, verbatim ------------------------------------
+H = np.array([[1, 1], [1, -1]], dtype=complex) / np.sqrt(2)
+
+
+def ket(bits: str) -&gt; np.ndarray:
+    &quot;&quot;&quot;'01' -&gt; the 4-dimensional basis state |01&gt; (big-endian).&quot;&quot;&quot;
+    n = len(bits)
+    psi = np.zeros(2 ** n, dtype=complex)
+    psi[int(bits, 2)] = 1.0
+    return psi
+
+
+def apply_gate(state, U, targets, n):
+    &quot;&quot;&quot;Apply the 2^k x 2^k unitary U to the listed target qubits of an n-qubit state.&quot;&quot;&quot;
+    k = len(targets)
+    psi = state.reshape([2] * n)          # 1. view as an n-index tensor
+    psi = np.moveaxis(psi, targets, range(k))   # 2. bring targets to the front
+    rest = psi.shape[k:]
+    psi = psi.reshape(2 ** k, -1)         # 3. flatten and multiply
+    psi = U @ psi
+    psi = psi.reshape(list((2,) * k) + list(rest))
+    psi = np.moveaxis(psi, range(k), targets)   # 4. put the axes back
+    return psi.reshape(-1)
+
+
+def probs(state):
+    &quot;&quot;&quot;Born-rule probabilities of all 2^n outcomes.&quot;&quot;&quot;
+    return np.abs(state) ** 2
+
+
+# ---- part 2: the Fourier machinery of Chapter 2, verbatim --------------------
+SWAP4 = np.array([[1, 0, 0, 0],
+                  [0, 0, 1, 0],
+                  [0, 1, 0, 0],
+                  [0, 0, 0, 1]], dtype=complex)
+
+
+def cphase(theta):
+    &quot;&quot;&quot;Controlled phase gate diag(1, 1, 1, exp(i theta)) on a qubit pair.&quot;&quot;&quot;
+    return np.diag([1.0, 1.0, 1.0, np.exp(1j * theta)]).astype(complex)
+
+
+def iqft(state, qubits, n):
+    &quot;&quot;&quot;Inverse QFT: the same gates in reverse order with conjugated phases.&quot;&quot;&quot;
+    m = len(qubits)
+    for j in range(m // 2):
+        state = apply_gate(state, SWAP4, [qubits[j], qubits[m - 1 - j]], n)
+    for j in reversed(range(m)):
+        for k in reversed(range(j + 1, m)):
+            state = apply_gate(state, cphase(-np.pi / 2 ** (k - j)),
+                               [qubits[k], qubits[j]], n)
+        state = apply_gate(state, H, [qubits[j]], n)
+    return state
+
+
+def controlled(U):
+    &quot;&quot;&quot;Block-diagonal controlled version of U; the control is the first qubit.&quot;&quot;&quot;
+    d = U.shape[0]
+    C = np.eye(2 * d, dtype=complex)
+    C[d:, d:] = U
+    return C
+</code></pre>
+<p>Only four of the simulator's nine functions are needed here, and only the inverse transform of Chapter 2's pair, because order finding never applies a forward QFT. The <code>controlled</code> helper of Chapter 2, Example 4 does the rest of the work: it turns any $2^k \times 2^k$ unitary into a $2^{k+1} \times 2^{k+1}$ one, which <code>apply_gate</code> then applies to a control qubit plus $k$ targets anywhere in the register.</p>
+<h3>Code Example 2: The Classical Half</h3>
+<p>Everything in Section 3.1 above, computed. The point of tabulating every coprime base rather than sampling a few is that the failure modes then become countable, and the theorem's $1/2$ bound becomes a number you can check rather than a claim you accept.</p>
+<pre><code class="language-python">&quot;&quot;&quot;Chapter 3, Example 2: the classical half of Shor's algorithm.
+Continues from Example 1 (same session).&quot;&quot;&quot;
+
+import numpy as np
+from math import gcd
+
+
+def order(a, N):
+    &quot;&quot;&quot;Smallest r &gt; 0 with a^r = 1 (mod N), by brute force. Classical, O(N).&quot;&quot;&quot;
+    x, r = a % N, 1
+    while x != 1:
+        x = (x * a) % N
+        r += 1
+    return r
+
+
+def factors_from_order(a, r, N):
+    &quot;&quot;&quot;The last step of the reduction: gcd(a^(r/2) -+ 1, N).&quot;&quot;&quot;
+    if r % 2 != 0:
+        return None, &quot;r is odd&quot;
+    x = pow(a, r // 2, N)
+    if x == N - 1:
+        return None, &quot;a^(r/2) = -1 mod N&quot;
+    f1, f2 = gcd(x - 1, N), gcd(x + 1, N)
+    for f in (f1, f2):
+        if 1 &lt; f &lt; N:
+            return (f, N // f), &quot;ok&quot;
+    return None, &quot;only trivial gcds&quot;
+
+
+for N in (15, 21):
+    coprime = [a for a in range(2, N) if gcd(a, N) == 1]
+    print(f&quot;N = {N}: every base coprime to N, and what it yields&quot;)
+    print(&quot;-&quot; * 74)
+    print(f&quot;  {'a':&gt;4}{'r = ord_N(a)':&gt;14}{'r even':&gt;8}&quot;
+          f&quot;{'a^(r/2) mod N':&gt;15}{'factors':&gt;12}{'verdict':&gt;20}&quot;)
+    good = 0
+    for a in coprime:
+        r = order(a, N)
+        fac, why = factors_from_order(a, r, N)
+        if fac:
+            good += 1
+        half = pow(a, r // 2, N) if r % 2 == 0 else None
+        print(f&quot;  {a:&gt;4}{r:&gt;14}{'yes' if r % 2 == 0 else 'no':&gt;8}&quot;
+              f&quot;{('-' if half is None else str(half)):&gt;15}&quot;
+              f&quot;{('-' if fac is None else f'{fac[0]}x{fac[1]}'):&gt;12}&quot;
+              f&quot;{why:&gt;20}&quot;)
+    print(f&quot;\n  {good} of {len(coprime)} bases succeed &quot;
+          f&quot;({good/len(coprime):.3f}); the theorem guarantees at least 1/2 &quot;
+          f&quot;for\n  an N with two distinct odd prime factors.\n&quot;)
+
+print(&quot;The cases the quantum part never sees&quot;)
+print(&quot;-&quot; * 74)
+
+
+def classical_shortcuts(N):
+    &quot;&quot;&quot;Everything Shor's algorithm dispatches classically before measuring.&quot;&quot;&quot;
+    if N % 2 == 0:
+        return f&quot;even: 2 x {N//2}&quot;
+    for b in range(2, int(np.log2(N)) + 1):
+        root = round(N ** (1.0 / b))
+        for cand in (root - 1, root, root + 1):
+            if cand &gt; 1 and cand ** b == N:
+                return f&quot;perfect power: {cand}^{b}&quot;
+    return None
+
+
+for N in (15, 21, 16, 27, 35, 2 ** 10, 91):
+    sc = classical_shortcuts(N)
+    print(f&quot;  N = {N:&gt;5}: &quot; + (sc if sc else &quot;needs order finding&quot;))
+print(&quot;  A random base can also be lucky: if gcd(a, N) &gt; 1 the factor is free.&quot;)
+print(f&quot;  For N = 15 that happens for a in &quot;
+      f&quot;{[a for a in range(2, 15) if 1 &lt; gcd(a, 15) &lt; 15]}, &quot;
+      f&quot;{len([a for a in range(2,15) if 1 &lt; gcd(a,15) &lt; 15])}/13 of the bases.&quot;)
+
+print(&quot;\nContinued fractions: recovering r from a noisy s/r&quot;)
+print(&quot;-&quot; * 74)
+
+
+def convergents(num, den, max_den):
+    &quot;&quot;&quot;Continued-fraction convergents of num/den with denominator &lt;= max_den.&quot;&quot;&quot;
+    out = []
+    h2, h1, k2, k1 = 0, 1, 1, 0
+    n, d = num, den
+    while d:
+        q = n // d
+        h, k = q * h1 + h2, q * k1 + k2
+        if k &gt; max_den:
+            break
+        out.append((h, k))
+        h2, h1, k2, k1 = h1, h, k1, k
+        n, d = d, n - q * d
+    return out
+
+
+for num, den, max_den, label in [(1365, 4096, 21, &quot;k = 1365, t = 12, N = 21&quot;),
+                                 (683, 2048, 21, &quot;k = 683, t = 11, N = 21&quot;),
+                                 (192, 256, 15, &quot;k = 192, t = 8, N = 15&quot;),
+                                 (3, 8, 15, &quot;k = 3, t = 3, N = 15&quot;)]:
+    cs = convergents(num, den, max_den)
+    print(f&quot;  {label:&lt;26} {num}/{den} = {num/den:.6f}&quot;)
+    print(&quot;     convergents: &quot; + &quot;  &quot;.join(f&quot;{h}/{k}&quot; for h, k in cs))
+print(&quot;  The last convergent with denominator &lt;= N is the candidate for r; &quot;
+      &quot;the check\n  a^r = 1 mod N is classical and cheap, so a wrong guess &quot;
+      &quot;costs nothing.&quot;)
+</code></pre>
+<pre><code class="language-text">N = 15: every base coprime to N, and what it yields
+--------------------------------------------------------------------------
+     a  r = ord_N(a)  r even  a^(r/2) mod N     factors             verdict
+     2             4     yes              4         3x5                  ok
+     4             2     yes              4         3x5                  ok
+     7             4     yes              4         3x5                  ok
+     8             4     yes              4         3x5                  ok
+    11             2     yes             11         5x3                  ok
+    13             4     yes              4         3x5                  ok
+    14             2     yes             14           -  a^(r/2) = -1 mod N
+
+  6 of 7 bases succeed (0.857); the theorem guarantees at least 1/2 for
+  an N with two distinct odd prime factors.
+
+N = 21: every base coprime to N, and what it yields
+--------------------------------------------------------------------------
+     a  r = ord_N(a)  r even  a^(r/2) mod N     factors             verdict
+     2             6     yes              8         7x3                  ok
+     4             3      no              -           -            r is odd
+     5             6     yes             20           -  a^(r/2) = -1 mod N
+     8             2     yes              8         7x3                  ok
+    10             6     yes             13         3x7                  ok
+    11             6     yes              8         7x3                  ok
+    13             2     yes             13         3x7                  ok
+    16             3      no              -           -            r is odd
+    17             6     yes             20           -  a^(r/2) = -1 mod N
+    19             6     yes             13         3x7                  ok
+    20             2     yes             20           -  a^(r/2) = -1 mod N
+
+  6 of 11 bases succeed (0.545); the theorem guarantees at least 1/2 for
+  an N with two distinct odd prime factors.
+
+The cases the quantum part never sees
+--------------------------------------------------------------------------
+  N =    15: needs order finding
+  N =    21: needs order finding
+  N =    16: even: 2 x 8
+  N =    27: perfect power: 3^3
+  N =    35: needs order finding
+  N =  1024: even: 2 x 512
+  N =    91: needs order finding
+  A random base can also be lucky: if gcd(a, N) &gt; 1 the factor is free.
+  For N = 15 that happens for a in [3, 5, 6, 9, 10, 12], 6/13 of the bases.
+
+Continued fractions: recovering r from a noisy s/r
+--------------------------------------------------------------------------
+  k = 1365, t = 12, N = 21   1365/4096 = 0.333252
+     convergents: 0/1  1/3
+  k = 683, t = 11, N = 21    683/2048 = 0.333496
+     convergents: 0/1  1/2  1/3
+  k = 192, t = 8, N = 15     192/256 = 0.750000
+     convergents: 0/1  1/1  3/4
+  k = 3, t = 3, N = 15       3/8 = 0.375000
+     convergents: 0/1  1/2  1/3  3/8
+  The last convergent with denominator &lt;= N is the candidate for r; the check
+  a^r = 1 mod N is classical and cheap, so a wrong guess costs nothing.
+</code></pre>
+<p><strong>What to look for.</strong> For $N = 15$ six of the seven coprime bases succeed and for $N = 21$ six of eleven, both above the guaranteed $1/2$ — though both counts run over $1 &lt; a &lt; N$ and so exclude $a = 1$, which the theorem's sample space includes and which always fails; over $\mathbb{Z}_N^\ast$ the $N = 21$ rate is exactly $6/12$, so the bound is attained rather than beaten, as Exercise 1 works out for $N = 33$. And the single failure mode for $N = 15$ is $a = 14 \equiv -1$, whose order is 2 and whose $a^{r/2}$ is $-1$ by construction. For $N = 21$ both failure modes appear: $a = 4$ and $a = 16$ have order 3, and $a = 5, 17, 20$ hit $a^{r/2} \equiv -1$. Reading the table as a whole, every failure is a property of the <em>base</em>, detected by two lines of classical arithmetic, and none of them is a property of the algorithm.</p>
+<p>The continued-fraction block previews the postprocessing. The row $k = 1365$, $t = 12$ is the one to study: $1365/4096 = 0.333252$, whose convergents stop at $1/3$, and $3$ is not the order of 2 modulo 21 — the order is 6. The true $s/r$ was $2/6$, which reduces to $1/3$, and $\gcd(s,r) = 2$ has been lost. The remedy is the one described above, and the row $k = 683$ shows the alternative path: there the convergents pass through $1/2$ and reach $1/3$, so the same doubling recovers 6.</p>
+<hr />
+<h2>3.2 The Order-Finding Circuit</h2>
+<h3>The unitary and its eigenvalues</h3>
+<p>Define, for $\gcd(a, N) = 1$, the operator</p>
+<p>$$ U_a \lvert y \rangle = \lvert ay \bmod N \rangle $$</p>
+<p>on an $n$-qubit register with $n = \lceil \log_2 N \rceil$, extended by the identity on the $2^n - N$ basis states with $y \ge N$. It is unitary because multiplication by $a$ permutes the residues coprime to $N$ — indeed $U_a$ is nothing but a permutation matrix, and $U_a^r = I$.</p>
+<p>Its eigenvectors are Fourier modes over the orbit of 1. For $s \in \lbrace 0, \ldots, r-1 \rbrace$,</p>
+<p>$$ \lvert u_s \rangle = \frac{1}{\sqrt{r}}\sum_{j=0}^{r-1} e^{-2\pi i sj/r}\, \lvert a^j \bmod N \rangle, \qquad U_a \lvert u_s \rangle = e^{2\pi i s/r}\, \lvert u_s \rangle $$</p>
+<p>so every eigenphase of $U_a$ is a multiple of $1/r$. Phase estimation on $U_a$ therefore returns an estimate of $s/r$, and that is the whole idea. The remaining problem is that preparing $\lvert u_s \rangle$ requires knowing $r$. The resolution is the reason the algorithm is elegant: the computational basis state $\lvert 1 \rangle$ is the uniform superposition of all of them,</p>
+<p>$$ \lvert 1 \rangle = \frac{1}{\sqrt{r}}\sum_{s=0}^{r-1} \lvert u_s \rangle $$</p>
+<p>so feeding $\lvert 1 \rangle$ into phase estimation returns a uniformly random $s \in \lbrace 0, \ldots, r-1 \rbrace$ — as Chapter 2's Example 4 showed, an input that is a superposition of eigenvectors returns each eigenphase with its own weight. The outcome $s = 0$ is useless and occurs with probability $1/r$; every other outcome carries information about $r$.</p>
+<h3>Where the cost is</h3>
+<p>The circuit needs controlled $U_a^{2^j}$ for $j = 0, \ldots, t-1$, and the naive reading — $2^t - 1$ applications of $U_a$ — is not how it is done. Because $a^{2^j} \bmod N$ is a <em>classical</em> computation, each controlled power is a single controlled modular multiplication by a precomputed constant. There are therefore $t = 2n+1$ of them, each a reversible modular multiplier costing $O(n^2)$ elementary gates with schoolbook arithmetic, for $O(n^3)$ in total. Against that, the inverse QFT on $t$ qubits costs $t(t+1)/2 = O(n^2)$.</p>
+<p>The ratio is the point, and it is worth stating as a slogan: <strong>Shor's algorithm is a modular-exponentiation circuit with a Fourier transform stapled to the end.</strong> The Fourier transform is the part that gets the name and the part that is asymptotically free. Every serious resource estimate for factoring is an estimate of the arithmetic — which adder, which multiplier, how many ancillas, how much of it can be windowed or precomputed — and the QFT does not appear in the leading term. This is also why the <em>approximate</em> QFT is universally used: its error is negligible next to everything else. One implementation note that Chapter 2 has already paid for: nothing here requires the $t$-qubit counting register to be held coherently, because the iterative single-ancilla phase estimation of Section 2.3 applies to $U_a$ unchanged, replacing $t = 2n+1$ counting qubits by one ancilla and $t$ rounds of measurement and feedback. That is the standard route to the compact factoring circuits in the literature, which quote of order $2n$ qubits rather than $3n$.</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Modular exponentiation</th>
+<th>Inverse QFT</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>What it does</td>
+<td>writes $a^k \bmod N$ into the work register</td>
+<td>reads the period out of the counting register</td>
+</tr>
+<tr>
+<td>Count</td>
+<td>$2n+1$ controlled modular multiplications</td>
+<td>$t(t+1)/2$ rotations, $\lfloor t/2 \rfloor$ swaps</td>
+</tr>
+<tr>
+<td>Gates</td>
+<td>$O(n^3)$</td>
+<td>$O(n^2)$</td>
+</tr>
+<tr>
+<td>Non-Clifford content</td>
+<td>Toffolis in the adders — the dominant cost</td>
+<td>small-angle rotations, mostly droppable</td>
+</tr>
+<tr>
+<td>Ancillas</td>
+<td>$O(n)$ working registers</td>
+<td>none</td>
+</tr>
+</tbody>
+</table>
+<h3>Code Example 3: The Order-Finding Circuit</h3>
+<pre><code class="language-python">&quot;&quot;&quot;Chapter 3, Example 3: the order-finding circuit, and where its cost is.
+Continues from Example 2 (same session).&quot;&quot;&quot;
+
+import numpy as np
+
+
+def modmul_unitary(a, N, n_work):
+    &quot;&quot;&quot;Permutation matrix for |y&gt; -&gt; |a y mod N&gt;, the identity on y &gt;= N.
+
+    A permutation because multiplication by a is a bijection of Z_N when
+    gcd(a, N) = 1. On real hardware this is a reversible modular multiplier
+    built from adders, not a matrix.
+    &quot;&quot;&quot;
+    d = 2 ** n_work
+    U = np.zeros((d, d), dtype=complex)
+    for y in range(d):
+        U[(a * y) % N if y &lt; N else y, y] = 1.0
+    return U
+
+
+def order_finding_state(a, N, t, n_work):
+    &quot;&quot;&quot;Full state after the controlled modular exponentiation and inverse QFT.
+
+    Counting qubits 0..t-1 (qubit 0 = most significant), work register
+    t..t+n_work-1 initialized to |1&gt;. Only t controlled modular multiplications
+    are needed, because a^(2^j) mod N is computed classically beforehand.
+    &quot;&quot;&quot;
+    n = t + n_work
+    state = np.kron(ket('0' * t), ket(format(1, f'0{n_work}b')))
+    for j in range(t):
+        state = apply_gate(state, H, [j], n)
+    for j in range(t):
+        a_pow = pow(a, 2 ** (t - 1 - j), N)
+        state = apply_gate(state, controlled(modmul_unitary(a_pow, N, n_work)),
+                           [j] + list(range(t, n)), n)
+    return iqft(state, list(range(t)), n)
+
+
+print(&quot;The modular multiplication operator is a permutation&quot;)
+print(&quot;-&quot; * 74)
+for a, N, n_work in [(7, 15, 4), (2, 21, 5)]:
+    U = modmul_unitary(a, N, n_work)
+    r = order(a, N)
+    Ur = np.linalg.matrix_power(U, r)
+    print(f&quot;  a = {a}, N = {N}, {n_work} work qubits, dimension {2**n_work}&quot;)
+    print(f&quot;    unitary: max |U^dag U - I| = &quot;
+          f&quot;{np.max(np.abs(U.conj().T @ U - np.eye(2**n_work))):.1e}&quot;)
+    print(f&quot;    order r = {r}:  max |U^r - I| = &quot;
+          f&quot;{np.max(np.abs(Ur - np.eye(2**n_work))):.1e}&quot;)
+    orbit = [1]
+    while True:
+        nxt = (orbit[-1] * a) % N
+        if nxt == 1:
+            break
+        orbit.append(nxt)
+    print(f&quot;    orbit of |1&gt;: &quot; + &quot; -&gt; &quot;.join(str(y) for y in orbit)
+          + &quot; -&gt; 1&quot;)
+    print(f&quot;    basis states with y &gt;= N: {2**n_work - N} left untouched, &quot;
+          f&quot;which is what keeps U unitary&quot;)
+
+print(&quot;\nWhere the gates actually go&quot;)
+print(&quot;-&quot; * 74)
+print(&quot;  Counting register t = 2n+1 bits, work register n = ceil(log2 N) bits.&quot;)
+print(f&quot;  {'N':&gt;10}{'n':&gt;6}{'t':&gt;7}{'qubits':&gt;9}{'ctrl mod-mults':&gt;16}&quot;
+      f&quot;{'~gates in them':&gt;17}{'~QFT gates':&gt;12}&quot;)
+for N in [15, 21, 2 ** 16 + 1, 2 ** 64 + 1, 2 ** 1024 + 1, 2 ** 2048 + 1]:
+    n_bits = N.bit_length()
+    t = 2 * n_bits + 1
+    label = f&quot;{N}&quot; if N &lt; 1000 else f&quot;~2^{n_bits-1}&quot;
+    print(f&quot;  {label:&gt;10}{n_bits:&gt;6}{t:&gt;7}{t + n_bits:&gt;9}{t:&gt;16}&quot;
+          f&quot;{t * n_bits ** 2:&gt;17d}{t * (t + 1) // 2:&gt;12d}&quot;)
+print(&quot;  The modular arithmetic outweighs the QFT by a factor ~n at every &quot;
+      &quot;size:\n  Shor's algorithm is a modular-exponentiation circuit with a &quot;
+      &quot;Fourier transform\n  stapled to the end, not the other way round.&quot;)
+
+print(&quot;\nThe state just before the inverse QFT, N = 15, a = 7, t = 4&quot;)
+print(&quot;-&quot; * 74)
+a, N, n_work, t = 7, 15, 4, 4
+n = t + n_work
+st = np.kron(ket('0' * t), ket(format(1, f'0{n_work}b')))
+for j in range(t):
+    st = apply_gate(st, H, [j], n)
+for j in range(t):
+    st = apply_gate(st, controlled(modmul_unitary(pow(a, 2 ** (t-1-j), N),
+                                                 N, n_work)),
+                    [j] + list(range(t, n)), n)
+work_probs = probs(st).reshape(2 ** t, -1).sum(axis=0)
+print(&quot;  work-register marginal (only the orbit of 1 is populated):&quot;)
+print(&quot;   &quot; + &quot;  &quot;.join(f&quot;|{y}&gt;: {work_probs[y]:.4f}&quot;
+                        for y in np.flatnonzero(work_probs &gt; 1e-9)))
+print(f&quot;  each of the {int(round(1/work_probs.max()))} orbit states carries &quot;
+      f&quot;probability 1/r, and the counting register\n  conditioned on any one &quot;
+      &quot;of them is periodic with period r -- which is what the\n  inverse QFT &quot;
+      &quot;then reads.&quot;)
+</code></pre>
+<pre><code class="language-text">The modular multiplication operator is a permutation
+--------------------------------------------------------------------------
+  a = 7, N = 15, 4 work qubits, dimension 16
+    unitary: max |U^dag U - I| = 0.0e+00
+    order r = 4:  max |U^r - I| = 0.0e+00
+    orbit of |1&gt;: 1 -&gt; 7 -&gt; 4 -&gt; 13 -&gt; 1
+    basis states with y &gt;= N: 1 left untouched, which is what keeps U unitary
+  a = 2, N = 21, 5 work qubits, dimension 32
+    unitary: max |U^dag U - I| = 0.0e+00
+    order r = 6:  max |U^r - I| = 0.0e+00
+    orbit of |1&gt;: 1 -&gt; 2 -&gt; 4 -&gt; 8 -&gt; 16 -&gt; 11 -&gt; 1
+    basis states with y &gt;= N: 11 left untouched, which is what keeps U unitary
+
+Where the gates actually go
+--------------------------------------------------------------------------
+  Counting register t = 2n+1 bits, work register n = ceil(log2 N) bits.
+           N     n      t   qubits  ctrl mod-mults   ~gates in them  ~QFT gates
+          15     4      9       13               9              144          45
+          21     5     11       16              11              275          66
+       ~2^16    17     35       52              35            10115         630
+       ~2^64    65    131      196             131           553475        8646
+     ~2^1024  1025   2051     3076            2051       2154831875     2104326
+     ~2^2048  2049   4099     6148            4099      17209245699     8402950
+  The modular arithmetic outweighs the QFT by a factor ~n at every size:
+  Shor's algorithm is a modular-exponentiation circuit with a Fourier transform
+  stapled to the end, not the other way round.
+
+The state just before the inverse QFT, N = 15, a = 7, t = 4
+--------------------------------------------------------------------------
+  work-register marginal (only the orbit of 1 is populated):
+   |1&gt;: 0.2500  |4&gt;: 0.2500  |7&gt;: 0.2500  |13&gt;: 0.2500
+  each of the 4 orbit states carries probability 1/r, and the counting register
+  conditioned on any one of them is periodic with period r -- which is what the
+  inverse QFT then reads.
+</code></pre>
+<p><strong>What to look for.</strong> $U_a$ is a permutation matrix to exact zero error, and $U_a^r = I$ exactly — an integer identity computed in floating point with no residue, because permutation matrices multiply without rounding. The orbits printed are the sequences $1, a, a^2, \ldots$ modulo $N$, of length exactly $r$, and the states outside $\lbrace 0, \ldots, N-1 \rbrace$ are fixed points, which is how the operator stays unitary on a register whose dimension is not $N$.</p>
+<p>The accounting table is Section 3.2's claim in numbers. At $n = 2049$ bits the modular arithmetic contributes $1.7\times10^{10}$ gates and the QFT $8.4\times10^6$: a ratio of two thousand. Every discussion of "the quantum Fourier transform breaking RSA" has the emphasis in the wrong place.</p>
+<p>The last block shows the state that phase estimation actually acts on. After the controlled modular exponentiation, the work register is supported on exactly the $r$ elements of the orbit, each with probability $1/r$, and conditioned on any one of them the counting register holds a superposition periodic with period $r$ — precisely the state of Chapter 2's Example 3. The inverse QFT then reads the period, and the offset, which is which element of the orbit was measured, is discarded exactly as Example 3 predicted.</p>
+<hr />
+<h2>3.3 Factoring 15 and 21, End to End</h2>
+<h3>Code Example 4: $N = 15$, Where the Period Divides the Register</h3>
+<p>$N = 15$ is the traditional demonstration, and it is unrepresentatively kind: every order is 2 or 4, both divide $2^t$, and the output distribution is therefore exactly peaked with no leakage at all. That makes it the right place to check the postprocessing against a case where the answer is visible by eye.</p>
+<pre><code class="language-python">&quot;&quot;&quot;Chapter 3, Example 4: factoring N = 15 end to end.
+Continues from Example 3 (same session).&quot;&quot;&quot;
+
+import numpy as np
+import matplotlib.pyplot as plt
+from math import gcd
+
+
+def postprocess(k, t, a, N, max_multiple=3):
+    &quot;&quot;&quot;Turn a measured counting-register value k into (r, factors) or None.
+
+    Continued fractions give candidate denominators for k/2^t ~ s/r. A
+    convergent returns r/gcd(s, r) rather than r, so a few small multiples of
+    each candidate are tried as well; that repairs the common gcd = 2 or 3 and
+    is a fixed number of classical modular exponentiations, not a search. The
+    convergent 0/1 is skipped because s = 0 carries no information about r.
+    &quot;&quot;&quot;
+    for _, r_cand in convergents(k, 2 ** t, N):
+        if r_cand &lt; 2:
+            continue
+        for m in range(1, max_multiple + 1):
+            r = m * r_cand
+            if r &lt;= N and pow(a, r, N) == 1:
+                return r, factors_from_order(a, r, N)[0]
+    return None, None
+
+
+a, N, n_work, t = 7, 15, 4, 8
+print(f&quot;Order finding for a = {a}, N = {N}: t = {t} counting qubits, &quot;
+      f&quot;{t + n_work} qubits total&quot;)
+print(&quot;-&quot; * 76)
+state = order_finding_state(a, N, t, n_work)
+p = probs(state).reshape(2 ** t, -1).sum(axis=1)
+r_true = order(a, N)
+print(f&quot;  true order r = {r_true}, so the ideal peaks sit at &quot;
+      f&quot;k = j * 2^t/r = j * {2**t // r_true}&quot;)
+print(f&quot;  {'k':&gt;6}{'p(k)':&gt;10}{'k/2^t':&gt;10}{'CF convergents':&gt;26}&quot;
+      f&quot;{'r found':&gt;9}{'factors':&gt;10}&quot;)
+for k in np.flatnonzero(p &gt; 1e-9):
+    r, fac = postprocess(int(k), t, a, N)
+    cs = &quot;  &quot;.join(f&quot;{h}/{q}&quot; for h, q in convergents(int(k), 2 ** t, N))
+    print(f&quot;  {k:&gt;6}{p[k]:&gt;10.4f}{k/2**t:&gt;10.4f}{cs:&gt;26}&quot;
+          f&quot;{('-' if r is None else r):&gt;9}&quot;
+          f&quot;{('-' if fac is None else f'{fac[0]}x{fac[1]}'):&gt;10}&quot;)
+print(f&quot;  total probability on those {int((p &gt; 1e-9).sum())} outcomes: &quot;
+      f&quot;{p[p &gt; 1e-9].sum():.6f}&quot;)
+
+print(&quot;\nExact success probability, summed over the whole distribution&quot;)
+print(&quot;-&quot; * 76)
+succ = sum(p[k] for k in range(2 ** t)
+           if postprocess(k, t, a, N)[1] is not None)
+print(f&quot;  P(a nontrivial factor of {N} on one run with a = {a}) = {succ:.6f}&quot;)
+print(f&quot;  P(failure)  = {1 - succ:.6f}, and p(k = 0) alone is {p[0]:.6f}&quot;)
+
+print(&quot;\nSampling the circuit, 2000 shots&quot;)
+print(&quot;-&quot; * 76)
+rng = np.random.default_rng(20260813)
+counts = rng.multinomial(2000, p)
+found = {}
+for k in np.flatnonzero(counts):
+    r, fac = postprocess(int(k), t, a, N)
+    key = &quot;no factor&quot; if fac is None else f&quot;{fac[0]} x {fac[1]}&quot;
+    found[key] = found.get(key, 0) + int(counts[k])
+    print(f&quot;  k = {k:&gt;3} seen {counts[k]:&gt;5} times  -&gt;  &quot;
+          f&quot;r = {r if r else '-':&gt;2}, {key}&quot;)
+print(&quot;  tally: &quot; + &quot;,  &quot;.join(f&quot;{k}: {v}&quot; for k, v in sorted(found.items())))
+
+print(&quot;\nEvery usable base for N = 15, at t = 8&quot;)
+print(&quot;-&quot; * 76)
+print(f&quot;  {'a':&gt;4}{'r':&gt;4}{'peaks':&gt;8}{'P(success)':&gt;13}{'factors found':&gt;16}&quot;)
+for a_ in [a_ for a_ in range(2, N) if gcd(a_, N) == 1]:
+    st = order_finding_state(a_, N, t, n_work)
+    pp = probs(st).reshape(2 ** t, -1).sum(axis=1)
+    s = 0.0
+    facs = set()
+    for k in range(2 ** t):
+        r, fac = postprocess(k, t, a_, N)
+        if fac:
+            s += pp[k]
+            facs.add(tuple(sorted(fac)))
+    print(f&quot;  {a_:&gt;4}{order(a_, N):&gt;4}{int((pp &gt; 1e-9).sum()):&gt;8}{s:&gt;13.6f}&quot;
+          f&quot;{(', '.join(f'{f[0]}x{f[1]}' for f in facs) or '-'):&gt;16}&quot;)
+
+fig, ax = plt.subplots(1, 2, figsize=(11, 4))
+ax[0].bar(np.arange(2 ** t), p, width=1.0, color=&quot;tab:blue&quot;)
+for j in range(r_true):
+    ax[0].axvline(j * 2 ** t / r_true, color=&quot;k&quot;, ls=&quot;:&quot;, lw=0.8)
+ax[0].set_xlabel(&quot;measured k&quot;); ax[0].set_ylabel(&quot;probability&quot;)
+ax[0].set_title(f&quot;N = 15, a = 7, t = 8: r = {r_true} divides $2^t$&quot;)
+p14 = probs(order_finding_state(14, N, t, n_work)).reshape(2 ** t, -1).sum(axis=1)
+ax[1].bar(np.arange(2 ** t), p14, width=1.0, color=&quot;tab:red&quot;)
+ax[1].set_xlabel(&quot;measured k&quot;); ax[1].set_ylabel(&quot;probability&quot;)
+ax[1].set_title(&quot;a = 14: r = 2, clean peaks, no factor&quot;)
+plt.tight_layout()
+plt.show()
+</code></pre>
+<pre><code class="language-text">Order finding for a = 7, N = 15: t = 8 counting qubits, 12 qubits total
+----------------------------------------------------------------------------
+  true order r = 4, so the ideal peaks sit at k = j * 2^t/r = j * 64
+       k      p(k)     k/2^t            CF convergents  r found   factors
+       0    0.2500    0.0000                       0/1        -         -
+      64    0.2500    0.2500                  0/1  1/4        4       3x5
+     128    0.2500    0.5000                  0/1  1/2        4       3x5
+     192    0.2500    0.7500             0/1  1/1  3/4        4       3x5
+  total probability on those 4 outcomes: 1.000000
+
+Exact success probability, summed over the whole distribution
+----------------------------------------------------------------------------
+  P(a nontrivial factor of 15 on one run with a = 7) = 0.750000
+  P(failure)  = 0.250000, and p(k = 0) alone is 0.250000
+
+Sampling the circuit, 2000 shots
+----------------------------------------------------------------------------
+  k =   0 seen   483 times  -&gt;  r =  -, no factor
+  k =  64 seen   530 times  -&gt;  r =  4, 3 x 5
+  k = 128 seen   505 times  -&gt;  r =  4, 3 x 5
+  k = 192 seen   482 times  -&gt;  r =  4, 3 x 5
+  tally: 3 x 5: 1517,  no factor: 483
+
+Every usable base for N = 15, at t = 8
+----------------------------------------------------------------------------
+     a   r   peaks   P(success)   factors found
+     2   4       4     0.750000             3x5
+     4   2       2     0.500000             3x5
+     7   4       4     0.750000             3x5
+     8   4       4     0.750000             3x5
+    11   2       2     0.500000             3x5
+    13   4       4     0.750000             3x5
+    14   2       2     0.000000               -
+</code></pre>
+<p><strong>What to look for.</strong> Four outcomes, each with probability exactly $1/4$, at $k = 0, 64, 128, 192$ — the multiples of $2^t/r = 64$. Three of them yield the factorization and one, $k = 0$, does not: the useless $s = 0$ outcome, which by the argument in Section 3.2 has probability $1/r$. The exact per-run success probability is therefore $3/4$, and the 2000-shot sample returns $1517/2000 = 0.759$.</p>
+<p>The middle rows show the continued fractions doing real work. At $k = 128$ the convergent is $1/2$, not $1/4$: the true $s/r$ was $2/4$ and the fraction reduced. The candidate 2 fails the check $7^2 \equiv 4 \pmod{15}$, the doubled candidate 4 passes, and the factors follow. That is the $\gcd(s,r) &gt; 1$ case from Section 3.1, occurring in a quarter of all runs for this base.</p>
+<p>The base table closes the loop with Example 2. Every base with $r = 4$ gives success probability $3/4$; every base with $r = 2$ gives $1/2$, because there are only two peaks and one of them is $k = 0$; and $a = 14$ gives exactly zero, because its order is even and its $a^{r/2}$ is $-1$, so no measured $k$ can help. The circuit is not failing there — it is returning $r = 2$ perfectly, and the <em>reduction</em> has no use for it.</p>
+<h3>Code Example 5: $N = 21$, Where It Does Not</h3>
+<p>Twenty-one is the smallest instance that shows the general behaviour. The order of 2 modulo 21 is 6, six does not divide any power of two, and the output distribution leaks.</p>
+<pre><code class="language-python">&quot;&quot;&quot;Chapter 3, Example 5: factoring N = 21, where r does not divide 2^t.
+Continues from Example 4 (same session).&quot;&quot;&quot;
+
+import numpy as np
+import matplotlib.pyplot as plt
+from math import gcd
+
+a, N, n_work = 2, 21, 5
+r_true = order(a, N)
+print(f&quot;N = {N}, a = {a}: true order r = {r_true}, and 2^t/r is never an &quot;
+      f&quot;integer&quot;)
+print(&quot;-&quot; * 78)
+print(f&quot;  {'t':&gt;4}{'qubits':&gt;8}{'peak k':&gt;9}{'k/2^t':&gt;10}{'s/r ideal':&gt;11}&quot;
+      f&quot;{'p(peak)':&gt;10}{'P(success)':&gt;12}{'P(k=0)':&gt;9}&quot;)
+dists = {}
+for t in range(6, 14):
+    st = order_finding_state(a, N, t, n_work)
+    p = probs(st).reshape(2 ** t, -1).sum(axis=1)
+    dists[t] = p
+    k = int(np.argmax(p[1:]) + 1)
+    s_over_r = round(k / 2 ** t * r_true) / r_true
+    succ = sum(p[j] for j in range(2 ** t)
+               if postprocess(j, t, a, N)[1] is not None)
+    print(f&quot;  {t:&gt;4}{t + n_work:&gt;8}{k:&gt;9}{k/2**t:&gt;10.6f}{s_over_r:&gt;11.6f}&quot;
+          f&quot;{p[k]:&gt;10.4f}{succ:&gt;12.6f}{p[0]:&gt;9.4f}&quot;)
+
+t = 11
+p = dists[t]
+print(f&quot;\nThe six peaks at t = {t}, and what each one postprocesses to&quot;)
+print(&quot;-&quot; * 78)
+top = np.sort(np.argsort(p)[::-1][:6])
+print(f&quot;  {'k':&gt;6}{'p(k)':&gt;9}{'k/2^t':&gt;10}{'nearest s/r':&gt;13}&quot;
+      f&quot;{'CF convergents':&gt;26}{'r':&gt;4}{'factors':&gt;10}&quot;)
+for k in top:
+    r, fac = postprocess(int(k), t, a, N)
+    cs = &quot;  &quot;.join(f&quot;{h}/{q}&quot; for h, q in convergents(int(k), 2 ** t, N))
+    s = round(k / 2 ** t * r_true)
+    print(f&quot;  {k:&gt;6}{p[k]:&gt;9.4f}{k/2**t:&gt;10.6f}{f'{s}/{r_true}':&gt;13}&quot;
+          f&quot;{cs:&gt;26}{('-' if r is None else r):&gt;4}&quot;
+          f&quot;{('-' if fac is None else f'{fac[0]}x{fac[1]}'):&gt;10}&quot;)
+print(f&quot;  the six peaks hold {p[top].sum():.4f} of the probability; the rest &quot;
+      f&quot;leaks into\n  the {2**t - 6} remaining bins because r = {r_true} does &quot;
+      f&quot;not divide 2^{t} = {2**t}&quot;)
+
+print(f&quot;\nSampling the t = {t} circuit, 2000 shots&quot;)
+print(&quot;-&quot; * 78)
+rng = np.random.default_rng(20260813)
+counts = rng.multinomial(2000, p)
+tally = {}
+for k in np.flatnonzero(counts):
+    _, fac = postprocess(int(k), t, a, N)
+    key = &quot;no factor&quot; if fac is None else f&quot;{fac[0]} x {fac[1]}&quot;
+    tally[key] = tally.get(key, 0) + int(counts[k])
+print(f&quot;  distinct k values observed: {int((counts &gt; 0).sum())}&quot;)
+print(&quot;  &quot; + &quot;,  &quot;.join(f&quot;{k}: {v}&quot; for k, v in sorted(tally.items())))
+print(f&quot;  measured success rate {tally.get('7 x 3', 0)/2000:.4f} against the &quot;
+      f&quot;exact &quot;
+      f&quot;{sum(p[j] for j in range(2**t) if postprocess(j, t, a, N)[1]):.4f}&quot;)
+
+print(&quot;\nAll usable bases for N = 21 at t = 11&quot;)
+print(&quot;-&quot; * 78)
+print(f&quot;  {'a':&gt;4}{'r':&gt;4}{'P(success)':&gt;13}{'factors found':&gt;16}&quot;
+      f&quot;{'why it can fail':&gt;26}&quot;)
+for a_ in [x for x in range(2, N) if gcd(x, N) == 1]:
+    st = order_finding_state(a_, N, t, n_work)
+    pp = probs(st).reshape(2 ** t, -1).sum(axis=1)
+    s = 0.0
+    facs = set()
+    for k in range(2 ** t):
+        rr, fac = postprocess(k, t, a_, N)
+        if fac:
+            s += pp[k]
+            facs.add(tuple(sorted(fac)))
+    r_ = order(a_, N)
+    why = (&quot;r odd&quot; if r_ % 2 else
+           (&quot;a^(r/2) = -1&quot; if pow(a_, r_ // 2, N) == N - 1 else
+            &quot;only k = 0 and CF misses&quot;))
+    print(f&quot;  {a_:&gt;4}{r_:&gt;4}{s:&gt;13.6f}&quot;
+          f&quot;{(', '.join(f'{f[0]}x{f[1]}' for f in facs) or '-'):&gt;16}{why:&gt;26}&quot;)
+
+fig, ax = plt.subplots(1, 2, figsize=(11, 4))
+for t_, style in [(8, &quot;-&quot;), (11, &quot;-&quot;)]:
+    ax[0].plot(np.arange(2 ** t_) / 2 ** t_, dists[t_], style, lw=1,
+               label=f&quot;t = {t_}&quot;)
+for s in range(r_true):
+    ax[0].axvline(s / r_true, color=&quot;k&quot;, ls=&quot;:&quot;, lw=0.8)
+ax[0].set_xlabel(&quot;$k/2^t$&quot;); ax[0].set_ylabel(&quot;probability&quot;)
+ax[0].set_title(&quot;N = 21, a = 2: peaks near $s/6$&quot;)
+ax[0].legend(fontsize=8)
+ax[1].plot(list(dists), [sum(dists[t_][j] for j in range(2 ** t_)
+                             if postprocess(j, t_, a, N)[1] is not None)
+                         for t_ in dists], &quot;o-&quot;, color=&quot;tab:green&quot;)
+ax[1].set_xlabel(&quot;counting qubits $t$&quot;); ax[1].set_ylabel(&quot;P(success)&quot;)
+ax[1].set_ylim(0, 1)
+ax[1].set_title(&quot;Success probability of one run&quot;)
+plt.tight_layout()
+plt.show()
+</code></pre>
+<pre><code class="language-text">N = 21, a = 2: true order r = 6, and 2^t/r is never an integer
+------------------------------------------------------------------------------
+     t  qubits   peak k     k/2^t  s/r ideal   p(peak)  P(success)   P(k=0)
+     6      11       32  0.500000   0.500000    0.1670    0.787013   0.1670
+     7      12       64  0.500000   0.500000    0.1667    0.815174   0.1667
+     8      13      128  0.500000   0.500000    0.1667    0.823615   0.1667
+     9      14      256  0.500000   0.500000    0.1667    0.828564   0.1667
+    10      15      512  0.500000   0.500000    0.1667    0.830918   0.1667
+    11      16     1024  0.500000   0.500000    0.1667    0.832118   0.1667
+    12      17     2048  0.500000   0.500000    0.1667    0.832721   0.1667
+    13      18     4096  0.500000   0.500000    0.1667    0.833029   0.1667
+
+The six peaks at t = 11, and what each one postprocesses to
+------------------------------------------------------------------------------
+       k     p(k)     k/2^t  nearest s/r            CF convergents   r   factors
+       0   0.1667  0.000000          0/6                       0/1   -         -
+     341   0.1140  0.166504          1/6                  0/1  1/6   6       7x3
+     683   0.1140  0.333496          2/6             0/1  1/2  1/3   6       7x3
+    1024   0.1667  0.500000          3/6                  0/1  1/2   6       7x3
+    1365   0.1140  0.666504          4/6        0/1  1/1  1/2  2/3   6       7x3
+    1707   0.1140  0.833496          5/6             0/1  1/1  5/6   6       7x3
+  the six peaks hold 0.7893 of the probability; the rest leaks into
+  the 2042 remaining bins because r = 6 does not divide 2^11 = 2048
+
+Sampling the t = 11 circuit, 2000 shots
+------------------------------------------------------------------------------
+  distinct k values observed: 78
+  7 x 3: 1677,  no factor: 323
+  measured success rate 0.8385 against the exact 0.8321
+
+All usable bases for N = 21 at t = 11
+------------------------------------------------------------------------------
+     a   r   P(success)   factors found           why it can fail
+     2   6     0.832118             3x7  only k = 0 and CF misses
+     4   3     0.000000               -                     r odd
+     5   6     0.000000               -              a^(r/2) = -1
+     8   2     0.500000             3x7  only k = 0 and CF misses
+    10   6     0.832118             3x7  only k = 0 and CF misses
+    11   6     0.832118             3x7  only k = 0 and CF misses
+    13   2     0.500000             3x7  only k = 0 and CF misses
+    16   3     0.000000               -                     r odd
+    17   6     0.000000               -              a^(r/2) = -1
+    19   6     0.832118             3x7  only k = 0 and CF misses
+    20   2     0.000000               -              a^(r/2) = -1
+</code></pre>
+<p><strong>What to look for.</strong> The peaks sit at $k/2^t = 0.166504$ and so on: near $s/6$ but never on it, exactly as Chapter 2's Example 3 predicted for a period that does not divide the register size. Only $78.9\%$ of the probability is on the six best bins at $t = 11$; the sampled run saw 78 distinct values of $k$ rather than 6.</p>
+<p>And yet the success probability is $0.8321$, higher than the fraction of probability sitting on the peaks. That is not a contradiction and it is the most instructive number in the chapter: outcomes in the <em>shoulders</em> of a peak still round to the same convergent, so continued fractions recover $r$ from them too. The postprocessing is not merely tidying up — it is what converts a broad distribution into a sharp answer. The $t$-scan shows the convergence: $0.787$ at $t = 6$ rising to $0.833$ at $t = 13$, approaching the ceiling $1 - 1/r = 5/6 = 0.8333$ set by the useless $s = 0$ outcome.</p>
+<p>The per-base table repeats Example 2's classification, now with the circuit in the loop. The three bases with $a^{r/2} \equiv -1$ and the two with odd order give exactly zero, deterministically; the six usable bases give $0.5$ or $0.83$ depending on whether $r$ is 2 or 6. Nothing is probabilistic about <em>which</em> bases work — only about whether a given run of a working base lands on a useful $k$.</p>
+<h3>Code Example 6: The Complete Algorithm, and How Often It Works</h3>
+<p>Both halves together, with the classical shortcuts, the random base, the retry loop, and statistics over 600 complete runs.</p>
+<pre><code class="language-python">&quot;&quot;&quot;Chapter 3, Example 6: the whole algorithm, and how often it works.
+Continues from Example 5 (same session).&quot;&quot;&quot;
+
+import numpy as np
+from math import gcd
+
+_CACHE = {}
+
+
+def measure_k(a, N, t, n_work, rng):
+    &quot;&quot;&quot;One shot of the quantum subroutine, from the cached exact distribution.&quot;&quot;&quot;
+    key = (a, N, t, n_work)
+    if key not in _CACHE:
+        st = order_finding_state(a, N, t, n_work)
+        _CACHE[key] = probs(st).reshape(2 ** t, -1).sum(axis=1)
+    p = _CACHE[key]
+    return int(rng.choice(p.size, p=p / p.sum()))
+
+
+def shor(N, rng, max_rounds=10):
+    &quot;&quot;&quot;Shor's algorithm as it is actually specified, with all classical steps.
+
+    Returns (factors, n_quantum_calls, route). A round is one random base plus
+    one call to the order-finding circuit.
+    &quot;&quot;&quot;
+    if N % 2 == 0:
+        return tuple(sorted((2, N // 2))), 0, &quot;even&quot;
+    for b in range(2, N.bit_length() + 1):
+        root = round(N ** (1.0 / b))
+        for cand in (root - 1, root, root + 1):
+            if cand &gt; 1 and cand ** b == N:
+                return tuple(sorted((cand, N // cand))), 0, &quot;perfect power&quot;
+    n_work = N.bit_length()
+    t = 2 * n_work + 1
+    calls = 0
+    for _ in range(max_rounds):
+        a = int(rng.integers(2, N))
+        g = gcd(a, N)
+        if g &gt; 1:
+            return tuple(sorted((g, N // g))), calls, &quot;lucky gcd&quot;
+        calls += 1
+        k = measure_k(a, N, t, n_work, rng)
+        _, fac = postprocess(k, t, a, N)
+        if fac:
+            return tuple(sorted(fac)), calls, &quot;order finding&quot;
+    return None, calls, &quot;gave up&quot;
+
+
+for N in (15, 21):
+    rng = np.random.default_rng(1234)
+    n_runs = 600
+    routes, calls_hist, results = {}, [], {}
+    for _ in range(n_runs):
+        fac, calls, route = shor(N, rng)
+        routes[route] = routes.get(route, 0) + 1
+        calls_hist.append(calls)
+        key = &quot;failed&quot; if fac is None else f&quot;{fac[0]} x {fac[1]}&quot;
+        results[key] = results.get(key, 0) + 1
+    calls_hist = np.array(calls_hist)
+    print(f&quot;N = {N}: {n_runs} complete runs &quot;
+          f&quot;(t = {2*N.bit_length()+1} counting qubits)&quot;)
+    print(&quot;-&quot; * 78)
+    for key in sorted(results):
+        print(f&quot;  result {key:&lt;12} {results[key]:&gt;5} runs &quot;
+              f&quot;({results[key]/n_runs:.4f})&quot;)
+    for key in sorted(routes):
+        print(f&quot;  route  {key:&lt;12} {routes[key]:&gt;5} runs &quot;
+              f&quot;({routes[key]/n_runs:.4f})&quot;)
+    print(f&quot;  quantum calls per run: mean {calls_hist.mean():.3f}, &quot;
+          f&quot;median {int(np.median(calls_hist))}, max {calls_hist.max()}&quot;)
+    hist = np.bincount(calls_hist)
+    print(&quot;  calls histogram: &quot; + &quot;  &quot;.join(
+        f&quot;{i}: {c}&quot; for i, c in enumerate(hist) if c))
+    print()
+
+print(&quot;Where the failures come from, counted exactly rather than sampled&quot;)
+print(&quot;-&quot; * 78)
+print(f&quot;  {'N':&gt;4}{'bases a':&gt;9}{'lucky gcd':&gt;11}{'r odd':&gt;8}&quot;
+      f&quot;{'a^(r/2)=-1':&gt;12}{'usable':&gt;8}{'mean P(succ | usable)':&gt;23}&quot;)
+for N in (15, 21):
+    n_work = N.bit_length()
+    t = 2 * n_work + 1
+    lucky = [a for a in range(2, N) if gcd(a, N) &gt; 1]
+    cop = [a for a in range(2, N) if gcd(a, N) == 1]
+    odd_r = [a for a in cop if order(a, N) % 2]
+    minus1 = [a for a in cop if order(a, N) % 2 == 0
+              and pow(a, order(a, N) // 2, N) == N - 1]
+    usable = [a for a in cop if a not in odd_r and a not in minus1]
+    ps = []
+    for a in usable:
+        st = order_finding_state(a, N, t, n_work)
+        p = probs(st).reshape(2 ** t, -1).sum(axis=1)
+        ps.append(sum(p[k] for k in range(2 ** t)
+                      if postprocess(k, t, a, N)[1] is not None))
+    print(f&quot;  {N:&gt;4}{len(cop) + len(lucky):&gt;9}{len(lucky):&gt;11}{len(odd_r):&gt;8}&quot;
+          f&quot;{len(minus1):&gt;12}{len(usable):&gt;8}{np.mean(ps):&gt;23.6f}&quot;)
+print(&quot;  Overall probability of success per round = &quot;
+      &quot;P(lucky gcd) + P(usable base) * P(circuit succeeds).&quot;)
+print(&quot;  Every failure is detected classically in microseconds, so the &quot;
+      &quot;algorithm simply\n  draws a new base. Repetition turns a per-round &quot;
+      &quot;probability of about one half\n  into a failure probability of 2^-m &quot;
+      &quot;after m rounds, at negligible cost.&quot;)
+</code></pre>
+<pre><code class="language-text">N = 15: 600 complete runs (t = 9 counting qubits)
+------------------------------------------------------------------------------
+  result 3 x 5          600 runs (1.0000)
+  route  lucky gcd      352 runs (0.5867)
+  route  order finding   248 runs (0.4133)
+  quantum calls per run: mean 0.747, median 1, max 5
+  calls histogram: 0: 262  1: 254  2: 63  3: 17  4: 3  5: 1
+
+N = 21: 600 complete runs (t = 11 counting qubits)
+------------------------------------------------------------------------------
+  result 3 x 7          600 runs (1.0000)
+  route  lucky gcd      404 runs (0.6733)
+  route  order finding   196 runs (0.3267)
+  quantum calls per run: mean 0.873, median 1, max 7
+  calls histogram: 0: 262  1: 215  2: 85  3: 22  4: 10  5: 4  6: 1  7: 1
+
+Where the failures come from, counted exactly rather than sampled
+------------------------------------------------------------------------------
+     N  bases a  lucky gcd   r odd  a^(r/2)=-1  usable  mean P(succ | usable)
+    15       13          6       0           1       6               0.666667
+    21       19          8       2           3       6               0.721412
+  Overall probability of success per round = P(lucky gcd) + P(usable base) * P(circuit succeeds).
+  Every failure is detected classically in microseconds, so the algorithm simply
+  draws a new base. Repetition turns a per-round probability of about one half
+  into a failure probability of 2^-m after m rounds, at negligible cost.
+</code></pre>
+<p><strong>What to look for.</strong> Every one of the 600 runs succeeds for both $N$, with a mean of $0.75$ and $0.87$ calls to the quantum circuit respectively and a worst case of 5 and 7. That is the retry loop working exactly as the theorem says it should.</p>
+<p>Now the caution, and it is the reason this example exists. For $N = 15$, $59\%$ of the <em>runs</em> never touched the quantum circuit at all, and for $N = 21$ it is $67\%$: a randomly drawn $a$ had $\gcd(a, N) &gt; 1$ and the factor came out of the gcd. Those two figures are route fractions over completed runs, and they are larger than the per-draw probability of a lucky gcd, which is $1 - (\phi(N)-1)/(N-2) = 6/13 = 0.4615$ for $N = 15$ and $8/19 = 0.4211$ for $N = 21$ — the base is drawn uniformly from $2 \le a &lt; N$, so $a = 1$ is excluded from both counts. The route fractions are the larger numbers because a lucky draw always ends the run immediately, whereas a coprime draw may fail its two classical tests and force another draw. Either way the fraction goes to zero as $N$ grows, but for $N$ this small the <em>classical</em> shortcut is doing most of the work. Any demonstration of Shor's algorithm on a two-digit number is therefore a demonstration of the postprocessing and the circuit mechanics, and not evidence about factoring. The exact-count table at the end separates the contributions cleanly, so nothing has to be taken on trust.</p>
+<hr />
+<h2>3.4 What This Means, and What It Does Not</h2>
+<h3>The speedup is real, and it is not exponential</h3>
+<p>The best known classical factoring algorithm, the general number field sieve, runs in</p>
+<p>$$ \exp\left(\left(\tfrac{64}{9}\right)^{1/3} (\ln N)^{1/3} (\ln \ln N)^{2/3}\right) $$</p>
+<p>operations — subexponential in $\ln N$, superpolynomial. Shor's is $O(n^3)$ with $n = \log_2 N$, i.e. polynomial. The gap is therefore <em>superpolynomial</em> rather than exponential, and the distinction is not pedantry: it means the crossover point is much larger than a naive $2^n$-versus-$n^3$ comparison suggests, and it means that no classical algorithm has to be exponentially bad for the quantum one to win.</p>
+<p>It also means there is no proof that factoring is classically hard. Shor's algorithm shows factoring is in the quantum polynomial class; nobody has shown it is outside the classical one. A classical polynomial factoring algorithm would be a shock, but it would not contradict any theorem. The correct statement of what Shor proved is about the quantum side only.</p>
+<h3>The size, from stated assumptions</h3>
+<p>Turning $n^3$ into a machine requires three inputs, and quoting a resource estimate without them is meaningless.</p>
+<ul>
+<li><strong>A logical circuit.</strong> Modular exponentiation on $n$ bits with $\sim 3n$ logical qubits and a Toffoli count of order $n^3$ — the coefficient depends on the arithmetic, and a decade of optimization has moved it substantially without changing the exponent.</li>
+<li><strong>An error-correction assumption.</strong> A physical error rate, a code, and a threshold. The code distance $d$ must satisfy $0.1(p/p_{\text{th}})^{(d+1)/2} &lt; 1/(\text{number of operations})$, and the surface code needs $\approx 2d^2$ physical qubits per logical one, plus magic-state factories for the Toffolis.</li>
+<li><strong>A clock.</strong> A syndrome-extraction cycle time, and an assumption about how much of the circuit can run in parallel.</li>
+</ul>
+<p>Example 7 carries three explicit choices through — $p = 10^{-3}$, threshold $10^{-2}$, cycle time $1\ \mu$s — and reaches $10^7$ physical qubits and hours of runtime for $n = 2048$. Those figures are in the same range as the published estimates, which is reassuring about the arithmetic and not about the premises: every one of the three inputs is an assumption, and the published numbers have moved by orders of magnitude as the assumptions improved. Read the exponents, not the mantissas.</p>
+<h3>The two errors, side by side</h3>
+<table>
+<thead>
+<tr>
+<th>Overstatement</th>
+<th>Understatement</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>"Quantum computers break RSA"</td>
+<td>"Shor's algorithm is a curiosity"</td>
+</tr>
+<tr>
+<td>No device can run this circuit; the gap is $10^6$ or more in qubit count</td>
+<td>The mathematics is settled and the exponent is polynomial</td>
+</tr>
+<tr>
+<td>Treats a 2-digit demonstration as evidence about 617-digit moduli</td>
+<td>Ignores that stored ciphertext can be decrypted later</td>
+</tr>
+<tr>
+<td>Ignores that most of a small demonstration is classical arithmetic</td>
+<td>Ignores that the standards migration is a direct consequence</td>
+</tr>
+</tbody>
+</table>
+<p>The right response to both is the same: state the circuit size, state the assumptions, and separate what is proved from what is engineered.</p>
+<h3>What survives, and why</h3>
+<p>Shor's algorithm is not a general-purpose attack. It solves the <strong>hidden subgroup problem in a finite abelian group</strong>, and factoring, discrete logarithms modulo a prime, and elliptic-curve discrete logarithms are all instances. What all three have in common is a group structure with a period to find; the QFT is the character transform of that group, and it is what makes the period measurable.</p>
+<p>Where the hardness of a cryptosystem does <em>not</em> come from an abelian group, Shor has nothing to say. Symmetric ciphers and hash functions rest on unstructured search, where only Grover applies: a quadratic speedup, answered by doubling the key or digest length, which costs a few per cent of performance and no redesign. Lattice problems — the shortest and closest vector problems underlying Learning With Errors — are in neither box. There is no abelian hidden subgroup to exploit, and the best known quantum attacks improve only the <em>constant in the exponent</em> of the best classical ones: heuristic lattice sieving runs in about $2^{0.292n}$ classically and about $2^{0.265n}$ quantumly, an improvement a modest increase in dimension absorbs. "No known speedup" is the wrong way to say it; "no known speedup that changes the shape of the cost" is right. That, and not any timeline, is why lattice-based key exchange and signatures are the standard post-quantum replacements, and why the migration is being carried out as ordinary standards engineering rather than as a response to a demonstration.</p>
+<p>One asymmetry makes the migration urgent independently of when a machine appears: <strong>encrypted traffic can be recorded now and decrypted later</strong>, so the confidentiality of anything with a long secrecy requirement depends on the algorithm in use today, not on the algorithm in use when a quantum computer exists. Signatures do not have this problem, since a signature only has to resist attack while it is being trusted. That distinction, rather than any prediction, is what sets the priority order of a real migration plan.</p>
+<h3>Code Example 7: The Distance to Cryptographic Size</h3>
+<pre><code class="language-python">&quot;&quot;&quot;Chapter 3, Example 7: the distance from N = 21 to a cryptographic modulus.
+Continues from Example 6 (same session).&quot;&quot;&quot;
+
+import numpy as np
+
+# Every constant below is a stated modelling assumption, not a measurement.
+P_PHYS = 1e-3          # physical two-qubit error rate assumed
+P_THRESH = 1e-2        # surface-code threshold assumed
+CYCLE = 1e-6           # surface-code measurement cycle assumed, seconds
+TOFFOLI_COEF = 0.3     # Toffolis in modular exponentiation ~ 0.3 n^3
+
+
+def gnfs_ops(n_bits):
+    &quot;&quot;&quot;Heuristic asymptotic cost of the general number field sieve.&quot;&quot;&quot;
+    lnN = n_bits * np.log(2.0)
+    return np.exp((64.0 / 9.0) ** (1 / 3) * lnN ** (1 / 3)
+                  * np.log(lnN) ** (2 / 3))
+
+
+def surface_code_distance(n_logical_ops):
+    &quot;&quot;&quot;Smallest odd d with 0.1 (p/p_th)^((d+1)/2) &lt; 1/(10 n_logical_ops).&quot;&quot;&quot;
+    for d in range(3, 60, 2):
+        if 0.1 * (P_PHYS / P_THRESH) ** ((d + 1) / 2) &lt; 0.1 / n_logical_ops:
+            return d
+    return None
+
+
+print(&quot;Circuit size against modulus size (this chapter's own accounting)&quot;)
+print(&quot;-&quot; * 78)
+print(f&quot;  {'n bits':&gt;8}{'logical qubits':&gt;16}{'Toffolis ~0.3n^3':&gt;19}&quot;
+      f&quot;{'GNFS ops':&gt;13}{'quantum/GNFS':&gt;15}&quot;)
+for n_bits in [5, 32, 256, 1024, 2048, 4096]:
+    logical = 3 * n_bits
+    toff = TOFFOLI_COEF * n_bits ** 3
+    g = gnfs_ops(n_bits)
+    print(f&quot;  {n_bits:&gt;8}{logical:&gt;16d}{toff:&gt;19.2e}{g:&gt;13.2e}&quot;
+          f&quot;{toff/g:&gt;15.2e}&quot;)
+print(&quot;  The crossover is not in doubt -- polynomial beats subexponential -- &quot;
+      &quot;but it\n  arrives at a circuit size, not at a date.&quot;)
+
+print(&quot;\nWhat error correction does to those numbers&quot;)
+print(&quot;-&quot; * 78)
+print(f&quot;  assumptions: physical error rate {P_PHYS:.0e}, threshold &quot;
+      f&quot;{P_THRESH:.0e}, cycle time {CYCLE:.0e} s&quot;)
+print(f&quot;  {'n bits':&gt;8}{'Toffolis':&gt;12}{'code distance':&gt;15}&quot;
+      f&quot;{'physical qubits':&gt;18}   wall clock&quot;)
+for n_bits in [(21).bit_length(), 256, 1024, 2048]:
+    logical = 3 * n_bits
+    toff = TOFFOLI_COEF * n_bits ** 3
+    d = surface_code_distance(max(toff, 10))
+    phys = 2 * logical * d ** 2
+    phys_total = 2.5 * phys          # +150% for magic-state factories
+    seconds = toff * d * CYCLE       # one Toffoli ~ d cycles, serialized
+    unit = (&quot;s&quot; if seconds &lt; 3600 else
+            &quot;hours&quot; if seconds &lt; 3 * 86400 else &quot;days&quot;)
+    val = (seconds if unit == &quot;s&quot; else
+           seconds / 3600 if unit == &quot;hours&quot; else seconds / 86400)
+    print(f&quot;  {n_bits:&gt;8}{toff:&gt;12.2e}{d:&gt;15}{phys_total:&gt;18.2e}&quot;
+          f&quot;{val:&gt;10.1f} {unit}&quot;)
+print(&quot;  Read only the exponents. The number of physical qubits is millions &quot;
+      &quot;and the\n  runtime is hours to days -- both several orders of magnitude &quot;
+      &quot;beyond anything\n  that has been built, and both sensitive to every &quot;
+      &quot;assumption listed above.&quot;)
+
+print(&quot;\nThe gap, stated as a ratio&quot;)
+print(&quot;-&quot; * 78)
+n_demo, n_rsa = 5, 2048
+print(f&quot;  N = 21 needed {2*n_demo+1 + n_demo} simulated qubits and &quot;
+      f&quot;{2*n_demo+1} controlled modular multiplications.&quot;)
+print(f&quot;  ratio of Toffoli counts, {n_rsa} bits to {n_demo} bits: &quot;
+      f&quot;{(n_rsa/n_demo)**3:.2e}&quot;)
+print(f&quot;  ratio of logical qubit counts: {n_rsa/n_demo:.0f}&quot;)
+print(f&quot;  ratio of state-vector memory if you tried to simulate it: &quot;
+      f&quot;2^{3*n_rsa} amplitudes&quot;)
+print(&quot;  A demonstration on 21 is a demonstration of the postprocessing, not &quot;
+      &quot;of the\n  cryptanalysis. Nothing about it is evidence that the &quot;
+      &quot;cryptanalysis is near --\n  and nothing about it is evidence that the &quot;
+      &quot;algorithm is wrong, either.&quot;)
+
+print(&quot;\nWhat a quantum computer does and does not break&quot;)
+print(&quot;-&quot; * 78)
+rows = [
+    (&quot;RSA&quot;, &quot;factoring&quot;, &quot;Shor, polynomial&quot;, &quot;broken in principle&quot;),
+    (&quot;Diffie-Hellman, DSA&quot;, &quot;discrete log mod p&quot;, &quot;Shor, polynomial&quot;,
+     &quot;broken in principle&quot;),
+    (&quot;Elliptic-curve DH/DSA&quot;, &quot;discrete log on a curve&quot;, &quot;Shor, polynomial&quot;,
+     &quot;broken in principle; smaller circuits than RSA&quot;),
+    (&quot;AES-128 / AES-256&quot;, &quot;unstructured key search&quot;, &quot;Grover, quadratic&quot;,
+     &quot;key length doubles, then safe&quot;),
+    (&quot;SHA-2 / SHA-3 preimage&quot;, &quot;unstructured search&quot;, &quot;Grover, quadratic&quot;,
+     &quot;output length doubles, then safe&quot;),
+    (&quot;Lattice problems (LWE)&quot;, &quot;shortest/closest vector&quot;, &quot;sieving: 2^0.265n&quot;,
+     &quot;the basis of the standard replacements&quot;),
+    (&quot;Hash-based signatures&quot;, &quot;preimage resistance&quot;, &quot;Grover, quadratic&quot;,
+     &quot;parameter bump, then safe&quot;),
+]
+print(f&quot;  {'primitive':&lt;24}{'hard problem':&lt;26}{'quantum attack':&lt;22}&quot;
+      f&quot;status&quot;)
+for a, b, c, d_ in rows:
+    print(f&quot;  {a:&lt;24}{b:&lt;26}{c:&lt;22}{d_}&quot;)
+print(&quot;\n  Two rows need their fine print. Collision resistance is NOT &quot;
+      &quot;quadratically\n  sped up: the classical birthday attack already costs &quot;
+      &quot;2^(n/2), and the best\n  known quantum collision finder (BHT) reaches &quot;
+      &quot;2^(n/3) while needing 2^(n/3)\n  quantum memory, so hash-based &quot;
+      &quot;signature parameters are set by preimage and\n  second-preimage &quot;
+      &quot;resistance, where Grover does apply. And lattices are not &quot;
+      &quot;'no\n  known speedup': heuristic sieving improves from 2^(0.292n) &quot;
+      &quot;classically to about\n  2^(0.265n) quantumly. That is a change in the &quot;
+      &quot;exponent's constant, absorbed by a\n  modest increase in dimension, &quot;
+      &quot;not the polynomial-versus-exponential change Shor\n  gives for &quot;
+      &quot;factoring.&quot;)
+print(&quot;\n  The pattern: Shor needs an abelian group with a hidden period. &quot;
+      &quot;Where the\n  hardness is unstructured search instead, only Grover &quot;
+      &quot;applies, and a quadratic\n  speedup is answered by doubling a key &quot;
+      &quot;length. Lattice problems fall in neither\n  box, which is why &quot;
+      &quot;lattice-based key exchange and signatures are the standard\n  &quot;
+      &quot;post-quantum replacements -- a migration that is engineering, &quot;
+      &quot;already specified,\n  and independent of when or whether a &quot;
+      &quot;cryptographically useful quantum computer\n  is built.&quot;)
+</code></pre>
+<pre><code class="language-text">Circuit size against modulus size (this chapter's own accounting)
+------------------------------------------------------------------------------
+    n bits  logical qubits   Toffolis ~0.3n^3     GNFS ops   quantum/GNFS
+         5              15           3.75e+01     2.89e+01       1.30e+00
+        32              96           9.83e+03     9.73e+04       1.01e-01
+       256             768           5.03e+06     1.12e+14       4.51e-08
+      1024            3072           3.22e+08     1.32e+26       2.45e-18
+      2048            6144           2.58e+09     1.53e+35       1.68e-26
+      4096           12288           2.06e+10     1.29e+47       1.60e-37
+  The crossover is not in doubt -- polynomial beats subexponential -- but it
+  arrives at a circuit size, not at a date.
+
+What error correction does to those numbers
+------------------------------------------------------------------------------
+  assumptions: physical error rate 1e-03, threshold 1e-02, cycle time 1e-06 s
+    n bits    Toffolis  code distance   physical qubits   wall clock
+         5    3.75e+01              3          6.75e+02       0.0 s
+       256    5.03e+06             13          6.49e+05      65.4 s
+      1024    3.22e+08             17          4.44e+06       1.5 hours
+      2048    2.58e+09             19          1.11e+07      13.6 hours
+  Read only the exponents. The number of physical qubits is millions and the
+  runtime is hours to days -- both several orders of magnitude beyond anything
+  that has been built, and both sensitive to every assumption listed above.
+
+The gap, stated as a ratio
+------------------------------------------------------------------------------
+  N = 21 needed 16 simulated qubits and 11 controlled modular multiplications.
+  ratio of Toffoli counts, 2048 bits to 5 bits: 6.87e+07
+  ratio of logical qubit counts: 410
+  ratio of state-vector memory if you tried to simulate it: 2^6144 amplitudes
+  A demonstration on 21 is a demonstration of the postprocessing, not of the
+  cryptanalysis. Nothing about it is evidence that the cryptanalysis is near --
+  and nothing about it is evidence that the algorithm is wrong, either.
+
+What a quantum computer does and does not break
+------------------------------------------------------------------------------
+  primitive               hard problem              quantum attack        status
+  RSA                     factoring                 Shor, polynomial      broken in principle
+  Diffie-Hellman, DSA     discrete log mod p        Shor, polynomial      broken in principle
+  Elliptic-curve DH/DSA   discrete log on a curve   Shor, polynomial      broken in principle; smaller circuits than RSA
+  AES-128 / AES-256       unstructured key search   Grover, quadratic     key length doubles, then safe
+  SHA-2 / SHA-3 preimage  unstructured search       Grover, quadratic     output length doubles, then safe
+  Lattice problems (LWE)  shortest/closest vector   sieving: 2^0.265n     the basis of the standard replacements
+  Hash-based signatures   preimage resistance       Grover, quadratic     parameter bump, then safe
+
+  Two rows need their fine print. Collision resistance is NOT quadratically
+  sped up: the classical birthday attack already costs 2^(n/2), and the best
+  known quantum collision finder (BHT) reaches 2^(n/3) while needing 2^(n/3)
+  quantum memory, so hash-based signature parameters are set by preimage and
+  second-preimage resistance, where Grover does apply. And lattices are not 'no
+  known speedup': heuristic sieving improves from 2^(0.292n) classically to about
+  2^(0.265n) quantumly. That is a change in the exponent's constant, absorbed by a
+  modest increase in dimension, not the polynomial-versus-exponential change Shor
+  gives for factoring.
+
+  The pattern: Shor needs an abelian group with a hidden period. Where the
+  hardness is unstructured search instead, only Grover applies, and a quadratic
+  speedup is answered by doubling a key length. Lattice problems fall in neither
+  box, which is why lattice-based key exchange and signatures are the standard
+  post-quantum replacements -- a migration that is engineering, already specified,
+  and independent of when or whether a cryptographically useful quantum computer
+  is built.
+</code></pre>
+<p><strong>What to look for.</strong> The first table shows the <em>shape</em> of the two costs, and its last column should not be read as locating a crossover. The quantum side carries an optimised constant — $0.3n^3$ Toffolis, the product of a decade of arithmetic-circuit work — while the classical side is the bare asymptotic form of the sieve with its constant set to 1, and the sieve's true constant is not 1. What the table does establish is that the ratio falls by twenty-five orders of magnitude between 32 and 2048 bits: one function is polynomial and the other is subexponential, and no choice of constants changes that. Where the two curves actually cross is a question about constants that neither column pins down, and it says nothing about when either side can be run.</p>
+<p>The second table is what error correction does. Reaching $2.6\times10^9$ Toffolis at a physical error rate of $10^{-3}$ needs code distance 19, hence $10^7$ physical qubits and about half a day of runtime on the stated assumptions. Every number in that row is a consequence of the four constants declared at the top of the file, and changing the physical error rate by one decade moves $d$ by roughly a factor of two — 19 at $p = 10^{-3}$, 9 at $p = 10^{-4}$ — and therefore the physical qubit count, which goes as $d^2$, by roughly a factor of 4.5. This is the sense in which "how far away is it" is a materials and engineering question rather than an algorithms question: the algorithm has been finished for decades.</p>
+<p>The third block states the gap as ratios, and the fourth is the summary a reader should leave with. Shor breaks the three primitives whose hardness is an abelian hidden subgroup problem. Grover halves the effective key length of everything whose hardness is unstructured search, which is repaired by doubling a parameter. Lattice problems are attacked by neither mechanism at more than an exponent-shaving level — quantum sieving $2^{0.265n}$ against classical $2^{0.292n}$ — which is why they are the replacement. None of those three statements depends on a date.</p>
+<hr />
+<h2>Exercises</h2>
+<h4>Exercise 1: The Reduction by Hand</h4>
+<p>Take $N = 33$ and $a = 5$.</p>
+<ol>
+<li>Compute the order $r$ of 5 modulo 33 by hand or by repeated multiplication.</li>
+<li>Apply the reduction: is $r$ even, what is $a^{r/2} \bmod N$, and what do the two gcds give?</li>
+<li>Repeat for $a = 10$ and for $a = 32$. Classify each outcome by the two failure modes of Section 3.1.</li>
+<li>$33 = 3 \times 11$ has $k = 2$ distinct odd prime factors, so the theorem promises a success probability of at least $1 - 2^{-1} = 1/2$. Count the coprime bases and the successful ones, and compare.</li>
+</ol>
+<details>
+<summary>Solution</summary>
+
+<p><strong>1.</strong> \(5^1 = 5\), \(5^2 = 25\), \(5^3 = 125 = 26\), \(5^4 = 130 = 31\), \(5^5 = 155 = 23\), \(5^6 = 115 = 16\), \(5^7 = 80 = 14\), \(5^8 = 70 = 4\), \(5^9 = 20\), \(5^{10} = 100 = 1\). So \(r = 10\).</p>
+
+<p><strong>2.</strong> \(r\) is even; \(5^5 = 23 \bmod 33\), which is neither 1 nor 32. \(\gcd(22, 33) = 11\) and \(\gcd(24, 33) = 3\): both nontrivial, and \(33 = 3 \times 11\).</p>
+
+<p><strong>3.</strong> \(a = 10\): \(10^2 = 100 = 1\), so \(r = 2\) and \(10^1 = 10\); \(\gcd(9,33) = 3\), \(\gcd(11,33) = 11\) — success. \(a = 32 \equiv -1\): \(r = 2\) and \(a^{r/2} = 32 \equiv -1\), the second failure mode, both gcds trivial. Neither of these two exhibits the first failure mode, odd \(r\); for \(N = 33\) that mode first appears at \(a = 4\), whose order is 5, and part 4 counts every instance of both.</p>
+
+<p><strong>4.</strong> There are \(\phi(33) = 20\) coprime residues, of which 19 lie in \(1 < a < 33\). Enumerating them, ten succeed and nine fail, and both failure modes are represented. The ten successes are \(a = 5, 7, 10, 13, 14, 19, 20, 23, 26, 28\), of order 10 except for \(a = 10\) and \(a = 23\), which have order 2. Five fail with \(a^{r/2} \equiv -1\): \(a = 2, 8, 17, 29\) at order 10 and \(a = 32\) at order 2. Four fail with odd order: \(a = 4, 16, 25, 31\), all of order \(r = 5\).</p>
+
+<p>So the measured rate over \(1 < a < 33\) is \(10/19 = 0.526\). The theorem's own sample space is \(a\) drawn uniformly from the integers coprime to \(N\), which includes \(a = 1\); \(a = 1\) has order 1, which is odd, so it fails, and the rate over \(\mathbb{Z}_{33}^{\ast}\) is exactly \(10/20 = 0.5000\). <strong>The bound is tight here, not conservative</strong> — and the same is true of \(N = 21\), where the count is \(6/12 = 0.5000\). For \(k = 2\) the theorem promises \(\ge 1 - 2^{-1}\) and these two moduli attain it exactly; the slack people expect from "at least a half" is a property of moduli with more prime factors, not of this bound. The systematic way to check is to reuse Code Example 2 with \(N = 33\), which requires no changes to the code.</p>
+
+</details>
+
+<h4>Exercise 2: Why $t = 2n + 1$</h4>
+<p>The counting register is twice as long as the work register plus one bit.</p>
+<ol>
+<li>Show that if $2^t \ge N^2$ then $1/2^{t+1} &lt; 1/(2r^2)$ for every $r &lt; N$.</li>
+<li>The continued-fraction uniqueness theorem says that if $\lvert x - s/r \rvert &lt; 1/(2r^2)$ with $\gcd(s,r) = 1$ then $s/r$ is a convergent of $x$. Combine this with part 1 to justify $t = 2n+1$.</li>
+<li>What goes wrong if $t = n$? Estimate the probability that two different fractions with denominators below $N$ lie within $2^{-n-1}$ of each other.</li>
+<li>Code Example 5 succeeds at $t = 6$ for $N = 21$, where the theorem asks for $t = 11$. Why is that not a contradiction?</li>
+</ol>
+<details>
+<summary>Solution</summary>
+
+<p><strong>1.</strong> \(2^t \ge N^2 > r^2\) for \(r < N\), so \(1/2^{t+1} \le 1/(2N^2) < 1/(2r^2)\).</p>
+
+<p><strong>2.</strong> Phase estimation guarantees \(\lvert k/2^t - s/r \rvert \le 2^{-(t+1)}\) for the best outcome, which by part 1 is below \(1/(2r^2)\); the theorem then puts \(s/r\) among the convergents of \(k/2^t\), which the Euclidean algorithm enumerates in \(O(n)\) steps. \(t = 2n+1\) is the smallest register that guarantees \(2^t \ge N^2\) for all \(n\)-bit \(N\).</p>
+
+<p><strong>3.</strong> With \(t = n\) the guarantee is only \(\lvert k/2^n - s/r\rvert \le 2^{-(n+1)} \approx 1/(2N)\), and there are \(\Theta(N^2)\) fractions with denominator below \(N\) in \([0,1)\), so the typical spacing is \(\Theta(1/N^2)\) — far smaller than the error bar. Many candidate fractions fit, and the reconstruction is not unique. The algorithm still works sometimes, which is exactly part 4.</p>
+
+<p><strong>4.</strong> The theorem is a worst-case guarantee over all \(r < N\). For a specific small \(r\) — here \(r = 6\) — the fractions \(s/6\) are widely separated, so a much coarser register resolves them. \(t = 2n+1\) is what you must choose when \(r\) is unknown and could be as large as \(N\); it is not what a particular instance needs.</p>
+
+</details>
+
+<h4>Exercise 3: Reading the $N = 21$ Distribution</h4>
+<p>Use the $t = 11$ output of Code Example 5.</p>
+<ol>
+<li>The six peaks hold $0.7893$ of the probability but the success probability is $0.8321$. Where does the extra $0.043$ come from?</li>
+<li>The ceiling as $t \to \infty$ is $5/6$. Derive it.</li>
+<li>For $a = 8$ (order 2) the success probability is exactly $0.5$ at every $t$. Explain why it is exactly one half and not approximately.</li>
+<li>Suppose you may run the circuit twice and combine the results. Describe a postprocessing rule that raises the per-experiment success probability above $5/6$, and estimate the new value for $a = 2$, $N = 21$.</li>
+</ol>
+<details>
+<summary>Solution</summary>
+
+<p><strong>1.</strong> From the shoulders. An outcome \(k\) one or two bins away from a peak still has \(k/2^t\) closer to the same \(s/r\) than to any other fraction with denominator below 21, so its continued-fraction expansion returns the same convergent. The postprocessing has a capture radius wider than one bin, and that radius is what the extra probability lives in.</p>
+
+<p><strong>2.</strong> The input \(\lvert 1 \rangle\) is the uniform superposition of the \(r\) eigenvectors \(\lvert u_s \rangle\), so \(s\) is uniform on \(\lbrace 0,\ldots,r-1\rbrace\). The outcome \(s = 0\) puts the peak at \(k = 0\) and yields no information about \(r\), so the ceiling is \(1 - 1/r = 5/6\) for \(r = 6\). Nothing about \(t\) changes this.</p>
+
+<p><strong>3.</strong> With \(r = 2\) the eigenphases are \(0\) and \(1/2\), both exactly representable in any \(t \ge 1\) bits, so the distribution is exactly two delta peaks at \(k = 0\) and \(k = 2^{t-1}\), each with probability exactly \(1/2\). There is no leakage and therefore no \(t\) dependence — and the ceiling \(1 - 1/r\) is attained.</p>
+
+<p><strong>4.</strong> Take the two measured denominators \(q_1, q_2\) and test \(\mathrm{lcm}(q_1, q_2)\) as well as each separately. Failure now requires both runs to be uninformative, i.e. both to give \(s = 0\), or the lcm to still miss \(r\). With \(P(s = 0) = 1/6\) per run the probability of both failing that way is \(1/36\), giving a success probability of about \(0.97\) for two runs — at twice the circuit cost. This is the standard remedy and it is why "the algorithm succeeds with probability at least a half" is not a practical limitation.</p>
+
+</details>
+
+<h4>Exercise 4: The Cost Is the Arithmetic</h4>
+<p>Use the scaling model of Code Example 3.</p>
+<ol>
+<li>For $n = 1025$ — the $\sim 2^{1024}$ row of Code Example 3, where $t = 2n+1 = 2051$ — compute the ratio of modular-exponentiation gates to inverse-QFT gates under the $n^3$ versus $t^2/2$ model, and state how it scales with $n$.</li>
+<li>Suppose someone improves the QFT by a factor of 100. By how much does the total circuit shrink at $n = 1024$?</li>
+<li>Suppose instead someone improves the modular multiplier from $n^2$ to $n^{1.6}$ gates (Karatsuba-style). By how much does the total shrink?</li>
+<li>What does this imply about which part of a factoring circuit deserves optimization effort, and about how to read a paper title containing "efficient QFT"?</li>
+</ol>
+<details>
+<summary>Solution</summary>
+
+<p><strong>1.</strong> Arithmetic \(\approx t n^2 = 2051 \times 1025^2 = 2.15\times10^9\); QFT \(\approx t(t+1)/2 = 2.1\times10^6\). Ratio \(\approx 1020\), and it grows as \(n^3/n^2 = n\), so the disparity widens with size.</p>
+
+<p><strong>2.</strong> The QFT falls from \(2.1\times10^6\) to \(2.1\times10^4\), changing the total from \(2.152\times10^9\) to \(2.150\times10^9\) — a saving of one part in a thousand.</p>
+
+<p><strong>3.</strong> \(t n^{1.6} = 2051 \times 1025^{1.6} = 2051 \times 6.56\times10^4 = 1.35\times10^8\), a factor of 16 off the total. Two orders of magnitude of QFT improvement is worth less than a modest improvement in the multiplier.</p>
+
+<p><strong>4.</strong> All the effort belongs in the arithmetic — which is where it has in fact gone, through windowed arithmetic, better adders and Toffoli-count reduction. A paper about a more efficient QFT is a paper about the negligible term of a factoring circuit; it may matter for other algorithms, where the QFT is not accompanied by \(n^3\) of arithmetic, but not for this one.</p>
+
+</details>
+
+<h4>Exercise 5: Auditing a Claim</h4>
+<p>A press release states: "Our processor has factored a 48-bit number using Shor's algorithm, a record. Extrapolating, RSA-2048 is within reach."</p>
+<ol>
+<li>Using Code Example 3's model, what circuit size does a genuine 48-bit factorization require, in qubits and in modular multiplications?</li>
+<li>Name three ways a demonstration can produce the right factors without running that circuit, and say what published detail would let you rule each one out.</li>
+<li>Take the $n^3$ scaling at face value: what is the ratio of circuit sizes between 48 bits and 2048 bits, and what does "within reach" have to mean for the extrapolation to hold?</li>
+<li>Write the two sentences you would want the release to contain instead.</li>
+</ol>
+<details>
+<summary>Solution</summary>
+
+<p><strong>1.</strong> \(n = 48\), \(t = 97\), so \(t + n = 145\) logical qubits, 97 controlled modular multiplications, and \(\sim t n^2 = 2.2\times10^5\) gates in the arithmetic. With error correction at the assumptions of Example 7 that is a few thousand physical qubits at minimum, and every gate must succeed coherently.</p>
+
+<p><strong>2.</strong> (i) The base \(a\) was chosen so that \(\gcd(a,N) > 1\) or so that \(r\) is tiny and known, which collapses the circuit — ruled out by publishing the base, the order, and the full measured distribution. (ii) The modular exponentiation was compiled <em>using</em> the known factorization, which is the standard criticism of small Shor demonstrations — ruled out by publishing a circuit that depends only on \(N\) and \(a\). (iii) The postprocessing did the work: with \(N\) small, testing a few candidate \(r\) classically finds the factors without any quantum information — ruled out by reporting the per-run success probability against the theoretical value, as Code Examples 4 and 5 do.</p>
+
+<p><strong>3.</strong> \((2048/48)^3 = 7.8\times10^4\) in gate count and \(2048/48 = 43\) in qubit count, before error correction; after it, the physical-qubit ratio is larger still because the code distance grows with the circuit size. "Within reach" would have to mean that five orders of magnitude in coherent gate count and four in physical qubits are incremental, which no reading of the hardware supports.</p>
+
+<p><strong>4.</strong> Something like: "We factored a 48-bit integer with a circuit that uses only \(N\) and the randomly chosen base as input, and the measured per-run success probability agrees with the theoretical \(1 - 1/r\) to within sampling error." And: "Scaling the same circuit to 2048 bits requires \(\sim 10^9\) Toffoli gates and, under standard surface-code assumptions, \(\sim 10^7\) physical qubits; this demonstration is not evidence about that regime." The first sentence is what makes the result checkable; the second is what makes it honest.</p>
+
+</details>
+
+<hr />
+<h2>Summary</h2>
+<h3>Key Takeaways</h3>
+<p><strong>1. Factoring reduces to order finding, classically</strong></p>
+<ul>
+<li>With $r$ the order of $a$ modulo $N$ and $r$ even, $\gcd(a^{r/2}\pm1, N)$ are proper divisors unless $a^{r/2}\equiv-1$.</li>
+<li>Failures are detected in microseconds, so the algorithm redraws the base; the per-base success probability is at least $1/2$ for an $N$ with two distinct odd prime factors, and the enumeration gave $6/7$ for $N = 15$ and $6/11$ for $N = 21$.</li>
+<li>Even $N$ and perfect powers never reach the circuit, and a lucky $\gcd(a,N) &gt; 1$ short-circuits it entirely — which for two-digit $N$ happens in most runs.</li>
+</ul>
+<p><strong>2. Order finding is phase estimation on a permutation</strong></p>
+<ul>
+<li>$U_a\lvert y\rangle = \lvert ay \bmod N\rangle$ has eigenphases $s/r$, and the computational state $\lvert 1 \rangle$ is the uniform superposition of all $r$ eigenvectors — so one run returns a uniformly random $s$, and $s = 0$ is the useless outcome of probability $1/r$.</li>
+<li>The ceiling on per-run success of the <em>order-finding circuit</em> is therefore $1 - 1/r$, attained exactly when $r$ divides $2^t$. The per-round success of the <em>factoring algorithm</em> is a different quantity, built in Example 6 out of this one plus the lucky-gcd and bad-base cases.</li>
+<li>Continued fractions convert the measured $k/2^t$ into $s/r$ in lowest terms; the register size $t = 2n+1$ is what makes that reconstruction unique.</li>
+</ul>
+<p><strong>3. The Fourier transform is the cheap part</strong></p>
+<ul>
+<li>$2n+1$ controlled modular multiplications at $O(n^2)$ gates each give $O(n^3)$; the inverse QFT is $O(n^2)$. At $n = 2049$ the ratio is two thousand to one.</li>
+<li>Consequently the approximate QFT is free to use, and all optimization effort belongs in the arithmetic.</li>
+</ul>
+<p><strong>4. Both integers factor, and the statistics match theory</strong></p>
+<ul>
+<li>$N = 15$, $a = 7$: four exact peaks, per-run success $3/4$ against a measured $0.759$ over 2000 shots; $a = 14$ gives exactly zero because $a^{r/2} \equiv -1$.</li>
+<li>$N = 21$, $a = 2$: peaks near $s/6$, only $78.9\%$ of the probability on them, yet success $0.8321$ — the shoulders postprocess correctly, and the ceiling $5/6$ is approached from below as $t$ grows.</li>
+<li>600 complete runs of the full algorithm succeeded every time, at a mean of $0.75$ and $0.87$ quantum calls.</li>
+</ul>
+<p><strong>5. The cryptographic conclusion, in both directions</strong></p>
+<ul>
+<li>The separation is superpolynomial and settled; there is nonetheless no proof that factoring is classically hard.</li>
+<li>From $p = 10^{-3}$, a $10^{-2}$ threshold and a $1\ \mu$s cycle: $n = 2048$ needs $2.6\times10^9$ Toffolis, code distance 19, $\sim 10^7$ physical qubits and hours of runtime. Read the exponents.</li>
+<li>Shor solves the abelian hidden subgroup problem, so RSA, finite-field and elliptic-curve discrete logs fall in principle. Grover's quadratic speedup against symmetric primitives is answered by doubling a parameter. Lattice problems are attacked by neither at more than the level of an exponent constant, which is why they are the standard replacement — and recorded ciphertext is why the migration cannot wait for a demonstration.</li>
+</ul>
+<p><strong>Practical implications</strong></p>
+<ul>
+<li>When you read a Shor demonstration, ask for the base, the measured distribution, and the per-run success probability against $1 - 1/r$. Those three make it checkable.</li>
+<li>When you read a resource estimate, ask for the Toffoli count, the assumed physical error rate, and the code distance. A physical-qubit number without those is not an estimate.</li>
+<li>When you plan for post-quantum migration, separate confidentiality from authenticity: only the first is threatened retroactively.</li>
+</ul>
+<h3>Where This Leads</h3>
+<p>Chapter 3 is the high-water mark of provable quantum advantage in this course, and it is worth noticing what made it possible: a problem with a hidden <em>group</em> structure, an exact periodicity, and a classical postprocessing step that turns one measurement into an answer. Chapter 4 turns to the application with the strongest physical motivation and no such structure — simulating a Hamiltonian — where the object of study is $e^{-iHt}$ itself. The techniques there (block encoding, qubitization, randomized compilation) are the modern replacements for the Trotter decomposition of the introductory course, and they are also what supplies the controlled $e^{-iH\tau}$ that Chapter 2's phase estimation assumed for free.</p>
+<p><a href="chapter-2.html">← Chapter 2: QFT and Phase Estimation</a> <a href="chapter-4.html">Chapter 4: Modern Hamiltonian Simulation →</a></p>
+<h3>Disclaimer</h3>
+<ul>
+<li>This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical warranty, etc.).</li>
+<li>This content and accompanying code examples are provided "AS IS" without any warranty, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
+<li>The resource estimates in this chapter — gate counts, code distances, physical-qubit numbers and runtimes — follow from the modelling assumptions stated in the code and are order-of-magnitude teaching figures, not predictions or measurements. Nothing here is cryptographic advice; consult current standards and primary sources before making a security decision.</li>
+<li>The author and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.</li>
+<li>To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+<li>The content may be changed, updated, or discontinued without notice.</li>
+<li>The copyright and license of this content are subject to the stated conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.</li>
+</ul><div class="navigation">
+    <a href="chapter-2.html" class="nav-button">← Previous Chapter</a>
+    <a href="index.html" class="nav-button">Back to Series Index</a>
+    <a href="chapter-4.html" class="nav-button">Next Chapter →</a>
+</div>
+    </main>
+
+    <footer>
+        <p><strong>Created by</strong>: AI Terakoya Content Team</p>
+        <p><strong>Supervised by</strong>: Dr. Yusuke Hashimoto (Tohoku University)</p>
+        <p><strong>Version</strong>: 1.0 | <strong>Created</strong>: 2025-01-01</p>
+        <p><strong>License</strong>: Creative Commons BY 4.0</p>
+        <p>© 2025 AI Terakoya. All rights reserved.</p>
+    </footer>
+</body>
+</html>

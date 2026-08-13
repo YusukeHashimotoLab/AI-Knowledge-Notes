@@ -58,7 +58,7 @@ subtitle: Fundamentals of Mathematics & Physics for Materials Informatics
 
 [開始 →](<pde-boundary-value/index.html>)
 
-⚛️ 量子力学シリーズ（4シリーズ）
+⚛️ 量子力学シリーズ（5シリーズ）
 
 📗
 
@@ -99,6 +99,16 @@ subtitle: Fundamentals of Mathematics & Physics for Materials Informatics
 上級 215-240分 5章・33例
 
 [開始 →](<quantum-hardware-introduction/index.html>)
+
+🧮
+
+量子アルゴリズム（中級）
+
+証明可能な高速化はどこに住んでいて、それぞれ何を仮定しているのか。Groverと振幅増幅、QFTと位相推定、15と21をエンドツーエンドで因数分解するShor、ブロック符号化とqubitization、そして同予算で古典ヒューリスティクスと比較するQAOAまで、すべてを同じNumPy製状態ベクトルシミュレータ上に実装し、各高速化をそれが必要とする仮定とともに述べる
+
+中級〜上級 225-250分 5章・36例
+
+[開始 →](<quantum-algorithms-intermediate/index.html>)
 
 🔥 統計力学・熱力学シリーズ（4シリーズ）
 

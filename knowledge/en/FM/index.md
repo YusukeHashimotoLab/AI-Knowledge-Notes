@@ -58,7 +58,7 @@ Intermediate 100-120 min 5 Chapters, 40 Examples
 
 [Start →](<pde-boundary-value/index.html>)
 
-⚛️ Quantum Mechanics Series (4 Series)
+⚛️ Quantum Mechanics Series (5 Series)
 
 📗
 
@@ -99,6 +99,16 @@ Quantum hardware as a materials problem: superconducting qubits, trapped ions, n
 Advanced 215-240 min 5 Chapters, 33 Examples
 
 [Start →](<quantum-hardware-introduction/index.html>)
+
+🧮
+
+Intermediate Quantum Algorithms
+
+Where provable speedups live and what each one assumes: Grover and amplitude amplification, the QFT and phase estimation, Shor's algorithm factoring 15 and 21 end to end, block encoding and qubitization, and QAOA compared against classical heuristics at equal budget — every algorithm implemented on the same NumPy state-vector simulator, with each speedup stated together with the assumptions it needs
+
+Intermediate to Advanced 225-250 min 5 Chapters, 36 Examples
+
+[Start →](<quantum-algorithms-intermediate/index.html>)
 
 🔥 Statistical Mechanics and Thermodynamics Series (4 Series)
 
