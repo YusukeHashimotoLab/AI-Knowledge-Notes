@@ -58,7 +58,7 @@ Intermediate 100-120 min 5 Chapters, 40 Examples
 
 [Start →](<pde-boundary-value/index.html>)
 
-⚛️ Quantum Mechanics Series (1 Series)
+⚛️ Quantum Mechanics Series (4 Series)
 
 📗
 
@@ -69,6 +69,16 @@ Wave function and Schrödinger equation, quantum harmonic oscillator, angular mo
 Intermediate 90-110 min 5 Chapters, 35 Examples
 
 [Start →](<quantum-mechanics/index.html>)
+
+⚛️
+
+Introduction to Quantum Field Theory
+
+Field quantization, free and interacting fields, Feynman diagrams, and renormalization — foundations of particle physics and many-body theory
+
+Advanced 200-250 min 5 Chapters, 40 Examples
+
+[Start →](<quantum-field-theory-introduction/index.html>)
 
 ⚛️
 
@@ -152,7 +162,7 @@ Estimation theory (maximum likelihood, interval estimation), hypothesis testing 
 
 Intermediate 100-120 min 5 Chapters, 35 Examples
 
-Coming Soon
+[Start →](<inferential-bayesian-statistics/index.html>)
 
 🖥️ Numerical Computation Series (2 Series)
 

@@ -58,7 +58,7 @@ subtitle: Fundamentals of Mathematics & Physics for Materials Informatics
 
 [開始 →](<pde-boundary-value/index.html>)
 
-⚛️ 量子力学シリーズ（1シリーズ）
+⚛️ 量子力学シリーズ（4シリーズ）
 
 📗
 
@@ -69,6 +69,16 @@ subtitle: Fundamentals of Mathematics & Physics for Materials Informatics
 中級 90-110分 5章・35例
 
 [開始 →](<quantum-mechanics/index.html>)
+
+⚛️
+
+量子場の理論入門
+
+場の量子化、自由場・相互作用場、Feynman図、繰り込み理論まで、場の量子論を基礎から学ぶ
+
+上級 200-250分 5章・40例
+
+[開始 →](<quantum-field-theory-introduction/index.html>)
 
 ⚛️
 

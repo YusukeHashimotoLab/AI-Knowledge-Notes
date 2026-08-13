@@ -10,10 +10,10 @@
 
 ## Summary Statistics
 
-- **Series Translated**: 15/15 (100%)
-- **Index Pages**: 15/15 (100%)
-- **Total Chapter Files**: 71
-- **Average Chapters per Series**: 4.7
+- **Series Translated**: 16/16 (100%)
+- **Index Pages**: 16/16 (100%)
+- **Total Chapter Files**: 76
+- **Average Chapters per Series**: 4.8
 
 ---
 
@@ -105,7 +105,25 @@
 
 ---
 
-### 6. Linear Algebra and Tensor Analysis | Fundamentals of Mathematics Dojo - AI Terakoya ✅
+### 6. Inferential Statistics and Bayesian Statistics | Fundamentals of Mathematics &amp; Physics Dojo - AI Terakoya ✅
+
+**Directory**: `inferential-bayesian-statistics`
+**Location**: `/FM/inferential-bayesian-statistics/`
+**Files**: 6 total (1 index + 5 chapters)
+**Last Update**: 2026-08-12
+
+- ✅ `index.html` - Series overview page
+
+**Chapters** (5):
+- ✅ `chapter-1.html`
+- ✅ `chapter-2.html`
+- ✅ `chapter-3.html`
+- ✅ `chapter-4.html`
+- ✅ `chapter-5.html`
+
+---
+
+### 7. Linear Algebra and Tensor Analysis | Fundamentals of Mathematics Dojo - AI Terakoya ✅
 
 **Directory**: `linear-algebra-tensor`
 **Location**: `/FM/linear-algebra-tensor/`
@@ -123,7 +141,7 @@
 
 ---
 
-### 7. Non-Equilibrium Statistical Mechanics | Fundamental Mathematics Dojo - AI Terakoya ✅
+### 8. Non-Equilibrium Statistical Mechanics | Fundamental Mathematics Dojo - AI Terakoya ✅
 
 **Directory**: `non-equilibrium-statistical-mechanics`
 **Location**: `/FM/non-equilibrium-statistical-mechanics/`
@@ -141,7 +159,7 @@
 
 ---
 
-### 8. 🔢 Numerical Analysis Fundamentals | Fundamentals of Mathematics &amp; Physics Dojo - AI Terakoya ✅
+### 9. 🔢 Numerical Analysis Fundamentals | Fundamentals of Mathematics &amp; Physics Dojo - AI Terakoya ✅
 
 **Directory**: `numerical-analysis-fundamentals`
 **Location**: `/FM/numerical-analysis-fundamentals/`
@@ -159,7 +177,7 @@
 
 ---
 
-### 9. Partial Differential Equations and Boundary Value Problems | Fundamentals of Mathematics &amp; Physics Dojo - AI Terakoya ✅
+### 10. Partial Differential Equations and Boundary Value Problems | Fundamentals of Mathematics &amp; Physics Dojo - AI Terakoya ✅
 
 **Directory**: `pde-boundary-value`
 **Location**: `/FM/pde-boundary-value/`
@@ -177,7 +195,7 @@
 
 ---
 
-### 10. 🧮 Numerical Methods for PDEs | Fundamentals of Mathematics &amp; Physics Dojo - AI Terakoya ✅
+### 11. 🧮 Numerical Methods for PDEs | Fundamentals of Mathematics &amp; Physics Dojo - AI Terakoya ✅
 
 **Directory**: `pde-numerical-methods`
 **Location**: `/FM/pde-numerical-methods/`
@@ -195,7 +213,7 @@
 
 ---
 
-### 11. Probability Theory and Stochastic Processes | Fundamentals of Mathematics - AI Terakoya ✅
+### 12. Probability Theory and Stochastic Processes | Fundamentals of Mathematics - AI Terakoya ✅
 
 **Directory**: `probability-stochastic-processes`
 **Location**: `/FM/probability-stochastic-processes/`
@@ -213,7 +231,7 @@
 
 ---
 
-### 12. ⚛️ Introduction to Quantum Computing - AI Terakoya ✅
+### 13. ⚛️ Introduction to Quantum Computing - AI Terakoya ✅
 
 **Directory**: `quantum-computing-introduction`
 **Location**: `/FM/quantum-computing-introduction/`
@@ -231,7 +249,7 @@
 
 ---
 
-### 13. Introduction to Quantum Field Theory | Fundamentals Mathematics - AI Terakoya ✅
+### 14. Introduction to Quantum Field Theory | Fundamentals Mathematics - AI Terakoya ✅
 
 **Directory**: `quantum-field-theory-introduction`
 **Location**: `/FM/quantum-field-theory-introduction/`
@@ -249,7 +267,7 @@
 
 ---
 
-### 14. 🔧 Introduction to Quantum Hardware - AI Terakoya ✅
+### 15. 🔧 Introduction to Quantum Hardware - AI Terakoya ✅
 
 **Directory**: `quantum-hardware-introduction`
 **Location**: `/FM/quantum-hardware-introduction/`
@@ -267,7 +285,7 @@
 
 ---
 
-### 15. Introduction to Quantum Mechanics | Fundamentals of Mathematics Dojo - AI Terakoya ✅
+### 16. Introduction to Quantum Mechanics | Fundamentals of Mathematics Dojo - AI Terakoya ✅
 
 **Directory**: `quantum-mechanics`
 **Location**: `/FM/quantum-mechanics/`
