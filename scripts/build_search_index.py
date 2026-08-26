@@ -30,7 +30,7 @@ import sys
 
 KNOWLEDGE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "knowledge")
 LOCALES = ("jp", "en")
-DOJOS = ("FM", "MI", "ML", "MS", "PI")
+DOJOS = ("FM", "MI", "ML", "MS", "PI", "QC")
 
 TAG_RE = re.compile(r"<[^>]+>")
 WS_RE = re.compile(r"\s+")

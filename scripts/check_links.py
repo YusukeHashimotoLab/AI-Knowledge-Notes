@@ -258,8 +258,8 @@ class LinkChecker:
                 suggestions = []
 
                 # Check if it's missing Dojo prefix (ML/ vs ./ML/)
-                if not any(x in url for x in ['/FM/', '/MI/', '/ML/', '/MS/', '/PI/']):
-                    for dojo in ['FM', 'MI', 'ML', 'MS', 'PI']:
+                if not any(x in url for x in ['/FM/', '/MI/', '/ML/', '/MS/', '/PI/', '/QC/']):
+                    for dojo in ['FM', 'MI', 'ML', 'MS', 'PI', 'QC']:
                         potential = url.replace('./', f'./{dojo}/')
                         potential_path, _ = self.resolve_path(source_file, potential)
                         if potential_path.exists():
@@ -348,7 +348,7 @@ class LinkChecker:
             url = link['url']
 
             # Missing Dojo prefix
-            if not any(x in url for x in ['/FM/', '/MI/', '/ML/', '/MS/', '/PI/']):
+            if not any(x in url for x in ['/FM/', '/MI/', '/ML/', '/MS/', '/PI/', '/QC/']):
                 if url.startswith('./') and '/' in url[2:]:
                     categories['missing_dojo_prefix'].append(link)
                     continue

@@ -42,7 +42,7 @@ import sys
 
 KNOWLEDGE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "knowledge")
 LOCALES = ("jp", "en")
-DOJOS = ("FM", "MI", "ML", "MS", "PI")
+DOJOS = ("FM", "MI", "ML", "MS", "PI", "QC")
 
 # Canonical chapter files only: chapter-3.html / chapter3-topic.html.
 # Deliberately excludes supplements like chapter-3-enhancements.html so that

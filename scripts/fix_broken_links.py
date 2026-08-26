@@ -97,7 +97,7 @@ class LinkFixer:
     """Main class for fixing broken links in HTML files."""
 
     # Dojos (top-level categories)
-    DOJOS = {'FM', 'MI', 'ML', 'MS', 'PI', 'NM'}
+    DOJOS = {'FM', 'MI', 'ML', 'MS', 'PI', 'QC', 'NM'}
 
     # Known missing series (to comment out or fix path)
     MISSING_SERIES = {
