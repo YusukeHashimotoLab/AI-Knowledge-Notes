@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="本シリーズは、1つの物語を2つの半分に分けて語ります。前半は、どんな人間よりも上手にボードゲームを打てるようになった機械の話です。">
+    <title>第1章: ゲームという試金石 - AI Terakoya</title>
+    <link rel="canonical" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/jp/ML/alphago-to-alphafold/chapter-1.html">
+    <link rel="alternate" hreflang="ja" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/jp/ML/alphago-to-alphafold/chapter-1.html">
+    <link rel="alternate" hreflang="en" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/en/ML/alphago-to-alphafold/chapter-1.html">
+    <link rel="alternate" hreflang="x-default" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/en/ML/alphago-to-alphafold/chapter-1.html">
+    <meta property="og:title" content="第1章: ゲームという試金石 - AI Terakoya">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/jp/ML/alphago-to-alphafold/chapter-1.html">
+    <meta property="og:site_name" content="AI Terakoya">
+    <meta property="og:locale" content="ja_JP">
+    <meta property="og:description" content="本シリーズは、1つの物語を2つの半分に分けて語ります。前半は、どんな人間よりも上手にボードゲームを打てるようになった機械の話です。">
+
+    <style>
+        :root {
+            --color-primary: #2c3e50;
+            --color-primary-dark: #1a252f;
+            --color-accent: #7b2cbf;
+            --color-accent-light: #9d4edd;
+            --color-text: #2d3748;
+            --color-text-light: #4a5568;
+            --color-bg: #ffffff;
+            --color-bg-alt: #f7fafc;
+            --color-border: #e2e8f0;
+            --color-code-bg: #f8f9fa;
+            --color-link: #3182ce;
+            --color-link-hover: #2c5aa0;
+
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+
+            --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+            --border-radius: 8px;
+            --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-body);
+            line-height: 1.7;
+            color: var(--color-text);
+            background-color: var(--color-bg);
+            font-size: 16px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            padding: var(--spacing-xl) var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+            box-shadow: var(--box-shadow);
+        }
+
+        .header-content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: var(--spacing-sm);
+            line-height: 1.2;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            font-weight: 400;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-md);
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-md) var(--spacing-xl);
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-xl);
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-xs);
+            border-bottom: 3px solid var(--color-accent);
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-lg);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        h4 {
+            font-size: 1.1rem;
+            color: var(--color-primary-dark);
+            margin-top: var(--spacing-md);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        p {
+            margin-bottom: var(--spacing-md);
+            color: var(--color-text);
+        }
+
+        a {
+            color: var(--color-link);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        a:hover {
+            color: var(--color-link-hover);
+            text-decoration: underline;
+        }
+
+        ul, ol {
+            margin-left: var(--spacing-lg);
+            margin-bottom: var(--spacing-md);
+        }
+
+        li {
+            margin-bottom: var(--spacing-xs);
+            color: var(--color-text);
+        }
+
+        pre {
+            background-color: var(--color-code-bg);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            overflow-x: auto;
+            margin-bottom: var(--spacing-md);
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        code {
+            font-family: var(--font-mono);
+            font-size: 0.9em;
+            background-color: var(--color-code-bg);
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+        }
+
+        pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: var(--spacing-md);
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            border: 1px solid var(--color-border);
+            padding: var(--spacing-sm);
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--color-bg-alt);
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        blockquote {
+            border-left: 4px solid var(--color-accent);
+            padding-left: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            color: var(--color-text-light);
+            font-style: italic;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        .mermaid {
+            text-align: center;
+            margin: var(--spacing-lg) 0;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        details {
+            background-color: var(--color-bg-alt);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+        }
+
+        summary {
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--color-primary);
+            user-select: none;
+            padding: var(--spacing-xs);
+            margin: calc(-1 * var(--spacing-md));
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        summary:hover {
+            background-color: rgba(123, 44, 191, 0.1);
+        }
+
+        details[open] summary {
+            margin-bottom: var(--spacing-md);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .learning-objectives {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: var(--spacing-lg);
+            border-radius: var(--border-radius);
+            border-left: 4px solid var(--color-accent);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .learning-objectives h2 {
+            margin-top: 0;
+            border-bottom: none;
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            gap: var(--spacing-md);
+            margin: var(--spacing-xl) 0;
+            padding-top: var(--spacing-lg);
+            border-top: 2px solid var(--color-border);
+        }
+
+        .nav-button {
+            flex: 1;
+            padding: var(--spacing-md);
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            border-radius: var(--border-radius);
+            text-align: center;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: var(--box-shadow);
+        }
+
+        .nav-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            text-decoration: none;
+        }
+
+        footer {
+            margin-top: var(--spacing-xl);
+            padding: var(--spacing-lg) var(--spacing-md);
+            background-color: var(--color-bg-alt);
+            border-top: 1px solid var(--color-border);
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--color-text-light);
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            h2 {
+                font-size: 1.4rem;
+            }
+
+            h3 {
+                font-size: 1.2rem;
+            }
+
+            .meta {
+                font-size: 0.85rem;
+            }
+
+            .navigation {
+                flex-direction: column;
+            }
+
+            table {
+                font-size: 0.85rem;
+            }
+
+            th, td {
+                padding: var(--spacing-xs);
+            }
+        }
+    </style>
+
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+
+    <!-- MathJax for LaTeX equation rendering -->
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\(', '\)']],
+                displayMath: [['$$', '$$'], ['\[', '\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" id="MathJax-script" async></script>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <h1>第1章: ゲームという試金石</h1>
+            <p class="subtitle">人工知能はなぜチェス盤の上で育ったのか、そしてカスパロフを破ったレシピがなぜ囲碁に手も足も出なかったのか</p>
+            <div class="meta">
+                <span class="meta-item">📖 Reading Time: 20-25 minutes</span>
+                <span class="meta-item">📊 Difficulty: Beginner</span>
+                <span class="meta-item">💻 Code Examples: 0</span>
+                <span class="meta-item">📝 Exercises: 0</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+<h2>ビデオ講義</h2>
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/aIDn9Jyv7j8"
+    title="AlphaGoからAlphaFoldへ 第1章: ゲームという試金石"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+<p class="video-note">このビデオは以下のテキストと同じ内容をカバーしています。お好みの学習形式をお選びください。</p>
+
+<p>🌐 JP | <a href="../../../en/ML/alphago-to-alphafold/chapter-1.html">🇬🇧 EN</a> | Last sync: 2026-08-19</p>
+<p><a href="../index.html">機械学習道場</a> &gt; <a href="index.html">AlphaGoからAlphaFoldへ</a> &gt; 第1章</p>
+<p>本シリーズは、1つの物語を2つの半分に分けて語ります。前半は、どんな人間よりも上手にボードゲームを打てるようになった機械の話です。後半は、タンパク質の三次元的な形を予測した機械の話です。この2つは無関係な達成に見えますし、世間の語り口もたいていそのように扱います。しかし無関係ではありません。同じ研究所が数年のうちに両方を作り上げたのであり、そして2つ目が可能だったのは、1つ目が作り手たちに <strong>探索</strong> と <strong>学習された直観</strong> の組み合わせ方について教えたからです。</p>
+<p>そのつながりを見るには、この分野が始まった場所——ゲーム盤の上——から始めなければなりません。本章では、なぜ人工知能研究が数十年をそこで費やしたのか、チェスにおける勝利のレシピが実際には何だったのか、そしてそのレシピが囲碁というゲームで、いかなるハードウェアの高速化でも突破できない壁にぶつかったのはなぜかを説明します。面白いのはその壁のほうです。それは実のところ、数の大きさの話ではないのです。</p>
+<p>強化学習にまだ触れたことがなくても、本シリーズはそれを要求しません。ただ、<a href="../reinforcement-learning-introduction/index.html">強化学習入門</a> シリーズがきちんと展開している考え方を、ときどき指し示すことはあります。両者は伴走関係として読んでください。あちらはアルゴリズムを構築し、こちらはそれらで何が作られたのかという物語を語ります。</p>
+<h2>1.1 なぜ人工知能はゲーム盤へ向かったのか</h2>
+<p>真剣な研究分野が40年もゲームに費やすというのは、軽薄なことに見えます。そうではありませんでした。ゲームには、世界のほとんど何ものも同時には持たない3つの性質があり、そのそれぞれが、現実の問題を難しくしている別々の障害を取り除いてくれるのです。</p>
+<p><strong>完全情報。</strong> チェスでも囲碁でも、両プレイヤーは常に局面の全体を見ています。隠されているものはなく、ノイズもなく、測定も要りません。機械が求められうるほとんどあらゆる現実のタスクと比べてみてください。ロボットは自分の周囲について、部分的でぼやけた、しかも古い像しか見ていません。医療モデルは、数千の関連変数をもつ身体から、ほんの一握りの測定値しか見ていません。ゲームはアルゴリズムに世界の完全な状態を無償で手渡します。つまり、失敗は知覚のせいではなく推論のせいにできるということです。</p>
+<p><strong>曖昧さのない結果。</strong> ゲームは勝ち、負け、引き分けのいずれかで終わります。どれが起きたのかについて議論の余地はなく、採点のための専門家パネルも要りません。これは途方もなく重要です。機械学習の大半は、目指すべき目標値があることに依存していますが、現実のドメインのほとんどでは、その目標値こそが争われているからです。この診断は正しかったのか。この翻訳は良かったのか。この設計は製造可能なのか。専門家の見解は分かれ、ラベルは高価で、そしてラベル自体がその不一致をモデルの中へ持ち込みます。ゲームは、きれいで、安価で、誰も異論を挟まない報酬信号を与えてくれます。</p>
+<p><strong>無制限に自己生成できるデータ。</strong> これが結局のところ最も重要な性質です。チェスプログラムはチェスプログラムと対戦できます。誰にも報酬を払う必要はなく、実験を行う必要もなく、試料を合成する必要もありません。データの供給を縛るのは計算量だけです。これを材料研究室と対比してみてください。新しいデータ点が1つ増えるのに合成と評価で1週間かかることもあります。あるいは医療データセットと比べてください。そこではデータをそもそも作り出せません——ただ待つほかないのです。</p>
+<h3>📚 実世界との対比を、率直に述べる</h3>
+<p>3つの性質を典型的な科学の問題と並べてみれば、魅力は明らかになります。</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>ボードゲーム</th>
+<th>典型的な現実の問題</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>状態</td>
+<td>完全に可視、厳密</td>
+<td>部分的、ノイズあり、間接的</td>
+</tr>
+<tr>
+<td>目的</td>
+<td>勝ち／負け／引き分け、異論なし</td>
+<td>多目的、争いがあり、時に未定義</td>
+</tr>
+<tr>
+<td>データ</td>
+<td>要求に応じて生成、無制限</td>
+<td>遅く、高価で、有限</td>
+</tr>
+<tr>
+<td>フィードバック遅延</td>
+<td>対局の長さで有界</td>
+<td>数か月から数年、時に永遠に来ない</td>
+</tr>
+</tbody>
+</table>
+<p>したがってゲームは、難しい問題の玩具版ではありません。それは <strong>実験装置</strong> です——意思決定そのものの質という1つの変数を、測定を撹乱してしまう他のあらゆる困難から切り離すために設計された環境なのです。プログラムが人間のチャンピオンを破ったとき、検証されている主張は狭く精確であり、まさにそれこそが、この営みを科学として有用にしているのです。</p>
+<p>誠実な留保もここに属します。本シリーズの残りは、部分的にはその留保をめぐる議論です。ゲームでの成功が証明するのは、ある手法が、完全な世界モデルと異論なき目的関数が <em>与えられた場合に</em> 良い意思決定を下せる、ということだけです。それらの贈り物が取り上げられたときに何が起きるかについては、それ自体では何も証明していません。第4章こそが、贈り物が取り上げられる場所です。</p>
+<h2>1.2 チェスのレシピ: 先を読み、そして判定する</h2>
+<p>多くの人が最初に思い出す画期的な出来事は、<strong>1997年にディープ・ブルーがガルリ・カスパロフを破ったこと</strong> ——当時の世界チェスチャンピオンを、正式なマッチで、盤上で下したこと——でしょう。これは本物のマイルストーンであり、それをやってのけたのがどういう <em>種類</em> の機械だったのかを正確に理解する価値があります。というのも、その <em>種類</em> こそが後に囲碁で失敗したものだからです。</p>
+<p>チェスのレシピには3つの部分があり、3つしかありません。</p>
+<p><strong>その1: ミニマックス法。</strong> ありうる未来の木を構築します。現在の局面から、合法手をすべて列挙する。そのそれぞれから、可能な応手をすべて列挙する。以下同様。手番のプレイヤーは自分の結果を最大化する枝を選び、相手はそれを最小化する枝を選びます——だから <em>ミニマックス</em> です。もし木をゲームの終わりまで構築できるなら、この手順は完璧に打つことになります。すべての葉が既知の勝ち・負け・引き分けになるからです。</p>
+<p><strong>その2: アルファベータ枝刈り。</strong> 木の全体を構築することはできませんが、その大半を構築せずに済ませることはできます。アルファベータ枝刈りとは、ある枝がすでに完全に調べ終えた枝より悪いと分かった時点で、その枝の調査をやめてよい、という着眼です——相手は決してあなたをそこへ行かせないので、その正確な値はどうでもよいのです。手の順序づけが良ければ、アルファベータ枝刈りは同じ計算量でおよそ <strong>2倍の深さ</strong> まで探索できます。1.6節でこれを具体的にします。</p>
+<p><strong>その3: 手作りの評価関数。</strong> 木はそれでもゲームの終わりまで届かないので、探索はどこかの深さで止まり、こう問います。<em>この局面はどれくらい良いのか?</em> チェスでは、驚くほど良い答えを手で書き下せます。標準的な駒の価値で駒得を数える。キングの安全性、ポーン構造、中央の支配、駒の可動性などの項を加える。重みをつけ、足し合わせ、1つの数値を返す。人間のチェスマスターたちがそれらの項の調整を手伝い、その結果として静的評価器が得られます。局面から得点への関数であり、先読みをまったくせずに計算されます。</p>
+<p>これがレシピのすべてです。ディープ・ブルーはこれを専用ハードウェアと膨大な工学的作業と組み合わせ、チェスの頂点においてはそれで十分でした。</p>
+<h3>📚 なぜチェスはこのアプローチに弱かったのか</h3>
+<p>チェスの3つの特徴がこのレシピを機能させました。囲碁にはそのどれもないので、名指ししておく価値があります。</p>
+<ul>
+<li><strong>分岐因子が控えめである。</strong> チェスの局面には平均して <strong>およそ35手</strong> の合法手があります。35は、深い探索が高速なハードウェアの射程内に収まる程度に小さい数です。</li>
+<li><strong>駒得が本物の信号である。</strong> チェスでは、駒は持続的で、ほぼ局面に依存しない価値をもちます。クイーンは、ほとんどあらゆる盤面のほとんどあらゆる局面で、ポーンより優れています。これが評価関数に、強力で安価で信頼できる背骨を与えます。</li>
+<li><strong>戦術が支配的である。</strong> チェスの強さのかなりの部分は、数手先の必然手順を読むことで構成されています。探索は <em>まさに</em> そのための道具であり、決して疲れず計算間違いもしない機械は、ゲームのちょうどこの構成要素において、人間に対して構造的な優位をもちます。</li>
+</ul>
+<p>このレシピに <strong>含まれていなかった</strong> ものに注目してください。学習が一切ありません。ディープ・ブルーは対局によって上達しませんでした。その知識は作者たちによってそこに置かれたものであり、その強さは、その固定された知識を膨大な数の局面に適用することから来ていました。この区別——人間が供給した知識か、機械が獲得した知識か——こそが、シリーズ全体が沿って走る軸なのです。</p>
+<h2>1.3 なぜ囲碁はレシピを破ったのか</h2>
+<p>1997年以後、明白な次の標的は <strong>囲碁</strong> ——19×19の格子の上で黒白の石を打つ東アジアのボードゲーム——でした。囲碁は20年近く抵抗しました。よくある説明は「囲碁のほうが大きいから」というものです。それは事実ですが、答えの面白くないほうの半分でもあります。</p>
+<p><strong>大きさの問題。</strong> 囲碁の局面には平均して <strong>およそ250手</strong> の合法手があり、チェスの35に対抗します。対局ははるかに長く、一般に150手ほどの規模になります。合法な盤面配置の数は途方もなく、<strong>\(10^{170}\) のオーダー</strong> と一般に引用されます。これは物理的な列挙をあまりに超えているため、観測可能な宇宙の原子の数との比較でさえ過小評価になるほどです。1.6節では、これらの数値が探索木に何をもたらすかを計算します。答えは、単に問題を難しくするだけではない、というものです。それらは、いかなる想像可能な機械に対しても、しかも上限の見えないほどの差をつけて、終局までの探索を <strong>恒久的に不可能</strong> にしてしまうのです。</p>
+<p>しかし、もし大きさだけが障害だったのなら、より速い計算機とより良い枝刈りがいずれ届けてくれたはずです。そうはなりませんでした。その理由が第2の壁です。</p>
+<p><strong>評価の問題。</strong> 誰も囲碁の静的評価関数を書き下せなかったのです。</p>
+<p>これはじっくり考える価値があります。奇妙な種類の失敗だからです。チェスでは「駒得を数える」でだいたい使える評価器に届きます。囲碁では、それに相当するもの——石を数える、あるいは地を数える——は中盤ではほとんど役に立ちません。石はしばしば取られませんし、盤は着実に埋まっていき、生きているように見える石の一群が、微妙なダメの数のせいで100手後には死んでいたと判明することもあります。地は終局まで確定しません。プロ棋士が「明らかに勝ち」と呼ぶ局面が、どんな素直な数え上げの手順から見ても、「明らかに負け」と呼ぶ局面とほとんど瓜二つに見えることがあるのです。</p>
+<h3>📚 プロが使う言葉と、それが形式化に抵抗した理由</h3>
+<p>強い囲碁棋士に、ある手がなぜ良いのかを尋ねてみてください。実践者のあいだでは精確でありながら、ほとんどコード化不可能な語彙が返ってきます。</p>
+<ul>
+<li><strong>厚み</strong>（<em>atsumi</em>）: それ自体は地ではないが、近辺のどこでの戦いも、この先長きにわたって有利にしてくれる石の壁。</li>
+<li><strong>勢力</strong>: ある石群が、盤面の一領域全体を、その所有者にとってより価値あるものにする拡散的な傾向。その領域を主張することなしに。</li>
+<li><strong>味</strong>（文字どおり <em>taste</em>）: 死んだように見える石群の中に残された潜在的な可能性。何十手も後になって効いてくることがある。</li>
+<li><strong>形</strong>: 経験ある棋士が即座に見て取るが、規則へ完全には還元できない仕方で効率的／非効率的な局所配置。</li>
+</ul>
+<p>これらのどれもが、局面の <strong>長距離的で、盤面全体にわたり、きわめて非局所的な</strong> 性質についての言明です。これらを手でコード化しようとする試みはすべて、同じ失敗にぶつかりました。規則には例外があり、例外にはさらに例外があり、そして出来上がった評価器は遅くて当てにならないものになったのです。ここでのプロの直観は、曖昧さではありません。それは一生分の対局を通じて学ばれた圧縮された判断であり、誰もそれを書き下す言語を見つけていなかった、というだけのことです。</p>
+<p>こうして囲碁は2つの壁を同時に突きつけました。<strong>木は探索するには広すぎ</strong>、そして <strong>葉は判定できない</strong>。どちらか一方だけを取り除いても助けにはなりません——評価できない探索は無用ですし、探索できない評価器は静的な当て推量にすぎません。この組み合わせこそが、囲碁が長らくゲームプレイ人工知能にとっての恒常的な恥だった理由なのです。</p>
+<h2>1.4 2つの材料、1つのバランス</h2>
+<p>両方のゲームから一歩下がると、一般的な構造が見えてきます。<strong>ゲームを上手に打つエージェントは、ちょうど2つの能力を必要とします。</strong></p>
+<p><strong>先を読む手立て。</strong> 局面が与えられたとき、ありうる継続とその帰結を考える。これが <em>探索</em> です。探索は汎用的であり——ゲームのルール以外には何も必要としません——計算量を直接に強さへ変換します。その弱点は、どれだけ先まで読むかについてコストが指数的に増えることです。</p>
+<p><strong>判定する手立て。</strong> 局面が与えられたとき、残りを打ち切らずにそれがどれくらい良いかを言う。これが <em>評価</em>、あるいは <em>知識</em> です。評価は1局面あたりでは安価で、いくらでも深い理解を符号化できます。その弱点は、誰かがそれを供給しなければならないこと、そして探索なら捕まえられたはずの仕方で誤りうることです。</p>
+<p>この2つは相補的であり、ゲームプレイプログラムの歴史全体は <strong>両者のあいだのバランスの推移</strong> として読むことができます。</p>
+<table>
+<thead>
+<tr>
+<th>時代</th>
+<th>探索</th>
+<th>評価</th>
+<th>結果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>古典的チェスプログラム</td>
+<td>深く、アルファベータ枝刈り</td>
+<td>人間による手作り</td>
+<td>チェスで超人的</td>
+</tr>
+<tr>
+<td>古典的囲碁プログラム</td>
+<td>浅い（木が広すぎる）</td>
+<td>手作りで、しかも貧弱</td>
+<td>プロの棋力にはるかに及ばず</td>
+</tr>
+<tr>
+<td>モンテカルロ囲碁</td>
+<td>ランダムなプレイアウト</td>
+<td>プレイアウトからの統計</td>
+<td>強いアマチュアの棋力</td>
+</tr>
+<tr>
+<td>AlphaGo（第2章）</td>
+<td>学習された方策で誘導</td>
+<td>データと自己対局から学習</td>
+<td>囲碁で超人的</td>
+</tr>
+</tbody>
+</table>
+<p><em>評価</em> の列を上から下へ読めば、物語は明快です。進歩は、判断がどこから来るのかを変えることによって生じました。人間が書いたもの、次に統計的なもの、次に学習されたもの。探索の列も変化しますが、それはもう一方に奉仕する形で変化します——より良い評価器があれば、より少なく、より上手に探索できるのです。</p>
+<p>この枠組みを覚えておいてください。これは、囲碁からタンパク質立体構造への飛躍を生き延びる枠組みです。第5章では「探索」がかなり違うものになりますが、分業の構図は見分けがつくまま残ります。</p>
+<h2>1.5 モンテカルロという転回</h2>
+<p>やがて評価の壁を破ることになった着想は、予想外の方角から到来しました。そして最初の形では、冗談のように見えます。</p>
+<p><strong>局面を判定できないと仮定しよう。ならばランダムに打ち切って、何が起きるか見ればよい。</strong></p>
+<p>その局面を取ります。両者に、対局が終わるまで一様ランダムな合法手を打たせます。誰が勝ったかを記録します。これを何度も行います。ランダムなプレイアウトのうち自分の勝ちで終わった割合が、その局面がどれくらい良いかの推定値になります。</p>
+<p>即座に浮かぶ反論は正しい反論です。ランダムな打ち方は本物の打ち方とは似ても似つかないのに、ランダムな対局の結果が、専門家どうしの局面について何を語れるというのか。答えは3つ、重要度の低い順に挙げます。</p>
+<p><strong>知識をまったく必要としない。</strong> この手順に必要なのはゲームのルールだけで、他には何も要りません。駒の価値も、形のライブラリも、プロへの相談も不要です。知識こそがボトルネックだったゲームにとって、知識不要の評価器は妥協ではありません——それがまさに要点なのです。</p>
+<p><strong>誤差は対称的で、部分的に打ち消し合う。</strong> ランダムなプレイアウトでは両者とも下手に打ちます。本当に良い局面は、ランダムな継続のもとでも良いままである傾向があります。というのも、良い局面からのほうが悪い局面からより、対局が良く終わる道筋が単純に多いからです。この推定値は偏っていてノイジーですが、<em>真の値と相関しています</em>。そして探索の内部で有用であるために評価器に必要なのは、それだけです。</p>
+<p><strong>計算量を、滑らかに精度へ変換する。</strong> プレイアウトが増えれば推定はより締まります。越えるべき閾値もなく、ぶつかる壁もありません。評価器は、与えた計算量とともに連続的に改善します。その性質——常に、もっと投じればもう少し良くなる——こそが、この着想を積み上げるに値するものにしています。</p>
+<p>それ自体では、ランダムプレイアウトによる評価は粗雑です。突破口は第2の着想から来ました。<strong>プレイアウトを均等にばらまくな</strong>、というものです。初期の結果を使って後のプレイアウトをどこに費やすかを決め、有望に見える手に労力を集中させつつ、そうでない手もときどきは確認する。その組み合わせ——有望な領域へ向かって成長する木と、その辺縁でのランダムなプレイアウト——が <strong>モンテカルロ木探索（MCTS）</strong> であり、これは数年のうちにコンピュータ囲碁を弱いレベルから強いアマチュアのレベルへ引き上げました。</p>
+<p>ただしそれ自体でプロの棋力に達したわけではありません。第2章ではこのアルゴリズムをきちんと説明し、実装し、そのうえでAlphaGoが何を付け加えたのかを示します。</p>
+<h2>1.6 ハンズオン: 力任せが死ぬ場所</h2>
+<p>2つの木の広さに数値を入れてみましょう。以下のコードが取る入力はちょうど2つ——おおよその分岐因子、チェスでおよそ35、囲碁でおよそ250——であり、それ以外はすべて算術で導出されます。どちらの数値も慣習的な近似であって測定値ではありません。結論は桁のオーダーについてのものであり、2桁目には依存しません。</p>
+<pre><code class="language-python">import math
+
+import numpy as np
+
+# ---------------------------------------------------------------
+# ゲーム木はどれくらい大きいのか?
+#
+# 入力は2つだけ。どちらも近似値で、広く引用されている値である。
+#   b ~ 35  チェスの1局面あたりの平均合法手数
+#   b ~ 250 囲碁（19x19）の1局面あたりの平均合法手数
+# 以下のそれ以外はすべて、この2つの数値に対する算術である。
+# ---------------------------------------------------------------
+B_CHESS = 35
+B_GO = 250
+
+depths = np.arange(1, 11)
+nodes_chess = np.power(float(B_CHESS), depths)
+nodes_go = np.power(float(B_GO), depths)
+
+print(&quot;Step 1: leaf nodes at depth d  (b^d)&quot;)
+print(f&quot;{'depth':&gt;6} {'chess (b=35)':&gt;16} {'Go (b=250)':&gt;16} {'ratio Go/chess':&gt;18}&quot;)
+print(&quot;-&quot; * 60)
+for d, c, g in zip(depths, nodes_chess, nodes_go):
+    print(f&quot;{d:6d} {c:16.2e} {g:16.2e} {g / c:18.2e}&quot;)
+print()
+
+# --- 2. 深さ10を探索するにはどんな機械が必要か? -----------------
+# その機械に思考時間を1秒与える。
+SECONDS = 1.0
+print(&quot;Step 2: nodes per second needed to enumerate depth 10 in 1 second&quot;)
+for name, b in [(&quot;chess&quot;, B_CHESS), (&quot;Go&quot;, B_GO)]:
+    need = b**10 / SECONDS
+    print(f&quot;  {name:&gt;5}: {need:.2e} nodes/s&quot;)
+print()
+
+# --- 3. 固定された機械は実際どこまで深く行けるのか? --------------
+# 意図的に気前のよい機械: 毎秒10億局面。
+# これまで作られたどの単一評価器をもはるかに超える性能である。
+RATE = 1e9  # 毎秒あたりの局面数
+
+print(f&quot;Step 3: depth reachable in one second at {RATE:.0e} positions/s&quot;)
+for name, b in [(&quot;chess&quot;, B_CHESS), (&quot;Go&quot;, B_GO)]:
+    d_max = math.log(RATE * SECONDS) / math.log(b)
+    print(f&quot;  {name:&gt;5}: full-width depth {d_max:.2f} plies&quot;)
+print()
+
+# --- 4. アルファベータ枝刈り: 平方根の効果 ----------------------
+# 手の順序づけが完璧なら、アルファベータ枝刈りが訪れるノード数は
+# b^d ではなくおよそ b^(d/2) である——すなわち実効的な分岐因子が
+# sqrt(b) になる。大きな節約だが、それでも指数的である。
+print(&quot;Step 4: alpha-beta at best case visits ~b^(d/2)&quot;)
+print(f&quot;{'depth':&gt;6} {'chess plain':&gt;14} {'chess a-b':&gt;14} {'Go plain':&gt;14} {'Go a-b':&gt;14}&quot;)
+print(&quot;-&quot; * 66)
+for d in [4, 8, 12, 16]:
+    print(
+        f&quot;{d:6d} {B_CHESS**d:14.2e} {B_CHESS ** (d / 2):14.2e} &quot;
+        f&quot;{B_GO**d:14.2e} {B_GO ** (d / 2):14.2e}&quot;
+    )
+print()
+
+print(f&quot;Step 5: depth reachable in one second at {RATE:.0e} positions/s, WITH alpha-beta&quot;)
+for name, b in [(&quot;chess&quot;, B_CHESS), (&quot;Go&quot;, B_GO)]:
+    d_max = 2 * math.log(RATE * SECONDS) / math.log(b)
+    print(f&quot;  {name:&gt;5}: effective depth {d_max:.2f} plies&quot;)
+print()
+
+# --- 6. 壁を、時間として述べる ----------------------------------
+# 典型的な囲碁の対局は150手ほどの規模になる。その木のごく一部を
+# 列挙することさえ、ハードウェアの問題ではない。
+GAME_LENGTH = 150
+seconds_per_year = 365.25 * 24 * 3600
+# 全体をlog10で計算する: そうしないとこれらの整数はfloatを溢れさせる。
+log_tree = GAME_LENGTH * math.log10(B_GO)
+log_years = log_tree - math.log10(RATE) - math.log10(seconds_per_year)
+log_atoms_universe = 80  # 桁のオーダーを示す数値、スケール比較のためだけのもの
+print(&quot;Step 6: brute force to the end of a Go game&quot;)
+print(f&quot;  crude tree size for a {GAME_LENGTH}-move game: 250^{GAME_LENGTH} ~ 1e{log_tree:.0f}&quot;)
+print(f&quot;  time at {RATE:.0e} positions/s: ~1e{log_years:.0f} years&quot;)
+print(f&quot;  for scale, atoms in the observable universe: ~1e{log_atoms_universe}&quot;)
+</code></pre>
+<p><strong>出力:</strong></p>
+<pre><code>Step 1: leaf nodes at depth d  (b^d)
+ depth     chess (b=35)       Go (b=250)     ratio Go/chess
+------------------------------------------------------------
+     1         3.50e+01         2.50e+02           7.14e+00
+     2         1.22e+03         6.25e+04           5.10e+01
+     3         4.29e+04         1.56e+07           3.64e+02
+     4         1.50e+06         3.91e+09           2.60e+03
+     5         5.25e+07         9.77e+11           1.86e+04
+     6         1.84e+09         2.44e+14           1.33e+05
+     7         6.43e+10         6.10e+16           9.49e+05
+     8         2.25e+12         1.53e+19           6.78e+06
+     9         7.88e+13         3.81e+21           4.84e+07
+    10         2.76e+15         9.54e+23           3.46e+08
+
+Step 2: nodes per second needed to enumerate depth 10 in 1 second
+  chess: 2.76e+15 nodes/s
+     Go: 9.54e+23 nodes/s
+
+Step 3: depth reachable in one second at 1e+09 positions/s
+  chess: full-width depth 5.83 plies
+     Go: full-width depth 3.75 plies
+
+Step 4: alpha-beta at best case visits ~b^(d/2)
+ depth    chess plain      chess a-b       Go plain         Go a-b
+------------------------------------------------------------------
+     4       1.50e+06       1.22e+03       3.91e+09       6.25e+04
+     8       2.25e+12       1.50e+06       1.53e+19       3.91e+09
+    12       3.38e+18       1.84e+09       5.96e+28       2.44e+14
+    16       5.07e+24       2.25e+12       2.33e+38       1.53e+19
+
+Step 5: depth reachable in one second at 1e+09 positions/s, WITH alpha-beta
+  chess: effective depth 11.66 plies
+     Go: effective depth 7.51 plies
+
+Step 6: brute force to the end of a Go game
+  crude tree size for a 150-move game: 250^150 ~ 1e360
+  time at 1e+09 positions/s: ~1e343 years
+  for scale, atoms in the observable universe: ~1e80
+</code></pre>
+<p><strong>結果の読み方。</strong> 重要度の低いものから順に4つ挙げます。</p>
+<ul>
+<li>
+<p><strong>差は即座に開き、決して閉じません。</strong> 深さ1では、囲碁はチェスのわずか7倍ほどの広さです。深さ10ではそれが \(3.5 \times 10^{8}\) 倍になります。これが指数的ということの意味です。底における控えめな比が、結果においては埋めがたい比になるのです。関係する量は \((250/35)^{d}\) であり、これが1手ごとに複利で効いてきます。</p>
+</li>
+<li>
+<p><strong>チェスを上手に打つ機械は、囲碁では無力です。</strong> 同じ気前のよい毎秒10億局面の機械に、1秒の思考時間を与えます。チェスでは全幅の木をおよそ5.8手分（ply）まで列挙します。囲碁では、およそ3.75手分です。互いに3手にも満たない。その深さの囲碁の局面は、初期局面とほとんど見分けがつきません——囲碁における1手の帰結は、通常、数十手分にわたって展開されるからです。</p>
+</li>
+<li>
+<p><strong>アルファベータ枝刈りは大きな勝利であり、そして十分ではありません。</strong> 枝刈りは指数をおよそ半分にします。これは木の平方根を取ることと同じであり、途方もない節約です。私たちの機械はチェスで5.83手分から11.66手分へ進みます。これは本当に深いチェスです。同じ手法は囲碁を3.75手分から7.51手分にしますが、これはまだ何でもありません。<strong>大きすぎる指数を半分にしても、大きすぎる指数が残るだけです。</strong> いかなる枝刈り技術も、いかなる現実的なハードウェアも、この結論を変えません。要求は指数的に増える一方で、ハードウェアはせいぜい時間について幾何的にしか増えないからです。</p>
+</li>
+<li>
+<p><strong>対局の終わりは、いかなる意味でも到達可能ではありません。</strong> 150手の囲碁の対局を粗く数えると、およそ \(10^{360}\) 通りの手順になり、毎秒10億の列挙でも \(10^{343}\) 年のオーダーを要します。スケールの比較として、観測可能な宇宙にはおよそ \(10^{80}\) 個の原子が含まれます。この隔たりはハードウェアの問題でも、予算の問題でも、忍耐の問題でもありません。それは、探索だけでは囲碁を決して解けないという言明であり、したがって <strong>探索以外の何かが判断を供給しなければならない</strong> という言明なのです。</p>
+</li>
+</ul>
+<p>その最後の一文こそが、本章が存在する理由です。チェスのレシピには、探索が尽きたときに戻れる人間製の評価器がありました。囲碁にはそのようなものがありませんでした。ここから先のあらゆる道筋は、評価を別のどこかから調達することを含んでいます。</p>
+<p><code>RATE</code> を \(10^{15}\) ——妥当な範囲の100万倍の強力さ——に変えて、Step 5を再実行してみてください。囲碁の深さはおよそ7.5からおよそ12.5手分へ改善します。ハードウェアの6桁分が、たった5手分の深さを買うのです。この1つの実験が、1.3節の議論全体を1行で表しています。</p>
+<h3>🎯 演習問題</h3>
+<ol>
+<li>
+<p><strong>3つの性質。</strong> 1.1節の3つの性質（完全情報、曖昧さのない結果、無制限に自己生成できるデータ）のそれぞれについて、それを持つ実在の科学・工学の問題を1つと、明らかに欠いている問題を1つ挙げてください。欠いているものについては、代替を供給するために何を構築しなければならないかを述べてください。</p>
+</li>
+<li>
+<p><strong>チェスのレシピを監査する。</strong> ディープ・ブルーの評価関数は人が書いたものでした。手書きのチェス評価器が容易に符号化できることを3つ、そして本当に難しいと感じるであろうことを2つ挙げてください。そのうえで、難しいほうがマッチの敗北を招くほど重要だったかどうかを論じてください。</p>
+</li>
+<li>
+<p><strong>指数を手で計算する。</strong> 分岐因子だけを使って、深さ6における囲碁の木とチェスの木の比を、コードを走らせずに計算し、それから出力と照合してください。この比自体がなぜ深さについて指数的なのかを1文で説明してください。</p>
+</li>
+<li>
+<p><strong>枝刈りはいつ救ってくれるのか。</strong> アルファベータ枝刈りは \(b^{d}\) をおよそ \(b^{d/2}\) に変えます。ある新技術がそれを \(b^{d/4}\) にすると約束したとしましょう。コードを使って、毎秒 \(10^{9}\) 局面で1秒間に到達できる囲碁の探索深さを求めてください。それは囲碁を上手に打つのに十分ですか。囲碁の1手の帰結が現れるまでにどれだけかかるかを参照して、答えを正当化してください。</p>
+</li>
+<li>
+<p><strong>ランダムな打ち方が明らかに不条理とは言えない理由。</strong> 1.5節は、ランダムなプレイアウトが偏っていてノイジーだが <em>真の値と相関した</em> 推定を与えると主張しています。あなたの知るいずれかのゲームで、この主張がひどく破綻するような局面のタイプを構成してください——すなわち、本当に勝っている局面がランダムプレイアウトでは芳しくない結果を与えるような局面です。あなたの例は、モンテカルロ型のプレイヤーが信頼に足るために何を必要とすることを示唆していますか。</p>
+</li>
+</ol>
+<h2>まとめ</h2>
+<p>人工知能は数十年をボードゲームに費やしましたが、その理由は娯楽的ではなく方法論的なものでした。ゲームは <strong>完全情報</strong>、<strong>曖昧さのない勝敗の信号</strong>、そして <strong>無制限に自己生成できるデータ</strong> を提供します——現実的な問題がこの3つを同時に与えることはなく、これらが揃うことで意思決定の質が他のあらゆる困難から切り離されます。それがゲームを実験装置にしているのであり、同時にそれは、ゲームでの勝利が見出しの示唆するより狭いことしか証明しないということでもあります。</p>
+<p><strong>1997年のディープ・ブルーによるガルリ・カスパロフ撃破</strong> に至ったチェスのレシピには、ちょうど3つの材料がありました。ありうる未来を渡る <strong>ミニマックス</strong> 探索、問題になりえない枝を飛ばす <strong>アルファベータ枝刈り</strong>、そして探索が止まった局面を採点する <strong>手作りの評価関数</strong> です。学習は一切含まれていませんでした。これが機能したのは、チェスの分岐因子がおよそ35と控えめであり、駒得が強く持続的な信号であり、そして戦術計算——探索が最も得意とすること——がチェスの強さの大きな部分を占めるからでした。</p>
+<p>囲碁はこのレシピを二重に破りました。<strong>およそ250</strong> という分岐因子と長い対局が、完全探索を恒久的に手の届かないところへ追いやりました。私たちのコードは、気前のよい毎秒10億局面の機械が1秒間に4手分にも届かず、アルファベータ枝刈りが最良の場合に与える平方根の節約をもってしてもおよそ7.51手分にしかならないことを示しました。ハードウェアをさらに6桁積んでも、買えるのは5手分です。しかし <strong>より深い壁は評価</strong> でした。誰も囲碁の局面の静的な採点関数を書き下せなかったのです。プロが実際に使う概念——厚み、勢力、<em>味</em>、形——は、長距離的で盤面全体にわたる判断であり、形式化のあらゆる試みに抵抗しました。</p>
+<p>一般的な構造として読めば、ゲームを打つ者は2つのものを必要とします。<strong>先を読む手立て</strong>（探索）と <strong>判定する手立て</strong>（評価）です。この分野の歴史は両者のバランスの推移であり、囲碁における進歩は <em>判断がどこから来るのか</em> を変えることから生じました——最初は人間から、次に統計から、そして学習から。統計の段階が <strong>モンテカルロの着想</strong> です。局面を判定できないなら、ランダムに何度も打ち切って勝ちを数えればよい。知識を必要とせず、誤差は部分的に打ち消し合い、計算量を滑らかに精度へ変換します。</p>
+<p>次章では、この着想を本物のアルゴリズムに変えます。<strong>モンテカルロ木探索</strong> をその4つのステップから構築し、次のシミュレーションをどこに費やすかを決める <strong>UCB</strong> の規則を導出して説明し、思考時間を与えるにつれてランダムな打ち方から本質的に完璧な三目並べへと変わっていく、完全に動作する探索を実装します。そのうえでAlphaGoを成立させた部品——探索を絞り込む1つと局面を判定する1つ、2つのニューラルネットワーク——と、その後に続いた対局を加えます。</p>
+<p><a href="index.html">← シリーズトップ</a> <a href="chapter-2.html">第2章: AlphaGo: 探索と学習の出会い →</a></p>
+<h3>免責事項</h3>
+<ul>
+<li>本コンテンツは教育・研究・情報提供のみを目的としており、専門的な助言(法律・会計・技術的保証など)を提供するものではありません。</li>
+<li>本コンテンツおよび付随するCode examplesは「現状有姿(AS IS)」で提供され、明示または黙示を問わず、商品性、特定目的適合性、権利非侵害、正確性・完全性、動作・安全性等いかなる保証もしません。</li>
+<li>外部リンク、第三者が提供するデータ・ツール・ライブラリ等の内容・可用性・安全性について、作成者および東北大学は一切の責任を負いません。</li>
+<li>本コンテンツの利用・実行・解釈により直接的・間接的・付随的・特別・結果的・懲罰的損害が生じた場合でも、適用法で許容される最大限の範囲で、作成者および東北大学は責任を負いません。</li>
+<li>本コンテンツの内容は、予告なく変更・更新・提供停止されることがあります。</li>
+<li>本コンテンツの著作権・ライセンスは明記された条件(例: CC BY 4.0)に従います。当該ライセンスは通常、無保証条項を含みます。</li>
+</ul><div class="navigation">
+    <a href="index.html" class="nav-button">シリーズトップへ戻る</a>
+    <a href="chapter-2.html" class="nav-button">次の章へ →</a>
+</div>
+    </main>
+
+    <footer>
+        <p><strong>制作</strong>: AI寺子屋 コンテンツチーム</p>
+        <p><strong>監修</strong>: 橋本 佑介 博士（東北大学）</p>
+        <p><strong>バージョン</strong>: 1.0 | <strong>作成日</strong>: 2025-01-01</p>
+        <p><strong>ライセンス</strong>: Creative Commons BY 4.0</p>
+        <p>© 2025 AI寺子屋 - Dr. Yusuke Hashimoto, Tohoku University</p>
+    </footer>
+</body>
+</html>

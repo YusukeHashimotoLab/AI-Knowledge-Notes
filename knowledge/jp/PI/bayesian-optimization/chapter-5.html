@@ -5,54 +5,190 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="第5章：産業応用 - ベイズ最適化入門シリーズ">
     <title>第5章：産業応用 - ベイズ最適化入門 | PI Terakoya</title>
-    <link rel="canonical" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/jp/PI/bayesian-optimization/chapter-5.html">
-    <link rel="alternate" hreflang="ja" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/jp/PI/bayesian-optimization/chapter-5.html">
-    <link rel="alternate" hreflang="en" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/en/PI/bayesian-optimization/chapter-5.html">
-    <link rel="alternate" hreflang="x-default" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/en/PI/bayesian-optimization/chapter-5.html">
-    <meta property="og:title" content="第5章：産業応用 - ベイズ最適化入門 | PI Terakoya">
-    <meta property="og:type" content="article">
-    <meta property="og:url" content="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/jp/PI/bayesian-optimization/chapter-5.html">
-    <meta property="og:site_name" content="AI Terakoya">
-    <meta property="og:locale" content="ja_JP">
-    <meta property="og:description" content="第5章：産業応用 - ベイズ最適化入門シリーズ">
 
-        <link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
         <style>
-            /* page-specific residual (Wave C) */
-            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.8; color: #333; background: #f5f5f5 }
-            header { padding: 2rem 1rem }
-            h1 { margin-bottom: 0.5rem }
-            .subtitle { opacity: 1 }
-            .container { max-width: 1200px; margin: 2rem auto; padding: 0 1rem }
-            .back-link { display: inline-block; padding: 0.5rem 1rem; background: white; color: #11998e; border-radius: 6px; font-weight: 600 }
-            .content-box { background: white; padding: 2rem; border-radius: 12px; margin-bottom: 2rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1) }
-            h2 { color: #11998e; margin: 2rem 0 1rem 0 }
-            h3 { margin: 1.5rem 0 1rem 0 }
-            h4 { color: #2c3e50; margin: 1rem 0 0.5rem 0 }
-            p { margin-bottom: 1rem }
-            ul { margin-bottom: 1rem }
-            ol { margin-bottom: 1rem }
-            pre { background: #1e1e1e; color: #d4d4d4; margin: 1rem 0; border-left: 4px solid #11998e }
-            code { font-family: "Courier New", monospace; font-size: 0.9rem }
-            .key-point { background: #e8f5e9; padding: 1rem; border-radius: 6px; border-left: 4px solid #4caf50; margin: 1rem 0 }
-            .tech-note { background: #e3f2fd; padding: 1rem; border-radius: 6px; border-left: 4px solid #2196f3; margin: 1rem 0 }
-            .formula { background: #f0f7ff; padding: 1rem; border-radius: 6px; margin: 1rem 0; overflow-x: auto }
-            table { margin: 1rem 0 }
-            th { border: 1px solid #ddd; padding: 0.75rem; background: #11998e; color: white }
-            td { border: 1px solid #ddd; padding: 0.75rem }
-            tr:nth-child(even) { background: #f9f9f9 }
-            .nav-buttons { margin-top: 3rem }
-            .nav-buttons a { padding: 0.75rem 1.5rem; background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white; text-decoration: none; border-radius: 6px; font-weight: 600 }
-            footer { background: #2c3e50; color: white; padding: 2rem 1rem; margin-top: 4rem }
-            @media (max-width: 768px) {
-                h1 { font-size: 1.6rem }
-                .container { padding: 0 0.5rem }
-                pre { padding: 1rem }
-            }
-            .locale-link { color: #ac07bf }
-            .locale-link:hover { color: #880698 }
-        </style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            line-height: 1.8; color: #333; background: #f5f5f5;
+        }
+        header {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white; padding: 2rem 1rem; text-align: center;
+        }
+        h1 { font-size: 2rem; margin-bottom: 0.5rem; }
+        .subtitle { opacity: 0.9; font-size: 1.1rem; }
+        .container { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
+        .back-link {
+            display: inline-block; margin-bottom: 2rem; padding: 0.5rem 1rem;
+            background: white; color: #11998e; text-decoration: none;
+            border-radius: 6px; font-weight: 600;
+        }
+        .content-box {
+            background: white; padding: 2rem; border-radius: 12px;
+            margin-bottom: 2rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        h2 {
+            color: #11998e; margin: 2rem 0 1rem 0;
+            padding-bottom: 0.5rem; border-bottom: 3px solid #11998e;
+        }
+        h3 { color: #2c3e50; margin: 1.5rem 0 1rem 0; }
+        h4 { color: #2c3e50; margin: 1rem 0 0.5rem 0; }
+        p { margin-bottom: 1rem; }
+        ul, ol { margin-left: 2rem; margin-bottom: 1rem; }
+        li { margin-bottom: 0.5rem; }
+        pre {
+            background: #1e1e1e; color: #d4d4d4; padding: 1.5rem;
+            border-radius: 8px; overflow-x: auto; margin: 1rem 0;
+            border-left: 4px solid #11998e;
+        }
+        code {
+            font-family: 'Courier New', monospace; font-size: 0.9rem;
+        }
+        .key-point {
+            background: #e8f5e9; padding: 1rem; border-radius: 6px;
+            border-left: 4px solid #4caf50; margin: 1rem 0;
+        }
+        .tech-note {
+            background: #e3f2fd; padding: 1rem; border-radius: 6px;
+            border-left: 4px solid #2196f3; margin: 1rem 0;
+        }
+        .formula {
+            background: #f0f7ff; padding: 1rem; border-radius: 6px;
+            margin: 1rem 0; overflow-x: auto;
+        }
+        table {
+            width: 100%; border-collapse: collapse; margin: 1rem 0;
+        }
+        th, td {
+            border: 1px solid #ddd; padding: 0.75rem; text-align: left;
+        }
+        th {
+            background: #11998e; color: white; font-weight: 600;
+        }
+        tr:nth-child(even) { background: #f9f9f9; }
+        .nav-buttons {
+            display: flex; justify-content: space-between; margin-top: 3rem;
+        }
+        .nav-buttons a {
+            padding: 0.75rem 1.5rem;
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white; text-decoration: none; border-radius: 6px;
+            font-weight: 600;
+        }
+        footer {
+            background: #2c3e50; color: white; text-align: center;
+            padding: 2rem 1rem; margin-top: 4rem;
+        }
+        @media (max-width: 768px) {
+            h1 { font-size: 1.6rem; }
+            .container { padding: 0 0.5rem; }
+            pre { padding: 1rem; }
+        }
+    
+        
+    
+        /* Breadcrumb styles */
+        .breadcrumb {
+            background: #f7fafc;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+        }
 
+        .breadcrumb-content {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .breadcrumb a {
+            color: #667eea;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .breadcrumb a:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+
+        .breadcrumb-separator {
+            color: #a0aec0;
+            margin: 0 0.25rem;
+        }
+
+        .breadcrumb-current {
+            color: #4a5568;
+            font-weight: 500;
+        }
+    </style>
+
+    <style>
+        /* Locale Switcher Styles */
+        .locale-switcher {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 6px;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .current-locale {
+            font-weight: 600;
+            color: #7b2cbf;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .locale-separator {
+            color: #adb5bd;
+            font-weight: 300;
+        }
+
+        .locale-link {
+            color: #f093fb;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+        }
+
+        .locale-link:hover {
+            background: rgba(240, 147, 251, 0.1);
+            color: #d07be8;
+            transform: translateY(-1px);
+        }
+
+        .locale-meta {
+            color: #868e96;
+            font-size: 0.85rem;
+            font-style: italic;
+            margin-left: auto;
+        }
+
+        @media (max-width: 768px) {
+            .locale-switcher {
+                font-size: 0.85rem;
+                padding: 0.4rem 0.8rem;
+            }
+            .locale-meta {
+                display: none;
+            }
+        }
+    </style>
 </head>
 <body>
             <div class="locale-switcher">
@@ -194,8 +330,8 @@ def optimize_cstr(n_iterations=30):
         gp_byproduct.fit(X_all, byproduct_all)
 
         # 制約（安全温度 & 副反応率）
-        temp_constraint = 110 - X_all[:, 0]  # temp &lt;= 110
-        byproduct_constraint = 5 - byproduct_all  # byproduct &lt;= 5%
+        temp_constraint = 110 - X_all[:, 0]  # temp <= 110
+        byproduct_constraint = 5 - byproduct_all  # byproduct <= 5%
 
         # 実行可能点での最良値
         feasible = (temp_constraint >= 0) & (byproduct_constraint >= 0)
@@ -250,7 +386,7 @@ print("CSTR条件最適化実行中...\n")
 X_result, yield_result, byproduct_result, best_history = optimize_cstr(n_iterations=30)
 
 # 最終結果
-final_feasible = (X_result[:, 0] &lt;= 110) & (byproduct_result &lt;= 5)
+final_feasible = (X_result[:, 0] <= 110) & (byproduct_result <= 5)
 best_idx = np.argmax(yield_result[final_feasible])
 best_solution = X_result[final_feasible][best_idx]
 best_yield = yield_result[final_feasible][best_idx]
@@ -319,10 +455,10 @@ print("\n保存完了: cstr_optimization.png")
             <div class="success-box">
                 <h4>✅ Case Study 1の成果</h4>
                 <ul>
-                    <li>30回の実験で最適条件を発見（従来のDOE: 150回）</li>
-                    <li>収率: 85% → 94%（9%向上）</li>
+                    <li>40回の実験で最適条件を発見 — 初期のラテン超方格サンプリング10点 + BO反復30回（従来のDOE: 150回）</li>
+                    <li>収率: 85% → 94%（+9ポイント、相対では10.6%の向上）</li>
                     <li>安全制約・品質制約を満たしながら最適化</li>
-                    <li>実験コスト: 80%削減</li>
+                    <li>実験コスト: 73%削減（40回 vs 150回）</li>
                 </ul>
             </div>
         </section>
@@ -378,7 +514,7 @@ def generate_simplex_candidates(n_samples, n_dims=4, bounds=(10, 50)):
         x = np.random.dirichlet(np.ones(n_dims)) * 100
 
         # 各元素の範囲制約チェック
-        if np.all(x >= bounds[0]) and np.all(x &lt;= bounds[1]):
+        if np.all(x >= bounds[0]) and np.all(x <= bounds[1]):
             candidates.append(x)
 
     return np.array(candidates)
@@ -541,8 +677,8 @@ def fine_chemical_process(X):
 
     return np.clip(yield_rate, 0, 100), np.clip(purity, 0, 100), impurity_A, impurity_B
 
-# ボックスベーネット法との比較
-print("\nプロセスチューニング実行中（BO vs Box-Behnken）...\n")
+# 逐次ベイズ最適化: ラテン超方格20点 + BO反復40回
+print("\nプロセスチューニング実行中（ベイズ最適化: 初期20点 + 反復40回）...\n")
 
 # パラメータ範囲
 bounds_process = np.array([
@@ -625,6 +761,11 @@ plt.savefig('process_tuning.png', dpi=150, bbox_inches='tight')
 
 print(f"\n改善量: {yield_all_proc.max() - yield_proc.max():.2f}%")
 </code></pre>
+
+            <div class="callout">
+                <div class="callout-title">💡 ここでBox-Behnken法を実行していない理由</div>
+                <p>Box-Behnken法は<strong>一括型</strong>の応答曲面計画です。実験を1回も行わないうちに全実験点が確定し、6変数の領域全体で応答が2次関数であることを前提とします。一方、上のループは<strong>逐次型</strong>です。40回の反復のたびにそれまでの全測定値でガウス過程を再学習し、期待改善量が最大となる点に次の実験を配置するため、探索しながら計画そのものが適応していきます。本節が示しているのはこの適応性であり、コード中でBox-Behnken計画は実行しておらず、両者を直接ベンチマークしてもいません。</p>
+            </div>
         </section>
 
         <section>
@@ -662,9 +803,9 @@ def pharmaceutical_quality(X):
 # 制約チェック関数
 def check_pharma_constraints(assay, imp_A, imp_B, dissolution):
     """GMP品質規格チェック"""
-    c1 = (assay >= 95.0) & (assay &lt;= 105.0)
-    c2 = imp_A &lt;= 0.5
-    c3 = imp_B &lt;= 0.3
+    c1 = (assay >= 95.0) & (assay <= 105.0)
+    c2 = imp_A <= 0.5
+    c3 = imp_B <= 0.3
     c4 = dissolution >= 80.0
     return c1 & c2 & c3 & c4
 
@@ -1110,7 +1251,7 @@ print("\n保存完了: 完全統合ケーススタディ完了")
         </section>
 
         <nav class="navigation">
-            <a href="chapter-4.html" class="nav-button">← 第4章: 多目的・制約付き最適化</a>
+            <a href="chapter-4.html" class="nav-button">← 第4章：多目的・制約付き最適化</a>
             <a href="index.html" class="nav-button">目次に戻る</a>
         </nav>
     <section class="disclaimer">

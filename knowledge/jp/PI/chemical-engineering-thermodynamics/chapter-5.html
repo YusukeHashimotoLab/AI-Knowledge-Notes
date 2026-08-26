@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第5章：実在流体と状態方程式 - AI Terakoya</title>
+
+    <style>
+        :root {
+            --color-primary: #2c3e50;
+            --color-primary-dark: #1a252f;
+            --color-accent: #7b2cbf;
+            --color-accent-light: #9d4edd;
+            --color-text: #2d3748;
+            --color-text-light: #4a5568;
+            --color-bg: #ffffff;
+            --color-bg-alt: #f7fafc;
+            --color-border: #e2e8f0;
+            --color-code-bg: #f8f9fa;
+            --color-link: #3182ce;
+            --color-link-hover: #2c5aa0;
+
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+
+            --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+            --border-radius: 8px;
+            --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-body);
+            line-height: 1.7;
+            color: var(--color-text);
+            background-color: var(--color-bg);
+            font-size: 16px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            padding: var(--spacing-xl) var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+            box-shadow: var(--box-shadow);
+        }
+
+        .header-content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: var(--spacing-sm);
+            line-height: 1.2;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            font-weight: 400;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-md);
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-md) var(--spacing-xl);
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-xl);
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-xs);
+            border-bottom: 3px solid var(--color-accent);
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-lg);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        h4 {
+            font-size: 1.1rem;
+            color: var(--color-primary-dark);
+            margin-top: var(--spacing-md);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        p {
+            margin-bottom: var(--spacing-md);
+            color: var(--color-text);
+        }
+
+        a {
+            color: var(--color-link);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        a:hover {
+            color: var(--color-link-hover);
+            text-decoration: underline;
+        }
+
+        ul, ol {
+            margin-left: var(--spacing-lg);
+            margin-bottom: var(--spacing-md);
+        }
+
+        li {
+            margin-bottom: var(--spacing-xs);
+            color: var(--color-text);
+        }
+
+        pre {
+            background-color: var(--color-code-bg);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            overflow-x: auto;
+            margin-bottom: var(--spacing-md);
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        code {
+            font-family: var(--font-mono);
+            font-size: 0.9em;
+            background-color: var(--color-code-bg);
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+        }
+
+        pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: var(--spacing-md);
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            border: 1px solid var(--color-border);
+            padding: var(--spacing-sm);
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--color-bg-alt);
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        blockquote {
+            border-left: 4px solid var(--color-accent);
+            padding-left: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            color: var(--color-text-light);
+            font-style: italic;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        .mermaid {
+            text-align: center;
+            margin: var(--spacing-lg) 0;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        details {
+            background-color: var(--color-bg-alt);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+        }
+
+        summary {
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--color-primary);
+            user-select: none;
+            padding: var(--spacing-xs);
+            margin: calc(-1 * var(--spacing-md));
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        summary:hover {
+            background-color: rgba(123, 44, 191, 0.1);
+        }
+
+        details[open] summary {
+            margin-bottom: var(--spacing-md);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .learning-objectives {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: var(--spacing-lg);
+            border-radius: var(--border-radius);
+            border-left: 4px solid var(--color-accent);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .learning-objectives h2 {
+            margin-top: 0;
+            border-bottom: none;
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            gap: var(--spacing-md);
+            margin: var(--spacing-xl) 0;
+            padding-top: var(--spacing-lg);
+            border-top: 2px solid var(--color-border);
+        }
+
+        .nav-button {
+            flex: 1;
+            padding: var(--spacing-md);
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            border-radius: var(--border-radius);
+            text-align: center;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: var(--box-shadow);
+        }
+
+        .nav-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            text-decoration: none;
+        }
+
+        footer {
+            margin-top: var(--spacing-xl);
+            padding: var(--spacing-lg) var(--spacing-md);
+            background-color: var(--color-bg-alt);
+            border-top: 1px solid var(--color-border);
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--color-text-light);
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            h2 {
+                font-size: 1.4rem;
+            }
+
+            h3 {
+                font-size: 1.2rem;
+            }
+
+            .meta {
+                font-size: 0.85rem;
+            }
+
+            .navigation {
+                flex-direction: column;
+            }
+
+            table {
+                font-size: 0.85rem;
+            }
+
+            th, td {
+                padding: var(--spacing-xs);
+            }
+        }
+    </style>
+
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+
+    <!-- MathJax for LaTeX equation rendering -->
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\(', '\)']],
+                displayMath: [['$$', '$$'], ['\[', '\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" id="MathJax-script" async></script>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <h1>第5章：実在流体と状態方程式</h1>
+            <p class="subtitle">理想気体からプロセスシミュレータへ</p>
+            <div class="meta">
+                <span class="meta-item">📖 読了時間: 20-25分</span>
+                <span class="meta-item">📊 難易度: 中級</span>
+                <span class="meta-item">💻 コード例: 1個</span>
+                <span class="meta-item">📝 演習問題: 3問</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+<h2>ビデオ講義</h2>
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/tGOpNey5U9E?start=2925"
+    title="化学工学熱力学 第5章: 実在流体と状態方程式"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+<blockquote>
+<p>このビデオは以下のテキストと同じ内容をカバーしています。お好みの学習形式をお選びください。</p>
+</blockquote>
+<hr />
+<h1>第5章：実在流体と状態方程式</h1>
+<p>この最終章では、理想気体の法則を、実際のプロセスシミュレータが用いる状態方程式に置き換えます。そして、シミュレータの設定ダイアログの奥に埋もれた熱力学モデルが、その答えに価値があるかどうかを静かに決めてしまうのはなぜかを示します。</p>
+<p><strong>理想気体からプロセスシミュレータへ</strong></p>
+<h2>学習目標</h2>
+<p>本章を修了すると、以下ができるようになります:</p>
+<ul>
+<li>✅ 理想気体の法則が十分な場面と破綻する場面を説明できる</li>
+<li>✅ 圧縮係数 Z を定義し、1 より大きい値と小さい値を解釈できる</li>
+<li>✅ ファンデルワールス式のパラメータ a と b が何を表すかを説明できる</li>
+<li>✅ 産業で用いられる3次型状態方程式を挙げ、それらが必要とする物性を述べられる</li>
+<li>✅ 対象とする系に対して、3次型状態方程式と活量係数モデルのどちらを選ぶか判断できる</li>
+<li>✅ あらゆるシミュレータ、デジタルツイン、ソフトセンサーが熱力学モデルの上に立っている理由を説明できる</li>
+</ul>
+<p><strong>読了時間</strong>: 20-25分 <strong>コード例</strong>: 1 <strong>演習</strong>: 3</p>
+<hr />
+<h2>5.1 理想気体が破綻するところ</h2>
+<p>ここまでのすべての章は、理想気体の法則に寄りかかってきました:</p>
+<p>$$ PV = nRT $$</p>
+<p>これは 2 つの仮定の上に成り立っています: 分子は体積を持たない、そして分子どうしは力を及ぼし合わない。分子が互いに遠く離れているとき — <strong>低圧かつ高温</strong> — には、どちらも優れた近似であり、入門的な扱いの大部分と、実際のプラント運転のかなりの部分をカバーします。</p>
+<p>しかしこの 2 つの仮定は、エンジニアが最も気にする条件でこそ、そろって崩れます。凝縮の近傍では引力がすべてであり、高圧では分子が十分密に詰まって、分子自身の体積が効いてきます。これは運転領域の中の風変わりな片隅などではありません。<strong>あらゆる圧縮機の吸込・吐出</strong> であり、<strong>アンモニア合成ループの 150〜300 bar</strong>（第 4 章）であり、そして本質的に <strong>天然ガスの処理と液化のすべて</strong> です。そこで $PV = nRT$ を使うことは、少し粗い答えを生むのではなく、誤った答えを生みます。</p>
+<p>そのずれを測る標準的な指標が <strong>圧縮係数（compressibility factor）</strong> です:</p>
+<p>$$ Z = \frac{PV}{nRT} $$</p>
+<p>$Z$ は実在のモル体積と理想のモル体積の比なので、$Z = 1$ は理想的な振る舞いを意味し、そこからのずれは理想気体の法則がどれほど嘘をついているかを測ります。重要な領域は 2 つです:</p>
+<ul>
+<li><strong>$Z &lt; 1$</strong> — 引力が支配的。分子が互いに引き合うため、実在気体は理想気体より <em>コンパクト</em> になります。中程度の圧力ではこちらが一般的なケースです。</li>
+<li><strong>$Z &gt; 1$</strong> — 斥力が支配的。非常な高圧では分子自身の有限の大きさがそれ以上の圧縮に抵抗し、気体は理想気体より <em>コンパクトでなく</em> なります。</li>
+</ul>
+<p>以下の表は、5.3 節のコードで計算した 300 K のメタンの値です:</p>
+<table>
+<thead>
+<tr>
+<th>圧力</th>
+<th>Z</th>
+<th>解釈</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1 bar</td>
+<td>0.998</td>
+<td>実質的に理想気体</td>
+</tr>
+<tr>
+<td>50 bar</td>
+<td>0.924</td>
+<td>引力が効く。無視すれば 8% の誤差</td>
+</tr>
+<tr>
+<td>150 bar</td>
+<td>0.851</td>
+<td>引力の効果が最大</td>
+</tr>
+<tr>
+<td>300 bar</td>
+<td>0.951</td>
+<td>斥力が押し返す</td>
+</tr>
+<tr>
+<td>400 bar</td>
+<td>1.070</td>
+<td>斥力が支配的、Z &gt; 1</td>
+</tr>
+</tbody>
+</table>
+<p>50 bar における 8% の体積誤差は、そのまま圧縮機動力、容器サイジング、在庫量へと伝播します。もはや問いは、非理想性を補正するかどうかではなく、どう補正するかです。</p>
+<h2>5.2 ファンデルワールスの洞察</h2>
+<p>最初の成功した答えは、ヨハネス・ディーデリク・ファンデルワールスが <strong>1873 年</strong> の博士論文で与えたもので、この仕事は後にノーベル賞を受けました。彼の発想は、破綻した仮定それぞれに 1 つずつ項を当てて、理想気体の法則を繕うことでした:</p>
+<p>$$ \left(P + \frac{a}{V_m^2}\right)\left(V_m - b\right) = RT $$</p>
+<p>ここで $V_m$ はモル体積です。</p>
+<table>
+<thead>
+<tr>
+<th>パラメータ</th>
+<th>何を補正するか</th>
+<th>物理的意味</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>a</strong></td>
+<td>分子間引力</td>
+<td>分子は内側へ引き合うため、容器壁が感じる圧力は、引力で減じられる前の分子衝突そのものの圧力より <em>低い</em>。$a/V_m^2$ を足し戻す</td>
+</tr>
+<tr>
+<td><strong>b</strong></td>
+<td>有限の分子体積</td>
+<td>分子はゼロの空間に圧縮できない。自由体積は $V_m$ ではなく $V_m - b$</td>
+</tr>
+</tbody>
+</table>
+<p>どちらのパラメータも物質ごとに固有であり、どちらもその物質の臨界点から得られます。</p>
+<p>これを単なるカーブフィット以上のものにしているのは、そこから帰結することです。この式は <strong>体積について3次</strong> であるため、臨界温度より下では、1 つの圧力に対して 3 つの実根を返しうるのです — 最大の根が蒸気、最小の根が液体、真ん中の根は物理的に不安定なもの。言い換えれば、気体のために書かれた 1 つの式が、<strong>凝縮</strong>、<strong>液相</strong>、そして 2 相が区別できなくなる <strong>臨界点</strong> を、おのずと予測してしまうのです。これは正真正銘の発見であり、ファンデルワールスが本章のすべての祖先である理由でもあります。</p>
+<p>同時に、これは設計に使えるほど正確ではありません。現代の実務は、その構造 — 斥力項と引力項、体積について3次 — を保ったまま、中身を置き換えます。</p>
+<h2>5.3 実務における3次型状態方程式</h2>
+<p>産業のプロセスシミュレーションを支配しているのは、その 2 つの子孫です:</p>
+<ul>
+<li><strong>Soave–Redlich–Kwong（SRK式）</strong>、Soave により <strong>1972 年</strong> に発表、1949 年の Redlich–Kwong 式を修正したもの</li>
+<li><strong>Peng–Robinson（PR式）</strong>、<strong>1976 年</strong> に発表</li>
+</ul>
+<p>どちらも体積について3次のままであり、これは実務上重要です: 3次式は、何百万回ものフラッシュ計算に対して速く確実に解けますし、その複数の根が、ファンデルワールスの発見した気液の振る舞いを保持します。どちらも純成分あたりちょうど 3 つの入力を取ります — <strong>臨界温度 $T_c$</strong>、<strong>臨界圧力 $P_c$</strong>、そして分子が球からどれだけ隔たっているかを表す 1 つの数値である <strong>偏心因子 $\omega$</strong> です。実務では、臨界領域近傍の液密度には PR 式が好まれることが多く、SRK 式はガス処理で長い伝統を持ちますが、たいていの炭化水素系では両者はよく一致します。</p>
+<p>この背後にあるのが <strong>対応状態原理</strong> です: 同じ <strong>換算条件</strong> で比べたとき</p>
+<p>$$ T_r = \frac{T}{T_c} \qquad P_r = \frac{P}{P_c} $$</p>
+<p>異なる流体は驚くほど似た振る舞いをします。$T_r = 1.5$ のメタンは、$T_r = 1.5$ の窒素とよく似て見えます。3 つのパラメータを持つ 1 つの式が何百もの化合物をカバーできるのはこのためであり、偏心因子が存在する理由でもあります: それは、単純な球ではない分子に対する補正なのです。</p>
+<p>以下のコードは、3次方程式を数値的に解いて、SRK 式からメタンの $Z$ を計算します。</p>
+<pre><code class="language-python">import numpy as np
+
+def srk_Z(T, P, Tc, Pc, omega):
+    &quot;&quot;&quot;Compressibility factor Z from the Soave–Redlich–Kwong EOS.&quot;&quot;&quot;
+    Tr, Pr = T / Tc, P / Pc                       # reduced temperature and pressure
+    m = 0.480 + 1.574 * omega - 0.176 * omega**2  # Soave's acentric correction
+    alpha = (1.0 + m * (1.0 - np.sqrt(Tr)))**2    # temperature dependence of attraction
+    A = 0.42748 * alpha * Pr / Tr**2              # dimensionless attraction term
+    B = 0.08664 * Pr / Tr                         # dimensionless volume term
+    # Cubic in Z:  Z^3 - Z^2 + (A - B - B^2) Z - A*B = 0
+    roots = np.roots([1.0, -1.0, A - B - B**2, -A * B])
+    real = np.sort(roots[np.abs(roots.imag) &lt; 1e-9].real)
+    real = real[real &gt; B]                         # discard unphysical roots
+    return real[-1]                               # vapor root = largest real root
+
+# Methane: Tc = 190.6 K, Pc = 45.99 bar, omega = 0.011
+Tc, Pc, omega = 190.6, 45.99, 0.011
+
+print(f&quot;{'T (K)':&gt;7} {'P (bar)':&gt;8} {'Tr':&gt;6} {'Pr':&gt;6} {'Z (vapor)':&gt;10}&quot;)
+for T, P in [(300.0, 1.0), (300.0, 50.0), (300.0, 150.0), (300.0, 300.0), (300.0, 400.0)]:
+    print(f&quot;{T:7.1f} {P:8.1f} {T/Tc:6.3f} {P/Pc:6.3f} {srk_Z(T, P, Tc, Pc, omega):10.4f}&quot;)
+
+#   T (K)  P (bar)     Tr     Pr  Z (vapor)
+#   300.0      1.0  1.574  0.022     0.9983
+#   300.0     50.0  1.574  1.087     0.9238
+#   300.0    150.0  1.574  3.262     0.8508
+#   300.0    300.0  1.574  6.523     0.9511
+#   300.0    400.0  1.574  8.698     1.0703
+</code></pre>
+<p>300 K・50 bar において、SRK 式は <strong>Z = 0.924</strong> を与えます: メタンは、理想気体の法則が予測するよりおよそ 8% 小さい体積を占めるということです。この実行結果は、5.1 節の定性的な流れも再現しています — 引力が効き始めて $Z$ が下がり、底を打ち、やがて斥力が勝って 1 を超えて上昇していきます。</p>
+<p>同じ状態方程式は、体積以上のものをもたらします。そこから各成分の <strong>フガシティー係数</strong> $\phi_i$ — 実効圧力に対する補正係数であり、第 3 章のフガシティーが $f_i = \phi_i y_i P$ となり、気体が理想に近づくにつれ $\phi_i \to 1$ となるように定義されます — が計算できます。それこそが、高圧下でも平衡計算を生き延びさせるものです。第 4 章の平衡定数は、そこでは分圧のみで書かれていましたが、厳密には $K_\phi = \prod_i \phi_i^{\nu_i}$ という因子を伴います。そして <strong>150〜300 bar のアンモニアループ</strong> では、その因子は形式上のものではなく実質的な補正です — まさに $Z$ が 1 から数十パーセント外れる条件です。第 4 章の理想気体に基づく平衡計算が産業的な圧力でも信頼に足るのは、このためです: 厳密であるからではなく、状態方程式が供給する数値によって補正されるからです。</p>
+<h2>5.4 3次型を超えて: 物性パッケージを選ぶ</h2>
+<p>3次型状態方程式は、無極性ないし弱い極性の分子 — 炭化水素、窒素、二酸化炭素、水素 — に対して、気体条件から高圧条件までよく機能します。うまくいかないのは <strong>強い極性を持つ液体や水素結合する液体</strong> で、そこでは相互作用が平均化された引力ではなく、特異的で方向性を持つものになります。水、アルコール、有機酸は、単一のパラメータ $a$ では表現できない、まさにそうしたケースです。</p>
+<p>そうした液体混合物に対して、エンジニアは代わりに <strong>活量係数モデル</strong> を用います — <strong>NRTL</strong>、<strong>UNIQUAC</strong>、<strong>Wilson</strong> が標準的な名前であり、データが存在せず分子団からパラメータを推算しなければならない場合には <strong>UNIFAC</strong> が使えます。これらのモデルは液相における理想溶液からのずれを記述するもので、エタノール-水のような共沸を再現できるのはこれらです。3次型状態方程式は、単独では共沸を正しく捉えられません。</p>
+<div class="mermaid">
+flowchart TD
+    A["What am I modeling?"] --> B["Hydrocarbons, gases,<br/>high pressure, supercritical"]
+    A --> C["Polar or hydrogen-bonding<br/>liquids at low pressure"]
+    B --> D["Cubic EOS: SRK or PR"]
+    C --> E["Activity model: NRTL, UNIQUAC, Wilson"]
+    D --> F["Validate against binary VLE data"]
+    E --> F
+</div>
+
+<p>この選択 — <strong>物性パッケージ</strong> — は、シミュレータが最初に尋ねてくるものであり、そして大半のユーザーが最も無造作にクリックして通り過ぎる、最も重大なものです。注意を払う価値があるのは、<strong>誤った物性パッケージがシミュレーション精度における古典的なサイレントキラーだから</strong> です。シミュレーションはクラッシュしません。収束し、完全な熱収支・物質収支を出力し、塔のプロファイルを小数点以下 4 桁まで報告します — それが単に誤っているだけです。エタノール-水の蒸留塔を3次型状態方程式でモデル化すると共沸が消えてしまうことがあり、そうなるとシミュレータは、そこそこの段数で純エタノールが得られると上機嫌で告げてくるでしょう — 存在しえない設計です。</p>
+<p>実務的な指針は短いものです。低圧の極性液体には、活量係数モデル。炭化水素、軽質ガス、あるいは高圧のものは何であれ、3次型状態方程式。迷ったとき、あるいは答えに金銭がかかっているときは、下流の結果を信用する前に、系の中の重要な組に対して <strong>実測の二成分気液平衡データにモデルを照らして確認すること</strong>。二成分相互作用パラメータを実データに対して回帰することは、高度な技術ではなく、日常的なプロの実務です。</p>
+<h2>5.5 デジタルプラントの基礎としての熱力学</h2>
+<p>現代のデジタルの層にあるものはすべて、本章の上に乗っています。<strong>フローシートシミュレータ</strong> は、構造的には 3 つのものです: 物質収支とエネルギー収支、単位操作モデル、そしてそれらのモデルが要求するあらゆるエンタルピー・エントロピー・密度・平衡定数を供給する熱力学パッケージです。収支は厳密であり、単位操作モデルは近似です — しかし熱力学こそが物理的な真実が入ってくる場所であり、最も深く、最も見えにくい層なのです。</p>
+<p>1 つ上のレベルでも同じことが言えます。<strong>デジタルツイン</strong>（<em>化学工学入門</em> シリーズの第 5 章を参照）は、稼働中のプラントと同期され続けるシミュレーションであり、その物性パッケージをそっくりそのまま受け継ぎます。密度・露点・組成を予測する <strong>ソフトセンサー</strong> は、熱力学量を予測しているのであり、それが何に対して学習されたにせよ、その量の定義がそのままソフトセンサーにとっての真実の定義になります。</p>
+<p>このことは機械学習に対して鋭い帰結を持ちます。<strong>シミュレータの出力で学習した ML 代理モデルは、そのシミュレータの熱力学を — 精度も誤差も同じように — 受け継ぎます。</strong> 代理モデルは、物性パッケージの系統的な誤差を物理と区別できません。その誤差を忠実に学習し、そして速く、滑らかに、何の警告も付さずに再現します。学習元のシミュレータと 0.1% で一致する代理モデルは、0.1% の精度を持つのではありません。それは、自らの精度が別問題であり誰も問わなかったモデルと、0.1% で <em>整合している</em> にすぎないのです。</p>
+<p>そしてこれが、本シリーズの締めくくりの論点です。熱力学のリテラシーとは、状態方程式を暗記することではありません — それはシミュレータのほうがあなたよりうまく解きます。それは、200 bar で理想気体の法則が単に不正確なのではないと知っていること、共沸が数値的な人工物ではなく実在する物理的制約であると知っていること、そして収束したシミュレーションはモデルについての言明であってプラントについての言明ではないと知っていることです。<strong>熱力学のリテラシーとは、エンジニアが正しい理由でシミュレーションを疑えるようにするものなのです。</strong></p>
+<h2>5.6 シリーズのまとめ</h2>
+<p>第 1 章では <strong>エネルギーの勘定</strong> を確立しました: 第一法則、エンタルピー、そしてエネルギーは保存されるが決してタダではないという事実です。第 2 章では、エントロピーと第二法則を通じて <strong>方向と限界</strong> を加えました — なぜ熱は一方向に流れるのか、なぜ 100% に達する熱機関が存在しないのか、そしてなぜ現実のあらゆるプロセスが仕事をする能力の一部を破壊するのか。第 3 章では、その両方を <strong>相平衡</strong> に適用しました。蒸留・吸収、そしてプラントのあらゆる分離の基礎です。第 4 章では、同じ平衡の論理を <strong>反応系</strong> に拡張し、$\Delta G$ がいかなる触媒によっても引き上げられない上限を定めることを示しました。第 5 章では理想気体を捨て、産業のシミュレーションが実際に動かしている <strong>実在流体のモデル</strong> にたどり着きました。</p>
+<p>これら 5 つの章はまとめて、何が実際的かを問う前に、何が可能かを描き出します — それこそが、化学工学教育で熱力学が最初に来る理由であり、その後に続くキャリア全体にわたって役立ち続ける理由です。</p>
+<p>次に進む先: <em>化学工学入門</em> シリーズをもう一度たどってみてください — その単位操作、反応器、設計上の判断は、熱力学が備わったいま、違って読めるはずです。そして、これらのモデルの上に築かれるデータの層については <em>プロセス・インフォマティクス入門</em> へ、1 回の実験が高価なときに意思決定を行う方法については <em>ベイズ最適化入門</em> へ進んでください。</p>
+<p>最後までお読みいただきありがとうございました。</p>
+<h2>演習問題</h2>
+<ol>
+<li>
+<p><strong>概念 — 理想気体の法則はいつ許容できるか?</strong>: ある同僚が、(a) 1 bar・25 °C の換気ダクト内の空気、(b) ボイラードラム内の 40 bar の蒸気、(c) アンモニアループに供給される 200 bar の水素、に対して $PV = nRT$ を用いています。どの用法が擁護できますか。またそれぞれの場合に、どの 1 組の数値を確認しますか。
+   <em>ヒント</em>: 換算条件で考えること — それぞれの流体は自身の臨界点からどれだけ離れているか、そして凝縮の近くにいないか。
+   <em>解答</em>: <strong>(a) は問題ありません。</strong> 常温常圧の空気は臨界温度をはるかに上回り、換算圧力も非常に低いので、$Z \approx 1.00$ であり、理想気体の法則は 1% の何分の一という精度で正確です。<strong>(b) は擁護できません。</strong> ボイラードラム内の 40 bar の蒸気は飽和状態にあり、凝縮線の <em>上に</em> 乗っています。そこでは引力が支配的で、$Z$ は 1 から大きく外れます。さらに水は強く水素結合します。蒸気表か適切な物性モデルを使うべきです。<strong>(c) も擁護できません。</strong> ただしそれは水素が極性だから（極性ではありません）ではなく、200 bar が分子体積の効いてくる十分な高圧だからです。水素はそこで特徴的に $Z &gt; 1$ を示すので、理想気体の法則は体積を <em>過小評価</em> します。いずれの場合も確認すべき 1 組の数値は換算条件 $T_r = T/T_c$ と $P_r = P/P_c$ です: $T_r \approx 2$ を余裕をもって上回り、$P_r \approx 0.1$ を下回っていれば、理想気体でたいてい安全です。</p>
+</li>
+<li>
+<p><strong>定量 — PVT データから Z を計算する</strong>: ある気体を <strong>300 K</strong>・<strong>50 bar</strong> で測定したところ、1 mol が <strong>0.46 L</strong> を占めていました。$R = 0.08314$ L·bar·mol⁻¹·K⁻¹ とします。(a) 理想気体のモル体積、(b) $Z$、(c) どちらの分子的効果が支配的かを求めなさい。
+   <em>ヒント</em>: $Z = PV/(nRT)$。まず $RT$ を L·bar/mol の単位で計算すること。
+   <em>解答</em>: $RT = 0.08314 \times 300 = 24.94$ L·bar/mol。(a) 理想気体のモル体積 $= RT/P = 24.94/50 = \mathbf{0.499\ L/mol}$。(b) $Z = PV/(RT) = (50 \times 0.46)/24.94 = 23.0/24.94 = \mathbf{0.922}$。(c) $Z &lt; 1$ なので、実在気体は <strong>理想気体よりコンパクト</strong> であり、<strong>引力が支配的</strong> です — 中程度の圧力では通常の状況です。これが 5.3 節のメタンに対する SRK の結果（同じ条件で $Z = 0.924$）にどれほど近いかに注目してください: 状態方程式が実測の振る舞いを再現しているということであり、それこそが状態方程式の目的です。</p>
+</li>
+<li>
+<p><strong>討論 — 物性パッケージの選定</strong>: 2 つのシミュレーションを立ち上げなければなりません: (a) 1 atm の <strong>エタノール-水の蒸留塔</strong>、(b) ほぼメタンの流体を 10 bar から 100 bar まで昇圧する <strong>天然ガス圧縮機列</strong>。それぞれに物性モデルを選び、その根拠を述べ、それぞれについて警戒すべき失敗モードを 1 つ挙げなさい。
+   <em>ヒント</em>: 難しい振る舞いが液相にあるのか、それとも高度に圧縮された気相にあるのかを問うこと。
+   <em>解答</em>: <strong>(a) エタノール-水: 活量係数モデル — NRTL または UNIQUAC。</strong> 圧力が低いので気相の非理想性は無視できます。難しさのすべては <strong>液相</strong> にあり、そこでは水素結合が理想溶液からの強いずれと、<strong>重量比 95.6% エタノールにおける最低沸点共沸</strong> を生みます。3次型状態方程式はそうした特異的な相互作用を平均化して消してしまい、共沸を完全に見落としうるので、達成不可能な段数で純エタノールが得られると約束する塔設計を生みます。これを防ぐには、<strong>二成分相互作用パラメータを実測のエタノール-水気液平衡データに対して回帰し</strong>、何かを設計する前に、モデルが共沸組成と共沸温度を再現することを確認します。<strong>(b) 天然ガス圧縮機列: 3次型状態方程式 — SRK 式または PR 式。</strong> メタンは無極性なので3次型でよく扱え、100 bar はまさに理想気体の法則が破綻する領域です: 5.3 節が示すとおり 50 bar で $Z \approx 0.92$ なので、圧縮性を無視すると体積流量と圧縮機動力を段あたり数パーセント誤ります。警戒すべき失敗モードは <strong>より重い成分</strong> です: 実際の天然ガスはエタン、プロパン、CO₂、水を含んでおり、中間的な条件で <strong>逆行凝縮</strong>（減圧に伴う凝縮）<strong>あるいはハイドレート生成</strong>（氷状の水-ガス固体）が起こるリスクがあります。純メタンではなく実際の多成分混合物をモデル化し、圧縮経路に沿って相包絡線（2 相領域の境界）を確認して、液が存在する状態で運転している段が気づかれないまま生じないようにします。</p>
+</li>
+</ol><div class="navigation">
+    <a href="chapter-4.html" class="nav-button">← 前の章</a>
+    <a href="index.html" class="nav-button">シリーズ目次に戻る</a>
+</div>
+    </main>
+
+    <footer>
+        <p><strong>作成者</strong>: AI Terakoya Content Team</p>
+        <p><strong>監修</strong>: Dr. Yusuke Hashimoto（東北大学）</p>
+        <p><strong>バージョン</strong>: 1.0 | <strong>作成日</strong>: 2026-08-23</p>
+        <p><strong>ライセンス</strong>: Creative Commons BY 4.0</p>
+        <p>© 2025 AI Terakoya. All rights reserved.</p>
+    </footer>
+</body>
+</html>

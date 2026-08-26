@@ -8,6 +8,23 @@ code_examples: 10
 exercises: 3
 ---
 
+## ビデオ講義
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/wreKhsXsPdQ"
+    title="ケモインフォマティクス入門 第4章: 反応予測とRetrosynthesis"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> このビデオは以下のテキストと同じ内容をカバーしています。お好みの学習形式をお選びください。
+
+---
+
 # 第4章：反応予測とRetrosynthesis
 
 ## この章で学ぶこと

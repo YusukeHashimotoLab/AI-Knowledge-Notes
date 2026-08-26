@@ -8,6 +8,22 @@ code_examples: 8
 exercises: 5
 ---
 
+## Video Lecture
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/foSKIPf6jo4"
+    title="Deep Learning Fundamentals Ch.1: Basic Concepts of Deep Learning"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> This video covers the same content as the text below. Choose your preferred learning format.
+
 In this chapter, we will learn about the definition and history of deep learning, the basic structure of neural networks, and activation functions. We will trace the development from perceptrons to modern deep learning and verify theory with implementation code. 
 
 ## Learning Objectives

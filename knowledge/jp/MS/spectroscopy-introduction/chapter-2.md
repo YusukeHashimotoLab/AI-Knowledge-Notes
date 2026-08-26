@@ -4,6 +4,22 @@ chapter_title: 第2章：UV-Vis分光法
 subtitle: 電子遷移で探る物質の電子構造とバンドギャップ
 ---
 
+## ビデオ講義
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/zw1WM-IgHhw"
+    title="分光分析入門 第2章: UV-Vis分光法"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> このビデオは以下のテキストと同じ内容をカバーしています。お好みの学習形式をお選びください。
+
 ## イントロダクション
 
 紫外可視分光法（UV-Vis Spectroscopy）は、紫外線（UV: 200-400 nm）から可視光線（Vis: 400-800 nm）の領域で物質による光の吸収を測定する分析手法です。この領域の光は分子の電子遷移を引き起こすため、UV-Visスペクトルは物質の電子状態に関する豊富な情報を提供します。
@@ -836,8 +852,18 @@ $$F(R) = \frac{(1-R)^2}{2R} \approx \alpha$$
         energy = (h * c / wavelength_m) / eV
     
         # 吸収係数のモデル
+        # Tauc の関係式 (alpha * h_nu)^n = A (h_nu - E_g) を満たすためには
+        #     alpha = A' * (h_nu - E_g)^(1/n) / h_nu
+        # でなければならない（直接遷移 n=2 なら指数 1/2、間接遷移 n=1/2 なら指数 2）。
+        # 1/h_nu の因子を落とすと Tauc プロットの「直線領域」が湾曲し、
+        # 外挿で得られる E_g にバイアスが生じる。
         n = 2 if transition == 'direct' else 0.5
-        alpha = np.where(energy > E_g, 1e5 * (energy - E_g)**n, 0)
+        exponent = 1.0 / n
+        alpha = np.where(
+            energy > E_g,
+            1e5 * np.maximum(energy - E_g, 0)**exponent / energy,
+            0
+        )
     
         # 反射率に変換（簡略化モデル）
         reflectance = np.exp(-alpha * 1e-4)  # 仮想的な膜厚

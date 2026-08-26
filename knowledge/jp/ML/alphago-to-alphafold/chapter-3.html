@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="イ・セドルと対局したバージョンのAlphaGoは、重要な意味において共同作業でした。">
+    <title>第3章: Zeroとその先: 人間なしで学ぶ - AI Terakoya</title>
+    <link rel="canonical" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/jp/ML/alphago-to-alphafold/chapter-3.html">
+    <link rel="alternate" hreflang="ja" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/jp/ML/alphago-to-alphafold/chapter-3.html">
+    <link rel="alternate" hreflang="en" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/en/ML/alphago-to-alphafold/chapter-3.html">
+    <link rel="alternate" hreflang="x-default" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/en/ML/alphago-to-alphafold/chapter-3.html">
+    <meta property="og:title" content="第3章: Zeroとその先: 人間なしで学ぶ - AI Terakoya">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/jp/ML/alphago-to-alphafold/chapter-3.html">
+    <meta property="og:site_name" content="AI Terakoya">
+    <meta property="og:locale" content="ja_JP">
+    <meta property="og:description" content="イ・セドルと対局したバージョンのAlphaGoは、重要な意味において共同作業でした。">
+
+    <style>
+        :root {
+            --color-primary: #2c3e50;
+            --color-primary-dark: #1a252f;
+            --color-accent: #7b2cbf;
+            --color-accent-light: #9d4edd;
+            --color-text: #2d3748;
+            --color-text-light: #4a5568;
+            --color-bg: #ffffff;
+            --color-bg-alt: #f7fafc;
+            --color-border: #e2e8f0;
+            --color-code-bg: #f8f9fa;
+            --color-link: #3182ce;
+            --color-link-hover: #2c5aa0;
+
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+
+            --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+            --border-radius: 8px;
+            --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-body);
+            line-height: 1.7;
+            color: var(--color-text);
+            background-color: var(--color-bg);
+            font-size: 16px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            padding: var(--spacing-xl) var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+            box-shadow: var(--box-shadow);
+        }
+
+        .header-content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: var(--spacing-sm);
+            line-height: 1.2;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            font-weight: 400;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-md);
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-md) var(--spacing-xl);
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-xl);
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-xs);
+            border-bottom: 3px solid var(--color-accent);
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-lg);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        h4 {
+            font-size: 1.1rem;
+            color: var(--color-primary-dark);
+            margin-top: var(--spacing-md);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        p {
+            margin-bottom: var(--spacing-md);
+            color: var(--color-text);
+        }
+
+        a {
+            color: var(--color-link);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        a:hover {
+            color: var(--color-link-hover);
+            text-decoration: underline;
+        }
+
+        ul, ol {
+            margin-left: var(--spacing-lg);
+            margin-bottom: var(--spacing-md);
+        }
+
+        li {
+            margin-bottom: var(--spacing-xs);
+            color: var(--color-text);
+        }
+
+        pre {
+            background-color: var(--color-code-bg);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            overflow-x: auto;
+            margin-bottom: var(--spacing-md);
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        code {
+            font-family: var(--font-mono);
+            font-size: 0.9em;
+            background-color: var(--color-code-bg);
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+        }
+
+        pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: var(--spacing-md);
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            border: 1px solid var(--color-border);
+            padding: var(--spacing-sm);
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--color-bg-alt);
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        blockquote {
+            border-left: 4px solid var(--color-accent);
+            padding-left: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            color: var(--color-text-light);
+            font-style: italic;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        .mermaid {
+            text-align: center;
+            margin: var(--spacing-lg) 0;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        details {
+            background-color: var(--color-bg-alt);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+        }
+
+        summary {
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--color-primary);
+            user-select: none;
+            padding: var(--spacing-xs);
+            margin: calc(-1 * var(--spacing-md));
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        summary:hover {
+            background-color: rgba(123, 44, 191, 0.1);
+        }
+
+        details[open] summary {
+            margin-bottom: var(--spacing-md);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .learning-objectives {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: var(--spacing-lg);
+            border-radius: var(--border-radius);
+            border-left: 4px solid var(--color-accent);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .learning-objectives h2 {
+            margin-top: 0;
+            border-bottom: none;
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            gap: var(--spacing-md);
+            margin: var(--spacing-xl) 0;
+            padding-top: var(--spacing-lg);
+            border-top: 2px solid var(--color-border);
+        }
+
+        .nav-button {
+            flex: 1;
+            padding: var(--spacing-md);
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            border-radius: var(--border-radius);
+            text-align: center;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: var(--box-shadow);
+        }
+
+        .nav-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            text-decoration: none;
+        }
+
+        footer {
+            margin-top: var(--spacing-xl);
+            padding: var(--spacing-lg) var(--spacing-md);
+            background-color: var(--color-bg-alt);
+            border-top: 1px solid var(--color-border);
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--color-text-light);
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            h2 {
+                font-size: 1.4rem;
+            }
+
+            h3 {
+                font-size: 1.2rem;
+            }
+
+            .meta {
+                font-size: 0.85rem;
+            }
+
+            .navigation {
+                flex-direction: column;
+            }
+
+            table {
+                font-size: 0.85rem;
+            }
+
+            th, td {
+                padding: var(--spacing-xs);
+            }
+        }
+    </style>
+
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+
+    <!-- MathJax for LaTeX equation rendering -->
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\(', '\)']],
+                displayMath: [['$$', '$$'], ['\[', '\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" id="MathJax-script" async></script>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <h1>第3章: Zeroとその先: 人間なしで学ぶ</h1>
+            <p class="subtitle">AlphaGo Zero、AlphaZero、MuZero、そして人間が入れたものすべての体系的な除去</p>
+            <div class="meta">
+                <span class="meta-item">📖 Reading Time: 20-25 minutes</span>
+                <span class="meta-item">📊 Difficulty: Beginner</span>
+                <span class="meta-item">💻 Code Examples: 0</span>
+                <span class="meta-item">📝 Exercises: 0</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+<h2>ビデオ講義</h2>
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/cS-YTfdUprY"
+    title="AlphaGoからAlphaFoldへ 第3章: Zeroとその先: 人間なしで学ぶ"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+<p class="video-note">このビデオは以下のテキストと同じ内容をカバーしています。お好みの学習形式をお選びください。</p>
+
+<p>🌐 JP | <a href="../../../en/ML/alphago-to-alphafold/chapter-3.html">🇬🇧 EN</a> | Last sync: 2026-08-19</p>
+<p><a href="../index.html">機械学習道場</a> &gt; <a href="index.html">AlphaGoからAlphaFoldへ</a> &gt; 第3章</p>
+<p>イ・セドルと対局したバージョンのAlphaGoは、重要な意味において共同作業でした。強い人間棋士どうしの対局の大規模なコレクションを見せられ、競うことを学ぶより前に、それらを模倣することを学んでいたのです。人間の判断はこのシステムの土台の中にありました——最初にもっともらしいと教えられたものの中に、そして盤面の局面をシステムに記述する手作りの特徴量の中に。</p>
+<p>ここから、哲学的に聞こえるけれども実際には検証可能な答えをもつ工学的な問いが立ち上がります。<strong>人間の知識は助けになっていたのか、それとも天井だったのか?</strong></p>
+<p>本章はその答えを3つのシステムを通して追います。それぞれが、人間が供給していたものをもう1つずつ取り除きました。<strong>AlphaGo Zero</strong>（2017年に <em>Nature</em> 誌で発表）は人間の対局を取り除きました。<strong>AlphaZero</strong>（2017年に発表）は、このレシピがそもそも囲碁についてのものだという前提を取り除きました。<strong>MuZero</strong>（2019年に発表、2020年に <em>Nature</em> 誌で公表）はルールそのものを取り除きました。この軌跡は、<em>組み込みの知識が少ないほうが、自分自身の経験を生成する仕組みと組み合わされば、組み込みの知識が多いほうに勝ちうる</em> ことの、機械学習における最もきれいな実証の1つです——そして最終節は、その教訓がどこで通用しなくなるのかについて、同じくらい率直です。</p>
+<h2>3.1 AlphaGo Zero: 教師を必要としないループ</h2>
+<p>AlphaGo Zeroは <strong>ランダムな打ち方</strong> から始まります。与えられるのは囲碁のルールと盤面局面の記述だけで、他には何もありません——棋譜も、定石書も、良い形とは何かを符号化した手作りの特徴量もありません。第2章では、AlphaGoを段階的に訓練された複数の専用ネットワークからなるシステムとして記述しました。AlphaGo Zeroはその構成を <strong>2つのヘッドをもつ単一のニューラルネットワーク</strong> に置き換えます。</p>
+<p>このネットワークは盤面局面を取り、2つのものを出力します。</p>
+<ul>
+<li><strong>方策</strong> ——合法手上の確率分布であり、<em>ここで考慮する価値のある手はどれか</em> を表現する</li>
+<li><strong>価値</strong> ——1つの数値であり、<em>この局面が手番のプレイヤーにとってどう転びそうか</em> を推定する</li>
+</ul>
+<p>両方のヘッドは同じ共有の胴体の上に載っているので、局面を読むことについてネットワークが学ぶことのすべてが、両方の仕事に同時に役立ちます。しかしこのネットワーク自体は、それだけではプレイヤーではありません。プレイヤーはネットワーク <strong>＋ 探索</strong> であり、両者の関係こそがこの発想の全体です。</p>
+<h3>📚 方策改善作用素としての探索</h3>
+<p>これが立ち止まる価値のある概念です。本章の他のすべては、その帰結だからです。</p>
+<p>ある局面でのネットワークの方策を取ります。それは当て推量です——訓練の初期には、下手な当て推量です。ここでその局面からモンテカルロ木探索を走らせます。方策を使ってどの枝を探索する価値があるかを決め、価値ヘッドを使って探索が到達した局面を判定します。探索は実際の計算量を費やします。先を読み、方策が気に入っていた手が3手先で困難に陥ることを発見し、方策がほとんど無視していた手が実は強いことを発見します。</p>
+<p>探索が終わったら、それが注意をどう配分したか——どの手を最も多く訪問したか——を見ます。その <strong>訪問分布は、出発点の方策よりも良い方策です</strong>。仮定によってではなく、構成によってそうなのです。探索は生の方策を取り、実際の先読みによってそれを精錬しました。その精錬こそが、追加の計算量が買ったものです。</p>
+<p>したがって探索は <strong>方策改善作用素</strong> です。計算量を代価として、任意の方策をより良い方策に変える手続きです。</p>
+<p>ここでループを閉じます。もし探索がネットワークの方策より確実に良い方策を生み出すなら、<strong>探索の結果は訓練の目標値になります</strong>。探索が決めたものを出力するようにネットワークを訓練するのです。ネットワークは、以前なら丸ごと1本の先読みの木を必要とした判断を、1回の高速な順伝播の中へ吸収します。そしてネットワークがより良くなったので、次の探索——ネットワークに誘導される探索——もより良くなり、それがさらに良い目標値を生み出します。</p>
+<ul>
+<li>ネットワークが探索を誘導する。</li>
+<li>探索がネットワークを改善する。</li>
+<li>その改善がネットワークへ蒸留して戻される。</li>
+<li>繰り返す。</li>
+</ul>
+<p>価値ヘッドは同じループの中で、異なる信号から学びます。各自己対局は勝ちか負けで終わり、その対局のあらゆる局面が最終的な結果に向けて訓練されます。人間が局面を良い／悪いとラベル付けすることは決してありません。ゲーム自身の結果がそれをやるのです。</p>
+<h3>📚 なぜカリキュラムは自分で面倒を見てくれるのか</h3>
+<p>自己対局だけから学ぶシステムには、明白な危険があります。最初はひどく下手なので、ひどいデータしか生成できません。ブートストラップはどこから来るのでしょうか。</p>
+<p>答えは、<strong>自己対局が自動的にちょうど良い強さの相手——自分自身——を供給する</strong> ことにあります。ランダムなプレイヤー対ランダムなプレイヤーが生む対局はノイズですが、それは <em>決着のつく</em> ノイズです。誰かが勝つのです。それだけの信号があれば、ランダムよりわずかに良い何かを学ぶには十分です。次に「ランダムよりわずかに良い」が「ランダムよりわずかに良い」と対局し、対局はわずかにより意味のあるものになり、以下同様です。</p>
+<p>これは <strong>自分自身を生成するカリキュラム</strong> です。学習しようがないほど難しい問題を提示することは決してありません。難易度が学習者自身の現在の能力に釘付けされているからです。固定された人間の対戦相手にはこれができません——強すぎれば毎局が理解不能な敗北になり、弱すぎれば学ぶことが残りません。自己対局は学習者に自動的に、永久に追随します。</p>
+<h2>3.2 なぜ人間の知識を取り除くと良くなったのか</h2>
+<p>こうして訓練されたAlphaGo Zeroは、イ・セドルを破ったほうの旧バージョンのAlphaGoを打ち負かしました。厳密に <em>より少ない</em> 情報を与えられたシステムが、より多く与えられたシステムに勝ったのです。切り分けておくべき理由が3つあります。</p>
+<p><strong>人間の事前知識は、床であると同時に天井でもある。</strong> 人間の対局を模倣して方策を初期化すると、素早い出発が得られます。ランダムではなく、それなりに筋の通った場所から始められるからです。しかし同時に、あなたは <em>人間が打つ手の分布の内側</em> から始めることになります。そして強い人間が誰も打たない手は、構成上、あなたの初期方策がありそうにないと考える手です。その方策に誘導された探索は、そうした手をめったに見ません。人間の知識は初期の登りを加速させ、そして静かに、登る空間を狭めるのです。</p>
+<p><strong>手作りの特徴量は、何が重要かについての仮定を符号化する。</strong> すべての手作り特徴量は、盤面のある性質は計算する価値があるという判断であり、暗黙のうちに、計算されていないすべては注意に値しないという判断でもあります。生の局面を読むネットワークは、自分自身の特徴——誰も名前を付けようと思わなかったものを含めて——を発見する自由をもちます。</p>
+<p><strong>目的関数が純粋に目的関数になる。</strong> 部分的に人間を模倣するよう訓練されたシステムは、2つのことを同時に最適化しています。勝つことと、人間のプレイヤーらしく見えることです。この2つは大きく重なりますが完全には一致せず、乖離する場所では模倣は気を散らすものになります。それを取り除けば、残る圧力はゲーム自身の結果だけになります。</p>
+<h3>📚 生徒が教科書を追い越した</h3>
+<p>天井の議論に対する最も印象的な証拠は、AlphaGo Zeroが <strong>定石</strong> ——人間の囲碁棋士が何世紀にもわたって精錬し、確立された理論として学んできた標準的な隅の手順——について学んだことから来ました。</p>
+<p>ゼロから訓練して、このシステムはそれらの手順の多くを自力で再発見しました。それだけでも注目に値します。人間の伝統が何世代もかけて切り出したパターンが、その伝統に一度も触れることなく自己対局から立ち現れたのです。</p>
+<p>そして、もっと興味深いことをしました。訓練が進むにつれて、<strong>そのいくつかを捨てた</strong> のです。人間の理論が採用しなかった代替手順を選好して。</p>
+<p>この話の両方の半分が重要です。再発見は、人間の囲碁理論が本当にゲームの中の実在の構造を見つけていたことを語ります——定石は恣意的な慣習ではなかったのです。その後の離反は、その理論が <em>不完全</em> だったこと、そしてそれを正解として教え込まれたシステムであれば、それに気づくのがはるかに難しかったであろうことを語ります。教科書で初期化された生徒は教科書の近くに留まりがちです。すべてを自分で導出する生徒は、あるページが間違っていることに気づけるのです。</p>
+<h2>3.3 AlphaZero: 1つのレシピ、3つのゲーム</h2>
+<p>もしレシピが本当に囲碁固有の知識を含まないのなら、それは他のゲームでも機能するはずです。2017年に発表された <strong>AlphaZero</strong> は、まさにそれを検証しました。同じ「自己対局＋探索」のアルゴリズムを、囲碁だけでなく <strong>チェス</strong> と <strong>将棋</strong> にも適用し、それぞれを自己対局のみから学習させたのです。</p>
+<p>これが重要だったのは、とりわけチェスには長く高度に最適化された対抗する伝統があったからです。古典的なチェスエンジンは逆向きに構築されています。数十年にわたって蓄積されたチェスの理解を符号化した手作りの評価関数の上に、膨大な数の局面を吟味し、丹念に調整されたヒューリスティックで枝刈りする探索が駆動します。手強い設計であり、きわめて長いあいだ精錬されてきたものでした。</p>
+<p>探索スタイルの対比は定性的に述べておく価値があります。2つの哲学の違いを最も明快に表現しているからです。</p>
+<ul>
+<li><strong>古典的エンジンは広く探索する。</strong> その評価関数は安価なので、非常に多くの局面を見る余裕があり、量と枝刈りヒューリスティックに頼って正しい手を見つけます。</li>
+<li><strong>AlphaZeroは狭く深く探索する。</strong> その評価はニューラルネットワークであり、1局面あたりのコストがはるかに高いので、ごく一部の局面しか吟味する余裕がありません。その代わり、方策ヘッドを使って <em>どの</em> 変化が注意に値するかを決め、そのはるかに少ない変化をより先まで追います。</li>
+</ul>
+<p>一方のシステムは浅い評価を幅で補い、他方は限られた幅を深い評価で補います。AlphaZeroは、2つ目のトレードが1つ目に対して通用しうることを示し——そして本シリーズにとってより重要なことに、<strong>同じコードを3つの異なるゲームに向けて、そのすべてを学習できる</strong> ことを示しました。囲碁の結果は、囲碁の結果でしかなかったかもしれません。3つのゲームがあれば、それは手法になります。</p>
+<h2>3.4 MuZero: ルールを手放す</h2>
+<p>AlphaZeroにはまだ1つ、実質的な贈り物が与えられていました。<strong>ルール</strong> です。木探索を走らせるには「この手を打ったら、どの局面になるのか?」と問えなければなりません——そしてAlphaZeroには、即座かつ厳密に答える完璧なシミュレータが手渡されていました。</p>
+<p>これは本物の限界です。興味深い問題のほとんどは、そんなものを備えていないからです。2019年に発表され2020年に <em>Nature</em> 誌で公表された <strong>MuZero</strong> は、それを取り除きました。</p>
+<p>MuZeroは自分自身の <strong>環境のモデル</strong> を経験から学習します。3つの学習された構成要素が協働します。</p>
+<ul>
+<li><strong>表現（representation）</strong> 関数。これまでに見た観測を内部状態へ写像する</li>
+<li><strong>ダイナミクス（dynamics）</strong> 関数。内部状態と行動を取り、<em>次の内部状態と即時報酬</em> を予測する</li>
+<li><strong>予測（prediction）</strong> 関数。内部状態を読んで方策と価値を出力する</li>
+</ul>
+<p>これらがあれば、MuZeroは完全に自分の頭の中だけで木探索を走らせられます。現在の内部状態から始め、ダイナミクス関数を適用してある行動の帰結を想像し、もう一度適用し、想像された状態を予測関数で評価する。ルールを一度も教わることなく計画を立てるのです。</p>
+<h3>📚 重要なものだけのモデル</h3>
+<p>決定的な設計判断は、学習されたモデルに何を要求 <em>しない</em> かにあります。</p>
+<p>従来のモデルベースのエージェントは、<strong>環境を再構成する</strong> モデルを学習します。状態と行動が与えられたとき、次に実際に何を観測するか——次の画面、次の配置——を予測するモデルです。これは直観的であり、そして罠です。観測に含まれるものの大半は、良い意思決定とは無関係だからです。観測を再現するよう訓練されたモデルは、勝っているかどうかとは何の関係もない視覚的な細部にその容量を費やし、しかもその誤差は探索が必要とする複数ステップにわたって累積します。</p>
+<p>MuZeroの内部状態は <strong>何かを再構成するようには訓練されません</strong>。内部状態を観測へ復号し戻せるという要件は存在しません。ダイナミクス関数にかかる唯一の訓練圧力は、探索が実際に消費する量——<strong>報酬、価値、方策</strong> ——が、想像された軌跡に沿って正しく出てくることだけです。</p>
+<p>これが <em>すべてのモデル</em> から <strong>重要なもののモデル</strong> への転換です。内部状態は、解釈可能である必要も、完全である必要も、人間が認識するいかなる意味でも忠実である必要もありません。ただ <strong>計画にとって十分</strong> でありさえすればよいのです。再構成型のモデルが見た目に費やすはずだった容量が、代わりに帰結に費やされます。</p>
+<p>その見返りは一般性です。ルールを必要としなかったがゆえに、MuZeroは <strong>Atari</strong> のゲームも学習しました。そこではエージェントにピクセルとスコアが与えられるだけで、ゲームの仕組みについての記述は一切与えられません——AlphaZeroのアプローチが単純に適用できない設定です。同じシステムが、精確でルールに定義されたボードゲームの世界と、乱雑でルールの分からないビデオゲームの世界の両方をカバーしたのです。</p>
+<h2>3.5 軌跡と、それが止まる場所</h2>
+<p>3つのシステムを順に読めば、パターンは引き算です。</p>
+<table>
+<thead>
+<tr>
+<th>システム</th>
+<th>与えられたもの</th>
+<th>取り除かれたもの</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>AlphaGo</td>
+<td>人間の対局、手作りの特徴量、ルール</td>
+<td>—</td>
+</tr>
+<tr>
+<td>AlphaGo Zero</td>
+<td>手作りの特徴量は最小化、ルール</td>
+<td>人間の棋譜</td>
+</tr>
+<tr>
+<td>AlphaZero</td>
+<td>ルール</td>
+<td>囲碁固有の作り込みすべて</td>
+</tr>
+<tr>
+<td>MuZero</td>
+<td>観測と報酬</td>
+<td>ルールそのもの</td>
+</tr>
+</tbody>
+</table>
+<p>各段階が人間の供給した何かを取り除き、各段階が前より一般的なシステムを生み出しました。人々がここから受け取った一般的な教訓——しばしば「人間の洞察を符号化する手法より、計算量とともにスケールする手法を選好せよ」と述べられるもの——は、ここでは真に支持されています。</p>
+<h3>📚 誠実な留保</h3>
+<p>そこで章を終えることは簡単ですし、そして誤解を招くでしょう。この軌跡を成立させる条件は厳しく、現実の問題のほとんどはそれを満たしません。</p>
+<p><strong>自己対局は、安価で高速で完璧なシミュレータ——あるいはそれを学習する手立て——を必要とする。</strong> 囲碁は無視できるコストで何百万回も打てますし、間違えても何の帰結もありません。創薬候補を何百万回も合成することはできません。製造ラインを、何が起きるか確かめるために墜落させることはできません。経験が高価なところでは、この軌跡全体を駆動するエンジンが失速します。</p>
+<p><strong>報酬はきれいで曖昧さがなくてはならない。</strong> ボードゲームは完璧で、異論がなく、終局時に即座に得られる信号を手渡します。勝ったか、勝たなかったか。現実の目的関数のほとんどはこれと似ても似つきません。遅延し、部分的にしか観測されず、利害関係者のあいだで争われ、あるいは本当に欲しいものの代理指標としてしか定義できません——そして代理指標こそ、強力な最適化器が悪用するまさにそのものです。</p>
+<p><strong>問題は自己完結していなければならない。</strong> 囲碁は、完全な状態が可視で、ダイナミクスが決して変わらない閉じた世界です。現実の環境は開いており、部分的にしか観測されず、非定常です。</p>
+<p><strong>MuZeroは第1の条件を緩和しますが、除去はしません。</strong> 自分自身のモデルを学習するということは、<em>与えられた</em> シミュレータを必要としないということですが、それでもシミュレータを <em>学習する</em> のに十分な環境との相互作用は必要であり、それは経験が不要であることとは違います。</p>
+<p>したがって正しい読み方は「自己対局が物事を解決する」ではありません。こうです。<strong>自分自身の経験を安価に生成でき、それを曖昧さなく採点できるところでは、組み込みの人間の知識は取り除く価値のある天井である。</strong> 第4章は、これらの条件を1つも満たさない問題——シミュレータなし、自己対局なし、報酬関数なし——へ向かい、まったく異なる仕方で攻略されなければならなかった経緯を扱います。本シリーズの2つの半分をつなぐ橋は、技術ではありません。それは <strong>進化がすでにデータを生成し終えていた</strong> という発見なのです。</p>
+<h2>3.6 ハンズオン: 見える形の方策改善</h2>
+<p>探索が方策を改善し、その改善を方策へ訓練し戻せるという主張は、述べるのも頷くのも簡単です。ここではそれを、あなたが走らせられるものとして示します。</p>
+<p>舞台は三目並べです——全体が数秒で終わるほど小さく、しかも何が学習されたのかを検分できるほど小さい。コードはAlphaGo Zeroのループを誠実に実装しますが、意図的な単純化が2つあります。「ニューラルネットワーク」がルックアップテーブルであること、そして探索が根ノードだけを展開することです。それ以外はすべて本物の構造です。世代0は一様ランダムな打ち方です。各世代は、<strong>すべての手を探索で選ぶ</strong> 自己対局を行い、各局面での探索の訪問分布を記録し、それから次の方策をその分布に向けて訓練します。</p>
+<p>測定の部分が重要です。各世代は <strong>探索なしで</strong>、固定された世代0のランダム方策を相手に採点されます。したがってあらゆる改善は、探索が <em>方策</em> に教え込んで保持させることに成功した改善でなければなりません——評価時に探索がその場でやっている改善ではないのです。</p>
+<pre><code class="language-python">import numpy as np
+
+# ---------------------------------------------------------------
+# 三目並べ上の、ミニチュア版AlphaGo Zeroループ。強いプレイヤーでは
+# なく、「探索は方策改善作用素である」ことの実証である。現在の方策の
+# 上で探索を走らせ、次の方策をその探索が決めたものの模倣へ訓練する。
+# 入力はルールだけ、それ以外には何もない。
+# ---------------------------------------------------------------
+rng = np.random.default_rng(20171018)
+
+N_GENERATIONS = 6      # ループを回す回数
+GAMES_PER_GEN = 60     # 1世代あたりの自己対局数
+SIMS_PER_MOVE = 80     # 各手における探索の予算
+TEMPERATURE = 0.5      # 1未満にすると訪問回数を鋭くして訓練目標にする
+EXPLORE = 0.25         # 自己対局中にランダムな手を打つ確率（カバレッジ維持）
+ALPHA = 0.7            # 各訓練ステップが目標へどれだけ近づくか
+EVAL_GAMES = 600       # 世代を世代0に対して採点するための対局数
+
+LINES = [(0, 1, 2), (3, 4, 5), (6, 7, 8), (0, 3, 6),
+         (1, 4, 7), (2, 5, 8), (0, 4, 8), (2, 4, 6)]
+
+
+def result_of(board):
+    &quot;&quot;&quot;(終局したか, スコア) を返す。スコアはプレイヤー1の視点。&quot;&quot;&quot;
+    for a, b, c in LINES:
+        if board[a] != 0 and board[a] == board[b] == board[c]:
+            return True, (1 if board[a] == 1 else -1)
+    return (True, 0) if not (board == 0).any() else (False, 0)
+
+
+def policy_of(table, board):
+    &quot;&quot;&quot;ある状態での方策。未知の状態は一様ランダムにフォールバックするので、
+    空のテーブルはちょうど世代0のランダムプレイヤーそのものになる。&quot;&quot;&quot;
+    p = table.get(board.tobytes())
+    if p is None:
+        p = np.zeros(9)
+        p[np.flatnonzero(board == 0)] = 1.0
+    return p / p.sum()
+
+
+def rollout(table, board, player, rng):
+    &quot;&quot;&quot;現在の方策で終局まで打つ。スコアはプレイヤー1を基準とする。&quot;&quot;&quot;
+    b, turn = board.copy(), player
+    while True:
+        over, score = result_of(b)
+        if over:
+            return score
+        b[rng.choice(9, p=policy_of(table, b))] = turn
+        turn = 3 - turn
+
+
+def search(table, board, player, rng, c=1.4):
+    &quot;&quot;&quot;最小限のMCTS: 根だけを展開する。各シミュレーションは根の手を
+    UCBで選び、現在の方策が打つロールアウトでそれを評価する。
+    重要な出力は「訪問回数」の分布である。&quot;&quot;&quot;
+    moves = np.flatnonzero(board == 0)
+    counts, totals = np.zeros(len(moves)), np.zeros(len(moves))
+    sign = 1 if player == 1 else -1
+
+    for sim in range(SIMS_PER_MOVE):
+        unvisited = np.flatnonzero(counts == 0)
+        if len(unvisited):
+            i = int(unvisited[0])
+        else:
+            i = int(np.argmax(totals / counts
+                              + c * np.sqrt(np.log(sim) / counts)))
+        child = board.copy()
+        child[moves[i]] = player
+        over, score = result_of(child)
+        counts[i] += 1
+        totals[i] += sign * (score if over
+                             else rollout(table, child, 3 - player, rng))
+
+    sharp = counts ** (1.0 / TEMPERATURE)
+    pi = np.zeros(9)
+    pi[moves] = sharp / sharp.sum()
+    return pi
+
+
+def self_play_game(table, rng):
+    &quot;&quot;&quot;自分自身との1局。探索の出力はすべて目標値として保持する。&quot;&quot;&quot;
+    board, turn, records = np.zeros(9, dtype=np.int8), 1, []
+    while True:
+        if result_of(board)[0]:
+            return records
+        pi = search(table, board, turn, rng)
+        records.append((board.tobytes(), pi))
+        # ときどきランダムな手を挟むことで自己対局のカリキュラムを広く保つ——
+        # 本物のシステムで根にディリクレノイズが担っている仕事である
+        board[int(rng.choice(np.flatnonzero(board == 0)) if rng.random() &lt; EXPLORE
+                  else rng.choice(9, p=pi))] = turn
+        turn = 3 - turn
+
+
+def train(table, batch):
+    &quot;&quot;&quot;各状態の方策を、そこで探索が決めたもののほうへ動かす。
+    本物のシステムはこれらの目標値にニューラルネットワークを当てはめ、
+    それによって一度も見ていない状態へ汎化する。ここではテーブルが
+    モデルそのものなので、当てはめは加重平均に帰着する——だがループは同じ。&quot;&quot;&quot;
+    new = dict(table)
+    for key, pis in batch.items():
+        target = np.mean(pis, axis=0)
+        new[key] = (1 - ALPHA) * new[key] + ALPHA * target if key in new else target
+    return new
+
+
+def play_match(table_a, table_b, seed):
+    &quot;&quot;&quot;生の方策どうし、探索なし。Aは半数の対局で先手を持つ。&quot;&quot;&quot;
+    rng = np.random.default_rng(seed)
+    wins = draws = 0
+    for g in range(EVAL_GAMES):
+        board, a_first, turn = np.zeros(9, dtype=np.int8), g % 2 == 0, 1
+        while True:
+            over, res = result_of(board)
+            if over:
+                a_side = 1 if a_first else 2
+                draws += res == 0
+                wins += res != 0 and (res == 1) == (a_side == 1)
+                break
+            table = table_a if ((turn == 1) == a_first) else table_b
+            board[rng.choice(9, p=policy_of(table, board))] = turn
+            turn = 3 - turn
+    return wins / EVAL_GAMES, draws / EVAL_GAMES
+
+
+# --- ループ -----------------------------------------------------
+gen0 = {}          # 空のテーブルが、そのまま一様ランダムなプレイヤーである
+table = gen0
+
+print(&quot;Gen 0 = uniform random play (the table is empty). Each generation:&quot;)
+print(&quot;self-play with search, then fit the next policy to the search's&quot;)
+print(&quot;visit counts. Scoring opponent is ALWAYS gen 0, and the scored&quot;)
+print(&quot;policy plays WITHOUT search -- so any gain is improvement kept.\n&quot;)
+print(f&quot;{'gen':&gt;4} {'states known':&gt;13} {'win %':&gt;8} {'draw %':&gt;8} {'score':&gt;8}&quot;)
+print(&quot;-&quot; * 45)
+
+for gen in range(N_GENERATIONS + 1):
+    if gen &gt; 0:
+        batch = {}
+        for _ in range(GAMES_PER_GEN):
+            for key, pi in self_play_game(table, rng):
+                batch.setdefault(key, []).append(pi)
+        table = train(table, batch)
+    win, draw = play_match(table, gen0, seed=1000 + gen)
+    print(f&quot;{gen:&gt;4} {len(table):&gt;13} {100*win:&gt;7.1f}% {100*draw:&gt;7.1f}% &quot;
+          f&quot;{win + 0.5*draw:&gt;8.3f}&quot;)
+
+# --- 実際に何を学んだのか? --------------------------------------
+opening = policy_of(table, np.zeros(9, dtype=np.int8))
+print(&quot;\nOpening preference of the final policy (P of each first move):&quot;)
+for row in opening.reshape(3, 3):
+    print(&quot;   &quot; + &quot;   &quot;.join(f&quot;{x:.3f}&quot; for x in row))
+print(f&quot;   centre {opening[4]:.3f}   corner avg {opening[[0, 2, 6, 8]].mean():.3f}&quot;
+      f&quot;   edge avg {opening[[1, 3, 5, 7]].mean():.3f}&quot;
+      f&quot;   (uniform = {1/9:.3f})&quot;)
+
+tactic = np.array([1, 1, 0, 2, 2, 0, 0, 0, 0], dtype=np.int8)  # いまマス2で勝てる
+print(&quot;\nTactical test    X X .     (X to move; cell 2 wins on the spot)&quot;)
+print(&quot;                 O O .&quot;)
+print(&quot;                 . . .&quot;)
+print(f&quot;   P(winning move) = {policy_of(table, tactic)[2]:.3f}&quot;
+      f&quot;   vs uniform-random {1/6:.3f}&quot;)
+</code></pre>
+<p><strong>出力:</strong></p>
+<pre><code>Gen 0 = uniform random play (the table is empty). Each generation:
+self-play with search, then fit the next policy to the search's
+visit counts. Scoring opponent is ALWAYS gen 0, and the scored
+policy plays WITHOUT search -- so any gain is improvement kept.
+
+ gen  states known    win %   draw %    score
+---------------------------------------------
+   0             0    43.5%    12.2%    0.496
+   1           283    50.2%    14.0%    0.572
+   2           482    54.8%    12.0%    0.608
+   3           662    55.8%    13.8%    0.628
+   4           843    58.8%    10.5%    0.641
+   5           994    58.8%    11.8%    0.648
+   6          1138    60.0%    11.7%    0.658
+
+Opening preference of the final policy (P of each first move):
+   0.168   0.058   0.141
+   0.042   0.187   0.083
+   0.131   0.073   0.117
+   centre 0.187   corner avg 0.139   edge avg 0.064   (uniform = 0.111)
+
+Tactical test    X X .     (X to move; cell 2 wins on the spot)
+                 O O .
+                 . . .
+   P(winning move) = 0.959   vs uniform-random 0.167
+</code></pre>
+<p><strong>結果の読み方。</strong> 興味深さの低いものから順に4つ挙げます。</p>
+<ul>
+<li>
+<p><strong>対照群はきちんと振る舞います。</strong> 世代0はランダム方策がランダム方策と対局しており、スコアは0.496——コイン投げです。当然そうなるべきで、両者は同一であり、それぞれが半数の対局で先手を持つからです。この行は、測定が私たちに都合よく甘くなっていないことを確認するためにあります。</p>
+</li>
+<li>
+<p><strong>改善は単調であり、しかも方策が保持した改善です。</strong> スコアは6世代にわたって 0.496 → 0.572 → 0.608 → 0.628 → 0.641 → 0.648 → 0.658 と登ります。評価される方策は <strong>探索を一切使わずに</strong> 動くことを思い出してください。探索は訓練中に起こり、そして去りました。残っているのは、探索が知っていたことの一部を吸収したルックアップテーブルです。これが方策改善作用素が仕事をしている様子であり、直接に測定されています。</p>
+</li>
+<li>
+<p><strong>序盤理論を再発見しました。</strong> このコードには三目並べの戦略について何も教えていません——3つ並びを検出する方法だけです。最終的な序盤の選好は <strong>中央を最も高く（0.187）</strong>、<strong>4つの隅を次に（平均0.139）</strong>、<strong>4つの辺を最後に（平均0.064）</strong> 置きます。一様なベースラインは0.111です。中央、次に隅、次に辺というのは、まさにこのゲームにおける標準的な人間の順序づけです。これは3.2節の定石の物語のミニチュアです。ゲームをゼロから導出すると、教科書が見つけたのと同じ構造に収束するのです。その構造は伝統の中ではなくゲームの中にあったからです。</p>
+</li>
+<li>
+<p><strong>勝ちを取ることを学びました。</strong> ある特定の手が即座に勝ちになる戦術的な局面で、最終方策はその手を確率 <strong>0.959</strong> で打ちます。ランダムなベースラインは0.167です。価値信号——対局は勝ち負けで終わり、局面はその結果に向けて訓練される——が、人間が一度も「ここが勝ちの手」と注釈をつけることなく、方策へ逆伝播したのです。</p>
+</li>
+</ul>
+<p><strong>このデモが示していないこと、そして示していると読んではならないこと。</strong> 3つの限界を名指ししておく価値があります。それぞれが、本物のシステムが解かねばならなかった何かに対応するからです。</p>
+<p>スコアは頭打ちになり、しかも1.0をかなり下回るところで頭打ちになります。その一部は相手のせいです——ランダムなプレイヤーは、こちらがどれほど上手でも、ときどき引き分けや勝ちに転がり込みます——そして一部は本物の限界です。ルックアップテーブルには <strong>汎化がありません</strong>。たまたま訪れた1138局面しか知らないのです。ある局面で学んだことを、一度も見ていない類似の局面へ転移させるニューラルネットワークの能力こそ、このデモが捨てている材料です。増えていく「states known」の列は機能ではなく、ネットワークを持たないことのコストなのです。</p>
+<p>ここでの探索は根ノードだけを展開します。本物のMCTSは木を構築しますし、3.3節で述べた深く選択的な先読みは、まさに根だけの探索にできないことです。</p>
+<p>そして三目並べは自明なほど小さい。本章の軌跡が演習ではなく研究上の達成だったのは、同じループを、何も列挙できず、すべてがネットワークの良い汎化に依存する、天文学的に大きな空間をもつゲームで機能させねばならなかったからです。</p>
+<p><code>EXPLORE</code> を <code>0.0</code> に変えて再実行してみてください。自己対局はより狭くなり、カバレッジの増加は遅くなり、訓練が一度も探索しなかった局面へ迷い込む相手に対して方策の改善は小さくなります——本物のシステムがあらゆる探索の根にノイズを注入する、小さく実務的な理由がこれです。</p>
+<h3>🎯 演習問題</h3>
+<ol>
+<li>
+<p><strong>ループを自分の言葉で。</strong> 探索が生み出す訪問分布が、その探索を誘導した方策より良い方策である理由を3文で説明してください。次に、もしそうでなかったら何がうまくいかないのか——探索がネットワークを改善できない場合、訓練ループの何が壊れるのか——を説明してください。</p>
+</li>
+<li>
+<p><strong>天井の議論。</strong> AlphaGo ZeroはAlphaGoより少ない情報を与えられ、結果として強くなりました。反対論の最も強い版——なぜ人間の対局から初期化することが助けになると <em>予想</em> されるのか——を述べ、そのうえで自己対局の何がそれを打ち負かすのかを具体的に説明してください。</p>
+</li>
+<li>
+<p><strong>再構成か計画か。</strong> MuZeroの学習されたダイナミクスは観測を予測するようには訓練されていません。次の観測を完璧に予測するモデルが、それでも行動選択には無用であるような具体的な状況を1つ、そして何も再構成できないモデルでも十分であるような状況を1つ記述してください。</p>
+</li>
+<li>
+<p><strong>デモに計器を付ける。</strong> 各世代について、その世代に訪れた局面における生の方策と探索の訪問分布の平均的な一致度を記録するようにコードを改変してください。世代を追うごとに一致度は上がりますか。一致度が上がることは、探索がまだ教えるべきことをどれだけ残しているかについて何を意味するのかを説明してください。</p>
+</li>
+<li>
+<p><strong>転用の主張を監査する。</strong> あるチームが、AlphaZero型の自己対局を化学合成経路の最適化に適用することを提案しています。3.5節の条件を使って、それが機能しうると信じる前に尋ねるべき4つの問いを挙げ、そのうちどれが誠実に答えるのが最も難しいと予想するかを述べてください。</p>
+</li>
+</ol>
+<h2>まとめ</h2>
+<p>AlphaGo Zeroは、AlphaGoの段階的で人間により初期化された設計を、<strong>方策ヘッドと価値ヘッドをもつ単一のネットワーク</strong> に置き換え、人間の棋譜も、盤面そのものを超える手作りの特徴量も使わず、<strong>ランダムな打ち方</strong> から訓練しました。これを可能にする機構は、<strong>探索が方策改善作用素である</strong> ことです。現在の方策に誘導された木探索は、その方策より良い訪問分布を生み出すので、探索自身の出力が訓練の目標値になり、改善されたネットワークがより良い探索を誘導し、ループが複利で効いていきます。自己対局は学習者の能力に自動的に追随するカリキュラムを供給し、ゲームの結果は人間のラベル付けなしに価値信号を供給します。こうして訓練されたAlphaGo Zeroは、イ・セドルを破ったバージョンを凌ぎました——そして示唆的なことに、<strong>人間の定石の多くを再発見し、そのいくつかを捨てました</strong>。伝統は実在の構造を見つけていましたが、それは不完全であり、それで初期化されたシステムであればその事実に気づくのははるかに難しかったでしょう。</p>
+<p><strong>AlphaZero</strong> はこのレシピが囲碁についてのものではないことを示し、同じ手法で <strong>チェスと将棋</strong> を学習し、古典的エンジンの広く安価でヒューリスティックな探索を、狭く高価で深く選択的な探索と引き換えました。<strong>MuZero</strong> は最後の人間の入力——ルール——を取り除き、観測の再構成を一度も求められず <strong>計画にとって十分</strong> であることだけを求められる内部状態の中で、自分自身の <strong>ダイナミクス、報酬、価値、方策</strong> を学習しました。その「重要なもののモデル」こそが、同じシステムを、仕組みが決してエージェントに開示されないAtariへ拡張させたのです。</p>
+<p>私たちの三目並べの実装は、このループを具体的にしました。固定されたランダムな相手に対して探索なしで採点したところ、方策は6世代で0.496から0.658へ単調に登り、<strong>中央（0.187）＞隅（0.139）＞辺（0.064）</strong> という教科書どおりの序盤の順序づけへ収束し、即座の勝ちを確率 <strong>0.959</strong> で（ベースライン0.167に対して）取ることを学びました——すべてルールだけからです。デモの頭打ちは、それが意図的に省いたものも示しました。ネットワークがなければ汎化はなく、実際に訪れた局面しか残らないのです。</p>
+<p>誠実な境界線こそが持ち越すべき部分です。この軌跡が機能するのは、<strong>経験を生成するのが安価で、報酬がきれいな</strong> ところ——ボードゲームが完璧に満たし、現実の問題のほとんどがまったく満たさない条件——です。次章は、シミュレータも自己対局も報酬関数もない問題へ向かいます。アミノ酸配列からタンパク質の三次元的な立体構造を予測することです。それを扱いやすくしたデータは、エージェントが生成したものではありませんでした。それは数十億年にわたって、配列そのものの中に蓄積されてきたのです。</p>
+<p><a href="chapter-2.html">← 第2章: AlphaGo: 探索と学習の出会い</a> <a href="chapter-4.html">第4章: AlphaFold: タンパク質折りたたみのブレークスルー →</a></p>
+<h3>免責事項</h3>
+<ul>
+<li>本コンテンツは教育・研究・情報提供のみを目的としており、専門的な助言(法律・会計・技術的保証など)を提供するものではありません。</li>
+<li>本コンテンツおよび付随するCode examplesは「現状有姿(AS IS)」で提供され、明示または黙示を問わず、商品性、特定目的適合性、権利非侵害、正確性・完全性、動作・安全性等いかなる保証もしません。</li>
+<li>外部リンク、第三者が提供するデータ・ツール・ライブラリ等の内容・可用性・安全性について、作成者および東北大学は一切の責任を負いません。</li>
+<li>本コンテンツの利用・実行・解釈により直接的・間接的・付随的・特別・結果的・懲罰的損害が生じた場合でも、適用法で許容される最大限の範囲で、作成者および東北大学は責任を負いません。</li>
+<li>本コンテンツの内容は、予告なく変更・更新・提供停止されることがあります。</li>
+<li>本コンテンツの著作権・ライセンスは明記された条件(例: CC BY 4.0)に従います。当該ライセンスは通常、無保証条項を含みます。</li>
+</ul><div class="navigation">
+    <a href="index.html" class="nav-button">シリーズトップへ戻る</a>
+    <a href="chapter-4.html" class="nav-button">次の章へ →</a>
+</div>
+    </main>
+
+    <footer>
+        <p><strong>制作</strong>: AI寺子屋 コンテンツチーム</p>
+        <p><strong>監修</strong>: 橋本 佑介 博士（東北大学）</p>
+        <p><strong>バージョン</strong>: 1.0 | <strong>作成日</strong>: 2025-01-01</p>
+        <p><strong>ライセンス</strong>: Creative Commons BY 4.0</p>
+        <p>© 2025 AI寺子屋 - Dr. Yusuke Hashimoto, Tohoku University</p>
+    </footer>
+</body>
+</html>

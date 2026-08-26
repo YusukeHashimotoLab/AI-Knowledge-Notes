@@ -5,58 +5,280 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="プロダクション環境への展開 - アーキテクチャ、最適化、モニタリング">
     <title>第4章：プロダクション環境への展開 - RAG入門シリーズ</title>
-    <link rel="canonical" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/jp/ML/rag-introduction/chapter4-production.html">
-    <link rel="alternate" hreflang="ja" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/jp/ML/rag-introduction/chapter4-production.html">
-    <link rel="alternate" hreflang="en" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/en/ML/rag-introduction/chapter4-production.html">
-    <link rel="alternate" hreflang="x-default" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/en/ML/rag-introduction/chapter4-production.html">
-    <meta property="og:title" content="第4章：プロダクション環境への展開 - RAG入門シリーズ">
-    <meta property="og:type" content="article">
-    <meta property="og:url" content="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/jp/ML/rag-introduction/chapter4-production.html">
-    <meta property="og:site_name" content="AI Terakoya">
-    <meta property="og:locale" content="ja_JP">
-    <meta property="og:description" content="プロダクション環境への展開 - アーキテクチャ、最適化、モニタリング">
-    <link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js"></script>
     <style>
-        /* page-specific residual (Wave C) */
-        :root { --text-color: #333333; --border-color: #e0e0e0; --code-bg: #f5f5f5; --link-color: #3498db; --link-hover: #2980b9 }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; line-height: 1.8; background: var(--bg-color); padding: 0; margin: 0 }
-        .container { padding: 2rem 1.5rem }
-        header { padding: 2rem 0; margin-bottom: 2rem; box-shadow: 0 2px 10px rgba(0,0,0,0.1) }
-        header .container { padding: 0 1.5rem }
-        h1 { margin-bottom: 0.5rem }
-        .meta { opacity: 1; margin-top: 1rem }
-        .meta span { display: inline-flex; align-items: center; gap: 0.3rem }
-        h2 { margin-top: 2.5rem; margin-bottom: 1rem; border-bottom: 3px solid var(--secondary-color) }
-        h3 { margin-bottom: 0.8rem }
-        h4 { font-size: 1.2rem; margin-bottom: 0.6rem; color: var(--primary-color) }
-        p { margin-bottom: 1.2rem }
-        a { color: var(--link-color) }
-        a:hover { color: var(--link-hover) }
-        ul { margin-bottom: 1.2rem }
-        ol { margin-bottom: 1.2rem }
-        pre { background: var(--code-bg); padding: 1.2rem; border-radius: 6px; border-left: 4px solid var(--secondary-color) }
-        code { background: var(--code-bg); padding: 0.2rem 0.4rem; font-family: "Menlo", "Monaco", "Courier New", monospace }
-        pre code { background: none }
-        .nav-buttons { gap: 1rem; flex-wrap: wrap }
-        .nav-button { display: inline-block; padding: 0.8rem 1.5rem; background: var(--secondary-color); border-radius: 6px; transition: all 0.3s }
-        .nav-button:hover { background: var(--link-hover); box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3) }
-        .example-box { background: #f8f9fa; border-left: 4px solid var(--accent-color); padding: 1.2rem; margin: 1.5rem 0; border-radius: 4px }
-        .note-box { background: #fff3cd; border-left: 4px solid #ffc107; padding: 1rem; margin: 1.5rem 0; border-radius: 4px }
-        footer { margin-top: 4rem; padding: 2rem 0; border-top: 2px solid var(--border-color); color: #666 }
-        @media (max-width: 768px) {
-            .container { padding: 1rem }
-            h1 { font-size: 1.6rem }
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --bg-color: #ffffff;
+            --text-color: #333333;
+            --border-color: #e0e0e0;
+            --code-bg: #f5f5f5;
+            --link-color: #3498db;
+            --link-hover: #2980b9;
         }
-        .feedback-notice { background: #fff3cd; border: 2px solid #ffc107; border-radius: 8px; padding: 2rem; margin: 3rem auto; max-width: 900px }
-        .feedback-notice h3 { color: #856404; font-size: 1.3rem; margin-bottom: 1rem; text-align: center }
-        .feedback-notice p { color: #856404; font-size: 1rem; margin-bottom: 1.5rem; text-align: center }
-        .feedback-options { display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap }
-        .feedback-button { display: inline-block; padding: 0.8rem 1.5rem; background: #3498db; color: white; text-decoration: none; border-radius: 6px; font-weight: 600; transition: all 0.3s }
-        .feedback-button:hover { background: #2980b9; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3) }
-        .locale-link { color: #ac07bf }
-        .locale-link:hover { color: #880698 }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+            line-height: 1.8;
+            color: var(--text-color);
+            background: var(--bg-color);
+            padding: 0;
+            margin: 0;
+        }
+        .container { max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem; }
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        header .container { padding: 0 1.5rem; }
+        h1 { font-size: 2rem; margin-bottom: 0.5rem; font-weight: 700; }
+        .meta {
+            display: flex;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+            font-size: 0.9rem;
+            opacity: 0.95;
+            margin-top: 1rem;
+        }
+        .meta span { display: inline-flex; align-items: center; gap: 0.3rem; }
+        h2 {
+            font-size: 1.75rem;
+            margin-top: 2.5rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 3px solid var(--secondary-color);
+            color: var(--primary-color);
+        }
+        h3 { font-size: 1.4rem; margin-top: 2rem; margin-bottom: 0.8rem; color: var(--primary-color); }
+        h4 { font-size: 1.2rem; margin-top: 1.5rem; margin-bottom: 0.6rem; color: var(--primary-color); }
+        p { margin-bottom: 1.2rem; }
+        a { color: var(--link-color); text-decoration: none; transition: color 0.2s; }
+        a:hover { color: var(--link-hover); text-decoration: underline; }
+        ul, ol { margin-left: 2rem; margin-bottom: 1.2rem; }
+        li { margin-bottom: 0.5rem; }
+        pre {
+            background: var(--code-bg);
+            padding: 1.2rem;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin-bottom: 1.5rem;
+            border-left: 4px solid var(--secondary-color);
+        }
+        code {
+            background: var(--code-bg);
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        pre code { background: none; padding: 0; }
+        .nav-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin: 3rem 0;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        .nav-button {
+            display: inline-block;
+            padding: 0.8rem 1.5rem;
+            background: var(--secondary-color);
+            color: white;
+            border-radius: 6px;
+            text-decoration: none;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+        .nav-button:hover {
+            background: var(--link-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+        }
+        .example-box {
+            background: #f8f9fa;
+            border-left: 4px solid var(--accent-color);
+            padding: 1.2rem;
+            margin: 1.5rem 0;
+            border-radius: 4px;
+        }
+        .note-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 1rem;
+            margin: 1.5rem 0;
+            border-radius: 4px;
+        }
+        footer {
+            margin-top: 4rem;
+            padding: 2rem 0;
+            border-top: 2px solid var(--border-color);
+            text-align: center;
+            color: #666;
+            font-size: 0.9rem;
+        }
+        @media (max-width: 768px) {
+            .container { padding: 1rem; }
+            h1 { font-size: 1.6rem; }
+            h2 { font-size: 1.4rem; }
+            .meta { font-size: 0.85rem; }
+        }
+    
+        .feedback-notice {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 8px;
+            padding: 2rem;
+            margin: 3rem auto;
+            max-width: 900px;
+        }
+
+        .feedback-notice h3 {
+            color: #856404;
+            font-size: 1.3rem;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .feedback-notice p {
+            color: #856404;
+            font-size: 1rem;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+
+        .feedback-options {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .feedback-button {
+            display: inline-block;
+            padding: 0.8rem 1.5rem;
+            background: #3498db;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .feedback-button:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+        }
+
+    
+        
+    
+        /* Breadcrumb styles */
+        .breadcrumb {
+            background: #f7fafc;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+        }
+
+        .breadcrumb-content {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .breadcrumb a {
+            color: #667eea;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .breadcrumb a:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+
+        .breadcrumb-separator {
+            color: #a0aec0;
+            margin: 0 0.25rem;
+        }
+
+        .breadcrumb-current {
+            color: #4a5568;
+            font-weight: 500;
+        }
     </style>
 
+    <style>
+        /* Locale Switcher Styles */
+        .locale-switcher {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 6px;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .current-locale {
+            font-weight: 600;
+            color: #7b2cbf;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .locale-separator {
+            color: #adb5bd;
+            font-weight: 300;
+        }
+
+        .locale-link {
+            color: #f093fb;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+        }
+
+        .locale-link:hover {
+            background: rgba(240, 147, 251, 0.1);
+            color: #d07be8;
+            transform: translateY(-1px);
+        }
+
+        .locale-meta {
+            color: #868e96;
+            font-size: 0.85rem;
+            font-style: italic;
+            margin-left: auto;
+        }
+
+        @media (max-width: 768px) {
+            .locale-switcher {
+                font-size: 0.85rem;
+                padding: 0.4rem 0.8rem;
+            }
+            .locale-meta {
+                display: none;
+            }
+        }
+    </style>
 </head>
 <body>
             <div class="locale-switcher">
@@ -243,7 +465,7 @@ if __name__ == "__main__":
 
         <h4>実装例2: マルチレベルキャッシング</h4>
         <pre><code>import redis
-from functools import lru_cache
+from collections import OrderedDict
 import hashlib
 import json
 import time
@@ -251,9 +473,10 @@ import time
 class MultiLevelCache:
     """マルチレベルキャッシングシステム"""
 
-    def __init__(self, redis_url: str = "redis://localhost:6379"):
-        # L1: メモリキャッシュ（LRU）
-        self.memory_cache_size = 100
+    def __init__(self, redis_url: str = "redis://localhost:6379", l1_size: int = 1000):
+        # L1: メモリキャッシュ（プロセス内LRU）
+        self.l1_size = l1_size
+        self.l1_cache = OrderedDict()
 
         # L2: Redis
         self.redis_client = redis.from_url(redis_url)
@@ -271,25 +494,25 @@ class MultiLevelCache:
         cache_input = f"{query}:{json.dumps(params, sort_keys=True)}"
         return hashlib.md5(cache_input.encode()).hexdigest()
 
-    @lru_cache(maxsize=100)
     def _l1_get(self, key: str):
         """L1キャッシュ取得（メモリ）"""
-        # LRUデコレータで自動管理
-        return None
+        if key not in self.l1_cache:
+            return None
+
+        # 最近使用したエントリとして末尾へ移動
+        self.l1_cache.move_to_end(key)
+        return self.l1_cache[key]
 
     def get(self, query: str, params: dict):
         """キャッシュ取得（L1 → L2）"""
         key = self._generate_key(query, params)
 
         # L1チェック
-        try:
-            result = self._l1_get(key)
-            if result:
-                self.stats['hits'] += 1
-                self.stats['l1_hits'] += 1
-                return result
-        except:
-            pass
+        result = self._l1_get(key)
+        if result is not None:
+            self.stats['hits'] += 1
+            self.stats['l1_hits'] += 1
+            return result
 
         # L2チェック（Redis）
         try:
@@ -310,10 +533,14 @@ class MultiLevelCache:
         return None
 
     def _l1_set(self, key: str, value):
-        """L1キャッシュ設定"""
-        # LRUキャッシュに設定
-        self._l1_get.__wrapped__(self, key)  # トリガー
-        self._l1_get.cache_info()
+        """L1キャッシュ設定（メモリ）"""
+        if key in self.l1_cache:
+            self.l1_cache.move_to_end(key)
+        self.l1_cache[key] = value
+
+        # サイズ上限: 最も古いエントリを削除
+        if len(self.l1_cache) > self.l1_size:
+            self.l1_cache.popitem(last=False)
 
     def set(self, query: str, params: dict, value, ttl: int = 3600):
         """キャッシュ設定（L1 & L2）"""
@@ -335,7 +562,7 @@ class MultiLevelCache:
     def invalidate(self, pattern: str = "*"):
         """キャッシュ無効化"""
         # L1クリア
-        self._l1_get.cache_clear()
+        self.l1_cache.clear()
 
         # L2クリア（パターンマッチ）
         try:
@@ -662,10 +889,10 @@ class RAGEvaluator:
 
         評価（JSON形式）:
         {{
-            "accuracy_score": &lt;1-5>,
-            "relevance_score": &lt;1-5>,
-            "completeness_score": &lt;1-5>,
-            "reasoning": "&lt;理由&gt;"
+            "accuracy_score": <1-5>,
+            "relevance_score": <1-5>,
+            "completeness_score": <1-5>,
+            "reasoning": "<理由>"
         }}
         """
 

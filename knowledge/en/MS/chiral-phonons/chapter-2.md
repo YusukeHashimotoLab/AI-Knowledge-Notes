@@ -10,9 +10,8 @@ subtitle: "From 2D TMD Monolayers to 3D Chiral Crystals"
   <iframe
     width="560"
     height="315"
-    src="https://www.youtube.com/embed/vbbjqY8Q4ko"
+    src="https://www.youtube.com/embed/spaCONTFZMs"
     title="Chiral Phonons Ch.2: Materials"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>

@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="第4章では、水素分子を端から端まで組み上げました。第二量子化された積分、Jordan-Wigner変換によるマッピング、量子ビットハミルトニアン、アンザッツ、古典最適化器、そしてポテンシャルエネルギー曲線です。">
+    <title>第5章: H2 の先へ — 誠実なフロンティア - AI Terakoya</title>
+    <link rel="canonical" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/jp/QC/quantum-chemistry-computing/chapter-5.html">
+    <link rel="alternate" hreflang="ja" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/jp/QC/quantum-chemistry-computing/chapter-5.html">
+    <link rel="alternate" hreflang="en" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/en/QC/quantum-chemistry-computing/chapter-5.html">
+    <link rel="alternate" hreflang="x-default" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/en/QC/quantum-chemistry-computing/chapter-5.html">
+    <meta property="og:title" content="第5章: H2 の先へ — 誠実なフロンティア - AI Terakoya">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/jp/QC/quantum-chemistry-computing/chapter-5.html">
+    <meta property="og:site_name" content="AI Terakoya">
+    <meta property="og:locale" content="ja_JP">
+    <meta property="og:description" content="第4章では、水素分子を端から端まで組み上げました。第二量子化された積分、Jordan-Wigner変換によるマッピング、量子ビットハミルトニアン、アンザッツ、古典最適化器、そしてポテンシャルエネルギー曲線です。">
+
+    <style>
+        :root {
+            --color-primary: #2c3e50;
+            --color-primary-dark: #1a252f;
+            --color-accent: #7b2cbf;
+            --color-accent-light: #9d4edd;
+            --color-text: #2d3748;
+            --color-text-light: #4a5568;
+            --color-bg: #ffffff;
+            --color-bg-alt: #f7fafc;
+            --color-border: #e2e8f0;
+            --color-code-bg: #f8f9fa;
+            --color-link: #3182ce;
+            --color-link-hover: #2c5aa0;
+
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+
+            --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+            --border-radius: 8px;
+            --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-body);
+            line-height: 1.7;
+            color: var(--color-text);
+            background-color: var(--color-bg);
+            font-size: 16px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            padding: var(--spacing-xl) var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+            box-shadow: var(--box-shadow);
+        }
+
+        .header-content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: var(--spacing-sm);
+            line-height: 1.2;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            font-weight: 400;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-md);
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-md) var(--spacing-xl);
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-xl);
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-xs);
+            border-bottom: 3px solid var(--color-accent);
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-lg);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        h4 {
+            font-size: 1.1rem;
+            color: var(--color-primary-dark);
+            margin-top: var(--spacing-md);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        p {
+            margin-bottom: var(--spacing-md);
+            color: var(--color-text);
+        }
+
+        a {
+            color: var(--color-link);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        a:hover {
+            color: var(--color-link-hover);
+            text-decoration: underline;
+        }
+
+        ul, ol {
+            margin-left: var(--spacing-lg);
+            margin-bottom: var(--spacing-md);
+        }
+
+        li {
+            margin-bottom: var(--spacing-xs);
+            color: var(--color-text);
+        }
+
+        pre {
+            background-color: var(--color-code-bg);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            overflow-x: auto;
+            margin-bottom: var(--spacing-md);
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        code {
+            font-family: var(--font-mono);
+            font-size: 0.9em;
+            background-color: var(--color-code-bg);
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+        }
+
+        pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: var(--spacing-md);
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            border: 1px solid var(--color-border);
+            padding: var(--spacing-sm);
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--color-bg-alt);
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        blockquote {
+            border-left: 4px solid var(--color-accent);
+            padding-left: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            color: var(--color-text-light);
+            font-style: italic;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        .mermaid {
+            text-align: center;
+            margin: var(--spacing-lg) 0;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        details {
+            background-color: var(--color-bg-alt);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+        }
+
+        summary {
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--color-primary);
+            user-select: none;
+            padding: var(--spacing-xs);
+            margin: calc(-1 * var(--spacing-md));
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        summary:hover {
+            background-color: rgba(123, 44, 191, 0.1);
+        }
+
+        details[open] summary {
+            margin-bottom: var(--spacing-md);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .learning-objectives {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: var(--spacing-lg);
+            border-radius: var(--border-radius);
+            border-left: 4px solid var(--color-accent);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .learning-objectives h2 {
+            margin-top: 0;
+            border-bottom: none;
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            gap: var(--spacing-md);
+            margin: var(--spacing-xl) 0;
+            padding-top: var(--spacing-lg);
+            border-top: 2px solid var(--color-border);
+        }
+
+        .nav-button {
+            flex: 1;
+            padding: var(--spacing-md);
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            border-radius: var(--border-radius);
+            text-align: center;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: var(--box-shadow);
+        }
+
+        .nav-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            text-decoration: none;
+        }
+
+        footer {
+            margin-top: var(--spacing-xl);
+            padding: var(--spacing-lg) var(--spacing-md);
+            background-color: var(--color-bg-alt);
+            border-top: 1px solid var(--color-border);
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--color-text-light);
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            h2 {
+                font-size: 1.4rem;
+            }
+
+            h3 {
+                font-size: 1.2rem;
+            }
+
+            .meta {
+                font-size: 0.85rem;
+            }
+
+            .navigation {
+                flex-direction: column;
+            }
+
+            table {
+                font-size: 0.85rem;
+            }
+
+            th, td {
+                padding: var(--spacing-xs);
+            }
+        }
+    </style>
+
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+
+    <!-- MathJax for LaTeX equation rendering -->
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\(', '\)']],
+                displayMath: [['$$', '$$'], ['\[', '\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" id="MathJax-script" async></script>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <h1>第5章: H2 の先へ — 誠実なフロンティア</h1>
+            <p class="subtitle">分子が大きくなるとき何が増えるのか、測定の壁、そして優位性が実際に現れうる場所</p>
+            <div class="meta">
+                <span class="meta-item">📖 Reading Time: 20-25 minutes</span>
+                <span class="meta-item">📊 Difficulty: Beginner</span>
+                <span class="meta-item">💻 Code Examples: 0</span>
+                <span class="meta-item">📝 Exercises: 0</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+<h2>ビデオ講義</h2>
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/uW35ygoT2jQ"
+    title="量子コンピュータによる量子化学計算 第5章: H2 の先へ — 誠実なフロンティア"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+<p class="video-note">このビデオは以下のテキストと同じ内容をカバーしています。お好みの学習形式をお選びください。</p>
+
+<p>🌐 JP | <a href="../../../en/QC/quantum-chemistry-computing/chapter-5.html">🇬🇧 EN</a> | Last sync: 2026-08-17</p>
+<p><a href="../index.html">量子コンピューティング道場</a> &gt; <a href="index.html">量子コンピュータによる量子化学計算</a> &gt; 第5章</p>
+<h2>5.1 H₂ はなぜ簡単だったのか</h2>
+<p>第4章では、水素分子を端から端まで組み上げました。第二量子化された積分、Jordan-Wigner変換によるマッピング、量子ビットハミルトニアン、アンザッツ、古典最適化器、そしてポテンシャルエネルギー曲線です。隠されたものは何もありません。これは立ち止まる価値のある達成です。量子コンピュータによる量子化学を語る人の大半は、それを一度も組み上げたことがないのですから。</p>
+<p>同時に、あなたが組み上げたものが何であったかを正確に述べておく価値もあります。最小基底のH₂は <strong>2つの空間軌道</strong> を持ち、したがって <strong>4つのスピン軌道</strong> を持ち、したがってJordan-Wigner変換のもとで <strong>4量子ビット</strong> になります。その量子ビットハミルトニアンは、恒等演算子を含めて <strong>15個のパウリ文字列</strong> の和です。これらの数値はどれも1画面に収まるほど小さく、16次元のヒルベルト空間全体が、要素を1つずつ確かめられるNumPy配列に収まります。</p>
+<blockquote>
+<p><strong>「15」はどこから来るのか</strong></p>
+<p>この数はどこかから引用したものではありません。問題の構造から導かれます。2つの空間軌道上の、一般的な実数の、スピンを保存し、対称性が許す1体・2体ハミルトニアンを取り、Jordan-Wigner変換で4量子ビットへ写し、得られた \(16 \times 16\) 行列を256要素の4量子ビットパウリ基底で分解します。積分の数値がどうであれ、ゼロでない係数を持つ文字列は15個——14個に恒等演算子を加えたもの——です。この数は対称性の性質であって、水素固有の数値の性質ではありません。</p>
+</blockquote>
+<p>したがって第4章の誠実な読み方は、<a href="../quantum-computing-introduction/index.html">量子コンピュータ入門</a> シリーズがH₂のハードウェア実証についてすでに示したものと同じです。<strong>それは手法を検証するものであって、優位性を検証するものではありません</strong>。あなたのノートPCは、そのハミルトニアンを直接対角化によってマイクロ秒で解きました。同じ問題を走らせる量子デバイスは、あなたのノートPCと競争しているのではありません。パイプラインが動作することを実証しているのです。</p>
+<p>本章のテーマは、分子が水素でなくなったときにそのパイプラインの各部分に何が起きるのか、そして化学における量子優位性の主張を、あなたを含む誰もが判断するための誠実な基準は何か、です。</p>
+<h2>5.2 増えるものは4つあり、増え方はそれぞれ違う</h2>
+<p>分子が大きくなると、4つの量がそれに伴って増えます。しかも、その増え方の速さは同じではありません。この4つを頭の中で区別しておくことが、この分野の文献を批判的に読むために必要なことのほとんどです。</p>
+<h3>📚 4つの予算</h3>
+<ul>
+<li><strong>量子ビット</strong> はスピン軌道の数に対して線形に増えます。Jordan-Wigner変換のもとではスピン軌道1個あたり量子ビット1個であり、スピン軌道の数は基底関数系に含まれる空間軌道の数の2倍です。基底を2倍にすれば、量子ビットも2倍になります。これは4つの中で最も <em>安い</em> 増え方であり、まさにそれゆえに、量子ビット数は引用しても最も情報量の少ない数値なのです。</li>
+<li><strong>ハミルトニアンの項数</strong> は基底のサイズの <strong>4乗</strong> で増えます。2電子積分 \((pq|rs)\) が4つの軌道添字を持つからです。置換対称性はその数を定数で割りますが、指数は変えません。</li>
+<li><strong>回路の深さ</strong> はアンザッツとともに増えます。軌道の組み合わせごとに励起演算子を含むような、化学的な動機に基づくアンザッツは、ゲート数の多項式的な増大を引き継ぎます。そしてそれらのゲートはすべて、入門シリーズが導いた \(1/\epsilon\) 程度という深さの予算の中に収まらなければなりません。NISQの制約が食い込むのは、この深さです。</li>
+<li><strong>ショット数</strong> は目標精度の逆2乗で増え、さらにハミルトニアンの係数の大きさが掛かります。これは誰も見出しに載せない予算ですが、5.3節では、これこそが最も痛手となる予算であることを論じます。</li>
+</ul>
+<h3>📚 ハミルトニアンを数える</h3>
+<p>2番目の予算は純粋な組合せ論なので、主張するのではなく厳密に計算できます。\(n\) 個の実数の空間軌道の上では、2電子積分は8重の置換対称性を持つので、<em>相異なる</em> 積分の数は \(M = n(n+1)/2\) として \(M(M+1)/2\) となります。</p>
+<pre><code class="language-python">import numpy as np
+
+# --- 軌道基底のサイズに対してハミルトニアンがどう増えるか ---
+# n     : 実数の空間軌道の数
+# 2n    : スピン軌道の数、したがってJordan-Wigner変換のもとでの量子ビット数
+# 2電子積分 (pq|rs) は4つの軌道添字を走るので、素の添字の数は n^4 になる。
+# 実数軌道は8重の置換対称性を与える:
+#   (pq|rs) = (qp|rs) = (pq|sr) = (qp|sr) = (rs|pq) = ... ,
+# したがって「相異なる」積分の数は M = n(n+1)/2 として M(M+1)/2 となる。
+# どちらの数も純粋な組合せ論であり、化学もベンチマーク数値も入っていない。
+
+def unique_two_electron_integrals(n):
+    &quot;&quot;&quot;8重対称性のもとで、n 個の実数空間軌道上の相異なる (pq|rs) の数。&quot;&quot;&quot;
+    m = n * (n + 1) // 2          # p &gt;= q なる相異なる添字対 (pq)
+    return m * (m + 1) // 2       # 対の対の相異なる数
+
+
+def unique_one_electron_integrals(n):
+    &quot;&quot;&quot;n 個の実数空間軌道上の相異なる h_pq の数（h は対称）。&quot;&quot;&quot;
+    return n * (n + 1) // 2
+
+
+sizes = np.array([2, 4, 8, 16, 32, 64, 100])
+
+print(f&quot;{'spatial n':&gt;9} {'qubits 2n':&gt;9} {'h_pq':&gt;8} {'(pq|rs) unique':&gt;15} {'n^4':&gt;12} {'unique/n^4':&gt;11}&quot;)
+for n in sizes:
+    n = int(n)
+    u2 = unique_two_electron_integrals(n)
+    print(f&quot;{n:&gt;9d} {2*n:&gt;9d} {unique_one_electron_integrals(n):&gt;8d} &quot;
+          f&quot;{u2:&gt;15d} {n**4:&gt;12d} {u2 / n**4:&gt;11.3f}&quot;)
+print()
+
+# --- 増大は4乗則である: 基底を2倍にすると、積分の数はおよそ
+# --- 2^4 = 16 倍になる。
+print(&quot;Doubling the basis multiplies the distinct-integral count by:&quot;)
+for n in [4, 8, 16, 32]:
+    ratio = unique_two_electron_integrals(2 * n) / unique_two_electron_integrals(n)
+    print(f&quot;  n = {n:&gt;3d} -&gt; {2*n:&gt;3d}:  x {ratio:.2f}&quot;)
+print()
+
+# --- 同じ算術を請求書として読む: ハミルトニアンは何個の相異なる数値から
+# --- できているのか? 量子ビットハミルトニアンのパウリ項数はこれの
+# --- 「定数倍」であり（積分1個が複数のパウリ文字列を生む）、
+# --- したがって同じ4乗の増大を引き継ぐ。
+print(&quot;Distinct integrals the Hamiltonian is built from:&quot;)
+for n in [2, 10, 50]:
+    n = int(n)
+    total = unique_one_electron_integrals(n) + unique_two_electron_integrals(n)
+    print(f&quot;  n = {n:&gt;2d} spatial orbitals ({2*n:&gt;3d} qubits): {total:&gt;10d} distinct integrals&quot;)
+</code></pre>
+<p><strong>出力:</strong></p>
+<pre><code>spatial n qubits 2n     h_pq  (pq|rs) unique          n^4  unique/n^4
+        2         4        3               6           16       0.375
+        4         8       10              55          256       0.215
+        8        16       36             666         4096       0.163
+       16        32      136            9316        65536       0.142
+       32        64      528          139656      1048576       0.133
+       64       128     2080         2164240     16777216       0.129
+      100       200     5050        12753775    100000000       0.128
+
+Doubling the basis multiplies the distinct-integral count by:
+  n =   4 -&gt;   8:  x 12.11
+  n =   8 -&gt;  16:  x 13.99
+  n =  16 -&gt;  32:  x 14.99
+  n =  32 -&gt;  64:  x 15.50
+
+Distinct integrals the Hamiltonian is built from:
+  n =  2 spatial orbitals (  4 qubits):          9 distinct integrals
+  n = 10 spatial orbitals ( 20 qubits):       1595 distinct integrals
+  n = 50 spatial orbitals (100 qubits):     814725 distinct integrals
+</code></pre>
+<p><strong>結果の読み方。</strong> 観察は3つです。</p>
+<ul>
+<li><strong>比の列は落ち着きます。</strong> <code>unique/n^4</code> はおよそ \(1/8\) に向かって漂っていきます。これは8重対称性が仕事をしている結果です。対称性が買えるのは定数倍だけであり、それ以上ではありません。指数には手が触れられていないのです。</li>
+<li><strong>倍増の列は16に収束します。</strong> \(2^4 = 16\) であり、小さな \(n\) での値がそれを下回っているのは、\(n\) が微小なときには \(M(M+1)/2\) の中の \(+1\) の項がまだ効いているからにすぎません。これは4乗則が目に見える形で現れたものです。</li>
+<li><strong>記憶すべきは最後のブロックです。</strong> 4量子ビットから200量子ビットへ進むと、相異なる積分の数はおよそ10万倍になります。空間軌道2個のとき、9個の相異なる積分が第4章の15項のパウリ和を生みました。積分1個が数個のパウリ文字列を生むので、パウリ項数はこの列の定数倍であり、同じように増えていきます。</li>
+</ul>
+<p>100量子ビットというのは、控えめに聞こえる数字です。しかしその100量子ビットの上に載るハミルトニアンは、まったく控えめではありません。この食い違いこそ、量子ビット数が伝え損なう最初のものです。</p>
+<h2>5.3 測定の問題: 静かな殺し屋</h2>
+<p>ここからは、発表にはめったに現れないVQEの部分です。量子コンピュータは \(\langle \hat{H} \rangle\) を渡してはくれません。渡してくるのはサンプルです。第3章の変分ループにおけるエネルギー評価は、どれも有限回の回路の繰り返し——<strong>ショット</strong>——から組み立てられた統計的推定であり、統計には容赦のない交換レートがあります。</p>
+<p>パウリ文字列は固有値 \(+1\) と \(-1\) しか持たないので、その1回の測定は平均 \(\langle P \rangle\)、分散 \(1 - \langle P \rangle^2 \le 1\) で \(\pm 1\) を返します。\(N\) ショットを平均すれば標準誤差はたかだか \(1/\sqrt{N}\) になるので、誤差 \(\epsilon\) に到達するには次が必要です。</p>
+<p>\[ N \gtrsim \frac{1}{\epsilon^2} \]</p>
+<p>この逆2乗則はサンプリングの性質であってどのデバイスの性質でもなく、ハードウェアがどれだけ改善してもこれを廃止することはできません。ここで、化学が要求する精度を思い出してください。<strong>化学精度</strong> は慣例的に1 kcal/molとされます。計算された反応のエネルギー論が、示唆的なものから予測的なものへと変わり始める尺度です。単位を換算すると、これは \(1.6 \times 10^{-3}\) ハートリーをわずかに下回る値になります。</p>
+<pre><code class="language-python">import numpy as np
+
+# --- 変分エネルギー推定に対するショットノイズの算術 ---
+#
+# パウリ文字列 P は固有値 +1 と -1 しか持たない。測定すると、平均が &lt;P&gt; の
+# ランダムな +-1 が返る。このような変数に対して、
+#     Var(P) = &lt;P^2&gt; - &lt;P&gt;^2 = 1 - &lt;P&gt;^2  &lt;=  1 ,
+# であるから、N ショットにわたる平均の標準誤差は
+#     SE = sqrt(Var / N) &lt;= 1 / sqrt(N)   -&gt;   N &gt;= 1 / eps^2 .
+# に従う。この逆2乗則がすべてである。これはサンプリングの性質であって、
+# 特定のデバイスの性質ではない。
+#
+# 化学精度は慣例的に 1 kcal/mol と引用される。以下の数値は「単位換算」で
+# あって、ベンチマークの結果ではない。
+
+HARTREE_PER_KCAL_PER_MOL = 1.0 / 627.5094740631  # 標準的な単位換算
+
+chem_acc = HARTREE_PER_KCAL_PER_MOL
+print(f&quot;1 kcal/mol = {chem_acc:.4e} hartree   (unit conversion)&quot;)
+print()
+
+
+def shots_for_single_pauli(eps, variance=1.0):
+    &quot;&quot;&quot;1つのパウリ期待値の標準誤差が eps 以下になるために必要なショット数。
+    variance = 1.0 は +-1 の観測量に対する最悪の場合。&quot;&quot;&quot;
+    return int(np.ceil(variance / eps ** 2))
+
+
+targets = [(1e-1, &quot;&quot;), (1e-2, &quot;&quot;), (chem_acc, &quot;  &lt;- 1 kcal/mol&quot;),
+           (1e-3, &quot;&quot;), (1e-4, &quot;&quot;), (1e-5, &quot;&quot;)]
+
+print(&quot;One Pauli expectation, worst-case variance = 1&quot;)
+print(f&quot;{'target error eps [Ha]':&gt;22} {'shots &gt;= 1/eps^2':&gt;18}&quot;)
+for eps, note in targets:
+    print(f&quot;{eps:&gt;22.4e} {shots_for_single_pauli(eps):&gt;18d}{note}&quot;)
+print()
+
+# --- eps^-2 則を明示する: 精度が10倍になるごとに100倍の代価がかかる
+print(&quot;Tightening the target by 10x multiplies the shot count by:&quot;)
+for eps in [1e-1, 1e-2, 1e-3]:
+    ratio = shots_for_single_pauli(eps / 10) / shots_for_single_pauli(eps)
+    print(f&quot;  eps {eps:.0e} -&gt; {eps/10:.0e}:  x {ratio:.1f}&quot;)
+print()
+
+# --- 1項ではなくハミルトニアン全体 ---
+# H = sum_i c_i P_i。ショット数の予算を項の間で最適に配分し、分散を足し
+# 合わせると、Var(P_i) &lt;= 1 のもとで
+#     N_total &lt;= (sum_i |c_i|)^2 / eps^2 = lambda^2 / eps^2 ,
+# となる。ここで lambda は係数の1ノルムである。これは「モデル」であり、
+# すべての項を独立に測定し、可換な項をまとめないことを仮定している。
+# 実際の実装は、そのどちらについても改善しようと努力している。
+print(&quot;Whole-Hamiltonian model: N_total &lt;= (coefficient 1-norm)^2 / eps^2&quot;)
+print(f&quot;{'1-norm lambda [Ha]':&gt;19} {'shots at 1 kcal/mol':&gt;22}&quot;)
+for lam in [1.0, 10.0, 100.0, 1000.0]:
+    n_total = lam ** 2 / chem_acc ** 2
+    print(f&quot;{lam:&gt;19.1f} {n_total:&gt;22.3e}&quot;)
+</code></pre>
+<p><strong>出力:</strong></p>
+<pre><code>1 kcal/mol = 1.5936e-03 hartree   (unit conversion)
+
+One Pauli expectation, worst-case variance = 1
+ target error eps [Ha]   shots &gt;= 1/eps^2
+            1.0000e-01                100
+            1.0000e-02              10000
+            1.5936e-03             393769  &lt;- 1 kcal/mol
+            1.0000e-03            1000000
+            1.0000e-04          100000000
+            1.0000e-05        10000000000
+
+Tightening the target by 10x multiplies the shot count by:
+  eps 1e-01 -&gt; 1e-02:  x 100.0
+  eps 1e-02 -&gt; 1e-03:  x 100.0
+  eps 1e-03 -&gt; 1e-04:  x 100.0
+
+Whole-Hamiltonian model: N_total &lt;= (coefficient 1-norm)^2 / eps^2
+ 1-norm lambda [Ha]    shots at 1 kcal/mol
+                1.0              3.938e+05
+               10.0              3.938e+07
+              100.0              3.938e+09
+             1000.0              3.938e+11
+</code></pre>
+<blockquote>
+<p><strong>ここで何が実在の数値であり、何がそうでないか。</strong> \(\epsilon^{-2}\) 則と kcal/mol の換算は厳密です。1ノルムの値 \(\lambda\) は <strong>算術を読みやすくするために私たちが選んだもの</strong> であり、どのデバイスを記述しているのでもなく、どの分子の実際の1ノルムを主張しているのでもありません。最後の表は「コストがハミルトニアンの大きさに対してどうスケールするか」として読み、実行時間の見積もりとしては決して読まないでください。</p>
+</blockquote>
+<p><strong>結果の読み方。</strong> 問題の形を3点にまとめます。</p>
+<ul>
+<li><strong>化学精度を満たすだけで、たった1つのパウリ項に数十万ショットがかかります。</strong> そして化学的に興味深いハミルトニアンは、1項どころではない数の項を持ちます。</li>
+<li><strong>高くつく軸は精度です。</strong> 精度が10倍になるごとに、ショット数はちょうど100倍になります。化学がこの曲線の遠い端に位置するのは、化学的に関心のあるエネルギーの <em>差</em> が、全電子エネルギーに比べて極めて小さいからです。</li>
+<li><strong>1ノルムはすべてに掛かり、しかも分子とともに増えます。</strong> 大きな系ほど全エネルギーは大きく項数も多いので、\(\lambda\) は増えていく一方、目標の \(\epsilon\) は化学精度に固定されたままです。2つは反対の向きに動きます。これは坂ではなく、鋏です。</li>
+</ul>
+<p>測定が静かな殺し屋である理由はここにあります。深さと量子ビット数は誰もが議論する目に見える制約ですが、ショット数の予算は見出しには現れず、しかも総実行時間を支配しうるのです。これを和らげるために真剣な努力が払われています。可換なパウリ項をまとめて同時に測定できるようにグループ化する、古典シャドウをはじめとするランダム化推定量を用いる、最適化の途中で項ごとのショット配分を賢く行う——こうした工夫は定数倍、ときには定数倍よりも良い分だけ助けになります。しかしそのどれも \(\epsilon^{-2}\) を廃止しはしません。</p>
+<h2>5.4 不毛の台地: 最適化器が目を失うとき</h2>
+<p>測定の問題は、最適化器が少なくともどちらへ進むべきかを知っていることを前提としています。しかし、知らないこともあるのです。</p>
+<p>ランダムなユニタリのように振る舞うほど深く表現力の高いパラメータ化回路では、任意の1つのパラメータに関するエネルギーの勾配は <strong>平均がゼロであり、分散が量子ビット数に対して指数的に小さくなります</strong>。この地形は、古典的な最適化器が慣れているような凹凸の激しさを持ちません。ほとんどいたるところで <em>平坦</em> であり、最小値は偶然行き当たることのない狭い領域に隠れています。</p>
+<p>この帰結は、5.3節と組み合わせたとき容赦のないものになります。勾配を追うには、それをショットノイズより上に分解できなければなりません。勾配が量子ビット数に対して指数的に小さくなり、分解能が \(1/\sqrt{N}\) でしか改善しないなら、そもそも勾配を見るために必要なショット数は指数的に増えます。最適化器は大きな音を立てて失敗するわけではありません。改善が止まったエネルギーを報告するだけであり、それは収束とまったく同じに見えるのです。</p>
+<h3>📚 これが「ハードウェア効率的」な直感を脅かす理由</h3>
+<p>回路が浅くノイズが多いとき、自然な誘惑があります。デバイスがたまたま得意とするゲートだけでアンザッツを組み立て、化学には一切言及せずに汎用的に積み重ねる、という誘惑です。それは接続性を尊重し、深さを低く保ち、書くのも容易です。これが <strong>ハードウェア効率的</strong> な直感であり、不毛の台地はまさに、この直感に盲目的に従うことへの反論です。<em>構造を持たないまま表現力を高める</em> ように設計されたアンザッツは、ランダムに見えるよう設計されたアンザッツであり、それこそが勾配が消える条件なのです。さらに悪いことに、表現力と訓練可能性は互いに引っ張り合います。真の基底状態を含むほど大きな族にすると、その族は見つけられないほど平坦になりがちなのです。</p>
+<p>緩和策は存在し、活発な研究対象です。<strong>問題に着想を得たアンザッツ</strong>——構造がチップの配置ではなく化学の励起演算子から来る回路——は、物理を符号化すると同時にランダム性を避ける形で状態の族を制限します。<strong>初期化の戦略</strong> は、パラメータ空間のランダムな点からではなく、勾配がまだ見える領域の内側から最適化を始めることを目指します。<strong>層ごとの構築や適応的な構築</strong> は、問題が要求する範囲までしか回路を成長させません。ここではこれらを展開せずに名前を挙げるにとどめます。本章にとって重要なのは、処方箋が <em>構造</em> であり、その構造は化学から来るということです。</p>
+<h2>5.5 問題を小さくする</h2>
+<p>すべてが軌道の数とともに増えるのであれば、最も効果的なてこは、軌道の数を減らすことです。ただし、誠実に減らすことです。</p>
+<h3>📚 活性空間</h3>
+<p>分子の中のすべての電子が、興味深い物理に参加しているわけではありません。内殻電子はフロンティア軌道よりはるかに下に位置し、結合解離、スピン状態、反応性に対しては本質的に不活性です。非常に高い仮想軌道は本質的に非占有です。<strong>活性空間</strong> はそれらを凍結し、フロンティア付近から選ばれた軌道と電子の集合の間だけで電子相関を厳密に扱い、凍結した分は有効な1体ポテンシャルへと畳み込みます。</p>
+<p>これがなぜこれほど効くのかは、5.2節の4乗則の表を見ればわかります。活性空間を空間軌道32個から16個へ削っても、ハミルトニアンは半分になるのではありません。相異なる積分の数がおよそ15分の1になり、しかも量子ビット数も半分になるのです。活性空間は、利用可能な削減手段の中で最もてこの効きが大きいものです。</p>
+<p>同時にそれは、計算が最も不誠実になりやすい段階でもあります。活性空間を選ぶことは <em>モデル化の判断</em> であり、結果はそれに依存します。小さな活性空間の上での量子計算を、はるかに大きな活性空間の上での古典計算と比較しても、それはそもそも比較になっていません。本章から方法論的な習慣を1つだけ持ち帰るなら、これにしてください。<strong>量子化学の結果を読むときは、数値を読む前に活性空間を探すこと。</strong></p>
+<h3>📚 対称性による簡約</h3>
+<p>第4章はすでにこのてこを使いました。電子ハミルトニアンは粒子数とスピン射影を保存し、対称性を持つ分子はさらに多くを保存します。保存量はそれぞれ状態をヒルベルト空間のあるセクターに制限し、セクターは空間全体よりも少ない量子ビットで符号化できます。保存量の値は固定されているので、それを保持する量子ビットは取り除いて定数で置き換えられるのです。H₂のハミルトニアンが近似なしで4量子ビットより小さく簡約できたのは、これが理由です。</p>
+<p>対称性による簡約は厳密であり、したがって活性空間が抱えるモデル化のリスクとは無縁です。その限界は、買えるものが固定された控えめな量子ビット数であって、指数の変化ではないという点にあります。</p>
+<h3>📚 埋め込み</h3>
+<p>第3の系統は、小さく強相関なフラグメントを高精度で扱い、その周囲の環境はより安価な手法で扱って、両者を有効ポテンシャルを通じて結合します。<strong>密度行列埋め込み、動的平均場、そしてQM/MM型の分割</strong> が、探すべき名前です。ここでの関連はアーキテクチャ上のものです。埋め込みはまさに、小さく高価で高精度なソルバーに適した問題の形をしています。量子デバイスとは、そういうものです。量子コンピュータによる量子化学がいつか日常的なものになるとしたら、埋め込みは既存のワークフローへ接続する筋の良い道です。古典的なスタックを置き換えるのではなく、その内部にフラグメントソルバーとして収まるのです。</p>
+<h2>5.6 古典側の競争相手は立ち止まっていない</h2>
+<p>量子優位性を主張する議論はどれも、暗黙のうちに古典手法についての主張を含んでいます。そのため古典側の進歩は、量子化学というテーゼにとって最も議論されていないリスクになります。</p>
+<p><strong>密度汎関数理論（DFT）</strong> は今なお計算材料科学の主力であり、汎関数の開発は決着済みの分野ではなく活発な分野です。<strong>結合クラスター法</strong> は拡張され続けており、局所的な定式化やスケーリングを低減した定式化が、教科書的なスケーリングから想像されるよりも大きな系へと、精確な電子相関の取り扱いを押し広げています。<strong>テンソルネットワーク法</strong>——DMRGとその近縁——は、量子コンピュータの本拠地とされる強相関領域に挑み、かつては手に負えないと考えられていた活性空間を何度も扱ってきました。<strong>量子モンテカルロ法</strong> や現代的な選択配置間相互作用の手法は、同じ領域へ別の方向から迫っており、<strong>機械学習された原子間ポテンシャル</strong> は高価な計算を、その後の膨大な回数の評価にわたって償却します。</p>
+<p>パターンに注目してください。これらのいくつかは、優位性の議論が「困難なままであること」に依存している「古典的に困難」な領域を、真正面から狙っています。的は動いており、しかも量子デバイスの側へ向かって動いているのです。</p>
+<h3>📚 誠実な基準</h3>
+<p>では、実際に何が該当するのでしょうか。その基準は厳しく、はっきりと述べておく価値があります。</p>
+<blockquote>
+<p><strong>化学における量子優位性が成立するには、利用可能な「最良の」古典手法が失敗し、「かつ」量子デバイスが成功し、「かつ」その量子的な結果の精度を検証できる系が必要です。</strong></p>
+</blockquote>
+<p>3つの条件はいずれも、実際に働いています。</p>
+<ul>
+<li><strong>「利用可能な最良の古典手法」</strong>——最も都合の良い手法ではありませんし、成績が悪いという理由で選ばれた手法でもありません。比較は、古典的な道具で勝とうと本気で取り組む人が実行しなければなりません。</li>
+<li><strong>「量子デバイスが成功する」</strong>——同じ系、同じ活性空間、同じ基底関数系、同じ物理量の上でです。このどれか1つでも変えれば、比較は類推に変わってしまいます。</li>
+<li><strong>「検証された精度」</strong>——最も難しい条件です。問題が古典的に手に負えないのであれば、答えを古典的に確かめることはできません。検証はどこか別の場所から来なければなりません。変分的な限界、複数の手法をまたいだ内的整合性、関連する物理量についての実験との一致、あるいはそれ自体が信頼できる誤差棒です。手に負えない問題に対する検証不能な答えは、結果ではありません。</li>
+</ul>
+<p>この3つの条件の交わりこそ、入門シリーズが重なりの領域と呼んだものであり、その状況は変わっていません。<strong>そこは今なお空です。</strong> 最良の古典手法の手の届かない範囲にあり、同時に検証された精度で量子デバイスの手の届く範囲にある化学の問題について、説得力のある実証はまだ存在しません。</p>
+<p>これは今日についての言明であって、これからの10年についての予測ではありません。またこれは、関心を手放す理由でもありません。主張が現れたときに、自分が何を見ているのかを正確に知るための理由です。</p>
+<h2>5.7 材料科学にとってどこで効きうるのか</h2>
+<p>AI寺子屋のマテリアルズインフォマティクスや材料科学の側から本シリーズに来た方にとって、この節はまさにそのために書かれています。以下に述べるのは <strong>重なりが最初に現れうる場所についての仮説</strong> です。約束ではなく筋道を立てた推測であり、そのどれもが計画というよりは研究プログラムです。</p>
+<p><strong>強相関物質。</strong> 遷移金属酸化物、競合する磁気秩序、金属絶縁体転移の近傍にある系——これらは、DFTや標準的な結合クラスター法が依拠する単一参照の描像が最も信頼できない場所であり、したがって量子もつれをそのまま表現できる手法が最も貢献できるはずの場所です。難点は、興味深い物理がしばしば空間的に広がった低エネルギーのものであるのに対し、本シリーズのアルゴリズムは有限で明確に定義されたフラグメントに対して最もうまく定式化される点です。埋め込みが、持ちこたえなければならない橋になります。</p>
+<p><strong>触媒。</strong> 遷移金属の活性サイト、スピン状態のエネルギー論、そして結合解離の遷移状態は、多参照的な性格と、5.3節で値段を付けたまさにkcal/molの尺度での精度の要求とを併せ持ちます。触媒サイクルはまた、本質的に <em>局所的</em> です。より大きく退屈な環境の内部にある小さな活性領域——これはフラグメントソルバー型のアーキテクチャに適合します。触媒がほとんどすべての候補リストに載るのには、それ相応の理由があります。しかしそれは、これが解決済みの案件であることを意味しません。</p>
+<p><strong>電池とエネルギー貯蔵。</strong> 酸化還元電位、電解質の分解、界面の化学は、古典手法の扱いが一様ではない開殻中間体や電荷移動状態を伴い、しかも求められる物理量はここでもまた、化学精度でのエネルギー差です。</p>
+<p><strong>そして逆向きに走るつながり。</strong> マテリアルズインフォマティクスは訓練データの質によって上限を課されており、DFTのエネルギーで訓練されたモデルはDFTの誤差を引き継ぎます——それはまさに、上に挙げた強相関の場合を含みます。もし量子シミュレーションが、古典手法の信頼できない場所で信頼できるエネルギーを供給するようになれば、その効果は1つの良い計算ではなく、より良い <em>訓練データセット</em> であり、その上に築かれるすべてのモデルへと伝播します。本シリーズがそもそもマテリアルズインフォマティクスのサイトに置かれているのは、このてこの効きゆえです。</p>
+<p>MIの作法もまた、逆方向にそのまま移せます。テストセットを取り分けること、強いベースラインと比較すること、誠実な誤差を報告すること。古典的なベースラインを欠いた量子化学の結果は、ベースラインなしで報告された機械学習モデルと同じ範疇の主張であり、同じ扱いを受けるに値します。</p>
+<h2>5.8 誤り耐性時代の見通し</h2>
+<p>ここまでの内容はすべて、変分的なアプローチについてのものでした。浅い回路、多数の繰り返し、古典最適化器、そして誤り訂正なし、というアプローチです。この部屋にはもう1つのアルゴリズムがあり、その形はまったく異なります。</p>
+<p><strong>量子位相推定</strong> は、電子構造問題にとっての「いずれ来る」アルゴリズムです。サンプリングされた期待値を変分的に最小化するのではなく、制御時間発展によって蓄積された位相からハミルトニアンの固有値を直接取り出し、答えを補助レジスタへ1ビットずつ書き込みます。VQEとの対比は体系的です。</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>VQE（本シリーズ）</th>
+<th>量子位相推定</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>回路の深さ</td>
+<td>設計上、浅い</td>
+<td>深い——長い制御時間発展</td>
+</tr>
+<tr>
+<td>ハードウェアの要求</td>
+<td>ノイズのあるデバイスで動く</td>
+<td>意味を持つには誤り訂正が必要</td>
+</tr>
+<tr>
+<td>精度の源</td>
+<td>アンザッツの品質</td>
+<td>補助ビットの数。原理的には系統的</td>
+</tr>
+<tr>
+<td>最適化</td>
+<td>古典ループ。不毛の台地のリスクあり</td>
+<td>行き詰まるべき変分ループがない</td>
+</tr>
+<tr>
+<td>ショット数のスケーリング</td>
+<td>5.3節の \(\epsilon^{-2}\) の壁</td>
+<td>1回の実行あたりの精度スケーリングは良好。代償は深さ</td>
+</tr>
+<tr>
+<td>それでも必要な入力</td>
+<td>初期パラメータ</td>
+<td>基底状態とそれなりの重なりを持つ試行状態</td>
+</tr>
+</tbody>
+</table>
+<p>取引の内容は、統計と引き換えに深さを差し出すことです。位相推定はVQEを支配する測定の壁から逃れますが、その代価を、今日のデバイスが供給できない回路の深さで支払います。つまり <strong>誤り訂正</strong> で支払い、したがって論理量子ビットで支払い、したがって <a href="../quantum-computing-hardware/index.html">量子コンピュータのハードウェア</a> シリーズの第5章が描いた工学のプログラム全体で支払うということです。誤り耐性の時代がどれほど先なのかを知りたいなら、その問いが実際に住んでいるのはあの章です。化学ではなく、オーバーヘッド、しきい値、制御配線、そしてモジュール性の話です。</p>
+<p>留めておく価値のある但し書きが1つあります。位相推定もまた魔法ではありません。真の基底状態と意味のある重なりを持つ初期状態を必要としますが、強相関系に対してそのような状態を準備すること自体が未解決の問題であり、それはおそらく、アンザッツが解こうとしていたのと同じ問題です。困難は削除されたのではなく、移動しただけなのです。</p>
+<h2>5.9 いま、あなたにできること</h2>
+<p>一歩下がって、本シリーズが実際にあなたへ与えたものを棚卸ししてみましょう。</p>
+<p>あなたは、第二量子化された形の分子ハミルトニアンを取り、それを量子ビットへ写し、変分回路を組み立て、ハイブリッドループを走らせ、ポテンシャルエネルギー曲線を得ることができます。しかもすべての段階がNumPyの中で見える形になっており、あなたと数学の間にブラックボックスのライブラリは1つも立っていません。各段階がなぜそのように構成されているのかを知っているということは、論文やフレームワークの中の対応する段階を読み、それが何をしているのかを認識できるということです。</p>
+<p>もっと稀で、もっと有用なこともできます。量子コンピュータによる量子化学についての主張を前にして、それが何かを意味するかどうかを決める問いを立てられるのです。量子ビットは何個で、物理か論理か。活性空間は何で、基底関数系は何か。ショット数はいくつで、目標精度はどこか。古典的なベースラインは何で、それは勝とうと本気で取り組む人が実行したものか。答えは検証されたのか、そしてどのように検証されたのか。</p>
+<p>これこそ本シリーズが一貫して主張してきた心構えであり、姉妹シリーズが最後に置いたものと同じです。<strong>忠誠よりも較正を。</strong> この分野に必要なのは、さらなる熱狂でもなければ、さらなる切り捨てでもありません。必要なのは、実証と優位性の違いを見分けられる人であり、そして現実の状況そのものを、見続けるに足るほど興味深いと思える人です。</p>
+<p>重なりの領域は、今日は空です。いつか誰かがそこに何かを置くでしょう。あなたはもう、それを確かめるために必要なものを持っています。</p>
+<h3>🎯 演習問題</h3>
+<ol>
+<li><strong>4乗の算術</strong> : 5.2節のコードを使って、空間軌道20個の活性空間が必要とする相異なる2電子積分の数を計算し、10個の場合と比較してください。両方の場合について量子ビット数を述べ、なぜ量子ビット数が引用するには誤解を招く数値なのかを説明してください。</li>
+<li><strong>ショット数の予算</strong> : ショットノイズのコードを書き換えて、係数の1ノルムが \(\lambda = 50\) のときに \(10^{-4}\) ハートリーの目標に必要な総ショット数を計算してください。次に、可換なパウリ項をグループにまとめて測定することが、なぜ定数を変えても指数は変えないのかを一文で説明してください。</li>
+<li><strong>分散は常に1ではない</strong> : コードは最悪の場合である \(\mathrm{Var}(P) = 1\) を用いています。\(\mathrm{Var}(P) = 1 - \langle P \rangle^2\) となることを示し、必要なショット数が表の示す値よりはるかに小さくなる物理的状況を述べてください。</li>
+<li><strong>不毛の台地の論理</strong> : <em>より</em> 表現力の高いアンザッツが、なぜ最適化 <em>しにくく</em> なりうるのか、そしてなぜ問題に着想を得たアンザッツがその緊張を回避するのかを説明してください。答えを第3章の変分原理と関係づけてください。</li>
+<li><strong>活性空間の誠実さ</strong> : 同じ反応エネルギーについて2つの計算が与えられたとします。軌道8個の活性空間上での量子的な結果と、軌道40個の上での古典的な結果です。これが妥当な比較ではない理由を列挙し、妥当な比較を成り立たせるために何が必要かを述べてください。</li>
+<li><strong>基準を適用する</strong> : ハードウェア上での量子化学計算についての公開された主張を1つ見つけ、5.6節の3つの条件に照らして検証してください。その主張では評価できない条件がどれかを、明示的に書き留めてください。</li>
+<li><strong>深さ対統計</strong> : 5.8節の表を使って、ゲート誤り率が2桁改善したもののサンプリングレートはまったく改善しなかった場合に、VQEと位相推定のどちらを選ぶかを論じてください。</li>
+</ol>
+<h2>まとめ</h2>
+<p>本章では、第4章のH₂計算を分解し、分子が大きくなったときに何が壊れるのかを見てきました。<strong>H₂が簡単だったのは構造上の理由です</strong> : スピン軌道4個、量子ビット4個、そして引用ではなく対称性から導いた15項のパウリハミルトニアン——ノートPCが厳密に解ける程度に小さく、だからこそそのハードウェア実証は、優位性ではなく手法を検証するものになります。<strong>4つの予算はそれぞれ異なる速さで増えます</strong> : 量子ビットは基底に対して線形に、ハミルトニアンの項数はその <strong>4乗</strong> で、回路の深さは \(1/\epsilon\) 程度という予算に対してアンザッツとともに、そしてショット数は \(\epsilon^{-2}\) に係数の1ノルムを掛けた形で増えます。最初のNumPyによる計算は4乗則を直接示し、置換対称性が買えるのはおよそ8という定数倍だけで、指数には決して触れないことも示しました。<strong>測定は静かな殺し屋です</strong> : およそ \(1.6 \times 10^{-3}\) ハートリーという化学精度は <em>たった1つの</em> パウリ項に数十万ショットを要し、精度が10倍になるごとにショット数は100倍になり、しかも精度の目標が動かない一方で1ノルムは分子とともに増えていきます。<strong>不毛の台地</strong> はハードウェア効率的な直感を脅かします。構造を持たない表現力の高いアンザッツは、量子ビット数に対して指数的に消える勾配を持つからです。挙げた緩和策——問題に着想を得たアンザッツ、初期化の戦略、適応的な構築——はいずれも、構造を戻し入れることに帰着します。<strong>問題は小さくできます</strong>。活性空間（最もてこの効きが大きい削減であり、同時に比較が最も不誠実になりやすい場所）、厳密な対称性による簡約、そして量子デバイスを古典的なワークフローの内側のフラグメントソルバーと位置づける埋め込みの枠組みによってです。<strong>古典側の競争相手は立ち止まっていません</strong>——DFT、結合クラスター法、テンソルネットワーク、量子モンテカルロ法、機械学習ポテンシャルは、いずれも同じ領域へ進出しています——そのため誠実な基準は3つの条件を持ちます。最良の古典手法が失敗しなければならず、量子デバイスが <em>同じ</em> 問題で成功しなければならず、その結果が検証可能でなければならない、というものです。その重なりの領域は <strong>今なお空です</strong>。材料科学にとっては、強相関物質、触媒、電池が、そこが最初に埋まりうる場所についての筋道立った <strong>仮説</strong> であり、より良いエネルギーが単一の計算ではなくMIの訓練データセットを改善するという、てこの効いた恩恵を伴います。<strong>量子位相推定</strong> はいずれ来るアルゴリズムであり、測定の壁を回路の深さと、したがって誤り訂正と引き換えにします。それによって問いは、ハードウェアシリーズへと手渡されるのです。</p>
+<p>これで <em>量子コンピュータによる量子化学計算</em> シリーズは完結です。あなたはいま、分子の基底状態計算を量子回路の上にゼロから組み上げることができ、そして——同じくらい重要なことに——他人のその種の主張を読み、それが何かを意味するかどうかを決める問いがどれかを知ることができます。忠誠よりも較正を。それが長持ちする部分であり、この分野のあらゆる仕様の数値よりも長く生き残るはずです。</p>
+<p><a href="chapter-4.html">← 第4章: ハンズオン: H2 をゼロから</a> <a href="index.html">シリーズトップ →</a></p>
+<h3>免責事項</h3>
+<ul>
+<li>本コンテンツは教育・研究・情報提供のみを目的としており、専門的な助言(法律・会計・技術的保証など)を提供するものではありません。</li>
+<li>本コンテンツおよび付随するCode examplesは「現状有姿(AS IS)」で提供され、明示または黙示を問わず、商品性、特定目的適合性、権利非侵害、正確性・完全性、動作・安全性等いかなる保証もしません。</li>
+<li>外部リンク、第三者が提供するデータ・ツール・ライブラリ等の内容・可用性・安全性について、作成者および東北大学は一切の責任を負いません。</li>
+<li>本コンテンツの利用・実行・解釈により直接的・間接的・付随的・特別・結果的・懲罰的損害が生じた場合でも、適用法で許容される最大限の範囲で、作成者および東北大学は責任を負いません。</li>
+<li>本コンテンツの内容は、予告なく変更・更新・提供停止されることがあります。</li>
+<li>本コンテンツの著作権・ライセンスは明記された条件(例: CC BY 4.0)に従います。当該ライセンスは通常、無保証条項を含みます。</li>
+</ul><div class="navigation">
+    <a href="index.html" class="nav-button">シリーズトップへ戻る</a>
+</div>
+    </main>
+
+    <footer>
+        <p><strong>制作</strong>: AI寺子屋 コンテンツチーム</p>
+        <p><strong>監修</strong>: 橋本 佑介 博士（東北大学）</p>
+        <p><strong>バージョン</strong>: 1.0 | <strong>作成日</strong>: 2025-01-01</p>
+        <p><strong>ライセンス</strong>: Creative Commons BY 4.0</p>
+        <p>© 2025 AI寺子屋 - Dr. Yusuke Hashimoto, Tohoku University</p>
+    </footer>
+</body>
+</html>

@@ -3,6 +3,23 @@ title: "Chapter 1: AI Agent Fundamentals"
 chapter_title: "Chapter 1: AI Agent Fundamentals"
 ---
 
+## Video Lecture
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/eokRY4usm5A"
+    title="AI Agents Ch.1: AI Agent Fundamentals"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> This video covers the same content as the text below. Choose your preferred learning format.
+
+---
+
 This chapter covers the fundamentals of AI Agent Fundamentals, which what is an ai agent?. You will learn essential concepts and techniques.
 
 ## What is an AI Agent?

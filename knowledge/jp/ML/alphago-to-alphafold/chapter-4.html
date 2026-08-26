@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="第3章は1つの境界線の上で終わりました。自己対局の軌跡は、経験が安価で報酬がきれいなところで機能します——そして自然科学のほとんど何ものも、そのようではありません。">
+    <title>第4章: AlphaFold: タンパク質折りたたみのブレークスルー - AI Terakoya</title>
+    <link rel="canonical" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/jp/ML/alphago-to-alphafold/chapter-4.html">
+    <link rel="alternate" hreflang="ja" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/jp/ML/alphago-to-alphafold/chapter-4.html">
+    <link rel="alternate" hreflang="en" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/en/ML/alphago-to-alphafold/chapter-4.html">
+    <link rel="alternate" hreflang="x-default" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/en/ML/alphago-to-alphafold/chapter-4.html">
+    <meta property="og:title" content="第4章: AlphaFold: タンパク質折りたたみのブレークスルー - AI Terakoya">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/jp/ML/alphago-to-alphafold/chapter-4.html">
+    <meta property="og:site_name" content="AI Terakoya">
+    <meta property="og:locale" content="ja_JP">
+    <meta property="og:description" content="第3章は1つの境界線の上で終わりました。自己対局の軌跡は、経験が安価で報酬がきれいなところで機能します——そして自然科学のほとんど何ものも、そのようではありません。">
+
+    <style>
+        :root {
+            --color-primary: #2c3e50;
+            --color-primary-dark: #1a252f;
+            --color-accent: #7b2cbf;
+            --color-accent-light: #9d4edd;
+            --color-text: #2d3748;
+            --color-text-light: #4a5568;
+            --color-bg: #ffffff;
+            --color-bg-alt: #f7fafc;
+            --color-border: #e2e8f0;
+            --color-code-bg: #f8f9fa;
+            --color-link: #3182ce;
+            --color-link-hover: #2c5aa0;
+
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+
+            --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+            --border-radius: 8px;
+            --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-body);
+            line-height: 1.7;
+            color: var(--color-text);
+            background-color: var(--color-bg);
+            font-size: 16px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            padding: var(--spacing-xl) var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+            box-shadow: var(--box-shadow);
+        }
+
+        .header-content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: var(--spacing-sm);
+            line-height: 1.2;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            font-weight: 400;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-md);
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-md) var(--spacing-xl);
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-xl);
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-xs);
+            border-bottom: 3px solid var(--color-accent);
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-lg);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        h4 {
+            font-size: 1.1rem;
+            color: var(--color-primary-dark);
+            margin-top: var(--spacing-md);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        p {
+            margin-bottom: var(--spacing-md);
+            color: var(--color-text);
+        }
+
+        a {
+            color: var(--color-link);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        a:hover {
+            color: var(--color-link-hover);
+            text-decoration: underline;
+        }
+
+        ul, ol {
+            margin-left: var(--spacing-lg);
+            margin-bottom: var(--spacing-md);
+        }
+
+        li {
+            margin-bottom: var(--spacing-xs);
+            color: var(--color-text);
+        }
+
+        pre {
+            background-color: var(--color-code-bg);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            overflow-x: auto;
+            margin-bottom: var(--spacing-md);
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        code {
+            font-family: var(--font-mono);
+            font-size: 0.9em;
+            background-color: var(--color-code-bg);
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+        }
+
+        pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: var(--spacing-md);
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            border: 1px solid var(--color-border);
+            padding: var(--spacing-sm);
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--color-bg-alt);
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        blockquote {
+            border-left: 4px solid var(--color-accent);
+            padding-left: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            color: var(--color-text-light);
+            font-style: italic;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        .mermaid {
+            text-align: center;
+            margin: var(--spacing-lg) 0;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        details {
+            background-color: var(--color-bg-alt);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+        }
+
+        summary {
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--color-primary);
+            user-select: none;
+            padding: var(--spacing-xs);
+            margin: calc(-1 * var(--spacing-md));
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        summary:hover {
+            background-color: rgba(123, 44, 191, 0.1);
+        }
+
+        details[open] summary {
+            margin-bottom: var(--spacing-md);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .learning-objectives {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: var(--spacing-lg);
+            border-radius: var(--border-radius);
+            border-left: 4px solid var(--color-accent);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .learning-objectives h2 {
+            margin-top: 0;
+            border-bottom: none;
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            gap: var(--spacing-md);
+            margin: var(--spacing-xl) 0;
+            padding-top: var(--spacing-lg);
+            border-top: 2px solid var(--color-border);
+        }
+
+        .nav-button {
+            flex: 1;
+            padding: var(--spacing-md);
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            border-radius: var(--border-radius);
+            text-align: center;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: var(--box-shadow);
+        }
+
+        .nav-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            text-decoration: none;
+        }
+
+        footer {
+            margin-top: var(--spacing-xl);
+            padding: var(--spacing-lg) var(--spacing-md);
+            background-color: var(--color-bg-alt);
+            border-top: 1px solid var(--color-border);
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--color-text-light);
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            h2 {
+                font-size: 1.4rem;
+            }
+
+            h3 {
+                font-size: 1.2rem;
+            }
+
+            .meta {
+                font-size: 0.85rem;
+            }
+
+            .navigation {
+                flex-direction: column;
+            }
+
+            table {
+                font-size: 0.85rem;
+            }
+
+            th, td {
+                padding: var(--spacing-xs);
+            }
+        }
+    </style>
+
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+
+    <!-- MathJax for LaTeX equation rendering -->
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\(', '\)']],
+                displayMath: [['$$', '$$'], ['\[', '\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" id="MathJax-script" async></script>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <h1>第4章: AlphaFold: タンパク質折りたたみのブレークスルー</h1>
+            <p class="subtitle">アミノ酸の並びから三次元の形へ、そして進化が訓練データだったと判明するまで</p>
+            <div class="meta">
+                <span class="meta-item">📖 Reading Time: 20-25 minutes</span>
+                <span class="meta-item">📊 Difficulty: Beginner</span>
+                <span class="meta-item">💻 Code Examples: 0</span>
+                <span class="meta-item">📝 Exercises: 0</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+<h2>ビデオ講義</h2>
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/Z9WEyF6_NY8"
+    title="AlphaGoからAlphaFoldへ 第4章: AlphaFold: タンパク質折りたたみのブレークスルー"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+<p class="video-note">このビデオは以下のテキストと同じ内容をカバーしています。お好みの学習形式をお選びください。</p>
+
+<p>🌐 JP | <a href="../../../en/ML/alphago-to-alphafold/chapter-4.html">🇬🇧 EN</a> | Last sync: 2026-08-19</p>
+<p><a href="../index.html">機械学習道場</a> &gt; <a href="index.html">AlphaGoからAlphaFoldへ</a> &gt; 第4章</p>
+<p>第3章は1つの境界線の上で終わりました。自己対局の軌跡は、経験が安価で報酬がきれいなところで機能します——そして自然科学のほとんど何ものも、そのようではありません。10億回走らせられる生物学のシミュレータは存在しません。実験の終わりに「あなたが勝った」と曖昧さなく告げてくれる得点も存在しません。</p>
+<p>ですから、同じ組織が生物学で最も古い未解決問題の1つに向き合ったとき、本シリーズ前半の機構は何ひとつ転用できませんでした。自己対局なし。報酬関数なし。手の探索もなし。転用されたのは、もっと非特異的で、もっと持続的な何かでした。<em>問題の正しい表現とは何か</em> を問おうとする姿勢、そしてこの問題については <strong>データがすでに生成されていた——進化によって、数十億年をかけて、そして配列そのものの中に保存されていた</strong> という発見です。</p>
+<h2>4.1 問題: 並びから形へ</h2>
+<p>タンパク質は直鎖として製造されます。遺伝子は <strong>アミノ酸</strong> の配列——標準的な組では20種類——を指定し、単語の中の文字のように順番に連ねます。この鎖がタンパク質の <em>一次構造</em> であり、それを書き下すのは簡単です。シーケンシング技術がアミノ酸配列を豊富かつ安価にしました。</p>
+<p>しかし直鎖はほとんど何もしません。作られた直後、その鎖は <strong>折りたたまれ</strong>ます——自発的に、三次元で、特定の再現可能な形へと。そして仕事をするのはその形なのです。</p>
+<p><strong>構造が機能を決めます。</strong> 酵素が働くのは、その折りたたまれた形が、作用する分子に幾何学的・化学的に相補的なポケットを作るからです。抗体が標的に結合するのは、ループの特定の配置が合致する表面を提示するからです。膜チャネルがある種のイオンだけを通すのは、それが形作る通路の寸法が精確だからです。形が変われば機能は変わるか失われます。きわめて多くの疾患は、突き詰めれば誤った形を取ってしまったタンパク質なのです。</p>
+<p>つまり、タンパク質の立体構造を知ることは、しばしば「分子の名前を知っている」ことと「それが何をするのかを理解している」ことの差になります。ここから明白な問いが出てきます。配列が与えられたとき、形を予測できるのか?</p>
+<p>数十年にわたって、信頼できる答えは「実のところ無理だ——測りに行きなさい」でした。そして測定は難しいのです。</p>
+<ul>
+<li><strong>X線結晶構造解析</strong> は、タンパク質を説得して規則正しい結晶を作らせ、それから回折パターンから原子配置を推定します。結晶化は悪名高いほど予測不能で、数十年抵抗し続けたタンパク質もありますし、膜タンパク質はとりわけ非協力的です。</li>
+<li><strong>クライオ電子顕微鏡法</strong> は分子のコピーを多数凍結し、膨大な数のノイジーな二次元画像から三次元の密度を再構成します。結晶化を回避でき、この分野を一変させましたが、専用の装置と相当な熟練を要求します。</li>
+<li><strong>NMR分光法</strong> は溶液中で機能し、動的な情報を与えますが、タンパク質が大きくなるにつれて次第に困難になります。</li>
+</ul>
+<p>いずれも遅く、高価で、熟練を要する仕事です。その帰結は広がり続ける隔たりでした。<strong>配列は立体構造よりはるかに速く蓄積されました。</strong> 膨大な数のタンパク質が、それが何であるかの絵を伴わない、単なる文字列としてのみ知られていたのです。</p>
+<h3>📚 アンフィンセン: 情報は配列の中にある</h3>
+<p>そもそも予測を試みてよいという理論的な許可は、クリスチャン・アンフィンセンとその共同研究者たちが1960年代から1970年代にかけて行った一連の実験から来ています。この業績は1972年のノーベル化学賞の一部として認められました。</p>
+<p>実験は述べるだけなら単純です。折りたたまれて機能している状態のタンパク質を取ります。完全にほどけて活性を失うように処理します。それから慎重にその処理を取り除き、通常の条件へ戻します。</p>
+<p>タンパク質は <strong>自力で折りたたまり直します</strong> ——同じ立体構造へ、機能を回復して。折りたたみを導く細胞機構は何も存在しないのに。</p>
+<p>ここから引き出される結論が <strong>アンフィンセンの熱力学仮説</strong> です。そのようなタンパク質について、天然の立体構造は生理的条件下で熱力学的に有利なものであり、<strong>それを指定するために必要な情報はすべて、すでにアミノ酸配列の中に含まれている</strong>、というものです。外部の何かが折りたたみを指図しているわけではないのです。</p>
+<p>これがこれ以降のすべてに対する許可証です。もし配列が立体構造を決めていないのなら、配列から構造への予測は不可能なことを試みていることになります。アンフィンセンは、情報はそこにあると言っています。それを読み取るのが簡単だとは言っていません。</p>
+<h3>📚 レヴィンタールのパラドックス: なぜ探索は答えではないのか</h3>
+<p>サイラス・レヴィンタールは見かけ上の矛盾を指摘し、それがその後の誰もがこの問題を考える枠組みを形作りました。</p>
+<p>現実的な長さのタンパク質の鎖を考えます。主鎖に沿った各結合は、いくつかの異なる向きを取りえます。したがって可能な三次元配置の数は <strong>鎖の長さについて指数的</strong> であり——天文学的に大きく、サンプルしうる範囲をはるかに超えます。</p>
+<p>それなのに、実際のタンパク質は1秒に満たない時間で折りたたまれます。</p>
+<p>この2つの言明が、ともにランダムな探索を記述しているはずがありません。もしタンパク質が正しいものを見つけるまで配置を次々に試していたのなら、折りたたみは宇宙の年齢より長くかかるでしょう。明らかにそうはなっていません。</p>
+<p>その解決は、<strong>折りたたみは探索ではなく降下である</strong> ということです。エネルギー地形は、平坦な中に穴が1つ隠されているのではありません。それは <strong>漏斗（ファネル）</strong> の形をしており、部分的に正しい配置がすでにエネルギー的に有利になるようにバイアスされていて、鎖は天然状態へ向かって下り坂を導かれます。局所的な構造が素早く形成され、それが次に何が起こりうるかを制約するのです。</p>
+<p>レヴィンタールのパラドックスをここで述べたのには具体的な理由があります。それは <strong>配置の力任せの列挙が誤った道具である</strong> ことを述べており、ひいては、すべての原子の動きを追おうとする物理シミュレーションが、この問題に難しいほうから取り組んでいることを述べています。何か別のものが必要でした。それは統計だったと判明したのです。</p>
+<h2>4.2 CASP: この分野の誠実な採点板</h2>
+<p>立体構造予測は、多くの計算科学の分野を悩ませる問題を抱えていました。自分自身を欺くのがきわめて容易なのです。答えを知っていれば、答えを出すまで手法を調整してしまい、そして手法を手に入れたと信じてしまいます。</p>
+<p><strong>CASP</strong> ——Critical Assessment of Structure Prediction ——は、それを不可能にするために作られ、<strong>1994年以来2年ごと</strong> に開催されています。</p>
+<p>その設計こそが信頼できる理由です。立体構造を解いたがまだ公表していない実験研究者が配列を提供します。予測者は配列だけを受け取り、モデルを <strong>ブラインドで</strong> 提出します——実験グループの外の誰も答えを知りません。それから独立の評価者が、伏せられていた実験構造と予測を比較します。</p>
+<p>答えに向けて調整することはできません。答えを持っていないからです。したがってCASPは計算科学において比較的誠実な採点板の1つであり、立体構造予測を、明確で、コミュニティ全体で共有され、偽装できない進歩の尺度をもつ分野へと変えました。その歴史を読むことは、この分野のプレスリリースではなく実際の軌跡を読むことです——そして長いあいだその軌跡は <strong>着実で、苦労して勝ち取られた、漸進的な改善</strong> でした。予測はすでに解かれた何かに似たタンパク質については有用で、それ以外では当てになりませんでした。</p>
+<p>そして2回のCASPがそれを変えました。</p>
+<p><strong>2018年のCASP13</strong> は <strong>AlphaFold</strong> ——その最初のバージョン——が首位を占めました。そのアプローチは、それに先立つ伝統の中にはっきり位置づけられるものでした。残基の各ペアについて、折りたたまれた構造で <strong>接触（contact）</strong> しているかどうかを深層学習で予測し（後に距離の分布の予測へ精錬されました）、それから予測された制約を使って三次元モデルを構築するのです。新しかったのは、そうしたペアごとの関係の深層学習による予測が、どれだけ良くなっていたかという点でした。AlphaFold 1は主導的なシステムであり、明らかに一歩前進でした——しかしそれは一歩であり、この分野の全体像は変わっていませんでした。</p>
+<p><strong>2020年のCASP14</strong> は種類として違いました。<strong>AlphaFold 2</strong> は、多くの標的について実験構造に匹敵する予測を生み出したのです。評価者たちの判定は強いもので、この問題は <strong>単一のタンパク質ドメインについては本質的に解決されたと広く記述される</strong> に至りました——慎重に扱うべき表現であり、4.4節がまさにそれを行います。この手法は2021年に <em>Nature</em> 誌で発表されました。</p>
+<h2>4.3 AlphaFold 2はどう機能するのか、原理の水準で</h2>
+<p>以下が記述するのは <em>考え方</em> であって実装ではありません。このアーキテクチャには多数の構成要素と膨大な工学的細部がありますが、概念的な重みの大半は5つの原理が担っています。</p>
+<h3>📚 (1) データとしての進化: アラインメントから接触を読む</h3>
+<p>これが最も深い着想であり、本シリーズの2つの半分をつなぐものです。AlphaFold 2は、あなたが尋ねた配列だけを受け取るのではありません。<strong>マルチプル配列アラインメント（MSA）</strong> を受け取ります。すなわち、その配列と、進化的に関連する多数の配列——広い範囲の生物にわたって現れる同じタンパク質——を、対応する位置が同じ列に並ぶように整列させたものです。</p>
+<p>なぜこれがそれほど役に立つのでしょうか。<strong>共進化</strong> のおかげです。具体的なペアで論理を示します。</p>
+<p>折りたたまれた構造において、位置30と位置85が、鎖に沿っては遠く離れているのに、すぐ隣り合って座っていると仮定します。さらに、この生物では位置30が <strong>正に帯電した</strong> 残基を、位置85が <strong>負に帯電した</strong> 残基を担っており、両者のあいだの引力——塩橋——が折りたたみを保つのに役立っていると仮定します。</p>
+<p>ここで進化を、数百万年、数千種にわたって走らせます。</p>
+<ul>
+<li>位置30を正から負へ反転させる変異は、2つの負電荷を隣り合わせにします。両者は反発します。折りたたみは不安定になり、タンパク質はうまく働かなくなり、選択がその変異体を取り除きます。</li>
+<li>しかし <strong>位置30を負に、位置85を正に</strong> 反転させる変異体は引力を回復します。折りたたみは生き残ります。選択はそれを通します。</li>
+</ul>
+<p>こうしてアラインメント全体を見ると、特徴的なものが観察されます。<strong>どちらの列も保存されていない</strong> ——どちらの位置も種を越えて自由に変化する——<strong>にもかかわらず、両者は独立には変化しない</strong>。その変化は相関しているのです。一方が反転すると、他方が補償するように反転します。</p>
+<p>その相関は、空間的制約の化石記録です。鎖の上では遠く離れているが空間では隣接する2つの位置は、<strong>アラインメントの中に統計的な痕跡</strong> を残し、それは構造について何も知らずに読み出せるのです。</p>
+<p>これこそ、実験的に解かれた立体構造が比較的少ないにもかかわらず、この問題が扱いやすかった理由です。訓練データは、解かれた構造に限られてなどいませんでした。<strong>シーケンシングされたゲノムはすべて、結果がすでに記録された進化の実験</strong> であり、しかもそれが非常にたくさんあるのです。4.5節でこの信号を具体的かつ測定可能にします。</p>
+<p>これには2つの留保が伴い、どちらも本物のシステムが処理しなければならず、どちらも私たちのコードにも現れます。第1に、関連する配列は <strong>由来によって</strong> 関連しているので、任意の2つの位置が、触れているからではなく単に配列が祖先を共有しているために相関して見えることがあります——補正しなければならない交絡です。第2に、決して変化しない位置はまったく信号を担いません。完全に保存された列は、それが何と触れているかについて何も教えてくれないのです。</p>
+<h3>📚 (2) ペア表現とEvoformer</h3>
+<p>AlphaFold 2は <strong>2つの表現を同時に</strong> 保持しており、それらを分離しておくことが設計の中心です。</p>
+<ul>
+<li><strong>MSA表現</strong> は整列された配列を記述します——それら進化的な変異体すべてにわたって、各位置で何が起きているのか。</li>
+<li><strong>ペア表現</strong> は <strong>位置のペアどうしの関係</strong> を記述します。すべてのペア \((i, j)\) について1つのエントリがあり、その2つの残基が空間でどう関係しているかについて、ネットワークの現在の信念を符号化しています。</li>
+</ul>
+<p>ペア表現こそが、座標が存在するより前に構造が暗黙のうちに宿る場所です。それは幾何についてのネットワークの進化しつつある仮説なのです。</p>
+<p><strong>Evoformer</strong> は両方を処理するブロックです。その決定的な特徴は、2つの表現がアテンションを使って <strong>繰り返し、双方向に情報を交換する</strong> ことです。</p>
+<ul>
+<li>情報はMSAからペア表現へ流れます。列どうしの共進化の信号が、どのペアが近いかについての証拠になります。</li>
+<li>情報はペア表現からMSAへ流れ戻ります。現在の幾何的な信念が、アラインメントをどう読むべきかを変えます。</li>
+<li>ペア表現は <strong>それ自身</strong> に対しても更新されます——ここが微妙で重要な部分です。幾何は自己整合的でなければなりません。\(i\) が \(j\) に近く、\(j\) が \(k\) に近いなら、それは \(i\) が \(k\) からどれだけ離れられるかを制約します。三角不等式は選択肢ではありません。ペアの3つ組が互いについて推論できるようにする更新は、ペア表現を、独立な当て推量の寄せ集めではなく幾何的に整合した配置へと押しやります。</li>
+</ul>
+<p>この交換を何度も繰り返すことが <strong>反復的精錬</strong> を構成します。最初のパスは粗く、部分的に矛盾した絵を生み、それ以降の各パスがそれを調停して、強い局所的な証拠を外へ伝播させ、他所のより弱い制約を解決していきます。ネットワークは一撃で答えを計算しているのではありません——答えへ収束しつつあるのです。</p>
+<h3>📚 (3) 構造モジュール: 関係から座標へ</h3>
+<p>ここまではすべて抽象的です。位置とペアの表現です。どこかの時点で、実際の三次元の対象が出てこなければなりません。</p>
+<p><strong>構造モジュール</strong> は精錬された表現を取り、<strong>明示的な3D座標</strong> を生み出します。鍵となる設計判断は、座標を制約のない数値として予測しないことです。それは幾何を直接に扱います——各残基を、位置と向きをもつ剛体の局所フレームとして扱い、それらのフレームが空間でどう配置されるかを予測するのです。</p>
+<p>これが重要なのは、<strong>立体構造が、任意の数値の羅列には従わない制約に従う</strong> からです。結合長は自由に変わりません。原子どうしが同じ空間を占めることはできません。そしてタンパク質の立体構造は、どう回転させ平行移動させても同じ立体構造です——だから表現は座標系の恣意的な選び方に依存すべきではありません。この幾何をモジュールに組み込むということは、ネットワークが自分の容量を、実際に未解決である問い——部品どうしがどう配置されているのか——に費やし、そもそも疑いの余地がなかった化学とユークリッド空間についての事実の再導出には費やさない、ということです。</p>
+<p>第3章のMuZeroとの並行性に気づく価値があります。どちらの場合も、勝因は、システムが実際に生み出さねばならないものと整合した表現を選び、それ以外の何にも容量を費やすことを拒んだことにあるのです。</p>
+<h3>📚 (4) リサイクリング: 全体をもう一度走らせる</h3>
+<p>以上のすべてを包むさらなるループがあります。1回の完全なパスの出力——精錬された表現と予測された構造——が、次の完全なパスの <strong>入力へ戻されます</strong>。これが <strong>リサイクリング</strong> と呼ばれるものです。</p>
+<p>その効果は、ネットワークが自分の答えを見たうえで、それを改訂できるようになることです。最初のパスはある領域を自信をもって配置し、別の領域を曖昧なまま残すかもしれません。次のパスでは、自信のある領域が、曖昧な領域を制約する文脈として利用可能になります。これは反復的精錬をもう一度、単一のブロックではなくネットワーク全体のスケールで行うものです。</p>
+<p>これは生物学を超えて本当に有用な工学的着想です。<strong>モデルに自分の下書きを見せ</strong>、噛み合っていない部分を調停する機会を与えるのです。</p>
+<h3>📚 (5) 信頼度: 自分が知らないことを知る</h3>
+<p>信頼性の推定を伴わない予測は危険です。利用者が、自信のある答えと当て推量を区別できないからです。AlphaFold 2は構造とともに、<strong>pLDDTと呼ばれる残基ごとの信頼度スコア</strong> を出力します。</p>
+<p>大まかには、各残基について、この構造の当該部分を正しく配置できたとモデルがどれだけ確信しているか、ということです。高い信頼度は真剣に受け取るべき領域を示し、低い信頼度は慎重に扱うべき領域を示します——そして実務上、低信頼度の領域はしばしば、予測すべき単一の明確な構造をそもそも持たない、真に <strong>天然変性</strong> の部分に対応しています。</p>
+<p>科学利用にとって、この価値はいくら強調してもしすぎることはありません。<strong>どこが信頼できないかを報告するモデルは、責任をもって使えます</strong>。あらゆる予測を等しい見かけの権威とともに提示するモデルは、そうできません。研究者は自信のある領域の上に構築し、不確かな領域のまわりに実験を設計できます。予測が単に印象的なだけでなく真に使えるものになった理由の大きな部分がこれです。</p>
+<p>その使いやすさは、その後スケールをもって届けられました。2021年、DeepMindと <strong>EMBL-EBI</strong> は <strong>AlphaFoldタンパク質構造データベース</strong> を立ち上げ、予測された構造を広く公開しました——手法を、どの研究者も参照できるインフラへと変えたのです。</p>
+<h2>4.4 何を解決し、何を解決しなかったのか</h2>
+<p>「タンパク質折りたたみ問題は解決された」という表現は解きほぐす必要があります。誠実な版のほうが見出しより面白いからです。</p>
+<p><strong>本当に変わったこと。</strong> 十分な進化情報が利用できる <strong>単一の、行儀の良いタンパク質ドメイン</strong> について、予測は <em>しばしば当てにならない</em> から <em>たいてい科学的に有用なだけ正確である</em> へ移りました。予測をスケールをもって公開したことと合わせれば、これは日常的な生物学研究が「利用可能である」と前提できるものの変化です。実務上の意義は誇張のしようがないほどです。</p>
+<p><strong>依然として難しいこと。</strong> 以下はすべて現在進行形の問題であり、そのどれもCASP14で解決されてはいません。</p>
+<ul>
+<li><strong>複合体。</strong> タンパク質はたいてい他のもの——他のタンパク質、核酸、低分子——と結合することで仕事をします。2つのタンパク質がどうドッキングするかの予測は、どちらか一方の予測より難しい問題であり、後続のシステムはそれに対して、決着ではなく本物の前進をもって取り組んでいます。</li>
+<li><strong>動的挙動。</strong> 予測された構造は1枚の静止画です。実際のタンパク質は動きますし、その運動こそがしばしば機構そのものです。酵素は開閉し、トランスポーターはコンフォメーションを交代させ、シグナル伝達タンパク質は状態を切り替えます。1つの形を出力する手法は、分子がどの形のあいだを行き来するのか、どうやって一方から他方へ移るのかを教えてくれません。</li>
+<li><strong>天然変性領域。</strong> タンパク質配列のかなりの割合が、単一の安定な折りたたみを持ちません——結合相手を得たときにだけ構造を取るものもあれば、終始柔軟なままのものもあります。「構造を予測せよ」は、そうした領域については適切に定義された問いではありません。信頼度スコアはそれらに旗を立てます。それが正しい振る舞いですが、旗を立てることは解決することではありません。</li>
+<li><strong>変異の影響。</strong> アミノ酸1つの変化が、予測構造をほとんど変えないままタンパク質の機能を破壊しうる。この手法は多数の配列にわたる進化統計に大きく依存しているので、<em>ある個体における特定の1変異</em> の帰結について推論することは、それが作られた目的ではなく、それが得意だと仮定すべきではありません。</li>
+<li><strong>進化的な深さへの依存。</strong> 4.3節の共進化の信号は、多数の関連配列を必要とします。既知の近縁が少ないタンパク質——設計されたタンパク質や、急速に進化する一部のファミリーを含む——はずっと薄いアラインメントしか提供せず、性能もそれに応じて保証されなくなります。</li>
+</ul>
+<p>正しい要約はこうです。<strong>長らく残っていた問題が、はるかに小さな問題へと縮小され、そして残った問題はいまも実在する。</strong> この枠づけは水を差すものではありません。それが達成を判読可能にするのであり、次の研究者に未解決の問いがどこにあるのかを告げるのです。</p>
+<h2>4.5 ハンズオン: 進化から接触を読み出す</h2>
+<p>4.3節の共進化の議論は本章の概念的な心臓であり、受け入れるより検査するに値する種類の主張です。ここではそれを測定可能なものとして示します。</p>
+<p>疎水性・極性・塩基性・酸性という4つの残基クラスからなる小さなアルファベット上に、関連する配列の人工的なファミリーを構築します。その中で3つの選ばれた <strong>位置ペア</strong> は、塩橋がそう強いるのとまったく同じように、一緒に変異します。それから構造を捨て、アラインメントだけを保持し、<strong>相互情報量</strong> だけを使ってどのペアが接触していたかの復元を試みます。</p>
+<p>\[ I(i, j) \;=\; H(i) + H(j) - H(i, j) \]</p>
+<p>これは2つの列が独立に変化するときゼロになり、一方を知ることが他方について教えてくれるとき大きくなります。</p>
+<p>罠も仕掛けます。配列は3つの <strong>系統</strong> から来ており、8つの列が系統に応じてドリフトします。それら8つのあいだのすべてのペアは、空間で一度も触れることなく相関して見えるでしょう——4.3節で名指しした祖先共有の交絡です。<strong>平均積補正（average product correction, APC）</strong> が標準的な処方です。各列が何とでも相関しがちである一般的な傾向に帰せられる相関を、各ペアから差し引くのです。</p>
+<pre><code class="language-python">import numpy as np
+
+# ---------------------------------------------------------------
+# データとしての進化: アラインメントから空間的な接触を読み出す。
+# 関連する配列の人工的なファミリーを構築し、その中でいくつか選ばれた
+# 位置の「ペア」が一緒に変異するようにする——折りたたまれた構造で
+# 触れ合う2つの残基がそうならざるをえないのと同じように。それから
+# 構造を捨て、アラインメントだけを保持し、どのペアが接触していたかを
+# 統計だけから復元しようと試みる。これがAlphaFoldの入力が拠って立つ
+# 共進化の信号である。
+# ---------------------------------------------------------------
+rng = np.random.default_rng(20201130)
+
+N_SEQ, L = 800, 24                 # 配列数、位置（列）数
+ALPHABET = np.array(list(&quot;hp+-&quot;))  # 縮約クラス: 疎水性/極性/塩基性/酸性
+Q = len(ALPHABET)
+
+# 正解データ。数値は、相手の残基が最初の残基に「応答する」確率——
+# すなわちそのペアがどれだけきつく制約されているかである。
+CONTACTS = {(4, 19): 0.95,         # きついペア
+            (9, 14): 0.90,         # もう1つのきついペア
+            (2, 21): 0.60}         # ゆるいペア: 実在するが、ノイジー
+PARTNER = np.array([2, 3, 0, 1])   # h&lt;-&gt;+, p&lt;-&gt;- : 「応答」の規則
+
+# 構造的な意味をもたない交絡: 祖先の共有。配列は3つの系統から来ており、
+# これらの列は系統ごとにドリフトする。それらのあいだのすべてのペアは、
+# 空間で一度も触れることなく相関して見える。
+LINEAGES, LINEAGE_COLS = 3, [0, 3, 6, 7, 11, 15, 18, 22]
+
+
+def make_alignment():
+    &quot;&quot;&quot;整数コード化された残基からなる (N_SEQ, L) のアラインメントを生成する。&quot;&quot;&quot;
+    # 列ごとの背景組成。ディリクレのalphaが小さい =&gt; 保存的になる
+    conc = rng.lognormal(mean=0.0, sigma=1.0, size=L)
+    for col in [c for pair in CONTACTS for c in pair]:
+        conc[col] = 2.0            # 決して変化しない列は信号をもたない
+    background = np.array([rng.dirichlet(np.full(Q, c)) for c in conc])
+    lineage_comp = {(col, lin): rng.dirichlet(np.full(Q, 0.6))
+                    for col in LINEAGE_COLS for lin in range(LINEAGES)}
+    lineage_of = rng.integers(0, LINEAGES, size=N_SEQ)
+
+    msa = np.zeros((N_SEQ, L), dtype=np.int8)
+    for n in range(N_SEQ):
+        for col in range(L):
+            p = (lineage_comp[(col, lineage_of[n])] if col in LINEAGE_COLS
+                 else background[col])
+            msa[n, col] = rng.choice(Q, p=p)
+        for (i, j), strength in CONTACTS.items():
+            if rng.random() &lt; strength:      # 相手が応答する
+                msa[n, j] = PARTNER[msa[n, i]]
+    return msa
+
+
+def entropy(counts):
+    p = counts / counts.sum()
+    p = p[p &gt; 0]
+    return float(-(p * np.log2(p)).sum())
+
+
+def joint_counts(col_i, col_j):
+    return np.bincount(col_i.astype(int) * Q + col_j.astype(int),
+                       minlength=Q * Q).reshape(Q, Q)
+
+
+def mutual_information(col_i, col_j):
+    &quot;&quot;&quot;プラグイン推定による相互情報量（ビット単位）: H(i) + H(j) - H(i, j)。&quot;&quot;&quot;
+    jc = joint_counts(col_i, col_j)
+    return entropy(jc.sum(axis=1)) + entropy(jc.sum(axis=0)) - entropy(jc.ravel())
+
+
+msa = make_alignment()
+print(f&quot;Alignment: {N_SEQ} sequences x {L} positions, alphabet '{''.join(ALPHABET)}'&quot;)
+for n in range(5):
+    print(&quot;   &quot; + &quot;&quot;.join(ALPHABET[msa[n]]))
+
+# --- 共進化の物語を、具体的にする ------------------------------
+i, j = 4, 19
+jc = joint_counts(msa[:, i], msa[:, j])
+print(f&quot;\nJoint counts for the true contact ({i}, {j}); rows = position {i}:&quot;)
+print(&quot;        &quot; + &quot;&quot;.join(f&quot;{c:&gt;7}&quot; for c in ALPHABET))
+for a in range(Q):
+    print(f&quot;     {ALPHABET[a]}  &quot; + &quot;&quot;.join(f&quot;{jc[a, b]:&gt;7}&quot; for b in range(Q)))
+print(f&quot;   Marginals: position {i} {jc.sum(axis=1)}, position {j} {jc.sum(axis=0)}&quot;)
+print(&quot;   Each row has ONE dominant column: when position 4 changes,&quot;)
+print(&quot;   position 19 changes with it. Neither column alone is conserved.&quot;)
+
+# --- すべてのペアを採点する ------------------------------------
+mi = np.zeros((L, L))
+for a in range(L):
+    for b in range(a + 1, L):
+        mi[a, b] = mi[b, a] = mutual_information(msa[:, a], msa[:, b])
+
+# 平均積補正: 各列が何とでも相関しがちである一般的な傾向だけから
+# あるペアが示すであろう相互情報量を差し引く。
+row_mean = mi.sum(axis=1) / (L - 1)
+mi_apc = mi - np.outer(row_mean, row_mean) / row_mean.mean()
+np.fill_diagonal(mi_apc, 0.0)
+
+PAIRS = [(a, b) for a in range(L) for b in range(a + 1, L)]
+
+
+def label(pair):
+    if pair in CONTACTS:
+        return f&quot;TRUE CONTACT (coupling {CONTACTS[pair]:.2f})&quot;
+    if pair[0] in LINEAGE_COLS and pair[1] in LINEAGE_COLS:
+        return &quot;lineage artefact&quot;
+    return &quot;&quot;
+
+
+METHODS = [(&quot;raw MI&quot;, &quot;raw mutual information&quot;, mi),
+           (&quot;MI-APC&quot;, &quot;MI after average product correction&quot;, mi_apc)]
+rankings = {}
+for short, name, score in METHODS:
+    order = sorted(PAIRS, key=lambda ab: score[ab], reverse=True)
+    rankings[short] = order
+    print(f&quot;\nTop 8 pairs by {name}:&quot;)
+    print(f&quot;   {'rank':&gt;4} {'pair':&gt;10} {'score':&gt;9}   note&quot;)
+    for r, pair in enumerate(order[:8], 1):
+        print(f&quot;   {r:&gt;4} {str(pair):&gt;10} {score[pair]:&gt;9.4f}   {label(pair)}&quot;)
+
+print(f&quot;\nRank of each true contact, out of {len(PAIRS)} candidate pairs:&quot;)
+print(f&quot;   {'pair':&gt;10} {'coupling':&gt;9} &quot; + &quot; &quot;.join(f&quot;{s:&gt;8}&quot; for s in rankings))
+for pair, strength in CONTACTS.items():
+    ranks = &quot; &quot;.join(f&quot;{order.index(pair) + 1:&gt;8}&quot; for order in rankings.values())
+    print(f&quot;   {str(pair):&gt;10} {strength:&gt;9.2f} {ranks}&quot;)
+
+off = mi[np.triu_indices(L, 1)]
+print(f&quot;\nBackground MI over all {len(PAIRS)} pairs: median {np.median(off):.4f}, &quot;
+      f&quot;95th pct {np.percentile(off, 95):.4f} bits&quot;)
+print(f&quot;Strongest true contact (9, 14): {mi[9, 14]:.4f} bits &quot;
+      f&quot;-- {mi[9, 14]/np.median(off):.0f}x the median&quot;)
+</code></pre>
+<p><strong>出力:</strong></p>
+<pre><code>Alignment: 800 sequences x 24 positions, alphabet 'hp+-'
+   ---+h-h-ph+++-h---++hp-h
+   -phh-+p+ph+p+-+---hpp+hh
+   pphhh-+pph+h+-+h--++p+-h
+   --+h-+p-+php+--h--+pp+hh
+   -h-+h++-p++p+-hh--++pp+h
+
+Joint counts for the true contact (4, 19); rows = position 4:
+              h      p      +      -
+     h        3      3    448     11
+     p        0      1      0    109
+     +        9      1      0      0
+     -        1    207      4      3
+   Marginals: position 4 [465 110  10 215], position 19 [ 13 212 452 123]
+   Each row has ONE dominant column: when position 4 changes,
+   position 19 changes with it. Neither column alone is conserved.
+
+Top 8 pairs by raw mutual information:
+   rank       pair     score   note
+      1    (9, 14)    1.3888   TRUE CONTACT (coupling 0.90)
+      2    (4, 19)    1.2343   TRUE CONTACT (coupling 0.95)
+      3    (2, 21)    0.5431   TRUE CONTACT (coupling 0.60)
+      4    (6, 15)    0.2733   lineage artefact
+      5    (6, 22)    0.2575   lineage artefact
+      6     (6, 7)    0.2383   lineage artefact
+      7     (3, 6)    0.2303   lineage artefact
+      8    (6, 11)    0.2265   lineage artefact
+
+Top 8 pairs by MI after average product correction:
+   rank       pair     score   note
+      1    (9, 14)    1.2302   TRUE CONTACT (coupling 0.90)
+      2    (4, 19)    1.1050   TRUE CONTACT (coupling 0.95)
+      3    (2, 21)    0.5110   TRUE CONTACT (coupling 0.60)
+      4    (6, 15)    0.1664   lineage artefact
+      5    (6, 22)    0.1547   lineage artefact
+      6     (6, 7)    0.1399   lineage artefact
+      7     (3, 6)    0.1398   lineage artefact
+      8    (6, 11)    0.1369   lineage artefact
+
+Rank of each true contact, out of 276 candidate pairs:
+         pair  coupling   raw MI   MI-APC
+      (4, 19)      0.95        2        2
+      (9, 14)      0.90        1        1
+      (2, 21)      0.60        3        3
+
+Background MI over all 276 pairs: median 0.0071, 95th pct 0.1184 bits
+Strongest true contact (9, 14): 1.3888 bits -- 195x the median
+</code></pre>
+<p><strong>結果の読み方。</strong> 5つの観察を挙げます。最後の2つが、あなたを誠実に保つものです。</p>
+<ul>
+<li>
+<p><strong>同時出現数の表が、議論の全体を1枚の絵にしています。</strong> 周辺分布を見てください。位置4はアラインメント全体で4つの残基クラスすべてを取り（465, 110, 10, 215）、位置19も同様です（13, 212, 452, 123）。どちらの列も保存されていません——どちらか一方だけを読めば、何も語ることのない自由に変化する位置に見えます。しかし同時分布の表は <strong>各行に1つの支配的なエントリ</strong> をもちます。位置4が <code>h</code> のとき、位置19はほぼ常に <code>+</code> です（465のうち448）。位置4が <code>-</code> のとき、位置19はほぼ常に <code>p</code> です（215のうち207）。制約はどちらの列にも見えず、ペアにおいては紛れもない。これが4.3節の塩橋の物語を、数え上げで表したものです。</p>
+</li>
+<li>
+<p><strong>3つの真の接触がすべて順位の上位を占めます。</strong> <strong>276</strong> 通りの候補ペアのうち、仕込んだ3つの接触が順位 <strong>1, 2, 3</strong> を占めます——相手が60%しか応答しない、意図的にゆるくしたペア (2, 21) も含めて。そのスコア（0.5431ビット）はきついペアよりかなり下ですが、それ以外のすべてよりはるかに上です。この信号はかなりのノイズを生き延びます。制約が緩く部分的にしか満たされない実際のアラインメントで使えるようにする性質は、まさにこれです。</p>
+</li>
+<li>
+<p><strong>交絡は実在し、そして補正は効きます。</strong> 順位4から8はすべて <strong>系統のアーティファクト</strong> です——祖先以外に何も共有していない列のペアです。生の相互情報量はそのうち最強のものを0.2733ビットに置き、背景の中央値0.0071を優に上回ります。正解データがなければ、これらを接触だと受け取ってしまうでしょう。APCを適用すると、そのペアは0.2733から0.1664へ——およそ39%の減少——切り下げられる一方、最上位の真の接触は1.3888から1.2302へ、およそ11%しか落ちません。補正は交絡を、信号を抑えるのより約3倍強く抑えます。本物のシステムがこれを使う理由がそれです。</p>
+</li>
+<li>
+<p><strong>順位が結合の強さの順になっていないことに注意してください。</strong> ペア (9, 14) は結合0.90で、結合0.95の (4, 19) を上回っています。これはバグではなく、理解しておく価値があります。<strong>相互情報量は、結合の強さと、列がどれだけ多様に変化するかを混ぜてしまう</strong> のです。より均等に変化する列のペアに対するやや弱い制約のほうが、偏った列のペアに対するやや強い制約より多くのビットを担います。単一の数値による接触スコアはすべて、この曖昧さを内包しています。したがって高いスコアは制約の存在の証拠ではありますが、それがどれだけきついかの測定値ではありません。</p>
+</li>
+<li>
+<p><strong>これは本物の問題より、具体的に4つの点で簡単です。</strong> 私たちのアルファベットは20ではなく4クラスなので、同時分布のセル数が800配列から推定できるほど少なくて済みます。実際のアラインメントはセルあたりずっと疎であり、プラグイン推定の相互情報量は計数が薄いと上向きに偏ります。私たちの配列は系統内で独立ですが、実際の配列は3つの平坦なグループよりはるかに構造をもつ系統樹の上に乗っています。私たちの結合は直接的でペアごとですが、実際の相関は伝播します——\(i\) が \(j\) に触れ、\(j\) が \(k\) に触れるなら、\(i\) と \(k\) は触れていないのに相関して見え、直接結合と間接結合を切り分けること自体が相当な問題です。そして最も重要なことに、<strong>ありそうな接触のリストは立体構造ではありません。</strong> ペアごとの制約を座標に変えるのは4.3節(2)と4.3節(3)のすべてが担う仕事であり、そこにこそ難しさが実際に集中しているのです。</p>
+</li>
+</ul>
+<p>ゆるいペアの結合を <code>0.60</code> から <code>0.35</code> に下げて再実行してみてください。それが順位のどこに着地するか、そしてそのスコアが系統のアーティファクトにどこまで近づくかを観察してください。その交差点——真だが弱い制約が交絡と区別できなくなる場所——がこのアプローチ全体の実務的な限界であり、本物のシステムが相互情報量よりはるかに多くを必要とする理由なのです。</p>
+<h3>🎯 演習問題</h3>
+<ol>
+<li>
+<p><strong>許可証。</strong> アンフィンセンの熱力学仮説を1文で述べ、それがなければ配列から構造への予測が不良設定になる理由を精確に説明してください。そのうえで、この仮説が予測を簡単だと <em>含意しない</em> 理由を説明してください。</p>
+</li>
+<li>
+<p><strong>なぜシミュレートしないのか。</strong> レヴィンタールのパラドックスはしばしば「折りたたみはランダムな探索ではありえない」と要約されます。漏斗による解決を自分の言葉で説明し、そのうえで、すべての原子の運動をシミュレートして構造を予測する見込みについて、このパラドックスが何を含意するのかを説明してください。</p>
+</li>
+<li>
+<p><strong>共進化の論理。</strong> 自分自身の残基ペアを——4.3節の塩橋とは異なる化学で——考案し、同じ物語を語ってください。なぜ一方の位置だけの変異が選択で排除されるのか、なぜ補償する2つの変異はそうならないのか、そしてこれがアラインメントにどんなパターンを残すのか。<em>個々の</em> 列に何が見えるかを明示的に述べてください。</p>
+</li>
+<li>
+<p><strong>デモに計器を付ける。</strong> 配列数 <code>N_SEQ</code> が50, 100, 200, 400, 800 と変化するようにコードを改変し、各サイズにおける各真接触の順位を記録してください。アラインメントの深さがどこまで浅くなると、ゆるいペアは復元できなくなりますか。あなたの答えを4.4節の最後の箇条書きと関連づけてください。</p>
+</li>
+<li>
+<p><strong>予測を監査する。</strong> ある同僚がAlphaFoldで予測した立体構造を見せ、そこに見えるポケットに対する阻害剤の設計を提案しています。同意する前に尋ねる5つの問いを挙げてください——信頼度スコアについて少なくとも1つ、そのタンパク質が動的である可能性について1つ、利用可能なアラインメントの深さについて1つを含めてください。</p>
+</li>
+</ol>
+<h2>まとめ</h2>
+<p>タンパク質はアミノ酸の直鎖として作られ、自発的に特定の三次元の形へ折りたたまれます。そして <strong>機能を決めるのはその形</strong> です。その形を測定すること——X線結晶構造解析、クライオ電顕、NMRによって——は遅く高価で熟練を要する仕事であり、その結果、配列は立体構造よりはるかに速く蓄積されました。<strong>アンフィンセンの再折りたたみ実験</strong>（1960〜70年代、1972年ノーベル賞）は、必要な情報はすべてすでに配列の中にあるという <strong>熱力学仮説</strong> を確立し、予測を適切に定義された問題にしました。<strong>レヴィンタールのパラドックス</strong> は、それが列挙では見つからないことを確立しました。配置の数は鎖の長さについて指数的なのに、折りたたみは1秒足らずで起きる。したがって地形は探索されるのではなく <strong>漏斗状</strong> でなければなりません。</p>
+<p><strong>CASP</strong> は <strong>1994年以来2年ごと</strong> に開催され、予測者に伏せられた実験構造に対して <strong>ブラインドで</strong> モデルを提出させることで、進歩を測定可能にしました。数十年にわたって進歩は漸進的でした。<strong>2018年のCASP13ではAlphaFold 1</strong> が、ペアごとの接触予測に適用された深層学習によって首位を占めました。<strong>2020年のCASP14におけるAlphaFold 2</strong> はこの分野を変え、問題は <strong>単一ドメインについては本質的に解決されたと広く記述される</strong> に至りました。手法は2021年に <em>Nature</em> 誌で発表され、<strong>AlphaFoldタンパク質構造データベース</strong> が同2021年に <strong>EMBL-EBI</strong> とともに立ち上がりました。</p>
+<p>設計を支えるのは5つの原理です。<strong>データとしての進化</strong>: マルチプル配列アラインメントは <strong>共進化</strong> を露わにします。空間的に接触する2つの位置は、補償的な変異が折りたたみを保存するために相関して変化するのです。<strong>ペア表現</strong> は位置のあらゆるペアについての信念を保持し、<strong>Evoformer</strong> はアテンションを使ってそれとMSAのあいだで情報を繰り返し交換します。幾何的な自己整合性を強制する更新も含めて。<strong>構造モジュール</strong> はそれらの関係を実際の座標へ変えつつ、実在の幾何が従う制約を組み込みます。<strong>リサイクリング</strong> は完了したパスを入力へ戻し、ネットワークが自分の下書きを改訂できるようにします。そして <strong>pLDDT</strong> が残基ごとの信頼度を報告し、それが出力を安全に積み上げられるものにしています。</p>
+<p>私たちの共進化のデモは、第1の原理を測定可能にしました。800配列のアラインメントから、仕込んだ3つの接触はすべて <strong>276通りの候補ペアのうち1, 2, 3位</strong> にランクされ、最強のものは <strong>背景の中央値0.0071に対して1.3888ビット</strong> でした——一方で同時出現数の表は、その制約が <strong>どちらか一方の列だけでは見えない</strong> ことを示しました。仕込んだ祖先共有の交絡は順位4から8を占め、<strong>平均積補正</strong> はそれをおよそ39%切り下げる一方、真の信号にはおよそ11%のコストしかかけませんでした。</p>
+<p>誠実な境界線は、この達成と同じくらい重要です。深いアラインメントをもつ <strong>単一の静的なドメイン</strong> は、当てにならない状態から日常的に有用な状態へ移りました。<strong>複合体、動的挙動、天然変性領域、単一変異の影響、既知の近縁が少ないタンパク質は依然として難しい。</strong> 長らく残っていた問題はより小さな問題へ縮小され、そのより小さな問題はいまも実在します。</p>
+<p>次章は一歩下がって、囲碁からタンパク質への軌跡が実際に何を教えたのか——ゲームから科学へ何が引き継がれ、何が引き継がれなかったのか、そして同じ組織がほとんど何の共通点もない2つの問題を解いた10年から、1つの分野が何を学ぶべきなのか——を問います。</p>
+<p><a href="chapter-3.html">← 第3章: Zeroとその先: 人間なしで学ぶ</a> <a href="chapter-5.html">第5章: 遺産: ゲームから科学へ →</a></p>
+<h3>免責事項</h3>
+<ul>
+<li>本コンテンツは教育・研究・情報提供のみを目的としており、専門的な助言(法律・会計・技術的保証など)を提供するものではありません。</li>
+<li>本コンテンツおよび付随するCode examplesは「現状有姿(AS IS)」で提供され、明示または黙示を問わず、商品性、特定目的適合性、権利非侵害、正確性・完全性、動作・安全性等いかなる保証もしません。</li>
+<li>外部リンク、第三者が提供するデータ・ツール・ライブラリ等の内容・可用性・安全性について、作成者および東北大学は一切の責任を負いません。</li>
+<li>本コンテンツの利用・実行・解釈により直接的・間接的・付随的・特別・結果的・懲罰的損害が生じた場合でも、適用法で許容される最大限の範囲で、作成者および東北大学は責任を負いません。</li>
+<li>本コンテンツの内容は、予告なく変更・更新・提供停止されることがあります。</li>
+<li>本コンテンツの著作権・ライセンスは明記された条件(例: CC BY 4.0)に従います。当該ライセンスは通常、無保証条項を含みます。</li>
+</ul><div class="navigation">
+    <a href="index.html" class="nav-button">シリーズトップへ戻る</a>
+    <a href="chapter-5.html" class="nav-button">次の章へ →</a>
+</div>
+    </main>
+
+    <footer>
+        <p><strong>制作</strong>: AI寺子屋 コンテンツチーム</p>
+        <p><strong>監修</strong>: 橋本 佑介 博士（東北大学）</p>
+        <p><strong>バージョン</strong>: 1.0 | <strong>作成日</strong>: 2025-01-01</p>
+        <p><strong>ライセンス</strong>: Creative Commons BY 4.0</p>
+        <p>© 2025 AI寺子屋 - Dr. Yusuke Hashimoto, Tohoku University</p>
+    </footer>
+</body>
+</html>

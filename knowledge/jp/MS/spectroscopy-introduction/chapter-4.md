@@ -3,6 +3,22 @@ title: "第4章: ラマン分光法 (Raman Spectroscopy)"
 chapter_title: "第4章: ラマン分光法 (Raman Spectroscopy)"
 ---
 
+## ビデオ講義
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/n6yPS5_-4bA"
+    title="分光分析入門 第4章: ラマン分光法 (Raman Spectroscopy)"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> このビデオは以下のテキストと同じ内容をカバーしています。お好みの学習形式をお選びください。
+
 JP | [EN](<../../../en/MS/spectroscopy-introduction/chapter-4.html>) | Last sync: 2025-12-26
 
 [AI寺子屋トップ](<../../index.html>)>[材料科学](<../../MS/index.html>)>[分光分析入門](<../../MS/spectroscopy-introduction/index.html>)>第4章
@@ -27,9 +43,9 @@ JP | [EN](<../../../en/MS/spectroscopy-introduction/chapter-4.html>) | Last sync
 
 \\[ \Delta \tilde{\nu} = \tilde{\nu}_{\text{入射}} - \tilde{\nu}_{\text{散乱}} = \frac{1}{\lambda_{\text{入射}}} - \frac{1}{\lambda_{\text{散乱}}} \\] 
 
-ここで、\\( \tilde{\nu} \\) は波数（cm-1）、\\( \lambda \\) は波長（cm）です。ラマンシフトは入射光の波長に依存せず、分子振動の固有エネルギーに対応します。
+ここで、\\( \tilde{\nu} \\) は波数（cm$^{-1}$）、\\( \lambda \\) は波長（cm）です。ラマンシフトは入射光の波長に依存せず、分子振動の固有エネルギーに対応します。
 
-**波長（nm）から波数（cm -1）への変換:**
+**波長（nm）から波数（cm$^{-1}$）への変換:**
 
 \\[ \tilde{\nu}\,(\text{cm}^{-1}) = \frac{10^7}{\lambda\,(\text{nm})} \\] 
 
@@ -56,7 +72,7 @@ JP | [EN](<../../../en/MS/spectroscopy-introduction/chapter-4.html>) | Last sync
             style A1 fill:#e3f2fd
             style A2 fill:#fff3e0
             style B1 fill:#fce4ec
-    ```
+        
     4.1.3 ストークス散乱とアンチストークス散乱の強度比
     アンチストークス散乱は振動励起状態の分子からのみ生じるため、その強度はストークス散乱より弱くなります。強度比はボルツマン分布に従います。
     
@@ -294,11 +310,11 @@ JP | [EN](<../../../en/MS/spectroscopy-introduction/chapter-4.html>) | Last sync
     4.3.1 ラマン分光計の構成
     
         flowchart LR
-            A[励起レーザー532/633/785 nm] --> B[試料散乱光発生]
-            B --> C[エッジフィルターレイリー光除去]
-            C --> D[分光器波長分散]
-            D --> E[CCD検出器スペクトル記録]
-            E --> F[データ解析PC処理]
+            A[励起レーザー<br/>532/633/785 nm] --> B[試料<br/>散乱光発生]
+            B --> C[エッジフィルター<br/>レイリー光除去]
+            C --> D[分光器<br/>波長分散]
+            D --> E[CCD検出器<br/>スペクトル記録]
+            E --> F[データ解析<br/>PC処理]
     
             style A fill:#e3f2fd
             style B fill:#fff3e0
@@ -939,6 +955,34 @@ JP | [EN](<../../../en/MS/spectroscopy-introduction/chapter-4.html>) | Last sync
     
     # 実行
     simulate_swcnt_raman()
+    
+    4.5.4 シリコンの結晶性評価
+    同じピーク形状の考え方は炭素材料以外にも適用できます。結晶シリコンは 520 cm^-1 に半値幅
+    わずか 3-4 cm^-1 の鋭い一次光学フォノンピークを示しますが、アモルファスシリコンでは長距離
+    秩序が失われて q ~ 0 の選択則が緩和されるため、480 cm^-1 付近を中心とする数十 cm^-1 幅の
+    ブロードなバンドに変化します。混相膜では両者が重畳するため、400-560 cm^-1 の包絡線を
+    結晶成分と非晶質成分に分離することで結晶化度を見積もれます:
+            \[
+            X_c \approx \frac{I_c}{I_c + I_a}
+            \]
+            ここで \( I_c \)、\( I_a \) はそれぞれ 520 cm^-1 成分と 480 cm^-1 成分の積分強度です。
+    ただしこの式は簡略化されたものです。定量評価では粒界に対応する 500-510 cm^-1 付近の
+    中間成分を加えた3成分フィッティングを行い、さらにラマン散乱断面積比
+    \( y = \sigma_a/\sigma_c \)（およそ 0.7-0.9、粒径と励起波長に依存）で補正します。
+    したがって上式の X_c は絶対的な結晶体積分率ではなく、校正を前提とした相対指標として
+    扱うべきです。またレーザー加熱は 520 cm^-1 ピークを低波数側にシフトさせ広幅化するため、
+    ピーク位置が安定する程度に励起パワーを抑える必要があります。
+    
+    4.5.5 生体・医療応用
+    水のラマン散乱が弱いことから、ラマン分光は生体組織や生細胞を無染色・無標識のまま直接
+    測定できます。タンパク質や脂質は特徴的なバンドを示し、フェニルアラニンの環呼吸振動
+    1003 cm^-1、アミドIII 1250 cm^-1 付近、CH2 変角 1445 cm^-1 付近、アミドI 1660 cm^-1
+    付近の相対強度の変化から病変組織と正常組織を識別できます。これがラマン分光による
+    がん組織診断の原理です。共焦点ラマンイメージングはこれらのバンドをサブミクロン分解能で
+    マッピングする無標識イメージングを可能にし、時間分解測定では細胞内の薬剤自身の
+    ラマンシグネチャの変化から薬剤と細胞の相互作用を追跡できます。これらの応用でも、
+    非破壊・最小限の前処理・ガラスや水環境との適合性というラマン分光の実用上の利点が
+    そのまま生きています。
     
     4.6 ラマンスペクトルの前処理とピークフィッティング
     4.6.1 ベースライン補正

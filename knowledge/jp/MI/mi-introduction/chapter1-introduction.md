@@ -16,7 +16,6 @@ exercises: 0
     height="315"
     src="https://www.youtube.com/embed/xuyOM6ba3x4"
     title="MI入門 第1章：なぜ今マテリアルズインフォマティクスなのか"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>

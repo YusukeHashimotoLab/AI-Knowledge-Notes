@@ -10,9 +10,8 @@ subtitle: "フォノン角運動量の計算、バレートロニクス応用、
   <iframe
     width="560"
     height="315"
-    src="https://www.youtube.com/embed/eh4l3F1ANtA"
+    src="https://www.youtube.com/embed/bWqfo0IBMbs"
     title="カイラルフォノン 第4章: 応用と計算手法"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>

@@ -3,6 +3,23 @@ title: "Chapter 4: Practical Applications"
 chapter_title: "Chapter 4: Practical Applications"
 ---
 
+## Video Lecture
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/ySYWhVgGNOc"
+    title="AI Agents Ch.4: Practical Applications"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> This video covers the same content as the text below. Choose your preferred learning format.
+
+---
+
 This chapter focuses on practical applications of Practical Applications. You will learn essential concepts and techniques.
 
 ## Practical Agent Applications

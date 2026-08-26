@@ -10,7 +10,7 @@ This chapter focuses on practical applications of Industrial Applications. You w
 
 Bayesian optimization has achieved proven results across a wide range of industrial sectors including chemical processes, materials manufacturing, and pharmaceutical development. In this chapter, we will learn how to apply theory to real processes through seven practical case studies. 
 
-#### =¡ Industrial Applications Covered in This Chapter
+#### 💡 Industrial Applications Covered in This Chapter
 
   1. **Chemical Reactor Condition Optimization** : Simultaneous optimization of temperature, pressure, and concentration
   2. **Optimal Catalyst Composition Design** : Multi-element catalyst composition exploration
@@ -28,7 +28,7 @@ Bayesian optimization has achieved proven results across a wide range of industr
 
 **Parameters** : Temperature (60-120°C), Residence time (10-60 min), Catalyst concentration (0.1-2.0 mol/L)
 
-**Constraints** : Temperature d 110°C (safety), Side reaction rate d 5%
+**Constraints** : Temperature ≤ 110°C (safety), Side reaction rate ≤ 5%
 
 ### Example 1: CSTR Reaction Condition Optimization
     
@@ -233,18 +233,18 @@ Bayesian optimization has achieved proven results across a wide range of industr
     print("\nSaved: cstr_optimization.png")
     
 
-####  Case Study 1 Results
+#### ✅ Case Study 1 Results
 
-  * Optimal conditions found in 30 experiments (conventional DOE: 150 experiments)
-  * Yield: 85% ’ 94% (9% improvement)
+  * Optimal conditions found in 40 experiments - 10 initial Latin-hypercube samples plus 30 BO iterations (conventional DOE: 150 experiments)
+  * Yield: 85% → 94% (+9 percentage points, a 10.6% relative improvement)
   * Optimized while satisfying safety and quality constraints
-  * Experimental cost: 80% reduction
+  * Experimental cost: 73% reduction (40 experiments vs 150)
 
 ## 5.3 Optimal Catalyst Composition Design
 
 ### Case Study 2: Four-Element Catalyst Composition Optimization
 
-**Challenge** : Maximize catalytic activity for CO‚ reduction reaction
+**Challenge** : Maximize catalytic activity for CO₂ reduction reaction
 
 **Parameters** : Composition ratio of Cu, Zn, Al, Mn (total 100%)
 
@@ -260,7 +260,7 @@ Bayesian optimization has achieved proven results across a wide range of industr
         Args:
             X: [Cu, Zn, Al, Mn] composition (wt%, total 100%)
         Returns:
-            activity: Catalyst activity (¼mol/g/h)
+            activity: Catalyst activity (μmol/g/h)
             selectivity: CO selectivity (%)
         """
         Cu, Zn, Al, Mn = X[:, 0], X[:, 1], X[:, 2], X[:, 3]
@@ -356,7 +356,7 @@ Bayesian optimization has achieved proven results across a wide range of industr
         selectivity_cat = np.hstack([selectivity_cat, next_sel])
     
         if (iteration + 1) % 10 == 0:
-            print(f"Iteration {iteration+1}/{n_iter_cat}: Best activity = {activity_cat.max():.1f} ¼mol/g/h")
+            print(f"Iteration {iteration+1}/{n_iter_cat}: Best activity = {activity_cat.max():.1f} μmol/g/h")
     
     # Best composition
     best_idx_cat = np.argmax(activity_cat)
@@ -369,7 +369,7 @@ Bayesian optimization has achieved proven results across a wide range of industr
     print(f"  Zn: {best_composition[1]:.1f}%")
     print(f"  Al: {best_composition[2]:.1f}%")
     print(f"  Mn: {best_composition[3]:.1f}%")
-    print(f"  Activity: {best_activity:.1f} ¼mol/g/h")
+    print(f"  Activity: {best_activity:.1f} μmol/g/h")
     print(f"  Selectivity: {best_selectivity:.1f}%")
     
     # Visualization (ternary diagram + activity mapping)
@@ -385,7 +385,7 @@ Bayesian optimization has achieved proven results across a wide range of industr
     ax1.set_ylabel('Zn Content (%)', fontsize=12)
     ax1.set_title('Cu-Zn Composition Map (Activity)', fontsize=13, fontweight='bold')
     ax1.legend()
-    plt.colorbar(sc1, ax=ax1, label='Activity (¼mol/g/h)')
+    plt.colorbar(sc1, ax=ax1, label='Activity (μmol/g/h)')
     ax1.grid(alpha=0.3)
     
     # Activity vs Selectivity
@@ -393,7 +393,7 @@ Bayesian optimization has achieved proven results across a wide range of industr
                       cmap='copper', s=100, alpha=0.7, edgecolors='black', linewidth=0.5)
     ax2.scatter(best_activity, best_selectivity, c='gold', s=300, marker='*',
                 edgecolors='black', linewidth=2, label='Optimum', zorder=10)
-    ax2.set_xlabel('Activity (¼mol/g/h)', fontsize=12)
+    ax2.set_xlabel('Activity (μmol/g/h)', fontsize=12)
     ax2.set_ylabel('CO Selectivity (%)', fontsize=12)
     ax2.set_title('Activity-Selectivity Tradeoff', fontsize=13, fontweight='bold')
     ax2.legend()
@@ -405,10 +405,10 @@ Bayesian optimization has achieved proven results across a wide range of industr
     print("\nSaved: catalyst_optimization.png")
     
 
-####  Case Study 2 Results
+#### ✅ Case Study 2 Results
 
-  * Optimal composition found in 45 experiments (combination space: >10v)
-  * Catalyst activity: 320 ’ 485 ¼mol/g/h (51% improvement)
+  * Optimal composition found in 45 experiments (combination space: >10⁶)
+  * Catalyst activity: 320 → 485 μmol/g/h (51% improvement)
   * CO selectivity: 75% maintained
   * Search satisfying simplex constraint (total 100%)
 
@@ -451,8 +451,8 @@ Bayesian optimization has achieved proven results across a wide range of industr
     
         return np.clip(yield_rate, 0, 100), np.clip(purity, 0, 100), impurity_A, impurity_B
     
-    # Comparison with Box-Behnken design
-    print("\nRunning process tuning (BO vs Box-Behnken)...\n")
+    # Sequential Bayesian optimization: 20 Latin-hypercube points + 40 BO iterations
+    print("\nRunning process tuning with Bayesian optimization (20 initial + 40 iterations)...\n")
     
     # Parameter ranges
     bounds_process = np.array([
@@ -536,6 +536,10 @@ Bayesian optimization has achieved proven results across a wide range of industr
     print(f"\nImprovement: {yield_all_proc.max() - yield_proc.max():.2f}%")
     
 
+#### 💡 Why no Box-Behnken run appears here
+
+A Box-Behnken design is a **one-shot** response-surface design: its entire run list is fixed before a single experiment is performed, and it presumes a quadratic response across the whole six-variable box. The loop above is **sequential** instead - each of the 40 iterations refits the Gaussian process on everything measured so far and places the next run where expected improvement is largest, so the design adapts to the surface it discovers. That adaptivity is what this section demonstrates; no Box-Behnken design is executed in the code, and the two approaches are not benchmarked head-to-head here.
+
 ## 5.5 Quality Optimization (Constrained)
 
 ### Example 4: Optimization Within Pharmaceutical Quality Specifications
@@ -547,9 +551,9 @@ Bayesian optimization has achieved proven results across a wide range of industr
     
         Constraints:
         - Assay: 95.0-105.0%
-        - Impurity A: d 0.5%
-        - Impurity B: d 0.3%
-        - Dissolution: e 80% in 30min
+        - Impurity A: ≤ 0.5%
+        - Impurity B: ≤ 0.3%
+        - Dissolution: ≥ 80% in 30min
         """
         temp, pH, press, coat = X[:, 0], X[:, 1], X[:, 2], X[:, 3]
     
@@ -650,7 +654,7 @@ Bayesian optimization has achieved proven results across a wide range of industr
         print(f"  Temperature: {best_pharma_x[0]:.1f}°C")
         print(f"  pH: {best_pharma_x[1]:.1f}")
         print(f"  Pressure: {best_pharma_x[2]:.0f} bar")
-        print(f"  Coating thickness: {best_pharma_x[3]:.1f} ¼m")
+        print(f"  Coating thickness: {best_pharma_x[3]:.1f} μm")
         print(f"  Throughput: {best_pharma_tp:.1f} kg/h")
     
 
@@ -796,11 +800,11 @@ Bayesian optimization has achieved proven results across a wide range of industr
 
 ### Case Study 7: From Implementation to Operation - Polymer Polymerization Process
 
-**Goal** : Minimize polydispersity index (PDI) and achieve yield e90%
+**Goal** : Minimize polydispersity index (PDI) and achieve yield ≥ 90%
 
 **Parameters (7D)** : Temperature, initiator concentration, monomer concentration, agitation speed, pH, pressure, reaction time
 
-**Constraints** : Temperature d100°C, Viscosity d5000 cP, Residual monomer d1%
+**Constraints** : Temperature ≤ 100°C, Viscosity ≤ 5000 cP, Residual monomer ≤ 1%
 
 ### Example 7: Complete Implementation Workflow
     
@@ -885,7 +889,7 @@ Bayesian optimization has achieved proven results across a wide range of industr
                 mu_pdi, sigma_pdi = gp_pdi.predict(X_cand, return_std=True)
                 mu_yield, sigma_yield = gp_yield.predict(X_cand, return_std=True)
     
-                # Constraint: yield e 90%
+                # Constraint: yield ≥ 90%
                 yield_pof = norm.cdf((mu_yield - 90) / (sigma_yield + 1e-6))
     
                 # EI for PDI (minimization)
@@ -919,7 +923,7 @@ Bayesian optimization has achieved proven results across a wide range of industr
                 if (iteration + 1) % 10 == 0:
                     feasible_now = self.y_yield_history >= 90
                     if feasible_now.any():
-                        print(f"Iteration {iteration+1}/{n_iterations}: Best PDI (yielde90%) = {self.y_pdi_history[feasible_now].min():.3f}")
+                        print(f"Iteration {iteration+1}/{n_iterations}: Best PDI (yield≥90%) = {self.y_pdi_history[feasible_now].min():.3f}")
                     else:
                         print(f"Iteration {iteration+1}/{n_iterations}: No feasible solution yet")
     
@@ -938,7 +942,7 @@ Bayesian optimization has achieved proven results across a wide range of industr
                 best_pdi = self.y_pdi_history[feasible][best_idx]
                 best_yield = self.y_yield_history[feasible][best_idx]
     
-                print(f"\nOptimal conditions (satisfying yielde90%):")
+                print(f"\nOptimal conditions (satisfying yield≥90%):")
                 param_names = ['Temperature(°C)', 'Initiator(mol/L)', 'Monomer(mol/L)',
                               'Agitation(rpm)', 'pH', 'Pressure(bar)', 'Time(min)']
                 for i, name in enumerate(param_names):
@@ -952,7 +956,7 @@ Bayesian optimization has achieved proven results across a wide range of industr
                 print(f"  Total experiments: {len(self.X_history)}")
                 print(f"  Feasible solutions: {feasible.sum()} ({feasible.sum()/len(self.X_history)*100:.1f}%)")
             else:
-                print("\nNo solution satisfying yielde90% was found.")
+                print("\nNo solution satisfying yield≥90% was found.")
                 print(f"Best yield: {self.y_yield_history.max():.2f}%")
     
     # Execute
@@ -972,11 +976,11 @@ Bayesian optimization has achieved proven results across a wide range of industr
     print("\nSaved: Fully integrated case study completed")
     
 
-####  Fully Integrated Case Study Results
+#### ✅ Fully Integrated Case Study Results
 
   * Target achieved in 75 experiments (conventional DOE: >300 experiments)
-  * PDI: 2.1 ’ 1.35 (36% improvement)
-  * Yield: 92.5% achieved (target e90%)
+  * PDI: 2.1 → 1.35 (36% improvement)
+  * Yield: 92.5% achieved (target ≥ 90%)
   * Satisfies constraints (viscosity, residual monomer)
   * Experimental cost: 75% reduction
 
@@ -1006,7 +1010,7 @@ In this chapter, we learned about industrial applications of Bayesian optimizati
 
 Having completed the series, you are now ready to apply Bayesian optimization to real processes. The next step is to apply it to your own process and achieve continuous improvement! 
 
-[� Chapter 4: Multi-Objective & Constrained Optimization](<chapter-4.html>) [Back to Table of Contents](<index.html>)
+[← Chapter 4: Multi-Objective & Constrained Optimization](<chapter-4.html>) [Back to Table of Contents](<index.html>)
 
 ## References
 

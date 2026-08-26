@@ -8,6 +8,23 @@ code_examples: 7
 exercises: 3
 ---
 
+## ビデオ講義
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/19mMCx43g94"
+    title="バイオインフォマティクス入門 第4章: バイオセンサー・ドラッグデリバリー材料設計"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> このビデオは以下のテキストと同じ内容をカバーしています。お好みの学習形式をお選びください。
+
+---
+
 # 第4章：バイオセンサー・ドラッグデリバリー材料設計
 
 **実世界応用とキャリアパス**
@@ -684,10 +701,10 @@ exercises: 3
     
         # コストと成功率
         costs = {
-            'Phase 1': 5000,  # 万円
-            'Phase 2': 10000,
-            'Phase 3': 50000,
-            'Phase 4': 500000
+            'Phase 1': 50,  # 百万ドル
+            'Phase 2': 100,
+            'Phase 3': 500,
+            'Phase 4': 5000
         }
     
         success_rates = {
@@ -708,11 +725,11 @@ exercises: 3
     
             total_cost += cost
             print(f"{phase}")
-            print(f"  コスト: {cost:,} 万円")
+            print(f"  コスト: {cost:,} 百万ドル")
             print(f"  成功率: {success*100:.1f}%")
             print(f"  累積成功率: {cumulative_success*100:.2f}%")
     
-        print(f"\n総開発コスト: {total_cost:,} 万円")
+        print(f"\n総開発コスト: {total_cost:,} 百万ドル")
         print(f"上市までの累積成功率: {cumulative_success*100:.2f}%")
     
     simulate_rd_workflow()
@@ -734,13 +751,15 @@ exercises: 3
     
     === 開発コストと成功率 ===
     Phase 1: 基礎研究（6-12ヶ月）
-      コスト: 5,000 万円
+      コスト: 50 百万ドル
       成功率: 30.0%
       累積成功率: 30.00%
     ...
-    総開発コスト: 565,000 万円
+    総開発コスト: 5,650 百万ドル
     上市までの累積成功率: 0.03%
     
+
+**注** : これらの数値は、承認薬1つあたりの資本コストを含めた費用です。上市に至らなかった多数の候補にかかった費用も含まれるため、成功した1プログラム単体の実費よりはるかに大きな金額になります。業界の推計には幅がありますので、正確な値ではなく桁感として捉えてください。
 
 * * *
 
@@ -836,11 +855,11 @@ exercises: 3
 
   4. **キャリアパス** \- バイオマテリアル企業 \- 製薬企業 \- バイオベンチャー
 
-### シリーズ完了
+### 次章について
 
-おめでとうございます！バイオインフォマティクス入門シリーズを完了しました。
+応用編はここまでです。本シリーズにはもう1章あります。[第5章: AlphaFold革命](<chapter-5.html>)では、タンパク質構造予測の課題を解いたAIの歩みを紹介し、予測構造のダウンロード・信頼度評価・解析を実際に行います。
 
-**次のステップ** : \- [ケモインフォマティクス入門](<../chemoinformatics-introduction/index.html>) \- [データ駆動材料設計入門](<../data-driven-materials-introduction/index.html>) \- 独自プロジェクト開始
+**シリーズ修了後のステップ** : \- [ケモインフォマティクス入門](<../chemoinformatics-introduction/index.html>) \- [データ駆動材料設計入門](<../data-driven-materials-introduction/index.html>) \- 独自プロジェクト開始
 
 * * *
 
@@ -887,7 +906,7 @@ DDS設計において、受動的ターゲティングと能動的ターゲテ�
 
 ## ナビゲーション
 
-**[← 第3章](<./chapter-3.html>)** | **[目次](<./index.html>)**
+**[← 第3章](<./chapter-3.html>)** | **[目次](<./index.html>)** | **[第5章 →](<./chapter-5.html>)**
 
 * * *
 
@@ -899,4 +918,4 @@ DDS設計において、受動的ターゲティングと能動的ターゲテ�
 
 * * *
 
-**バイオインフォマティクス入門シリーズの完了、おめでとうございます！**
+**次は[第5章: AlphaFold革命](<chapter-5.html>)へ進みましょう。**

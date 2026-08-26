@@ -8,6 +8,23 @@ code_examples: 10
 exercises: 4
 ---
 
+## ビデオ講義
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/mWOEhjH-h3s"
+    title="ケモインフォマティクス入門 第1章: 分子表現とRDKit基礎"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> このビデオは以下のテキストと同じ内容をカバーしています。お好みの学習形式をお選びください。
+
+---
+
 # 第1章：分子表現とRDKit基礎
 
 ## この章で学ぶこと

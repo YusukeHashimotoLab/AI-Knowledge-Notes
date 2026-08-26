@@ -1,13 +1,13 @@
 ---
-title: "Chapter 2: Embeddings and Search"
-chapter_title: "Chapter 2: Embeddings and Search"
+title: "Chapter 2: Embeddings and Vector Databases"
+chapter_title: "Chapter 2: Embeddings and Vector Databases"
 ---
 
 <div class="video-container">
   <iframe
     width="560"
     height="315"
-    src="https://www.youtube.com/embed/DkDPo6pqQOQ"
+    src="https://www.youtube.com/embed/mFmcB_EwLT0"
     title="RAG Introduction Ch.2: Embeddings and Vector Databases"
     frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -15,7 +15,7 @@ chapter_title: "Chapter 2: Embeddings and Search"
   </iframe>
 </div>
 
-This chapter covers Embeddings and Search. You will learn essential concepts and techniques.
+This chapter covers embeddings and vector databases. You will learn essential concepts and techniques.
 
 ## 1\. Vector Embeddings
 
@@ -348,7 +348,6 @@ An open-source vector database that excels at metadata filtering.
     
     
     import chromadb
-    from chromadb.config import Settings
     from langchain.vectorstores import Chroma
     from langchain.embeddings import OpenAIEmbeddings
     
@@ -360,11 +359,8 @@ An open-source vector database that excels at metadata filtering.
             self.persist_directory = persist_directory
             self.vectorstore = None
     
-            # Client configuration
-            self.client = chromadb.Client(Settings(
-                chroma_db_impl="duckdb+parquet",
-                persist_directory=persist_directory
-            ))
+            # Client configuration (data is persisted under the given path)
+            self.client = chromadb.PersistentClient(path=persist_directory)
     
         def create_collection(self, documents, collection_name="default"):
             """Create collection"""
@@ -375,8 +371,7 @@ An open-source vector database that excels at metadata filtering.
                 persist_directory=self.persist_directory
             )
     
-            # Persist
-            self.vectorstore.persist()
+            # Persistence is automatic in current Chroma (no persist() call needed)
             print(f"Collection created: {collection_name}")
     
         def add_documents(self, documents):
@@ -385,7 +380,6 @@ An open-source vector database that excels at metadata filtering.
                 raise ValueError("Collection not created")
     
             self.vectorstore.add_documents(documents)
-            self.vectorstore.persist()
             print(f"{len(documents)} documents added")
     
         def search_with_filter(self, query, k=5, where=None, where_document=None):
@@ -471,33 +465,32 @@ A cloud-native vector database that excels at scalability.
 #### Implementation Example 5: Pinecone Implementation
     
     
-    import pinecone
-    from langchain.vectorstores import Pinecone
+    from pinecone import Pinecone, ServerlessSpec
+    from langchain.vectorstores import Pinecone as LangChainPinecone
     from langchain.embeddings import OpenAIEmbeddings
     import time
     
     class PineconeVectorStore:
         """Pinecone vector store implementation"""
     
-        def __init__(self, api_key, environment, embeddings):
+        def __init__(self, api_key, embeddings):
             self.embeddings = embeddings
     
-            # Initialize Pinecone
-            pinecone.init(
-                api_key=api_key,
-                environment=environment
-            )
+            # Initialize the Pinecone client (v3+ API; no environment argument)
+            self.pc = Pinecone(api_key=api_key)
     
-        def create_index(self, index_name, dimension=1536, metric='cosine'):
-            """Create index"""
+        def create_index(self, index_name, dimension=1536, metric='dotproduct'):
+            """Create index
+    
+            Note: hybrid (sparse-dense) search requires metric="dotproduct"
+            """
             # Check for existing index
-            if index_name not in pinecone.list_indexes():
-                pinecone.create_index(
+            if index_name not in self.pc.list_indexes().names():
+                self.pc.create_index(
                     name=index_name,
                     dimension=dimension,
                     metric=metric,
-                    pods=1,
-                    pod_type='p1.x1'
+                    spec=ServerlessSpec(cloud='aws', region='us-east-1')
                 )
                 # Wait for index to be ready
                 time.sleep(1)
@@ -507,7 +500,7 @@ A cloud-native vector database that excels at scalability.
     
         def upsert_documents(self, index_name, documents):
             """Upsert documents"""
-            vectorstore = Pinecone.from_documents(
+            vectorstore = LangChainPinecone.from_documents(
                 documents,
                 self.embeddings,
                 index_name=index_name
@@ -517,7 +510,7 @@ A cloud-native vector database that excels at scalability.
     
         def search_with_namespace(self, index_name, query, k=5, namespace=None):
             """Search with namespace specification"""
-            vectorstore = Pinecone.from_existing_index(
+            vectorstore = LangChainPinecone.from_existing_index(
                 index_name=index_name,
                 embedding=self.embeddings,
                 namespace=namespace
@@ -526,37 +519,63 @@ A cloud-native vector database that excels at scalability.
             results = vectorstore.similarity_search_with_score(query, k=k)
             return results
     
-        def hybrid_search(self, index_name, query, k=5, alpha=0.5):
+        @staticmethod
+        def hybrid_scale(dense, sparse, alpha):
+            """Weight the dense and sparse vectors on the client side
+    
+            alpha=1 -> pure dense (vector search), alpha=0 -> pure sparse (keyword search)
+            """
+            if not 0 <= alpha <= 1:
+                raise ValueError("alpha must be between 0 and 1")
+    
+            hsparse = {
+                'indices': sparse['indices'],
+                'values': [v * (1 - alpha) for v in sparse['values']]
+            }
+            hdense = [v * alpha for v in dense]
+            return hdense, hsparse
+    
+        def hybrid_search(self, index_name, query, sparse_encoder, k=5, alpha=0.5):
             """Hybrid search (dense vector + sparse vector)
     
             alpha: 0=keyword search only, 1=vector search only
+            Note: alpha is NOT a Pinecone API parameter. The weighting is applied
+            on the client side by scaling both vectors before the query is sent.
+            sparse_encoder: a keyword encoder such as pinecone_text.sparse.BM25Encoder
             """
-            # Pinecone hybrid search feature
-            index = pinecone.Index(index_name)
+            index = self.pc.Index(index_name)
     
-            # Query embedding
-            query_vector = self.embeddings.embed_query(query)
+            # Dense vector (query embedding) and sparse vector (keyword weights)
+            dense_vector = self.embeddings.embed_query(query)
+            sparse_vector = sparse_encoder.encode_queries(query)
     
-            # Execute hybrid search
+            # Apply the alpha weighting before querying
+            dense_vector, sparse_vector = self.hybrid_scale(
+                dense_vector, sparse_vector, alpha
+            )
+    
+            # Execute hybrid search (the index must use metric="dotproduct")
             results = index.query(
-                vector=query_vector,
+                vector=dense_vector,
+                sparse_vector={
+                    'indices': sparse_vector['indices'],
+                    'values': sparse_vector['values']
+                },
                 top_k=k,
-                include_metadata=True,
-                # Hybrid search parameter
-                alpha=alpha
+                include_metadata=True
             )
     
             return results
     
         def delete_index(self, index_name):
             """Delete index"""
-            if index_name in pinecone.list_indexes():
-                pinecone.delete_index(index_name)
+            if index_name in self.pc.list_indexes().names():
+                self.pc.delete_index(index_name)
                 print(f"Index deleted: {index_name}")
     
         def get_index_stats(self, index_name):
             """Get index statistics"""
-            index = pinecone.Index(index_name)
+            index = self.pc.Index(index_name)
             stats = index.describe_index_stats()
             return stats
     
@@ -564,7 +583,6 @@ A cloud-native vector database that excels at scalability.
     embeddings = OpenAIEmbeddings(openai_api_key="your-openai-key")
     pinecone_store = PineconeVectorStore(
         api_key="your-pinecone-key",
-        environment="us-west1-gcp",
         embeddings=embeddings
     )
     

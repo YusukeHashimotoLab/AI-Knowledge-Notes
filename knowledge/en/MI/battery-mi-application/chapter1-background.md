@@ -10,6 +10,23 @@ version: 1.0
 created_at: 2025-10-17
 ---
 
+## Video Lecture
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/Xw4_FsbdOFk"
+    title="Battery MI Ch.1: Fundamentals of Battery Materials and the Role of Materials Informatics"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> This video covers the same content as the text below. Choose your preferred learning format.
+
+---
+
 # Chapter 1: Fundamentals of Battery Materials and the Role of Materials Informatics
 
 This chapter covers the fundamentals of Fundamentals of Battery Materials and the Role of Materials Informatics, which battery fundamentals. You will learn essential concepts and techniques.
@@ -47,7 +64,7 @@ This chapter covers the fundamentals of Fundamentals of Battery Materials and th
 
 ### 1.1.2 Key Performance Metrics
 
-**Energy Density:** \- Definition: Energy per unit mass (Wh/kg) \- Calculation: `Energy density = Capacity (mAh/g) × Voltage (V) × 0.001` \- Current status: LIB 200-300 Wh/kg, Target 500 Wh/kg (all-solid-state batteries)
+**Energy Density:** \- Definition: Energy per unit mass (Wh/kg) \- Active-material calculation: `Active-material specific energy (Wh/kg) = Capacity (mAh/g) × Average voltage (V)` (a theoretical value for the active material alone: 200 mAh/g at 3.7 V gives about 740 Wh/kg) \- Cell level: a complete cell also carries the anode, electrolyte, separator, current collectors and casing, so cell-level energy density is roughly one third of the active-material value \- Current status: LIB 200-300 Wh/kg at the cell level, Target 500 Wh/kg (all-solid-state batteries, cell level)
 
 **Power Density:** \- Definition: Output per unit mass (W/kg) \- Requirements by application: EV (>300 W/kg), Stationary (>50 W/kg)
 
@@ -95,7 +112,7 @@ This chapter covers the fundamentals of Fundamentals of Battery Materials and th
 
 **Challenge 4: Safety Enhancement** \- Risks: Thermal runaway, fire \- Causes: Internal short circuit, overcharging, mechanical damage \- Countermeasures: Solid electrolyte, flame-retardant electrolyte, protection circuits
 
-**Challenge 5: Cost Reduction** \- Current: $150/kWh (2024) \- Target: $50/kWh (EVs equivalent to gasoline vehicles) \- High-cost factors: Co ($40,000/ton), Li ($15,000/ton)
+**Challenge 5: Cost Reduction** \- Current: $150/kWh (2024) \- Target: $50/kWh (EVs equivalent to gasoline vehicles) \- High-cost factors: Co and Li (2022 peak prices of about $40,000/t and $15,000/t; both have since fallen and remain volatile)
 
 **Challenge 6: Supply Chain** \- Co dependence: Congo produces 60% (geopolitical risk) \- Li dependence: Australia and Chile produce 80% \- Solutions: Na-ion batteries, recycling
 
@@ -133,7 +150,7 @@ This chapter covers the fundamentals of Fundamentals of Battery Materials and th
 
 **MI approach:** \- Reinforcement Learning \- Reward function: Charging speed + Cycle life - Degradation \- Multi-objective Optimization
 
-**Example achievements:** \- 80% charge in 10 minutes, degradation rate < 1%/1000 cycles \- EV charging time: 30 minutes → 10 minutes (Stanford University, 2020) \- Patent filings: Tesla, Toyota, Panasonic
+**Example achievements:** \- 80% charge in 10 minutes, degradation rate < 1%/1000 cycles \- EV charging time: 30 minutes → 10 minutes (Stanford University, 2020) \- Industrial context: fast-charging protocol optimization is an active industrial research area, though the protocols individual manufacturers actually ship are not public
 
 * * *
 

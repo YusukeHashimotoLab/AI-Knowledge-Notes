@@ -10,7 +10,7 @@ subtitle: Process Informatics Dojo - Shaping the Future of Chemical Process Opti
 
 [← Back to AI Terakoya Top](<../index.html>)
 
-📚 Introduction Series (5 Series)
+📚 Introduction Series (11 Series)
 
 📘
 
@@ -21,6 +21,66 @@ Fundamental concepts of PI and practical data utilization in process industries
 Beginner to Intermediate 90-120 min 4 Chapters, 35 Examples
 
 [Start →](<./pi-introduction/index.html>)
+
+📗
+
+Chemical Engineering Introduction
+
+Unit operations and balances, reaction engineering, process control, process design, and where AI fits
+
+Beginner 100-125 min 5 Chapters, 3 Examples
+
+[Start →](<./chemical-engineering-introduction/index.html>)
+
+📗
+
+Chemical Engineering Thermodynamics
+
+Energy and the First Law, entropy and the price of separation, phase and chemical equilibrium, real fluids and equations of state
+
+Intermediate 100-125 min 5 Chapters, 5 Examples
+
+[Start →](<./chemical-engineering-thermodynamics/index.html>)
+
+📗
+
+Chemical Engineering Fluid Mechanics
+
+Pressure and statics, the mechanical energy balance, Reynolds number and flow regimes, pipe friction, pumps and piping systems
+
+Intermediate 100-125 min 5 Chapters, 5 Examples
+
+[Start →](<./chemical-engineering-fluid-mechanics/index.html>)
+
+📗
+
+Chemical Engineering Heat Transfer
+
+Conduction and convection resistances, heat-exchanger sizing with the LMTD, boiling and condensation, radiation and furnaces, design and intensification
+
+Intermediate 100-125 min 5 Chapters, 5 Examples
+
+[Start →](<./chemical-engineering-heat-transfer/index.html>)
+
+📗
+
+Chemical Engineering Mass Transfer and Separation
+
+Diffusion and the two-film model, absorption and HTU-NTU, distillation with McCabe-Thiele, extraction, adsorption and membranes, drying and crystallization
+
+Intermediate 100-125 min 5 Chapters, 5 Examples
+
+[Start →](<./chemical-engineering-mass-transfer/index.html>)
+
+📗
+
+Chemical Engineering Reaction Engineering
+
+Rate laws and Arrhenius, batch, CSTR and PFR design equations, selectivity in multiple reactions, residence-time distribution, heat effects, stability, and scale-up
+
+Intermediate 100-125 min 5 Chapters, 5 Examples
+
+[Start →](<./chemical-engineering-reaction-engineering/index.html>)
 
 📗
 

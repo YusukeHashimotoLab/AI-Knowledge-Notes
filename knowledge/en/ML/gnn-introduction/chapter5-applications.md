@@ -8,6 +8,22 @@ code_examples: 8
 exercises: 5
 ---
 
+## Video Lecture
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/lVrhwzFdN9w"
+    title="GNN Introduction Ch.5: GNN Applications"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> This video covers the same content as the text below. Choose your preferred learning format.
+
 This chapter focuses on practical applications of GNN Applications. You will learn Build recommendation systems using link prediction and applications to knowledge graphs.
 
 ## Learning Objectives
@@ -71,6 +87,8 @@ Feature | Description | Advantage
     # - torch>=2.0.0, <2.3.0
     
     """
+    Example: The Cora datasetis a citation network of machine learning pa
+    
     Purpose: Demonstrate data visualization techniques
     Target: Advanced
     Execution time: 1-5 minutes

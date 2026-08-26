@@ -5,54 +5,190 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="第1章：ベイズ最適化の基礎 - ブラックボックス最適化、探索と活用、実践的な実装例">
     <title>第1章：ベイズ最適化の基礎 - ベイズ最適化入門 | PI Terakoya</title>
-    <link rel="canonical" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/jp/PI/bayesian-optimization/chapter-1.html">
-    <link rel="alternate" hreflang="ja" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/jp/PI/bayesian-optimization/chapter-1.html">
-    <link rel="alternate" hreflang="en" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/en/PI/bayesian-optimization/chapter-1.html">
-    <link rel="alternate" hreflang="x-default" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/en/PI/bayesian-optimization/chapter-1.html">
-    <meta property="og:title" content="第1章：ベイズ最適化の基礎 - ベイズ最適化入門 | PI Terakoya">
-    <meta property="og:type" content="article">
-    <meta property="og:url" content="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/jp/PI/bayesian-optimization/chapter-1.html">
-    <meta property="og:site_name" content="AI Terakoya">
-    <meta property="og:locale" content="ja_JP">
-    <meta property="og:description" content="第1章：ベイズ最適化の基礎 - ブラックボックス最適化、探索と活用、実践的な実装例">
 
-        <link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
         <style>
-            /* page-specific residual (Wave C) */
-            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.8; color: #333; background: #f5f5f5 }
-            header { padding: 2rem 1rem }
-            h1 { margin-bottom: 0.5rem }
-            .subtitle { opacity: 1 }
-            .container { max-width: 1200px; margin: 2rem auto; padding: 0 1rem }
-            .back-link { display: inline-block; padding: 0.5rem 1rem; background: white; color: #11998e; border-radius: 6px; font-weight: 600 }
-            .content-box { background: white; padding: 2rem; border-radius: 12px; margin-bottom: 2rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1) }
-            h2 { color: #11998e; margin: 2rem 0 1rem 0 }
-            h3 { margin: 1.5rem 0 1rem 0 }
-            h4 { color: #2c3e50; margin: 1rem 0 0.5rem 0 }
-            p { margin-bottom: 1rem }
-            ul { margin-bottom: 1rem }
-            ol { margin-bottom: 1rem }
-            pre { background: #1e1e1e; color: #d4d4d4; margin: 1rem 0; border-left: 4px solid #11998e }
-            code { font-family: "Courier New", monospace; font-size: 0.9rem }
-            .key-point { background: #e8f5e9; padding: 1rem; border-radius: 6px; border-left: 4px solid #4caf50; margin: 1rem 0 }
-            .tech-note { background: #e3f2fd; padding: 1rem; border-radius: 6px; border-left: 4px solid #2196f3; margin: 1rem 0 }
-            .formula { background: #f0f7ff; padding: 1rem; border-radius: 6px; margin: 1rem 0; overflow-x: auto }
-            table { margin: 1rem 0 }
-            th { border: 1px solid #ddd; padding: 0.75rem; background: #11998e; color: white }
-            td { border: 1px solid #ddd; padding: 0.75rem }
-            tr:nth-child(even) { background: #f9f9f9 }
-            .nav-buttons { margin-top: 3rem }
-            .nav-buttons a { padding: 0.75rem 1.5rem; background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white; text-decoration: none; border-radius: 6px; font-weight: 600 }
-            footer { background: #2c3e50; padding: 2rem 1rem; margin-top: 4rem }
-            @media (max-width: 768px) {
-                h1 { font-size: 1.6rem }
-                .container { padding: 0 0.5rem }
-                pre { padding: 1rem }
-            }
-            .locale-link { color: #ac07bf }
-            .locale-link:hover { color: #880698 }
-        </style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            line-height: 1.8; color: #333; background: #f5f5f5;
+        }
+        header {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white; padding: 2rem 1rem; text-align: center;
+        }
+        h1 { font-size: 2rem; margin-bottom: 0.5rem; }
+        .subtitle { opacity: 0.9; font-size: 1.1rem; }
+        .container { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
+        .back-link {
+            display: inline-block; margin-bottom: 2rem; padding: 0.5rem 1rem;
+            background: white; color: #11998e; text-decoration: none;
+            border-radius: 6px; font-weight: 600;
+        }
+        .content-box {
+            background: white; padding: 2rem; border-radius: 12px;
+            margin-bottom: 2rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        h2 {
+            color: #11998e; margin: 2rem 0 1rem 0;
+            padding-bottom: 0.5rem; border-bottom: 3px solid #11998e;
+        }
+        h3 { color: #2c3e50; margin: 1.5rem 0 1rem 0; }
+        h4 { color: #2c3e50; margin: 1rem 0 0.5rem 0; }
+        p { margin-bottom: 1rem; }
+        ul, ol { margin-left: 2rem; margin-bottom: 1rem; }
+        li { margin-bottom: 0.5rem; }
+        pre {
+            background: #1e1e1e; color: #d4d4d4; padding: 1.5rem;
+            border-radius: 8px; overflow-x: auto; margin: 1rem 0;
+            border-left: 4px solid #11998e;
+        }
+        code {
+            font-family: 'Courier New', monospace; font-size: 0.9rem;
+        }
+        .key-point {
+            background: #e8f5e9; padding: 1rem; border-radius: 6px;
+            border-left: 4px solid #4caf50; margin: 1rem 0;
+        }
+        .tech-note {
+            background: #e3f2fd; padding: 1rem; border-radius: 6px;
+            border-left: 4px solid #2196f3; margin: 1rem 0;
+        }
+        .formula {
+            background: #f0f7ff; padding: 1rem; border-radius: 6px;
+            margin: 1rem 0; overflow-x: auto;
+        }
+        table {
+            width: 100%; border-collapse: collapse; margin: 1rem 0;
+        }
+        th, td {
+            border: 1px solid #ddd; padding: 0.75rem; text-align: left;
+        }
+        th {
+            background: #11998e; color: white; font-weight: 600;
+        }
+        tr:nth-child(even) { background: #f9f9f9; }
+        .nav-buttons {
+            display: flex; justify-content: space-between; margin-top: 3rem;
+        }
+        .nav-buttons a {
+            padding: 0.75rem 1.5rem;
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white; text-decoration: none; border-radius: 6px;
+            font-weight: 600;
+        }
+        footer {
+            background: #2c3e50; color: white; text-align: center;
+            padding: 2rem 1rem; margin-top: 4rem;
+        }
+        @media (max-width: 768px) {
+            h1 { font-size: 1.6rem; }
+            .container { padding: 0 0.5rem; }
+            pre { padding: 1rem; }
+        }
+    
+        
+    
+        /* Breadcrumb styles */
+        .breadcrumb {
+            background: #f7fafc;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+        }
 
+        .breadcrumb-content {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .breadcrumb a {
+            color: #667eea;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .breadcrumb a:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+
+        .breadcrumb-separator {
+            color: #a0aec0;
+            margin: 0 0.25rem;
+        }
+
+        .breadcrumb-current {
+            color: #4a5568;
+            font-weight: 500;
+        }
+    </style>
+
+    <style>
+        /* Locale Switcher Styles */
+        .locale-switcher {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 6px;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .current-locale {
+            font-weight: 600;
+            color: #7b2cbf;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .locale-separator {
+            color: #adb5bd;
+            font-weight: 300;
+        }
+
+        .locale-link {
+            color: #f093fb;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+        }
+
+        .locale-link:hover {
+            background: rgba(240, 147, 251, 0.1);
+            color: #d07be8;
+            transform: translateY(-1px);
+        }
+
+        .locale-meta {
+            color: #868e96;
+            font-size: 0.85rem;
+            font-style: italic;
+            margin-left: auto;
+        }
+
+        @media (max-width: 768px) {
+            .locale-switcher {
+                font-size: 0.85rem;
+                padding: 0.4rem 0.8rem;
+            }
+            .locale-meta {
+                display: none;
+            }
+        }
+    </style>
 </head>
 <body>
             <div class="locale-switcher">
@@ -907,15 +1043,15 @@ plt.show()
                 Random Search            : -8.912 ± 1.567<br>
                 Bayesian Optimization    : -3.456 ± 0.823<br>
                 <br>
-                <strong>BOは約2.5倍優れた結果（同じ評価回数）</strong>
+                <strong>3つの手法はいずれも同じ 30 回の評価予算</strong>で実行しているため、ここで比較しているのは「速さ」ではなく「同じ予算で得られた最良値の良さ」です。これらの目的関数値は負の値なので<strong>比をとっても意味がありません</strong>。最適値（約 -0.40）までの残差はグリッド 11.95、ランダム 8.51、BO 3.06 です。
             </div>
 
             <div class="success-box">
                 <p><strong>✅ ベイズ最適化の優位性</strong></p>
                 <ul>
-                    <li><strong>収束速度</strong>: グリッドサーチの3倍、ランダムサーチの2倍高速</li>
-                    <li><strong>評価効率</strong>: 30回の評価で最適解に到達（グリッドは100回以上必要）</li>
-                    <li><strong>ロバスト性</strong>: 複数試行での標準偏差が小さい（安定した性能）</li>
+                    <li><strong>評価効率</strong>: 同じ 30 回の予算で、BO はグリッドサーチが残した残差の約 74%、ランダムサーチが残した残差の約 64% を埋めています</li>
+                    <li><strong>予算のスケール</strong>: グリッドサーチは 1 次元あたり <code>ceil(30**(1/2)) = 6</code> 点しか取れません（6&times;6 格子を 30 点に切り詰め）。2次元で格子幅を半分にするには評価回数が 4 倍必要です</li>
+                    <li><strong>ロバスト性</strong>: 5 回の試行での標準偏差が小さい（安定した性能）</li>
                 </ul>
             </div>
         </section>
@@ -1019,7 +1155,7 @@ class ConvergenceAnalyzer:
         ax = axes[1, 0]
         if metrics['optimality_gap'] is not None:
             gap = np.array(metrics['optimality_gap'])
-            gap[gap &lt;= 0] = 1e-10  # 負値を処理
+            gap[gap <= 0] = 1e-10  # 負値を処理
             ax.semilogy(iterations, gap, 'r-', linewidth=2, marker='s')
             ax.set_xlabel('Iteration')
             ax.set_ylabel('Optimality Gap (log scale)')

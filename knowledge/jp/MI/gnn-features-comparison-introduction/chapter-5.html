@@ -4,16 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>第5章：ハイブリッドアプローチ | GNN特徴量比較入門</title>
-    <link rel="canonical" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/jp/MI/gnn-features-comparison-introduction/chapter-5.html">
-    <link rel="alternate" hreflang="ja" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/jp/MI/gnn-features-comparison-introduction/chapter-5.html">
-    <link rel="alternate" hreflang="en" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/en/MI/gnn-features-comparison-introduction/chapter-5.html">
-    <link rel="alternate" hreflang="x-default" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/en/MI/gnn-features-comparison-introduction/chapter-5.html">
-    <meta property="og:title" content="第5章：ハイブリッドアプローチ | GNN特徴量比較入門">
-    <meta property="og:type" content="article">
-    <meta property="og:url" content="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/jp/MI/gnn-features-comparison-introduction/chapter-5.html">
-    <meta property="og:site_name" content="AI Terakoya">
-    <meta property="og:locale" content="ja_JP">
-    <meta property="og:description" content="組成ベースとGNN構造ベース特徴量を統合したハイブリッドモデル。ALIGNN、MEGNet、マルチタスク学習の実装と性能評価。">
     <meta name="description" content="組成ベースとGNN構造ベース特徴量を統合したハイブリッドモデル。ALIGNN、MEGNet、マルチタスク学習の実装と性能評価。">
 
     <!-- MathJax 3.x for mathematical equations -->
@@ -30,10 +20,10 @@
         }
     };
     </script>
-    <script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js" integrity="sha384-Wuix6BuhrWbjDBs24bXrjf4ZQ5aFeFWBuKkFekO2t8xFU0iNaLQfp2K6/1Nxveei" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 
     <!-- Mermaid for diagrams -->
-    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.3/dist/mermaid.min.js" integrity="sha384-R63zfMfSwJF4xCR11wXii+QUsbiBIdiDzDbtxia72oGWfkT7WHJfmD/I/eeHPJyT" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
     <script>
         mermaid.initialize({
             startOnLoad: true,
@@ -50,48 +40,271 @@
     </script>
 
     <!-- Prism.js for syntax highlighting -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" integrity="sha384-wFjoQjtV1y5jVHbt0p35Ui8aV8GVpEZkyF99OXWqP/eNJDU93D3Ugxkoyh6Y2I4A" crossorigin="anonymous" />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" integrity="sha384-06z5D//U/xpvxZHuUz92xBvq3DqBBFi7Up53HRrbV7Jlv7Yvh/MZ7oenfUe9iCEt" crossorigin="anonymous"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js" integrity="sha384-WJdEkJKrbsqw0evQ4GB6mlsKe5cGTxBOw4KAEIa52ZLB7DDpliGkwdme/HMa5n1m" crossorigin="anonymous"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
 
-    <link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
     <style>
-        /* page-specific residual (Wave C) */
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans JP", sans-serif; line-height: 1.8; color: #2c3e50; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 2rem 1rem }
-        .container { background: white; border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.1); padding: 3rem }
-        h1 { font-size: 2.5rem; margin-bottom: 1.5rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text }
-        h2 { font-size: 1.8rem; margin: 2.5rem 0 1.5rem; color: #667eea; border-left: 4px solid #764ba2; padding-left: 1rem }
-        h3 { margin: 2rem 0 1rem; color: #764ba2 }
-        p { margin-bottom: 1.2rem; text-align: justify }
-        .highlight-box { background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%); border-left: 4px solid #667eea; padding: 1.5rem; margin: 1.5rem 0; border-radius: 8px }
-        .warning-box { background: rgba(255, 193, 7, 0.1); border-left: 4px solid #ffc107; padding: 1.5rem; margin: 1.5rem 0; border-radius: 8px }
-        pre { background: #2d2d2d; margin: 1.5rem 0 }
-        code { font-family: "Consolas", "Monaco", "Courier New", monospace; font-size: 0.9rem }
-        .mermaid { background: white; padding: 2rem }
-        table { box-shadow: 0 2px 8px rgba(0,0,0,0.1) }
-        th { border-bottom: 1px solid #e0e0e0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white }
-        td { border-bottom: 1px solid #e0e0e0 }
-        tr:hover { background: rgba(102, 126, 234, 0.05) }
-        .exercise { background: rgba(118, 75, 162, 0.05); border: 2px solid #764ba2; border-radius: 8px; padding: 1.5rem }
-        .exercise-header { font-weight: 600; color: #764ba2; margin-bottom: 0.5rem }
-        .difficulty { display: inline-block; padding: 0.25rem 0.75rem; border-radius: 4px; font-size: 0.85rem; font-weight: 600; margin-left: 0.5rem }
-        .difficulty-easy { background: #4caf50; color: white }
-        .difficulty-medium { background: #ff9800; color: white }
-        .difficulty-hard { background: #f44336; color: white }
-        .nav-buttons { margin-top: 3rem; border-top: 2px solid #e0e0e0 }
-        .nav-button { padding: 0.75rem 1.5rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 6px; transition: transform 0.2s }
-        ul { margin: 1rem 0 1rem 2rem }
-        ol { margin: 1rem 0 1rem 2rem }
-        @media (max-width: 768px) {
-            .container { padding: 1.5rem }
-            h1 { font-size: 2rem }
-            h2 { font-size: 1.5rem }
-            pre { padding: 1rem; font-size: 0.85rem }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-        .locale-link { color: #ac07bf }
-        .locale-link:hover { color: #880698 }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans JP', sans-serif;
+            line-height: 1.8;
+            color: #2c3e50;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 2rem 1rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            padding: 3rem;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        h2 {
+            font-size: 1.8rem;
+            margin: 2.5rem 0 1.5rem;
+            color: #667eea;
+            border-left: 4px solid #764ba2;
+            padding-left: 1rem;
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            margin: 2rem 0 1rem;
+            color: #764ba2;
+        }
+
+        p {
+            margin-bottom: 1.2rem;
+            text-align: justify;
+        }
+
+        .highlight-box {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            border-left: 4px solid #667eea;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 8px;
+        }
+
+        .warning-box {
+            background: rgba(255, 193, 7, 0.1);
+            border-left: 4px solid #ffc107;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 8px;
+        }
+
+        pre {
+            background: #2d2d2d;
+            border-radius: 8px;
+            padding: 1.5rem;
+            overflow-x: auto;
+            margin: 1.5rem 0;
+        }
+
+        code {
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 0.9rem;
+        }
+
+        .mermaid {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            margin: 2rem 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: 600;
+        }
+
+        tr:hover {
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .exercise {
+            background: rgba(118, 75, 162, 0.05);
+            border: 2px solid #764ba2;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+        }
+
+        .exercise-header {
+            font-weight: 600;
+            color: #764ba2;
+            margin-bottom: 0.5rem;
+        }
+
+        .difficulty {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-left: 0.5rem;
+        }
+
+        .difficulty-easy {
+            background: #4caf50;
+            color: white;
+        }
+
+        .difficulty-medium {
+            background: #ff9800;
+            color: white;
+        }
+
+        .difficulty-hard {
+            background: #f44336;
+            color: white;
+        }
+
+        .nav-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 3rem;
+            padding-top: 2rem;
+            border-top: 2px solid #e0e0e0;
+        }
+
+        .nav-button {
+            padding: 0.75rem 1.5rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+
+        .nav-button:hover {
+            transform: translateY(-2px);
+        }
+
+        ul, ol {
+            margin: 1rem 0 1rem 2rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1.5rem;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            h2 {
+                font-size: 1.5rem;
+            }
+
+            pre {
+                padding: 1rem;
+                font-size: 0.85rem;
+            }
+        }
     </style>
 
+    <style>
+        /* Locale Switcher Styles */
+        .locale-switcher {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 6px;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .current-locale {
+            font-weight: 600;
+            color: #7b2cbf;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .locale-separator {
+            color: #adb5bd;
+            font-weight: 300;
+        }
+
+        .locale-link {
+            color: #f093fb;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+        }
+
+        .locale-link:hover {
+            background: rgba(240, 147, 251, 0.1);
+            color: #d07be8;
+            transform: translateY(-1px);
+        }
+
+        .locale-meta {
+            color: #868e96;
+            font-size: 0.85rem;
+            font-style: italic;
+            margin-left: auto;
+        }
+
+        @media (max-width: 768px) {
+            .locale-switcher {
+                font-size: 0.85rem;
+                padding: 0.4rem 0.8rem;
+            }
+            .locale-meta {
+                display: none;
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="locale-switcher">
@@ -103,6 +316,19 @@
 </div>
 <div class="container">
         <h1>第5章：ハイブリッドアプローチ</h1>
+        <h2>ビデオ講義</h2>
+        <div class="video-container">
+          <iframe
+            width="560"
+            height="315"
+            src="https://www.youtube.com/embed/x2-L_yYs8pQ"
+            title="GNN特徴量比較入門 第5章: ハイブリッドアプローチ"
+            frameborder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowfullscreen>
+          </iframe>
+        </div>
+        <p class="video-note">このビデオは以下のテキストと同じ内容をカバーしています。お好みの学習形式をお選びください。</p>
 
         <p>第4章では、組成ベース特徴量（Magpie）とGNN構造ベース特徴量（CGCNN）を定量的に比較し、各手法の長所と短所を明確にしました。本章では、これら2つのアプローチを<strong>統合するハイブリッドモデル</strong>を構築し、「両方の良いとこ取り」による性能向上を目指します。</p>
 
@@ -142,7 +368,7 @@
                 </tr>
                 <tr>
                     <td>データ要求量</td>
-                    <td>少ない（&lt;10,000）</td>
+                    <td>少ない（<10,000）</td>
                     <td>多い（>50,000）</td>
                     <td>中規模データで効率化</td>
                 </tr>
@@ -1289,7 +1515,7 @@ print(f"最高効率モデル: {df.loc[best_efficiency_idx, 'Model']} (MAE/Time 
             <pre><code class="language-python">angle_feature = torch.cos(theta)  # cosθを特徴量に使用
 # 例: H-O-H角度104.5° → cos(104.5°) ≈ -0.25
 </code></pre>
-            <p>これにより、ALIGNNは「直線的な結合（θ=180°）」と「屈曲した結合（θ&lt;120°）」を明示的に区別できます。</p>
+            <p>これにより、ALIGNNは「直線的な結合（θ=180°）」と「屈曲した結合（θ<120°）」を明示的に区別できます。</p>
         </div>
 
         <div class="exercise">

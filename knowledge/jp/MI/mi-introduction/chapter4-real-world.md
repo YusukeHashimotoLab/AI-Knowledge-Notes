@@ -16,7 +16,6 @@ exercises: 0
     height="315"
     src="https://www.youtube.com/embed/Wuc1XsYtP-s"
     title="MI入門 第4章：MIの実世界への応用"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>

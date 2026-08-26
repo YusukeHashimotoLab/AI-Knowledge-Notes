@@ -10,7 +10,7 @@ subtitle: Process Informatics Dojo - データで拓く化学プロセス最適�
 
 [← AI寺子屋トップへ戻る](<../index.html>)
 
-📚 入門シリーズ（5シリーズ）
+📚 入門シリーズ（11シリーズ）
 
 📘
 
@@ -21,6 +21,66 @@ PIの基礎概念とプロセス産業におけるデータ活用の実践
 入門〜中級 90-120分 4章・35例
 
 [開始 →](<./pi-introduction/index.html>)
+
+📗
+
+化学工学入門
+
+単位操作と収支、反応工学、プロセス制御、プロセス設計、AIとプロセスの未来を俯瞰する古典的基礎シリーズ
+
+初級 100-125分 5章・3例
+
+[開始 →](<./chemical-engineering-introduction/index.html>)
+
+📗
+
+化学工学熱力学
+
+熱力学第一法則とエネルギー収支、エントロピーと分離の代償、相平衡、化学平衡、実在流体と状態方程式
+
+中級 100-125分 5章・5例
+
+[開始 →](<./chemical-engineering-thermodynamics/index.html>)
+
+📗
+
+化学工学流体力学
+
+静水圧とゲージ圧、機械的エネルギー収支、レイノルズ数と流動状態、管摩擦と圧力損失、ポンプと配管システム
+
+中級 100-125分 5章・5例
+
+[開始 →](<./chemical-engineering-fluid-mechanics/index.html>)
+
+📗
+
+化学工学伝熱
+
+伝導と対流の熱抵抗、LMTDによる熱交換器サイジング、沸騰と凝縮、放射と加熱炉、伝熱設計とプロセス強化
+
+中級 100-125分 5章・5例
+
+[開始 →](<./chemical-engineering-heat-transfer/index.html>)
+
+📗
+
+化学工学物質移動と分離
+
+拡散と二重境膜モデル、吸収とHTU-NTU、蒸留とマッケーブ・シーレ法、抽出・吸着・膜分離、乾燥・晶析と分離プロセスの選定
+
+中級 100-125分 5章・5例
+
+[開始 →](<./chemical-engineering-mass-transfer/index.html>)
+
+📗
+
+化学工学反応工学
+
+反応速度式とアレニウス式、回分・CSTR・PFRの設計方程式、複合反応と選択性、滞留時間分布、熱効果・安定性・スケールアップ
+
+中級 100-125分 5章・5例
+
+[開始 →](<./chemical-engineering-reaction-engineering/index.html>)
 
 📗
 

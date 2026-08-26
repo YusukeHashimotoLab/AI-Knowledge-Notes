@@ -4,6 +4,22 @@ chapter_title: Drug Discovery MI Practical Case Studies
 subtitle: Learning Practical Methods from 5 Industrial Applications
 ---
 
+## Video Lecture
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/13bl-oKijr4"
+    title="Drug Discovery MI Ch.4: Drug Discovery MI Practical Case Studies"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> This video covers the same content as the text below. Choose your preferred learning format.
+
 # Chapter 4: Case Studies and Real-World Applications
 
 This chapter focuses on practical applications of Case Studies and Real. You will learn ESMFold(Meta AI): Language model-based.
@@ -26,7 +42,7 @@ AI drug discovery has rapidly become practical in recent years, with many startu
 
 ### 4.1.1 Exscientia: Pioneer of AI-Driven Drug Discovery
 
-**Company Overview** : \- Founded: 2012 (Oxford, UK) \- Founder: Andrew Hopkins (Professor of Pharmacology) \- Employees: ~400 (2023) \- Funding: Over $500 million total \- IPO: NASDAQ (2021, ticker: EXAI)
+**Company Overview** : \- Founded: 2012 (Oxford, UK) \- Founder: Andrew Hopkins (Professor of Pharmacology) \- Employees: ~400 (2023) \- Funding: Over $500 million total \- IPO: NASDAQ (2021, ticker: EXAI) \- Status: merged into Recursion Pharmaceuticals in November 2024 — the profile below describes the company as it operated as an independent business
 
 **Technical Approach** : Exscientia advocates "AI-Designed Medicine" and integrates AI at each stage of the drug discovery process.
     
@@ -52,7 +68,7 @@ AI drug discovery has rapidly become practical in recent years, with many startu
 
 Project | Partner | Disease Area | Milestone  
 ---|---|---|---  
-DSP-1181 | Sumitomo Dainippon Pharma | Obsessive-Compulsive Disorder (OCD) | Clinical trial started 2020 (world's first AI-designed drug)  
+DSP-1181 | Sumitomo Dainippon Pharma | Obsessive-Compulsive Disorder (OCD) | Clinical trial started 2020 (first AI-designed molecule to enter Phase I); discontinued in 2021 after Phase I did not meet the criteria to continue  
 EXS-21546 | Bristol Myers Squibb | Cancer immunotherapy | Preclinical completed 2021  
 CDK7 inhibitor | Sanofi | Cancer | In development (AI design period: 8 months)  
 PKC-θ inhibitor | Internal development | Autoimmune diseases | Clinical trial planning 2023  
@@ -282,7 +298,7 @@ Actual analysis pipeline:
 
 ### 4.1.4 BenevolentAI: Knowledge Graphs and Scientific Literature Mining
 
-**Company Overview** : \- Founded: 2013 (London, UK) \- Founder: Ken Mulvany (Entrepreneur, PhD in Pharmacy) \- Employees: ~300 \- Funding: ~$300 million total \- IPO: Euronext Amsterdam (2022, via SPAC) \- Specialty: Utilization of knowledge graphs and natural language processing (NLP)
+**Company Overview** : \- Founded: 2013 (London, UK) \- Founder: Ken Mulvany (Entrepreneur, PhD in Pharmacy) \- Employees: ~300 \- Funding: ~$300 million total \- IPO: Euronext Amsterdam (2022, via SPAC) \- Specialty: Utilization of knowledge graphs and natural language processing (NLP) \- Status: BenevolentAI wound down its operations and was delisted in 2025 — this section is a retrospective case study
 
 **Technology Platform** :
 
@@ -462,8 +478,10 @@ Real example of BenevolentAI's knowledge graph and AI identifying baricitinib as
     
     5. Experimental validation
        → Eli Lilly conducted clinical trials
-       → FDA Emergency Use Authorization (EUA) granted November 2020
-       → 13% reduction in mortality for severe COVID-19 patients (vs. placebo)
+       → FDA Emergency Use Authorization (EUA) granted November 2020,
+         in combination with remdesivir, on the basis of shorter time to recovery
+       → A mortality benefit was shown later, in the RECOVERY trial and
+         subsequent meta-analyses — it was not the basis of the EUA
     
     Discovery to approval: ~9 months (traditional drug discovery takes 10-15 years)
     
@@ -711,8 +729,8 @@ Research by University of Oxford and DNDi (Drugs for Neglected Diseases initiati
 
 **Future Developments** :
 
-  * **AlphaFold 3** (expected 2024): Improvements in complex prediction, dynamic structures, ligand binding
-  * **RoseTTAFold Diffusion** (Baker Lab): Diffusion model-based structure prediction
+  * **AlphaFold 3** (published in *Nature*, May 2024): joint prediction of protein complexes with ligands, nucleic acids and ions
+  * **RFdiffusion** (Baker Lab): Diffusion model-based structure prediction
   * **ESMFold** (Meta AI): Language model-based, 60× faster than AlphaFold
 
 * * *
@@ -1279,21 +1297,23 @@ MIT research team's discovery of new antibiotic "Halicin" using deep learning:
     
     Approach:
     1. Data collection
-       - Drug Repurposing Hub (~6,000 compounds)
-       - Antibacterial activity data against E. coli
+       - Training set: molecules with measured growth-inhibition
+         activity against E. coli
     
     2. Model building
        - Graph Neural Network (GNN)
        - Molecular graph → antibacterial activity prediction
     
-    3. Virtual screening
-       - Screened ZINC15 database (~170 million compounds)
-       - Selected top 5,000 compounds
+    3. Screening
+       - Applied the model to the Drug Repurposing Hub (~6,000 compounds)
+       - Ranked compounds by predicted antibacterial activity
+       - (A separate, subsequent run screened the ZINC15 database,
+         ~107 million compounds, and produced further candidates)
     
     4. Experimental validation
        - In vitro antibacterial assays
-       - Discovered Halicin: existing drug (diabetes drug candidate) but
-         antibacterial activity was unknown
+       - Discovered Halicin in the Drug Repurposing Hub screen: an existing
+         drug (diabetes drug candidate) whose antibacterial activity was unknown
     
     5. Halicin properties
        - Effective against wide range of resistant bacteria (Acinetobacter baumannii, Clostridioides difficile, etc.)
@@ -1760,12 +1780,13 @@ AI drug discovery is an interdisciplinary field where people with diverse backgr
 **Rapid Market Growth** :
     
     
-    AI drug discovery market size (global):
-    - 2020: ~$700 million
-    - 2025: ~$4 billion (forecast)
-    - 2030: ~$15 billion (forecast)
+    AI drug discovery market size (global; market-research estimates,
+    sources vary widely):
+    - Early 2020s: roughly $1 billion
+    - Mid-2020s: roughly $4-5 billion (estimate)
+    - Early 2030s: projected toward $15-25 billion
     
-    CAGR (compound annual growth rate): ~40%
+    Implied growth: roughly 30-40% CAGR, depending on the series used
     
     Investment:
     - 2021: ~$14 billion invested in AI drug discovery startups
@@ -1847,7 +1868,7 @@ This chapter explored real-world applications of AI drug discovery from multiple
 
   4. **Common Pitfalls** : \- Data leakage \- Inappropriate evaluation metrics \- Extrapolation outside applicability domain \- Ignoring synthesizability
 
-  5. **Careers and Industry Trends** : \- Diverse roles (ML Engineer, Cheminformatician, Computational Chemist) \- High salary levels and talent demand \- Rapidly growing market (40% CAGR) \- 2025-2030 is critical period for clinical validation
+  5. **Careers and Industry Trends** : \- Diverse roles (ML Engineer, Cheminformatician, Computational Chemist) \- High salary levels and talent demand \- Rapidly growing market (roughly 30-40% CAGR; estimates vary) \- 2025-2030 is critical period for clinical validation
 
 ### Next Steps
 

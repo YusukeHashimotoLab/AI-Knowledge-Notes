@@ -3,6 +3,22 @@ title: "Chapter 5: X-ray Photoelectron Spectroscopy (XPS)"
 chapter_title: "Chapter 5: X-ray Photoelectron Spectroscopy (XPS)"
 ---
 
+## Video Lecture
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/so3riEt-4Ew"
+    title="Spectroscopy Introduction Ch.5: X-ray Photoelectron Spectroscopy (XPS)"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> This video covers the same content as the text below. Choose your preferred learning format.
+
 [AI Terakoya Top](<../../index.html>)>[Materials Science](<../index.html>)>[Spectroscopy Introduction](<index.html>)>Chapter 5
 
 EN | [JP](<../../../jp/MS/spectroscopy-introduction/chapter-5.html>) | Last sync: 2025-12-26
@@ -59,11 +75,11 @@ XPS primarily probes core-level electrons (1s, 2s, 2p, 3s, 3p, 3d, etc.) because
     
     ```mermaid
     flowchart LR
-        A[X-ray SourceAl K-alpha 1486.6 eV] --> B[Sample SurfaceCore Electrons]
-        B --> C[Photoelectron EmissionE_kin = hv - E_B - phi]
-        C --> D[Energy AnalyzerHemispherical]
-        D --> E[DetectorChanneltron/MCP]
-        E --> F[XPS SpectrumIntensity vs E_B]
+        A[X-ray Source<br/>Al K-alpha 1486.6 eV] --> B[Sample Surface<br/>Core Electrons]
+        B --> C[Photoelectron Emission<br/>E_kin = hv - E_B - phi]
+        C --> D[Energy Analyzer<br/>Hemispherical]
+        D --> E[Detector<br/>Channeltron/MCP]
+        E --> F[XPS Spectrum<br/>Intensity vs E_B]
     
         style A fill:#e3f2fd
         style B fill:#fff3e0
@@ -158,12 +174,22 @@ XPS primarily probes core-level electrons (1s, 2s, 2p, 3s, 3p, 3d, etc.) because
         'Mg K-alpha': 1253.6
     }
     
-    # Measured kinetic energies for different elements
+    # Measured kinetic energies for different elements.
+    # These are back-computed from the reference binding energies with the
+    # FULL relation  E_kin = h*nu - E_B - phi  (phi = 4.5 eV), so that
+    # kinetic_to_binding() returns exactly the reference values below:
+    #   C 1s (adventitious C-C/C-H) = 284.8 eV
+    #   O 1s (metal oxide / SiO2)   = 532.0 eV
+    #   Si 2p (elemental Si)        =  99.3 eV
+    #   Fe 2p3/2 (metallic Fe)      = 706.8 eV
+    # Subtracting phi only once is essential: an earlier convention that set
+    # E_kin = h*nu - E_B and then subtracted phi again shifts every reported
+    # binding energy 4.5 eV too low (C 1s would print 280.0 eV).
     measured_kinetic = {
-        'C 1s': 1202.1,
-        'O 1s': 954.6,
-        'Si 2p': 1387.3,
-        'Fe 2p3/2': 779.6
+        'C 1s': 1197.3,
+        'O 1s': 950.1,
+        'Si 2p': 1382.8,
+        'Fe 2p3/2': 775.3
     }
     
     print("Using Al K-alpha X-ray source (1486.6 eV):\n")
@@ -180,7 +206,7 @@ XPS primarily probes core-level electrons (1s, 2s, 2p, 3s, 3p, 3d, etc.) because
     survey_peaks = [
         {'center': 103.5, 'amplitude': 800, 'sigma': 2.0, 'label': 'Si 2p'},
         {'center': 154.0, 'amplitude': 200, 'sigma': 2.5, 'label': 'Si 2s'},
-        {'center': 285.0, 'amplitude': 400, 'sigma': 1.5, 'label': 'C 1s'},
+        {'center': 284.8, 'amplitude': 400, 'sigma': 1.5, 'label': 'C 1s'},
         {'center': 532.5, 'amplitude': 1200, 'sigma': 2.0, 'label': 'O 1s'},
         {'center': 978.0, 'amplitude': 100, 'sigma': 3.0, 'label': 'O KLL Auger'},
     ]
@@ -328,8 +354,8 @@ where:
     BE = np.linspace(280, 295, 1500)
     
     # C 1s has multiple chemical states in a polymer sample
-    # C-C at 285.0 eV, C-O at 286.5 eV, C=O at 288.0 eV
-    peak_positions = [285.0, 286.5, 288.0]
+    # C-C at 284.8 eV, C-O at 286.5 eV, C=O at 288.0 eV
+    peak_positions = [284.8, 286.5, 288.0]
     peak_amplitudes = [1000, 400, 200]
     peak_labels = ['C-C/C-H', 'C-O', 'C=O']
     
@@ -392,22 +418,22 @@ The binding energy of core electrons is influenced by the chemical environment o
 #### Origin of Chemical Shifts
 
   * **Oxidation State Effect:** Higher oxidation states increase binding energy   
-Example: Si 2p: Si0 (99.3 eV) < SiO (101.5 eV) < SiO2 (103.5 eV)
+Example: Si 2p: Si$^0$ (99.3 eV) < SiO (101.5 eV) < SiO$_2$ (103.5 eV)
   * **Electronegativity Effect:** Bonding to more electronegative atoms increases BE   
-Example: C 1s: C-C (285.0 eV) < C-O (286.5 eV) < C=O (288.0 eV) < O-C=O (289.5 eV)
+Example: C 1s: C-C (284.8 eV) < C-O (286.5 eV) < C=O (288.0 eV) < O-C=O (289.5 eV)
   * **Coordination Number:** Changes in coordination affect electron density
 
 Element | Peak | Binding Energy (eV) | Chemical State  
 ---|---|---|---  
-C | 1s | 284.5-285.0 | C-C, C-H (aliphatic, aromatic)  
+C | 1s | 284.8 (charge reference) | C-C, C-H (aliphatic, aromatic)  
 1s | 286.0-286.5 | C-O (ether, alcohol)  
 1s | 287.5-288.5 | C=O (carbonyl, amide)  
 1s | 289.0-290.0 | O-C=O (carboxyl, carbonate)  
-Si | 2p3/2 | 99.0-99.5 | Si0 (elemental silicon)  
-2p3/2 | 101.0-102.0 | Si2+ (SiO, suboxides)  
-2p3/2 | 103.0-104.0 | Si4+ (SiO2)  
-Fe | 2p3/2 | 706.5-707.5 | Fe0 (metallic iron)  
-2p3/2 | 710.5-711.5 | Fe3+ (Fe2O3)  
+Si | 2p$_{3/2}$ | 99.0-99.5 | Si$^0$ (elemental silicon)  
+2p$_{3/2}$ | 101.0-102.0 | Si$^{2+}$ (SiO, suboxides)  
+2p$_{3/2}$ | 103.0-104.0 | Si$^{4+}$ (SiO$_2$)  
+Fe | 2p$_{3/2}$ | 706.5-707.5 | Fe$^0$ (metallic iron)  
+2p$_{3/2}$ | 710.5-711.5 | Fe$^{3+}$ (Fe$_2$O$_3$)  
   
 ### 5.3.2 Peak Fitting with Voigt Functions
 
@@ -543,7 +569,7 @@ where \\( \eta \\) is the mixing parameter (0 = pure Gaussian, 1 = pure Lorentzi
     
     # True peak parameters: [amplitude, center, sigma, gamma]
     true_peaks = [
-        [1000, 285.0, 0.6, 0.3],   # C-C/C-H
+        [1000, 284.8, 0.6, 0.3],   # C-C/C-H
         [400, 286.5, 0.6, 0.3],    # C-O
         [200, 288.0, 0.7, 0.3],    # C=O
         [100, 289.5, 0.7, 0.3],    # O-C=O
@@ -569,7 +595,7 @@ where \\( \eta \\) is the mixing parameter (0 = pure Gaussian, 1 = pure Lorentzi
     
     # Perform peak fitting
     # Initial guesses
-    p0 = [800, 285.0, 0.7, 0.3,
+    p0 = [800, 284.8, 0.7, 0.3,
           300, 286.5, 0.7, 0.3,
           150, 288.0, 0.7, 0.3,
           80, 289.5, 0.7, 0.3]
@@ -698,20 +724,22 @@ where:
 
 ### 5.4.2 Relative Sensitivity Factors
 
-RSF values depend on the X-ray source, spectrometer geometry, and the specific core level being measured. The most commonly used RSF values are the Scofield cross-sections, often modified by empirical factors for specific instruments.
+RSF values depend on the X-ray source, spectrometer geometry, and the specific core level being measured. Two families are in common use: **Scofield** photoionisation cross-sections, which are theoretical and must still be corrected for the analyser transmission function and the IMFP energy dependence, and the **Wagner/PHI empirical** sensitivity factors, which fold those instrumental terms in and are normalised to F 1s = 1.00.
 
-Element | Core Level | RSF (Al K-alpha) | RSF (Mg K-alpha)  
----|---|---|---  
-C| 1s| 0.25| 0.25  
-N| 1s| 0.42| 0.42  
-O| 1s| 0.66| 0.66  
-F| 1s| 1.00| 1.00  
-Si| 2p| 0.27| 0.27  
-S| 2p| 0.54| 0.54  
-Ti| 2p| 1.80| 1.80  
-Fe| 2p| 2.96| 2.96  
-Cu| 2p| 4.20| 4.20  
-Au| 4f| 4.95| 4.95  
+The table below lists **Wagner/PHI empirical RSFs** (note F 1s = 1.00) - they are *not* Scofield cross-sections, for which F 1s = 1.00 does not hold. Because empirical factors are tied to a particular spectrometer geometry and transmission function, the values below are quoted for a single configuration (Al K-alpha, ~54.7 degrees magic-angle geometry) and should be replaced by the factors supplied with your own instrument before any quantitative work.
+
+Element | Core Level | RSF (Wagner/PHI, Al K-alpha)  
+---|---|---  
+C| 1s| 0.25  
+N| 1s| 0.42  
+O| 1s| 0.66  
+F| 1s| 1.00  
+Si| 2p| 0.27  
+S| 2p| 0.54  
+Ti| 2p| 1.80  
+Fe| 2p| 2.96  
+Cu| 2p| 4.20  
+Au| 4f| 4.95  
   
 #### Code Example 4: Quantitative Surface Composition Analysis
     
@@ -739,7 +767,11 @@ Au| 4f| 4.95| 4.95
         XPS quantitative analysis class.
         """
     
-        # Default RSF values (Scofield cross-sections, Al K-alpha)
+        # Default RSF values: Wagner/PHI EMPIRICAL sensitivity factors,
+        # normalised to F 1s = 1.00, for Al K-alpha and a magic-angle
+        # (~54.7 deg) spectrometer geometry. These are NOT Scofield
+        # cross-sections. Empirical factors are instrument specific -
+        # substitute the factors supplied with your own spectrometer.
         DEFAULT_RSF = {
             'C 1s': 0.25,
             'N 1s': 0.42,
@@ -1240,9 +1272,15 @@ For analyzing thicker layers or buried interfaces, ion sputtering can be combine
         # Linear fit
         slope, intercept = np.polyfit(x, y, 1)
     
-        # Thickness from slope
-        # For homogeneous overlayer: slope = d/lambda
-        thickness = -slope * imfp_overlayer
+        # Thickness from slope.
+        # Careful with the sign: the SUBSTRATE signal alone is attenuated,
+        #     ln(I_sub) = ln(I_sub,0) - (d/lambda) * (1/sin theta),
+        # giving a NEGATIVE slope, so there d = -slope * lambda.
+        # Here the plotted quantity is ln(I_overlayer / I_substrate), whose
+        # angular dependence has the OPPOSITE sign:
+        #     I_over/I_sub = exp(d / (lambda sin theta)) - 1,
+        # so ln(I_over/I_sub) rises with 1/sin(theta) and slope = +d/lambda.
+        thickness = slope * imfp_overlayer
     
         return thickness, slope, intercept
     
@@ -1319,8 +1357,9 @@ For analyzing thicker layers or buried interfaces, ion sputtering can be combine
     axes[1, 0].legend()
     axes[1, 0].grid(alpha=0.3)
     
-    # Calculate thickness
-    calculated_thickness = -slope * imfp_oxide
+    # Calculate thickness (slope of ln(I_oxide/I_metal) vs 1/sin(theta)
+    # is POSITIVE and equal to d/lambda; see calculate_overlayer_thickness)
+    calculated_thickness = slope * imfp_oxide
     
     # Summary visualization
     summary_text = f"""
@@ -1604,7 +1643,7 @@ For analyzing thicker layers or buried interfaces, ion sputtering can be combine
     
     # True peaks (polymer with multiple functional groups)
     true_spectrum = (
-        800 * np.exp(-0.5 * ((BE - 285.0) / 0.7)**2) +  # C-C/C-H
+        800 * np.exp(-0.5 * ((BE - 284.8) / 0.7)**2) +  # C-C/C-H
         350 * np.exp(-0.5 * ((BE - 286.5) / 0.7)**2) +  # C-O
         180 * np.exp(-0.5 * ((BE - 288.0) / 0.75)**2) + # C=O
         90 * np.exp(-0.5 * ((BE - 289.5) / 0.75)**2)    # O-C=O
@@ -1627,18 +1666,18 @@ For analyzing thicker layers or buried interfaces, ion sputtering can be combine
     print("1. Applying smoothing filter...")
     xps.smooth(window_length=7, polyorder=3)
     
-    print("2. Applying charge correction (C-C reference at 285.0 eV)...")
+    print("2. Applying charge correction (C-C reference at 284.8 eV)...")
     # Find maximum (should be near C-C peak)
     max_idx = np.argmax(xps.intensity)
     observed_cc = xps.BE[max_idx]
-    xps.calibrate(observed_cc, 285.0)
+    xps.calibrate(observed_cc, 284.8)
     
     print("3. Calculating Shirley background...")
     xps.shirley_background()
     
     print("4. Fitting peaks with Voigt functions...")
     peak_guesses = [
-        {'center': 285.0, 'amplitude': 700, 'label': 'C-C/C-H'},
+        {'center': 284.8, 'amplitude': 700, 'label': 'C-C/C-H'},
         {'center': 286.5, 'amplitude': 300, 'label': 'C-O'},
         {'center': 288.0, 'amplitude': 150, 'label': 'C=O'},
         {'center': 289.5, 'amplitude': 75, 'label': 'O-C=O'},
@@ -1716,12 +1755,12 @@ View Solution
 
 **Solution:**
 
-  * **99.3 eV:** Si0 (elemental/metallic silicon)
-  * **103.5 eV:** Si4+ (silicon dioxide, SiO2)
+  * **99.3 eV:** Si$^0$ (elemental/metallic silicon)
+  * **103.5 eV:** Si$^{4+}$ (silicon dioxide, SiO$_2$)
 
 The 4.2 eV shift to higher binding energy occurs because:
 
-  1. In SiO2, silicon has oxidation state +4, losing electron density
+  1. In SiO$_2$, silicon has oxidation state +4, losing electron density
   2. The effective nuclear charge on remaining electrons increases
   3. Core electrons experience stronger binding to the nucleus
 
@@ -1764,7 +1803,7 @@ Atomic concentrations:
 
 #### Exercise 4: Peak Fitting Challenge
 
-Write a Python function to fit a C 1s spectrum with 3 peaks (C-C at 285.0 eV, C-O at 286.5 eV, C=O at 288.0 eV) using Gaussian functions. Calculate the relative percentages of each chemical state.
+Write a Python function to fit a C 1s spectrum with 3 peaks (C-C at 284.8 eV, C-O at 286.5 eV, C=O at 288.0 eV) using Gaussian functions. Calculate the relative percentages of each chemical state.
 
 View Solution
     
@@ -1784,13 +1823,13 @@ View Solution
     # Generate synthetic data
     np.random.seed(42)
     BE = np.linspace(282, 292, 500)
-    true_spectrum = (gaussian(BE, 800, 285.0, 0.7) +
+    true_spectrum = (gaussian(BE, 800, 284.8, 0.7) +
                      gaussian(BE, 350, 286.5, 0.75) +
                      gaussian(BE, 150, 288.0, 0.8))
     data = true_spectrum + np.random.normal(0, 15, len(BE))
     
     # Initial guesses and bounds
-    p0 = [700, 285.0, 0.7, 300, 286.5, 0.7, 100, 288.0, 0.7]
+    p0 = [700, 284.8, 0.7, 300, 286.5, 0.7, 100, 288.0, 0.7]
     bounds = ([0, 284, 0.3]*3, [2000, 290, 1.5]*3)
     
     # Fit
@@ -1828,14 +1867,18 @@ View Solution
     # Linear fit
     slope, intercept = np.polyfit(x, y, 1)
     
-    # Thickness from slope
+    # Thickness from slope.
+    # ln(I_oxide/I_metal) increases with 1/sin(theta), so the slope is
+    # POSITIVE and equals d/lambda -> d = slope * lambda.
     thickness = slope * imfp
     
     print(f"Fitted slope: {slope:.3f}")
     print(f"Calculated layer thickness: {thickness:.2f} nm")
+    # Output: Fitted slope: 0.753
+    #         Calculated layer thickness: 1.88 nm
     
 
-**Result:** Layer thickness is approximately 3.2 nm
+**Result:** Fitted slope 0.753, so the layer thickness is approximately 1.9 nm.
 
 ### Advanced Exercises
 
@@ -1890,10 +1933,11 @@ In this chapter, you learned:
 
   1. Briggs, D., Seah, M.P. (1990). _Practical Surface Analysis, Volume 1: Auger and X-ray Photoelectron Spectroscopy_ (2nd ed.). Wiley. - Comprehensive guide to XPS principles and practice.
   2. Moulder, J.F., Stickle, W.F., Sobol, P.E., Bomben, K.D. (1992). _Handbook of X-ray Photoelectron Spectroscopy_. Physical Electronics. - Standard reference for XPS binding energies.
-  3. Scofield, J.H. (1976). Hartree-Slater subshell photoionization cross-sections at 1254 and 1487 eV. _Journal of Electron Spectroscopy and Related Phenomena_ , 8(2), 129-137. - Source of RSF values.
-  4. Shirley, D.A. (1972). High-resolution X-ray photoemission spectrum of the valence bands of gold. _Physical Review B_ , 5(12), 4709-4714. - Original Shirley background method.
-  5. Powell, C.J., Jablonski, A. (2010). NIST Electron Inelastic-Mean-Free-Path Database. NIST. - IMFP values for depth analysis.
-  6. Hufner, S. (2003). _Photoelectron Spectroscopy: Principles and Applications_ (3rd ed.). Springer. - Theoretical foundations of photoemission.
+  3. Scofield, J.H. (1976). Hartree-Slater subshell photoionization cross-sections at 1254 and 1487 eV. _Journal of Electron Spectroscopy and Related Phenomena_ , 8(2), 129-137. - Theoretical photoionisation cross-sections (not the empirical RSFs tabulated in Section 5.4.2).
+  4. Wagner, C.D., Davis, L.E., Zeller, M.V., Taylor, J.A., Raymond, R.H., Gale, L.H. (1981). Empirical atomic sensitivity factors for quantitative analysis by electron spectroscopy for chemical analysis. _Surface and Interface Analysis_ , 3(5), 211-225. DOI: 10.1002/sia.740030506 - Source of the empirical (Wagner/PHI) RSF values used in Section 5.4.2.
+  5. Shirley, D.A. (1972). High-resolution X-ray photoemission spectrum of the valence bands of gold. _Physical Review B_ , 5(12), 4709-4714. - Original Shirley background method.
+  6. Powell, C.J., Jablonski, A. (2010). NIST Electron Inelastic-Mean-Free-Path Database. NIST. - IMFP values for depth analysis.
+  7. Hufner, S. (2003). _Photoelectron Spectroscopy: Principles and Applications_ (3rd ed.). Springer. - Theoretical foundations of photoemission.
 
 ### Disclaimer
 

@@ -5,76 +5,366 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="機械学習モデルとの統合 - 組成ベース特徴量でGNN並みの精度を実現">
     <title>第4章：機械学習モデルとの統合 - 組成ベース特徴量入門シリーズ</title>
-    <link rel="canonical" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/jp/MI/composition-features-introduction/chapter-4.html">
-    <link rel="alternate" hreflang="ja" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/jp/MI/composition-features-introduction/chapter-4.html">
-    <link rel="alternate" hreflang="en" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/en/MI/composition-features-introduction/chapter-4.html">
-    <link rel="alternate" hreflang="x-default" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/en/MI/composition-features-introduction/chapter-4.html">
-    <meta property="og:title" content="第4章：機械学習モデルとの統合 - 組成ベース特徴量入門シリーズ">
-    <meta property="og:type" content="article">
-    <meta property="og:url" content="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/jp/MI/composition-features-introduction/chapter-4.html">
-    <meta property="og:site_name" content="AI Terakoya">
-    <meta property="og:locale" content="ja_JP">
-    <meta property="og:description" content="機械学習モデルとの統合 - 組成ベース特徴量でGNN並みの精度を実現">
 
     <!-- CSS Styling -->
-    <link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
     <style>
-        /* page-specific residual (Wave C) */
-        :root { --secondary-color: #f093fb; --accent-color: #f5576c; --text-color: #333333; --border-color: #e0e0e0; --code-bg: #f5f5f5; --link-color: #f5576c; --link-hover: #d64556 }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; line-height: 1.8; background: var(--bg-color); padding: 0; margin: 0 }
-        .container { padding: 2rem 1.5rem }
-        header { padding: 2rem 0; margin-bottom: 2rem; box-shadow: 0 2px 10px rgba(0,0,0,0.1) }
-        header .container { padding: 0 1.5rem }
-        h1 { margin-bottom: 0.5rem }
-        .subtitle { font-size: 1.2rem; margin-bottom: 1rem }
-        .meta { opacity: 1; margin-top: 1rem }
-        .meta span { display: inline-flex; align-items: center; gap: 0.3rem }
-        h2 { margin-top: 2.5rem; margin-bottom: 1rem; border-bottom: 3px solid var(--secondary-color) }
-        h3 { margin-bottom: 0.8rem }
-        h4 { font-size: 1.2rem; margin-bottom: 0.6rem; color: var(--primary-color) }
-        p { margin-bottom: 1rem }
-        a { color: var(--link-color) }
-        a:hover { color: var(--link-hover) }
-        ul { margin-bottom: 1rem; padding-left: 2rem }
-        ol { margin-bottom: 1rem; padding-left: 2rem }
-        pre { background: var(--code-bg); border-left: 4px solid var(--accent-color); padding: 1rem; border-radius: 4px }
-        code { font-family: "Courier New", Courier, monospace; background: var(--code-bg); padding: 0.2rem 0.4rem }
-        pre code { background: none }
-        table { overflow-x: auto; display: block }
-        thead { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white }
-        th { padding: 0.75rem; border-bottom: 1px solid var(--border-color) }
-        td { padding: 0.75rem; border-bottom: 1px solid var(--border-color) }
-        tbody tr:hover { background: #f9f9f9 }
-        .info-box { background: #e3f2fd; border-left: 4px solid #2196F3; padding: 1rem; margin-bottom: 1.5rem }
-        .warning-box { background: #fff3e0; border-left: 4px solid #ff9800; padding: 1rem; margin-bottom: 1.5rem; border-radius: 4px }
-        .tip-box { background: #f1f8e9; border-left: 4px solid #8bc34a; padding: 1rem; margin-bottom: 1.5rem; border-radius: 4px }
-        .exercise { background: #fce4ec; border-left: 4px solid #e91e63; padding: 1rem; margin-bottom: 1.5rem }
-        .exercise h4 { margin-top: 0; color: #c2185b }
-        details { background: #f5f5f5; padding: 1rem; margin-bottom: 1rem; border-radius: 4px }
-        summary { user-select: none }
-        summary:hover { color: var(--accent-color) }
-        .navigation { margin-top: 3rem; flex-wrap: wrap; gap: 1rem }
-        .nav-button { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); padding: 0.75rem 1.5rem; border-radius: 5px; display: inline-block }
-        .nav-button:hover { box-shadow: 0 4px 12px rgba(245, 87, 108, 0.3) }
-        .learning-objectives { background: linear-gradient(135deg, rgba(240, 147, 251, 0.1) 0%, rgba(245, 87, 108, 0.1) 100%); border: 2px solid var(--secondary-color); padding: 1.5rem; margin-bottom: 2rem; border-radius: 8px }
-        .learning-objectives h3 { margin-top: 0; color: var(--accent-color) }
-        .learning-objectives ul { margin-bottom: 0 }
-        .colab-badge { display: inline-block; margin: 0.5rem 0 }
-        figure { margin: 2rem 0; text-align: center }
-        figcaption { margin-top: 0.5rem; font-style: italic; color: #666 }
-        @media (max-width: 768px) {
-            .nav-button { width: 100% }
-            th { padding: 0.5rem }
-            td { padding: 0.5rem }
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #f093fb;
+            --accent-color: #f5576c;
+            --bg-color: #ffffff;
+            --text-color: #333333;
+            --border-color: #e0e0e0;
+            --code-bg: #f5f5f5;
+            --link-color: #f5576c;
+            --link-hover: #d64556;
         }
-        .benchmark-table { font-size: 0.9rem }
-        .benchmark-table th { font-size: 0.85rem }
-        .benchmark-table td { font-size: 0.85rem }
-        .best-score { font-weight: bold; color: #2e7d32 }
-        .hyperparameter-table { font-size: 0.9rem }
-        .hyperparameter-table code { font-size: 0.8rem }
-        .locale-link { color: #ac07bf }
-        .locale-link:hover { color: #880698 }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+            line-height: 1.8;
+            color: var(--text-color);
+            background: var(--bg-color);
+            padding: 0;
+            margin: 0;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem;
+        }
+
+        /* Header with MS Gradient */
+        header {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        header .container {
+            padding: 0 1.5rem;
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+            opacity: 0.95;
+        }
+
+        .meta {
+            display: flex;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+            font-size: 0.9rem;
+            opacity: 0.95;
+            margin-top: 1rem;
+        }
+
+        .meta span {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        /* Typography */
+        h2 {
+            font-size: 1.75rem;
+            margin-top: 2.5rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 3px solid var(--secondary-color);
+            color: var(--primary-color);
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            margin-top: 2rem;
+            margin-bottom: 0.8rem;
+            color: var(--primary-color);
+        }
+
+        h4 {
+            font-size: 1.2rem;
+            margin-top: 1.5rem;
+            margin-bottom: 0.6rem;
+            color: var(--primary-color);
+        }
+
+        p {
+            margin-bottom: 1rem;
+        }
+
+        /* Links */
+        a {
+            color: var(--link-color);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        a:hover {
+            color: var(--link-hover);
+            text-decoration: underline;
+        }
+
+        /* Lists */
+        ul, ol {
+            margin-bottom: 1rem;
+            padding-left: 2rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        /* Code Blocks */
+        pre {
+            background: var(--code-bg);
+            border-left: 4px solid var(--accent-color);
+            padding: 1rem;
+            overflow-x: auto;
+            margin-bottom: 1.5rem;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        code {
+            font-family: 'Courier New', Courier, monospace;
+            background: var(--code-bg);
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            font-size: 0.9em;
+        }
+
+        pre code {
+            background: none;
+            padding: 0;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1.5rem;
+            overflow-x: auto;
+            display: block;
+        }
+
+        thead {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+
+        th, td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        tbody tr:hover {
+            background: #f9f9f9;
+        }
+
+        /* Info Boxes */
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196F3;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            border-radius: 4px;
+        }
+
+        .warning-box {
+            background: #fff3e0;
+            border-left: 4px solid #ff9800;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            border-radius: 4px;
+        }
+
+        .tip-box {
+            background: #f1f8e9;
+            border-left: 4px solid #8bc34a;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            border-radius: 4px;
+        }
+
+        /* Exercise Boxes */
+        .exercise {
+            background: #fce4ec;
+            border-left: 4px solid #e91e63;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            border-radius: 4px;
+        }
+
+        .exercise h4 {
+            margin-top: 0;
+            color: #c2185b;
+        }
+
+        /* Details/Summary */
+        details {
+            background: #f5f5f5;
+            border: 1px solid var(--border-color);
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 4px;
+        }
+
+        summary {
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--primary-color);
+            user-select: none;
+        }
+
+        summary:hover {
+            color: var(--accent-color);
+        }
+
+        /* Mermaid Diagrams */
+        .mermaid {
+            text-align: center;
+            margin: 2rem 0;
+        }
+
+        /* Navigation */
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 3rem;
+            padding-top: 2rem;
+            border-top: 2px solid var(--border-color);
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .nav-button {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 5px;
+            text-decoration: none;
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: inline-block;
+        }
+
+        .nav-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(245, 87, 108, 0.3);
+            text-decoration: none;
+        }
+
+        /* Learning Objectives */
+        .learning-objectives {
+            background: linear-gradient(135deg, rgba(240, 147, 251, 0.1) 0%, rgba(245, 87, 108, 0.1) 100%);
+            border: 2px solid var(--secondary-color);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            border-radius: 8px;
+        }
+
+        .learning-objectives h3 {
+            margin-top: 0;
+            color: var(--accent-color);
+        }
+
+        .learning-objectives ul {
+            margin-bottom: 0;
+        }
+
+        /* Colab Badge */
+        .colab-badge {
+            display: inline-block;
+            margin: 0.5rem 0;
+        }
+
+        /* Figure */
+        figure {
+            margin: 2rem 0;
+            text-align: center;
+        }
+
+        figcaption {
+            margin-top: 0.5rem;
+            font-style: italic;
+            color: #666;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            h2 {
+                font-size: 1.4rem;
+            }
+
+            h3 {
+                font-size: 1.2rem;
+            }
+
+            .navigation {
+                flex-direction: column;
+            }
+
+            .nav-button {
+                width: 100%;
+                text-align: center;
+            }
+
+            table {
+                font-size: 0.85rem;
+            }
+
+            th, td {
+                padding: 0.5rem;
+            }
+        }
+
+        /* Benchmark Table Styling */
+        .benchmark-table {
+            font-size: 0.9rem;
+        }
+
+        .benchmark-table th {
+            font-size: 0.85rem;
+        }
+
+        .benchmark-table td {
+            font-size: 0.85rem;
+        }
+
+        .best-score {
+            font-weight: bold;
+            color: #2e7d32;
+        }
+
+        /* Hyperparameter Table */
+        .hyperparameter-table {
+            font-size: 0.9rem;
+        }
+
+        .hyperparameter-table code {
+            font-size: 0.8rem;
+        }
     </style>
 
     <!-- MathJax Configuration -->
@@ -91,19 +381,81 @@
             }
         };
     </script>
-    <script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js" integrity="sha384-Wuix6BuhrWbjDBs24bXrjf4ZQ5aFeFWBuKkFekO2t8xFU0iNaLQfp2K6/1Nxveei" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 
     <!-- Mermaid for Diagrams -->
-    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.3/dist/mermaid.min.js" integrity="sha384-R63zfMfSwJF4xCR11wXii+QUsbiBIdiDzDbtxia72oGWfkT7WHJfmD/I/eeHPJyT" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
     <script>
         mermaid.initialize({ startOnLoad: true, theme: 'default' });
     </script>
 
     <!-- Prism.js for Syntax Highlighting -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet" integrity="sha384-rCCjoCPCsizaAAYVoz1Q0CmCTvnctK0JkfCSjx7IIxexTBg+uCKtFYycedUjMyA2" crossorigin="anonymous" />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" integrity="sha384-06z5D//U/xpvxZHuUz92xBvq3DqBBFi7Up53HRrbV7Jlv7Yvh/MZ7oenfUe9iCEt" crossorigin="anonymous"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js" integrity="sha384-WJdEkJKrbsqw0evQ4GB6mlsKe5cGTxBOw4KAEIa52ZLB7DDpliGkwdme/HMa5n1m" crossorigin="anonymous"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
 
+    <style>
+        /* Locale Switcher Styles */
+        .locale-switcher {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 6px;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .current-locale {
+            font-weight: 600;
+            color: #7b2cbf;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .locale-separator {
+            color: #adb5bd;
+            font-weight: 300;
+        }
+
+        .locale-link {
+            color: #f093fb;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+        }
+
+        .locale-link:hover {
+            background: rgba(240, 147, 251, 0.1);
+            color: #d07be8;
+            transform: translateY(-1px);
+        }
+
+        .locale-meta {
+            color: #868e96;
+            font-size: 0.85rem;
+            font-style: italic;
+            margin-left: auto;
+        }
+
+        @media (max-width: 768px) {
+            .locale-switcher {
+                font-size: 0.85rem;
+                padding: 0.4rem 0.8rem;
+            }
+            .locale-meta {
+                display: none;
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="locale-switcher">
@@ -167,7 +519,7 @@
             <div class="mermaid">
                 graph LR
                 A[化学組成<br/>Fe2O3] --> B[Featurizer<br/>MagpieData]
-                B --> C[特徴量<br/>145次元]
+                B --> C[特徴量<br/>132次元]
                 C --> D[StandardScaler<br/>標準化]
                 D --> E[ML Model<br/>RandomForest]
                 E --> F[予測値<br/>形成エネルギー]
@@ -205,7 +557,7 @@ data = pd.DataFrame({
     'composition': ['Fe2O3', 'Al2O3', 'TiO2', 'SiO2', 'MgO',
                     'CaO', 'Na2O', 'K2O', 'ZnO', 'CuO'],
     'formation_energy': [-8.3, -16.6, -9.7, -9.1, -6.1,
-                         -6.3, -4.2, -3.6, -3.6, -1.6]  # eV/atom
+                         -6.3, -4.2, -3.6, -3.6, -1.6]  # eV/formula unit（組成式あたり）
 })
 
 # 1. 化学組成を文字列からCompositionオブジェクトへ変換
@@ -642,6 +994,9 @@ print("\n学習曲線を xgb_learning_curve.png に保存しました")
                 <p>
                     <strong>使い分け</strong>: パラメータ空間が広い場合（XGBoost等）はRandomizedSearchCV、狭い場合（Random Forest等）はGridSearchCVが適切です。
                 </p>
+                <p>
+                    <strong>Optuna</strong>: 勾配ブースティング系（XGBoost、LightGBM、CatBoost）はパラメータ空間が広く、グリッド探索もランダム探索も予算の大半を無駄にします。<code>Optuna</code>はこれをベイズ最適化（TPE）に置き換えます。各試行のパラメータを過去の試行結果から提案し、見込みの薄い試行は<code>MedianPruner</code>で早期に打ち切ります。実務では<code>RandomizedSearchCV</code>より1桁少ない試行数で良い検証スコアに到達することが多く、Magpie特徴量化した13万化合物に対する5-fold学習が1回数分かかるような状況では効いてきます。使い方は、<code>trial.suggest_float</code> / <code>trial.suggest_int</code>でパラメータをサンプリングし交差検証MAEを返す小さな<code>objective(trial)</code>関数を書き、<code>optuna.create_study(direction="minimize").optimize(objective, n_trials=100)</code>に渡すだけです。
+                </p>
             </div>
 
             <h3>4.2.4 Neural Network (MLP Regressor)</h3>
@@ -981,12 +1336,12 @@ print("4. 両スコア上昇傾向 → データ追加で改善期待")
                     <tr>
                         <td><strong>ペロブスカイト形成</strong><br>(matbench_perovskites)</td>
                         <td>18,928</td>
-                        <td>ROCAUC</td>
-                        <td>0.91</td>
-                        <td class="best-score">0.94</td>
-                        <td>0.93</td>
-                        <td>0.92</td>
-                        <td class="best-score">0.95</td>
+                        <td>MAE (eV/atom)</td>
+                        <td>~0.24</td>
+                        <td>—</td>
+                        <td>~0.045</td>
+                        <td>~0.035</td>
+                        <td class="best-score">~0.029</td>
                     </tr>
                     <tr>
                         <td><strong>フォノン周波数</strong><br>(matbench_phonons)</td>
@@ -1001,13 +1356,14 @@ print("4. 両スコア上昇傾向 → データ追加で改善期待")
                 </tbody>
             </table>
 
+            <p><strong>⚠️ matbench_perovskitesについての注意</strong>: このタスクは構造からペロブスカイトのDFT形成エネルギーを予測する<strong>回帰</strong>問題であり、分類問題ではありません。したがってROC-AUCは適用できません。評価指標はMAE（eV/atom）で、しかも組成のみのモデルが最も苦手とするタスクの1つです。ペロブスカイトの形成エネルギーは八面体の傾き（octahedral tilting）とカチオンのサイト秩序に支配されますが、組成ベクトルにはそれが見えないためです。この行の数値はMatbench v0.1リーダーボードのおおよその値を丸めたものです。正確な数字は最新のリーダーボードを参照してください。</p>
+
             <div class="info-box">
                 <h4>🔍 性能差の要因分析</h4>
                 <p>
                     <strong>組成ベースが有利な場合</strong>:
                 </p>
                 <ul>
-                    <li><strong>ペロブスカイト形成</strong>: 化学組成の規則性が支配的（ElemNet: ROCAUC 0.94）</li>
                     <li><strong>小規模データセット</strong>: GNNは大量データを要求、組成ベースは数百サンプルで学習可能</li>
                 </ul>
                 <p>
@@ -1017,6 +1373,7 @@ print("4. 両スコア上昇傾向 → データ追加で改善期待")
                     <li><strong>形成エネルギー</strong>: 結晶構造（配位数、結合距離）が重要（ALIGNN: MAE 0.047 vs ElemNet: 0.065）</li>
                     <li><strong>機械的性質</strong>: 弾性率は結晶対称性に強く依存</li>
                     <li><strong>フォノン周波数</strong>: 原子配置が直接影響</li>
+                    <li><strong>ペロブスカイト形成</strong>: 形成エネルギーは八面体の傾きとカチオン秩序で決まり、組成だけでは表現できない（Magpie + RF MAE ~0.24 に対し ALIGNN ~0.029 eV/atom）</li>
                 </ul>
             </div>
 

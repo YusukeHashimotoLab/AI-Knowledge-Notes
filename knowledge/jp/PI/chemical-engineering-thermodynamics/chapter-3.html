@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第3章：相平衡 - AI Terakoya</title>
+
+    <style>
+        :root {
+            --color-primary: #2c3e50;
+            --color-primary-dark: #1a252f;
+            --color-accent: #7b2cbf;
+            --color-accent-light: #9d4edd;
+            --color-text: #2d3748;
+            --color-text-light: #4a5568;
+            --color-bg: #ffffff;
+            --color-bg-alt: #f7fafc;
+            --color-border: #e2e8f0;
+            --color-code-bg: #f8f9fa;
+            --color-link: #3182ce;
+            --color-link-hover: #2c5aa0;
+
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+
+            --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+            --border-radius: 8px;
+            --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-body);
+            line-height: 1.7;
+            color: var(--color-text);
+            background-color: var(--color-bg);
+            font-size: 16px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            padding: var(--spacing-xl) var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+            box-shadow: var(--box-shadow);
+        }
+
+        .header-content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: var(--spacing-sm);
+            line-height: 1.2;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            font-weight: 400;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-md);
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-md) var(--spacing-xl);
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-xl);
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-xs);
+            border-bottom: 3px solid var(--color-accent);
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-lg);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        h4 {
+            font-size: 1.1rem;
+            color: var(--color-primary-dark);
+            margin-top: var(--spacing-md);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        p {
+            margin-bottom: var(--spacing-md);
+            color: var(--color-text);
+        }
+
+        a {
+            color: var(--color-link);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        a:hover {
+            color: var(--color-link-hover);
+            text-decoration: underline;
+        }
+
+        ul, ol {
+            margin-left: var(--spacing-lg);
+            margin-bottom: var(--spacing-md);
+        }
+
+        li {
+            margin-bottom: var(--spacing-xs);
+            color: var(--color-text);
+        }
+
+        pre {
+            background-color: var(--color-code-bg);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            overflow-x: auto;
+            margin-bottom: var(--spacing-md);
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        code {
+            font-family: var(--font-mono);
+            font-size: 0.9em;
+            background-color: var(--color-code-bg);
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+        }
+
+        pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: var(--spacing-md);
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            border: 1px solid var(--color-border);
+            padding: var(--spacing-sm);
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--color-bg-alt);
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        blockquote {
+            border-left: 4px solid var(--color-accent);
+            padding-left: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            color: var(--color-text-light);
+            font-style: italic;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        .mermaid {
+            text-align: center;
+            margin: var(--spacing-lg) 0;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        details {
+            background-color: var(--color-bg-alt);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+        }
+
+        summary {
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--color-primary);
+            user-select: none;
+            padding: var(--spacing-xs);
+            margin: calc(-1 * var(--spacing-md));
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        summary:hover {
+            background-color: rgba(123, 44, 191, 0.1);
+        }
+
+        details[open] summary {
+            margin-bottom: var(--spacing-md);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .learning-objectives {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: var(--spacing-lg);
+            border-radius: var(--border-radius);
+            border-left: 4px solid var(--color-accent);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .learning-objectives h2 {
+            margin-top: 0;
+            border-bottom: none;
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            gap: var(--spacing-md);
+            margin: var(--spacing-xl) 0;
+            padding-top: var(--spacing-lg);
+            border-top: 2px solid var(--color-border);
+        }
+
+        .nav-button {
+            flex: 1;
+            padding: var(--spacing-md);
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            border-radius: var(--border-radius);
+            text-align: center;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: var(--box-shadow);
+        }
+
+        .nav-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            text-decoration: none;
+        }
+
+        footer {
+            margin-top: var(--spacing-xl);
+            padding: var(--spacing-lg) var(--spacing-md);
+            background-color: var(--color-bg-alt);
+            border-top: 1px solid var(--color-border);
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--color-text-light);
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            h2 {
+                font-size: 1.4rem;
+            }
+
+            h3 {
+                font-size: 1.2rem;
+            }
+
+            .meta {
+                font-size: 0.85rem;
+            }
+
+            .navigation {
+                flex-direction: column;
+            }
+
+            table {
+                font-size: 0.85rem;
+            }
+
+            th, td {
+                padding: var(--spacing-xs);
+            }
+        }
+    </style>
+
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+
+    <!-- MathJax for LaTeX equation rendering -->
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\(', '\)']],
+                displayMath: [['$$', '$$'], ['\[', '\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" id="MathJax-script" async></script>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <h1>第3章：相平衡</h1>
+            <p class="subtitle">気液平衡、ラウールの法則、そして共沸混合物</p>
+            <div class="meta">
+                <span class="meta-item">📖 読了時間: 20-25分</span>
+                <span class="meta-item">📊 難易度: 中級</span>
+                <span class="meta-item">💻 コード例: 1個</span>
+                <span class="meta-item">📝 演習問題: 3問</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+<h2>ビデオ講義</h2>
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/tGOpNey5U9E?start=1412"
+    title="化学工学熱力学 第3章: 相平衡"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+<blockquote>
+<p>このビデオは以下のテキストと同じ内容をカバーしています。お好みの学習形式をお選びください。</p>
+</blockquote>
+<hr />
+<h1>第3章：相平衡</h1>
+<p>第1章と第2章で 2 つの法則を組み立てました。本章では、それらを 1 つの問いに費やします。液体とその蒸気が同じ容器の中に共存しているとき、それぞれの相には何が入っているのか。あらゆる蒸留塔、フラッシュドラム、吸収塔、凝縮器は、この答えから設計されます。</p>
+<p><strong>気液平衡、ラウールの法則、そして共沸混合物</strong></p>
+<h2>学習目標</h2>
+<p>本章を修了すると、以下ができるようになります:</p>
+<ul>
+<li>✅ <strong>相平衡（phase equilibrium）</strong>の判定条件を、温度・圧力・化学ポテンシャルの言葉で述べられる</li>
+<li>✅ <strong>ギブズの相律（Gibbs phase rule）</strong>を適用して自由度を数えられる</li>
+<li>✅ 蒸気圧が温度とともにどう変化するか、そして<strong>アントワン式（Antoine equation）</strong>が何を相関しているのかを説明できる</li>
+<li>✅ <strong>ラウールの法則（Raoult's law）</strong>を用いて理想 2 成分系の泡点圧と蒸気組成を計算できる</li>
+<li>✅ 相対揮発度を計算し、それを蒸留の設計に結びつけられる</li>
+<li>✅ 活量係数を説明し、共沸混合物がなぜ通常の蒸留を無効にするのかを説明できる</li>
+</ul>
+<p><strong>読了時間</strong>: 20-25分 <strong>コード例</strong>: 1 <strong>演習</strong>: 3</p>
+<hr />
+<h2>3.1 相と相のあいだの平衡</h2>
+<p>第2章は、平衡の実用的な判定条件で締めくくられていました。温度と圧力が一定のもとで、系は<strong>ギブズエネルギー</strong>が最小になるまで変化する、というものです。これを、液体と蒸気を収めた密閉容器に適用すると、同時に成り立たなければならない 3 つの等式に分解されます。</p>
+<div class="mermaid">
+flowchart TB
+    G["Gibbs energy minimum at fixed T and P"] --> A["Thermal: temperature equal in both phases"]
+    G --> B["Mechanical: pressure equal in both phases"]
+    G --> C["Chemical: chemical potential of EVERY species equal in both phases"]
+</div>
+
+<p>はじめの 2 つは直観的です。ホットスポットがあれば熱流が生じますし、圧力差があれば界面が動きます。本当の仕事をするのは 3 つ目です。すべての化学種 $i$ について:</p>
+<p>$$ \mu_i^{\,L} = \mu_i^{\,V} \qquad\Longleftrightarrow\qquad f_i^{\,L} = f_i^{\,V} $$</p>
+<p>ここで $\mu_i$ は<strong>化学ポテンシャル（chemical potential）</strong>、$f_i$ は<strong>フガシティー（fugacity）</strong>です。フガシティーは同等の言い換えですが、圧力の次元を持ち、理想気体では分圧に帰着するため、技術者はこちらを好みます。フガシティーは<strong>逃げ出そうとする傾向（escaping tendency）</strong>として読めます。化学種 $i$ がその相からどれだけ強く出て行こうとしているか、という量です。</p>
+<p>したがって平衡とは、何も起きていない状態ではありません。分子は絶えず両方向に界面を横切っています。平衡とは、各化学種が液から出て行く速度と蒸気から出て行く速度がちょうど等しく、そのため組成が変化しなくなった状態です。逃げ出そうとする傾向が等しいことが、これらの速度を一致させます。</p>
+<h3>自由度を数える：ギブズの相律</h3>
+<p>何かを計算する前に、いくつの変数を指定してよいのかを知っておくと得をします。<strong>ギブズの相律</strong>がそれに答えます:</p>
+<p>$$ F = C - \pi + 2 \qquad (\pi = \text{number of phases}) $$</p>
+<p>ここで $C$ は化学種の数、$\pi$ は平衡にある相の数 — 圧力と混同されないよう $P$ ではなく $\pi$ と書きます — 、$F$ は自由に決めてよい示強変数（温度、圧力、組成）の数です。3 つの計算例を挙げます:</p>
+<table>
+<thead>
+<tr>
+<th>系</th>
+<th>C</th>
+<th>π</th>
+<th>F</th>
+<th>帰結</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>純水の沸騰（液 + 蒸気）</td>
+<td>1</td>
+<td>2</td>
+<td><strong>1</strong></td>
+<td>圧力を決めれば沸騰温度が決まる — ほかに自由なものはない</td>
+</tr>
+<tr>
+<td>水の三重点（固 + 液 + 蒸気）</td>
+<td>1</td>
+<td>3</td>
+<td><strong>0</strong></td>
+<td>不変：唯一の T と P に定まる。だからこそ温度目盛りの定義に使われる</td>
+</tr>
+<tr>
+<td>2 成分系の気液平衡</td>
+<td>2</td>
+<td>2</td>
+<td><strong>2</strong></td>
+<td>T と P を決めれば両相の組成が従う。あるいは P と x を決めれば T と y が従う</td>
+</tr>
+</tbody>
+</table>
+<p>1 行目は圧力鍋を説明しています。P を上げれば沸騰温度 T もそれに従わざるをえません。3 行目は以下のすべてを形づくります。塔圧が一定の 2 成分系では、さらに <strong>1 つ</strong>だけ指定すれば（たとえば液組成）、温度と蒸気組成の両方が決まります。T-x-y線図が表示しているのは、まさにこれです。</p>
+<h2>3.2 純成分の蒸気圧</h2>
+<p>気液平衡のすべては、1 つの純成分物性に錨を下ろしています。<strong>飽和蒸気圧（saturation vapor pressure）</strong> $P_i^{sat}(T)$ — 純粋な $i$ が温度 $T$ で沸騰する圧力です。これは温度とともに急峻に、おおよそ指数関数的に上昇します。逃げ出せるだけのエネルギーを持つ分子の割合がボルツマン因子に支配されているからで、反応速度論のアレニウス項とよく似ています。水は 20 °C でおよそ 0.023 atm、100 °C で 1 atm、150 °C では 5 atm 近くを示します。<strong>標準沸点（normal boiling point）</strong>とは、$P^{sat} = 1$ atm となる温度のことです。</p>
+<p>工学における標準的な相関式が<strong>アントワン式</strong>です:</p>
+<p>$$ \log_{10} P^{sat} = A - \frac{B}{T + C} $$</p>
+<p>$A$、$B$、$C$ は化合物ごとにフィッティングされます。定数そのものよりも重要な注意が 2 つあります。これらはフィッティングされた温度範囲<strong>でのみ</strong>成り立つこと、そして各定数セットは $P$ と $T$ について特定の単位を伴っていることです。bar 基準のセットを atm 基準の計算に混ぜ込むのは、静かに紛れ込む古典的な誤りです。</p>
+<h2>3.3 ラウールの法則と理想溶液</h2>
+<p>最も単純で有用なモデルは、分子が隣人を区別できないと仮定します — A-B 間の相互作用が A-A と B-B の平均のエネルギーを持つ、という仮定です。このような<strong>理想溶液（ideal solution）</strong>は<strong>ラウールの法則</strong>に従います:</p>
+<p>$$ y_i \, P = x_i \, P_i^{sat}(T) $$</p>
+<p>ある化学種が混合物の上で示す分圧は、その純成分蒸気圧に液相モル分率を掛けたものになります。全化学種について和を取ると（$y_i$ の和は 1）、蒸気の最初の泡が現れる圧力である<strong>泡点圧（bubble pressure）</strong>が得られます:</p>
+<p>$$ P = \sum_i x_i P_i^{sat}(T) $$</p>
+<p>ラウールの法則は、化学的に似た化学種 — ベンゼンとトルエン、ヘキサンとヘプタン — に対してはよく働きます。極性や水素結合が異なる場合にはひどく破綻します。エタノール–水がその典型的な破綻例で、3.4 節で扱います。</p>
+<h3>相対揮発度</h3>
+<p>蒸留の設計は、平衡関係を 1 つの数値に圧縮します。軽質成分 1 の重質成分 2 に対する<strong>相対揮発度（relative volatility）</strong>です:</p>
+<p>$$ \alpha = \frac{y_1/x_1}{y_2/x_2} = \frac{P_1^{sat}}{P_2^{sat}} \quad \text{(ideal solution)} $$</p>
+<p>$\alpha = 1$ なら両相の組成は同一で、蒸留は不可能です。$\alpha$ が大きいほど必要な段数は少なくなります。理想 2 成分系では、平衡曲線が 1 つの式に集約されます:</p>
+<p>$$ y_1 = \frac{\alpha x_1}{1 + (\alpha - 1) x_1} $$</p>
+<p>これはまさに、姉妹シリーズ <em>化学工学入門</em> の第4章で扱う<strong>マッケーブ–シール（McCabe–Thiele）</strong>作図法が土台にしている、$\alpha$ でパラメータ化された平衡曲線です。そこで描かれる階段は、この形の曲線に対して刻まれていきます。つまりあの図は、ここで導いた熱力学の絵姿なのです。</p>
+<p>その式から $y_1$ を $x_1$ に対してプロットすると、<strong>y-x（平衡）線図</strong>が得られます。平衡曲線と、分離が起こらない基準として描かれる 45° 線 $y = x$ からなる図です。この線上の点は、蒸気と液が同一組成であることを意味します。曲線と直線のあいだの縦方向の隔たりが、平衡 1 段が生み出す濃縮の大きさです。それこそが蒸留の利用しているものであり、両者が接するところでは消えてしまうものでもあります。</p>
+<h3>例題：90 °C のベンゼン(1)–トルエン(2)</h3>
+<p>90 °C における教科書的なおよその値を取ります。ベンゼンは $P_1^{sat} \approx 1.34$ atm、トルエンは $P_2^{sat} \approx 0.54$ atm です。ベンゼンが $x_1 = 0.4$ の液について:</p>
+<p>$$ P = 0.4 \times 1.34 + 0.6 \times 0.54 = 0.536 + 0.324 = 0.860\ \text{atm} $$</p>
+<p>$$ y_1 = \frac{0.536}{0.860} = 0.623 $$</p>
+<p>液の 40% に対して、蒸気は 62.3% のベンゼンを含んでいます — 平衡接触 1 回だけで、すでに大幅に濃縮されています。ここで $\alpha = 1.34/0.54 = 2.48$ — 丸めると 2.5 — であり、入門シリーズ第4章のマッケーブ–シール作図法は、まさにこの種の平衡曲線の上に築かれています。</p>
+<pre><code class="language-python"># Ideal binary VLE (Raoult's law): benzene(1) - toluene(2) at 90 C
+# Approximate textbook vapor pressures at 90 C, in atm.
+P1sat, P2sat = 1.34, 0.54
+alpha = P1sat / P2sat
+
+print(f&quot;Relative volatility alpha = {alpha:.2f}\n&quot;)
+print(f&quot;{'x1':&gt;5} {'P (atm)':&gt;9} {'y1':&gt;7} {'y1 - x1':&gt;9}&quot;)
+for i in range(11):
+    x1 = i / 10
+    P = x1 * P1sat + (1 - x1) * P2sat   # bubble pressure
+    y1 = x1 * P1sat / P                 # vapor composition
+    print(f&quot;{x1:5.1f} {P:9.3f} {y1:7.3f} {y1 - x1:9.3f}&quot;)
+
+# Relative volatility alpha = 2.48
+#
+#    x1   P (atm)      y1   y1 - x1
+#   0.0     0.540   0.000     0.000
+#   0.1     0.620   0.216     0.116
+#   0.2     0.700   0.383     0.183
+#   0.3     0.780   0.515     0.215
+#   0.4     0.860   0.623     0.223
+#   0.5     0.940   0.713     0.213
+#   0.6     1.020   0.788     0.188
+#   0.7     1.100   0.853     0.153
+#   0.8     1.180   0.908     0.108
+#   0.9     1.260   0.957     0.057
+#   1.0     1.340   1.000     0.000
+</code></pre>
+<p>重要な特徴が 2 つあります。泡点圧が $x_1$ に対して<strong>線形</strong>であること — これが理想溶液の証しです。そして濃縮度 $y_1 - x_1$ は純成分の両端のあいだで正の値を保ちますが、中間の組成でピークを取り、両端に向かって崩れていきます。塔において最後の数パーセントの純度が高価な部分になるのは、このためです。</p>
+<h2>3.4 偏差と活量係数</h2>
+<p>実在の混合物は理想的ではありません。その手当ては、液相側の補正である<strong>活量係数（activity coefficient）</strong> $\gamma_i$ です:</p>
+<p>$$ y_i \, P = \gamma_i \, x_i \, P_i^{sat}(T) $$</p>
+<p>定義上、溶液が理想的になるにつれて、また化学種 $i$ が純粋に近づくにつれて $\gamma_i \to 1$ となります。その値には物理的な意味があります:</p>
+<table>
+<thead>
+<tr>
+<th>偏差</th>
+<th>$\gamma$</th>
+<th>分子論的な原因</th>
+<th>帰結</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>正</strong></td>
+<td>&gt; 1</td>
+<td>異種分子どうしの引力が同種どうしより弱い — 互いを「押し出し合う」</td>
+<td>ラウールの予測より高い圧力。<strong>最低共沸混合物</strong>を作りうる</td>
+</tr>
+<tr>
+<td><strong>負</strong></td>
+<td>&lt; 1</td>
+<td>異種分子どうしがより強く引き合う（水素結合、錯体形成）</td>
+<td>ラウールの予測より低い圧力。最高共沸混合物を作りうる</td>
+</tr>
+</tbody>
+</table>
+<p>エタノール–水は正の偏差の教科書的な例です。エタノール分子が水の水素結合ネットワークを乱すため、両方の化学種が理想モデルの許すよりも容易に逃げ出し、どちらも $\gamma &gt; 1$ となります。</p>
+<h3>共沸混合物</h3>
+<p>偏差が十分に強いとき、濃縮度 $y_1 - x_1$ はある中間組成でゼロに落ちます:</p>
+<p>$$ y_1 = x_1 \qquad\Longrightarrow\qquad \alpha = 1 $$</p>
+<p>これが<strong>共沸混合物（azeotrope）</strong>であり、越えられない壁です。ある段から出て行く蒸気がその段上の液と同じ組成になるため、段を 1 つ足しても何も達成されません。どんな還流比も、どんな塔高もこれを越えられません。エタノール–水は 1 atm で <strong>95.6 wt% エタノール</strong>付近（約 89 mol%）に最低共沸混合物を作り、およそ 78.2 °C で沸騰します。これは純エタノールの沸点よりわずかに<em>低い</em>温度です。これは入門シリーズ第1章で注意喚起されていた限界であり、発酵液の通常の蒸留が 96 wt% の手前で止まってしまう理由でもあります。</p>
+<p>産業界は、塔ではなく熱力学のほうを変えることでこれを越えます:</p>
+<ul>
+<li><strong>圧力スイング蒸留（pressure-swing distillation）</strong> — 共沸組成は圧力とともに移動するので、圧力の異なる 2 本の塔でその周りを回り込む。</li>
+<li><strong>抽出蒸留（extractive distillation）</strong> — エチレングリコールのような高沸点の<strong>エントレーナー（entrainer）</strong>（添加される分離剤）が活量係数を十分に変化させ、共沸を破る。</li>
+<li><strong>モレキュラーシーブ（molecular sieve）</strong> — 3A ゼオライトが水を吸着してエタノールを通し、平衡そのものを迂回する。燃料用無水エタノールの標準的なルート。</li>
+</ul>
+<h2>3.5 T-x-y線図とてこの規則</h2>
+<p>圧力を固定すると、相律は 2 成分混合物に自由な指定を 1 つ残しました。<strong>T-x-y線図（T-x-y diagram）</strong>はその結果をプロットしたものです。組成に対して温度を取り、2 つの純成分沸点のあいだに 2 本の曲線が張られます — ベンゼン–トルエンの 1 atm では、ベンゼンの 80.1 °C からトルエンの 110.6 °C までです。</p>
+<ul>
+<li>下側の<strong>沸点曲線（bubble-point curve）</strong>：組成 $x_1$ の液が最初に沸騰する温度。</li>
+<li>上側の<strong>露点曲線（dew-point curve）</strong>：組成 $y_1$ の蒸気が最初に凝縮する温度。</li>
+<li>その 2 本のあいだが<strong>二相領域</strong>です。ここに入った混合物は、自発的に沸点曲線上の液と露点曲線上の蒸気に分かれます。</li>
+</ul>
+<p>ある温度でこの 2 点を結ぶ水平線が<strong>タイライン（tie line）</strong>であり、その両端が平衡組成です。グラフから直接読み取れます。各相にどれだけの物質があるかは物質収支から従い、それが全体組成を $z_1$ とする<strong>てこの規則（lever rule）</strong>です:</p>
+<p>$$ \frac{n^{V}}{n^{L}} = \frac{z_1 - x_1}{y_1 - z_1} $$</p>
+<p>全体組成に<em>近い</em>ほうの相が、量の多い相になります — タイラインは、供給点を支点とする天秤の梁のようにふるまうのです。この 1 つの関係式が、フラッシュドラム計算の内容のすべてです。</p>
+<p><em>（本章の動画版では、タイラインを描き込んだ T-x-y線図を示しています。）</em></p>
+<h2>3.6 本章のまとめ</h2>
+<ul>
+<li>相平衡には、相をまたぐ <strong>3 つ</strong>の等式が必要である：温度、圧力、そしてすべての化学種の化学ポテンシャル（等価にフガシティー） — 最後のものは逃げ出そうとする傾向が等しいということ</li>
+<li><strong>ギブズの相律</strong> $F = C - \pi + 2$（$\pi$ は相の数）が、何を指定してよいかを数える：沸騰中の純液体で 1、三重点で 0、2 成分系の気液平衡で 2</li>
+<li>蒸気圧は温度とともにおおよそ指数関数的に上昇し、<strong>アントワン式</strong>で相関される — フィッティングされた範囲と単位の中でのみ有効</li>
+<li><strong>ラウールの法則</strong> $y_i P = x_i P_i^{sat}$ は、似た化学種からなる理想溶液を記述する。泡点圧は組成に対して線形である</li>
+<li><strong>相対揮発度</strong> $\alpha = P_1^{sat}/P_2^{sat}$ は蒸留設計が回るためのパラメータである。90 °C のベンゼン–トルエンでは $\alpha = 2.48$（丸めると 2.5）となり、入門シリーズ第4章のマッケーブ–シール作図法は、まさにこの種の平衡曲線の上に築かれている</li>
+<li><strong>活量係数</strong> $\gamma_i$ は実在混合物に対してラウールの法則を補正する。正の偏差は<strong>共沸混合物</strong>を生みうる。そこでは $y = x$、$\alpha = 1$ となり、通常の蒸留は止まる — 95.6 wt% エタノール付近のエタノール–水が古典的な例</li>
+<li><strong>T-x-y線図</strong>とそのタイライン、そして<strong>てこの規則</strong>が、以上のすべてをグラフから読み取れるフラッシュ計算に変える</li>
+</ul>
+<p><strong>次章</strong>: 同じギブズの判定条件を、単に相を変えるのではなく互いに変換し合う化学種に適用すると、<strong>化学平衡</strong> — 平衡定数、その温度依存性、そしてあらゆる反応器の転化率にかかる熱力学的な天井 — が得られます。</p>
+<h2>演習問題</h2>
+<ol>
+<li>
+<p><strong>概念 — 自由度</strong>: ある 2 成分混合物が、圧力一定の塔の中で気液平衡にある。(a) さらにいくつの変数を独立に指定してよいか、またそれは実務的に何を意味するか。(b) 純物質の場合、最大でいくつの相が共存できるか、またその状態は何が特別か。
+   <em>ヒント</em>: F = C − π + 2（π = 相の数）を使い、圧力を固定すると自由度を 1 つ消費することを思い出せ。
+   <em>解答</em>: (a) F = 2 − 2 + 2 = <strong>2</strong>。塔の圧力を固定して 1 つを使うので、<strong>1 つ</strong>残ります: 液組成 x₁ を指定すれば温度と y₁ の両方が決まります — 圧力一定の T-x-y線図が平衡を完全に記述できるのはこのためです。(b) F = 1 − π + 2 = 3 − π なので、<strong>π = 3</strong> で F = 0 — 三重点であり、唯一の温度と圧力に定まる不変な状態です。だからこそ水の三重点が温度目盛りの定点として使われます。</p>
+</li>
+<li>
+<p><strong>定量 — ラウールの法則による泡点圧</strong>: 90 °C のベンゼン(1)–トルエン(2) について、おおよその値 P₁sat = 1.34 atm、P₂sat = 0.54 atm を用いて、x₁ = 0.6 における泡点圧と蒸気組成を計算せよ。3.3 節の x₁ = 0.4 の場合と濃縮度を比較せよ。
+   <em>ヒント</em>: P = x₁P₁sat + x₂P₂sat、次いで y₁ = x₁P₁sat / P。
+   <em>解答</em>: P = 0.6 × 1.34 + 0.4 × 0.54 = 0.804 + 0.216 = <strong>1.020 atm</strong>、y₁ = 0.804 / 1.020 = <strong>0.788</strong>。濃縮度 y₁ − x₁ = 0.188 は、α = 2.48 が変わっていないにもかかわらず x₁ = 0.4 のときの 0.223 より小さくなっています — 1 段あたりの濃縮は中間の組成でピークを取るため、高純度への最終的な追い込みには不釣り合いに多くの段数がかかるのです。また、泡点圧がいまや 1 atm を超えていることにも注意してください: 90 °C において、この混合物は大気圧下で沸騰しますが、x₁ = 0.4 の混合物は沸騰しません。</p>
+</li>
+<li>
+<p><strong>議論 — 共沸を越える</strong>: ある燃料用エタノール工場は塔頂で 95 wt% エタノールに到達しているが、仕様は 99.5 wt% である。ある技術者が、トレイを 20 段追加して還流比を上げることを提案した。なぜこれが失敗するのかを説明し、実行可能な代替案を機構とともに少なくとも 2 つ挙げよ。
+   <em>ヒント</em>: 95.6 wt% エタノールにおける α はいくつか。また、平衡曲線が 45° 線と出会うところで、マッケーブ–シールの階段はどうなるか。
+   <em>解答</em>: 約 95.6 wt%（およそ 89 mol%）エタノールでこの混合物は共沸します: y = x かつ α = 1 です。平衡曲線が 45° 線に接するため、階段の刻みは消え去ってしまいます — 有限の段数では共沸ピンチ（平衡曲線が 45° 線に接するところ）を越えられず、還流は操作線を動かすだけです。トレイを追加しても、資本費とエネルギーが増えるだけで、それ以上のものは得られません。代替案: (1) <strong>モレキュラーシーブによる脱水</strong>。3A ゼオライト層が大きさによって水を吸着しエタノールを通すことで、気液平衡そのものを完全に回避します — 工業的な標準ルートです。(2) エチレングリコールのようなエントレーナーを用いる<strong>抽出蒸留</strong>。活量係数をずらすことで α が 1 に到達しないようにします。(3) <strong>圧力スイング蒸留</strong>。圧力の異なる 2 本の塔を組み合わせ、共沸組成が圧力とともに移動することを利用します。</p>
+</li>
+</ol><div class="navigation">
+    <a href="chapter-2.html" class="nav-button">← 前の章</a>
+    <a href="index.html" class="nav-button">シリーズ目次に戻る</a>
+    <a href="chapter-4.html" class="nav-button">次の章 →</a>
+</div>
+    </main>
+
+    <footer>
+        <p><strong>作成者</strong>: AI Terakoya Content Team</p>
+        <p><strong>監修</strong>: Dr. Yusuke Hashimoto（東北大学）</p>
+        <p><strong>バージョン</strong>: 1.0 | <strong>作成日</strong>: 2026-08-23</p>
+        <p><strong>ライセンス</strong>: Creative Commons BY 4.0</p>
+        <p>© 2025 AI Terakoya. All rights reserved.</p>
+    </footer>
+</body>
+</html>

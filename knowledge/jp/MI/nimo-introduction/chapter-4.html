@@ -5,23 +5,17 @@
 <meta content="第4章: 実践チュートリアル - 材料最適化の完全ワークフロー" name="description"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>第4章: 実践チュートリアル - NIMO入門</title>
-<link rel="canonical" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/jp/MI/nimo-introduction/chapter-4.html">
-<link rel="alternate" hreflang="ja" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/jp/MI/nimo-introduction/chapter-4.html">
-<link rel="alternate" hreflang="en" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/en/MI/nimo-introduction/chapter-4.html">
-<link rel="alternate" hreflang="x-default" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/en/MI/nimo-introduction/chapter-4.html">
-<meta property="og:title" content="第4章: 実践チュートリアル - NIMO入門">
-<meta property="og:type" content="article">
-<meta property="og:url" content="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/jp/MI/nimo-introduction/chapter-4.html">
-<meta property="og:site_name" content="AI Terakoya">
-<meta property="og:locale" content="ja_JP">
-<meta property="og:description" content="第4章: 実践チュートリアル - 材料最適化の完全ワークフロー">
 <link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+    mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });
+</script>
 <script>
     MathJax = {
       tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] }
     };
 </script>
-<script async id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js" integrity="sha384-Wuix6BuhrWbjDBs24bXrjf4ZQ5aFeFWBuKkFekO2t8xFU0iNaLQfp2K6/1Nxveei" crossorigin="anonymous"></script>
+<script async id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 </head>
 <body>
 <nav class="breadcrumb">
@@ -59,9 +53,14 @@
 <li>最適化結果を可視化・分析する</li>
 </ul>
 
-<h2>4.1 問題設定：三元合金の最適化</h2>
+<h2>4.1 問題設定：2変数の組成探索</h2>
 
-<p>このチュートリアルでは、シミュレートされた三元合金系を最適化します。目標は、目的特性を最大化する組成（x1, x2, x3）を見つけることです。</p>
+<p>このチュートリアルでは、シミュレートされた合金系を<strong>2つ</strong>の組成変数 x1, x2 について最適化します。目標は、目的特性を最大化する (x1, x2) の組を見つけることです。</p>
+
+<div class="note">
+<h4>三元系でも変数が2つで足りる理由</h4>
+<p>三元組成では3つの分率の和が1になるため、独立な変数は2つだけです。x1 と x2 を決めれば、残りは x3 = 1 - x1 - x2 として自動的に決まります。したがって (x1, x2) の2次元平面を探索すれば三元系の組成空間全体をカバーでき、以降のコード例もすべて x1 と x2 のみを扱います。</p>
+</div>
 
 <div class="note">
 <h4>このチュートリアルについて</h4>
@@ -98,7 +97,7 @@ print(f"f(5, 5) = {branin(5, 5):.4f}")</code></pre>
 
 <h2>4.2 候補ファイルの作成</h2>
 
-<p>まず、探索する可能性のあるすべての候補を含むCSVファイルを作成する必要があります。</p>
+<p>まず、探索する可能性のあるすべての候補を含むCSVファイルを作成する必要があります。探索空間はBranin関数の標準的な定義域（各変数 0〜15）を16×16のグリッドに離散化したもので、候補数は 16 × 16 = 256 個になります。ここでの x1, x2 は、ベンチマーク関数のスケールで表した2つの独立な組成変数です。</p>
 
 <div class="code-title">コード例2: 候補グリッドの生成</div>
 <pre class="code-example"><code class="language-python">import pandas as pd
@@ -197,14 +196,22 @@ for cycle in range(NUM_CYCLES):
         method = "PHYSBO"  # 以降のサイクルはベイズ最適化
         print("ベイズ最適化を使用")
 
+    # シード引数は手法ごとに異なるため、その手法が受け付けるものだけを渡す。
+    # PHYSBOにre_seedを（REにphysbo_seedを）渡すとTypeErrorになる。
+    seed_kwargs = {}
+    if method == "RE":
+        seed_kwargs["re_seed"] = 42 + cycle
+    elif method in ("PHYSBO", "BO"):
+        seed_kwargs["physbo_seed"] = 42
+    # 他の手法はどちらのシード引数も受け付けない
+
     nimo.selection(
         method=method,
         input_file="candidates.csv",
         output_file="proposals.csv",
         num_objectives=1,
         num_proposals=PROPOSALS_PER_CYCLE,
-        re_seed=42 + cycle if method == "RE" else None,
-        physbo_seed=42 if method == "PHYSBO" else None
+        **seed_kwargs
     )
 
     # ステップ2: 選択された候補を表示
@@ -331,14 +338,21 @@ def run_optimization(method, num_cycles=10, proposals_per_cycle=3, seed=42):
         # 最初のサイクルは常にREを使用
         current_method = "RE" if cycle == 0 else method
 
+        # 上と同じ方針：現在の手法が受け付けるシードだけを渡す
+        seed_kwargs = {}
+        if current_method == "RE":
+            seed_kwargs["re_seed"] = seed + cycle
+        elif current_method in ("PHYSBO", "BO"):
+            seed_kwargs["physbo_seed"] = seed
+        # BLOXなど他の手法はこれらの引数を受け付けない
+
         nimo.selection(
             method=current_method,
             input_file="candidates.csv",
             output_file="proposals.csv",
             num_objectives=1,
             num_proposals=proposals_per_cycle,
-            re_seed=seed + cycle,
-            physbo_seed=seed
+            **seed_kwargs
         )
 
         # シミュレートして更新

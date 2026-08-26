@@ -16,7 +16,6 @@ exercises: 0
     height="315"
     src="https://www.youtube.com/embed/cWfDGqg6c-8"
     title="MI入門 第2章：MIの基礎知識"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>

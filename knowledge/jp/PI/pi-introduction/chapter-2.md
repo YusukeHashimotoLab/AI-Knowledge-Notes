@@ -4,6 +4,22 @@ chapter_title: 第2章：プロセスデータの前処理と可視化
 subtitle: データ品質を高める実践的前処理手法
 ---
 
+## ビデオ講義
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/SCxfASHrfoc"
+    title="プロセス・インフォマティクス入門 第2章: プロセスデータの前処理と可視化"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> このビデオは以下のテキストと同じ内容をカバーしています。お好みの学習形式をお選びください。
+
 # 第2章：プロセスデータの前処理と可視化
 
 プロセスデータの前処理は、高品質な分析結果を得るための最重要ステップです。時系列データの扱い方、欠損値・外れ値への対処、データスケーリングの実践手法を習得します。
@@ -1010,7 +1026,8 @@ Scaling** | $x' = \frac{x - Q_{med}}{Q_{75} - Q_{25}}$ | 外れ値に頑健 | �
                    mode='lines',
                    name='Temperature',
                    line=dict(color='#11998e', width=1.5),
-                   hovertemplate='%{x}<br>Temp: %{y:.2f}°C<extra></extra>'),
+                   hovertemplate='%{x}  
+    Temp: %{y:.2f}°C'),
         row=1, col=1
     )
     fig.add_hline(y=175, line_dash="dash", line_color="red",
@@ -1022,7 +1039,8 @@ Scaling** | $x' = \frac{x - Q_{med}}{Q_{75} - Q_{25}}$ | 外れ値に頑健 | �
                    mode='lines',
                    name='Pressure',
                    line=dict(color='#f59e0b', width=1.5),
-                   hovertemplate='%{x}<br>Pressure: %{y:.3f} MPa<extra></extra>'),
+                   hovertemplate='%{x}  
+    Pressure: %{y:.3f} MPa'),
         row=2, col=1
     )
     
@@ -1032,7 +1050,8 @@ Scaling** | $x' = \frac{x - Q_{med}}{Q_{75} - Q_{25}}$ | 外れ値に頑健 | �
                    mode='lines',
                    name='Flow Rate',
                    line=dict(color='#7b2cbf', width=1.5),
-                   hovertemplate='%{x}<br>Flow: %{y:.2f} m³/h<extra></extra>'),
+                   hovertemplate='%{x}  
+    Flow: %{y:.2f} m³/h'),
         row=3, col=1
     )
     
@@ -1042,7 +1061,8 @@ Scaling** | $x' = \frac{x - Q_{med}}{Q_{75} - Q_{25}}$ | 外れ値に頑健 | �
                    mode='lines',
                    name='Purity',
                    line=dict(color='#10b981', width=1.5),
-                   hovertemplate='%{x}<br>Purity: %{y:.2f}%<extra></extra>'),
+                   hovertemplate='%{x}  
+    Purity: %{y:.2f}%'),
         row=4, col=1
     )
     fig.add_hrect(y0=97.5, y1=99.0, line_width=0, fillcolor="green", opacity=0.1,

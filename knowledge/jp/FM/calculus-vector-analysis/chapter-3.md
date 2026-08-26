@@ -4,6 +4,24 @@ chapter_title: "第3章: 多変数関数の微積分"
 subtitle: Multivariable Calculus
 ---
 
+## ビデオ講義
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/BEElvcgY5Uk?start=1684"
+    title="微積分とベクトル解析入門 第3章: 多変数関数の微積分"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> このビデオは以下のテキストと同じ内容をカバーしています。お好みの学習形式をお選びください。
+
+---
+
 🌐 JP | [🇬🇧 EN](<../../../en/FM/calculus-vector-analysis/chapter-3.html>) | Last sync: 2025-11-16
 
 [基礎数理道場](<../index.html>) > [微積分とベクトル解析入門](<index.html>) > 第3章 
@@ -15,20 +33,175 @@ subtitle: Multivariable Calculus
 
 ### 💻 コード例1: 偏微分の数値計算
 
-import numpy as np import matplotlib.pyplot as plt from mpl_toolkits.mplot3d import Axes3D def f(x, y): """2変数関数: f(x,y) = x² + xy + y²""" return x**2 + x*y + y**2 def partial_x(f, x, y, h=1e-5): """∂f/∂x の数値計算""" return (f(x+h, y) - f(x-h, y)) / (2*h) def partial_y(f, x, y, h=1e-5): """∂f/∂y の数値計算""" return (f(x, y+h) - f(x, y-h)) / (2*h) # 点 (1, 2) での偏微分 x0, y0 = 1, 2 df_dx = partial_x(f, x0, y0) df_dy = partial_y(f, x0, y0) print(f"点 ({x0}, {y0}) における偏微分:") print(f"∂f/∂x = {df_dx:.6f} (解析解: {2*x0 + y0})") print(f"∂f/∂y = {df_dy:.6f} (解析解: {x0 + 2*y0})") # 3D可視化 x = np.linspace(-3, 3, 50) y = np.linspace(-3, 3, 50) X, Y = np.meshgrid(x, y) Z = f(X, Y) fig = plt.figure(figsize=(10, 8)) ax = fig.add_subplot(111, projection='3d') ax.plot_surface(X, Y, Z, alpha=0.7, cmap='viridis') ax.scatter([x0], [y0], [f(x0, y0)], color='red', s=100) ax.set_xlabel('x') ax.set_ylabel('y') ax.set_zlabel('f(x,y)') ax.set_title('f(x,y) = x² + xy + y²') plt.show()
+```python
+import numpy as np
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+
+def f(x, y):
+    """2変数関数: f(x,y) = x² + xy + y²"""
+    return x**2 + x*y + y**2
+
+def partial_x(f, x, y, h=1e-5):
+    """∂f/∂x の数値計算"""
+    return (f(x+h, y) - f(x-h, y)) / (2*h)
+
+def partial_y(f, x, y, h=1e-5):
+    """∂f/∂y の数値計算"""
+    return (f(x, y+h) - f(x, y-h)) / (2*h)
+
+# 点 (1, 2) での偏微分
+x0, y0 = 1, 2
+df_dx = partial_x(f, x0, y0)
+df_dy = partial_y(f, x0, y0)
+
+print(f"点 ({x0}, {y0}) における偏微分:")
+print(f"∂f/∂x = {df_dx:.6f} (解析解: {2*x0 + y0})")
+print(f"∂f/∂y = {df_dy:.6f} (解析解: {x0 + 2*y0})")
+
+# 3D可視化
+x = np.linspace(-3, 3, 50)
+y = np.linspace(-3, 3, 50)
+X, Y = np.meshgrid(x, y)
+Z = f(X, Y)
+
+fig = plt.figure(figsize=(10, 8))
+ax = fig.add_subplot(111, projection='3d')
+ax.plot_surface(X, Y, Z, alpha=0.7, cmap='viridis')
+ax.scatter([x0], [y0], [f(x0, y0)], color='red', s=100)
+ax.set_xlabel('x')
+ax.set_ylabel('y')
+ax.set_zlabel('f(x,y)')
+ax.set_title('f(x,y) = x² + xy + y²')
+plt.show()
+```
 
 ### 💻 コード例2: SymPyによる偏微分
 
-import sympy as sp x, y, z = sp.symbols('x y z') # 様々な多変数関数の偏微分 f1 = x**2 + y**2 f2 = x*sp.exp(y) f3 = sp.sin(x*y) f4 = x**2 * y + y**2 * z + z**2 * x functions = [f1, f2, f3, f4] print("偏微分の例:") for f in functions: print(f"\nf = {f}") vars = list(f.free_symbols) for var in vars: print(f" ∂f/∂{var} = {sp.diff(f, var)}")
+```python
+import sympy as sp
 
-## 3.2 勾配とヤコビ行列
+x, y, z = sp.symbols('x y z')
+
+# 様々な多変数関数の偏微分
+f1 = x**2 + y**2
+f2 = x*sp.exp(y)
+f3 = sp.sin(x*y)
+f4 = x**2 * y + y**2 * z + z**2 * x
+
+functions = [f1, f2, f3, f4]
+
+print("偏微分の例:")
+for f in functions:
+    print(f"\nf = {f}")
+    # free_symbolsは集合なので反復順が不定。sorted()で出力順を再現可能にする
+    for var in sorted(f.free_symbols, key=str):
+        print(f"  ∂f/∂{var} = {sp.diff(f, var)}")
+```
+
+### 📐 全微分と連鎖律
+
+偏微分は1つの軸方向だけのfの変化を測るものです。**すべての**変数が同時に変化するとき、 fの1次の変化量は**全微分**で与えられます： $$df = \frac{\partial f}{\partial x} dx + \frac{\partial f}{\partial y} dy$$ これは Δf = f(x+Δx, y+Δy) − f(x, y) の線形近似であり、無視した項は (Δx, Δy) について2次の大きさです。
+
+変数自身がパラメータ t に依存する場合、すなわち x = x(t), y = y(t) のとき、 全微分を dt で割ると多変数関数の**連鎖律**が得られます： $$\frac{df}{dt} = \frac{\partial f}{\partial x}\frac{dx}{dt} + \frac{\partial f}{\partial y}\frac{dy}{dt}$$ これはスカラー場の中の経路に沿ってfを微分するための規則であり、 第5章の線積分やニューラルネットワークの誤差逆伝播が依拠しているのはまさにこの規則です。
+
+```python
+import numpy as np
+
+def f(x, y):
+    """f(x, y) = x² + xy + y²"""
+    return x**2 + x*y + y**2
+
+# --- 全微分: df = (∂f/∂x)dx + (∂f/∂y)dy ---
+x0, y0 = 1.0, 2.0
+fx, fy = 2*x0 + y0, x0 + 2*y0       # (1, 2)での偏微分: 4.0 と 5.0
+dx, dy = 0.01, -0.02
+
+df_linear = fx*dx + fy*dy                      # 1次（線形）の見積もり
+df_actual = f(x0 + dx, y0 + dy) - f(x0, y0)    # 実際の変化量
+
+print(f"df (全微分)       = {df_linear:.6f}")
+print(f"Δf (実際の変化)   = {df_actual:.6f}")
+print(f"差（2次の項）     = {abs(df_actual - df_linear):.2e}")
+
+# --- 連鎖律: x = cos(t), y = sin(t) ---
+def df_dt_chain(t):
+    x, y = np.cos(t), np.sin(t)
+    return (2*x + y)*(-np.sin(t)) + (x + 2*y)*np.cos(t)
+
+t0, h = 0.7, 1e-6
+df_dt_numeric = (f(np.cos(t0+h), np.sin(t0+h)) - f(np.cos(t0-h), np.sin(t0-h))) / (2*h)
+
+print(f"\ndf/dt (連鎖律)    = {df_dt_chain(t0):.6f}")
+print(f"df/dt (中心差分)  = {df_dt_numeric:.6f}")
+```
+
+**実行結果:**
+
+```
+df (全微分)       = -0.060000
+Δf (実際の変化)   = -0.059700
+差（2次の項）     = 3.00e-04
+
+df/dt (連鎖律)    = 0.169967
+df/dt (中心差分)  = 0.169967
+```
+
+## 3.2 勾配と勾配降下法
 
 **📐 定義: 勾配**  
 スカラー場 f(x, y, z) の勾配は偏微分を成分とするベクトル： $$\nabla f = \left( \frac{\partial f}{\partial x}, \frac{\partial f}{\partial y}, \frac{\partial f}{\partial z} \right)$$ 勾配ベクトルは関数が最も急激に増加する方向を示します。 
 
 ### 💻 コード例3: 勾配降下法の実装
 
-def gradient(f, x, y, h=1e-5): """勾配ベクトルの数値計算""" grad_x = (f(x+h, y) - f(x-h, y)) / (2*h) grad_y = (f(x, y+h) - f(x, y-h)) / (2*h) return np.array([grad_x, grad_y]) def gradient_descent(f, x0, y0, learning_rate=0.1, n_iter=50): """勾配降下法による最小値探索""" path = [(x0, y0)] x, y = x0, y0 for i in range(n_iter): grad = gradient(f, x, y) x -= learning_rate * grad[0] y -= learning_rate * grad[1] path.append((x, y)) return np.array(path) # f(x,y) = x² + y² の最小値を探索 f_simple = lambda x, y: x**2 + y**2 path = gradient_descent(f_simple, x0=3, y0=2, learning_rate=0.2, n_iter=20) print("勾配降下法による最小値探索:") print(f"開始点: ({path[0,0]:.2f}, {path[0,1]:.2f})") print(f"終了点: ({path[-1,0]:.6f}, {path[-1,1]:.6f})") print(f"最小値: f = {f_simple(path[-1,0], path[-1,1]):.6f}") # 可視化 x = np.linspace(-3, 3, 100) y = np.linspace(-3, 3, 100) X, Y = np.meshgrid(x, y) Z = f_simple(X, Y) plt.figure(figsize=(10, 8)) plt.contour(X, Y, Z, levels=20, cmap='viridis', alpha=0.6) plt.colorbar(label='f(x,y)') plt.plot(path[:,0], path[:,1], 'ro-', linewidth=2, markersize=6) plt.scatter([path[0,0]], [path[0,1]], color='green', s=150, marker='*', label='開始点') plt.scatter([path[-1,0]], [path[-1,1]], color='red', s=150, marker='*', label='終了点') plt.xlabel('x') plt.ylabel('y') plt.title('勾配降下法による最適化') plt.legend() plt.grid(True, alpha=0.3) plt.show()
+```python
+def gradient(f, x, y, h=1e-5):
+    """勾配ベクトルの数値計算"""
+    grad_x = (f(x+h, y) - f(x-h, y)) / (2*h)
+    grad_y = (f(x, y+h) - f(x, y-h)) / (2*h)
+    return np.array([grad_x, grad_y])
+
+def gradient_descent(f, x0, y0, learning_rate=0.1, n_iter=50):
+    """勾配降下法による最小値探索"""
+    path = [(x0, y0)]
+    x, y = x0, y0
+
+    for i in range(n_iter):
+        grad = gradient(f, x, y)
+        x -= learning_rate * grad[0]
+        y -= learning_rate * grad[1]
+        path.append((x, y))
+
+    return np.array(path)
+
+# f(x,y) = x² + y² の最小値を探索
+f_simple = lambda x, y: x**2 + y**2
+path = gradient_descent(f_simple, x0=3, y0=2, learning_rate=0.2, n_iter=20)
+
+print("勾配降下法による最小値探索:")
+print(f"開始点: ({path[0,0]:.2f}, {path[0,1]:.2f})")
+print(f"終了点: ({path[-1,0]:.6f}, {path[-1,1]:.6f})")
+print(f"最小値: f = {f_simple(path[-1,0], path[-1,1]):.6f}")
+
+# 可視化
+x = np.linspace(-3, 3, 100)
+y = np.linspace(-3, 3, 100)
+X, Y = np.meshgrid(x, y)
+Z = f_simple(X, Y)
+
+plt.figure(figsize=(10, 8))
+plt.contour(X, Y, Z, levels=20, cmap='viridis', alpha=0.6)
+plt.colorbar(label='f(x,y)')
+plt.plot(path[:,0], path[:,1], 'ro-', linewidth=2, markersize=6)
+plt.scatter([path[0,0]], [path[0,1]], color='green', s=150, marker='*', label='開始点')
+plt.scatter([path[-1,0]], [path[-1,1]], color='red', s=150, marker='*', label='終了点')
+plt.xlabel('x')
+plt.ylabel('y')
+plt.title('勾配降下法による最適化')
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.show()
+```
 
 ## 3.3 ラグランジュの未定乗数法
 
@@ -37,21 +210,152 @@ def gradient(f, x, y, h=1e-5): """勾配ベクトルの数値計算""" grad_x = 
 
 ### 💻 コード例4: 制約付き最適化問題
 
-from scipy.optimize import minimize # 問題: x² + y² を最小化、制約 x + y = 1 def objective(X): x, y = X return x**2 + y**2 def constraint(X): x, y = X return x + y - 1 # x + y = 1 # 制約条件を辞書形式で指定 cons = {'type': 'eq', 'fun': constraint} # 最適化実行 x0 = [0, 0] # 初期値 result = minimize(objective, x0, method='SLSQP', constraints=cons) print("制約付き最適化の結果:") print(f"最適解: x = {result.x[0]:.6f}, y = {result.x[1]:.6f}") print(f"最小値: f = {result.fun:.6f}") print(f"制約確認: x + y = {result.x[0] + result.x[1]:.6f}") # 解析解との比較（この問題の解析解は x = y = 0.5） print(f"\n解析解: x = y = 0.5, f = 0.5") print(f"誤差: {abs(result.x[0] - 0.5):.2e}")
+```python
+from scipy.optimize import minimize
 
-## 3.4 重積分（二重積分・三重積分）
+# 問題: x² + y² を最小化、制約 x + y = 1
+def objective(X):
+    x, y = X
+    return x**2 + y**2
+
+def constraint(X):
+    x, y = X
+    return x + y - 1  # x + y = 1
+
+# 制約条件を辞書形式で指定
+cons = {'type': 'eq', 'fun': constraint}
+
+# 最適化実行
+x0 = [0, 0]  # 初期値
+result = minimize(objective, x0, method='SLSQP', constraints=cons)
+
+print("制約付き最適化の結果:")
+print(f"最適解: x = {result.x[0]:.6f}, y = {result.x[1]:.6f}")
+print(f"最小値: f = {result.fun:.6f}")
+print(f"制約確認: x + y = {result.x[0] + result.x[1]:.6f}")
+
+# 解析解との比較（この問題の解析解は x = y = 0.5）
+print(f"\n解析解: x = y = 0.5, f = 0.5")
+print(f"誤差: {abs(result.x[0] - 0.5):.2e}")
+```
+
+## 3.4 二重積分と極座標
 
 ### 💻 コード例5: 二重積分の数値計算
 
-from scipy import integrate # ∫∫_D xy dxdy, D: 0 ≤ x ≤ 1, 0 ≤ y ≤ 2 def integrand(y, x): """被積分関数 f(x,y) = xy""" return x * y # dblquad: 二重積分 result, error = integrate.dblquad(integrand, 0, 1, # x の範囲 0, 2) # y の範囲 print("二重積分の計算:") print(f"∫₀¹ ∫₀² xy dy dx = {result:.6f}") print(f"解析解: [x²/2]₀¹ · [y²/2]₀² = 0.5 · 2 = 1.0") print(f"推定誤差: {error:.2e}")
+```python
+from scipy import integrate
+
+# ∫∫_D xy dxdy, D: 0 ≤ x ≤ 1, 0 ≤ y ≤ 2
+def integrand(y, x):
+    """被積分関数 f(x,y) = xy"""
+    return x * y
+
+# dblquad: 二重積分
+result, error = integrate.dblquad(integrand,
+                                   0, 1,      # x の範囲
+                                   0, 2)      # y の範囲
+
+print("二重積分の計算:")
+print(f"∫₀¹ ∫₀² xy dy dx = {result:.6f}")
+print(f"解析解: [x²/2]₀¹ · [y²/2]₀² = 0.5 · 2 = 1.0")
+print(f"推定誤差: {error:.2e}")
+```
 
 ### 💻 コード例6: 極座標変換による二重積分
 
-# 円盤 x² + y² ≤ 1 上での ∫∫ (x² + y²) dxdy # 極座標変換: x = r cos θ, y = r sin θ, dxdy = r dr dθ def integrand_polar(theta, r): """極座標での被積分関数: r² · r = r³""" return r**3 # 積分範囲: 0 ≤ r ≤ 1, 0 ≤ θ ≤ 2π result, error = integrate.dblquad(integrand_polar, 0, 1, # r の範囲 0, 2*np.pi) # θ の範囲 print("\n極座標変換による二重積分:") print(f"∫∫_D (x² + y²) dxdy = {result:.6f}") print(f"解析解: ∫₀^2π dθ ∫₀¹ r³ dr = 2π · [r⁴/4]₀¹ = π/2 ≈ {np.pi/2:.6f}") print(f"誤差: {abs(result - np.pi/2):.2e}")
+```python
+# 円盤 x² + y² ≤ 1 上での ∫∫ (x² + y²) dxdy
+# 極座標変換: x = r cos θ, y = r sin θ, dxdy = r dr dθ
 
-### 💻 コード例7: 材料科学への応用（濃度分布の積分）
+def integrand_polar(theta, r):
+    """極座標での被積分関数: r² · r = r³"""
+    return r**3
 
-# 円形ウェハ上の不純物濃度分布 def concentration(r, theta): """ 濃度分布 C(r,θ) [atoms/cm³] 中心から離れるほど濃度が減少 """ r_max = 5.0 # ウェハ半径 [cm] C0 = 1e15 # 中心濃度 [atoms/cm³] return C0 * np.exp(-r**2 / r_max**2) # ウェハ全体の不純物原子数を計算 R = 5.0 # ウェハ半径 [cm] def integrand_concentration(theta, r): return concentration(r, theta) * r # ヤコビアン r を掛ける total_atoms, error = integrate.dblquad(integrand_concentration, 0, R, 0, 2*np.pi) print("\n材料科学への応用:") print(f"ウェハ半径: {R} cm") print(f"中心濃度: {1e15:.2e} atoms/cm³") print(f"総不純物原子数: {total_atoms:.4e} atoms") print(f"平均濃度: {total_atoms / (np.pi * R**2):.4e} atoms/cm³") # 濃度分布の可視化 r_plot = np.linspace(0, R, 100) theta_plot = np.linspace(0, 2*np.pi, 100) R_grid, Theta_grid = np.meshgrid(r_plot, theta_plot) C_grid = concentration(R_grid, Theta_grid) # 極座標をデカルト座標に変換 X_grid = R_grid * np.cos(Theta_grid) Y_grid = R_grid * np.sin(Theta_grid) plt.figure(figsize=(10, 8)) plt.contourf(X_grid, Y_grid, C_grid, levels=20, cmap='hot') plt.colorbar(label='濃度 (atoms/cm³)') plt.xlabel('x (cm)') plt.ylabel('y (cm)') plt.title('ウェハ上の不純物濃度分布') plt.axis('equal') plt.grid(True, alpha=0.3) plt.show()
+# 積分範囲: 0 ≤ r ≤ 1, 0 ≤ θ ≤ 2π
+result, error = integrate.dblquad(integrand_polar,
+                                   0, 1,           # r の範囲
+                                   0, 2*np.pi)     # θ の範囲
+
+print("\n極座標変換による二重積分:")
+print(f"∫∫_D (x² + y²) dxdy = {result:.6f}")
+print(f"解析解: ∫₀^2π dθ ∫₀¹ r³ dr = 2π · [r⁴/4]₀¹ = π/2 ≈ {np.pi/2:.6f}")
+print(f"誤差: {abs(result - np.pi/2):.2e}")
+```
+
+**実行結果:**
+
+```
+極座標変換による二重積分:
+∫∫_D (x² + y²) dxdy = 1.570796
+解析解: ∫₀^2π dθ ∫₀¹ r³ dr = 2π · [r⁴/4]₀¹ = π/2 ≈ 1.570796
+誤差: 2.22e-16
+```
+
+### 💻 コード例7: 材料科学への応用（ドーズ量分布の積分）
+
+```python
+# 円形ウェハ上の不純物ドーズ量分布
+# 単位に注意: 注入ドーズ量は面密度 [atoms/cm²] なので、
+# ウェハ面積 [cm²] 上で積分すると純粋な原子数になる。
+# （体積濃度 [atoms/cm³] を面積で積分すると atoms ではなく atoms/cm が残る。）
+def dose(r, theta):
+    """
+    面密度ドーズ量分布 D(r,θ) [atoms/cm²]
+    中心から離れるほどドーズ量が減少
+    """
+    r_max = 5.0  # ウェハ半径 [cm]
+    D0 = 1e15    # 中心ドーズ量 [atoms/cm²]
+    return D0 * np.exp(-r**2 / r_max**2)
+
+# ウェハ全体の不純物原子数を計算
+R = 5.0  # ウェハ半径 [cm]
+
+def integrand_dose(theta, r):
+    return dose(r, theta) * r  # ヤコビアン r を掛ける（dA = r dr dθ）
+
+total_atoms, error = integrate.dblquad(integrand_dose,
+                                        0, R,
+                                        0, 2*np.pi)
+
+print("\n材料科学への応用:")
+print(f"ウェハ半径: {R} cm")
+print(f"中心ドーズ量: {1e15:.2e} atoms/cm²")
+print(f"総不純物原子数: {total_atoms:.4e} atoms")
+print(f"平均ドーズ量: {total_atoms / (np.pi * R**2):.4e} atoms/cm²")
+
+# 濃度分布の可視化
+r_plot = np.linspace(0, R, 100)
+theta_plot = np.linspace(0, 2*np.pi, 100)
+R_grid, Theta_grid = np.meshgrid(r_plot, theta_plot)
+C_grid = dose(R_grid, Theta_grid)
+
+# 極座標をデカルト座標に変換
+X_grid = R_grid * np.cos(Theta_grid)
+Y_grid = R_grid * np.sin(Theta_grid)
+
+plt.figure(figsize=(10, 8))
+plt.contourf(X_grid, Y_grid, C_grid, levels=20, cmap='hot')
+plt.colorbar(label='ドーズ量 (atoms/cm²)')
+plt.xlabel('x (cm)')
+plt.ylabel('y (cm)')
+plt.title('ウェハ上の不純物ドーズ量分布')
+plt.axis('equal')
+plt.grid(True, alpha=0.3)
+plt.show()
+```
+
+**実行結果:**
+
+```
+材料科学への応用:
+ウェハ半径: 5.0 cm
+中心ドーズ量: 1.00e+15 atoms/cm²
+総不純物原子数: 4.9647e+16 atoms
+平均ドーズ量: 6.3212e+14 atoms/cm²
+```
+
+閉形式でも確認できます: 2πD₀·(r_max²/2)·(1 − e⁻¹) = 4.9647e+16 atoms、平均ドーズ量は D₀(1 − e⁻¹) = 6.3212e+14 atoms/cm²。
 
 ## まとめ
 

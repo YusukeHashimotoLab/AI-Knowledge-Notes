@@ -4,6 +4,23 @@ chapter_title: "Chapter 2: Law of Large Numbers and Central Limit Theorem"
 subtitle: Law of Large Numbers and Central Limit Theorem
 ---
 
+## Video Lecture
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/vP3vwzwB0Yk"
+    title="Probability & Stochastic Processes Ch.2: Law of Large Numbers and Central Limit Theorem"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> This video covers the same content as the text below. Choose your preferred learning format.
+
+---
+
 🌐 EN | [🇯🇵 JP](<../../../jp/FM/probability-stochastic-processes/chapter-2.html>) | Last sync: 2025-11-16
 
 [Fundamentals of Mathematics Dojo](<../index.html>) > [Probability Theory and Stochastic Processes](<index.html>) > Chapter 2 

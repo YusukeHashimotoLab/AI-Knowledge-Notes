@@ -5,23 +5,17 @@
 <meta content="Chapter 4: Hands-on Tutorial - Complete Materials Optimization Workflow" name="description"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>Chapter 4: Hands-on Tutorial - NIMO Introduction</title>
-<link rel="canonical" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/en/MI/nimo-introduction/chapter-4.html">
-<link rel="alternate" hreflang="ja" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/jp/MI/nimo-introduction/chapter-4.html">
-<link rel="alternate" hreflang="en" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/en/MI/nimo-introduction/chapter-4.html">
-<link rel="alternate" hreflang="x-default" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/en/MI/nimo-introduction/chapter-4.html">
-<meta property="og:title" content="Chapter 4: Hands-on Tutorial - NIMO Introduction">
-<meta property="og:type" content="article">
-<meta property="og:url" content="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/en/MI/nimo-introduction/chapter-4.html">
-<meta property="og:site_name" content="AI Terakoya">
-<meta property="og:locale" content="en_US">
-<meta property="og:description" content="Chapter 4: Hands-on Tutorial - Complete Materials Optimization Workflow">
 <link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+    mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });
+</script>
 <script>
     MathJax = {
       tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] }
     };
 </script>
-<script async id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js" integrity="sha384-Wuix6BuhrWbjDBs24bXrjf4ZQ5aFeFWBuKkFekO2t8xFU0iNaLQfp2K6/1Nxveei" crossorigin="anonymous"></script>
+<script async id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 </head>
 <body>
 <nav class="breadcrumb">
@@ -58,7 +52,7 @@
     height="315"
     src="https://www.youtube.com/embed/J520dtNyn6M"
     title="NIMO Introduction Ch.4: Hands-on Tutorial"
-
+    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>
@@ -73,9 +67,14 @@
 <li>Visualize and analyze optimization results</li>
 </ul>
 
-<h2>4.1 Problem Setup: Optimizing a Ternary Alloy</h2>
+<h2>4.1 Problem Setup: A Two-Variable Composition Search</h2>
 
-<p>In this tutorial, we'll optimize a simulated ternary alloy system. Our goal is to find the composition (x1, x2, x3) that maximizes a target property.</p>
+<p>In this tutorial, we'll optimize a simulated alloy system over <strong>two</strong> composition variables, x1 and x2. Our goal is to find the (x1, x2) pair that maximizes a target property.</p>
+
+<div class="note">
+<h4>Why Two Variables Are Enough for a Ternary System</h4>
+<p>In a ternary composition the three fractions must sum to one, so only two of them are independent: once x1 and x2 are chosen, the third is fixed by x3 = 1 - x1 - x2. Searching the two-dimensional (x1, x2) plane therefore covers the entire ternary space, and every code example below works with x1 and x2 only.</p>
+</div>
 
 <div class="note">
 <h4>About This Tutorial</h4>
@@ -112,7 +111,7 @@ print(f"f(5, 5) = {branin(5, 5):.4f}")</code></pre>
 
 <h2>4.2 Creating the Candidate File</h2>
 
-<p>First, we need to create a CSV file containing all possible candidates to explore.</p>
+<p>First, we need to create a CSV file containing all possible candidates to explore. The search space is a 16 x 16 grid over the standard Branin domain (0 to 15 in each variable), which gives 16 x 16 = 256 candidates. Here x1 and x2 are the two independent composition variables expressed in the scaled units of the benchmark function.</p>
 
 <div class="code-title">Code Example 2: Generate Candidate Grid</div>
 <pre class="code-example"><code class="language-python">import pandas as pd
@@ -211,14 +210,22 @@ for cycle in range(NUM_CYCLES):
         method = "PHYSBO"  # Bayesian Optimization for subsequent cycles
         print("Using Bayesian Optimization")
 
+    # Seed arguments are method-specific: pass only the one this method accepts.
+    # Sending re_seed to PHYSBO (or physbo_seed to RE) raises a TypeError.
+    seed_kwargs = {}
+    if method == "RE":
+        seed_kwargs["re_seed"] = 42 + cycle
+    elif method in ("PHYSBO", "BO"):
+        seed_kwargs["physbo_seed"] = 42
+    # Other methods take neither seed argument
+
     nimo.selection(
         method=method,
         input_file="candidates.csv",
         output_file="proposals.csv",
         num_objectives=1,
         num_proposals=PROPOSALS_PER_CYCLE,
-        re_seed=42 + cycle if method == "RE" else None,
-        physbo_seed=42 if method == "PHYSBO" else None
+        **seed_kwargs
     )
 
     # Step 2: Show selected candidates
@@ -345,14 +352,21 @@ def run_optimization(method, num_cycles=10, proposals_per_cycle=3, seed=42):
         # First cycle always uses RE
         current_method = "RE" if cycle == 0 else method
 
+        # Same rule as above: only the seed the current method accepts
+        seed_kwargs = {}
+        if current_method == "RE":
+            seed_kwargs["re_seed"] = seed + cycle
+        elif current_method in ("PHYSBO", "BO"):
+            seed_kwargs["physbo_seed"] = seed
+        # BLOX and the other methods take neither of these arguments
+
         nimo.selection(
             method=current_method,
             input_file="candidates.csv",
             output_file="proposals.csv",
             num_objectives=1,
             num_proposals=proposals_per_cycle,
-            re_seed=seed + cycle,
-            physbo_seed=seed
+            **seed_kwargs
         )
 
         # Simulate and update

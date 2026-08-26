@@ -3,6 +3,22 @@ title: "Chapter 4: Composition-based vs GNN Quantitative Comparison"
 chapter_title: "Chapter 4: Composition-based vs GNN Quantitative Comparison"
 ---
 
+## Video Lecture
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/jhb8eUbR3XA"
+    title="GNN Features Comparison Ch.4: Composition-based vs GNN Quantitative Comparison"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> This video covers the same content as the text below. Choose your preferred learning format.
+
 🌐 EN | [🇯🇵 JP](<../../../jp/MI/gnn-features-comparison-introduction/chapter-4.html>) | Last sync: 2025-11-16
 
 # Chapter 4: Composition-based vs GNN Quantitative Comparison
@@ -423,6 +439,8 @@ We integrate the 5-fold cross-validation results and compare the prediction accu
     # - seaborn>=0.12.0
     
     """
+    Example: We integrate the 5-fold cross-validation results and compare
+    
     Purpose: Demonstrate data visualization techniques
     Target: Beginner to Intermediate
     Execution time: 2-5 seconds
@@ -616,6 +634,8 @@ The 95% confidence interval indicates the **range that contains the true mean di
     # - scipy>=1.11.0
     
     """
+    Example: The 95% confidence interval indicates therange that contains
+    
     Purpose: Demonstrate data visualization techniques
     Target: Beginner to Intermediate
     Execution time: 2-5 seconds
@@ -1135,6 +1155,8 @@ SHAP (SHapley Additive exPlanations) is a method that quantifies **the contribut
     # - shap>=0.42.0
     
     """
+    Example: SHAP (SHapley Additive exPlanations) is a method that quanti
+    
     Purpose: Demonstrate data visualization techniques
     Target: Beginner to Intermediate
     Execution time: 1-5 minutes
@@ -1209,6 +1231,8 @@ Standard CGCNN does not have an Attention mechanism, so interpretability is limi
     # - torch>=2.0.0, <2.3.0
     
     """
+    Example: Standard CGCNN does not have an Attention mechanism, so inte
+    
     Purpose: Demonstrate data visualization techniques
     Target: Advanced
     Execution time: 2-5 seconds

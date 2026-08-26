@@ -3,6 +3,22 @@ title: "Chapter 3: MPNN Implementation"
 chapter_title: "Chapter 3: MPNN Implementation"
 ---
 
+## Video Lecture
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/hafzDcJLayQ"
+    title="GNN Features Comparison Ch.3: MPNN Implementation"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> This video covers the same content as the text below. Choose your preferred learning format.
+
 This chapter covers MPNN Implementation. You will learn three stages of MPNN (Message/Update/Readout), quantum chemical properties in QM9 dataset, and operating principle of Set2Set Readout.
 
 **General-purpose message passing framework: Unified implementation applicable from molecules to crystals**

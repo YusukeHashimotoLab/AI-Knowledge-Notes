@@ -8,6 +8,23 @@ code_examples: 8
 exercises: 3
 ---
 
+## ビデオ講義
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/WaSSd8bYhZE"
+    title="バイオインフォマティクス入門 第1章: タンパク質構造とバイオマテリアル"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> このビデオは以下のテキストと同じ内容をカバーしています。お好みの学習形式をお選びください。
+
+---
+
 # 第1章：タンパク質構造とバイオマテリアル
 
 **PDBとAlphaFoldで理解する生体分子の形**
@@ -85,7 +102,7 @@ exercises: 3
 
 **PDB（Protein Data Bank）** は、タンパク質・核酸の三次元構造を公開する世界最大のデータベースです。
 
-**統計（2025年時点）** : \- 登録構造数: 200,000以上 \- X線結晶構造解析: 90% \- NMR: 8% \- 電子顕微鏡: 2%
+**統計（現時点でのおおよその内訳）** : \- 登録構造数: 230,000以上 \- X線結晶構造解析: 約80〜85% \- クライオ電子顕微鏡: 10%超（最も伸びている手法） \- NMR: 数%
 
 **アクセス** : <https://www.rcsb.org/>
 
@@ -338,8 +355,8 @@ PDBファイルはテキスト形式で、原子座標と付随情報を含み�
             print(f"エラー: {e}")
             return False
     
-    # 例: ヘモグロビンβ鎖（P69905）をダウンロード
-    download_alphafold_structure('P69905', 'hemoglobin_beta.pdb')
+    # 例: ヘモグロビンα鎖（P69905）をダウンロード
+    download_alphafold_structure('P69905', 'hemoglobin_alpha.pdb')
     
 
 * * *
@@ -359,7 +376,7 @@ PDBファイルはテキスト形式で、原子座標と付随情報を含み�
     
     # AlphaFold構造を読み込み
     parser = PDBParser(QUIET=True)
-    structure = parser.get_structure('alphafold', 'hemoglobin_beta.pdb')
+    structure = parser.get_structure('alphafold', 'hemoglobin_alpha.pdb')
     
     # pLDDTはB-factorカラムに格納されている
     model = structure[0]
@@ -387,7 +404,7 @@ PDBファイルはテキスト形式で、原子座標と付随情報を含み�
     
     plt.xlabel('残基番号', fontsize=12)
     plt.ylabel('pLDDT スコア', fontsize=12)
-    plt.title('AlphaFold予測の信頼性（ヘモグロビンβ鎖）',
+    plt.title('AlphaFold予測の信頼性（ヘモグロビンα鎖）',
               fontsize=14)
     plt.legend()
     plt.grid(alpha=0.3)
@@ -562,7 +579,7 @@ PDBファイルはテキスト形式で、原子座標と付随情報を含み�
 
   2. **タンパク質構造階層** \- 1次構造（配列）→ 2次構造（αヘリックス、βシート） \- 3次構造（折りたたみ）→ 4次構造（複合体）
 
-  3. **PDBデータベース** \- 20万以上の構造データ \- Biopythonでの解析方法
+  3. **PDBデータベース** \- 23万以上の構造データ \- Biopythonでの解析方法
 
   4. **AlphaFold2** \- 配列から構造を高精度予測 \- pLDDTによる信頼性評価
 

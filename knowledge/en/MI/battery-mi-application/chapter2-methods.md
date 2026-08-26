@@ -10,6 +10,23 @@ version: 1.0
 created_at: 2025-10-17
 ---
 
+## Video Lecture
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/P6nHJW9lzYo"
+    title="Battery MI Ch.2: MI Methods Specialized for Battery Material Design"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> This video covers the same content as the text below. Choose your preferred learning format.
+
+---
+
 # Chapter 2: MI Methods Specialized for Battery Material Design
 
 This chapter covers MI Methods Specialized for Battery Material Design. You will learn essential concepts and techniques.
@@ -235,7 +252,7 @@ Descriptors are feature quantities that numerically represent material propertie
 
 **URL** : https://data.matr.io/
 
-**Data:** \- Charge-discharge curves: 20,000+ cells \- Cycle test data: Various conditions \- Experimental conditions: Temperature, C-rate, voltage range
+**Data:** \- Charge-discharge curves: standardized cycle-test records pooled from multiple laboratories (a shared data infrastructure, not a fixed-size dataset) \- Cycle test data: Various conditions \- Experimental conditions: Temperature, C-rate, voltage range
 
 **Features:** \- Raw data published (no preprocessing required) \- Data integration from multiple research institutions \- Provides machine learning benchmarks
 

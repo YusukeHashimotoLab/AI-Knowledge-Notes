@@ -10,6 +10,23 @@ version: 1.0
 created_at: 2025-10-17
 ---
 
+## Video Lecture
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/-2Pa_W4N7Kc"
+    title="Bioinformatics Ch.2: Sequence Analysis and Machine Learning"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> This video covers the same content as the text below. Choose your preferred learning format.
+
+---
+
 # Chapter 2: Sequence Analysis and Machine Learning
 
 This chapter covers Sequence Analysis and Machine Learning. You will learn Predict protein localization and Predict enzyme activity using Random Forest.

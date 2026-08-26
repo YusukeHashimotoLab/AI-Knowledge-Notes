@@ -8,6 +8,23 @@ code_examples: 9
 exercises: 6
 ---
 
+## Video Lecture
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/HSl8fDPGt00"
+    title="Transformers Ch.4: BERT & GPT"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> This video covers the same content as the text below. Choose your preferred learning format.
+
+---
+
 This chapter covers BERT & GPT. You will learn BERT's bidirectional encoding, GPT's autoregressive generation, and pre-training tasks (MLM.
 
 ## Learning Objectives

@@ -5,54 +5,190 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="第2章：ガウス過程モデリング - ベイズ最適化入門シリーズ">
     <title>第2章：ガウス過程モデリング - ベイズ最適化入門 | PI Terakoya</title>
-    <link rel="canonical" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/jp/PI/bayesian-optimization/chapter-2.html">
-    <link rel="alternate" hreflang="ja" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/jp/PI/bayesian-optimization/chapter-2.html">
-    <link rel="alternate" hreflang="en" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/en/PI/bayesian-optimization/chapter-2.html">
-    <link rel="alternate" hreflang="x-default" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/en/PI/bayesian-optimization/chapter-2.html">
-    <meta property="og:title" content="第2章：ガウス過程モデリング - ベイズ最適化入門 | PI Terakoya">
-    <meta property="og:type" content="article">
-    <meta property="og:url" content="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/jp/PI/bayesian-optimization/chapter-2.html">
-    <meta property="og:site_name" content="AI Terakoya">
-    <meta property="og:locale" content="ja_JP">
-    <meta property="og:description" content="第2章：ガウス過程モデリング - ベイズ最適化入門シリーズ">
 
-        <link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
         <style>
-            /* page-specific residual (Wave C) */
-            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.8; color: #333; background: #f5f5f5 }
-            header { padding: 2rem 1rem }
-            h1 { margin-bottom: 0.5rem }
-            .subtitle { opacity: 1 }
-            .container { max-width: 1200px; margin: 2rem auto; padding: 0 1rem }
-            .back-link { display: inline-block; padding: 0.5rem 1rem; background: white; color: #11998e; border-radius: 6px; font-weight: 600 }
-            .content-box { background: white; padding: 2rem; border-radius: 12px; margin-bottom: 2rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1) }
-            h2 { color: #11998e; margin: 2rem 0 1rem 0 }
-            h3 { margin: 1.5rem 0 1rem 0 }
-            h4 { color: #2c3e50; margin: 1rem 0 0.5rem 0 }
-            p { margin-bottom: 1rem }
-            ul { margin-bottom: 1rem }
-            ol { margin-bottom: 1rem }
-            pre { background: #1e1e1e; color: #d4d4d4; margin: 1rem 0; border-left: 4px solid #11998e }
-            code { font-family: "Courier New", monospace; font-size: 0.9rem }
-            .key-point { background: #e8f5e9; padding: 1rem; border-radius: 6px; border-left: 4px solid #4caf50; margin: 1rem 0 }
-            .tech-note { background: #e3f2fd; padding: 1rem; border-radius: 6px; border-left: 4px solid #2196f3; margin: 1rem 0 }
-            .formula { background: #f0f7ff; padding: 1rem; border-radius: 6px; margin: 1rem 0; overflow-x: auto }
-            table { margin: 1rem 0 }
-            th { border: 1px solid #ddd; padding: 0.75rem; background: #11998e; color: white }
-            td { border: 1px solid #ddd; padding: 0.75rem }
-            tr:nth-child(even) { background: #f9f9f9 }
-            .nav-buttons { margin-top: 3rem }
-            .nav-buttons a { padding: 0.75rem 1.5rem; background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white; text-decoration: none; border-radius: 6px; font-weight: 600 }
-            footer { background: #2c3e50; color: white; padding: 2rem 1rem; margin-top: 4rem }
-            @media (max-width: 768px) {
-                h1 { font-size: 1.6rem }
-                .container { padding: 0 0.5rem }
-                pre { padding: 1rem }
-            }
-            .locale-link { color: #ac07bf }
-            .locale-link:hover { color: #880698 }
-        </style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            line-height: 1.8; color: #333; background: #f5f5f5;
+        }
+        header {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white; padding: 2rem 1rem; text-align: center;
+        }
+        h1 { font-size: 2rem; margin-bottom: 0.5rem; }
+        .subtitle { opacity: 0.9; font-size: 1.1rem; }
+        .container { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
+        .back-link {
+            display: inline-block; margin-bottom: 2rem; padding: 0.5rem 1rem;
+            background: white; color: #11998e; text-decoration: none;
+            border-radius: 6px; font-weight: 600;
+        }
+        .content-box {
+            background: white; padding: 2rem; border-radius: 12px;
+            margin-bottom: 2rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        h2 {
+            color: #11998e; margin: 2rem 0 1rem 0;
+            padding-bottom: 0.5rem; border-bottom: 3px solid #11998e;
+        }
+        h3 { color: #2c3e50; margin: 1.5rem 0 1rem 0; }
+        h4 { color: #2c3e50; margin: 1rem 0 0.5rem 0; }
+        p { margin-bottom: 1rem; }
+        ul, ol { margin-left: 2rem; margin-bottom: 1rem; }
+        li { margin-bottom: 0.5rem; }
+        pre {
+            background: #1e1e1e; color: #d4d4d4; padding: 1.5rem;
+            border-radius: 8px; overflow-x: auto; margin: 1rem 0;
+            border-left: 4px solid #11998e;
+        }
+        code {
+            font-family: 'Courier New', monospace; font-size: 0.9rem;
+        }
+        .key-point {
+            background: #e8f5e9; padding: 1rem; border-radius: 6px;
+            border-left: 4px solid #4caf50; margin: 1rem 0;
+        }
+        .tech-note {
+            background: #e3f2fd; padding: 1rem; border-radius: 6px;
+            border-left: 4px solid #2196f3; margin: 1rem 0;
+        }
+        .formula {
+            background: #f0f7ff; padding: 1rem; border-radius: 6px;
+            margin: 1rem 0; overflow-x: auto;
+        }
+        table {
+            width: 100%; border-collapse: collapse; margin: 1rem 0;
+        }
+        th, td {
+            border: 1px solid #ddd; padding: 0.75rem; text-align: left;
+        }
+        th {
+            background: #11998e; color: white; font-weight: 600;
+        }
+        tr:nth-child(even) { background: #f9f9f9; }
+        .nav-buttons {
+            display: flex; justify-content: space-between; margin-top: 3rem;
+        }
+        .nav-buttons a {
+            padding: 0.75rem 1.5rem;
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white; text-decoration: none; border-radius: 6px;
+            font-weight: 600;
+        }
+        footer {
+            background: #2c3e50; color: white; text-align: center;
+            padding: 2rem 1rem; margin-top: 4rem;
+        }
+        @media (max-width: 768px) {
+            h1 { font-size: 1.6rem; }
+            .container { padding: 0 0.5rem; }
+            pre { padding: 1rem; }
+        }
+    
+        
+    
+        /* Breadcrumb styles */
+        .breadcrumb {
+            background: #f7fafc;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+        }
 
+        .breadcrumb-content {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .breadcrumb a {
+            color: #667eea;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .breadcrumb a:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+
+        .breadcrumb-separator {
+            color: #a0aec0;
+            margin: 0 0.25rem;
+        }
+
+        .breadcrumb-current {
+            color: #4a5568;
+            font-weight: 500;
+        }
+    </style>
+
+    <style>
+        /* Locale Switcher Styles */
+        .locale-switcher {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 6px;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .current-locale {
+            font-weight: 600;
+            color: #7b2cbf;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .locale-separator {
+            color: #adb5bd;
+            font-weight: 300;
+        }
+
+        .locale-link {
+            color: #f093fb;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+        }
+
+        .locale-link:hover {
+            background: rgba(240, 147, 251, 0.1);
+            color: #d07be8;
+            transform: translateY(-1px);
+        }
+
+        .locale-meta {
+            color: #868e96;
+            font-size: 0.85rem;
+            font-style: italic;
+            margin-left: auto;
+        }
+
+        @media (max-width: 768px) {
+            .locale-switcher {
+                font-size: 0.85rem;
+                padding: 0.4rem 0.8rem;
+            }
+            .locale-meta {
+                display: none;
+            }
+        }
+    </style>
 </head>
 <body>
             <div class="locale-switcher">
@@ -199,7 +335,7 @@ print(f"対数周辺尤度: {gp.log_marginal_likelihood_value_:.2f}")
                 </tr>
                 <tr>
                     <td><strong>Matérn (ν=2.5)</strong></td>
-                    <td>k(x, x') = σ² (1 + √5r/ℓ + 5r²/3ℓ²) exp(-√5r/ℓ)</td>
+                    <td>k(x, x') = σ² (1 + √5r/ℓ + 5r²/(3ℓ²)) exp(-√5r/ℓ)</td>
                     <td>2回微分可能</td>
                     <td>触媒活性曲線</td>
                 </tr>
@@ -275,7 +411,13 @@ print(f"圧力方向: {gp_rbf.kernel_.k2.length_scale[1]:.2f} MPa")
 # 最適化された長さスケール: [12.34  0.68]
 # 温度方向: 12.34°C
 # 圧力方向: 0.68 MPa
-# → 温度より圧力の変化に敏感な収率特性</code></pre>
+# → 長さスケールは各変数の単位（°C と MPa）を持つため、生の数値をそのまま
+#   比較してはいけません。各変数の探索範囲で規格化して比較します
+#   （温度 50-110°C = 60°C、圧力 0.8-3.0 MPa = 2.2 MPa）:
+#     温度: 12.34 / 60  = 0.21
+#     圧力: 0.68  / 2.2 = 0.31
+#   相対的な長さスケールは温度の方が小さいので、この探索領域では
+#   収率は圧力よりも温度の変化に敏感です。</code></pre>
 
         <h3 id="example-3">例3：Matérnカーネル（ν=1.5）</h3>
 
@@ -335,10 +477,15 @@ gp_matern25.fit(X_train, y_train)
 
 y_pred_matern25, sigma_matern25 = gp_matern25.predict(X_test_1d, return_std=True)
 
+# RBFモデルも2つのMatérnモデルと**同じ**1D断面で評価します。
+# （例2の y_pred_grid は 50x50 = 2500点の等高線グリッドを平坦化したものなので、
+#   [:100] で切り出すとこの断面ではなくグリッド2行分をプロットしてしまいます）
+y_pred_rbf_1d, sigma_rbf_1d = gp_rbf.predict(X_test_1d, return_std=True)
+
 # 3つのカーネル比較プロット
 plt.figure(figsize=(12, 6))
 
-plt.plot(X_test_1d[:, 0], y_pred_grid[:100], 'b-',
+plt.plot(X_test_1d[:, 0], y_pred_rbf_1d, 'b-',
          label='RBF (∞回微分可能)', linewidth=2)
 plt.plot(X_test_1d[:, 0], y_pred_matern, 'g--',
          label='Matérn(ν=1.5)', linewidth=2)
@@ -420,7 +567,7 @@ print(f"対数周辺尤度: {gp_rq.log_marginal_likelihood_value_:.2f}")
 # 最適化されたカーネル: 1.15**2 * RationalQuadratic(alpha=0.85, length_scale=12.3)
 # α (スケール混合度): 0.85
 # 対数周辺尤度: -10.10
-# → α&lt;1: 短距離相関が支配的、α→∞でRBFに収束</code></pre>
+# → α<1: 短距離相関が支配的、α→∞でRBFに収束</code></pre>
 
         <h2 id="hyperparameter-optimization">2.3 ハイパーパラメータ最適化</h2>
 
@@ -658,13 +805,13 @@ plt.show()
 
 # === 5. カバレッジ確率（校正チェック） ===
 # 95%信頼区間に実測値の何%が入るか
-in_interval = np.abs(residuals) &lt;= 1.96 * sigma
+in_interval = np.abs(residuals) <= 1.96 * sigma
 coverage = np.mean(in_interval) * 100
 
 print(f"\n=== 不確実性の校正 ===")
 print(f"95%信頼区間のカバレッジ: {coverage:.1f}%")
 print(f"期待値: 95.0%")
-print(f"判定: {'✅ 良好' if 90 &lt;= coverage &lt;= 100 else '⚠️ 要調整'}")
+print(f"判定: {'✅ 良好' if 90 <= coverage <= 100 else '⚠️ 要調整'}")
 
 # 期待される出力:
 # === 交差検証結果 ===
@@ -815,7 +962,7 @@ print(f"判定: {'✅ 良好' if 90 &lt;= coverage &lt;= 100 else '⚠️ 要調
             <pre><code>kernel = C(1.0) * RBF(length_scale=[10.0, 1.0, 5.0],
                    length_scale_bounds=(1e-2, 1e3))
 # [温度10°C, 圧力1.0MPa, 濃度5%の初期長さスケール]</code></pre>
-            <p><strong>解釈</strong>: 最適化後、圧力の長さスケールが0.5と小さければ、圧力変化に収率が敏感であることを示します。温度が50と大きければ、温度依存性は低いです。</p>
+            <p><strong>解釈</strong>: 長さスケールは各変数の単位で表されるため、次元をまたいで生の値を比較することはできません。必ず<strong>その変数自身の探索範囲</strong>と比べて解釈します。例えば温度を100°Cの幅で探索して長さスケールが50に最適化されたなら相対長さスケールは 50/100 = 0.5、圧力を1.0 MPaの幅で探索して長さスケールが0.5なら相対長さスケールも同じく 0.5 であり、生の数値が100倍違っても感度は同等です。<strong>相対長さスケールが小さいほど</strong>、その変数の変化に収率が敏感である、と読み取ります。</p>
         </details>
 
         <h2 id="next-steps">次のステップ</h2>

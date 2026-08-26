@@ -5,18 +5,8 @@
 <meta content="Chapter 5: Advanced Topics and Next Steps - Extending NIMO" name="description"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>Chapter 5: Advanced Topics and Next Steps - NIMO Introduction</title>
-<link rel="canonical" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/en/MI/nimo-introduction/chapter-5.html">
-<link rel="alternate" hreflang="ja" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/jp/MI/nimo-introduction/chapter-5.html">
-<link rel="alternate" hreflang="en" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/en/MI/nimo-introduction/chapter-5.html">
-<link rel="alternate" hreflang="x-default" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/en/MI/nimo-introduction/chapter-5.html">
-<meta property="og:title" content="Chapter 5: Advanced Topics and Next Steps - NIMO Introduction">
-<meta property="og:type" content="article">
-<meta property="og:url" content="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/en/MI/nimo-introduction/chapter-5.html">
-<meta property="og:site_name" content="AI Terakoya">
-<meta property="og:locale" content="en_US">
-<meta property="og:description" content="Chapter 5: Advanced Topics and Next Steps - Extending NIMO">
 <link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
-<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.3/dist/mermaid.min.js" integrity="sha384-R63zfMfSwJF4xCR11wXii+QUsbiBIdiDzDbtxia72oGWfkT7WHJfmD/I/eeHPJyT" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
 <script>
     mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });
 </script>
@@ -25,7 +15,7 @@
       tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] }
     };
 </script>
-<script async id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js" integrity="sha384-Wuix6BuhrWbjDBs24bXrjf4ZQ5aFeFWBuKkFekO2t8xFU0iNaLQfp2K6/1Nxveei" crossorigin="anonymous"></script>
+<script async id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 </head>
 <body>
 <nav class="breadcrumb">
@@ -62,7 +52,7 @@
     height="315"
     src="https://www.youtube.com/embed/mHE2BR5hKiQ"
     title="NIMO Introduction Ch.5: Advanced Topics and Next Steps"
-
+    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>
@@ -198,19 +188,27 @@ def run_with_custom_robot(robot_connection, num_cycles=10):
 import pandas as pd
 import numpy as np
 
+# Build the full 11 x 11 search grid (not just the diagonal!)
+x1_values = np.linspace(0, 1, 11)
+x2_values = np.linspace(0, 1, 11)
+X1, X2 = np.meshgrid(x1_values, x2_values)
+x1_flat = X1.ravel()
+x2_flat = X2.ravel()
+
 # Create candidates with TWO objective columns
 candidates_data = {
-    'x1': np.linspace(0, 1, 11),
-    'x2': np.linspace(0, 1, 11),
-    'objective1': [np.nan] * 11,  # e.g., Strength
-    'objective2': [np.nan] * 11   # e.g., Ductility
+    'x1': x1_flat,
+    'x2': x2_flat,
+    'objective1': [np.nan] * len(x1_flat),  # e.g., Strength
+    'objective2': [np.nan] * len(x1_flat)   # e.g., Ductility
 }
 df = pd.DataFrame(candidates_data)
 df.to_csv('multi_candidates.csv', index=False)
+print(f"Created {len(df)} candidates")  # 121 = 11 x 11
 
 # Multi-objective selection with PTR
 nimo.selection(
-    method="PTR",           # Pareto-based Thompson Ranking
+    method="PTR",           # Probability of being in Target Range
     input_file="multi_candidates.csv",
     output_file="proposals.csv",
     num_objectives=2,       # Two objectives!

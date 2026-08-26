@@ -4,6 +4,22 @@ chapter_title: 第4章：実プロセスデータを用いた実践演習
 subtitle: 総合演習：化学プラントデータの分析から最適化まで
 ---
 
+## ビデオ講義
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/vYfFdBrNolQ"
+    title="プロセス・インフォマティクス入門 第4章: 実プロセスデータを用いた実践演習"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> このビデオは以下のテキストと同じ内容をカバーしています。お好みの学習形式をお選びください。
+
 # 第4章：実プロセスデータを用いた実践演習
 
 これまで学んだPIの手法を統合し、実際の化学プラントデータを用いた総合演習を行います。データ探索から品質予測、プロセス最適化まで、実務に直結するワークフローを体験します。

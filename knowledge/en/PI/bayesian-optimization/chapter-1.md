@@ -4,17 +4,17 @@ chapter_title: "Chapter 1: Fundamentals of Bayesian Optimization"
 subtitle: Innovative Approach to Black-Box Optimization
 ---
 
-This chapter covers the fundamentals of Fundamentals of Bayesian Optimization, which black-box optimization problems. You will learn  Can explain the characteristics.
+This chapter covers the fundamentals of Fundamentals of Bayesian Optimization, which black-box optimization problems. You will learn ✅ Can explain the characteristics.
 
 ## 1.1 Black-Box Optimization Problems
 
 In process industries, there are many "black-box" problems where the relationship between inputs and outputs is complex and cannot be described analytically. For example, when searching for optimal operating conditions for a chemical reactor, the relationship between parameters such as temperature, pressure, and reaction time and the yield can only be evaluated through experiments or simulations.
 
-**=¡ Characteristics of Black-Box Optimization**
+**💡 Characteristics of Black-Box Optimization**
 
   * **Unknown objective function** : The formula for f(x) is unknown
   * **High evaluation cost** : Each experiment takes hours to days
-  * **Gradient information unavailable** : f(x) cannot be calculated
+  * **Gradient information unavailable** : ∇f(x) cannot be calculated
   * **Presence of noise** : Measurement errors are included
 
 ### Example 1: Formulation of Black-Box Problem (Chemical Reactor)
@@ -139,7 +139,7 @@ Initial yield: 0.523
 Optimal conditions: T=350K, P=3.0bar, C=0.5mol/L  
 Optimal yield: 0.887 
 
-**=¡ Practical Implications**
+**💡 Practical Implications**
 
 For problems with such complex response surfaces, traditional grid search or random search are inefficient. Bayesian optimization is a powerful method that can reach optimal solutions with fewer evaluations.
 
@@ -361,7 +361,7 @@ We visually understand the impact of different balances on optimization.
                     linewidth=2, label='True function', alpha=0.7)
             ax.plot(self.x_range, mean, 'b-', linewidth=2, label='Predicted mean')
             ax.fill_between(self.x_range, mean - uncertainty, mean + uncertainty,
-                            alpha=0.3, label='Uncertainty (±1Ã)')
+                            alpha=0.3, label='Uncertainty (±1σ)')
             ax.scatter(self.X_obs, self.Y_obs, c='red', s=100, zorder=5,
                       edgecolor='black', linewidth=1.5, label='Observations')
             ax.set_xlabel('x')
@@ -403,14 +403,14 @@ We visually understand the impact of different balances on optimization.
             x_balanced = self.balanced_strategy(alpha=alpha)
             ucb = mean + alpha * uncertainty
             ax.plot(self.x_range, mean, 'b-', linewidth=1.5, label='Mean', alpha=0.7)
-            ax.plot(self.x_range, ucb, 'purple', linewidth=2, label=f'UCB (±={alpha})')
+            ax.plot(self.x_range, ucb, 'purple', linewidth=2, label=f'UCB (α={alpha})')
             ax.fill_between(self.x_range, mean, ucb, alpha=0.2, color='purple')
             ax.scatter(self.X_obs, self.Y_obs, c='gray', s=80, zorder=4, alpha=0.5)
             ax.axvline(x_balanced, color='purple', linestyle='--', linewidth=2,
                       label=f'Next point (Balanced)\nx={x_balanced:.2f}')
             ax.set_xlabel('x')
             ax.set_ylabel('Value')
-            ax.set_title('Balanced Strategy: UCB = Mean + ± × Uncertainty')
+            ax.set_title('Balanced Strategy: UCB = Mean + α × Uncertainty')
             ax.legend()
             ax.grid(alpha=0.3)
     
@@ -423,8 +423,8 @@ We visually understand the impact of different balances on optimization.
     print("=== Exploration vs Exploitation ===")
     print(f"Exploitation (best predicted point): x = {demo.exploitation_strategy():.2f}")
     print(f"Exploration (maximum uncertainty): x = {demo.exploration_strategy():.2f}")
-    print(f"Balanced (UCB, ±=0.5): x = {demo.balanced_strategy(alpha=0.5):.2f}")
-    print(f"Balanced (UCB, ±=1.5): x = {demo.balanced_strategy(alpha=1.5):.2f}")
+    print(f"Balanced (UCB, α=0.5): x = {demo.balanced_strategy(alpha=0.5):.2f}")
+    print(f"Balanced (UCB, α=1.5): x = {demo.balanced_strategy(alpha=1.5):.2f}")
     
     fig = demo.visualize()
     plt.show()
@@ -433,12 +433,12 @@ We visually understand the impact of different balances on optimization.
 **Example output:**  
 Exploitation (best predicted point): x = 3.05  
 Exploration (maximum uncertainty): x = 5.52  
-Balanced (UCB, ±=0.5): x = 3.81  
-Balanced (UCB, ±=1.5): x = 5.27 
+Balanced (UCB, α=0.5): x = 3.81  
+Balanced (UCB, α=1.5): x = 5.27 
 
-** Practical Considerations**
+**⚠️ Practical Considerations**
 
-Biasing too much towards exploitation leads to local optima, while biasing too much towards exploration slows convergence. Adjusting hyperparameters (e.g., ± in UCB) is important. A general guideline is ± = 1.0 to 2.0.
+Biasing too much towards exploitation leads to local optima, while biasing too much towards exploration slows convergence. Adjusting hyperparameters (e.g., α in UCB) is important. A general guideline is α = 1.0 to 2.0.
 
 ## 1.4 Basic Loop of Bayesian Optimization
 
@@ -814,13 +814,19 @@ Grid Search : -12.345 ± 2.134
 Random Search : -8.912 ± 1.567  
 Bayesian Optimization : -3.456 ± 0.823  
   
-**BO is approximately 2.5 times better (same number of evaluations)**
+**All three methods were given the same budget of 30 evaluations** , so this compares the quality of the best value found within that budget, not speed. These objective values are negative (the Branin function is negated for maximization), so their **ratios carry no meaning** — compare the remaining **gap to the optimum** instead. The best attainable value on these bounds is about -0.40:
 
-** Advantages of Bayesian Optimization**
+Method | Best found in 30 evaluations | Remaining gap to the optimum  
+---|---|---  
+Grid Search | -12.345 | 11.95  
+Random Search | -8.912 | 8.51  
+Bayesian Optimization | -3.456 | 3.06  
+  
+**✅ Advantages of Bayesian Optimization**
 
-  * **Convergence speed** : 3 times faster than grid search, 2 times faster than random search
-  * **Evaluation efficiency** : Reaches optimal solution with 30 evaluations (grid search requires 100+ evaluations)
-  * **Robustness** : Small standard deviation across multiple trials (stable performance)
+  * **Evaluation efficiency** : On the same 30-evaluation budget, BO closes about 74% of the gap that grid search still leaves open, and about 64% of the gap left by random search
+  * **How the budget scales** : Grid search can only afford `ceil(30**(1/2)) = 6` points per dimension here (a 6×6 lattice truncated to 30 points); halving the grid spacing in 2D would cost 4× the evaluations, whereas BO spends each additional evaluation where its model says the information gain is largest
+  * **Robustness** : Small standard deviation across the 5 trials (stable performance)
 
 ## 1.6 Convergence Analysis and Iteration Tracking
 
@@ -969,7 +975,7 @@ We quantitatively evaluate optimization progress and learn methods for convergen
             # Iteration with maximum improvement
             max_imp_iter = np.argmax(metrics['improvements'])
             print(f"Largest improvement at iteration: {max_imp_iter + 1} "
-                  f"(”y = {metrics['improvements'][max_imp_iter]:.6f})")
+                  f"(Δy = {metrics['improvements'][max_imp_iter]:.6f})")
     
     # Demo execution (using results from Example 4)
     np.random.seed(42)
@@ -1031,7 +1037,7 @@ Final improvement: 0.000000
 True optimum: 3.620000  
 Optimality gap: 0.011479 (0.32%)  
 Converged: Yes  
-Largest improvement at iteration: 6 (”y = 0.234567) 
+Largest improvement at iteration: 6 (Δy = 0.234567) 
 
 ## 1.7 Practical Example of Hyperparameter Tuning
 
@@ -1163,7 +1169,7 @@ We implement hyperparameter tuning of machine learning models as a representativ
     
                 current_best = max(self.Y_obs)
                 print(f"Iter {i+1}: n_est={params_next[0]}, max_depth={params_next[1]}, "
-                      f"min_split={params_next[2]} ’ R²={score_next:.4f} (best={current_best:.4f})")
+                      f"min_split={params_next[2]} → R²={score_next:.4f} (best={current_best:.4f})")
     
             # Best parameters
             best_idx = np.argmax(self.Y_obs)
@@ -1254,7 +1260,7 @@ We implement hyperparameter tuning of machine learning models as a representativ
     
 
 **Example output:**  
-Iter 15: n_est=142, max_depth=18, min_split=2 ’ R²=0.9234 (best=0.9234)  
+Iter 15: n_est=142, max_depth=18, min_split=2 → R²=0.9234 (best=0.9234)  
   
 Best Hyperparameters:  
 n_estimators: 142  
@@ -1266,7 +1272,7 @@ Default R² score: 0.8567
 Optimized R² score: 0.9234  
 Improvement: 7.78% 
 
-**=¡ Practical Applications**
+**💡 Practical Applications**
 
 This approach can be directly applied to the following process industry problems:
 
@@ -1280,28 +1286,28 @@ Upon completing this chapter, you will be able to explain and implement the foll
 
 ### Basic Understanding
 
-  *  Can explain the characteristics and challenges of black-box optimization problems
-  *  Can describe the advantages of sequential design strategy compared to random search
-  *  Understand the concept of exploration-exploitation trade-off
+  * ✅ Can explain the characteristics and challenges of black-box optimization problems
+  * ✅ Can describe the advantages of sequential design strategy compared to random search
+  * ✅ Understand the concept of exploration-exploitation trade-off
 
 ### Practical Skills
 
-  *  Can formulate black-box problems in chemical processes
-  *  Can implement simple Bayesian optimization loops
-  *  Can compare and evaluate the performance of three methods (BO/Grid/Random)
-  *  Can analyze optimization progress using convergence diagnostic tools
+  * ✅ Can formulate black-box problems in chemical processes
+  * ✅ Can implement simple Bayesian optimization loops
+  * ✅ Can compare and evaluate the performance of three methods (BO/Grid/Random)
+  * ✅ Can analyze optimization progress using convergence diagnostic tools
 
 ### Application Skills
 
-  *  Can apply to hyperparameter tuning of machine learning models
-  *  Can select appropriate optimization methods for practical problems
-  *  Can evaluate the reliability of optimization results
+  * ✅ Can apply to hyperparameter tuning of machine learning models
+  * ✅ Can select appropriate optimization methods for practical problems
+  * ✅ Can evaluate the reliability of optimization results
 
 ## Next Steps
 
 In Chapter 1, we learned the basic concepts and implementation of Bayesian optimization. In the next chapter, we will learn in detail about "Gaussian Processes", the core technology of Bayesian optimization.
 
-**=Ú Next Chapter Preview (Chapter 2)**
+**📚 Next Chapter Preview (Chapter 2)**
 
   * Mathematical foundations of Gaussian processes
   * Types and selection of kernel functions

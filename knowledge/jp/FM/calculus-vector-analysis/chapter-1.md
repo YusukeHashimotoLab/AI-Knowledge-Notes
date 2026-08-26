@@ -4,6 +4,24 @@ chapter_title: "第1章: 微分の基礎と数値微分"
 subtitle: Fundamentals of Differentiation and Numerical Differentiation
 ---
 
+## ビデオ講義
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/BEElvcgY5Uk"
+    title="微積分とベクトル解析入門 第1章: 微分の基礎と数値微分"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> このビデオは以下のテキストと同じ内容をカバーしています。お好みの学習形式をお選びください。
+
+---
+
 🌐 JP | [🇬🇧 EN](<../../../en/FM/calculus-vector-analysis/chapter-1.html>) | Last sync: 2025-11-16
 
 [基礎数理道場](<../index.html>) > [微積分とベクトル解析入門](<index.html>) > 第1章 
@@ -19,9 +37,52 @@ subtitle: Fundamentals of Differentiation and Numerical Differentiation
 
 Python実装: 前進差分法による数値微分
 
-import numpy as np import matplotlib.pyplot as plt # 関数の定義: f(x) = x^2 def f(x): return x**2 # 前進差分法による微分係数の近似 def forward_difference(f, x, h=1e-5): """前進差分法: f'(x) ≈ [f(x+h) - f(x)] / h""" return (f(x + h) - f(x)) / h # x = 2 における微分係数を計算 x0 = 2.0 numerical_derivative = forward_difference(f, x0) analytical_derivative = 2 * x0 # 解析解: f'(x) = 2x print(f"数値微分: f'({x0}) ≈ {numerical_derivative:.6f}") print(f"解析解: f'({x0}) = {analytical_derivative:.6f}") print(f"誤差: {abs(numerical_derivative - analytical_derivative):.2e}") # 可視化 x = np.linspace(0, 4, 100) y = f(x) tangent_y = analytical_derivative * (x - x0) + f(x0) plt.figure(figsize=(8, 6)) plt.plot(x, y, label='f(x) = x²', linewidth=2) plt.plot(x, tangent_y, '--', label=f"接線 (傾き={analytical_derivative})", linewidth=2) plt.scatter([x0], [f(x0)], color='red', s=100, zorder=5) plt.xlabel('x', fontsize=12) plt.ylabel('f(x)', fontsize=12) plt.title('微分係数と接線', fontsize=14) plt.legend() plt.grid(True, alpha=0.3) plt.show() 
+```python
+import numpy as np
+import matplotlib.pyplot as plt
 
-数値微分: f'(2.0) ≈ 4.000010 解析解: f'(2.0) = 4.000000 誤差: 1.00e-05 
+# 関数の定義: f(x) = x^2
+def f(x):
+    return x**2
+
+# 前進差分法による微分係数の近似
+def forward_difference(f, x, h=1e-5):
+    """前進差分法: f'(x) ≈ [f(x+h) - f(x)] / h"""
+    return (f(x + h) - f(x)) / h
+
+# x = 2 における微分係数を計算
+x0 = 2.0
+numerical_derivative = forward_difference(f, x0)
+analytical_derivative = 2 * x0  # 解析解: f'(x) = 2x
+
+print(f"数値微分: f'({x0}) ≈ {numerical_derivative:.6f}")
+print(f"解析解:   f'({x0}) = {analytical_derivative:.6f}")
+print(f"誤差:     {abs(numerical_derivative - analytical_derivative):.2e}")
+
+# 可視化
+x = np.linspace(0, 4, 100)
+y = f(x)
+tangent_y = analytical_derivative * (x - x0) + f(x0)
+
+plt.figure(figsize=(8, 6))
+plt.plot(x, y, label='f(x) = x²', linewidth=2)
+plt.plot(x, tangent_y, '--', label=f"接線 (傾き={analytical_derivative})", linewidth=2)
+plt.scatter([x0], [f(x0)], color='red', s=100, zorder=5)
+plt.xlabel('x', fontsize=12)
+plt.ylabel('f(x)', fontsize=12)
+plt.title('微分係数と接線', fontsize=14)
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.show()
+```
+
+**実行結果:**
+
+```
+数値微分: f'(2.0) ≈ 4.000010
+解析解:   f'(2.0) = 4.000000
+誤差:     1.00e-05
+```
 
 ## 1.2 微分の計算法則
 
@@ -41,9 +102,41 @@ import numpy as np import matplotlib.pyplot as plt # 関数の定義: f(x) = x^2
 
 Python実装: SymPyによる記号微分
 
-import sympy as sp # 記号変数の定義 x = sp.Symbol('x') # 様々な関数の微分 functions = [ x**3, sp.exp(x), sp.ln(x), sp.sin(x), x**2 * sp.exp(x), sp.sin(x) / x ] print("記号微分の例:") for func in functions: derivative = sp.diff(func, x) print(f"d/dx({func}) = {derivative}") 
+```python
+import sympy as sp
 
-記号微分の例: d/dx(x**3) = 3*x**2 d/dx(exp(x)) = exp(x) d/dx(log(x)) = 1/x d/dx(sin(x)) = cos(x) d/dx(x**2*exp(x)) = x**2*exp(x) + 2*x*exp(x) d/dx(sin(x)/x) = -sin(x)/x**2 + cos(x)/x 
+# 記号変数の定義
+x = sp.Symbol('x')
+
+# 様々な関数の微分
+functions = [
+    x**3,
+    sp.exp(x),
+    sp.ln(x),
+    sp.sin(x),
+    x**2 * sp.exp(x),
+    sp.sin(x) / x
+]
+
+print("記号微分の例:")
+for func in functions:
+    derivative = sp.diff(func, x)
+    print(f"d/dx({func}) = {derivative}")
+```
+
+**実行結果:**
+
+```
+記号微分の例:
+d/dx(x**3) = 3*x**2
+d/dx(exp(x)) = exp(x)
+d/dx(log(x)) = 1/x
+d/dx(sin(x)) = cos(x)
+d/dx(x**2*exp(x)) = x**2*exp(x) + 2*x*exp(x)
+d/dx(sin(x)/x) = cos(x)/x - sin(x)/x**2
+```
+
+（SymPyは和を独自の正規順序で表示するため、項の並び順はバージョンによって異なることがあります。`cos(x)/x - sin(x)/x**2` と `-sin(x)/x**2 + cos(x)/x` は同じ式です。）
 
 ## 1.3 数値微分法の比較
 
@@ -53,9 +146,57 @@ import sympy as sp # 記号変数の定義 x = sp.Symbol('x') # 様々な関数�
 
 Python実装: 数値微分法の精度比較
 
-def forward_diff(f, x, h): """前進差分法: O(h)""" return (f(x + h) - f(x)) / h def backward_diff(f, x, h): """後退差分法: O(h)""" return (f(x) - f(x - h)) / h def central_diff(f, x, h): """中心差分法: O(h²) - より精度が高い""" return (f(x + h) - f(x - h)) / (2 * h) # テスト関数: f(x) = sin(x), f'(x) = cos(x) f = np.sin f_prime_exact = np.cos x0 = np.pi / 4 # 45度 exact = f_prime_exact(x0) # 様々な刻み幅で誤差を評価 h_values = np.logspace(-10, -1, 50) errors_forward = [] errors_backward = [] errors_central = [] for h in h_values: errors_forward.append(abs(forward_diff(f, x0, h) - exact)) errors_backward.append(abs(backward_diff(f, x0, h) - exact)) errors_central.append(abs(central_diff(f, x0, h) - exact)) # 可視化 plt.figure(figsize=(10, 6)) plt.loglog(h_values, errors_forward, label='前進差分法', marker='o', markersize=3) plt.loglog(h_values, errors_backward, label='後退差分法', marker='s', markersize=3) plt.loglog(h_values, errors_central, label='中心差分法', marker='^', markersize=3) plt.loglog(h_values, h_values, '--', label='O(h)', alpha=0.5) plt.loglog(h_values, h_values**2, '--', label='O(h²)', alpha=0.5) plt.xlabel('刻み幅 h', fontsize=12) plt.ylabel('絶対誤差', fontsize=12) plt.title('数値微分法の精度比較', fontsize=14) plt.legend() plt.grid(True, alpha=0.3) plt.show() print(f"解析解: cos(π/4) = {exact:.10f}") print(f"前進差分 (h=1e-5): {forward_diff(f, x0, 1e-5):.10f}") print(f"中心差分 (h=1e-5): {central_diff(f, x0, 1e-5):.10f}")
+```python
+def forward_diff(f, x, h):
+    """前進差分法: O(h)"""
+    return (f(x + h) - f(x)) / h
 
-**📝 注意:** 中心差分法は前進・後退差分法よりも高精度（O(h²)）ですが、 計算量は2倍必要です。実用上は、精度と計算コストのバランスを考慮して選択します。 
+def backward_diff(f, x, h):
+    """後退差分法: O(h)"""
+    return (f(x) - f(x - h)) / h
+
+def central_diff(f, x, h):
+    """中心差分法: O(h²) - より精度が高い"""
+    return (f(x + h) - f(x - h)) / (2 * h)
+
+# テスト関数: f(x) = sin(x), f'(x) = cos(x)
+f = np.sin
+f_prime_exact = np.cos
+
+x0 = np.pi / 4  # 45度
+exact = f_prime_exact(x0)
+
+# 様々な刻み幅で誤差を評価
+h_values = np.logspace(-10, -1, 50)
+errors_forward = []
+errors_backward = []
+errors_central = []
+
+for h in h_values:
+    errors_forward.append(abs(forward_diff(f, x0, h) - exact))
+    errors_backward.append(abs(backward_diff(f, x0, h) - exact))
+    errors_central.append(abs(central_diff(f, x0, h) - exact))
+
+# 可視化
+plt.figure(figsize=(10, 6))
+plt.loglog(h_values, errors_forward, label='前進差分法', marker='o', markersize=3)
+plt.loglog(h_values, errors_backward, label='後退差分法', marker='s', markersize=3)
+plt.loglog(h_values, errors_central, label='中心差分法', marker='^', markersize=3)
+plt.loglog(h_values, h_values, '--', label='O(h)', alpha=0.5)
+plt.loglog(h_values, h_values**2, '--', label='O(h²)', alpha=0.5)
+plt.xlabel('刻み幅 h', fontsize=12)
+plt.ylabel('絶対誤差', fontsize=12)
+plt.title('数値微分法の精度比較', fontsize=14)
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.show()
+
+print(f"解析解: cos(π/4) = {exact:.10f}")
+print(f"前進差分 (h=1e-5): {forward_diff(f, x0, 1e-5):.10f}")
+print(f"中心差分 (h=1e-5): {central_diff(f, x0, 1e-5):.10f}")
+```
+
+**📝 注意:** 中心差分法は前進・後退差分法（O(h)）よりも高精度（O(h²)）です。 上の実装ではいずれの方法も1回の微分あたりfを2回評価するため、計算コストは同じです。 f(x)の値がすでに手元にあって再利用できる場合（Newton法の反復など）に限り、中心差分は評価が1回多くなります。 したがって、xの片側でしかfを評価できない場合を除き、中心差分を既定の選択とするのがよいでしょう。 
 
 ## 1.4 高階導関数
 
@@ -63,7 +204,28 @@ def forward_diff(f, x, h): """前進差分法: O(h)""" return (f(x + h) - f(x)) 
 
 ### 💻 コード例4: 高階導関数の数値計算
 
-`def second_derivative(f, x, h=1e-5): """第2次導関数: f''(x) ≈ [f(x+h) - 2f(x) + f(x-h)] / h²""" return (f(x + h) - 2*f(x) + f(x - h)) / h**2 def third_derivative(f, x, h=1e-4): """第3次導関数 (中心差分)""" return (f(x + 2*h) - 2*f(x + h) + 2*f(x - h) - f(x - 2*h)) / (2 * h**3) # テスト関数: f(x) = x^4 f = lambda x: x**4 x0 = 2.0 # 解析解と数値解の比較 print("f(x) = x^4 の高階導関数 (x=2):") print(f"f'(x) = 4x³ → f'(2) = {4 * x0**3:.1f} (解析解)") print(f"f'(x) → f'(2) ≈ {central_diff(f, x0, 1e-5):.6f} (数値)") print(f"f''(x) = 12x² → f''(2) = {12 * x0**2:.1f} (解析解)") print(f"f''(x) → f''(2) ≈ {second_derivative(f, x0):.6f} (数値)") print(f"f'''(x) = 24x → f'''(2) = {24 * x0:.1f} (解析解)") print(f"f'''(x) → f'''(2) ≈ {third_derivative(f, x0):.6f} (数値)")`
+```python
+def second_derivative(f, x, h=1e-5):
+    """第2次導関数: f''(x) ≈ [f(x+h) - 2f(x) + f(x-h)] / h²"""
+    return (f(x + h) - 2*f(x) + f(x - h)) / h**2
+
+def third_derivative(f, x, h=1e-4):
+    """第3次導関数 (中心差分)"""
+    return (f(x + 2*h) - 2*f(x + h) + 2*f(x - h) - f(x - 2*h)) / (2 * h**3)
+
+# テスト関数: f(x) = x^4
+f = lambda x: x**4
+x0 = 2.0
+
+# 解析解と数値解の比較
+print("f(x) = x^4 の高階導関数 (x=2):")
+print(f"f'(x) = 4x³     → f'(2) = {4 * x0**3:.1f} (解析解)")
+print(f"f'(x)           → f'(2) ≈ {central_diff(f, x0, 1e-5):.6f} (数値)")
+print(f"f''(x) = 12x²   → f''(2) = {12 * x0**2:.1f} (解析解)")
+print(f"f''(x)          → f''(2) ≈ {second_derivative(f, x0):.6f} (数値)")
+print(f"f'''(x) = 24x   → f'''(2) = {24 * x0:.1f} (解析解)")
+print(f"f'''(x)         → f'''(2) ≈ {third_derivative(f, x0):.6f} (数値)")
+```
 
 ## 1.5 材料科学への応用: 熱膨張係数
 
@@ -71,7 +233,50 @@ def forward_diff(f, x, h): """前進差分法: O(h)""" return (f(x + h) - f(x)) 
 
 ### 💻 コード例5: 熱膨張係数の数値計算
 
-`# 実験データ: 温度 T (K) vs 長さ L (mm) temperature = np.array([300, 350, 400, 450, 500, 550, 600]) length = np.array([100.000, 100.087, 100.175, 100.265, 100.357, 100.450, 100.545]) # スプライン補間で滑らかな関数を作成 from scipy.interpolate import UnivariateSpline spline = UnivariateSpline(temperature, length, s=0, k=3) # 微分して dL/dT を求める dL_dT = spline.derivative()(temperature) # 熱膨張係数 α = (1/L) * dL/dT alpha = dL_dT / length # 結果の表示 print("熱膨張係数の計算結果:") print("T (K)\tL (mm)\tdL/dT (mm/K)\tα (1/K)") for T, L, dLdT, a in zip(temperature, length, dL_dT, alpha): print(f"{T:.0f}\t{L:.3f}\t{dLdT:.6f}\t{a:.2e}") # 可視化 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5)) # 左図: 長さの温度依存性 T_fine = np.linspace(300, 600, 100) ax1.plot(temperature, length, 'o', label='実験データ', markersize=8) ax1.plot(T_fine, spline(T_fine), '-', label='スプライン補間', linewidth=2) ax1.set_xlabel('温度 T (K)', fontsize=12) ax1.set_ylabel('長さ L (mm)', fontsize=12) ax1.set_title('熱膨張曲線', fontsize=14) ax1.legend() ax1.grid(True, alpha=0.3) # 右図: 熱膨張係数の温度依存性 ax2.plot(temperature, alpha * 1e6, 'o-', linewidth=2, markersize=8) ax2.set_xlabel('温度 T (K)', fontsize=12) ax2.set_ylabel('熱膨張係数 α (10⁻⁶/K)', fontsize=12) ax2.set_title('熱膨張係数の温度依存性', fontsize=14) ax2.grid(True, alpha=0.3) plt.tight_layout() plt.show()`
+```python
+# 実験データ: 温度 T (K) vs 長さ L (mm)
+temperature = np.array([300, 350, 400, 450, 500, 550, 600])
+length = np.array([100.000, 100.087, 100.175, 100.265, 100.357, 100.450, 100.545])
+
+# スプライン補間で滑らかな関数を作成
+from scipy.interpolate import UnivariateSpline
+spline = UnivariateSpline(temperature, length, s=0, k=3)
+
+# 微分して dL/dT を求める
+dL_dT = spline.derivative()(temperature)
+
+# 熱膨張係数 α = (1/L) * dL/dT
+alpha = dL_dT / length
+
+# 結果の表示
+print("熱膨張係数の計算結果:")
+print("T (K)\tL (mm)\tdL/dT (mm/K)\tα (1/K)")
+for T, L, dLdT, a in zip(temperature, length, dL_dT, alpha):
+    print(f"{T:.0f}\t{L:.3f}\t{dLdT:.6f}\t{a:.2e}")
+
+# 可視化
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+
+# 左図: 長さの温度依存性
+T_fine = np.linspace(300, 600, 100)
+ax1.plot(temperature, length, 'o', label='実験データ', markersize=8)
+ax1.plot(T_fine, spline(T_fine), '-', label='スプライン補間', linewidth=2)
+ax1.set_xlabel('温度 T (K)', fontsize=12)
+ax1.set_ylabel('長さ L (mm)', fontsize=12)
+ax1.set_title('熱膨張曲線', fontsize=14)
+ax1.legend()
+ax1.grid(True, alpha=0.3)
+
+# 右図: 熱膨張係数の温度依存性
+ax2.plot(temperature, alpha * 1e6, 'o-', linewidth=2, markersize=8)
+ax2.set_xlabel('温度 T (K)', fontsize=12)
+ax2.set_ylabel('熱膨張係数 α (10⁻⁶/K)', fontsize=12)
+ax2.set_title('熱膨張係数の温度依存性', fontsize=14)
+ax2.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+```
 
 ## 1.6 Richardson外挿法による高精度化
 
@@ -79,7 +284,32 @@ Richardson外挿法は、異なる刻み幅での数値微分結果を組み合�
 
 ### 💻 コード例6: Richardson外挿法
 
-`def richardson_extrapolation(f, x, h, order=4): """Richardson外挿法による高精度数値微分""" # 異なる刻み幅での中心差分 D1 = central_diff(f, x, h) D2 = central_diff(f, x, h/2) # 1次外挿 (O(h⁴)の精度) D_improved = (4 * D2 - D1) / 3 return D_improved # テスト: f(x) = exp(x), f'(x) = exp(x) f = np.exp x0 = 1.0 exact = np.exp(x0) h = 0.1 D_central = central_diff(f, x0, h) D_richardson = richardson_extrapolation(f, x0, h) print(f"解析解: {exact:.10f}") print(f"中心差分 (h=0.1): {D_central:.10f}, 誤差 = {abs(D_central - exact):.2e}") print(f"Richardson外挿: {D_richardson:.10f}, 誤差 = {abs(D_richardson - exact):.2e}") print(f"精度向上: {abs(D_central - exact) / abs(D_richardson - exact):.1f}倍")`
+```python
+def richardson_extrapolation(f, x, h, order=4):
+    """Richardson外挿法による高精度数値微分"""
+    # 異なる刻み幅での中心差分
+    D1 = central_diff(f, x, h)
+    D2 = central_diff(f, x, h/2)
+
+    # 1次外挿 (O(h⁴)の精度)
+    D_improved = (4 * D2 - D1) / 3
+
+    return D_improved
+
+# テスト: f(x) = exp(x), f'(x) = exp(x)
+f = np.exp
+x0 = 1.0
+exact = np.exp(x0)
+
+h = 0.1
+D_central = central_diff(f, x0, h)
+D_richardson = richardson_extrapolation(f, x0, h)
+
+print(f"解析解:              {exact:.10f}")
+print(f"中心差分 (h=0.1):    {D_central:.10f}, 誤差 = {abs(D_central - exact):.2e}")
+print(f"Richardson外挿:      {D_richardson:.10f}, 誤差 = {abs(D_richardson - exact):.2e}")
+print(f"精度向上: {abs(D_central - exact) / abs(D_richardson - exact):.1f}倍")
+```
 
 ## 1.7 練習問題
 
@@ -89,7 +319,34 @@ Richardson外挿法は、異なる刻み幅での数値微分結果を組み合�
 
 ### 💻 コード例7: 演習問題の解答例
 
-`# 演習1の解答 x = sp.Symbol('x') f_sym = x**3 - 3*x**2 + 2*x + 1 f_prime_sym = sp.diff(f_sym, x) f_prime_at_2 = f_prime_sym.subs(x, 2) f_num = lambda x: x**3 - 3*x**2 + 2*x + 1 x0 = 2.0 print("演習1の解答:") print(f"(1) 解析解: f'(2) = {f_prime_at_2}") print(f"(2) 前進差分: f'(2) ≈ {forward_diff(f_num, x0, 1e-5):.6f}") print(f"(3) 中心差分: f'(2) ≈ {central_diff(f_num, x0, 1e-5):.6f}") # 演習2の解答 def y(t): return 10 + 5 * np.sin(np.pi * t / 10) t0 = 5.0 dy_dt = central_diff(y, t0, 0.01) print(f"\n演習2の解答:") print(f"t = 5 における dy/dt = {dy_dt:.4f}") print(f"解析解: dy/dt = (5π/10)cos(π·5/10) = {5*np.pi/10 * np.cos(np.pi*5/10):.4f}") if abs(dy_dt) > 0.5: print("→ 変化率が大きいため、制御介入が必要")`
+```python
+# 演習1の解答
+x = sp.Symbol('x')
+f_sym = x**3 - 3*x**2 + 2*x + 1
+f_prime_sym = sp.diff(f_sym, x)
+f_prime_at_2 = f_prime_sym.subs(x, 2)
+
+f_num = lambda x: x**3 - 3*x**2 + 2*x + 1
+x0 = 2.0
+
+print("演習1の解答:")
+print(f"(1) 解析解: f'(2) = {f_prime_at_2}")
+print(f"(2) 前進差分: f'(2) ≈ {forward_diff(f_num, x0, 1e-5):.6f}")
+print(f"(3) 中心差分: f'(2) ≈ {central_diff(f_num, x0, 1e-5):.6f}")
+
+# 演習2の解答
+def y(t):
+    return 10 + 5 * np.sin(np.pi * t / 10)
+
+t0 = 5.0
+dy_dt = central_diff(y, t0, 0.01)
+
+print(f"\n演習2の解答:")
+print(f"t = 5 における dy/dt = {dy_dt:.4f}")
+print(f"解析解: dy/dt = (5π/10)cos(π·5/10) = {5*np.pi/10 * np.cos(np.pi*5/10):.4f}")
+if abs(dy_dt) > 0.5:
+    print("→ 変化率が大きいため、制御介入が必要")
+```
 
 ## まとめ
 

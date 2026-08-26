@@ -534,6 +534,25 @@ Featurizer | 特徴量次元 | 用途 | 計算コスト
 **CohesiveEnergy** | 2 | 凝集エネルギー（機械的特性） | 高（ML予測）  
 **YangSolidSolution** | 4 | 固溶体形成パラメータ（HEA設計） | 低  
   
+### 3.3.5 Meredig: 元素割合＋厳選記述子
+
+`Meredig`は、Meredig et al. (2014)の記述子セットを再現するFeaturizerです。この論文は、組成情報だけを使って約160万件の三元系候補化合物の熱力学的安定性をスクリーニングしました。出力は性質の異なる2つのブロックの連結です。1つ目は**最初の103元素（H〜Lr）それぞれの原子分率** で、元素ごとに1列、実在の化合物ではそのほとんどが0になります。2つ目は**16個の厳選された物理記述子** で、平均原子量、周期表の平均行・平均列、原子番号・原子半径・電気陰性度の平均と範囲、そしてs, p, d, f各軌道の価電子数とその割合です。103 + 16 = **119特徴量** となります。
+
+設計思想はMagpieと正反対です。Magpieは元素の同一性を捨てて元素特性の統計量だけを残しますが、Meredigは元素の同一性を明示的に保持します。これにより、平均化してしまうと消えてしまう元素固有の化学的情報を、決定木アンサンブルが記憶できるようになります。両者は補完的で、`MultipleFeaturizer`で重ねて使うのが一般的です。
+
+
+    from matminer.featurizers.composition import Meredig
+    from pymatgen.core import Composition
+
+    featurizer = Meredig()
+    print(len(featurizer.feature_labels()))   # 119
+    print(featurizer.feature_labels()[-16:])  # 厳選記述子16個
+
+    values = featurizer.featurize(Composition("Fe2O3"))
+    print(values[:5])                         # ほとんど0.0 — 元素割合ブロック
+
+スパース性に注意してください。訓練データが数百件しかない場合、ほぼ0の103列はセクション3.4.5で述べる分散フィルタの第一候補です。
+
 ## 3.4 カスタム特徴量設計
 
 既存のFeaturizerでは対応できない特殊な材料系や、独自の仮説を検証したい場合は、 カスタムFeaturizerを実装できます。 `BaseFeaturizer`を継承し、`featurize()`メソッドを実装するだけです。 
@@ -591,11 +610,15 @@ Featurizer | 特徴量次元 | 用途 | 計算コスト
     
             # Gini coefficient（組成の不均一性、0=完全均一、1=完全不均一）
             # G = (Σ_i Σ_j |f_i - f_j|) / (2n Σ_i f_i)
+            # 注意: 等モル組成では |f_i - f_j| がすべて0になるため G = 0 になります。
+            # 下の例で非ゼロになるのは非等モルの Al0.5CoCrCuFeNi だけです。
             n = len(fractions)
             gini = np.sum(np.abs(fractions[:, None] - fractions[None, :])) / (2 * n)
     
-            # Effective number of elements（実効元素数）
-            # N_eff = exp(H) = 1 / Σ(f_i^2)
+            # Effective number of elements（実効元素数、Simpson指数 / Hill数 order 2）
+            # N_eff = 1 / Σ(f_i^2)
+            # 注意: これは exp(H) ではありません。等モル組成では一致しますが、
+            # そうでない場合は異なります（Al0.5CoCrCuFeNi: 1/Σf² = 5.76 に対し exp(H) = 5.86）。
             effective_n = 1.0 / np.sum(fractions ** 2)
     
             return [shannon_entropy, gini, effective_n]
@@ -664,11 +687,11 @@ Featurizer | 特徴量次元 | 用途 | 計算コスト
     # === カスタム特徴量: 元素多様性 ===
     #               formula  shannon_entropy  gini_coefficient  effective_n_elements
     #                    Fe            0.000             0.000                  1.00
-    #                 FeNi            0.693             0.250                  2.00
-    #              CoCrNi            1.099             0.333                  3.00
-    #            CoCrFeNi            1.386             0.375                  4.00
-    #         CoCrFeMnNi            1.609             0.400                  5.00
-    #   Al0.5CoCrCuFeNi            1.705             0.429                  5.45
+    #                 FeNi            0.693             0.000                  2.00
+    #              CoCrNi            1.099             0.000                  3.00
+    #            CoCrFeNi            1.386             0.000                  4.00
+    #         CoCrFeMnNi            1.609             0.000                  5.00
+    #   Al0.5CoCrCuFeNi            1.768             0.076                  5.76
     #
     # === ハイエントロピー合金（HEA）判定 ===
     # Fe                   | H=0.000 | N_eff=1.00 | ❌ Non-HEA
@@ -676,7 +699,7 @@ Featurizer | 特徴量次元 | 用途 | 計算コスト
     # CoCrNi               | H=1.099 | N_eff=3.00 | ❌ Non-HEA
     # CoCrFeNi             | H=1.386 | N_eff=4.00 | ❌ Non-HEA
     # CoCrFeMnNi           | H=1.609 | N_eff=5.00 | ✅ HEA
-    # Al0.5CoCrCuFeNi      | H=1.705 | N_eff=5.45 | ✅ HEA
+    # Al0.5CoCrCuFeNi      | H=1.768 | N_eff=5.76 | ✅ HEA
     
 
 ### 3.4.2 複数Featurizerの統合
@@ -1077,6 +1100,63 @@ Featurizer | 特徴量次元 | 用途 | 計算コスト
     #       O  ionization_energy  13.62  mendeleev        0.95
     
 
+### 3.4.5 実務的な追加特徴量：コスト、存在度、前処理
+
+スクリーニングのワークフローは物理だけでは終わりません。実務のパイプラインで繰り返し登場するカスタムFeaturizerが2つあり、どちらもセクション3.4.1のパターンを短く継承したものです。
+
+**元素コスト。** 予測性能が優秀でも40%が白金の候補は候補になりません。Magpieが物理量を集約するのと同じ要領で、元素価格の表（USD/kg）を集約します。原子分率重み付き平均が実用的な既定値で、最大値は「一番高い元素」を検出します。
+
+
+    # 元素価格 USD/kg（抜粋 — 取得日付を付けて自前の表を管理してください）
+    ELEMENT_COST = {"Fe": 0.12, "Ni": 15.0, "Co": 33.0, "Cu": 8.5, "Pt": 30000.0}
+
+    class ElementCostFeaturizer(BaseFeaturizer):
+        """組成の原子分率重み付き平均元素価格と最大元素価格"""
+
+        def featurize(self, comp):
+            fracs = comp.fractional_composition.get_el_amt_dict()
+            costs = {el: ELEMENT_COST.get(el) for el in fracs}
+            if any(c is None for c in costs.values()):
+                return [float("nan"), float("nan")]   # 価格未収載の元素は推測しない
+            mean_cost = sum(fracs[el] * costs[el] for el in fracs)
+            return [mean_cost, max(costs.values())]
+
+        def feature_labels(self):
+            return ["mean element cost (USD/kg)", "max element cost (USD/kg)"]
+
+**元素存在度・希少性。** 形は同じで、表だけを地殻存在度（ppm）に差し替えます。存在度は10桁にわたって変化するため、集約するのは**対数** です。生のppmの重み付き平均は酸素とケイ素に完全に支配され、何の情報にもなりません。$\log_{10}(\text{ppm})$の重み付き平均と、構成元素についての最小値を組み合わせると、供給リスクのスクリーニングに使える「希少性」の指標になります。
+
+表に元素が無い場合は既定値ではなく`NaN`を返してください。黙って代入された値はモデルに伝播し、後から追跡することはほぼ不可能です。
+
+**ML前の特徴量前処理。** 組成Featurizerは気前が良すぎます。Magpie、Stoichiometry、Meredig、それにカスタムFeaturizerをいくつか連結すれば簡単に300列を超え、その多くは定数列かほぼ重複した列です。次の3ステップを常にこの順で適用すれば、被害の大半は取り除けます。
+
+  1. **分散閾値（variance threshold）** — データセット全体で定数、またはほぼ定数の列を落とします。Meredigの元素割合ブロックでは、これだけで通常60〜80列が一度に消えます。
+  2. **相関フィルタ（correlation filtering）** — $|r| > 0.95$のペアについては片方だけを残します。Magpieの`minimum`/`maximum`/`range`の三つ組は構造上必ず相関します。
+  3. **標準化（standardization）** — 平均0・分散1に変換します。距離ベース・勾配ベースのモデル（SVM、k-NN、ニューラルネット、PCA）では必須で、決定木アンサンブルでは無害だが不要です。
+
+
+    from sklearn.feature_selection import VarianceThreshold
+    from sklearn.preprocessing import StandardScaler
+    from sklearn.pipeline import Pipeline
+    import numpy as np
+
+    def drop_correlated(X, threshold=0.95):
+        """|r| > threshold のペアから片方を除いたXを返す"""
+        corr = np.corrcoef(X, rowvar=False)
+        upper = np.triu(np.abs(corr), k=1)
+        keep = [j for j in range(X.shape[1]) if not (upper[:, j] > threshold).any()]
+        return X[:, keep], keep
+
+    # 学習分割のみでfitし、テストデータにはtransformだけを適用します。
+    prep = Pipeline([
+        ("variance", VarianceThreshold(threshold=0.0)),
+        ("scale", StandardScaler()),
+    ])
+    X_train_prep = prep.fit_transform(X_train)
+    X_test_prep = prep.transform(X_test)
+
+これらはすべて学習分割だけでfitしてください。スケーラーや分散フィルタをデータ全体でfitするとテスト情報が漏洩し、報告する精度が過大になります。材料スクリーニングの報告書では起こしやすく、見つけにくい失敗です。
+
 ## 学習目標の確認
 
 このchapterを完了したあなたは、以下を説明・実装できるようになりました:
@@ -1297,7 +1377,7 @@ c) featurize_dataframe(n_jobs=-1) | 0.9秒 | 16.9x
 **Q8** : ハイエントロピー合金（HEA）を識別するカスタムFeaturizerを設計してください。 以下の特徴量を計算する実装を示してください:
 
   * Shannon entropy: $H = -\sum_i f_i \ln(f_i)$
-  * Effective number of elements: $N_{\text{eff}} = \exp(H)$
+  * 有効元素数（Simpson指数 / Hill数 order 2）: $N_{\text{eff}} = 1 / \sum_i f_i^2$
   * HEA判定: $H > 1.5$ かつ $N_{\text{eff}} > 4.0$
 
 解答を見る
@@ -1335,9 +1415,11 @@ c) featurize_dataframe(n_jobs=-1) | 0.9秒 | 16.9x
             # log(0)を避けるため、小さな値を加算
             shannon_entropy = -np.sum(fractions * np.log(fractions + 1e-10))
     
-            # Effective number of elements
-            # N_eff = exp(H)
-            effective_n = np.exp(shannon_entropy)
+            # Effective number of elements（Simpson指数 / Hill数 order 2）
+            # N_eff = 1 / Σ(f_i^2) — Example 5と同じ定義を使います。
+            # （exp(H)はorder 1のHill数で、等モル組成でしか一致しません。
+            #   1つの特徴量セットの中で両者を混ぜないでください。）
+            effective_n = 1.0 / np.sum(fractions ** 2)
     
             # HEA判定
             is_hea = 1.0 if (shannon_entropy > 1.5 and effective_n > 4.0) else 0.0

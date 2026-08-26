@@ -3,6 +3,22 @@ title: 第3章：MPNN実装
 chapter_title: 第3章：MPNN実装
 ---
 
+## ビデオ講義
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/hafzDcJLayQ"
+    title="GNN特徴量比較入門 第3章: MPNN実装"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> このビデオは以下のテキストと同じ内容をカバーしています。お好みの学習形式をお選びください。
+
 **汎用メッセージパッシングフレームワーク：分子から結晶まで適用可能な統一的実装**
 
 ## 3.1 MPNNフレームワークの詳細

@@ -8,6 +8,23 @@ code_examples: 12
 exercises: 5
 ---
 
+## Video Lecture
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/JWRfVp9wjPE"
+    title="PyTorch Geometric Ch.1: PyTorch Geometric Introduction and Graph Data Fundamentals"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> This video covers the same content as the text below. Choose your preferred learning format.
+
+---
+
 In this chapter, you'll learn the fundamental concepts of graph data that underpin Graph Neural Networks (GNN) and how to use the PyTorch Geometric (PyG) library. Through the basic graph structure, PyG installation, working with Data objects, built-in datasets, and implementing a simple GCN layer, you'll build a solid foundation for GNN development.
 
 ## Learning Objectives

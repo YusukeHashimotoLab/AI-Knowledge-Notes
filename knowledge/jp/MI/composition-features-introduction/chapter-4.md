@@ -35,7 +35,7 @@ scikit-learnの`Pipeline`は、データ前処理・特徴量生成・モデル�
     ```mermaid
     graph LR
                     A[化学組成Fe2O3] --> B[FeaturizerMagpieData]
-                    B --> C[特徴量145次元]
+                    B --> C[特徴量132次元]
                     C --> D[StandardScaler標準化]
                     D --> E[ML ModelRandomForest]
                     E --> F[予測値形成エネルギー]
@@ -69,7 +69,7 @@ matminerのFeaturizerをscikit-learnパイプラインに統合する基本パ�
         'composition': ['Fe2O3', 'Al2O3', 'TiO2', 'SiO2', 'MgO',
                         'CaO', 'Na2O', 'K2O', 'ZnO', 'CuO'],
         'formation_energy': [-8.3, -16.6, -9.7, -9.1, -6.1,
-                             -6.3, -4.2, -3.6, -3.6, -1.6]  # eV/atom
+                             -6.3, -4.2, -3.6, -3.6, -1.6]  # eV/formula unit（組成式あたり）
     })
     
     # 1. 化学組成を文字列からCompositionオブジェクトへ変換
@@ -449,6 +449,9 @@ Gradient Boostingは、弱学習器（浅い決定木）を逐次的に追加し
 
 **使い分け** : パラメータ空間が広い場合（XGBoost等）はRandomizedSearchCV、狭い場合（Random Forest等）はGridSearchCVが適切です。 
 
+**Optuna** : 勾配ブースティング系（XGBoost、LightGBM、CatBoost）はパラメータ空間が広く、グリッド探索もランダム探索も予算の大半を無駄にします。`Optuna`はこれをベイズ最適化（TPE）に置き換えます。各試行のパラメータを過去の試行結果から提案し、見込みの薄い試行は`MedianPruner`で早期に打ち切ります。実務では`RandomizedSearchCV`より1桁少ない試行数で良い検証スコアに到達することが多く、Magpie特徴量化した13万化合物に対する5-fold学習が1回数分かかるような状況では効いてきます。使い方は、`trial.suggest_float` / `trial.suggest_int`でパラメータをサンプリングし交差検証MAEを返す小さな`objective(trial)`関数を書き、`optuna.create_study(direction="minimize").optimize(objective, n_trials=100)`に渡すだけです。
+
+
 ### 4.2.4 Neural Network (MLP Regressor)
 
 多層パーセプトロン（MLP）は、複数の隠れ層を持つニューラルネットワークです。非線形関係の学習に優れ、大規模データセットで高い性能を発揮します。 
@@ -578,7 +581,7 @@ Gradient Boostingは、弱学習器（浅い決定木）を逐次的に追加し
                     style D fill:#ffccbc
                     style E fill:#ffe0b2
                     style F fill:#b3e5fc
-    ```
+                
     
     
     
@@ -718,15 +721,17 @@ Gradient Boostingは、弱学習器（浅い決定木）を逐次的に追加し
 **誘電率**  
 (matbench_dielectric) | 4,764 | MAE (log10) | 0.29 | 0.26 | 0.21 | 0.23 | 0.19  
 **ペロブスカイト形成**  
-(matbench_perovskites) | 18,928 | ROCAUC | 0.91 | 0.94 | 0.93 | 0.92 | 0.95  
+(matbench_perovskites) | 18,928 | MAE (eV/atom) | ~0.24 | — | ~0.045 | ~0.035 | ~0.029  
 **フォノン周波数**  
 (matbench_phonons) | 1,265 | MAE (cm⁻¹) | 89.5 | — | 62.3 | 71.2 | 58.7  
   
+
+**⚠️ matbench_perovskitesについての注意** : このタスクは構造からペロブスカイトのDFT形成エネルギーを予測する**回帰** 問題であり、分類問題ではありません。したがってROC-AUCは適用できません。評価指標はMAE（eV/atom）で、しかも組成のみのモデルが最も苦手とするタスクの1つです。ペロブスカイトの形成エネルギーは八面体の傾き（octahedral tilting）とカチオンのサイト秩序に支配されますが、組成ベクトルにはそれが見えないためです。この行の数値はMatbench v0.1リーダーボードのおおよその値を丸めたものです。正確な数字は最新のリーダーボードを参照してください。
+
 #### 🔍 性能差の要因分析
 
 **組成ベースが有利な場合** : 
 
-  * **ペロブスカイト形成** : 化学組成の規則性が支配的（ElemNet: ROCAUC 0.94）
   * **小規模データセット** : GNNは大量データを要求、組成ベースは数百サンプルで学習可能
 
 **GNNが有利な場合** : 
@@ -734,6 +739,7 @@ Gradient Boostingは、弱学習器（浅い決定木）を逐次的に追加し
   * **形成エネルギー** : 結晶構造（配位数、結合距離）が重要（ALIGNN: MAE 0.047 vs ElemNet: 0.065）
   * **機械的性質** : 弾性率は結晶対称性に強く依存
   * **フォノン周波数** : 原子配置が直接影響
+  * **ペロブスカイト形成** : 形成エネルギーは八面体の傾きとカチオン秩序で決まり、組成だけでは表現できない（Magpie + RF MAE ~0.24 に対し ALIGNN ~0.029 eV/atom）
 
 ### 4.3.3 使い分け基準
 

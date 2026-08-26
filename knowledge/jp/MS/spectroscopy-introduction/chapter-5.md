@@ -3,6 +3,22 @@ title: "第5章: X線光電子分光法（XPS）"
 chapter_title: "第5章: X線光電子分光法（XPS）"
 ---
 
+## ビデオ講義
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/so3riEt-4Ew"
+    title="分光分析入門 第5章: X線光電子分光法（XPS）"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> このビデオは以下のテキストと同じ内容をカバーしています。お好みの学習形式をお選びください。
+
 JP | [EN](<../../../en/MS/spectroscopy-introduction/chapter-5.html>) | Last sync: 2025-12-26
 
 [AI寺子屋 Top](<../../index.html>)>[材料科学](<../index.html>)>[分光分析入門](<index.html>)>第5章
@@ -182,11 +198,11 @@ XPSでは、半球型静電分析器（Hemispherical Analyzer）が広く使用�
     
     ```mermaid
     flowchart LR
-            A[X線源Al Ka: 1486.6 eV] --> B[試料表面]
-            B --> C[電子レンズ系集束・減速]
-            C --> D[半球型分析器エネルギー選別]
-            D --> E[検出器マルチチャンネル]
-            E --> F[XPSスペクトルBE vs. 強度]
+            A[X線源<br/>Al Ka: 1486.6 eV] --> B[試料<br/>表面]
+            B --> C[電子レンズ系<br/>集束・減速]
+            C --> D[半球型分析器<br/>エネルギー選別]
+            D --> E[検出器<br/>マルチチャンネル]
+            E --> F[XPSスペクトル<br/>BE vs. 強度]
     
             style A fill:#e3f2fd
             style B fill:#fff3e0
@@ -194,7 +210,7 @@ XPSでは、半球型静電分析器（Hemispherical Analyzer）が広く使用�
             style D fill:#e8f5e9
             style E fill:#f3e5f5
             style F fill:#ffe0b2
-    ```
+        
     
     分析器のパラメータ
     
@@ -1546,7 +1562,7 @@ XPSでは、半球型静電分析器（Hemispherical Analyzer）が広く使用�
     print(f"60度から推定した膜厚: {d_60:.2f} nm")
     print(f"平均膜厚: {(d_0 + d_60)/2:.2f} nm")
     
-    答え: 約 2.4 nm（角度によりやや異なる値が得られる）
+    答え: 0度から 3.37 nm、60度から 2.66 nm、平均 約 3.0 nm（角度により異なる値が得られるのは、実際には汚染層や表面ラフネスの影響を受けるため）
     
     
     

@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Chapter 3 ended on a boundary. The self-play arc works where experience is cheap and the reward is clean — and almost nothing in the natural sciences is like…">
+    <title>Chapter 4: AlphaFold: The Protein Folding Breakthrough - AI Terakoya</title>
+    <link rel="canonical" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/en/ML/alphago-to-alphafold/chapter-4.html">
+    <link rel="alternate" hreflang="ja" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/jp/ML/alphago-to-alphafold/chapter-4.html">
+    <link rel="alternate" hreflang="en" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/en/ML/alphago-to-alphafold/chapter-4.html">
+    <link rel="alternate" hreflang="x-default" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/en/ML/alphago-to-alphafold/chapter-4.html">
+    <meta property="og:title" content="Chapter 4: AlphaFold: The Protein Folding Breakthrough - AI Terakoya">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/en/ML/alphago-to-alphafold/chapter-4.html">
+    <meta property="og:site_name" content="AI Terakoya">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:description" content="Chapter 3 ended on a boundary. The self-play arc works where experience is cheap and the reward is clean — and almost nothing in the natural sciences is like…">
+
+    <style>
+        :root {
+            --color-primary: #2c3e50;
+            --color-primary-dark: #1a252f;
+            --color-accent: #7b2cbf;
+            --color-accent-light: #9d4edd;
+            --color-text: #2d3748;
+            --color-text-light: #4a5568;
+            --color-bg: #ffffff;
+            --color-bg-alt: #f7fafc;
+            --color-border: #e2e8f0;
+            --color-code-bg: #f8f9fa;
+            --color-link: #3182ce;
+            --color-link-hover: #2c5aa0;
+
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+
+            --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+            --border-radius: 8px;
+            --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-body);
+            line-height: 1.7;
+            color: var(--color-text);
+            background-color: var(--color-bg);
+            font-size: 16px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            padding: var(--spacing-xl) var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+            box-shadow: var(--box-shadow);
+        }
+
+        .header-content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: var(--spacing-sm);
+            line-height: 1.2;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            font-weight: 400;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-md);
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-md) var(--spacing-xl);
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-xl);
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-xs);
+            border-bottom: 3px solid var(--color-accent);
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-lg);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        h4 {
+            font-size: 1.1rem;
+            color: var(--color-primary-dark);
+            margin-top: var(--spacing-md);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        p {
+            margin-bottom: var(--spacing-md);
+            color: var(--color-text);
+        }
+
+        a {
+            color: var(--color-link);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        a:hover {
+            color: var(--color-link-hover);
+            text-decoration: underline;
+        }
+
+        ul, ol {
+            margin-left: var(--spacing-lg);
+            margin-bottom: var(--spacing-md);
+        }
+
+        li {
+            margin-bottom: var(--spacing-xs);
+            color: var(--color-text);
+        }
+
+        pre {
+            background-color: var(--color-code-bg);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            overflow-x: auto;
+            margin-bottom: var(--spacing-md);
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        code {
+            font-family: var(--font-mono);
+            font-size: 0.9em;
+            background-color: var(--color-code-bg);
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+        }
+
+        pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: var(--spacing-md);
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            border: 1px solid var(--color-border);
+            padding: var(--spacing-sm);
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--color-bg-alt);
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        blockquote {
+            border-left: 4px solid var(--color-accent);
+            padding-left: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            color: var(--color-text-light);
+            font-style: italic;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        .mermaid {
+            text-align: center;
+            margin: var(--spacing-lg) 0;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        details {
+            background-color: var(--color-bg-alt);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+        }
+
+        summary {
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--color-primary);
+            user-select: none;
+            padding: var(--spacing-xs);
+            margin: calc(-1 * var(--spacing-md));
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        summary:hover {
+            background-color: rgba(123, 44, 191, 0.1);
+        }
+
+        details[open] summary {
+            margin-bottom: var(--spacing-md);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .learning-objectives {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: var(--spacing-lg);
+            border-radius: var(--border-radius);
+            border-left: 4px solid var(--color-accent);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .learning-objectives h2 {
+            margin-top: 0;
+            border-bottom: none;
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            gap: var(--spacing-md);
+            margin: var(--spacing-xl) 0;
+            padding-top: var(--spacing-lg);
+            border-top: 2px solid var(--color-border);
+        }
+
+        .nav-button {
+            flex: 1;
+            padding: var(--spacing-md);
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            border-radius: var(--border-radius);
+            text-align: center;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: var(--box-shadow);
+        }
+
+        .nav-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            text-decoration: none;
+        }
+
+        footer {
+            margin-top: var(--spacing-xl);
+            padding: var(--spacing-lg) var(--spacing-md);
+            background-color: var(--color-bg-alt);
+            border-top: 1px solid var(--color-border);
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--color-text-light);
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            h2 {
+                font-size: 1.4rem;
+            }
+
+            h3 {
+                font-size: 1.2rem;
+            }
+
+            .meta {
+                font-size: 0.85rem;
+            }
+
+            .navigation {
+                flex-direction: column;
+            }
+
+            table {
+                font-size: 0.85rem;
+            }
+
+            th, td {
+                padding: var(--spacing-xs);
+            }
+        }
+    </style>
+
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+
+    <!-- MathJax for LaTeX equation rendering -->
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\(', '\)']],
+                displayMath: [['$$', '$$'], ['\[', '\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" id="MathJax-script" async></script>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <h1>Chapter 4: AlphaFold: The Protein Folding Breakthrough</h1>
+            <p class="subtitle">From a String of Amino Acids to a Three-Dimensional Shape, and How Evolution Turned Out to Be the Training Data</p>
+            <div class="meta">
+                <span class="meta-item">📖 Reading Time: 20-25 minutes</span>
+                <span class="meta-item">📊 Difficulty: Beginner</span>
+                <span class="meta-item">💻 Code Examples: 0</span>
+                <span class="meta-item">📝 Exercises: 0</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+<h2>Video Lecture</h2>
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/Z9WEyF6_NY8"
+    title="AlphaGo to AlphaFold Ch.4: AlphaFold: The Protein Folding Breakthrough"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+<p class="video-note">This video covers the same content as the text below. Choose your preferred learning format.</p>
+
+<p>🌐 EN | <a href="../../../jp/ML/alphago-to-alphafold/chapter-4.html">🇯🇵 JP</a> | Last sync: 2026-08-19</p>
+<p><a href="../index.html">Machine Learning Dojo</a> &gt; <a href="index.html">AlphaGo to AlphaFold</a> &gt; Chapter 4</p>
+<p>Chapter 3 ended on a boundary. The self-play arc works where experience is cheap and the reward is clean — and almost nothing in the natural sciences is like that. There is no simulator for biology you can run a billion times. There is no score at the end of an experiment that tells you unambiguously that you won.</p>
+<p>So when the same organisation turned to one of biology's oldest open problems, none of the machinery from the first half of this series transferred. No self-play. No reward function. No search over moves. What transferred was something less specific and more durable: a willingness to ask what the <em>right representation of the problem</em> is, and the discovery that for this problem, <strong>the data had already been generated — by evolution, over several billion years, and stored in the sequences themselves</strong>.</p>
+<h2>4.1 The Problem: From a String to a Shape</h2>
+<p>A protein is manufactured as a linear chain. A gene specifies a sequence of <strong>amino acids</strong>, twenty of them in the standard set, strung together in order like letters in a word. That chain is the protein's <em>primary structure</em>, and writing it down is easy — sequencing technology has made amino acid sequences abundant and cheap.</p>
+<p>But a linear chain does almost nothing. Within moments of being made, the chain <strong>folds</strong> — spontaneously, in three dimensions, into a specific and reproducible shape. And it is the shape that does the work.</p>
+<p><strong>Structure determines function.</strong> An enzyme works because its folded form creates a pocket geometrically and chemically complementary to the molecule it acts on. An antibody binds its target because a particular arrangement of loops presents a matching surface. A membrane channel lets one ion through and not another because of the precise dimensions of the passage it forms. Change the shape and the function changes or disappears; a great many diseases are, at bottom, proteins that have adopted the wrong shape.</p>
+<p>This means that knowing a protein's structure is often the difference between having a name for a molecule and understanding what it does. Which brings the obvious question: given the sequence, can you predict the shape?</p>
+<p>For decades the reliable answer was: not really — go and measure it. And measuring is hard.</p>
+<ul>
+<li><strong>X-ray crystallography</strong> requires persuading the protein to form an ordered crystal, then inferring the atomic arrangement from a diffraction pattern. Crystallisation is notoriously unpredictable; some proteins have resisted it for decades, and membrane proteins are especially uncooperative.</li>
+<li><strong>Cryo-electron microscopy</strong> freezes many copies of the molecule and reconstructs a three-dimensional density from enormous numbers of noisy two-dimensional images. It sidesteps crystallisation and has transformed the field, but it demands specialised instruments and substantial expertise.</li>
+<li><strong>NMR spectroscopy</strong> works in solution and gives dynamic information, but becomes progressively harder as the protein gets larger.</li>
+</ul>
+<p>All of them are slow, expensive, and skilled work. The consequence was a widening gap: <strong>sequences accumulated far faster than structures</strong>. Vast numbers of proteins were known only as strings, with no picture of what they were.</p>
+<h3>📚 Anfinsen: The Information Is in the Sequence</h3>
+<p>The theoretical licence to attempt prediction at all comes from a set of experiments by Christian Anfinsen and colleagues, carried out through the 1960s and into the 1970s, and recognised with a share of the Nobel Prize in Chemistry in 1972.</p>
+<p>The experiment is simple to describe. Take a folded, functional protein. Treat it so that it unfolds completely and loses its activity. Then carefully remove the treatment and restore ordinary conditions.</p>
+<p>The protein <strong>folds back up on its own</strong> — into the same structure, recovering its function — with no cellular machinery present to guide it.</p>
+<p>The conclusion drawn from this is <strong>Anfinsen's thermodynamic hypothesis</strong>: for such a protein, the native structure is the one that is thermodynamically favoured under physiological conditions, and <strong>all the information needed to specify it is already contained in the amino acid sequence</strong>. Nothing external is dictating the fold.</p>
+<p>This is the permission slip for everything that follows. If the sequence did not determine the structure, sequence-to-structure prediction would be attempting the impossible. Anfinsen says the information is there. He does not say it is easy to read.</p>
+<h3>📚 Levinthal's Paradox: Why Search Is Not the Answer</h3>
+<p>Cyrus Levinthal pointed out an apparent contradiction that shaped how everyone thought about the problem afterwards.</p>
+<p>Consider a protein chain of realistic length. Every bond along the backbone can adopt several distinct orientations. The number of possible three-dimensional configurations is therefore <strong>exponential in the length of the chain</strong> — an astronomically large number, vastly beyond anything that could be sampled.</p>
+<p>Yet real proteins fold in a fraction of a second.</p>
+<p>The two statements cannot both describe a random search. If a protein tried configurations one after another until it found the right one, folding would take longer than the age of the universe. It plainly does not.</p>
+<p>The resolution is that <strong>folding is not a search — it is a descent</strong>. The energy landscape is not flat with a single hidden hole in it; it is shaped like a <strong>funnel</strong>, biased so that partially correct arrangements are already energetically favourable and the chain is guided downhill toward the native state. Local structure forms fast, and it constrains what can happen next.</p>
+<p>Levinthal's paradox is stated here for a specific reason. It says that <strong>brute enumeration of configurations is the wrong tool</strong> — and by extension that a physics simulation trying to watch every atom move is fighting the problem the hard way. Something else was needed. It turned out to be statistics.</p>
+<h2>4.2 CASP: The Field's Honest Scoreboard</h2>
+<p>Structure prediction had a problem that plagues many computational fields: it is very easy to fool yourself. If you know the answer, you will tune your method until it produces the answer, and you will believe you have a method.</p>
+<p><strong>CASP</strong> — the Critical Assessment of Structure Prediction — was created to make that impossible, and it has run <strong>every two years since 1994</strong>.</p>
+<p>The design is what makes it trustworthy. Experimentalists who have solved a structure but not yet published it contribute the sequence. Predictors receive only the sequence and submit models <strong>blind</strong> — nobody outside the experimental group knows the answer. Independent assessors then compare predictions against the withheld experimental structure.</p>
+<p>You cannot tune to the answer, because you do not have it. CASP is therefore one of the more honest scoreboards in computational science, and it turned structure prediction into a field with a clear, community-wide, unfakeable measure of progress. Reading its history is reading the field's real trajectory rather than its press releases — and for a long time that trajectory was <strong>steady, hard-won, incremental improvement</strong>, with prediction useful for proteins resembling something already solved and unreliable otherwise.</p>
+<p>Then two CASPs changed it.</p>
+<p><strong>CASP13, in 2018</strong>, was led by <strong>AlphaFold</strong> — the first version. Its approach was recognisably in the tradition that preceded it: use deep learning to predict, for each pair of residues, whether they are in <strong>contact</strong> in the folded structure (later refined to predicting distributions over distances), then use those predicted constraints to build a three-dimensional model. What was new was how much better the deep-learning-based prediction of those pairwise relationships had become. AlphaFold 1 was a leading system, and it was clearly a step forward — but it was a step, and the field's overall picture had not changed.</p>
+<p><strong>CASP14, in 2020</strong>, was different in kind. <strong>AlphaFold 2</strong> produced predictions that, for a large fraction of targets, were competitive with experimental structures. The assessors' verdict was strong enough that the problem was <strong>widely described as essentially solved for single protein domains</strong> — a phrase worth handling carefully, and Section 4.4 does exactly that. The method was published in <em>Nature</em> in 2021.</p>
+<h2>4.3 How AlphaFold 2 Works, at the Level of Principle</h2>
+<p>What follows describes the <em>ideas</em>, not the implementation. The architecture has many components and a great deal of engineering detail; five principles carry most of the conceptual weight.</p>
+<h3>📚 (1) Evolution as Data: Reading Contacts from an Alignment</h3>
+<p>This is the deepest idea, and it is the one that connects the two halves of this series. AlphaFold 2 does not receive only the sequence you asked about. It receives a <strong>multiple sequence alignment (MSA)</strong>: that sequence together with many evolutionarily related sequences — the same protein as it appears across a wide range of organisms — lined up so that corresponding positions sit in the same column.</p>
+<p>Why does this help so enormously? Because of <strong>co-evolution</strong>. Here is the logic, with a concrete pair.</p>
+<p>Suppose that in the folded structure, position 30 and position 85 sit right next to each other, even though they are far apart along the chain. Suppose further that in this organism, position 30 carries a <strong>positively charged</strong> residue and position 85 a <strong>negatively charged</strong> one, and the attraction between them — a salt bridge — helps hold the fold together.</p>
+<p>Now let evolution run across millions of years and thousands of species.</p>
+<ul>
+<li>A mutation that flips position 30 from positive to negative puts two negative charges next to each other. They repel. The fold is destabilised, the protein works less well, and selection removes that variant.</li>
+<li>But a variant that flips <strong>position 30 to negative and position 85 to positive</strong> restores the attraction. The fold survives. Selection lets it through.</li>
+</ul>
+<p>So across the alignment you observe something distinctive: <strong>neither column is conserved</strong> — both positions vary freely across species — <strong>but they do not vary independently</strong>. Their changes are correlated. When one flips, the other flips to compensate.</p>
+<p>That correlation is a fossil record of a spatial constraint. Two positions that are far apart in the chain but adjacent in space leave a <strong>statistical signature in the alignment</strong>, and it can be read out without knowing anything about the structure at all.</p>
+<p>This is why the problem was tractable despite having relatively few experimental structures. The training data was never limited to solved structures. <strong>Every sequenced genome is an evolutionary experiment whose results have already been recorded</strong>, and there are a great many of them. Section 4.5 makes this signal concrete and measurable.</p>
+<p>Two cautions come with it, both of which the real system must handle and both of which appear in our code. First, related sequences are related <strong>by descent</strong>, so any two positions may look correlated simply because the sequences share ancestry rather than because they touch — a confound that must be corrected for. Second, a position that never varies carries no signal at all: perfectly conserved columns tell you nothing about who they touch.</p>
+<h3>📚 (2) The Pair Representation and the Evoformer</h3>
+<p>AlphaFold 2 maintains <strong>two representations simultaneously</strong>, and keeping them separate is central to the design.</p>
+<ul>
+<li>The <strong>MSA representation</strong> describes the aligned sequences — what is happening at each position, across all those evolutionary variants.</li>
+<li>The <strong>pair representation</strong> describes <strong>relationships between pairs of positions</strong> — an entry for every pair \((i, j)\), encoding the network's current belief about how those two residues relate to each other in space.</li>
+</ul>
+<p>The pair representation is where the structure implicitly lives before any coordinates exist. It is the network's evolving hypothesis about the geometry.</p>
+<p>The <strong>Evoformer</strong> is the block that processes both. Its defining feature is that the two representations <strong>exchange information repeatedly, in both directions</strong>, using attention.</p>
+<ul>
+<li>Information flows from the MSA into the pair representation: co-evolutionary signals between columns become evidence about which pairs are close.</li>
+<li>Information flows back from the pair representation into the MSA: current geometric beliefs change how the alignment should be read.</li>
+<li>The pair representation is also updated against <strong>itself</strong> — and this is the subtle and important part. Geometry has to be self-consistent. If \(i\) is close to \(j\), and \(j\) is close to \(k\), that constrains how far \(i\) can be from \(k\). The triangle inequality is not optional. Updates that let triples of pairs reason about one another push the pair representation toward geometrically coherent configurations rather than a bag of independent guesses.</li>
+</ul>
+<p>Repeating this exchange many times constitutes <strong>iterative refinement</strong>. A first pass produces a rough, partly inconsistent picture; each further pass reconciles it, propagating strong local evidence outward to resolve weaker constraints elsewhere. The network is not computing an answer in one shot — it is converging on one.</p>
+<h3>📚 (3) The Structure Module: From Relationships to Coordinates</h3>
+<p>Everything so far is abstract: representations of positions and pairs. At some point an actual three-dimensional object must come out.</p>
+<p>The <strong>structure module</strong> takes the refined representations and produces <strong>explicit 3D coordinates</strong>. The key design decision is that it does not predict coordinates as unconstrained numbers. It works with the geometry directly — treating each residue as a rigid local frame with a position and an orientation, and predicting how those frames are arranged in space.</p>
+<p>This matters because <strong>structures obey constraints that arbitrary lists of numbers do not</strong>. Bond lengths do not vary freely. Atoms cannot occupy the same space. And a protein's structure is the same structure regardless of how you rotate or translate it — so the representation should not depend on an arbitrary choice of coordinate frame. Building this geometry into the module means the network spends its capacity on the question that is actually open — how the pieces are arranged relative to one another — rather than on re-deriving facts about chemistry and Euclidean space that were never in doubt.</p>
+<p>The parallel to MuZero in Chapter 3 is worth noticing. In both cases the win comes from choosing a representation aligned with what the system actually needs to produce, and refusing to spend capacity on anything else.</p>
+<h3>📚 (4) Recycling: Running the Whole Thing Again</h3>
+<p>There is a further loop wrapped around everything above. The outputs of a complete pass — the refined representations and the predicted structure — are fed <strong>back into the input</strong> of another complete pass. This is called <strong>recycling</strong>.</p>
+<p>The effect is that the network gets to revise its own answer with the benefit of having seen it. A first pass may place one region confidently and leave another ambiguous; on the next pass, the confident region is available as context that constrains the ambiguous one. It is iterative refinement again, at the scale of the whole network rather than a single block.</p>
+<p>This is a genuinely useful engineering idea beyond biology: <strong>let the model see its own draft</strong>, and give it the opportunity to reconcile the parts that do not fit.</p>
+<h3>📚 (5) Confidence: Knowing What It Does Not Know</h3>
+<p>A prediction without a reliability estimate is dangerous, because users cannot tell a confident answer from a guess. AlphaFold 2 outputs, alongside the structure, a <strong>per-residue confidence score called pLDDT</strong>.</p>
+<p>Roughly: for each residue, how confident is the model that it has placed this part of the structure correctly? High confidence marks regions to be taken seriously; low confidence marks regions to be treated with caution — and, in practice, low-confidence regions often correspond to parts of the protein that are genuinely <strong>disordered</strong>, having no single well-defined structure to predict.</p>
+<p>The value of this cannot be overstated for scientific use. <strong>A model that reports where it is unreliable can be used responsibly</strong>; one that presents every prediction with equal apparent authority cannot. A researcher can build on the confident regions and design experiments around the uncertain ones. This is a large part of why the predictions became genuinely usable rather than merely impressive.</p>
+<p>That usability was then delivered at scale. In 2021, DeepMind and <strong>EMBL-EBI</strong> launched the <strong>AlphaFold Protein Structure Database</strong>, making predicted structures openly available — turning a method into infrastructure that any researcher could consult.</p>
+<h2>4.4 What It Solved, and What It Did Not</h2>
+<p>The phrase "the protein folding problem is solved" needs unpacking, because the honest version is more interesting than the headline.</p>
+<p><strong>What genuinely changed.</strong> For <strong>single, well-behaved protein domains</strong> with sufficient evolutionary information available, prediction moved from <em>often unreliable</em> to <em>usually accurate enough to be scientifically useful</em>. Combined with open release of predictions at scale, that is a change in what routine biological research can assume it has access to. It is difficult to overstate the practical significance.</p>
+<p><strong>What remains hard.</strong> All of the following are active problems, and none was resolved by CASP14.</p>
+<ul>
+<li><strong>Complexes.</strong> Proteins mostly do their jobs by binding other things — other proteins, nucleic acids, small molecules. Predicting how two proteins dock together is a harder problem than predicting either one alone, and later systems have addressed it with real progress rather than closure.</li>
+<li><strong>Dynamics.</strong> A predicted structure is a single static picture. Real proteins move, and the motion is frequently the mechanism: enzymes open and close, transporters alternate between conformations, signalling proteins switch between states. A method that outputs one shape does not tell you which shapes a molecule alternates between, or how it gets from one to the other.</li>
+<li><strong>Disordered regions.</strong> A substantial fraction of protein sequence has no single stable fold — sometimes adopting structure only on binding a partner, sometimes remaining flexible throughout. "Predict the structure" is not a well-posed question for these regions. Confidence scores flag them, which is the right behaviour, but flagging is not solving.</li>
+<li><strong>Mutation effects.</strong> A single amino acid change can destroy a protein's function while barely altering its predicted structure. Since the method leans heavily on evolutionary statistics across many sequences, reasoning about the consequences of <em>one specific variant in one individual</em> is not what it was built to do, and it should not be assumed to do it well.</li>
+<li><strong>The dependence on evolutionary depth.</strong> The co-evolution signal in Section 4.3 requires many related sequences. Proteins with few known relatives — including designed proteins and some rapidly evolving families — provide a much thinner alignment, and performance is correspondingly less assured.</li>
+</ul>
+<p>The correct summary is: <strong>a long-standing problem was reduced to a much smaller one, and the remaining problem is still real.</strong> That framing is not deflationary. It is what makes the achievement legible — and it is what tells the next researcher where the open questions are.</p>
+<h2>4.5 Hands-On: Reading Contacts Out of Evolution</h2>
+<p>The co-evolution argument in Section 4.3 is the conceptual heart of this chapter, and it is the kind of claim that deserves to be checked rather than accepted. Here it is as something measurable.</p>
+<p>We build a synthetic family of related sequences over a small alphabet of four residue classes — hydrophobic, polar, basic, acidic — in which three chosen <strong>position pairs</strong> mutate together, exactly as a salt bridge would force them to. Then we throw the structure away, keep only the alignment, and try to recover which pairs were in contact using <strong>mutual information</strong> alone:</p>
+<p>\[ I(i, j) \;=\; H(i) + H(j) - H(i, j) \]</p>
+<p>which is zero when two columns vary independently and large when knowing one tells you about the other.</p>
+<p>We also plant a trap. Sequences come from three <strong>lineages</strong>, and eight columns drift according to lineage. Every pair among those eight will look correlated without ever touching in space — the shared-ancestry confound named in Section 4.3. The <strong>average product correction (APC)</strong> is the standard remedy: subtract from each pair the correlation attributable to each column's general tendency to correlate with everything.</p>
+<pre><code class="language-python">import numpy as np
+
+# ---------------------------------------------------------------
+# Evolution as data: reading spatial contacts out of an alignment.
+# We build a synthetic family of related sequences in which a few
+# chosen position PAIRS mutate together, the way two residues that
+# touch in the folded structure must. Then we throw the structure
+# away, keep only the alignment, and try to recover which pairs were
+# in contact -- from statistics alone. This is the co-evolution
+# signal that AlphaFold's input is built on.
+# ---------------------------------------------------------------
+rng = np.random.default_rng(20201130)
+
+N_SEQ, L = 800, 24                 # sequences, positions (columns)
+ALPHABET = np.array(list(&quot;hp+-&quot;))  # reduced classes: hydrophobic/polar/basic/acidic
+Q = len(ALPHABET)
+
+# Ground truth. The number is the probability that the partner residue
+# &quot;answers&quot; the first one -- how tightly the pair is constrained.
+CONTACTS = {(4, 19): 0.95,         # a tight pair
+            (9, 14): 0.90,         # another tight pair
+            (2, 21): 0.60}         # a loose pair: real, but noisy
+PARTNER = np.array([2, 3, 0, 1])   # h&lt;-&gt;+, p&lt;-&gt;- : the &quot;answering&quot; rule
+
+# A confound with no structural meaning: shared ancestry. Sequences come
+# from three lineages, and these columns drift by lineage. Every pair
+# among them looks correlated without ever touching in space.
+LINEAGES, LINEAGE_COLS = 3, [0, 3, 6, 7, 11, 15, 18, 22]
+
+
+def make_alignment():
+    &quot;&quot;&quot;Generate the (N_SEQ, L) alignment of integer-coded residues.&quot;&quot;&quot;
+    # per-column background composition; small Dirichlet alpha =&gt; conserved
+    conc = rng.lognormal(mean=0.0, sigma=1.0, size=L)
+    for col in [c for pair in CONTACTS for c in pair]:
+        conc[col] = 2.0            # a column that never varies has no signal
+    background = np.array([rng.dirichlet(np.full(Q, c)) for c in conc])
+    lineage_comp = {(col, lin): rng.dirichlet(np.full(Q, 0.6))
+                    for col in LINEAGE_COLS for lin in range(LINEAGES)}
+    lineage_of = rng.integers(0, LINEAGES, size=N_SEQ)
+
+    msa = np.zeros((N_SEQ, L), dtype=np.int8)
+    for n in range(N_SEQ):
+        for col in range(L):
+            p = (lineage_comp[(col, lineage_of[n])] if col in LINEAGE_COLS
+                 else background[col])
+            msa[n, col] = rng.choice(Q, p=p)
+        for (i, j), strength in CONTACTS.items():
+            if rng.random() &lt; strength:      # the partner answers
+                msa[n, j] = PARTNER[msa[n, i]]
+    return msa
+
+
+def entropy(counts):
+    p = counts / counts.sum()
+    p = p[p &gt; 0]
+    return float(-(p * np.log2(p)).sum())
+
+
+def joint_counts(col_i, col_j):
+    return np.bincount(col_i.astype(int) * Q + col_j.astype(int),
+                       minlength=Q * Q).reshape(Q, Q)
+
+
+def mutual_information(col_i, col_j):
+    &quot;&quot;&quot;Plug-in MI in bits: H(i) + H(j) - H(i, j).&quot;&quot;&quot;
+    jc = joint_counts(col_i, col_j)
+    return entropy(jc.sum(axis=1)) + entropy(jc.sum(axis=0)) - entropy(jc.ravel())
+
+
+msa = make_alignment()
+print(f&quot;Alignment: {N_SEQ} sequences x {L} positions, alphabet '{''.join(ALPHABET)}'&quot;)
+for n in range(5):
+    print(&quot;   &quot; + &quot;&quot;.join(ALPHABET[msa[n]]))
+
+# --- The co-evolution story, made concrete ----------------------
+i, j = 4, 19
+jc = joint_counts(msa[:, i], msa[:, j])
+print(f&quot;\nJoint counts for the true contact ({i}, {j}); rows = position {i}:&quot;)
+print(&quot;        &quot; + &quot;&quot;.join(f&quot;{c:&gt;7}&quot; for c in ALPHABET))
+for a in range(Q):
+    print(f&quot;     {ALPHABET[a]}  &quot; + &quot;&quot;.join(f&quot;{jc[a, b]:&gt;7}&quot; for b in range(Q)))
+print(f&quot;   Marginals: position {i} {jc.sum(axis=1)}, position {j} {jc.sum(axis=0)}&quot;)
+print(&quot;   Each row has ONE dominant column: when position 4 changes,&quot;)
+print(&quot;   position 19 changes with it. Neither column alone is conserved.&quot;)
+
+# --- Score every pair -------------------------------------------
+mi = np.zeros((L, L))
+for a in range(L):
+    for b in range(a + 1, L):
+        mi[a, b] = mi[b, a] = mutual_information(msa[:, a], msa[:, b])
+
+# Average product correction: subtract the MI a pair would show purely
+# from each column's general tendency to correlate with everything.
+row_mean = mi.sum(axis=1) / (L - 1)
+mi_apc = mi - np.outer(row_mean, row_mean) / row_mean.mean()
+np.fill_diagonal(mi_apc, 0.0)
+
+PAIRS = [(a, b) for a in range(L) for b in range(a + 1, L)]
+
+
+def label(pair):
+    if pair in CONTACTS:
+        return f&quot;TRUE CONTACT (coupling {CONTACTS[pair]:.2f})&quot;
+    if pair[0] in LINEAGE_COLS and pair[1] in LINEAGE_COLS:
+        return &quot;lineage artefact&quot;
+    return &quot;&quot;
+
+
+METHODS = [(&quot;raw MI&quot;, &quot;raw mutual information&quot;, mi),
+           (&quot;MI-APC&quot;, &quot;MI after average product correction&quot;, mi_apc)]
+rankings = {}
+for short, name, score in METHODS:
+    order = sorted(PAIRS, key=lambda ab: score[ab], reverse=True)
+    rankings[short] = order
+    print(f&quot;\nTop 8 pairs by {name}:&quot;)
+    print(f&quot;   {'rank':&gt;4} {'pair':&gt;10} {'score':&gt;9}   note&quot;)
+    for r, pair in enumerate(order[:8], 1):
+        print(f&quot;   {r:&gt;4} {str(pair):&gt;10} {score[pair]:&gt;9.4f}   {label(pair)}&quot;)
+
+print(f&quot;\nRank of each true contact, out of {len(PAIRS)} candidate pairs:&quot;)
+print(f&quot;   {'pair':&gt;10} {'coupling':&gt;9} &quot; + &quot; &quot;.join(f&quot;{s:&gt;8}&quot; for s in rankings))
+for pair, strength in CONTACTS.items():
+    ranks = &quot; &quot;.join(f&quot;{order.index(pair) + 1:&gt;8}&quot; for order in rankings.values())
+    print(f&quot;   {str(pair):&gt;10} {strength:&gt;9.2f} {ranks}&quot;)
+
+off = mi[np.triu_indices(L, 1)]
+print(f&quot;\nBackground MI over all {len(PAIRS)} pairs: median {np.median(off):.4f}, &quot;
+      f&quot;95th pct {np.percentile(off, 95):.4f} bits&quot;)
+print(f&quot;Strongest true contact (9, 14): {mi[9, 14]:.4f} bits &quot;
+      f&quot;-- {mi[9, 14]/np.median(off):.0f}x the median&quot;)
+</code></pre>
+<p><strong>Output:</strong></p>
+<pre><code>Alignment: 800 sequences x 24 positions, alphabet 'hp+-'
+   ---+h-h-ph+++-h---++hp-h
+   -phh-+p+ph+p+-+---hpp+hh
+   pphhh-+pph+h+-+h--++p+-h
+   --+h-+p-+php+--h--+pp+hh
+   -h-+h++-p++p+-hh--++pp+h
+
+Joint counts for the true contact (4, 19); rows = position 4:
+              h      p      +      -
+     h        3      3    448     11
+     p        0      1      0    109
+     +        9      1      0      0
+     -        1    207      4      3
+   Marginals: position 4 [465 110  10 215], position 19 [ 13 212 452 123]
+   Each row has ONE dominant column: when position 4 changes,
+   position 19 changes with it. Neither column alone is conserved.
+
+Top 8 pairs by raw mutual information:
+   rank       pair     score   note
+      1    (9, 14)    1.3888   TRUE CONTACT (coupling 0.90)
+      2    (4, 19)    1.2343   TRUE CONTACT (coupling 0.95)
+      3    (2, 21)    0.5431   TRUE CONTACT (coupling 0.60)
+      4    (6, 15)    0.2733   lineage artefact
+      5    (6, 22)    0.2575   lineage artefact
+      6     (6, 7)    0.2383   lineage artefact
+      7     (3, 6)    0.2303   lineage artefact
+      8    (6, 11)    0.2265   lineage artefact
+
+Top 8 pairs by MI after average product correction:
+   rank       pair     score   note
+      1    (9, 14)    1.2302   TRUE CONTACT (coupling 0.90)
+      2    (4, 19)    1.1050   TRUE CONTACT (coupling 0.95)
+      3    (2, 21)    0.5110   TRUE CONTACT (coupling 0.60)
+      4    (6, 15)    0.1664   lineage artefact
+      5    (6, 22)    0.1547   lineage artefact
+      6     (6, 7)    0.1399   lineage artefact
+      7     (3, 6)    0.1398   lineage artefact
+      8    (6, 11)    0.1369   lineage artefact
+
+Rank of each true contact, out of 276 candidate pairs:
+         pair  coupling   raw MI   MI-APC
+      (4, 19)      0.95        2        2
+      (9, 14)      0.90        1        1
+      (2, 21)      0.60        3        3
+
+Background MI over all 276 pairs: median 0.0071, 95th pct 0.1184 bits
+Strongest true contact (9, 14): 1.3888 bits -- 195x the median
+</code></pre>
+<p><strong>Reading the result.</strong> Five observations, and the last two are the ones that keep you honest.</p>
+<ul>
+<li>
+<p><strong>The joint count table is the whole argument in one picture.</strong> Look at the marginals: position 4 takes all four residue classes across the alignment (465, 110, 10, 215), and so does position 19 (13, 212, 452, 123). Neither column is conserved — either one, read alone, looks like a freely varying position with nothing to say. But the joint table has <strong>one dominant entry per row</strong>: when position 4 is <code>h</code>, position 19 is almost always <code>+</code> (448 of 465); when position 4 is <code>-</code>, position 19 is almost always <code>p</code> (207 of 215). The constraint is invisible in either column and unmistakable in the pair. That is the salt-bridge story of Section 4.3, in counts.</p>
+</li>
+<li>
+<p><strong>All three true contacts top the ranking.</strong> Out of <strong>276</strong> candidate pairs, the three planted contacts occupy ranks <strong>1, 2 and 3</strong> — including the deliberately loose pair (2, 21), whose partner answers only 60% of the time. Its score (0.5431 bits) is well below the tight pairs but still far above everything else. The signal survives substantial noise, which is exactly the property that makes it usable on real alignments where constraints are soft and partially satisfied.</p>
+</li>
+<li>
+<p><strong>The confound is real, and the correction works.</strong> Ranks 4 through 8 are entirely <strong>lineage artefacts</strong> — pairs of columns that share nothing but ancestry. Raw MI puts the strongest of them at 0.2733 bits, comfortably above the background median of 0.0071. If you had no ground truth, you would take them for contacts. Applying APC cuts that pair from 0.2733 to 0.1664 — a reduction of roughly 39% — while the top true contact falls only from 1.3888 to 1.2302, about 11%. The correction suppresses the confound roughly three times harder than it suppresses the signal, which is why the real systems use it.</p>
+</li>
+<li>
+<p><strong>Note that the ranking is not ordered by coupling strength.</strong> Pair (9, 14) has coupling 0.90 and outranks (4, 19) at coupling 0.95. This is not a bug and it is worth understanding: <strong>mutual information mixes the strength of the coupling with how variable the columns are</strong>. A slightly weaker constraint on a more evenly varying pair of columns carries more bits than a slightly stronger constraint on a lopsided pair. Any single-number contact score has this ambiguity baked in, so a high score is evidence of a constraint but not a measurement of how tight it is.</p>
+</li>
+<li>
+<p><strong>This is easier than the real problem, in four specific ways.</strong> Our alphabet has four classes rather than twenty, so the joint distribution has few enough cells to estimate from 800 sequences. Real alignments are much sparser per cell, and plug-in MI is biased upward when counts are thin. Our sequences are independent within a lineage; real ones sit on a phylogenetic tree with far more structure than three flat groups. Our couplings are direct and pairwise; real correlations propagate — if \(i\) touches \(j\) and \(j\) touches \(k\), then \(i\) and \(k\) will appear correlated without touching, and disentangling direct from indirect coupling is a substantial problem in its own right. And most importantly, <strong>a list of likely contacts is not a structure.</strong> Turning pairwise constraints into coordinates is the job of everything in Sections 4.3(2) and 4.3(3), and it is where the difficulty actually concentrates.</p>
+</li>
+</ul>
+<p>Try setting the loose pair's coupling from <code>0.60</code> down to <code>0.35</code> and re-running. Watch where it lands in the ranking, and how close its score gets to the lineage artefacts. That crossover — where a genuine but weak constraint becomes indistinguishable from a confound — is the practical limit of the whole approach, and it is the reason a real system needs far more than mutual information.</p>
+<h3>🎯 Exercise Problems</h3>
+<ol>
+<li>
+<p><strong>The permission slip.</strong> State Anfinsen's thermodynamic hypothesis in one sentence, and explain precisely why sequence-to-structure prediction would be ill-posed without it. Then explain why the hypothesis does <em>not</em> imply the prediction is easy.</p>
+</li>
+<li>
+<p><strong>Why not simulate?</strong> Levinthal's paradox is often summarised as "folding cannot be a random search". Explain the funnel resolution in your own words, and then explain what the paradox implies about the prospects of predicting structure by simulating every atom's motion.</p>
+</li>
+<li>
+<p><strong>The co-evolution logic.</strong> Invent your own residue pair — different chemistry from the salt bridge in Section 4.3 — and tell the same story: why a mutation at one position alone is selected against, why a compensating pair of mutations is not, and what pattern this leaves in an alignment. State explicitly what you would see in the <em>individual</em> columns.</p>
+</li>
+<li>
+<p><strong>Instrument the demo.</strong> Modify the code so the number of sequences <code>N_SEQ</code> sweeps over 50, 100, 200, 400 and 800, and record the rank of each true contact at each size. At what alignment depth does the loose pair stop being recoverable? Relate your answer to the last bullet of Section 4.4.</p>
+</li>
+<li>
+<p><strong>Auditing a prediction.</strong> A colleague shows you an AlphaFold-predicted structure and proposes designing an inhibitor for a pocket visible in it. List five questions you would ask before agreeing — including at least one about confidence scores, one about whether the protein is likely to be dynamic, and one about the depth of the available alignment.</p>
+</li>
+</ol>
+<h2>Summary</h2>
+<p>A protein is made as a linear chain of amino acids and folds spontaneously into a specific three-dimensional shape, and it is the <strong>shape that determines the function</strong>. Measuring that shape — by X-ray crystallography, cryo-EM, or NMR — is slow, expensive, skilled work, so sequences accumulated far faster than structures. <strong>Anfinsen's refolding experiments</strong> (1960s–70s; Nobel Prize 1972) established the <strong>thermodynamic hypothesis</strong> that all the information needed is already in the sequence, making prediction well-posed. <strong>Levinthal's paradox</strong> established that it cannot be found by enumeration: the number of configurations is exponential in chain length, yet folding takes a fraction of a second, so the landscape must be <strong>funnelled</strong> rather than searched.</p>
+<p><strong>CASP</strong>, running <strong>every two years since 1994</strong>, made progress measurable by having predictors submit models <strong>blind</strong> against withheld experimental structures. Progress was incremental for decades. <strong>AlphaFold 1 led CASP13 in 2018</strong> with deep learning applied to pairwise contact prediction. <strong>AlphaFold 2, at CASP14 in 2020</strong>, changed the field, with the problem <strong>widely described as essentially solved for single domains</strong>; the method was published in <em>Nature</em> in 2021, and the <strong>AlphaFold Protein Structure Database</strong> launched with <strong>EMBL-EBI</strong> in 2021.</p>
+<p>Five principles carry the design. <strong>Evolution as data</strong>: multiple sequence alignments expose <strong>co-evolution</strong>, where two positions in spatial contact vary in a correlated way because compensating mutations preserve the fold. The <strong>pair representation</strong> holds beliefs about every pair of positions, and the <strong>Evoformer</strong> repeatedly exchanges information between it and the MSA using attention, including updates that enforce geometric self-consistency. The <strong>structure module</strong> turns those relationships into actual coordinates while building in the constraints real geometry obeys. <strong>Recycling</strong> feeds a completed pass back as input so the network can revise its own draft. And <strong>pLDDT</strong> reports per-residue confidence, which is what makes the output safe to build on.</p>
+<p>Our co-evolution demo made the first principle measurable: from an 800-sequence alignment, all three planted contacts ranked <strong>1, 2 and 3 out of 276 candidate pairs</strong>, with the strongest at <strong>1.3888 bits against a background median of 0.0071</strong> — while the joint count table showed the constraint to be <strong>invisible in either column alone</strong>. The planted shared-ancestry confound occupied ranks 4 through 8, and the <strong>average product correction</strong> cut it by about 39% while costing the true signal only about 11%.</p>
+<p>The honest boundary matters as much as the achievement. <strong>Single static domains</strong> with deep alignments moved from unreliable to routinely useful. <strong>Complexes, dynamics, disordered regions, single-mutation effects, and proteins with few known relatives remain hard.</strong> A long-standing problem was reduced to a smaller one, and the smaller one is still real.</p>
+<p>The next chapter steps back to ask what the arc from Go to proteins actually taught — what carried across from games to science, what did not, and what a field should learn from a decade in which the same organisation solved two problems that had almost nothing in common.</p>
+<p><a href="chapter-3.html">← Chapter 3: Zero and Beyond: Learning Without Humans</a> <a href="chapter-5.html">Chapter 5: The Legacy: From Games to Science →</a></p>
+<h3>Disclaimer</h3>
+<ul>
+<li>This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical warranty, etc.).</li>
+<li>This content and accompanying code examples are provided "AS IS" without any warranty, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
+<li>The author and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.</li>
+<li>To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+<li>The content may be changed, updated, or discontinued without notice.</li>
+<li>The copyright and license of this content are subject to the stated conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.</li>
+</ul><div class="navigation">
+    <a href="index.html" class="nav-button">Back to Series Index</a>
+    <a href="chapter-5.html" class="nav-button">Next Chapter →</a>
+</div>
+    </main>
+
+    <footer>
+        <p><strong>Created by</strong>: AI Terakoya Content Team</p>
+        <p><strong>Supervised by</strong>: Dr. Yusuke Hashimoto (Tohoku University)</p>
+        <p><strong>Version</strong>: 1.0 | <strong>Created</strong>: 2025-01-01</p>
+        <p><strong>License</strong>: Creative Commons BY 4.0</p>
+        <p>© 2025 AI Terakoya. All rights reserved.</p>
+    </footer>
+</body>
+</html>

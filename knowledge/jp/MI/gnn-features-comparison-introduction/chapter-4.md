@@ -3,6 +3,22 @@ title: 第4章：組成ベース vs GNN定量的比較
 chapter_title: 第4章：組成ベース vs GNN定量的比較
 ---
 
+## ビデオ講義
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/jhb8eUbR3XA"
+    title="GNN特徴量比較入門 第4章: 組成ベース vs GNN定量的比較"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> このビデオは以下のテキストと同じ内容をカバーしています。お好みの学習形式をお選びください。
+
 🌐 JP | [🇬🇧 EN](<../../../en/MI/gnn-features-comparison-introduction/chapter-4.html>) | Last sync: 2025-11-16
 
 # 第4章：組成ベース vs GNN定量的比較

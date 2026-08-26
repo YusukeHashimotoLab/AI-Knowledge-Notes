@@ -130,7 +130,7 @@ Intermediate 120-150 min 4 Chapters
 
 [Start →](<./pytorch-geometric-introduction/index.html>)
 
-🚀 Deep Learning Advanced Series (6 Series)
+🚀 Deep Learning Advanced Series (7 Series)
 
 📕
 
@@ -191,6 +191,16 @@ Implementation Guide from Q-Learning to DQN and PPO
 Advanced 130-160 min 5 Chapters, 37 Examples
 
 [Start →](<./reinforcement-learning-introduction/index.html>)
+
+🏆
+
+AlphaGo to AlphaFold
+
+The history and principles of DeepMind's two landmark systems — MCTS and self-play from AlphaGo to MuZero, then MSAs, co-evolution and the protein folding breakthrough, ending at the 2024 Nobel Prize; hype-free, with runnable NumPy demos
+
+Beginner to Intermediate 100-130 min 5 Chapters, 5 Examples
+
+[Start →](<./alphago-to-alphafold/index.html>)
 
 ⚙️ Practical MLOps Series (4 Series)
 

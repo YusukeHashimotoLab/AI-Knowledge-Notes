@@ -3,6 +3,23 @@ title: "第4章: 実践的な応用"
 chapter_title: "第4章: 実践的な応用"
 ---
 
+## ビデオ講義
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/ySYWhVgGNOc"
+    title="AIエージェント 第4章: 実践的な応用"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> このビデオは以下のテキストと同じ内容をカバーしています。お好みの学習形式をお選びください。
+
+---
+
 ## 実用的なエージェントアプリケーション
 
 この章では、前の章で学んだ技術を統合して、実際のビジネスシーンで活用できるエージェントシステムを構築します。

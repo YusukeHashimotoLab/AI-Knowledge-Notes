@@ -10,6 +10,23 @@ version: 1.0
 created_at: 2025-10-17
 ---
 
+## Video Lecture
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/2WziR6qmRkA"
+    title="Battery MI Ch.4: Battery MI Practice Case Studies"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> This video covers the same content as the text below. Choose your preferred learning format.
+
+---
+
 # Chapter 4: Battery MI Practice Case Studies
 
 This chapter covers Battery MI Practice Case Studies. You will learn essential concepts and techniques.
@@ -17,6 +34,8 @@ This chapter covers Battery MI Practice Case Studies. You will learn essential c
 **Learning Objectives:** \- Understanding successful battery MI case studies in real industrial applications \- Complete workflows from problem formulation to model construction and experimental validation \- Mastering field-specific challenges and MI solutions
 
 **Chapter Structure:** 1\. All-Solid-State Batteries - Solid Electrolyte Material Discovery 2\. Li-S Batteries - Sulfur Cathode Degradation Mitigation 3\. Fast Charging Optimization - 10-Minute Charging Protocols 4\. Co-Reduced Cathode Materials - Ni Ratio Optimization 5\. Na-ion Batteries - Li-Free Material Development
+
+**A note on provenance:** Where a specific publication is cited - Attia et al., _Nature_ (2020) in Case Study 3 - the results are that study's. Everywhere else the compositions and performance numbers in this chapter are illustrative worked examples assembled from published ranges, not measurements from a single named experiment.
 
 * * *
 
@@ -119,9 +138,9 @@ This chapter covers Battery MI Practice Case Studies. You will learn essential c
 
 ### 4.1.4 Results and Discussion
 
-**Discovered Material:** \- **Li₆.₇₅P₂.₇₅S₁₀.₅Cl₀.₅** : Ionic conductivity 2.5 × 10⁻³ S/cm \- Optimized composition of Li₇P₃S₁₁ \- Improved air stability (Cl doping effect)
+**Illustrative worked example - designed composition:** \- **Li₆.₇₅P₂.₇₅S₁₀.₅Cl₀.₅** : Ionic conductivity 2.5 × 10⁻³ S/cm \- Optimized composition of Li₇P₃S₁₁ \- Improved air stability (Cl doping effect)
 
-**Experimental Validation:** \- Predicted: 2.5 × 10⁻³ S/cm \- Measured: 2.1 × 10⁻³ S/cm (16% error) \- Interfacial resistance with Li metal: 50 Ω·cm² (target < 100)
+**Validation figures (illustrative):** \- Predicted: 2.5 × 10⁻³ S/cm \- Measured: 2.1 × 10⁻³ S/cm (16% error) \- Interfacial resistance with Li metal: 50 Ω·cm² (target < 100)
 
 **Industrial Impact:** \- Toyota Motor Corporation: Commercialization target in 2027 \- All-solid-state battery EV driving range: 1,200 km (predicted) \- Charging time: 80% in 10 minutes
 
@@ -131,7 +150,7 @@ This chapter covers Battery MI Practice Case Studies. You will learn essential c
 
 ### 4.2.1 Background and Challenges
 
-**Advantages of Li-S Batteries:** \- Theoretical capacity: 1,672 mAh/g (6 times that of LCO) \- Theoretical energy density: 2,600 Wh/kg \- Sulfur: Low cost, abundant, low environmental impact
+**Advantages of Li-S Batteries:** \- Theoretical capacity: 1,672 mAh/g (about 6 times the THEORETICAL capacity of LiCoO₂) \- Theoretical energy density: 2,600 Wh/kg \- Sulfur: Low cost, abundant, low environmental impact
 
 **Degradation Mechanism:**
     
@@ -230,13 +249,13 @@ This chapter covers Battery MI Practice Case Studies. You will learn essential c
 
 ### 4.2.4 Results and Discussion
 
-**Optimal Material:** \- Mesoporous carbon (pore size 3.5 nm) \- OH functional group density: 2.0 mmol/g \- S loading: 68 wt%
+**Illustrative worked example - optimal material:** \- Mesoporous carbon (pore size 3.5 nm) \- OH functional group density: 2.0 mmol/g \- S loading: 68 wt%
 
-**Experimental Validation:** \- Initial capacity: 1,350 mAh/g \- After 200 cycles: 1,215 mAh/g (90% retention, predicted 85%) \- Coulombic efficiency: 99.2% (target achieved)
+**Validation figures (illustrative):** \- Initial capacity: 1,350 mAh/g \- After 200 cycles: 1,215 mAh/g (90% retention, predicted 85%) \- Coulombic efficiency: 99.2% (target achieved)
 
-**Mechanism:** \- OH functional groups chemically adsorb Li₂S_n \- Appropriate pore size (3-4 nm) for physical confinement \- 80% suppression of shuttle effect
+**Mechanism:** \- OH functional groups chemically adsorb Li₂S_n \- Appropriate pore size (3-4 nm) for physical confinement \- Shuttle effect strongly suppressed
 
-**Industrialization:** \- Energy density: 500 Wh/kg achieved \- Cost: 60% of LIB \- Applications: Drones, aviation
+**Industrialization:** \- Energy density: about 400-500 Wh/kg demonstrated in prototype cells at low cycle life, not yet in shipping product \- Cost: sulfur is a cheap and abundant raw material \- Applications: Drones, aviation
 
 * * *
 
@@ -270,14 +289,14 @@ This chapter covers Battery MI Practice Case Studies. You will learn essential c
     # Reinforcement learning-based charging optimization (simplified version)
     class ChargingOptimizer:
         def __init__(self):
-            self.SOC = 0.2  # Initial SOC
+            self.SOC = 0.0  # Initial SOC
             self.temperature = 25  # °C
             self.degradation = 0  # Degradation level
     
         def step(self, current):
             """One-step simulation"""
             # Charging
-            delta_SOC = current * 0.01  # Simplified
+            delta_SOC = current / 60  # C-rate converted to SOC fraction gained per minute
             self.SOC += delta_SOC
     
             # Heat generation
@@ -300,7 +319,7 @@ This chapter covers Battery MI Practice Case Studies. You will learn essential c
         protocols = {
             'Standard CC-CV': [1.0] * 60,  # 1C constant current
             'Fast Charging': [3.0] * 20,   # 3C constant current
-            'Optimized': [5.0]*5 + [3.0]*10 + [1.5]*10 + [0.5]*15  # ML optimized
+            'Optimized': [6.0]*4 + [5.0]*3 + [4.0]*2 + [2.0]*2  # ML optimized taper (~10 min)
         }
     
         results = {}
@@ -366,15 +385,16 @@ This chapter covers Battery MI Practice Case Studies. You will learn essential c
 **Optimal Charging Protocol:**
     
     
-    Phase 1 (0-20% SOC): 5C charging (high current, low temperature)
-    Phase 2 (20-50% SOC): 3C charging (medium current)
-    Phase 3 (50-70% SOC): 1.5C charging (current reduction)
-    Phase 4 (70-80% SOC): 0.5C charging (Li plating avoidance)
+    Phase 1 (0-40% SOC): 6C charging = 4.0 min (high current, low temperature)
+    Phase 2 (40-60% SOC): 5C charging = 2.4 min (medium current)
+    Phase 3 (60-75% SOC): 4C charging = 2.25 min (current reduction)
+    Phase 4 (75-80% SOC): 2C charging = 1.5 min (Li plating avoidance)
+    Total: about 10.2 minutes to 80% SOC
     
 
-**Performance:** \- Charging time: **9.8 minutes** (reaching 80%) \- Maximum temperature: 42°C (safe range) \- Degradation rate: 1.3%/1000 cycles (74% improvement from conventional 5%)
+**Performance:** \- Charging time: **about 10.2 minutes** (reaching 80%) \- Maximum temperature: 42°C (safe range) \- Degradation rate: 1.3%/1000 cycles (74% improvement from conventional 5%)
 
-**Experimental Validation (Stanford University, 2020):** \- Actual charging time: 10.2 minutes \- After 850 cycles: 88% capacity retention \- Patent applications: Tesla, GM, Toyota
+**Experimental Validation (Stanford University, 2020):** \- Actual charging time: 10.2 minutes \- After 850 cycles: 88% capacity retention \- Published as Attia et al., Nature (2020); fast-charging protocol optimization remains an active industrial research area, though the protocols individual manufacturers ship are not public
 
 **Industrial Impact:** \- EV charging stations: 400 kW chargers \- 300 km range recovery in 10 minutes \- Comparable to gasoline vehicle refueling time
 
@@ -384,11 +404,11 @@ This chapter covers Battery MI Practice Case Studies. You will learn essential c
 
 ### 4.4.1 Background and Challenges
 
-**Cobalt Problem:** \- Price: $40,000/ton (high volatility) \- Supply: 60% produced in Congo (geopolitical risk) \- Ethics: Child labor, environmental destruction
+**Cobalt Problem:** \- Price: high and highly volatile (peaked near $40,000/t in 2022, well above mid-decade levels) \- Supply: about 70% of mined supply comes from the DR Congo (geopolitical risk) \- Ethics: Child labor, environmental destruction
 
-**Alternative Strategy:** \- Increase Ni ratio: NCM622 → NCM811 → NCM9½½ \- Ni advantages: High capacity (200+ mAh/g), low cost
+**Alternative Strategy:** \- Increase Ni ratio: NCM622 → NCM811 → NCM90-05-05 \- Ni advantages: High capacity (200+ mAh/g), low cost
 
-**Challenges:** \- Instability of high-Ni materials \- Reduced cycle performance \- Worsened thermal stability
+**Challenges:** \- Instability of high-Ni materials \- Reduced cycle performance \- Worsened thermal stability: the DSC exotherm onset FALLS as Ni content rises (NCM622 about 250-260°C, NCM811 about 210-230°C), which is exactly what caps the Ni fraction
 
 ### 4.4.2 MI Strategy
 
@@ -423,9 +443,9 @@ This chapter covers Battery MI Practice Case Studies. You will learn essential c
         # Thermal stability (positively correlated with Mn ratio)
         thermal_stability = 200 + 100 * mn - 150 * (ni - 0.7)**2
     
-        # Safety constraint: thermal stability > 250°C
-        if thermal_stability < 250:
-            penalty = (250 - thermal_stability) * 10
+        # Safety constraint: DSC exotherm onset above 210°C (onset falls as Ni content rises)
+        if thermal_stability < 210:
+            penalty = (210 - thermal_stability) * 10
         else:
             penalty = 0
     
@@ -491,13 +511,13 @@ This chapter covers Battery MI Practice Case Studies. You will learn essential c
 
 ### 4.4.4 Results and Discussion
 
-**Optimal Composition:** \- **LiNi₀.₈₅Co₀.₀₈Mn₀.₀₇O₂** (NCM850807)
+**Illustrative worked example - optimal composition:** \- **LiNi₀.₈₅Co₀.₀₈Mn₀.₀₇O₂** (NCM850807)
 
-**Performance:** \- Capacity: 205 mAh/g \- Cycle life: 1,200 cycles (80% capacity retention) \- Thermal stability: 280°C (DSC measurement)
+**Performance:** \- Capacity: 205 mAh/g \- Cycle life: 1,200 cycles (80% capacity retention) \- Thermal stability: DSC exotherm onset about 215°C (illustrative) - clears the 210°C floor set for this study, but still below lower-nickel NCM622 at roughly 250-260°C
 
 **Co Reduction Effect:** \- NCM622 (Co: 20%) → NCM850807 (Co: 8%) \- Co reduction rate: 60% \- Cost reduction: 25% reduction in material costs
 
-**Commercialization:** \- Tesla Model 3: Adopted NCM811 \- CATL: Mass production of NCM9½½ (2024) \- Challenge: Surface coating technology (stability improvement)
+**Commercialization:** \- Long-range EVs: NCM811 in volume production \- Ultra-high-nickel grades (about 90% Ni, NCM90-05-05) in volume production since the early 2020s \- Challenge: Surface coating technology (stability improvement)
 
 * * *
 
@@ -575,7 +595,7 @@ This chapter covers Battery MI Practice Case Studies. You will learn essential c
         pred_capacity = model_na.predict(X_new)[0]
         print(f"  {mat['name']}: {pred_capacity:.0f} mAh/g")
     
-    # Energy density calculation
+    # Active-material specific energy (cathode material only)
     for mat in new_materials:
         X_new = np.array([[structure_encode[mat['structure']], mat['voltage']]])
         pred_capacity = model_na.predict(X_new)[0]
@@ -585,7 +605,7 @@ This chapter covers Battery MI Practice Case Studies. You will learn essential c
 
 ### 4.5.4 Results and Discussion
 
-**Optimal Material:** \- **Na₃V₂(PO₄)₂F₃** (NASICON structure)
+**Best candidate (a known material, re-ranked in this worked example):** \- **Na₃V₂(PO₄)₂F₃** (NASICON structure)
 
 **Performance:** \- Capacity: 130 mAh/g \- Voltage: 3.5 V \- Energy density: 160 Wh/kg (cell level) \- Cycle life: 2,000 cycles (90% capacity retention)
 
@@ -604,7 +624,7 @@ This chapter covers Battery MI Practice Case Studies. You will learn essential c
 Case Study | Key Descriptors | ML Method | Experiment Reduction | Industrial Impact  
 ---|---|---|---|---  
 All-Solid-State Batteries | Li vacancy concentration, Activation Ea | GNN + BO | 70% | Commercialization target 2027  
-Li-S Batteries | Pore size, Functional group density | Random Forest | 65% | Energy density 500 Wh/kg  
+Li-S Batteries | Pore size, Functional group density | Random Forest | 65% | About 500 Wh/kg in prototype cells (target)  
 Fast Charging | SOC, Temperature, Internal resistance | Reinforcement Learning (DQN) | - | 10-minute charging achieved  
 Co-Reduced NCM | Ni:Co:Mn ratio | Multi-objective BO | 60% | 60% reduction in Co usage  
 Na-ion Batteries | Structure type, Voltage | Transfer Learning | 80% | 30% cost reduction  

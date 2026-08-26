@@ -6,6 +6,22 @@ version: 1.0
 created_at: "by:"
 ---
 
+## Video Lecture
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/zPcyIoxLi8Y"
+    title="Process Informatics Introduction Ch.1: Fundamental Concepts of PI and Data Utilization in Process Industries"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> This video covers the same content as the text below. Choose your preferred learning format.
+
 # Chapter 1: Fundamental Concepts of PI and Data Utilization in Process Industries
 
 Understand the basic concepts of Process Informatics (PI) and learn about the characteristics of process industries and types of data. Through real improvement cases with data-driven approaches, experience the value of PI firsthand.
@@ -314,6 +330,8 @@ Display distillation column temperature, pressure, and flow rate simultaneously.
     # - pandas>=2.0.0, <2.2.0
     
     """
+    Example: Display distillation column temperature, pressure, and flow 
+    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds
@@ -378,6 +396,8 @@ Grasp correlation relationships among multiple variables at a glance.
     # - seaborn>=0.12.0
     
     """
+    Example: Grasp correlation relationships among multiple variables at 
+    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds
@@ -443,6 +463,8 @@ Observe relationships between variables in detail with scatter plots.
     # - seaborn>=0.12.0
     
     """
+    Example: Observe relationships between variables in detail with scatt
+    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds
@@ -490,6 +512,8 @@ Create interactive graphs with zoom and hover display capabilities in a web brow
     # - plotly>=5.14.0
     
     """
+    Example: Create interactive graphs with zoom and hover display capabi
+    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds

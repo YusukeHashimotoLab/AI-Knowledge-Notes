@@ -10,12 +10,14 @@ This chapter covers Multi. You will learn essential concepts and techniques.
 
 In actual process optimization, simply maximizing a single objective function is insufficient. We need to simultaneously satisfy multiple requirements, including trade-offs between quality and efficiency, safety constraints, and physical constraints. 
 
-#### =¡ Typical Requirements in Real Processes
+#### 💡 Typical Requirements in Real Processes
 
-  * **Multi-objective** : Increase yield ‘ AND reduce energy “ AND reduce cost “
-  * **Constraints** : Temperature d 150°C, Pressure d 5 bar, pH 6-8
+  * **Multi-objective** : Increase yield ↑ AND reduce energy ↓ AND reduce cost ↓
+  * **Constraints** : e.g. Temperature ≤ 150°C, Pressure ≤ 5 bar, pH 6-8
   * **Feasibility** : Only physically possible conditions
   * **Safety** : Outside explosion limits, toxic substance concentration limits
+
+The figures above describe one illustrative low-pressure process. Every worked example in this chapter defines its own operating window, so the numbers are not carried between sections - the constrained-optimization example in §4.4, for instance, is a different, higher-pressure reactor with Temperature < 130°C and Pressure < 60 bar.
 
 In this chapter, we will learn extended Bayesian optimization methods that address these complex requirements. 
 
@@ -113,7 +115,7 @@ In multi-objective optimization, there is no single solution that is best in all
         # Scalarization: weighted sum with uncertainty
         # Maximize yield = minimize -yield
         # Change weight per iteration to explore diverse Pareto solutions
-        weight = iteration / n_iterations  # 0’1
+        weight = iteration / n_iterations  # 0→1
         scalarized = (
             -(1 - weight) * (mu1 + 2 * sigma1) +  # Yield (maximize)
             weight * (mu2 - 2 * sigma2)            # Energy (minimize)
@@ -176,7 +178,7 @@ In multi-objective optimization, there is no single solution that is best in all
     print(f"  Low energy priority: Yield={pareto_Y1[np.argmin(pareto_Y2)]:.1f}%, Energy={pareto_Y2.min():.1f}kWh")
     
 
-####  Advantages of Pareto Optimization
+#### ✅ Advantages of Pareto Optimization
 
   * Visualize trade-offs between multiple objectives
   * Decision makers can select solutions according to preferences
@@ -319,7 +321,7 @@ An acquisition function specialized for multi-objective optimization. It maximiz
     print(f"  Hypervolume: {compute_hypervolume_2d(costs_final[pareto_mask_final], ref_point):.2f}")
     
 
-#### =¡ EHVI Characteristics
+#### 💡 EHVI Characteristics
 
   * Considers improvement of entire Pareto front (not just a single point)
   * Theoretically extensible to 3 or more objectives
@@ -494,7 +496,7 @@ In real processes, physical and safety constraints exist. We will learn methods 
     print(f"    Reaction rate = {best_rate:.2f}")
     
 
-####  Constraint Handling Strategies
+#### ✅ Constraint Handling Strategies
 
   * **Soft constraints** : Weight by feasibility probability (above example)
   * **Hard constraints** : Exclude constraint-violating points from candidates
@@ -577,7 +579,7 @@ A method that explicitly models the probability of satisfying constraints.
     print(f"  PoF > 0.99: {(PoF > 0.99).sum() / PoF.size * 100:.1f}%")
     
 
-####   Interpretation of PoF
+#### ⚠️ Interpretation of PoF
 
 PoF = 0.9 means "90% probability of satisfying constraints". For safety-critical applications, requiring PoF > 0.95 or 0.99 is recommended. 
 
@@ -668,7 +670,7 @@ Safe BO algorithm that avoids evaluation at unknown constraint-violating points.
         # Safety check
         if next_c1[0] < 0 or next_c2[0] < 0:
             safety_violations += 1
-            print(f"    Constraint violation occurred (Iteration {iteration})")
+            print(f"  ⚠️ Constraint violation occurred (Iteration {iteration})")
     
         X_all_safe = np.vstack([X_all_safe, next_x])
         rate_all_safe = np.hstack([rate_all_safe, next_rate])
@@ -686,7 +688,7 @@ Safe BO algorithm that avoids evaluation at unknown constraint-violating points.
     print(f"\nSafety improvement by Safe BO: {((~final_feasible).sum() - safety_violations)} violations reduced")
     
 
-####  Advantages of Safe BO
+#### ✅ Advantages of Safe BO
 
   * Avoids experiments in dangerous regions with high probability
   * Applicable to safety-critical processes
@@ -805,7 +807,7 @@ Batch optimization that proposes multiple points simultaneously to utilize paral
     print(f"  Best yield: {Y1_batch.max():.2f}")
     
 
-#### =¡ Batch Selection Strategies
+#### 💡 Batch Selection Strategies
 
   * **Sequential greedy method** : Select one point at a time, add diversity penalty
   * **Parallel EI** : Kriging Believer approach
@@ -946,7 +948,7 @@ Strategies for cases with many parameters (10 dimensions or more).
     print(f"\nExplained variance of top 3 PCA components: {explained_var[:3].sum()*100:.1f}%")
     
 
-####   Challenges in High-Dimensional BO
+#### ⚠️ Challenges in High-Dimensional BO
 
 As dimensions increase, GP computational cost increases rapidly (O(n³)), and sample efficiency decreases. Countermeasures: (1) Dimensionality reduction (PCA, UMAP), (2) Random Embedding, (3) Additive GP, (4) Sparse approximation 
 
@@ -973,7 +975,7 @@ In this chapter, we learned advanced methods for addressing complex real-world o
 
 In Chapter 5, we will integrate the techniques learned so far and provide detailed explanations of applications to **actual industrial processes**. We will develop practical skills through 7 case studies including reactor optimization, catalyst design, and quality control. 
 
-[� Chapter 3: Acquisition Functions](<chapter-3.html>) [Back to Table of Contents](<index.html>) [Chapter 5: Industrial Applications ’](<chapter-5.html>)
+[← Chapter 3: Acquisition Functions](<chapter-3.html>) [Back to Table of Contents](<index.html>) [Chapter 5: Industrial Applications →](<chapter-5.html>)
 
 ## References
 

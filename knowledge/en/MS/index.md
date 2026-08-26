@@ -16,7 +16,7 @@ The Materials Science Dojo provides **comprehensive education in materials chara
 
 **Features:** Each series follows a "Fundamentals → Characterization → Data Analysis → Python Implementation" structure, combining classical materials science with modern computational approaches. All code examples are executable and designed for hands-on learning. Progress from basic crystallography to advanced materials design systematically. 
 
-📐 Fundamentals Series (3 Series)
+📐 Fundamentals Series (4 Series)
 
 📘
 
@@ -47,6 +47,16 @@ Gibbs free energy and chemical potential, phase diagrams and phase equilibria, s
 Intermediate 110-150 min 5 Chapters・35 Examples
 
 [Start →](<materials-thermodynamics-introduction/index.html>)
+
+⚡
+
+Introduction to Electrochemistry
+
+The shared language of water electrolysis, CO₂ reduction, and batteries — electrode potentials and the Nernst equation, overpotential and Tafel analysis, the electrochemical interface and three-electrode measurement, NumPy hands-on in every chapter
+
+Beginner 125-150 min 5 Chapters
+
+[Start →](<electrochemistry-introduction/index.html>)
 
 🔬 Characterization Series (6 Series)
 

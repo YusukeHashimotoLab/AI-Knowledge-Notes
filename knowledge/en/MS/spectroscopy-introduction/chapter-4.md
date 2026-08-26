@@ -5,6 +5,22 @@ version: 1.0
 created_at: 2025-12-26
 ---
 
+## Video Lecture
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/n6yPS5_-4bA"
+    title="Spectroscopy Introduction Ch.4: Raman Spectroscopy"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> This video covers the same content as the text below. Choose your preferred learning format.
+
 [AI Terakoya Top](<../index.html>):[Materials Science](<../../index.html>):[Spectroscopy](<index.html>):Chapter 4
 
 EN | [JP](<../../../jp/MS/spectroscopy-introduction/chapter-4.html>) | Last sync: 2025-12-26
@@ -38,7 +54,7 @@ where the plus sign corresponds to anti-Stokes scattering and the minus sign to 
 
 \\[ \Delta \tilde{\nu} = \tilde{\nu}_{\text{incident}} - \tilde{\nu}_{\text{scattered}} = \frac{1}{\lambda_{\text{incident}}} - \frac{1}{\lambda_{\text{scattered}}} \\] 
 
-The Raman shift is expressed in cm-1 and is independent of the excitation wavelength, depending only on the vibrational energy of the molecule.
+The Raman shift is expressed in cm$^{-1}$ and is independent of the excitation wavelength, depending only on the vibrational energy of the molecule.
 
 ### 4.1.2 Stokes, Anti-Stokes, and Rayleigh Scattering
 
@@ -49,17 +65,17 @@ The three types of light scattering can be understood through energy level diagr
     graph TD
         subgraph "Rayleigh Scattering"
         A1[Ground State v=0] -->|Incident photon| B1[Virtual State]
-        B1 -->|Scattered photonsame energy| A1
+        B1 -->|Scattered photon<br/>same energy| A1
         end
     
         subgraph "Stokes Raman"
         A2[Ground State v=0] -->|Incident photon| B2[Virtual State]
-        B2 -->|Scattered photonlower energy| C2[Excited State v=1]
+        B2 -->|Scattered photon<br/>lower energy| C2[Excited State v=1]
         end
     
         subgraph "Anti-Stokes Raman"
         A3[Excited State v=1] -->|Incident photon| B3[Virtual State]
-        B3 -->|Scattered photonhigher energy| C3[Ground State v=0]
+        B3 -->|Scattered photon<br/>higher energy| C3[Ground State v=0]
         end
     ```
 
@@ -491,12 +507,12 @@ Low wavenumber region | Raman | No cutoff from optics
 
 ### 4.4.1 Principles of SERS
 
-Surface-Enhanced Raman Spectroscopy (SERS) dramatically enhances Raman signals (by factors of 104 to 1010) for molecules adsorbed on or near nanostructured metal surfaces, particularly silver (Ag) and gold (Au). This enhancement arises from two mechanisms:
+Surface-Enhanced Raman Spectroscopy (SERS) dramatically enhances Raman signals (by factors of $10^4$ to $10^{10}$) for molecules adsorbed on or near nanostructured metal surfaces, particularly silver (Ag) and gold (Au). This enhancement arises from two mechanisms:
 
 #### SERS Enhancement Mechanisms
 
-  1. **Electromagnetic Enhancement (EM)** : Localized surface plasmon resonance (LSPR) creates intense electromagnetic fields near the metal nanostructure surface. This is the dominant mechanism, providing enhancement factors of 104 to 108.
-  2. **Chemical Enhancement (CE)** : Charge transfer between the adsorbed molecule and metal surface modifies the molecular polarizability. This provides additional enhancement of 101 to 102.
+  1. **Electromagnetic Enhancement (EM)** : Localized surface plasmon resonance (LSPR) creates intense electromagnetic fields near the metal nanostructure surface. This is the dominant mechanism, providing enhancement factors of $10^4$ to $10^8$.
+  2. **Chemical Enhancement (CE)** : Charge transfer between the adsorbed molecule and metal surface modifies the molecular polarizability. This provides additional enhancement of $10^1$ to $10^2$.
 
 **SERS Enhancement Factor:**
 
@@ -685,22 +701,22 @@ Raman spectroscopy is particularly powerful for characterizing carbon materials 
 
 #### Key Raman Bands in Carbon Materials
 
-Band | Position (cm-1) | Origin | Information  
+Band | Position (cm$^{-1}$) | Origin | Information  
 ---|---|---|---  
-D band | ~1350 | Breathing mode of sp2 rings (requires defect for activation) | Defect density, disorder  
-G band | ~1580 | E2g phonon at Brillouin zone center | sp2 hybridization  
+D band | ~1350 | Breathing mode of sp$^2$ rings (requires defect for activation) | Defect density, disorder  
+G band | ~1580 | E$_{2g}$ phonon at Brillouin zone center | sp$^2$ hybridization  
 2D (G') band | ~2700 | Second-order overtone of D band | Layer number, stacking  
 D' band | ~1620 | Intravalley defect-activated mode | Edge defects  
 RBM (CNT) | 100-400 | Radial breathing mode | CNT diameter  
   
 ### 4.5.2 Graphene Characterization
 
-Raman spectroscopy is the primary technique for identifying the number of graphene layers and assessing quality. The 2D band shape and the I2D/IG ratio are particularly diagnostic:
+Raman spectroscopy is the primary technique for identifying the number of graphene layers and assessing quality. The 2D band shape and the I$_{2D}$/I$_G$ ratio are particularly diagnostic:
 
-  * **Single-layer graphene** : Sharp, symmetric 2D band; I2D/IG > 2
-  * **Bilayer graphene** : Broader 2D band with 4-peak structure; I2D/IG ~ 1
-  * **Multilayer graphene** : Asymmetric 2D band; I2D/IG < 1
-  * **Graphite** : Asymmetric 2D band with shoulder; I2D/IG < 0.5
+  * **Single-layer graphene** : Sharp, symmetric 2D band; I$_{2D}$/I$_G$ > 2
+  * **Bilayer graphene** : Broader 2D band with 4-peak structure; I$_{2D}$/I$_G$ ~ 1
+  * **Multilayer graphene** : Asymmetric 2D band; I$_{2D}$/I$_G$ < 1
+  * **Graphite** : Asymmetric 2D band with shoulder; I$_{2D}$/I$_G$ < 0.5
 
 #### Code Example 5: Graphene Layer Identification from Raman Spectra
     
@@ -837,7 +853,7 @@ Raman spectroscopy is the primary technique for identifying the number of graphe
 
 ### 4.5.3 Carbon Nanotube Analysis
 
-Raman spectroscopy provides rich information about carbon nanotubes, including diameter, chirality, and electronic character (metallic vs. semiconducting).
+Raman spectroscopy provides rich information about carbon nanotubes, including diameter, chirality, and electronic character (metallic vs. semiconducting). The radial breathing mode (RBM) fixes the **diameter** through $\omega_{\text{RBM}} = A/d + B$. The **electronic character is not a function of diameter** : it is set by the chirality indices $(n, m)$, with the tube metallic (or quasi-metallic) when $(n - m)$ is divisible by 3 and semiconducting otherwise. Metallic and semiconducting tubes therefore coexist at essentially every diameter, and they are told apart by the G-band lineshape (a broad, downshifted Breit-Wigner-Fano G$^-$ marks a metallic tube) or by the resonance condition read from a Kataura plot.
 
 #### Code Example 6: CNT Diameter Determination from RBM
     
@@ -1007,31 +1023,51 @@ Raman spectroscopy provides rich information about carbon nanotubes, including d
     # Print diameter analysis
     print("\nCNT Diameter Analysis from RBM:")
     print("=" * 50)
-    print(f"{'RBM (cm^-1)':<15} {'Diameter (nm)':<15} {'Type':<20}")
+    print(f"{'RBM (cm^-1)':<15} {'Diameter (nm)':<15} {'Electronic type':<40}")
     print("-" * 50)
+    # IMPORTANT: the RBM frequency gives the DIAMETER only. Whether a tube is
+    # metallic or semiconducting is set by its CHIRALITY (n, m):
+    #     metallic (or quasi-metallic) when (n - m) mod 3 == 0,
+    #     semiconducting otherwise.
+    # Roughly one third of all (n, m) tubes are metallic at any diameter, so a
+    # diameter threshold cannot classify electronic character. The assignment
+    # requires the (n, m) index - from a Kataura plot / resonance profile - or
+    # the G-band lineshape (metallic tubes show a broad, downshifted BWF G-).
+    def metallic_from_chirality(n, m):
+        """True if the (n, m) tube is metallic: (n - m) mod 3 == 0."""
+        return (n - m) % 3 == 0
+    
     for d in diameters:
         rbm = diameter_to_rbm(d)
-        cnt_type = "Semiconducting" if d > 1.0 else "Could be metallic"
-        print(f"{rbm:<15.0f} {d:<15.1f} {cnt_type:<20}")
+        note = "metallic or semiconducting - needs (n,m)"
+        print(f"{rbm:<15.0f} {d:<15.1f} {note:<40}")
+    
+    # Example: tubes of nearly the same diameter, opposite electronic character
+    for (n, m) in [(10, 10), (11, 9), (10, 9)]:
+        d_nm = 0.142 * np.sqrt(3 * (n**2 + n*m + m**2)) / np.pi  # a_CC = 0.142 nm
+        kind = "metallic" if metallic_from_chirality(n, m) else "semiconducting"
+        print(f"({n},{m}): d = {d_nm:.2f} nm -> {kind}")
     
 
 ## 4.6 D/G Band Analysis and Peak Fitting
 
 ### 4.6.1 D/G Ratio as Defect Indicator
 
-The intensity ratio ID/IG is widely used to quantify the defect density in carbon materials. For graphene and graphite, the relationship between ID/IG and defect density follows the Tuinstra-Koenig relation:
+The intensity ratio I$_D$/I$_G$ is widely used to quantify the defect density in carbon materials. For graphene and graphite, the relationship between I$_D$/I$_G$ and defect density follows the Tuinstra-Koenig relation:
 
 **Tuinstra-Koenig Relation:**
 
 \\[ \frac{I_D}{I_G} = \frac{C(\lambda_L)}{L_a} \\] 
 
-where \\(L_a\\) is the in-plane crystallite size and \\(C(\lambda_L)\\) is a constant that depends on the laser wavelength.
+where \\(L_a\\) is the in-plane crystallite size and \\(C(\lambda_L)\\) is a calibration constant that depends on the laser wavelength; the classical value is \\(C(514.5\ \text{nm}) \approx 4.4\\) nm. Note the **inverse** dependence: in this regime the D band comes from the crystallite edges, so \\(I_D/I_G\\) *grows* as the crystallites get smaller.
 
-**Modified Relation for Nano-crystalline Graphite:**
+**Modified Relation for Nano-crystalline / Amorphous Carbon (Ferrari-Robertson regime):**
 
 \\[ \frac{I_D}{I_G} = C'(\lambda_L) \cdot L_a^2 \\] 
 
-This relation applies when \\(L_a\\) is small (< 2 nm), where the defect density is so high that the D band intensity increases with decreasing \\(L_a\\).
+This relation applies only when \\(L_a\\) is small (< 2 nm). Here the rings themselves are being destroyed, so the D band tracks the number of surviving aromatic rings rather than the crystallite perimeter: \\(I_D/I_G\\) now *decreases* as \\(L_a\\) shrinks - the opposite of the Tuinstra-Koenig trend.
+
+Because the two regimes have opposite slopes, \\(I_D/I_G\\) passes through a maximum near \\(L_a \approx 2\\) nm and a single measured ratio is ambiguous on its own: the G-band position and width (and the presence of a resolvable D' band) are needed to decide which branch of the amorphization trajectory the sample is on.
 
 #### Code Example 7: Complete D/G Band Fitting and Analysis
     
@@ -1263,18 +1299,33 @@ This relation applies when \\(L_a\\) is small (< 2 nm), where the defect density
     print(f"I_D/I_G ratio: {id_ig_ratio:.3f}")
     print(f"I_D'/I_G ratio: {components[\"D'\"]['amplitude']/components['G']['amplitude']:.3f}")
     
-    # Estimate crystallite size using Tuinstra-Koenig (for 532 nm laser)
-    C_532 = 4.4  # nm for 532 nm laser
-    La = C_532 / id_ig_ratio
+    # Estimate crystallite size using the Tuinstra-Koenig relation.
+    # The classical constant is tabulated for the 514.5 nm Ar+ line,
+    # C(514.5 nm) ~ 4.4 nm, and is commonly reused at 532 nm.
+    # It applies to the PEAK-HEIGHT ratio used above.
+    C_TK = 4.4  # nm (514.5 nm; used here as an approximation for 532 nm)
+    La = C_TK / id_ig_ratio
     print(f"\nEstimated crystallite size (L_a): {La:.1f} nm")
-    print("(Using Tuinstra-Koenig relation with C(532 nm) = 4.4 nm)")
+    print("(Tuinstra-Koenig, peak-height ratio, C ~ 4.4 nm at 514.5/532 nm)")
     
+
+### 4.6.2 Crystallinity Assessment in Silicon
+
+The same peak-shape logic applies outside carbon materials. Crystalline silicon has a single sharp first-order optical phonon at 520 cm$^{-1}$ with a FWHM of only ~3-4 cm$^{-1}$, whereas amorphous silicon loses long-range order, the $q \approx 0$ selection rule relaxes, and the band collapses into a broad hump centred near 480 cm$^{-1}$ that is tens of wavenumbers wide. A mixed-phase film shows both features at once, so the degree of crystallinity can be estimated by decomposing the 400-560 cm$^{-1}$ envelope into a crystalline and an amorphous component:
+
+$$X_c \approx \frac{I_c}{I_c + I_a}$$
+
+where $I_c$ and $I_a$ are the integrated intensities of the 520 cm$^{-1}$ and 480 cm$^{-1}$ components. This expression is a simplification: quantitative work fits a third intermediate component near 500-510 cm$^{-1}$ for grain boundaries and applies a Raman cross-section ratio $y = \sigma_a/\sigma_c$ (typically 0.7-0.9, and itself grain-size and excitation-wavelength dependent), so $X_c$ from the formula above should be treated as a calibrated relative index rather than an absolute crystalline volume fraction. Laser-induced heating also downshifts and broadens the 520 cm$^{-1}$ line, so the excitation power must be kept low enough to leave the peak position stable.
+
+### 4.6.3 Biomedical Applications
+
+Because water is a weak Raman scatterer, Raman spectroscopy can probe biological tissue and live cells directly, without labels or staining. Proteins and lipids give characteristic bands — the phenylalanine ring-breathing mode at 1003 cm$^{-1}$, Amide III near 1250 cm$^{-1}$, the CH$_2$ bending mode near 1445 cm$^{-1}$, and Amide I near 1660 cm$^{-1}$ — and shifts in their relative intensities distinguish diseased from healthy tissue, which is the basis of Raman-assisted cancer tissue diagnosis. Confocal Raman imaging maps these bands at sub-micron resolution for label-free imaging of cells, and time-resolved measurements can follow drug-cell interactions as the drug's own Raman signature changes inside the cell. These applications carry the same practical advantages discussed above: non-destructive measurement, minimal sample preparation, and compatibility with glass and aqueous environments.
 
 ## Exercises
 
 #### Exercise 1: Stokes/Anti-Stokes Temperature Measurement (Basic)
 
-The anti-Stokes to Stokes intensity ratio for a vibrational mode at 1000 cm-1 is measured to be 0.15. Calculate the sample temperature.
+The anti-Stokes to Stokes intensity ratio for a vibrational mode at 1000 cm$^{-1}$ is measured to be 0.15. Calculate the sample temperature.
 
 View Solution
     
@@ -1304,23 +1355,23 @@ View Solution
 
 #### Exercise 2: Identifying Unknown Carbon Material (Intermediate)
 
-A carbon sample shows the following Raman features: D band at 1348 cm-1 with ID/IG = 0.85, G band at 1582 cm-1, and 2D band at 2695 cm-1 with I2D/IG = 0.45. The 2D band FWHM is approximately 65 cm-1. Identify the material and estimate its quality.
+A carbon sample shows the following Raman features: D band at 1348 cm$^{-1}$ with I$_D$/I$_G$ = 0.85, G band at 1582 cm$^{-1}$, and 2D band at 2695 cm$^{-1}$ with I$_{2D}$/I$_G$ = 0.45. The 2D band FWHM is approximately 65 cm$^{-1}$. Identify the material and estimate its quality.
 
 View Solution
 
 **Analysis:**
 
-  * The I2D/IG ratio of 0.45 is less than 2, indicating this is NOT single-layer graphene.
-  * The 2D band FWHM of ~65 cm-1 is broader than single-layer (~30 cm-1) or bilayer (~50 cm-1).
-  * The significant D band (ID/IG = 0.85) indicates substantial defects or edges.
+  * The I$_{2D}$/I$_G$ ratio of 0.45 is less than 2, indicating this is NOT single-layer graphene.
+  * The 2D band FWHM of ~65 cm$^{-1}$ is broader than single-layer (~30 cm$^{-1}$) or bilayer (~50 cm$^{-1}$).
+  * The significant D band (I$_D$/I$_G$ = 0.85) indicates substantial defects or edges.
 
-**Conclusion:** This is most likely multilayer graphene (3+ layers) or graphite with significant defects/edges. The high ID/IG ratio suggests either:
+**Conclusion:** This is most likely multilayer graphene (3+ layers) or graphite with significant defects/edges. The high I$_D$/I$_G$ ratio suggests either:
 
   1. Nano-crystalline graphite with small domain size
   2. Reduced graphene oxide (rGO) with residual defects
   3. Graphene with high edge density (e.g., graphene nanoribbons)
 
-Using the Tuinstra-Koenig relation with C(532 nm) = 4.4 nm:
+Using the Tuinstra-Koenig relation with the classical constant C(514.5 nm) ~ 4.4 nm (conventionally reused at 532 nm, peak-height ratio):
 
 La = 4.4 / 0.85 = 5.2 nm
 
@@ -1328,7 +1379,7 @@ This small crystallite size confirms nano-crystalline or heavily defected graphi
 
 #### Exercise 3: CNT Diameter Distribution (Intermediate)
 
-Write a Python function that takes RBM peak positions as input and returns the diameter distribution of a CNT sample. Apply it to a sample with RBM peaks at 165, 195, 235, and 285 cm-1.
+Write a Python function that takes RBM peak positions as input and returns the diameter distribution of a CNT sample. Apply it to a sample with RBM peaks at 165, 195, 235, and 285 cm$^{-1}$.
 
 View Solution
     
@@ -1393,7 +1444,7 @@ View Solution
 
 #### Exercise 4: SERS Enhancement Calculation (Advanced)
 
-A molecule shows a normal Raman signal of 100 counts per second at 1 M concentration. When the same molecule is adsorbed on a SERS substrate, it gives 108 counts per second at 10-6 M concentration. Calculate the analytical enhancement factor (AEF) and estimate the true enhancement factor assuming only 1% of molecules are in hot spots.
+A molecule shows a normal Raman signal of 100 counts per second at 1 M concentration. When the same molecule is adsorbed on a SERS substrate, it gives $10^8$ counts per second at $10^{-6}$ M concentration. Calculate the analytical enhancement factor (AEF) and estimate the true enhancement factor assuming only 1% of molecules are in hot spots.
 
 View Solution
     
@@ -1431,7 +1482,7 @@ View Solution
 
 #### Exercise 5: Complete Raman Spectrum Analysis (Advanced)
 
-Write a Python program that performs complete analysis of a carbon Raman spectrum, including: (1) baseline correction, (2) D/G band fitting with Voigt profiles, (3) calculation of ID/IG and crystallite size, and (4) generation of a publication-quality figure.
+Write a Python program that performs complete analysis of a carbon Raman spectrum, including: (1) baseline correction, (2) D/G band fitting with Voigt profiles, (3) calculation of I$_D$/I$_G$ and crystallite size, and (4) generation of a publication-quality figure.
 
 View Solution
     
@@ -1504,9 +1555,20 @@ View Solution
             """Calculate I_D/I_G ratio and crystallite size."""
             self.id_ig = self.results['D']['amp'] / self.results['G']['amp']
     
-            # Tuinstra-Koenig constant depends on laser wavelength
-            C_lambda = 2.4e-10 * self.laser_wavelength**4  # nm
-            self.La = C_lambda / self.id_ig
+            # Tuinstra-Koenig relation, PEAK-HEIGHT convention:
+            #     L_a = C(lambda_L) / (I_D/I_G),   C(514.5 nm) ~ 4.4 nm
+            # The same constant is conventionally reused at 532 nm.
+            C_TK = 4.4  # nm
+            self.La = C_TK / self.id_ig
+    
+            # NOTE: the Cancado (2006) general-wavelength calibration
+            #     L_a = 2.4e-10 * lambda_L**4 / (A_D/A_G)   [lambda_L in nm]
+            # is a DIFFERENT convention - it is defined for integrated peak
+            # AREAS, not heights - and returns 2.4e-10 * 532**4 = 19.2 nm
+            # divided by the area ratio at 532 nm. The two calibrations are
+            # not interchangeable; pick one and apply it consistently. This
+            # class reports the Tuinstra-Koenig value only, because the fit
+            # above returns peak heights.
     
             return {'I_D/I_G': self.id_ig, 'L_a (nm)': self.La}
     
@@ -1602,7 +1664,7 @@ View Solution
   * **Raman scattering** is an inelastic light scattering process where photons exchange energy with molecular vibrations. Stokes scattering (energy loss) is more intense than anti-Stokes scattering (energy gain) at room temperature.
   * **Selection rules** : A vibration is Raman-active if it causes a change in molecular polarizability. This is complementary to IR spectroscopy, which requires a change in dipole moment.
   * **IR-Raman complementarity** : Symmetric vibrations are typically Raman-active; asymmetric vibrations are typically IR-active. For centrosymmetric molecules, mutual exclusion applies.
-  * **SERS** provides dramatic enhancement (104-1010) through electromagnetic and chemical mechanisms, enabling single-molecule detection.
+  * **SERS** provides dramatic enhancement ($10^4$-$10^{10}$) through electromagnetic and chemical mechanisms, enabling single-molecule detection.
   * **Carbon materials** are excellent candidates for Raman analysis. The D/G ratio indicates defect density, the 2D band reveals layer number in graphene, and RBM frequency gives CNT diameter.
   * **Practical analysis** requires proper baseline correction, peak fitting (Voigt profiles recommended), and understanding of the physical meaning of spectral features.
 

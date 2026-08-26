@@ -4,6 +4,22 @@ chapter_title: "Chapter 3: Infrared Spectroscopy"
 version: 1.0
 ---
 
+## Video Lecture
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/XF1VYwWRuMk"
+    title="Spectroscopy Introduction Ch.3: Infrared Spectroscopy"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> This video covers the same content as the text below. Choose your preferred learning format.
+
 [AI Terakoya Top](<../../index.html>)>[Materials Science](<../index.html>)>[Spectroscopy Introduction](<index.html>)>Chapter 3
 
 EN | [JP](<../../../jp/MS/spectroscopy-introduction/chapter-3.html>) | Last sync: 2025-12-26
@@ -146,11 +162,11 @@ For a molecule with $N$ atoms, the total number of vibrational modes is $3N - 6$
     
     ```mermaid
     flowchart TB
-        A[Molecular Vibrations3N-6 or 3N-5 modes] --> B[Stretching]
+        A[Molecular Vibrations<br/>3N-6 or 3N-5 modes] --> B[Stretching]
         A --> C[Bending]
     
-        B --> D[SymmetricBoth bonds in phase]
-        B --> E[AsymmetricOut of phase]
+        B --> D[Symmetric<br/>Both bonds in phase]
+        B --> E[Asymmetric<br/>Out of phase]
     
         C --> F[In-plane]
         C --> G[Out-of-plane]
@@ -608,13 +624,13 @@ where $B(\tilde{\nu})$ is the spectral intensity and $\tilde{\nu}$ is the wavenu
 
 ### 3.3.2 FTIR Resolution and Spectral Quality
 
-The spectral resolution of an FTIR spectrometer is determined by the maximum optical path difference (OPD) achieved by the moving mirror:
+The spectral resolution of an FTIR spectrometer is determined by the maximum optical path difference (OPD) reached in the interferogram. Because light travels to the moving mirror and back, a mirror travel of $\delta_{\text{max}}$ produces an optical path difference of OPD$_{\text{max}} = 2\delta_{\text{max}}$:
 
 **Spectral Resolution:**
 
-$$ \Delta\tilde{\nu} = \frac{1}{2 \times \text{OPD}_{\text{max}}} $$ 
+$$ \Delta\tilde{\nu} = \frac{1}{\text{OPD}_{\text{max}}} = \frac{1}{2\,\delta_{\text{max}}} $$ 
 
-For example, with OPD$_{\text{max}}$ = 0.5 cm, the resolution is 1 cm$^{-1}$.
+For example, an OPD$_{\text{max}}$ of 1 cm - obtained with a mirror travel of $\delta_{\text{max}}$ = 0.5 cm - gives a resolution of 1 cm$^{-1}$.
 
 ## 3.4 Functional Group Identification
 
@@ -641,7 +657,8 @@ C-H (aromatic) | Stretch | 3150-3000 | Medium
 C-H (aldehyde) | Stretch | 2850-2700 | Medium (two peaks)  
 C=O (carbonyl) | Stretch | 1750-1650 | Strong  
 C=C (alkene) | Stretch | 1680-1620 | Variable  
-C=C (aromatic) | Stretch | 1600, 1500 | Medium  
+C=C (aromatic) | Stretch | 1600-1450 (bands near 1600 and 1500) | Medium  
+C≡C (alkyne) | Stretch | 2260-2100 | Weak to variable  
 C-O (ether, alcohol) | Stretch | 1300-1000 | Strong  
 C-N (amine) | Stretch | 1350-1000 | Medium  
       
@@ -667,7 +684,7 @@ C-N (amine) | Stretch | 1350-1000 | Medium
         'C=O stretch (amide)': {'range': (1640, 1690), 'intensity': 'strong', 'shape': 'sharp'},
         'C=C stretch (alkene)': {'range': (1620, 1680), 'intensity': 'variable', 'shape': 'sharp'},
         'C=C stretch (aromatic)': {'range': (1450, 1600), 'intensity': 'medium', 'shape': 'multiple'},
-        'C-C stretch (alkyne)': {'range': (2100, 2260), 'intensity': 'variable', 'shape': 'sharp'},
+        'C≡C stretch (alkyne)': {'range': (2100, 2260), 'intensity': 'variable', 'shape': 'sharp'},
         'C-N stretch (amine)': {'range': (1000, 1350), 'intensity': 'medium', 'shape': 'broad'},
         'C-O stretch (alcohol)': {'range': (1000, 1260), 'intensity': 'strong', 'shape': 'broad'},
         'C-O stretch (ether)': {'range': (1000, 1150), 'intensity': 'strong', 'shape': 'broad'},

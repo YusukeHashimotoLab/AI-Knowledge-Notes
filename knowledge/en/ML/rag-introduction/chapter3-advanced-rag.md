@@ -7,9 +7,8 @@ chapter_title: "Chapter 3: Advanced RAG Techniques"
   <iframe
     width="560"
     height="315"
-    src="https://www.youtube.com/embed/o7jK2shb68c"
+    src="https://www.youtube.com/embed/OKPz6jVVLNo"
     title="RAG Introduction Ch.3: Advanced RAG Techniques"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>

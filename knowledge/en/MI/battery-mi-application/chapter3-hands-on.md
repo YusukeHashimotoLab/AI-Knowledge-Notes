@@ -10,6 +10,23 @@ version: 1.0
 created_at: 2025-10-17
 ---
 
+## Video Lecture
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/p5LmZqtMYiU"
+    title="Battery MI Ch.3: Battery MI Implementation Hands-On with Python"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> This video covers the same content as the text below. Choose your preferred learning format.
+
+---
+
 # Chapter 3: Battery MI Implementation Hands-On with Python
 
 This chapter covers Battery MI Implementation Hands. You will learn essential concepts and techniques.
@@ -36,6 +53,8 @@ This chapter covers Battery MI Implementation Hands. You will learn essential co
     # - pandas>=2.0.0, <2.2.0
     
     """
+    Example: Example 1: Acquiring Cathode Material Data from Materials Pr
+    
     Purpose: Demonstrate data manipulation and preprocessing
     Target: Beginner to Intermediate
     Execution time: ~5 seconds
@@ -113,14 +132,16 @@ This chapter covers Battery MI Implementation Hands. You will learn essential co
     V_avg_ch = calculate_average_voltage(cap, V_ch)
     V_avg_dch = calculate_average_voltage(cap, V_dch)
     
-    # Energy density
+    # Active-material specific energy (cathode material only)
     capacity_max = cap[-1]  # mAh/g
     energy_density = capacity_max * V_avg_dch * 0.001  # Wh/g
     
     print(f"Average charge voltage: {V_avg_ch:.3f} V")
     print(f"Average discharge voltage: {V_avg_dch:.3f} V")
-    print(f"Energy density: {energy_density:.1f} Wh/g")
+    print(f"Active-material specific energy: {energy_density:.3f} Wh/g")
     
+
+**Note on levels:** The value above is the specific energy of the cathode active material only - about 0.69 Wh/g (690 Wh/kg) for 200 mAh/g at an average 3.45 V. A complete cell also carries the anode, electrolyte, separator, current collectors and casing, so cell-level energy density comes out at roughly one third of it: the 200-300 Wh/kg class quoted in Chapter 1.
 
 ### Example 4: Capacity Calculation and Coulombic Efficiency
     

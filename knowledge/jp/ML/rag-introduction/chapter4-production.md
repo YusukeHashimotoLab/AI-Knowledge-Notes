@@ -164,7 +164,7 @@ chapter_title: 第4章：プロダクション環境への展開
     
     
     import redis
-    from functools import lru_cache
+    from collections import OrderedDict
     import hashlib
     import json
     import time
@@ -172,9 +172,10 @@ chapter_title: 第4章：プロダクション環境への展開
     class MultiLevelCache:
         """マルチレベルキャッシングシステム"""
     
-        def __init__(self, redis_url: str = "redis://localhost:6379"):
-            # L1: メモリキャッシュ（LRU）
-            self.memory_cache_size = 100
+        def __init__(self, redis_url: str = "redis://localhost:6379", l1_size: int = 1000):
+            # L1: メモリキャッシュ（プロセス内LRU）
+            self.l1_size = l1_size
+            self.l1_cache = OrderedDict()
     
             # L2: Redis
             self.redis_client = redis.from_url(redis_url)
@@ -192,25 +193,25 @@ chapter_title: 第4章：プロダクション環境への展開
             cache_input = f"{query}:{json.dumps(params, sort_keys=True)}"
             return hashlib.md5(cache_input.encode()).hexdigest()
     
-        @lru_cache(maxsize=100)
         def _l1_get(self, key: str):
             """L1キャッシュ取得（メモリ）"""
-            # LRUデコレータで自動管理
-            return None
+            if key not in self.l1_cache:
+                return None
+    
+            # 最近使用したエントリとして末尾へ移動
+            self.l1_cache.move_to_end(key)
+            return self.l1_cache[key]
     
         def get(self, query: str, params: dict):
             """キャッシュ取得（L1 → L2）"""
             key = self._generate_key(query, params)
     
             # L1チェック
-            try:
-                result = self._l1_get(key)
-                if result:
-                    self.stats['hits'] += 1
-                    self.stats['l1_hits'] += 1
-                    return result
-            except:
-                pass
+            result = self._l1_get(key)
+            if result is not None:
+                self.stats['hits'] += 1
+                self.stats['l1_hits'] += 1
+                return result
     
             # L2チェック（Redis）
             try:
@@ -231,10 +232,14 @@ chapter_title: 第4章：プロダクション環境への展開
             return None
     
         def _l1_set(self, key: str, value):
-            """L1キャッシュ設定"""
-            # LRUキャッシュに設定
-            self._l1_get.__wrapped__(self, key)  # トリガー
-            self._l1_get.cache_info()
+            """L1キャッシュ設定（メモリ）"""
+            if key in self.l1_cache:
+                self.l1_cache.move_to_end(key)
+            self.l1_cache[key] = value
+    
+            # サイズ上限: 最も古いエントリを削除
+            if len(self.l1_cache) > self.l1_size:
+                self.l1_cache.popitem(last=False)
     
         def set(self, query: str, params: dict, value, ttl: int = 3600):
             """キャッシュ設定（L1 & L2）"""
@@ -256,7 +261,7 @@ chapter_title: 第4章：プロダクション環境への展開
         def invalidate(self, pattern: str = "*"):
             """キャッシュ無効化"""
             # L1クリア
-            self._l1_get.cache_clear()
+            self.l1_cache.clear()
     
             # L2クリア（パターンマッチ）
             try:

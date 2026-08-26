@@ -8,6 +8,23 @@ code_examples: 12
 exercises: 5
 ---
 
+## ビデオ講義
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/JWRfVp9wjPE"
+    title="PyTorch Geometric 第1章: PyTorch Geometric入門とグラフデータの基礎"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> このビデオは以下のテキストと同じ内容をカバーしています。お好みの学習形式をお選びください。
+
+---
+
 この章では、グラフニューラルネットワーク（GNN）の基礎となるグラフデータの概念と、PyTorch Geometric（PyG）ライブラリの使い方を学びます。グラフの基本構造、PyGのインストール、Dataオブジェクトの扱い方、組み込みデータセット、そして簡単なGCNレイヤーの実装を通じて、GNN開発の基盤を固めていきましょう。
 
 ## 学習目標

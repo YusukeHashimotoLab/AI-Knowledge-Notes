@@ -3,6 +3,23 @@ title: "Chapter 3: Multi-Agent Systems"
 chapter_title: "Chapter 3: Multi-Agent Systems"
 ---
 
+## Video Lecture
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/qBs49gcGwhw"
+    title="AI Agents Ch.3: Multi-Agent Systems"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> This video covers the same content as the text below. Choose your preferred learning format.
+
+---
+
 This chapter covers Multi. You will learn essential concepts and techniques.
 
 ## What are Multi-Agent Systems?

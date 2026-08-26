@@ -16,7 +16,6 @@ exercises: 0
     height="315"
     src="https://www.youtube.com/embed/9SvXCQAT960"
     title="MI入門 第3章：Pythonで体験するMI"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>

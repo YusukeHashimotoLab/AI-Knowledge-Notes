@@ -4,7 +4,7 @@ chapter_title: "Chapter 2: Gaussian Process Modeling"
 subtitle: Powerful Regression Method for Quantifying Uncertainty
 ---
 
-This chapter covers Gaussian Process Modeling. You will learn  Calculate mean and  Explain the properties of RBF.
+This chapter covers Gaussian Process Modeling. You will learn ✅ Calculate mean and ✅ Explain the properties of RBF.
 
 ## Introduction
 
@@ -12,7 +12,7 @@ Gaussian Processes (GP) are probabilistic modeling methods that form the core of
 
 In this chapter, we will learn practical implementation using chemical process data, starting from 1D regression through various kernel functions, hyperparameter optimization, and model validation.
 
-=¡ Key Points of This Chapter
+💡 Key Points of This Chapter
 
   * Gaussian processes are completely defined by mean function and covariance function (kernel)
   * Kernel selection should be adjusted according to problem smoothness
@@ -34,10 +34,10 @@ A Gaussian process is a stochastic process where **function values at any finite
 Given observed data `D = {(x_i, y_i)}`, the predictive distribution at a new point `x*` is:
     
     
-    f(x*) | D ~ N(¼(x*), Ã²(x*))
+    f(x*) | D ~ N(μ(x*), σ²(x*))
     
-    ¼(x*) = k(x*, X) [K + Ã_n² I]{¹ y
-    Ã²(x*) = k(x*, x*) - k(x*, X) [K + Ã_n² I]{¹ k(X, x*)
+    μ(x*) = k(x*, X) [K + σ_n² I]⁻¹ y
+    σ²(x*) = k(x*, x*) - k(x*, X) [K + σ_n² I]⁻¹ k(X, x*)
 
 ### Example 1: 1D Gaussian Process Regression (Chemical Reaction Yield)
     
@@ -50,7 +50,7 @@ Given observed data `D = {(x_i, y_i)}`, the predictive distribution at a new poi
     # ===================================
     # 1D chemical reaction yield data (Temperature vs Yield)
     # ===================================
-    # Experimental data (Temperature [°C] ’ Yield [%])
+    # Experimental data (Temperature [°C] → Yield [%])
     X_train = np.array([50, 70, 90, 110, 130]).reshape(-1, 1)
     y_train = np.array([45, 62, 78, 71, 52])  # Optimal temperature around 90°C
     
@@ -91,9 +91,9 @@ Given observed data `D = {(x_i, y_i)}`, the predictive distribution at a new poi
     # Log marginal likelihood: -12.45
     # Plot: Yield peak around 90°C, uncertainty increases at edges
 
-= Explanation: Meaning of Confidence Intervals
+🔍 Explanation: Meaning of Confidence Intervals
 
-The **95% confidence interval** (¼ ± 1.96Ã) indicates that the true yield falls within this range with 95% probability. In regions far from experimental data (around 40°C, 140°C), uncertainty increases and the interval widens. This is the key to **promoting exploration of unexplored regions** in Bayesian optimization.
+The **95% confidence interval** (μ ± 1.96σ) indicates that the true yield falls within this range with 95% probability. In regions far from experimental data (around 40°C, 140°C), uncertainty increases and the interval widens. This is the key to **promoting exploration of unexplored regions** in Bayesian optimization.
 
 ## 2.2 Kernel Function Selection
 
@@ -101,10 +101,10 @@ The **95% confidence interval** (¼ ± 1.96Ã) indicates that the true yield fal
 
 Kernel | Formula | Smoothness | Application Example  
 ---|---|---|---  
-**RBF (Squared Exponential)** | k(x, x') = Ã² exp(-||x - x'||² / (2²)) | Infinitely differentiable | Temperature-yield relationship  
-**Matérn (½=1.5)** | k(x, x') = Ã² (1 + 3r/) exp(-3r/) | Once differentiable | Pressure-flow relationship  
-**Matérn (½=2.5)** | k(x, x') = Ã² (1 + 5r/ + 5r²/3²) exp(-5r/) | Twice differentiable | Catalyst activity curve  
-**Rational Quadratic** | k(x, x') = Ã² (1 + r²/(2±²))^(-±) | Scale mixture of RBF | Multi-scale phenomena  
+**RBF (Squared Exponential)** | k(x, x') = σ² exp(-||x - x'||² / (2ℓ²)) | Infinitely differentiable | Temperature-yield relationship  
+**Matérn (ν=1.5)** | k(x, x') = σ² (1 + √3r/ℓ) exp(-√3r/ℓ) | Once differentiable | Pressure-flow relationship  
+**Matérn (ν=2.5)** | k(x, x') = σ² (1 + √5r/ℓ + 5r²/(3ℓ²)) exp(-√5r/ℓ) | Twice differentiable | Catalyst activity curve  
+**Rational Quadratic** | k(x, x') = σ² (1 + r²/(2αℓ²))^(-α) | Scale mixture of RBF | Multi-scale phenomena  
   
 ### Example 2: RBF Kernel (Smooth Reaction Curve)
     
@@ -170,15 +170,21 @@ Kernel | Formula | Smoothness | Application Example
     # Optimized length scale: [12.34  0.68]
     # Temperature direction: 12.34°C
     # Pressure direction: 0.68 MPa
-    # ’ Yield characteristics more sensitive to pressure changes than temperature
+    # → Length scales carry the units of their own variable (°C vs MPa), so the raw
+    #   numbers must NOT be compared directly. Normalize each by the search range of
+    #   that variable (temperature 50-110°C = 60°C, pressure 0.8-3.0 MPa = 2.2 MPa):
+    #     temperature: 12.34 / 60  = 0.21
+    #     pressure   : 0.68  / 2.2 = 0.31
+    #   Temperature has the SMALLER relative length scale, so over the region explored
+    #   the yield responds more sensitively to temperature than to pressure.
 
-### Example 3: Matérn Kernel (½=1.5)
+### Example 3: Matérn Kernel (ν=1.5)
     
     
     from sklearn.gaussian_process.kernels import Matern
     
     # ===================================
-    # Matérn Kernel (½=1.5): Once differentiable
+    # Matérn Kernel (ν=1.5): Once differentiable
     # Moderate smoothness based on physical laws
     # ===================================
     kernel_matern15 = C(1.0) * Matern(length_scale=10.0, nu=1.5)
@@ -194,7 +200,7 @@ Kernel | Formula | Smoothness | Application Example
     
     plt.figure(figsize=(10, 6))
     plt.plot(X_test_1d[:, 0], y_pred_matern, 'g-',
-             label='Matérn(½=1.5)', linewidth=2)
+             label='Matérn(ν=1.5)', linewidth=2)
     plt.fill_between(X_test_1d[:, 0],
                      y_pred_matern - 1.96*sigma_matern,
                      y_pred_matern + 1.96*sigma_matern,
@@ -203,26 +209,26 @@ Kernel | Formula | Smoothness | Application Example
                 edgecolors='k', label='Experimental data')
     plt.xlabel('Temperature [°C] (Pressure=2.0 MPa fixed)')
     plt.ylabel('Yield [%]')
-    plt.title('Prediction with Matérn Kernel (½=1.5)')
+    plt.title('Prediction with Matérn Kernel (ν=1.5)')
     plt.legend()
     plt.grid(alpha=0.3)
     plt.tight_layout()
     plt.show()
     
-    print(f"Matérn(½=1.5) kernel: {gp_matern15.kernel_}")
+    print(f"Matérn(ν=1.5) kernel: {gp_matern15.kernel_}")
     print(f"Log marginal likelihood: {gp_matern15.log_marginal_likelihood_value_:.2f}")
     
     # Expected output:
-    # Matérn(½=1.5) kernel: 1.2**2 * Matern(length_scale=11.5, nu=1.5)
+    # Matérn(ν=1.5) kernel: 1.2**2 * Matern(length_scale=11.5, nu=1.5)
     # Log marginal likelihood: -10.23
-    # ’ Slightly rougher prediction than RBF (robust to experimental noise)
+    # → Slightly rougher prediction than RBF (robust to experimental noise)
 
-### Example 4: Matérn Kernel (½=2.5)
+### Example 4: Matérn Kernel (ν=2.5)
     
     
     # ===================================
-    # Matérn Kernel (½=2.5): Twice differentiable
-    # Intermediate smoothness between RBF and ½=1.5
+    # Matérn Kernel (ν=2.5): Twice differentiable
+    # Intermediate smoothness between RBF and ν=1.5
     # ===================================
     kernel_matern25 = C(1.0) * Matern(length_scale=10.0, nu=2.5)
     
@@ -232,15 +238,20 @@ Kernel | Formula | Smoothness | Application Example
     
     y_pred_matern25, sigma_matern25 = gp_matern25.predict(X_test_1d, return_std=True)
     
+    # Evaluate the RBF model on the SAME 1D cross-section as the two Matérn models.
+    # (y_pred_grid from Example 2 is the flattened 50x50 = 2500-point contour grid,
+    #  so slicing it with [:100] would plot two rows of that grid, not this section.)
+    y_pred_rbf_1d, sigma_rbf_1d = gp_rbf.predict(X_test_1d, return_std=True)
+    
     # Comparison plot of three kernels
     plt.figure(figsize=(12, 6))
     
-    plt.plot(X_test_1d[:, 0], y_pred_grid[:100], 'b-',
-             label='RBF ( times differentiable)', linewidth=2)
+    plt.plot(X_test_1d[:, 0], y_pred_rbf_1d, 'b-',
+             label='RBF (∞ times differentiable)', linewidth=2)
     plt.plot(X_test_1d[:, 0], y_pred_matern, 'g--',
-             label='Matérn(½=1.5)', linewidth=2)
+             label='Matérn(ν=1.5)', linewidth=2)
     plt.plot(X_test_1d[:, 0], y_pred_matern25, 'orange',
-             linestyle='-.', label='Matérn(½=2.5)', linewidth=2)
+             linestyle='-.', label='Matérn(ν=2.5)', linewidth=2)
     
     plt.scatter(X_train[:, 0], y_train, c='red', s=150,
                 edgecolors='k', linewidths=2, label='Experimental data', zorder=10)
@@ -256,21 +267,21 @@ Kernel | Formula | Smoothness | Application Example
     # Comparison of log marginal likelihood (higher is better)
     print("\n=== Kernel Performance Comparison ===")
     print(f"RBF:           {gp_rbf.log_marginal_likelihood_value_:.2f}")
-    print(f"Matérn(½=1.5): {gp_matern15.log_marginal_likelihood_value_:.2f}")
-    print(f"Matérn(½=2.5): {gp_matern25.log_marginal_likelihood_value_:.2f}")
+    print(f"Matérn(ν=1.5): {gp_matern15.log_marginal_likelihood_value_:.2f}")
+    print(f"Matérn(ν=2.5): {gp_matern25.log_marginal_likelihood_value_:.2f}")
     
     # Expected output:
     # === Kernel Performance Comparison ===
     # RBF:           -9.87
-    # Matérn(½=1.5): -10.23
-    # Matérn(½=2.5): -9.95
-    # ’ RBF has highest likelihood (best for this data)
+    # Matérn(ν=1.5): -10.23
+    # Matérn(ν=2.5): -9.95
+    # → RBF has highest likelihood (best for this data)
 
-=Ê Kernel Selection Guidelines
+📊 Kernel Selection Guidelines
 
   * **RBF** : Very smooth response (temperature-yield, concentration-activity)
-  * **Matérn(½=1.5)** : Large experimental noise, physical constraints present
-  * **Matérn(½=2.5)** : Balanced type (recommended default)
+  * **Matérn(ν=1.5)** : Large experimental noise, physical constraints present
+  * **Matérn(ν=2.5)** : Balanced type (recommended default)
   * **Rational Quadratic** : Multiple scale variations (multi-stage reactions)
 
 ### Example 5: Rational Quadratic Kernel
@@ -308,27 +319,27 @@ Kernel | Formula | Smoothness | Application Example
     plt.show()
     
     print(f"Optimized kernel: {gp_rq.kernel_}")
-    print(f"± (scale mixture degree): {gp_rq.kernel_.k2.alpha:.2f}")
+    print(f"α (scale mixture degree): {gp_rq.kernel_.k2.alpha:.2f}")
     print(f"Log marginal likelihood: {gp_rq.log_marginal_likelihood_value_:.2f}")
     
     # Expected output:
     # Optimized kernel: 1.15**2 * RationalQuadratic(alpha=0.85, length_scale=12.3)
-    # ± (scale mixture degree): 0.85
+    # α (scale mixture degree): 0.85
     # Log marginal likelihood: -10.10
-    # ’ ±<1: short-range correlation dominant, converges to RBF as ±’
+    # → α<1: short-range correlation dominant, converges to RBF as α→∞
 
 ## 2.3 Hyperparameter Optimization
 
 ### 2.3.1 Principles of Maximum Likelihood Estimation (MLE)
 
-The hyperparameters `¸ = {Ã², , Ã_n²}` of a Gaussian process are optimized by maximizing the log marginal likelihood:
+The hyperparameters `θ = {σ², ℓ, σ_n²}` of a Gaussian process are optimized by maximizing the log marginal likelihood:
     
     
-    log p(y | X, ¸) = -1/2 y^T [K + Ã_n² I]{¹ y
-                      - 1/2 log|K + Ã_n² I|
-                      - n/2 log(2À)
+    log p(y | X, θ) = -1/2 y^T [K + σ_n² I]⁻¹ y
+                      - 1/2 log|K + σ_n² I|
+                      - n/2 log(2π)
     
-    Optimization: ¸* = argmax_¸ log p(y | X, ¸)
+    Optimization: θ* = argmax_θ log p(y | X, θ)
 
 ### Example 6: Hyperparameter Optimization (MLE with scipy)
     
@@ -349,12 +360,12 @@ The hyperparameters `¸ = {Ã², , Ã_n²}` of a Gaussian process are optimized
         """Negative log marginal likelihood (for minimization)
     
         Args:
-            theta: [log(Ã²), log(), log(Ã_n²)]
+            theta: [log(σ²), log(ℓ), log(σ_n²)]
             X: Input data (n, d)
             y: Output data (n,)
     
         Returns:
-            -log p(y | X, ¸)
+            -log p(y | X, θ)
         """
         sigma_f = np.exp(theta[0])  # Signal variance
         length_scale = np.exp(theta[1])  # Length scale
@@ -385,7 +396,7 @@ The hyperparameters `¸ = {Ã², , Ã_n²}` of a Gaussian process are optimized
             return 1e10  # Penalty for numerically unstable cases
     
     # Initial values (log scale)
-    theta_init = np.log([1.0, 10.0, 1.0])  # [Ã², , Ã_n²]
+    theta_init = np.log([1.0, 10.0, 1.0])  # [σ², ℓ, σ_n²]
     
     # Execute optimization (L-BFGS-B method)
     result = minimize(negative_log_marginal_likelihood, theta_init,
@@ -399,9 +410,9 @@ The hyperparameters `¸ = {Ã², , Ã_n²}` of a Gaussian process are optimized
     sigma_n_opt = np.exp(theta_opt[2])
     
     print("=== Optimization Results ===")
-    print(f"Signal variance Ã²: {sigma_f_opt:.3f}")
-    print(f"Length scale : {length_scale_opt:.2f}°C")
-    print(f"Noise standard deviation Ã_n: {sigma_n_opt:.3f}%")
+    print(f"Signal variance σ²: {sigma_f_opt:.3f}")
+    print(f"Length scale ℓ: {length_scale_opt:.2f}°C")
+    print(f"Noise standard deviation σ_n: {sigma_n_opt:.3f}%")
     print(f"\nMaximum log marginal likelihood: {-result.fun:.2f}")
     print(f"Optimization steps: {result.nit}")
     
@@ -417,9 +428,9 @@ The hyperparameters `¸ = {Ã², , Ã_n²}` of a Gaussian process are optimized
     
     # Expected output:
     # === Optimization Results ===
-    # Signal variance Ã²: 156.234
-    # Length scale : 14.87°C
-    # Noise standard deviation Ã_n: 2.145%
+    # Signal variance σ²: 156.234
+    # Length scale ℓ: 14.87°C
+    # Noise standard deviation σ_n: 2.145%
     #
     # Maximum log marginal likelihood: -8.92
     # Optimization steps: 23
@@ -427,24 +438,24 @@ The hyperparameters `¸ = {Ã², , Ã_n²}` of a Gaussian process are optimized
     # === scikit-learn Results (Comparison) ===
     # Optimized kernel: 12.5**2 * RBF(length_scale=14.9)
     # Log marginal likelihood: -8.91
-    # ’ Manual implementation and scikit-learn nearly match
+    # → Manual implementation and scikit-learn nearly match
 
-™ Hyperparameter Interpretation
+⚙️ Hyperparameter Interpretation
 
-  * **Ã² (signal variance)** : Function amplitude (larger means larger variation)
-  * ** (length scale)** : Correlation distance (larger means smoother)
-  * **Ã_n² (noise variance)** : Observation error (inverse of experimental precision)
+  * **σ² (signal variance)** : Function amplitude (larger means larger variation)
+  * **ℓ (length scale)** : Correlation distance (larger means smoother)
+  * **σ_n² (noise variance)** : Observation error (inverse of experimental precision)
 
 ## 2.4 Uncertainty Quantification and Confidence Intervals
 
 ### 2.4.1 Interpretation of Predictive Distribution
 
-From the Gaussian process predictive distribution `f(x*) ~ N(¼, Ã²)`, the following information is obtained:
+From the Gaussian process predictive distribution `f(x*) ~ N(μ, σ²)`, the following information is obtained:
 
-  * **¼(x*)** : Predicted value (expected value)
-  * **Ã(x*)** : Prediction uncertainty (standard deviation)
-  * **95% confidence interval** : [¼ - 1.96Ã, ¼ + 1.96Ã]
-  * **99% confidence interval** : [¼ - 2.58Ã, ¼ + 2.58Ã]
+  * **μ(x*)** : Predicted value (expected value)
+  * **σ(x*)** : Prediction uncertainty (standard deviation)
+  * **95% confidence interval** : [μ - 1.96σ, μ + 1.96σ]
+  * **99% confidence interval** : [μ - 2.58σ, μ + 2.58σ]
 
 ### Example 7: Model Validation (Cross-Validation & Residual Analysis)
     
@@ -509,7 +520,7 @@ From the Gaussian process predictive distribution `f(x*) ~ N(¼, Ã²)`, the fol
     axes[0, 1].scatter(y_pred, residuals, alpha=0.6, s=80)
     axes[0, 1].axhline(0, color='r', linestyle='--', linewidth=2)
     axes[0, 1].axhline(1.96*residuals.std(), color='orange',
-                       linestyle=':', label='±1.96Ã')
+                       linestyle=':', label='±1.96σ')
     axes[0, 1].axhline(-1.96*residuals.std(), color='orange', linestyle=':')
     axes[0, 1].set_xlabel('Predicted value [%]')
     axes[0, 1].set_ylabel('Residual [%]')
@@ -557,7 +568,7 @@ From the Gaussian process predictive distribution `f(x*) ~ N(¼, Ã²)`, the fol
     print(f"\n=== Uncertainty Calibration ===")
     print(f"95% confidence interval coverage: {coverage:.1f}%")
     print(f"Expected: 95.0%")
-    print(f"Assessment: {' Good' if 90 <= coverage <= 100 else '  Needs adjustment'}")
+    print(f"Assessment: {'✅ Good' if 90 <= coverage <= 100 else '⚠️ Needs adjustment'}")
     
     # Expected output:
     # === Cross-Validation Results ===
@@ -570,9 +581,9 @@ From the Gaussian process predictive distribution `f(x*) ~ N(¼, Ã²)`, the fol
     # === Uncertainty Calibration ===
     # 95% confidence interval coverage: 93.3%
     # Expected: 95.0%
-    # Assessment:  Good
+    # Assessment: ✅ Good
 
-=, Model Validation Checklist
+🔬 Model Validation Checklist
 
   1. **Cross-validation** : Confirm generalization performance (is CV RMSE close to training RMSE)
   2. **Homoscedasticity of residuals** : Is residual plot a horizontal random scatter
@@ -588,12 +599,12 @@ Topic | Key Points | Practical Usage
 **Gaussian Process Definition** | Completely defined by mean function and covariance function | Start with RBF kernel in scikit-learn  
 **Kernel Selection** | RBF (smooth), Matérn (intermediate), RQ (multi-scale) | Compare performance with log marginal likelihood  
 **Hyperparameter Optimization** | Automatic optimization with MLE (L-BFGS-B method) | Recommend n_restarts_optimizer=10-15  
-**Uncertainty Quantification** | 95% confidence interval = ¼ ± 1.96Ã | Large uncertainty in unexplored regions’promote exploration  
+**Uncertainty Quantification** | 95% confidence interval = μ ± 1.96σ | Large uncertainty in unexplored regions→promote exploration  
 **Model Validation** | Cross-validation, residual analysis, coverage check | Target R²>0.9, coverage 90-100%  
   
 ### Implementation Best Practices
 
-  1. **Data normalization** : Normalize inputs to [0, 1] or standardize (stabilizes  optimization)
+  1. **Data normalization** : Normalize inputs to [0, 1] or standardize (stabilizes ℓ optimization)
   2. **Kernel selection** : Try RBF first, improve robustness with Matérn
   3. **Noise estimation** : Consider observation error with `alpha=1e-2`
   4. **Multiple starts** : Avoid local optima with `n_restarts_optimizer=10-15`
@@ -605,42 +616,42 @@ Upon completing this chapter, you will be able to:
 
 ### Basic Understanding
 
-  *  Explain that Gaussian processes are defined by mean function and kernel
-  *  Calculate mean and uncertainty from predictive distribution
-  *  Explain the properties of RBF, Matérn, and Rational Quadratic kernels
+  * ✅ Explain that Gaussian processes are defined by mean function and kernel
+  * ✅ Calculate mean and uncertainty from predictive distribution
+  * ✅ Explain the properties of RBF, Matérn, and Rational Quadratic kernels
 
 ### Practical Skills
 
-  *  Implement Gaussian process models with scikit-learn
-  *  Optimize hyperparameters with MLE
-  *  Visualize prediction uncertainty (confidence interval plots)
-  *  Validate models with cross-validation and residual analysis
+  * ✅ Implement Gaussian process models with scikit-learn
+  * ✅ Optimize hyperparameters with MLE
+  * ✅ Visualize prediction uncertainty (confidence interval plots)
+  * ✅ Validate models with cross-validation and residual analysis
 
 ### Application Ability
 
-  *  Select appropriate kernels for chemical process data
-  *  Build GP models with multi-dimensional inputs (temperature, pressure, concentration)
-  *  Quantitatively assess model reliability
+  * ✅ Select appropriate kernels for chemical process data
+  * ✅ Build GP models with multi-dimensional inputs (temperature, pressure, concentration)
+  * ✅ Quantitatively assess model reliability
 
 ## Practice Problems
 
 ### Easy (Basic Confirmation)
 
-**Q1** : In the Gaussian process predictive distribution `f(x*) ~ N(¼, Ã²)`, which formula calculates the 95% confidence interval?
+**Q1** : In the Gaussian process predictive distribution `f(x*) ~ N(μ, σ²)`, which formula calculates the 95% confidence interval?
 
 Show answer
 
-**Correct answer** : [¼ - 1.96Ã, ¼ + 1.96Ã]
+**Correct answer** : [μ - 1.96σ, μ + 1.96σ]
 
-**Explanation** : The 95% interval of a normal distribution is mean ± 1.96×standard deviation. 99% interval is ± 2.58Ã, 68% interval is ± 1Ã.
+**Explanation** : The 95% interval of a normal distribution is mean ± 1.96×standard deviation. 99% interval is ± 2.58σ, 68% interval is ± 1σ.
 
-**Q2** : How does the prediction curve change when the length scale `` of the RBF kernel is increased?
+**Q2** : How does the prediction curve change when the length scale `ℓ` of the RBF kernel is increased?
 
 Show answer
 
 **Correct answer** : It becomes smoother
 
-**Explanation** :  represents the correlation distance; larger values mean distant points are more strongly correlated. As ’ , it converges to a constant function.
+**Explanation** : ℓ represents the correlation distance; larger values mean distant points are more strongly correlated. As ℓ→∞, it converges to a constant function.
 
 ### Medium (Application)
 
@@ -675,7 +686,7 @@ Show answer
                        length_scale_bounds=(1e-2, 1e3))
     # [Temperature 10°C, Pressure 1.0MPa, Concentration 5% initial length scales]
 
-**Interpretation** : After optimization, if pressure's length scale is small at 0.5, it indicates yield is sensitive to pressure changes. If temperature is large at 50, temperature dependence is low.
+**Interpretation** : Each length scale is expressed in the units of its own variable, so the raw values cannot be compared across dimensions. Always compare a length scale with the **search range of that same variable**. For example, if temperature is searched over a 100°C span and its length scale optimizes to 50, the relative length scale is 50/100 = 0.5; if pressure is searched over a 1.0 MPa span and its length scale optimizes to 0.5, the relative length scale is also 0.5 — the same sensitivity, despite the hundred-fold difference in the raw numbers. The **smaller the relative length scale, the more sensitively** the yield responds to that variable.
 
 ## Next Steps
 
@@ -688,7 +699,7 @@ You can now quantify uncertainty with Gaussian process models. In Chapter 3, we 
   * Probability of Improvement (PI): Simple improvement probability
   * Batch Bayesian optimization: Parallel experiment design
 
-[� Series Index](<./index.html>) [Chapter 3: Acquisition Functions ’](<chapter-3.html>)
+[← Series Index](<./index.html>) [Chapter 3: Acquisition Functions →](<chapter-3.html>)
 
 ## References
 

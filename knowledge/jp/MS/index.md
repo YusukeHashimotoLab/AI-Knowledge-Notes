@@ -10,7 +10,7 @@ subtitle: Materials Science Fundamentals Dojo - 実験と計算で理解する�
 
 [← AI寺子屋トップへ戻る](<../index.html>)
 
-📚 材料科学基礎（6シリーズ）
+📚 材料科学基礎（7シリーズ）
 
 📘
 
@@ -71,6 +71,16 @@ subtitle: Materials Science Fundamentals Dojo - 実験と計算で理解する�
 初級〜中級 120-150分 5章・35例
 
 [開始 →](<./materials-chemistry-introduction/index.html>)
+
+⚡
+
+電気化学入門
+
+水電解・CO₂還元・電池に共通する言語 — 電極電位とネルンストの式、過電圧とターフェル解析、電気化学界面と三電極測定、各章にNumPyハンズオン
+
+初級 125-150分 5章
+
+[開始 →](<./electrochemistry-introduction/index.html>)
 
 🔧 材料プロセス（4シリーズ）
 

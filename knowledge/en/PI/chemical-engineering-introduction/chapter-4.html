@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 4: How Processes are Designed - AI Terakoya</title>
+
+    <style>
+        :root {
+            --color-primary: #2c3e50;
+            --color-primary-dark: #1a252f;
+            --color-accent: #7b2cbf;
+            --color-accent-light: #9d4edd;
+            --color-text: #2d3748;
+            --color-text-light: #4a5568;
+            --color-bg: #ffffff;
+            --color-bg-alt: #f7fafc;
+            --color-border: #e2e8f0;
+            --color-code-bg: #f8f9fa;
+            --color-link: #3182ce;
+            --color-link-hover: #2c5aa0;
+
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+
+            --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+            --border-radius: 8px;
+            --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-body);
+            line-height: 1.7;
+            color: var(--color-text);
+            background-color: var(--color-bg);
+            font-size: 16px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            padding: var(--spacing-xl) var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+            box-shadow: var(--box-shadow);
+        }
+
+        .header-content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: var(--spacing-sm);
+            line-height: 1.2;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            font-weight: 400;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-md);
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-md) var(--spacing-xl);
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-xl);
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-xs);
+            border-bottom: 3px solid var(--color-accent);
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-lg);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        h4 {
+            font-size: 1.1rem;
+            color: var(--color-primary-dark);
+            margin-top: var(--spacing-md);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        p {
+            margin-bottom: var(--spacing-md);
+            color: var(--color-text);
+        }
+
+        a {
+            color: var(--color-link);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        a:hover {
+            color: var(--color-link-hover);
+            text-decoration: underline;
+        }
+
+        ul, ol {
+            margin-left: var(--spacing-lg);
+            margin-bottom: var(--spacing-md);
+        }
+
+        li {
+            margin-bottom: var(--spacing-xs);
+            color: var(--color-text);
+        }
+
+        pre {
+            background-color: var(--color-code-bg);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            overflow-x: auto;
+            margin-bottom: var(--spacing-md);
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        code {
+            font-family: var(--font-mono);
+            font-size: 0.9em;
+            background-color: var(--color-code-bg);
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+        }
+
+        pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: var(--spacing-md);
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            border: 1px solid var(--color-border);
+            padding: var(--spacing-sm);
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--color-bg-alt);
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        blockquote {
+            border-left: 4px solid var(--color-accent);
+            padding-left: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            color: var(--color-text-light);
+            font-style: italic;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        .mermaid {
+            text-align: center;
+            margin: var(--spacing-lg) 0;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        details {
+            background-color: var(--color-bg-alt);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+        }
+
+        summary {
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--color-primary);
+            user-select: none;
+            padding: var(--spacing-xs);
+            margin: calc(-1 * var(--spacing-md));
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        summary:hover {
+            background-color: rgba(123, 44, 191, 0.1);
+        }
+
+        details[open] summary {
+            margin-bottom: var(--spacing-md);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .learning-objectives {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: var(--spacing-lg);
+            border-radius: var(--border-radius);
+            border-left: 4px solid var(--color-accent);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .learning-objectives h2 {
+            margin-top: 0;
+            border-bottom: none;
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            gap: var(--spacing-md);
+            margin: var(--spacing-xl) 0;
+            padding-top: var(--spacing-lg);
+            border-top: 2px solid var(--color-border);
+        }
+
+        .nav-button {
+            flex: 1;
+            padding: var(--spacing-md);
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            border-radius: var(--border-radius);
+            text-align: center;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: var(--box-shadow);
+        }
+
+        .nav-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            text-decoration: none;
+        }
+
+        footer {
+            margin-top: var(--spacing-xl);
+            padding: var(--spacing-lg) var(--spacing-md);
+            background-color: var(--color-bg-alt);
+            border-top: 1px solid var(--color-border);
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--color-text-light);
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            h2 {
+                font-size: 1.4rem;
+            }
+
+            h3 {
+                font-size: 1.2rem;
+            }
+
+            .meta {
+                font-size: 0.85rem;
+            }
+
+            .navigation {
+                flex-direction: column;
+            }
+
+            table {
+                font-size: 0.85rem;
+            }
+
+            th, td {
+                padding: var(--spacing-xs);
+            }
+        }
+    </style>
+
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+
+    <!-- MathJax for LaTeX equation rendering -->
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\(', '\)']],
+                displayMath: [['$$', '$$'], ['\[', '\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" id="MathJax-script" async></script>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <h1>Chapter 4: How Processes are Designed</h1>
+            <p class="subtitle">From Concept to Flowsheet to Plant</p>
+            <div class="meta">
+                <span class="meta-item">📖 Reading Time: 20-25 minutes</span>
+                <span class="meta-item">📊 Difficulty: Beginner</span>
+                <span class="meta-item">💻 Code Examples: 0</span>
+                <span class="meta-item">📝 Exercises: 3</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+<h1>Chapter 4: How Processes are Designed</h1>
+<p>This chapter shows how the pieces from the first three chapters — unit operations, reactors, control — become a complete process. Design is not a calculation with one right answer, but a structured sequence of decisions under competing constraints.</p>
+<p><strong>From Concept to Flowsheet to Plant</strong></p>
+<h2>Learning Objectives</h2>
+<p>By completing this chapter, you will be able to:</p>
+<ul>
+<li>✅ Explain why early design decisions commit most of a plant's lifetime cost</li>
+<li>✅ Describe Douglas's hierarchical decision procedure and why it is ordered as it is</li>
+<li>✅ Explain conceptually how distillation is designed and what reflux ratio trades off</li>
+<li>✅ Describe the purpose of pinch analysis and its three golden rules</li>
+<li>✅ Apply the inherently safer design principles within layers of protection</li>
+</ul>
+<p><strong>Reading Time</strong>: 20-25 minutes <strong>Code Examples</strong>: 0 <strong>Exercises</strong>: 3</p>
+<hr />
+<h2>4.1 Design is Decision-Making Under Constraints</h2>
+<p>A process design must satisfy several constraints at once:</p>
+<ul>
+<li><strong>Chemistry</strong> — the reaction must work at the chosen conditions</li>
+<li><strong>Thermodynamics</strong> — equilibrium and energy balances set limits nothing can beat</li>
+<li><strong>Economics</strong> — capital cost, operating cost, product price</li>
+<li><strong>Safety</strong> — inventories, pressures, temperatures, and failure behavior</li>
+<li><strong>Environment and regulation</strong> — emissions, effluent, waste, permits</li>
+</ul>
+<p>These pull in different directions. Higher temperature speeds the reaction (Chapter 2) but costs energy and raises the hazard; a purer product earns a better price but needs a bigger, hotter column. Because the objectives conflict, <strong>there is no unique "correct" flowsheet</strong> — only designs that are better or worse against a stated set of priorities.</p>
+<p>What makes design demanding is <em>when</em> the decisions happen. A widely cited rule of thumb holds that <strong>roughly 80% of a project's lifetime cost is committed during the conceptual stage</strong>, which consumes only a small fraction of the engineering effort. Treat the number as qualitative, but the shape of the curve is real: by the time detailed engineering begins, the route, reactor, and separation sequence are fixed, and the remaining freedom is limited to optimizing equipment that perhaps should never have been there. <strong>Cheap decisions early, expensive corrections late.</strong></p>
+<p>Design also fixes how controllable the plant will be — surge volumes, measurement points, and the tightness of recycle coupling are set here, which is why a well-designed process is an easy-to-control process (Chapter 3).</p>
+<h2>4.2 The Design Hierarchy</h2>
+<p>Where do you start? The standard answer is the <strong>hierarchical decision procedure</strong> of <strong>James Douglas</strong>, <em>Conceptual Design of Chemical Processes</em> (1988): instead of solving the whole flowsheet at once, decide in a fixed order, each level adding detail to the one above.</p>
+<div class="mermaid">
+flowchart TD
+    L1["Level 1: Batch or continuous?"]
+    L2["Level 2: Input-output structure"]
+    L3["Level 3: Recycle structure and reactor"]
+    L4["Level 4: Separation system"]
+    L5["Level 5: Heat integration"]
+    L1 --> L2 --> L3 --> L4 --> L5
+</div>
+
+<ul>
+<li><strong>Level 1 — Batch vs continuous.</strong> Small volumes, many products, or short campaigns favor batch; large steady volumes favor continuous.</li>
+<li><strong>Level 2 — Input–output structure.</strong> Treat the plant as one box: what raw materials enter, what products and by-products leave, what fraction of the feed becomes product. This is where <strong>raw-material efficiency</strong> is decided.</li>
+<li><strong>Level 3 — Recycle structure.</strong> Open the box far enough to see the reactor and its recycles. Unconverted reactant is usually recovered and returned, linking conversion (Chapter 2) to recycle size.</li>
+<li><strong>Level 4 — Separation system.</strong> Choose and sequence the separations that split the reactor effluent into product, recycle, and waste.</li>
+<li><strong>Level 5 — Heat integration.</strong> Only now, with flows and temperatures known, match hot and cold streams to cut utility use.</li>
+</ul>
+<p>The ordering follows the economics. For commodity chemicals, <strong>raw materials typically dominate the cost of production</strong> — standard textbook figures put them at roughly <strong>33–85% of total production cost</strong>, depending on product and site. The message of that range is unambiguous: a Level 2 decision that wastes feedstock in an unwanted by-product can cost more than every downstream equipment optimization combined. Each level is also a screen — if product value minus raw-material cost is already negative at Level 2, no separation or heat network will rescue the project.</p>
+<h2>4.3 Separations and the Cost of Purity</h2>
+<p>Reactors rarely produce pure product. Separation absorbs much of a plant's equipment and energy, and <strong>distillation is the workhorse</strong> — the most widely used industrial separation for fluid mixtures, and a major energy consumer. Frequently quoted figures attribute roughly <strong>40–50% of the energy used in chemical and refining plant operations</strong> to distillation, and roughly <strong>90% of industrial fluid separations</strong> are performed by it; both are order-of-magnitude survey numbers, but the message is clear. It dominates because it is robust and scalable.</p>
+<p>The classic conceptual design tool for a binary column is the <strong>McCabe–Thiele diagram</strong>. On axes of vapor composition (y) against liquid composition (x), it shows:</p>
+<ul>
+<li>The <strong>equilibrium curve</strong> — what vapor composition is in equilibrium with a given liquid. This is thermodynamics; no design can cross it.</li>
+<li>The <strong>operating lines</strong>, one above the feed and one below — what the material balance actually delivers stage by stage.</li>
+<li><strong>Stage-stepping</strong>, the staircase drawn between the two. Each step is one theoretical stage, so counting steps gives the stages required.</li>
+</ul>
+<p><em>(The video version of this chapter shows a rendered McCabe–Thiele diagram.)</em></p>
+<p>The knob that moves the operating lines is the <strong>reflux ratio</strong> — how much condensed overhead liquid is returned to the top of the column instead of taken as product:</p>
+<table>
+<thead>
+<tr>
+<th>Reflux ratio</th>
+<th>Stages required</th>
+<th>Energy use</th>
+<th>Practicality</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Minimum reflux</strong></td>
+<td>Infinite</td>
+<td>Lowest possible</td>
+<td>Impossible — infinitely tall column</td>
+</tr>
+<tr>
+<td><strong>Total reflux</strong></td>
+<td>Minimum</td>
+<td>Infinite</td>
+<td>Impossible — no product taken</td>
+</tr>
+<tr>
+<td><strong>~1.2–1.5 × minimum</strong></td>
+<td>Finite, moderate</td>
+<td>Moderate</td>
+<td>Standard design heuristic</td>
+</tr>
+</tbody>
+</table>
+<p>More reflux means fewer stages (a shorter, cheaper column) but more reboiler and condenser duty (higher energy cost, forever); less reflux saves energy but demands a taller column. The economic optimum sits between the two impossible extremes, and the long-standing heuristic places it at <strong>1.2 to 1.5 × the minimum reflux ratio</strong>. This is process design's clearest <strong>capital-versus-operating-cost trade-off</strong>: buy equipment once, or pay utilities every hour for twenty years.</p>
+<h2>4.4 Heat Integration and Pinch Analysis</h2>
+<p>A flowsheet has streams that must be heated and streams that must be cooled. Handle them independently and you pay twice — for steam and for cooling water — while a hot stream needing cooling sits next to a cold stream needing heating. <strong>Heat integration</strong> matches them, so one process stream heats another and both utility bills shrink.</p>
+<p>The systematic method is <strong>pinch analysis</strong>, developed by <strong>Bodo Linnhoff</strong> and co-workers in the late 1970s and 1980s. Its insight: the <strong>minimum possible hot and cold utility requirement</strong> can be computed <em>before</em> any exchanger network is designed. Hot streams are combined into one composite curve of heat availability versus temperature, cold streams into another, and the two brought as close together as the chosen minimum temperature approach allows. Where they touch is the <strong>pinch</strong>, the thermodynamic bottleneck. What cannot be supplied internally above it is the minimum hot utility; the surplus below is the minimum cold utility.</p>
+<p>A target changes the question from "is this network good?" to "how far from the thermodynamic minimum?" Three golden rules follow:</p>
+<ol>
+<li><strong>Do not transfer heat across the pinch</strong></li>
+<li><strong>Do not use cold utility above the pinch</strong></li>
+<li><strong>Do not use hot utility below the pinch</strong></li>
+</ol>
+<p>Violating any of them adds duty at both ends at once, moving the design away from the minimum. Applied to existing plants, pinch analysis has repeatedly found large energy savings that inspection alone had missed.</p>
+<h2>4.5 Safety by Design</h2>
+<p>Safety is not a layer added after the flowsheet is finished. The most influential idea here is <strong>inherently safer design</strong>, argued over decades by <strong>Trevor Kletz</strong>: rather than control a hazard, remove it. Four principles:</p>
+<table>
+<thead>
+<tr>
+<th>Principle</th>
+<th>Meaning</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Minimize</strong></td>
+<td>Smaller inventories of hazardous material</td>
+<td>Grams in a continuous reactor, not tonnes in a tank</td>
+</tr>
+<tr>
+<td><strong>Substitute</strong></td>
+<td>A safer material or route</td>
+<td>A less toxic solvent or reagent</td>
+</tr>
+<tr>
+<td><strong>Moderate</strong></td>
+<td>Milder conditions or dilute forms</td>
+<td>Lower pressure and temperature; dilute solution</td>
+</tr>
+<tr>
+<td><strong>Simplify</strong></td>
+<td>Design out complexity and error-prone steps</td>
+<td>Fewer valves, fewer manual operations</td>
+</tr>
+</tbody>
+</table>
+<p>As Kletz put it, <strong>"what you don't have, can't leak"</strong>: a hazard eliminated on paper needs no protective system, no maintenance, and no operator training, ever. The cheapest moment to remove a hazard is the conceptual stage — exactly where Section 4.1 locates the leverage.</p>
+<p>A finished design must then be reviewed systematically. The standard method is <strong>HAZOP</strong> (Hazard and Operability study): a multidisciplinary team walks the piping and instrumentation diagram (the P&amp;ID of Chapter 1) node by node, applying <strong>guide words</strong> — <em>no</em>, <em>more</em>, <em>less</em>, <em>reverse</em>, <em>as well as</em>, <em>part of</em>, <em>other than</em> — to each process parameter. "More flow here: what causes it, what happens, what protects us?" The guide words make the review exhaustive rather than dependent on whoever is imaginative that morning.</p>
+<p>What survives is protected in depth, by <strong>layers of protection</strong> arranged so failure of one does not defeat the next:</p>
+<div class="mermaid">
+flowchart TD
+    A["Inherently safer design"] --> B["Process control (Chapter 3)"]
+    B --> C["Alarms and operator response"]
+    C --> D["Interlocks / safety instrumented system"]
+    D --> E["Pressure relief"]
+    E --> F["Containment and emergency response"]
+</div>
+
+<p>Each layer acts only after those above it have failed; the order is also a priority ranking — the first box is worth more than the last.</p>
+<h2>4.6 Chapter Summary</h2>
+<ul>
+<li>Design balances chemistry, thermodynamics, economics, safety, and environment at once; there is no unique answer, only better and worse designs</li>
+<li>Early decisions dominate: as a rule of thumb, ~80% of lifetime cost is committed at the conceptual stage</li>
+<li>Douglas's hierarchy (1988): batch/continuous → input–output → recycle → separations → heat integration</li>
+<li>Raw materials often dominate production cost (commonly cited as 33–85%), so input–output decisions outweigh equipment optimization</li>
+<li>Distillation dominates separations and consumes large amounts of energy; McCabe–Thiele shows how equilibrium and material balance set the stage count, and reflux trades energy against capital (optimum ≈ 1.2–1.5 × minimum)</li>
+<li>Pinch analysis sets minimum utility targets before network design; obey the three golden rules</li>
+<li>Inherently safer design — minimize, substitute, moderate, simplify — removes hazards on paper; HAZOP reviews systematically; layers of protection catch the rest</li>
+</ul>
+<p><strong>Next chapter</strong>: nearly everything above is optimization over expensive evaluations — flowsheet alternatives, reflux ratios, exchanger networks, candidate chemistries. That is precisely where AI enters chemical engineering.</p>
+<h2>Exercises</h2>
+<ol>
+<li>
+<p><strong>Conceptual</strong>: A team spent six months optimizing a heat-exchanger network, cutting utility cost by 15%. A review then finds that the chosen reaction route sends 30% of the feedstock into an unwanted by-product. Using the hierarchy and Section 4.2, explain which problem deserved attention first.
+   <em>Hint</em>: Which hierarchy level does each issue sit at, and which cost element usually dominates?
+   <em>Answer</em>: The by-product problem sits at <strong>Level 2 (input–output structure / raw-material efficiency)</strong>, while the exchanger network is <strong>Level 5 (heat integration)</strong>. Since raw materials commonly dominate production cost, sending 30% of the feedstock to waste almost certainly outweighs a 15% cut in utilities. The <strong>route should have been fixed first</strong> — and the hierarchy exists precisely to force that order, since a Level-2 defect cannot be repaired at Level 5.</p>
+</li>
+<li>
+<p><strong>Reasoning without calculation</strong>: A column runs at 1.05 × minimum reflux. Describe qualitatively what happens to (a) stages required, (b) reboiler duty, and (c) column height if reflux rises to 1.4 × minimum, and say which are capital and which operating costs.
+   <em>Hint</em>: At minimum reflux the stage count diverges; the heuristic optimum is 1.2–1.5 × minimum.
+   <em>Answer</em>: (a) Stages required <strong>fall</strong>, and sharply — at 1.05 × minimum the count is still near its divergent region. (b) Reboiler (and condenser) duty <strong>rises</strong>, roughly in proportion to the extra reflux boiled. (c) The column gets <strong>shorter</strong>, following the stage count. Stages and height are <strong>capital</strong> cost, paid once; reboiler duty is <strong>operating</strong> cost, paid every hour for the plant's life — which is why the optimum sits at 1.2–1.5 × minimum rather than at either extreme, and why 1.05 × is usually too close to the minimum.</p>
+</li>
+<li>
+<p><strong>Discussion</strong>: A process stores 20 tonnes of a toxic intermediate between two steps. Propose one design change for each of Kletz's four principles, and say where in the layers-of-protection diagram each acts.
+   <em>Hint</em>: Must the intermediate be stored at all? Could a change of route or conditions remove the inventory rather than protect it?
+   <em>Answer</em>: <strong>Minimize</strong> — reschedule or couple the two steps continuously so the intermediate is consumed as fast as it is made, removing the 20-tonne inventory. <strong>Substitute</strong> — adopt an alternative route that never forms the toxic intermediate. <strong>Moderate</strong> — if some hold-up is unavoidable, store it dilute, refrigerated, or at low pressure so a release disperses less energetically. <strong>Simplify</strong> — eliminate the storage step and its transfer lines, valves, and manual operations altogether. All four act in the <strong>top box, "inherently safer design"</strong>, above control, alarms, interlocks, relief, and containment — which is why they are worth more than any of them: a hazard removed on paper reduces the demand placed on every lower layer, forever.</p>
+</li>
+</ol><div class="navigation">
+    <a href="index.html" class="nav-button">Back to Series Index</a>
+    <a href="chapter-5.html" class="nav-button">Next Chapter →</a>
+</div>
+    </main>
+
+    <footer>
+        <p><strong>Created by</strong>: AI Terakoya Content Team</p>
+        <p><strong>Supervised by</strong>: Dr. Yusuke Hashimoto (Tohoku University)</p>
+        <p><strong>Version</strong>: 1.0 | <strong>Created</strong>: 2026-08-23</p>
+        <p><strong>License</strong>: Creative Commons BY 4.0</p>
+        <p>© 2025 AI Terakoya. All rights reserved.</p>
+    </footer>
+</body>
+</html>

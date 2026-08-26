@@ -135,7 +135,7 @@ matminer's `AutoFeaturizer` automatically detects chemical composition or crysta
   * **preset selection** : 
     * `express`: Fast (22 features, 10 sec/1000 compounds)
     * `fast`: Medium speed (50 features, 30 sec/1000 compounds)
-    * `all`: Complete (145 features, 120 sec/1000 compounds)
+    * `all`: Complete (132 features, 120 sec/1000 compounds)
   * **Missing value handling** : Automatic processing with DataCleaner
   * **Feature selection** : Integration with VarianceThreshold, FeatureAgglomeration possible
 
@@ -221,6 +221,8 @@ Utilizing scikit-learn's Pipeline, we create a consistent workflow from data acq
     # - numpy>=1.24.0, <2.0.0
     
     """
+    Example: Utilizing scikit-learn's Pipeline, we create a consistent wo
+    
     Purpose: Demonstrate machine learning model training and evaluation
     Target: Advanced
     Execution time: 1-5 minutes

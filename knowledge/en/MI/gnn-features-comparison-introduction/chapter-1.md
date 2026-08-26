@@ -3,6 +3,22 @@ title: "Chapter 1: Fundamentals of GNN Structure-Based Features"
 chapter_title: "Chapter 1: Fundamentals of GNN Structure-Based Features"
 ---
 
+## Video Lecture
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/GLes8v5VCyM"
+    title="GNN Features Comparison Ch.1: Fundamentals of GNN Structure-Based Features"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> This video covers the same content as the text below. Choose your preferred learning format.
+
 This chapter covers the fundamentals of Fundamentals of GNN Structure, which based features. You will learn three steps of message passing and differences between CGCNN.
 
 **Structural Information Captured by Graph Representations: A World Invisible to Composition-Based Features**

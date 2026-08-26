@@ -8,6 +8,23 @@ code_examples: 9
 exercises: 3
 ---
 
+## ビデオ講義
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/-2Pa_W4N7Kc"
+    title="バイオインフォマティクス入門 第2章: 配列解析と機械学習"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> このビデオは以下のテキストと同じ内容をカバーしています。お好みの学習形式をお選びください。
+
+---
+
 # 第2章：配列解析と機械学習
 
 **タンパク質機能予測の実践**

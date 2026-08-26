@@ -35,7 +35,7 @@ scikit-learn's `Pipeline` is a powerful tool that integrates data preprocessing,
     ```mermaid
     graph LR
                     A[Chemical CompositionFe2O3] --> B[FeaturizerMagpieData]
-                    B --> C[Features145-dim]
+                    B --> C[Features132-dim]
                     C --> D[StandardScalerStandardization]
                     D --> E[ML ModelRandomForest]
                     E --> F[PredictionFormation Energy]
@@ -58,6 +58,8 @@ Here is the basic pattern for integrating matminer Featurizers into scikit-learn
     # - pandas>=2.0.0, <2.2.0
     
     """
+    Example: Here is the basic pattern for integrating matminer Featurize
+    
     Purpose: Demonstrate machine learning model training and evaluation
     Target: Advanced
     Execution time: 1-5 minutes
@@ -82,7 +84,7 @@ Here is the basic pattern for integrating matminer Featurizers into scikit-learn
         'composition': ['Fe2O3', 'Al2O3', 'TiO2', 'SiO2', 'MgO',
                         'CaO', 'Na2O', 'K2O', 'ZnO', 'CuO'],
         'formation_energy': [-8.3, -16.6, -9.7, -9.1, -6.1,
-                             -6.3, -4.2, -3.6, -3.6, -1.6]  # eV/atom
+                             -6.3, -4.2, -3.6, -3.6, -1.6]  # eV/formula unit
     })
     
     # 1. Convert chemical composition from string to Composition object
@@ -140,8 +142,8 @@ Here is the basic pattern for integrating matminer Featurizers into scikit-learn
     predictions = loaded_pipeline.predict(X_test)
     print(f"\nPrediction Examples（First 3 Samples）:")
     for i in range(min(3, len(predictions))):
-        print(f"  Actual Value: {y_test.iloc[i]:.2f} eV/atom, "
-              f"Predicted Value: {predictions[i]:.2f} eV/atom")
+        print(f"  Actual Value: {y_test.iloc[i]:.2f} eV/formula unit, "
+              f"Predicted Value: {predictions[i]:.2f} eV/formula unit")
     
 
 #### 💡 make_pipeline vs Pipeline
@@ -251,6 +253,8 @@ Random Forest achieves high prediction accuracy and overfitting resistance by av
     # - matplotlib>=3.7.0
     
     """
+    Example: Random Forest achieves high prediction accuracy and overfitt
+    
     Purpose: Demonstrate data visualization techniques
     Target: Advanced
     Execution time: 1-5 minutes
@@ -368,6 +372,8 @@ Gradient Boosting is a method that sequentially adds weak learners (shallow deci
     # - xgboost>=2.0.0
     
     """
+    Example: Gradient Boosting is a method that sequentially adds weak le
+    
     Purpose: Demonstrate data visualization techniques
     Target: Advanced
     Execution time: 1-5 minutes
@@ -483,6 +489,9 @@ Gradient Boosting is a method that sequentially adds weak learners (shallow deci
 **RandomizedSearchCV** : Efficiently searches through random sampling (recommended) 
 
 **When to Use** : RandomizedSearchCV is appropriate when the parameter space is wide (e.g., XGBoost), GridSearchCV when narrow (e.g., Random Forest). 
+
+**Optuna** : for gradient-boosting models (XGBoost, LightGBM, CatBoost) the parameter space is large enough that both grid and random search waste most of their budget. `Optuna` replaces them with Bayesian optimisation (TPE): it proposes each trial's parameters from the results of previous trials, and prunes unpromising trials early via `MedianPruner`. In practice it reaches a better validation score than `RandomizedSearchCV` in roughly an order of magnitude fewer trials, which matters when a single 5-fold fit over 130,000 Magpie-featurised compounds takes minutes. The pattern is a small `objective(trial)` function that samples the parameters with `trial.suggest_float` / `trial.suggest_int`, returns the cross-validated MAE, and is handed to `optuna.create_study(direction="minimize").optimize(objective, n_trials=100)`.
+
 
 ### 4.2.4 Neural Network (MLP Regressor)
 
@@ -613,7 +622,7 @@ A Learning Curve visualizes the relationship between training data volume and pr
                     style D fill:#ffccbc
                     style E fill:#ffe0b2
                     style F fill:#b3e5fc
-    ```
+                
     
     
     
@@ -758,15 +767,17 @@ Task | Sample Count | Evaluation Metric | Magpie + RF | ElemNet | CGCNN | MEGNet
 **Dielectric Constant**  
 (matbench_dielectric) | 4,764 | MAE (log10) | 0.29 | 0.26 | 0.21 | 0.23 | 0.19  
 **Perovskite Formation**  
-(matbench_perovskites) | 18,928 | ROCAUC | 0.91 | 0.94 | 0.93 | 0.92 | 0.95  
+(matbench_perovskites) | 18,928 | MAE (eV/atom) | ~0.24 | — | ~0.045 | ~0.035 | ~0.029  
 **Phonon Frequency**  
 (matbench_phonons) | 1,265 | MAE (cm⁻¹) | 89.5 | — | 62.3 | 71.2 | 58.7  
   
+
+**⚠️ Note on matbench_perovskites** : this task is a **regression** problem — predict the DFT formation energy of a perovskite from its structure — not a classification problem, so ROC-AUC does not apply to it. Its metric is MAE in eV/atom, and it is one of the tasks where composition-only models do *worst*: perovskite formation energy is governed by octahedral tilting and cation site ordering, which a composition vector cannot see. Values in that row are approximate Matbench v0.1 leaderboard results, rounded; consult the live leaderboard for exact figures.
+
 #### 🔍 Analysis of Performance Difference Factors
 
 **When composition-based is advantageous** : 
 
-  * **Perovskite Formation** : Chemical composition regularity is dominant (ElemNet: ROCAUC 0.94)
   * **Small-scale Datasets** : GNNs require large amounts of data, composition-based can learn from hundreds of samples
 
 **When GNN is advantageous** : 
@@ -774,6 +785,7 @@ Task | Sample Count | Evaluation Metric | Magpie + RF | ElemNet | CGCNN | MEGNet
   * **Formation Energy** : Crystal structure (coordination number, bond distance) is important (ALIGNN: MAE 0.047 vs ElemNet: 0.065)
   * **Mechanical Properties** : Elastic modulus strongly depends on crystal symmetry
   * **Phonon Frequency** : Atomic arrangement directly affects
+  * **Perovskite Formation** : formation energy is set by octahedral tilting and cation ordering, which composition alone cannot express (Magpie + RF MAE ~0.24 vs ALIGNN ~0.029 eV/atom)
 
 ### 4.3.3 Selection Criteria
 
@@ -809,6 +821,8 @@ We execute the Matbench benchmark and evaluate the performance of composition-ba
     # - pandas>=2.0.0, <2.2.0
     
     """
+    Example: We execute the Matbench benchmark and evaluate the performan
+    
     Purpose: Demonstrate machine learning model training and evaluation
     Target: Advanced
     Execution time: 1-5 minutes
@@ -1187,6 +1201,8 @@ Show sample solution
     # - xgboost>=2.0.0
     
     """
+    Example: Train XGBoostRegressor with default parameters and calculate
+    
     Purpose: Demonstrate machine learning model training and evaluation
     Target: Beginner to Intermediate
     Execution time: 30-60 seconds
@@ -1295,6 +1311,8 @@ Show sample solution
     # - matplotlib>=3.7.0
     
     """
+    Example: Draw learning curves and diagnose overfitting/underfitting. 
+    
     Purpose: Demonstrate data visualization techniques
     Target: Beginner to Intermediate
     Execution time: 1-5 minutes
@@ -1354,6 +1372,8 @@ Show sample solution
     # - shap>=0.42.0
     
     """
+    Example: Calculate SHAP values for a trained Random Forest model and 
+    
     Purpose: Demonstrate data manipulation and preprocessing
     Target: Beginner to Intermediate
     Execution time: ~5 seconds
@@ -1403,6 +1423,8 @@ Show sample solution
     # - xgboost>=2.0.0
     
     """
+    Example: Train three models (Random Forest, XGBoost, MLP) on the same
+    
     Purpose: Demonstrate machine learning model training and evaluation
     Target: Advanced
     Execution time: 30-60 seconds

@@ -14,9 +14,8 @@ exercises: 5
   <iframe
     width="560"
     height="315"
-    src="https://www.youtube.com/embed/2zZUqP-cboU"
+    src="https://www.youtube.com/embed/wW5X1EXoWgE"
     title="Chiral Phonons Ch.3: Experimental Detection"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>

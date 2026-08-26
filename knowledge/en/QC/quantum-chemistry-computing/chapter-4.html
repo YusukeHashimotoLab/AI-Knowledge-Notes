@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Every VQE tutorial you will meet begins with a molecular Hamiltonian that arrived from somewhere else — a library call, a printed table of Pauli coefficients…">
+    <title>Chapter 4: Hands-On: H2 from Scratch - AI Terakoya</title>
+    <link rel="canonical" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/en/QC/quantum-chemistry-computing/chapter-4.html">
+    <link rel="alternate" hreflang="ja" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/jp/QC/quantum-chemistry-computing/chapter-4.html">
+    <link rel="alternate" hreflang="en" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/en/QC/quantum-chemistry-computing/chapter-4.html">
+    <link rel="alternate" hreflang="x-default" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/en/QC/quantum-chemistry-computing/chapter-4.html">
+    <meta property="og:title" content="Chapter 4: Hands-On: H2 from Scratch - AI Terakoya">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/en/QC/quantum-chemistry-computing/chapter-4.html">
+    <meta property="og:site_name" content="AI Terakoya">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:description" content="Every VQE tutorial you will meet begins with a molecular Hamiltonian that arrived from somewhere else — a library call, a printed table of Pauli coefficients…">
+
+    <style>
+        :root {
+            --color-primary: #2c3e50;
+            --color-primary-dark: #1a252f;
+            --color-accent: #7b2cbf;
+            --color-accent-light: #9d4edd;
+            --color-text: #2d3748;
+            --color-text-light: #4a5568;
+            --color-bg: #ffffff;
+            --color-bg-alt: #f7fafc;
+            --color-border: #e2e8f0;
+            --color-code-bg: #f8f9fa;
+            --color-link: #3182ce;
+            --color-link-hover: #2c5aa0;
+
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+
+            --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+            --border-radius: 8px;
+            --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-body);
+            line-height: 1.7;
+            color: var(--color-text);
+            background-color: var(--color-bg);
+            font-size: 16px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            padding: var(--spacing-xl) var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+            box-shadow: var(--box-shadow);
+        }
+
+        .header-content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: var(--spacing-sm);
+            line-height: 1.2;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            font-weight: 400;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-md);
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-md) var(--spacing-xl);
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-xl);
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-xs);
+            border-bottom: 3px solid var(--color-accent);
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-lg);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        h4 {
+            font-size: 1.1rem;
+            color: var(--color-primary-dark);
+            margin-top: var(--spacing-md);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        p {
+            margin-bottom: var(--spacing-md);
+            color: var(--color-text);
+        }
+
+        a {
+            color: var(--color-link);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        a:hover {
+            color: var(--color-link-hover);
+            text-decoration: underline;
+        }
+
+        ul, ol {
+            margin-left: var(--spacing-lg);
+            margin-bottom: var(--spacing-md);
+        }
+
+        li {
+            margin-bottom: var(--spacing-xs);
+            color: var(--color-text);
+        }
+
+        pre {
+            background-color: var(--color-code-bg);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            overflow-x: auto;
+            margin-bottom: var(--spacing-md);
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        code {
+            font-family: var(--font-mono);
+            font-size: 0.9em;
+            background-color: var(--color-code-bg);
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+        }
+
+        pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: var(--spacing-md);
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            border: 1px solid var(--color-border);
+            padding: var(--spacing-sm);
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--color-bg-alt);
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        blockquote {
+            border-left: 4px solid var(--color-accent);
+            padding-left: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            color: var(--color-text-light);
+            font-style: italic;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        .mermaid {
+            text-align: center;
+            margin: var(--spacing-lg) 0;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        details {
+            background-color: var(--color-bg-alt);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+        }
+
+        summary {
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--color-primary);
+            user-select: none;
+            padding: var(--spacing-xs);
+            margin: calc(-1 * var(--spacing-md));
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        summary:hover {
+            background-color: rgba(123, 44, 191, 0.1);
+        }
+
+        details[open] summary {
+            margin-bottom: var(--spacing-md);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .learning-objectives {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: var(--spacing-lg);
+            border-radius: var(--border-radius);
+            border-left: 4px solid var(--color-accent);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .learning-objectives h2 {
+            margin-top: 0;
+            border-bottom: none;
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            gap: var(--spacing-md);
+            margin: var(--spacing-xl) 0;
+            padding-top: var(--spacing-lg);
+            border-top: 2px solid var(--color-border);
+        }
+
+        .nav-button {
+            flex: 1;
+            padding: var(--spacing-md);
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            border-radius: var(--border-radius);
+            text-align: center;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: var(--box-shadow);
+        }
+
+        .nav-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            text-decoration: none;
+        }
+
+        footer {
+            margin-top: var(--spacing-xl);
+            padding: var(--spacing-lg) var(--spacing-md);
+            background-color: var(--color-bg-alt);
+            border-top: 1px solid var(--color-border);
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--color-text-light);
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            h2 {
+                font-size: 1.4rem;
+            }
+
+            h3 {
+                font-size: 1.2rem;
+            }
+
+            .meta {
+                font-size: 0.85rem;
+            }
+
+            .navigation {
+                flex-direction: column;
+            }
+
+            table {
+                font-size: 0.85rem;
+            }
+
+            th, td {
+                padding: var(--spacing-xs);
+            }
+        }
+    </style>
+
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+
+    <!-- MathJax for LaTeX equation rendering -->
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\(', '\)']],
+                displayMath: [['$$', '$$'], ['\[', '\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" id="MathJax-script" async></script>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <h1>Chapter 4: Hands-On: H2 from Scratch</h1>
+            <p class="subtitle">From Gaussian Basis Functions to a VQE Energy, with Every Number Produced by the Code</p>
+            <div class="meta">
+                <span class="meta-item">📖 Reading Time: 20-25 minutes</span>
+                <span class="meta-item">📊 Difficulty: Beginner</span>
+                <span class="meta-item">💻 Code Examples: 0</span>
+                <span class="meta-item">📝 Exercises: 0</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+<h2>Video Lecture</h2>
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/FkSyO-F2TPI"
+    title="Quantum Chemistry Ch.4: Hands-On: H2 from Scratch"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+<p class="video-note">This video covers the same content as the text below. Choose your preferred learning format.</p>
+
+<p>🌐 EN | <a href="../../../jp/QC/quantum-chemistry-computing/chapter-4.html">🇯🇵 JP</a> | Last sync: 2026-08-17</p>
+<p><a href="../index.html">Quantum Computing Dojo</a> &gt; <a href="index.html">Quantum Chemistry with Quantum Computers</a> &gt; Chapter 4</p>
+<p>Every VQE tutorial you will meet begins with a molecular Hamiltonian that arrived from somewhere else — a library call, a printed table of Pauli coefficients, a file. That is a reasonable way to teach the algorithm and a poor way to understand the calculation, because the interesting engineering is upstream of the qubits. Where do those coefficients come from? What decisions were made before the quantum part started, and which of them cap the accuracy no matter how well the optimizer performs?</p>
+<p>This chapter takes the hydrogen molecule apart down to the integrals. Starting from the published STO-3G basis parameters and nothing else, we compute overlap, kinetic, nuclear-attraction and two-electron integrals over Gaussians in closed form, run a Hartree-Fock self-consistent-field loop to convergence, transform to molecular orbitals, build the second-quantized Hamiltonian, map it onto four qubits with the Jordan-Wigner transformation, diagonalize it exactly, and finally run VQE against that exact answer. The tools are <code>numpy</code> and <code>math</code> — no chemistry package, no SciPy, and specifically no <code>scipy.special.erf</code>, because Python's <code>math.erf</code> is all the Boys function needs. <strong>Every number printed here comes out of the run</strong>: the reference energies that VQE is checked against are produced by the same code a few sections earlier, which is what makes the check meaningful rather than decorative.</p>
+<h2>4.1 The Plan</h2>
+<p>Five stages, each producing an artifact the next one consumes.</p>
+<table>
+<thead>
+<tr>
+<th>Stage</th>
+<th>Input</th>
+<th>Output</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1. Basis and integrals</td>
+<td>STO-3G parameters, nuclear geometry</td>
+<td>\(S\), \(T\), \(V\), \((\mu\nu|\lambda\sigma)\), \(E_{\text{nuc}}\)</td>
+</tr>
+<tr>
+<td>2. Hartree-Fock SCF</td>
+<td>those integrals</td>
+<td>MO coefficients \(C\), RHF energy</td>
+</tr>
+<tr>
+<td>3. MO transformation</td>
+<td>\(C\) and the AO integrals</td>
+<td>\(h_{pq}\), \((pq|rs)\)</td>
+</tr>
+<tr>
+<td>4. Jordan-Wigner and FCI</td>
+<td>the MO integrals</td>
+<td>a \(16 \times 16\) matrix, the FCI energy</td>
+</tr>
+<tr>
+<td>5. VQE</td>
+<td>that matrix</td>
+<td>a variational energy, checked against stage 4</td>
+</tr>
+</tbody>
+</table>
+<p>The geometry is fixed throughout: two protons separated by <strong>\(R = 1.4\) bohr</strong>, along the \(z\) axis. That is a choice, stated here so that every subsequent number is reproducible; it is close to, but not derived from, the equilibrium bond length, and we make no claim about the minimum of the potential energy curve.</p>
+<h2>4.2 Stage 1: The Basis Set and the Integrals</h2>
+<h3>📚 The STO-3G Parameters Are a Definition, Not a Result</h3>
+<p>A <strong>basis set</strong> is a fixed list of functions in which molecular orbitals are expanded. STO-3G is the smallest useful one: each atomic orbital is a <strong>contraction</strong> of three Gaussian primitives, chosen once and published, fitted to approximate a Slater-type orbital. For hydrogen there is exactly one basis function per atom,</p>
+<p>\[ \phi_\mu(\mathbf{r}) = \sum_{k=1}^{3} d_k \left( \frac{2\alpha_k}{\pi} \right)^{3/4} e^{-\alpha_k |\mathbf{r} - \mathbf{R}_\mu|^2} \]</p>
+<p>with the published parameters:</p>
+<table>
+<thead>
+<tr>
+<th>\(k\)</th>
+<th>exponent \(\alpha_k\)</th>
+<th>coefficient \(d_k\)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>3.42525091</td>
+<td>0.15432897</td>
+</tr>
+<tr>
+<td>2</td>
+<td>0.62391373</td>
+<td>0.53532814</td>
+</tr>
+<tr>
+<td>3</td>
+<td>0.16885540</td>
+<td>0.44463454</td>
+</tr>
+</tbody>
+</table>
+<p>These six numbers are the only quantities in this chapter taken from outside the code: a <strong>definition</strong> of what "STO-3G for hydrogen" means, not a result. Two consequences follow, and both matter more than they look. With one function per atom the molecule has <strong>two spatial orbitals</strong> and therefore <strong>four spin orbitals</strong>, which is why four qubits will suffice. And a minimal basis is a severe approximation: the ceiling on accuracy is set here, before any quantum algorithm is chosen.</p>
+<h3>📚 The Four Integrals, in Closed Form</h3>
+<p>Gaussians are used instead of the physically better Slater functions for one reason: every integral we need has a closed form. The engine is the <strong>Gaussian product theorem</strong> — the product of two s-type Gaussians centred at \(\mathbf{A}\) and \(\mathbf{B}\) is a single Gaussian centred between them:</p>
+<p>\[ p = \alpha + \beta, \qquad \mathbf{P} = \frac{\alpha \mathbf{A} + \beta \mathbf{B}}{p}, \qquad K_{AB} = \exp\left( -\frac{\alpha\beta}{p} |\mathbf{A} - \mathbf{B}|^2 \right) \]</p>
+<p>With \(N_a = (2\alpha/\pi)^{3/4}\) the normalization of a primitive, the four integrals over normalized s primitives are:</p>
+<p>\[ S_{ab} = N_a N_b \, K_{AB} \left( \frac{\pi}{p} \right)^{3/2} \]</p>
+<p>\[ T_{ab} = N_a N_b \, \frac{\alpha\beta}{p} \left[ 3 - \frac{2\alpha\beta}{p} |\mathbf{A} - \mathbf{B}|^2 \right] K_{AB} \left( \frac{\pi}{p} \right)^{3/2} \]</p>
+<p>\[ V_{ab}^{(C)} = -N_a N_b \, Z_C \, \frac{2\pi}{p} \, K_{AB} \, F_0!\left( p \, |\mathbf{P} - \mathbf{C}|^2 \right) \]</p>
+<p>\[ (ab|cd) = N_a N_b N_c N_d \, \frac{2\pi^{5/2}}{p\,q\sqrt{p+q}} \, K_{AB} K_{CD} \, F_0!\left( \frac{pq}{p+q} |\mathbf{P} - \mathbf{Q}|^2 \right) \]</p>
+<p>where \(q\) and \(\mathbf{Q}\) are the product parameters of the second pair, and two-electron integrals are written in the <strong>chemist convention</strong> \((ab|cd) = \iint a(1) b(1) \frac{1}{r_{12}} c(2) d(2)\).</p>
+<p>Only one special function appears anywhere. The <strong>Boys function</strong> of order zero,</p>
+<p>\[ F_0(x) = \int_0^1 e^{-x t^2} \, dt = \frac{1}{2}\sqrt{\frac{\pi}{x}}\,\mathrm{erf}!\left(\sqrt{x}\right), \qquad F_0(0) = 1 \]</p>
+<p>is what the Coulomb singularity \(1/r\) turns into once the Gaussian integrals are done. Note the removable singularity at \(x = 0\): the closed form divides by \(\sqrt{x}\), so the code must switch to the limiting series \(F_0(x) \approx 1 - x/3\) for small argument.</p>
+<p>Each <strong>contracted</strong> integral is the corresponding primitive integral summed over all combinations of primitives, weighted by the contraction coefficients — three primitives per function means \(3^2 = 9\) primitive terms per overlap element and \(3^4 = 81\) per two-electron integral.</p>
+<pre><code class="language-python">import math
+import numpy as np
+from itertools import product
+
+np.set_printoptions(precision=6, suppress=True)
+
+# The STO-3G parameters for hydrogen: the published basis-set DEFINITION.
+EXP_H = np.array([3.42525091, 0.62391373, 0.16885540])
+COEF_H = np.array([0.15432897, 0.53532814, 0.44463454])
+
+R_BOHR = 1.4                                    # chosen H-H separation, in bohr
+NUC = [(1.0, np.array([0.0, 0.0, 0.0])), (1.0, np.array([0.0, 0.0, R_BOHR]))]
+BASIS = [(EXP_H, COEF_H, NUC[0][1]), (EXP_H, COEF_H, NUC[1][1])]
+NBF = len(BASIS)
+
+def F0(x):                                      # Boys function, math.erf only
+    return 1.0 - x / 3.0 if x &lt; 1e-12 else 0.5 * math.sqrt(math.pi / x) * math.erf(math.sqrt(x))
+
+def Ns(a):                                      # normalization of an s primitive
+    return (2.0 * a / math.pi) ** 0.75
+
+def gp(a, A, b, B):                             # Gaussian product theorem
+    p = a + b
+    return p, (a * A + b * B) / p, math.exp(-a * b / p * float(np.dot(A - B, A - B)))
+
+def s_prim(a, A, b, B):
+    p, _, K = gp(a, A, b, B)
+    return Ns(a) * Ns(b) * K * (math.pi / p) ** 1.5
+
+def t_prim(a, A, b, B):
+    p, _, K = gp(a, A, b, B)
+    mu, AB2 = a * b / p, float(np.dot(A - B, A - B))
+    return Ns(a) * Ns(b) * mu * (3.0 - 2.0 * mu * AB2) * K * (math.pi / p) ** 1.5
+
+def v_prim(a, A, b, B, Zc, C):
+    p, P, K = gp(a, A, b, B)
+    return -Ns(a) * Ns(b) * Zc * (2.0 * math.pi / p) * K * F0(p * float(np.dot(P - C, P - C)))
+
+def eri_prim(a, A, b, B, c, C, d, D):
+    p, P, Kab = gp(a, A, b, B)
+    q, Q, Kcd = gp(c, C, d, D)
+    pref = 2.0 * math.pi ** 2.5 / (p * q * math.sqrt(p + q))
+    return (Ns(a) * Ns(b) * Ns(c) * Ns(d) * pref * Kab * Kcd
+            * F0(p * q / (p + q) * float(np.dot(P - Q, P - Q))))
+
+def contract2(fn):                              # contract a 2-index integral
+    M = np.zeros((NBF, NBF))
+    for i, (ea, ca, A) in enumerate(BASIS):
+        for j, (eb, cb, B) in enumerate(BASIS):
+            M[i, j] = sum(wa * wb * fn(a, A, b, B)
+                          for a, wa in zip(ea, ca) for b, wb in zip(eb, cb))
+    return M
+
+S, T = contract2(s_prim), contract2(t_prim)
+V = sum(contract2(lambda a, A, b, B, Z=Z, C=C: v_prim(a, A, b, B, Z, C)) for Z, C in NUC)
+H_core = T + V
+
+ERI = np.zeros((NBF,) * 4)
+for i, j, k, l in product(range(NBF), repeat=4):
+    (ea, ca, A), (eb, cb, B) = BASIS[i], BASIS[j]
+    (ec, cc, C), (ed, cd, D) = BASIS[k], BASIS[l]
+    ERI[i, j, k, l] = sum(wa * wb * wc * wd * eri_prim(a, A, b, B, c, C, d, D)
+                          for a, wa in zip(ea, ca) for b, wb in zip(eb, cb)
+                          for c, wc in zip(ec, cc) for d, wd in zip(ed, cd))
+
+E_nuc = NUC[0][0] * NUC[1][0] / float(np.linalg.norm(NUC[0][1] - NUC[1][1]))
+
+for name, M in [(&quot;S&quot;, S), (&quot;T&quot;, T), (&quot;V&quot;, V), (&quot;H_core = T + V&quot;, H_core)]:
+    print(f&quot;{name:16s} = [{M[0,0]:+.6f} {M[0,1]:+.6f} ; {M[1,0]:+.6f} {M[1,1]:+.6f}]&quot;)
+print(f&quot;\n(00|00) = {ERI[0,0,0,0]:.9f}   (00|11) = {ERI[0,0,1,1]:.9f}&quot;)
+print(f&quot;(01|01) = {ERI[0,1,0,1]:.9f}   (00|01) = {ERI[0,0,0,1]:.9f}&quot;)
+print(f&quot;\nS symmetric: {np.allclose(S, S.T)}   &quot;
+      f&quot;max |S_ii - 1| = {np.max(np.abs(np.diag(S) - 1.0)):.2e}   &quot;
+      f&quot;(ij|kl) = (kl|ij): {np.allclose(ERI, ERI.transpose(2, 3, 0, 1))}&quot;)
+print(f&quot;nuclear repulsion Z_A Z_B / R = {E_nuc:.9f} hartree&quot;)
+</code></pre>
+<p><strong>Output:</strong></p>
+<pre><code>S                = [+1.000000 +0.659318 ; +0.659318 +1.000000]
+T                = [+0.760032 +0.236455 ; +0.236455 +0.760032]
+V                = [-1.880441 -1.194835 ; -1.194835 -1.880441]
+H_core = T + V   = [-1.120409 -0.958380 ; -0.958380 -1.120409]
+
+(00|00) = 0.774605930   (00|11) = 0.569675915
+(01|01) = 0.297028535   (00|01) = 0.444107650
+
+S symmetric: True   max |S_ii - 1| = 9.11e-09   (ij|kl) = (kl|ij): True
+nuclear repulsion Z_A Z_B / R = 0.714285714 hartree
+</code></pre>
+<p><strong>Reading the result.</strong> The overlap between the two hydrogen 1s functions is \(0.659318\) — large, because at \(1.4\) bohr the atoms are close enough to bond. The diagonal of \(S\) equals 1 to within \(9 \times 10^{-9}\), a check rather than an input: the published contraction coefficients are supposed to produce normalized functions, and they do, to the precision at which they were tabulated. Nuclear attraction is negative everywhere and dominates the positive kinetic energy, so \(H^{\text{core}}\) is negative; the eight-fold permutational symmetry of the two-electron integrals holds exactly.</p>
+<h2>4.3 Stage 2: Restricted Hartree-Fock</h2>
+<p>Hartree-Fock replaces electron-electron repulsion by an average field: each electron moves in the mean field of the others. For a closed-shell molecule with \(2n\) electrons in \(n\) doubly occupied spatial orbitals, this is <strong>restricted</strong> Hartree-Fock (RHF). H₂ has \(n = 1\).</p>
+<p>The orbitals are expanded in the basis, \(\psi_i = \sum_\mu C_{\mu i}\phi_\mu\), and the variational condition becomes the <strong>Roothaan equation</strong> \(\mathbf{F}\mathbf{C} = \mathbf{S}\mathbf{C}\boldsymbol{\varepsilon}\) — a <em>generalized</em> eigenvalue problem, because the basis is not orthogonal. It is reduced to an ordinary one by the symmetric orthogonalizer \(\mathbf{X} = \mathbf{S}^{-1/2}\), computed from the eigendecomposition of \(\mathbf{S}\), after which \(\mathbf{F}' = \mathbf{X}^{T}\mathbf{F}\mathbf{X}\) is diagonalized and \(\mathbf{C} = \mathbf{X}\mathbf{C}'\). The equation is <strong>nonlinear</strong> — the Fock matrix depends on the orbitals it determines — hence a self-consistent-field loop over the density matrix \(P_{\mu\nu} = 2\sum_{i}^{\text{occ}} C_{\mu i} C_{\nu i}\) and</p>
+<p>\[ F_{\mu\nu} = H^{\text{core}}<em _lambda_sigma="\lambda\sigma">{\mu\nu} + \sum</em>} P_{\lambda\sigma} \left[ (\mu\nu|\lambda\sigma) - \frac{1}{2}(\mu\lambda|\nu\sigma) \right], \qquad E_{\text{elec}} = \frac{1}{2}\sum_{\mu\nu} P_{\mu\nu}\left( H^{\text{core}<em _mu_nu="\mu\nu">{\mu\nu} + F</em> \right) \]</p>
+<p>with \(E_{\text{RHF}} = E_{\text{elec}} + E_{\text{nuc}}\). The two terms in the Fock matrix are the <strong>Coulomb</strong> repulsion and the <strong>exchange</strong> interaction, the latter a consequence of antisymmetry with no classical counterpart, carrying the factor \(\frac{1}{2}\) because exchange acts only between electrons of the same spin.</p>
+<pre><code class="language-python">sv, sc = np.linalg.eigh(S)
+X = sc @ np.diag(1.0 / np.sqrt(sv)) @ sc.T      # symmetric orthogonalizer S^(-1/2)
+N_OCC = 1                                       # 2 electrons, 2 per spatial orbital
+
+def fock(P):
+    F = H_core.copy()
+    for m, n in product(range(NBF), repeat=2):
+        F[m, n] += float(np.sum(P * (ERI[m, n] - 0.5 * ERI[m, :, n, :])))
+    return F
+
+# A deliberately lopsided starting guess: both electrons parked on atom A.
+P, E_elec = np.array([[2.0, 0.0], [0.0, 0.0]]), 0.0
+print(f&quot;X^T S X = I: {np.allclose(X.T @ S @ X, np.eye(NBF))}   &quot;
+      f&quot;overlap eigenvalues = {sv}\n&quot;)
+print(&quot;  iter          E_elec (hartree)        change     max |dP|&quot;)
+for it in range(1, 51):
+    eps, Co = np.linalg.eigh(X.T @ fock(P) @ X)
+    C = X @ Co
+    P_new = 2.0 * (C[:, :N_OCC] @ C[:, :N_OCC].T)
+    E_new = 0.5 * float(np.sum(P_new * (H_core + fock(P_new))))
+    dE, dP = E_new - E_elec, float(np.max(np.abs(P_new - P)))
+    print(f&quot;  {it:4d}   {E_new:+22.12f}   {dE:+11.3e}   {dP:.3e}&quot;)
+    P, E_elec = P_new, E_new
+    if abs(dE) &lt; 1e-12 and dP &lt; 1e-12:
+        break
+
+E_rhf = E_elec + E_nuc
+print(f&quot;\nFock hermitian: {np.allclose(fock(P), fock(P).T)}   &quot;
+      f&quot;C^T S C = I: {np.allclose(C.T @ S @ C, np.eye(NBF))}   &quot;
+      f&quot;orbital energies = {eps}&quot;)
+print(f&quot;MO coefficients C (columns are the molecular orbitals) =&quot;)
+print(C)
+print(f&quot;\nelectronic energy = {E_elec:+.9f}   nuclear repulsion = {E_nuc:+.9f}&quot;)
+print(f&quot;TOTAL RHF ENERGY  = {E_rhf:+.9f} hartree&quot;)
+</code></pre>
+<p><strong>Output:</strong></p>
+<pre><code>X^T S X = I: True   overlap eigenvalues = [0.340682 1.659318]
+
+  iter          E_elec (hartree)        change     max |dP|
+     1          -1.827181194524    -1.827e+00   1.284e+00
+     2          -1.830964837516    -3.784e-03   1.028e-01
+     3          -1.830999715265    -3.488e-05   9.533e-03
+     4          -1.831000036365    -3.211e-07   9.115e-04
+     5          -1.831000039321    -2.956e-09   8.743e-05
+     6          -1.831000039348    -2.722e-11   8.389e-06
+     7          -1.831000039348    -2.507e-13   8.049e-07
+     8          -1.831000039348    -1.998e-15   7.723e-08
+     9          -1.831000039348    -2.220e-16   7.410e-09
+    10          -1.831000039348    +0.000e+00   7.110e-10
+    11          -1.831000039348    -2.220e-16   6.822e-11
+    12          -1.831000039348    +2.220e-16   6.546e-12
+    13          -1.831000039348    +0.000e+00   6.279e-13
+
+Fock hermitian: True   C^T S C = I: True   orbital energies = [-0.578203  0.670268]
+MO coefficients C (columns are the molecular orbitals) =
+[[-0.548934 -1.211464]
+ [-0.548934  1.211464]]
+
+electronic energy = -1.831000039   nuclear repulsion = +0.714285714
+TOTAL RHF ENERGY  = -1.116714325 hartree
+</code></pre>
+<p><strong>Reading the result.</strong> Three points.</p>
+<ul>
+<li><strong>The convergence is monotone and roughly linear.</strong> Starting from a deliberately lopsided guess — both electrons parked on one atom — the energy change falls by about two orders of magnitude per iteration until it reaches machine precision at iteration 8. The density settles more slowly than the energy, which is the usual pattern: the energy is stationary at the solution, so first-order errors in the density cost only second order in the energy. That is the variational principle of Chapter 3 appearing in a purely classical calculation.</li>
+<li><strong>Symmetry is recovered, not imposed.</strong> The occupied orbital converges to \(\pm 0.548934\) on both atoms — an equal, symmetric, bonding combination — while the empty one has opposite signs on the two centres, with orbital energies \(-0.578203\) and \(+0.670268\) hartree. Nothing in the code enforced this; the lopsided guess was simply wrong and the iteration corrected it.</li>
+<li><strong>The total RHF energy is \(-1.116714325\) hartree</strong>, made of \(-1.831000039\) electronic and \(+0.714285714\) nuclear repulsion. This is the number the quantum calculation must improve on.</li>
+</ul>
+<h2>4.4 Stage 3: Into the Molecular-Orbital Basis</h2>
+<p>The Hamiltonian we want to put on qubits is written in second quantization, in terms of orbitals rather than of basis functions. That requires transforming the integrals with the coefficients we just obtained:</p>
+<p>\[ h_{pq} = \sum_{\mu\nu} C_{\mu p} H^{\text{core}}<em _nu="\nu" q="q">{\mu\nu} C</em> \, (\mu\nu|\lambda\sigma) \]}, \qquad (pq|rs) = \sum_{\mu\nu\lambda\sigma} C_{\mu p} C_{\nu q} C_{\lambda r} C_{\sigma s</p>
+<p>The second is the notorious <strong>four-index transformation</strong>. Done naively it costs \(O(N^8)\); done as four successive one-index contractions it costs \(O(N^5)\), which is what <code>np.einsum</code> with <code>optimize=True</code> arranges here. With \(N = 2\) the distinction is academic, but it is one of the reasons a "small" molecule is not small.</p>
+<p>The electronic Hamiltonian is then</p>
+<p>\[ \hat{H} = \sum_{pq} \sum_{\sigma} h_{pq}\, a^{\dagger}<em q_sigma="q\sigma">{p\sigma} a</em>} \;+\; \frac{1}{2}\sum_{pqrs} \sum_{\sigma\tau} (pq|rs)\, a^{\dagger<em r_tau="r\tau">{p\sigma} a^{\dagger}</em> \]} a_{s\tau} a_{q\sigma} \;+\; E_{\text{nuc}</p>
+<p>where \(p, q, r, s\) run over the two <strong>spatial</strong> orbitals and \(\sigma, \tau\) over spin. Chapter 2 wrote the same operator with physicist-notation integrals \(h_{pqrs}\); the chemist notation used here is the same object with the four indices paired differently, which is why the creation and annihilation operators do not appear in the same order as the labels.</p>
+<pre><code class="language-python">h_mo = C.T @ H_core @ C
+eri_mo = np.einsum('ip,jq,kr,ls,ijkl-&gt;pqrs', C, C, C, C, ERI, optimize=True)
+
+print(&quot;h_pq =&quot;)
+print(h_mo)
+print(f&quot;(00|00) = {eri_mo[0,0,0,0]:.9f}   (00|11) = {eri_mo[0,0,1,1]:.9f}&quot;)
+print(f&quot;(01|01) = {eri_mo[0,1,0,1]:.9f}   (11|11) = {eri_mo[1,1,1,1]:.9f}&quot;)
+print(f&quot;(00|01) = {eri_mo[0,0,0,1]:.9f}   (vanishes by symmetry)&quot;)
+
+E_check = 2.0 * h_mo[0, 0] + eri_mo[0, 0, 0, 0] + E_nuc
+print(f&quot;\nRHF energy rebuilt from the MO integrals = {E_check:+.9f} hartree&quot;)
+print(f&quot;agrees with the SCF total: {abs(E_check - E_rhf) &lt; 1e-10}   &quot;
+      f&quot;(difference {abs(E_check - E_rhf):.2e})&quot;)
+</code></pre>
+<p><strong>Output:</strong></p>
+<pre><code>h_pq =
+[[-1.252797  0.      ]
+ [ 0.       -0.475602]]
+(00|00) = 0.674594084   (00|11) = 0.663563991
+(01|01) = 0.181257915   (11|11) = 0.697495347
+(00|01) = 0.000000000   (vanishes by symmetry)
+
+RHF energy rebuilt from the MO integrals = -1.116714325 hartree
+agrees with the SCF total: True   (difference 4.44e-16)
+</code></pre>
+<p><strong>Reading the result.</strong> The one-electron matrix is diagonal, \(h_{00} = -1.252797\) and \(h_{11} = -0.475602\) hartree, because the molecular orbitals diagonalize the Fock matrix and, for H₂, the symmetry that makes them bonding and antibonding also makes them eigenfunctions of the core Hamiltonian; \((00|01)\) vanishes for the same reason, since it would couple a gerade and an ungerade orbital. The last two lines are a <strong>cross-check worth its cost</strong>: rebuilding the RHF energy from the transformed integrals alone, \(E_{\text{RHF}} = 2h_{00} + (00|00) + E_{\text{nuc}}\), reproduces the SCF total to \(4 \times 10^{-16}\) hartree. An error in the four-index transformation is easy to make and silent — this catches it.</p>
+<h2>4.5 Stage 4: Jordan-Wigner and Exact Diagonalization</h2>
+<p>Four spin orbitals become four qubits. Ordering them as \(0\alpha, 0\beta, 1\alpha, 1\beta\) on qubits \(0,1,2,3\), the <strong>Jordan-Wigner transformation</strong> represents each fermionic annihilation operator as</p>
+<p>\[ a_p = \left( \bigotimes_{q &lt; p} Z_q \right) \sigma^-_p, \qquad \sigma^- = |0\rangle\langle 1| \]</p>
+<p>The lowering operator does the physical work — it empties an occupied spin orbital — and the string of \(Z\) operators on all lower-indexed qubits supplies the fermionic minus sign. Without it, the operators would commute like bosons; with it, they anticommute, and the code verifies \({a_p, a_q^\dagger} = \delta_{pq}\) numerically before building anything.</p>
+<p>Substituting these matrices into the second-quantized Hamiltonian gives an explicit \(16 \times 16\) matrix. We can then do what a real calculation cannot: diagonalize it. Its lowest eigenvalue in the neutral-singlet sector is the <strong>full configuration interaction (FCI)</strong> energy — exact within this basis set, and the target VQE will be measured against.</p>
+<pre><code class="language-python">N_SO, DIM = 4, 16
+Zp = np.array([[1.0, 0.0], [0.0, -1.0]])
+LOW = np.array([[0.0, 1.0], [0.0, 0.0]])            # sigma^- = |0&gt;&lt;1|
+
+def jw(p):                                          # a_p = Z_0 ... Z_{p-1} sigma^-_p
+    op = np.array([[1.0]])
+    for q in range(N_SO):
+        op = np.kron(op, Zp if q &lt; p else (LOW if q == p else np.eye(2)))
+    return op
+
+def so(p, sigma):                                   # 0a, 0b, 1a, 1b -&gt; qubits 0..3
+    return 2 * p + sigma
+
+a = [jw(p) for p in range(N_SO)]
+ad = [op.T for op in a]
+err = max(float(np.max(np.abs(a[p] @ ad[q] + ad[q] @ a[p]
+                              - (np.eye(DIM) if p == q else 0.0))))
+          for p, q in product(range(N_SO), repeat=2))
+print(f&quot;max deviation in the anticommutator (a_p, a_q^dag) = delta_pq : {err:.2e}&quot;)
+
+H_q = E_nuc * np.eye(DIM)
+for (p, q), sg in product(product(range(2), repeat=2), (0, 1)):
+    H_q += h_mo[p, q] * (ad[so(p, sg)] @ a[so(q, sg)])
+for (p, q, r, s), (sg, tau) in product(product(range(2), repeat=4),
+                                       product((0, 1), repeat=2)):
+    H_q += 0.5 * eri_mo[p, q, r, s] * (ad[so(p, sg)] @ ad[so(r, tau)]
+                                       @ a[so(s, tau)] @ a[so(q, sg)])
+
+HF, DOUBLE = 0b1100, 0b0011
+print(f&quot;H is {H_q.shape[0]}x{H_q.shape[1]}, hermitian: {np.allclose(H_q, H_q.T)}&quot;)
+print(f&quot;&lt;1100|H|1100&gt; = {H_q[HF, HF]:+.9f}   equals the SCF total: &quot;
+      f&quot;{abs(H_q[HF, HF] - E_rhf) &lt; 1e-10}&quot;)
+
+evals = np.linalg.eigvalsh(H_q)
+print(&quot;\nfull 16x16 spectrum (hartree)&quot;)
+for k in range(0, DIM, 4):
+    print(&quot;  &quot; + &quot;  &quot;.join(f&quot;{v:+14.9f}&quot; for v in evals[k:k + 4]))
+
+sectors = {}
+for i in range(DIM):
+    o = [(i &gt;&gt; (N_SO - 1 - q)) &amp; 1 for q in range(N_SO)]
+    sectors.setdefault((sum(o), o[0] + o[2] - o[1] - o[3]), []).append(i)
+
+print(&quot;\n   N   2*Sz   dim      lowest energy (hartree)&quot;)
+low, allv = {}, []
+for key in sorted(sectors):
+    vals = np.linalg.eigvalsh(H_q[np.ix_(sectors[key], sectors[key])])
+    low[key] = float(vals[0])
+    allv.extend(vals.tolist())
+    print(f&quot;  {key[0]:2d}   {key[1]:+4d}   {len(sectors[key]):3d}   {vals[0]:+22.9f}&quot;)
+print(f&quot;\nsector eigenvalues reproduce the full spectrum: &quot;
+      f&quot;{np.allclose(np.sort(np.array(allv)), evals)}&quot;)
+
+E_fci = low[(2, 0)]
+print(f&quot;\nTOTAL RHF ENERGY   = {E_rhf:+.9f} hartree&quot;)
+print(f&quot;FCI GROUND ENERGY  = {E_fci:+.9f} hartree&quot;)
+print(f&quot;CORRELATION ENERGY = {E_fci - E_rhf:+.9f} hartree&quot;)
+print(f&quot;FCI &lt;= RHF: {E_fci &lt;= E_rhf}   &quot;
+      f&quot;FCI is the global minimum of the 16x16: {abs(E_fci - evals[0]) &lt; 1e-12}&quot;)
+
+dets = [0b1100, 0b1001, 0b0110, 0b0011]
+print(&quot;\nthe N=2, Sz=0 block in the basis |1100&gt;, |1001&gt;, |0110&gt;, |0011&gt;&quot;)
+print(H_q[np.ix_(dets, dets)])
+print(f&quot;&lt;1100|H|1001&gt; = {H_q[HF, 0b1001]:+.2e}      &quot;
+      f&quot;&lt;1100|H|0011&gt; = {H_q[HF, DOUBLE]:+.9f}&quot;)
+
+# How many Pauli strings does this Hamiltonian actually contain?
+PAULI = {'I': np.eye(2), 'X': np.array([[0, 1], [1, 0]], dtype=complex),
+         'Y': np.array([[0, -1j], [1j, 0]]), 'Z': np.array([[1, 0], [0, -1]], dtype=complex)}
+n_terms = 0
+for st in product('IXYZ', repeat=N_SO):
+    M = np.array([[1.0]], dtype=complex)
+    for ch in st:
+        M = np.kron(M, PAULI[ch])
+    if abs(complex(np.trace(M.conj().T @ H_q)) / DIM) &gt; 1e-12:
+        n_terms += 1
+print(f&quot;\nnonzero Pauli strings out of the 256 four-qubit strings: {n_terms}&quot;)
+</code></pre>
+<p><strong>Output:</strong></p>
+<pre><code>max deviation in the anticommutator (a_p, a_q^dag) = delta_pq : 0.00e+00
+H is 16x16, hermitian: True
+&lt;1100|H|1100&gt; = -1.116714325   equals the SCF total: True
+
+full 16x16 spectrum (hartree)
+    -1.137275944    -0.538511348    -0.538511348    -0.531807570
+    -0.531807570    -0.531807570    -0.446446557    -0.446446557
+    -0.169291741    +0.238683415    +0.238683415    +0.353649468
+    +0.353649468    +0.481138081    +0.714285714    +0.921316558
+
+   N   2*Sz   dim      lowest energy (hartree)
+   0     +0     1             +0.714285714
+   1     -1     2             -0.538511348
+   1     +1     2             -0.538511348
+   2     -2     1             -0.531807570
+   2     +0     4             -1.137275944
+   2     +2     1             -0.531807570
+   3     -1     2             -0.446446557
+   3     +1     2             -0.446446557
+   4     +0     1             +0.921316558
+
+sector eigenvalues reproduce the full spectrum: True
+
+TOTAL RHF ENERGY   = -1.116714325 hartree
+FCI GROUND ENERGY  = -1.137275944 hartree
+CORRELATION ENERGY = -0.020561619 hartree
+FCI &lt;= RHF: True   FCI is the global minimum of the 16x16: True
+
+the N=2, Sz=0 block in the basis |1100&gt;, |1001&gt;, |0110&gt;, |0011&gt;
+[[-1.116714  0.       -0.        0.181258]
+ [ 0.       -0.35055  -0.181258  0.      ]
+ [-0.       -0.181258 -0.35055  -0.      ]
+ [ 0.181258  0.       -0.        0.460576]]
+&lt;1100|H|1001&gt; = +2.80e-14      &lt;1100|H|0011&gt; = +0.181257915
+
+nonzero Pauli strings out of the 256 four-qubit strings: 15
+</code></pre>
+<p><strong>Reading the result.</strong> Five points, and the second is the one to remember.</p>
+<ul>
+<li><strong>The Hartree-Fock determinant is on the diagonal.</strong> \(\langle 1100|\hat{H}|1100\rangle = -1.116714325\) hartree, identical to the SCF total of stage 2. Two independent routes — an SCF loop over density matrices, and a matrix element of a qubit operator — produce the same number, which validates the whole chain from integrals to Jordan-Wigner. The Hamiltonian is also <strong>block diagonal in particle number and spin</strong>: each sector's eigenvalues, computed separately, reassemble into the full spectrum exactly, a consequence of \(\hat{H}\) commuting with the number and \(S_z\) operators, and the structural fact stage 5 exploits.</li>
+<li><strong>FCI lies below RHF, as the variational principle requires.</strong> \(E_{\text{FCI}} = -1.137275944\) against \(E_{\text{RHF}} = -1.116714325\) hartree, so the <strong>correlation energy</strong> computed by this code is \(-0.020561619\) hartree. That is the entire prize on offer here: what the mean-field picture misses. Be precise about what it is — the difference between exact and Hartree-Fock <em>within the STO-3G basis</em>. It is not the correlation energy of the hydrogen molecule, because the basis is minimal, and no algorithm run inside this basis can recover what the basis cannot represent.</li>
+<li><strong>The neutral singlet is also the global minimum</strong> of the \(16 \times 16\) matrix, though nothing guaranteed that in advance. Ionized sectors sit higher: removing an electron costs more than the nuclear repulsion saves.</li>
+<li><strong>The Hamiltonian contains fifteen Pauli strings.</strong> Decomposing the \(16 \times 16\) matrix in the 256-element four-qubit Pauli basis leaves exactly 15 strings with a nonzero coefficient, identity included. Chapter 5 takes that count as its starting point for the measurement problem, and argues there that it follows from the symmetry rather than from hydrogen's particular integrals.</li>
+<li><strong>Only one off-diagonal element matters.</strong> In the four-determinant \(N=2, S_z=0\) block, the Hartree-Fock determinant couples to the doubly excited \(|0011\rangle\) with strength \(+0.181257915\), and to the two singly excited determinants with matrix elements of order \(10^{-14}\) — numerically zero. This is Brillouin's theorem and orbital symmetry appearing as a printed number rather than as an assertion.</li>
+</ul>
+<h2>4.6 Stage 5: VQE on the Reduced Problem</h2>
+<p>The last observation is a gift. Since the ground state has no weight on the singly excited determinants, the entire problem lives in a <strong>two-dimensional</strong> subspace spanned by \(|1100\rangle\) and \(|0011\rangle\), and a single parameter is enough:</p>
+<p>\[ |\psi(\theta)\rangle = \cos\frac{\theta}{2}\,|1100\rangle + \sin\frac{\theta}{2}\,|0011\rangle \]</p>
+<p>At \(\theta = 0\) this is exactly the Hartree-Fock determinant, which is the standard VQE starting point. Because the energy has the closed form</p>
+<p>\[ E(\theta) = \frac{H_{00} + H_{11}}{2} + \frac{H_{00} - H_{11}}{2}\cos\theta + H_{01}\sin\theta \]</p>
+<p>the parameter-shift rule of Chapter 3 is <strong>exact</strong> for this ansatz, not merely a good estimator.</p>
+<p>Our code manipulates the state vector directly. On hardware the same state is prepared by \(X\) gates on qubits 0 and 1 to make the Hartree-Fock determinant, followed by an entangling block containing a single \(R_y(\theta)\) that transfers amplitude coherently to \(|0011\rangle\) — a double-excitation, or Givens, rotation. The parameter-shift rule applies because \(\theta\) enters through exactly one such rotation. This is a symmetry-preserving ansatz in the sense of Chapter 3: it cannot leave the \(N=2, S_z=0\) sector, so the optimizer cannot wander off into a different chemical species.</p>
+<pre><code class="language-python">def ansatz(t):                                  # cos(t/2)|1100&gt; + sin(t/2)|0011&gt;
+    psi = np.zeros(DIM)
+    psi[HF], psi[DOUBLE] = math.cos(t / 2.0), math.sin(t / 2.0)
+    return psi
+
+def energy(t):
+    psi = ansatz(t)
+    return float(psi @ H_q @ psi)
+
+def grad(t):                                    # parameter-shift rule, exact here
+    return 0.5 * (energy(t + math.pi / 2) - energy(t - math.pi / 2))
+
+print(&quot;   theta      E(theta) (hartree)&quot;)
+for t in np.linspace(-1.0, 0.5, 7):
+    print(f&quot;  {t:+.4f}   {energy(t):+18.9f}&quot;)
+
+theta = 0.0                                     # start at the Hartree-Fock determinant
+print(&quot;\n step        theta        E(theta) (hartree)     E - E_FCI     dE/dtheta&quot;)
+for step in range(13):
+    if step % 2 == 0:
+        print(f&quot;  {step:3d}   {theta:+11.8f}   {energy(theta):+18.9f}   &quot;
+              f&quot;{energy(theta) - E_fci:+11.3e}   {grad(theta):+11.3e}&quot;)
+    theta = theta - grad(theta)
+
+E_vqe, psi = energy(theta), ansatz(theta)
+print(f&quot;\noptimal theta = {theta:+.9f} rad&quot;)
+print(f&quot;VQE ENERGY    = {E_vqe:+.9f} hartree      FCI ENERGY = {E_fci:+.9f} hartree&quot;)
+print(f&quot;|VQE - FCI|   = {abs(E_vqe - E_fci):.3e} hartree   &quot;
+      f&quot;VQE &gt;= FCI: {E_vqe - E_fci &gt; -1e-12}&quot;)
+print(f&quot;amplitudes: |1100&gt; = {psi[HF]:+.9f}   |0011&gt; = {psi[DOUBLE]:+.9f}   &quot;
+      f&quot;HF weight = {psi[HF] ** 2:.9f}&quot;)
+print(f&quot;\nRHF {E_rhf:+.9f}    FCI {E_fci:+.9f}    VQE {E_vqe:+.9f}    &quot;
+      f&quot;correlation {E_fci - E_rhf:+.9f}&quot;)
+</code></pre>
+<p><strong>Output:</strong></p>
+<pre><code>   theta      E(theta) (hartree)
+  -1.0000         -0.906699132
+  -0.7500         -1.028664408
+  -0.5000         -1.107070050
+  -0.2500         -1.137041175
+  +0.0000         -1.116714325
+  +0.2500         -1.047353324
+  +0.5000         -0.933270703
+
+ step        theta        E(theta) (hartree)     E - E_FCI     dE/dtheta
+    0   +0.00000000         -1.116714325    +2.056e-02    +1.813e-01
+    2   -0.21737965         -1.137246494    +2.945e-05    +6.904e-03
+    4   -0.22560061         -1.137275905    +3.903e-08    +2.513e-04
+    6   -0.22589989         -1.137275944    +5.172e-11    +9.149e-06
+    8   -0.22591078         -1.137275944    +6.883e-14    +3.330e-07
+   10   -0.22591118         -1.137275944    +2.220e-16    +1.212e-08
+   12   -0.22591119         -1.137275944    +0.000e+00    +4.413e-10
+
+optimal theta = -0.225911191 rad
+VQE ENERGY    = -1.137275944 hartree      FCI ENERGY = -1.137275944 hartree
+|VQE - FCI|   = 2.220e-16 hartree   VQE &gt;= FCI: True
+amplitudes: |1100&gt; = +0.993627297   |0011&gt; = -0.112715549   HF weight = 0.987295205
+
+RHF -1.116714325    FCI -1.137275944    VQE -1.137275944    correlation -0.020561619
+</code></pre>
+<p><strong>Reading the result.</strong> Four points.</p>
+<ul>
+<li><strong>The scan shows the Hartree-Fock state is not the minimum.</strong> \(E(0) = -1.116714325\) hartree is the RHF energy by construction, and the curve dips below it on the negative-\(\theta\) side. Correlation energy is visible as the depth of that dip.</li>
+<li><strong>VQE reaches the FCI energy to machine precision.</strong> \(-1.137275944\) hartree from both, differing by \(2 \times 10^{-16}\) — floating-point roundoff. The gradient descent needs about ten steps to exhaust double precision. The variational check \(E_{\text{VQE}} \geq E_{\text{FCI}}\) holds, as it must, since the ansatz is a subset of the full space.</li>
+<li><strong>The correlated state is still 98.7% Hartree-Fock.</strong> The optimum sits at \(\theta = -0.225911\) rad, giving amplitudes \(+0.993627\) on \(|1100\rangle\) and \(-0.112716\) on \(|0011\rangle\). H₂ near equilibrium is a weakly correlated system, and this is why a single reference determinant works so well for it. Stretch the bond and that number falls — which is precisely why bond dissociation is the standard hard case.</li>
+<li><strong>This matching proves the implementation, not an advantage.</strong> The whole calculation ran on a laptop in a fraction of a second, and the "quantum" step optimized one angle over a two-dimensional space. What has been demonstrated is that the pipeline is correct end to end.</li>
+</ul>
+<h2>4.7 What Changed, and What Comes Next</h2>
+<p>Compare this chapter to the toy models that preceded it.</p>
+<ul>
+<li><strong>The coefficients are no longer invented.</strong> In Chapter 3 the numbers \(0.5, 0.5, 0.25, 0.3\) were chosen to make a readable example. Here every coefficient in the qubit Hamiltonian traces back through the four-index transformation, the SCF loop, and the Gaussian integrals to six published basis-set parameters and one chosen bond length.</li>
+<li><strong>There is a real approximation hierarchy.</strong> Minimal basis, then mean field, then exact-within-basis. Each level has a number attached, and each number came out of the run. The VQE energy improves on Hartree-Fock by \(0.0206\) hartree and improves on FCI by nothing, because FCI is the ceiling inside this basis.</li>
+<li><strong>Symmetry did the heavy lifting, and exact diagonalization was affordable.</strong> Four qubits became a two-dimensional subspace and one parameter, not by approximation but by exploiting conservation laws the Hamiltonian genuinely obeys — every serious VQE implementation does some version of this. And the FCI space we diagonalized had 16 dimensions, which is the whole point, and is temporary.</li>
+</ul>
+<p>That last item is where Chapter 5 begins. The Hilbert space grows exponentially with the number of spin orbitals, so the FCI matrix that fitted in a \(16 \times 16\) array here becomes astronomically large for a molecule of chemical interest — which is the motivation for the whole enterprise, and also the reason none of it is easy. Chapter 5 examines what actually breaks as the system grows: the number of Pauli terms and the shots they demand, the depth of a chemically adequate ansatz, barren plateaus in the optimization landscape, and the gap between the demonstrations that exist and the calculations that would be useful. It is the honest accounting chapter, and it belongs at the end.</p>
+<h3>🎯 Exercise Problems</h3>
+<ol>
+<li><strong>Move the nuclei.</strong> Re-run the code at \(R = 1.0\), \(1.4\), \(2.0\), and \(3.0\) bohr and tabulate RHF, FCI, and the correlation energy. At which separation does the weight of the Hartree-Fock determinant in the FCI ground state fall furthest, and why is that the case that mean-field methods handle worst?</li>
+<li><strong>The Boys function limit.</strong> Show that \(F_0(x) \to 1\) as \(x \to 0\), and derive the first correction \(F_0(x) \approx 1 - x/3\). Then remove the small-\(x\) branch from the code and find the separation at which the result becomes visibly wrong.</li>
+<li><strong>Break the check.</strong> Deliberately transpose two index labels in the four-index transformation. Which of the printed cross-checks catches it, and which stay silent? What does that tell you about where to put assertions in scientific code?</li>
+<li><strong>Count the terms.</strong> For \(M\) spatial orbitals the second-quantized Hamiltonian has \(O(M^4)\) two-electron coefficients. Evaluate that count for \(M = 2\), \(10\), and \(50\), and combine it with the shot-scaling argument of Chapter 3 to estimate how the measurement cost grows.</li>
+<li><strong>The variational bound, deliberately violated.</strong> Restrict \(\theta\) to \([0, \pi]\) and re-optimize. Show numerically that the energy stays above the FCI value, and explain which property of the variational principle guarantees you cannot accidentally report a number below it.</li>
+</ol>
+<h2>Summary</h2>
+<p>This chapter built a complete quantum-chemistry-to-qubits pipeline in NumPy and ran it on H₂ at \(R = 1.4\) bohr. Starting from the <strong>STO-3G parameters</strong> for hydrogen — six published numbers that constitute the definition of the basis, and the only external input in the chapter — we evaluated overlap, kinetic, nuclear-attraction and two-electron integrals in closed form over contracted s-type Gaussians, using the <strong>Gaussian product theorem</strong> and the <strong>Boys function</strong> \(F_0(x) = \frac{1}{2}\sqrt{\pi/x}\,\mathrm{erf}(\sqrt{x})\) computed with <code>math.erf</code> alone. A <strong>restricted Hartree-Fock</strong> SCF loop, started from a deliberately lopsided density, converged monotonically to a <strong>total RHF energy of \(-1.116714325\) hartree</strong> (\(-1.831000039\) electronic plus \(+0.714285714\) nuclear repulsion), recovering the symmetric bonding orbital that the initial guess had broken. Transforming to molecular orbitals gave \(h_{pq}\) and \((pq|rs)\), cross-checked by rebuilding the RHF energy from them to \(4 \times 10^{-16}\) hartree. The <strong>Jordan-Wigner transformation</strong> turned four spin orbitals into four qubits and the second-quantized Hamiltonian into an explicit \(16 \times 16\) matrix, whose fermionic anticommutation relations the code verified before use; exact diagonalization gave an <strong>FCI energy of \(-1.137275944\) hartree</strong> in the \(N=2, S_z=0\) sector and hence a <strong>correlation energy of \(-0.020561619\) hartree</strong> — the exact-minus-mean-field difference <em>within this basis</em>, with FCI below RHF as the variational principle requires. Finally, exploiting the block structure of the Hamiltonian, a <strong>one-parameter VQE</strong> over the subspace spanned by \(|1100\rangle\) and \(|0011\rangle\) converged with exact parameter-shift gradients to \(-1.137275944\) hartree, matching the code's own FCI value to \(2 \times 10^{-16}\), with the optimized state still 98.7% Hartree-Fock in character.</p>
+<p>The next chapter asks the question this one has carefully set up. Everything here ran on a laptop, faster and more accurately than any quantum device could manage — so what changes when the molecule gets bigger, and what would have to become true before a quantum computer earned its place in this calculation?</p>
+<p><a href="chapter-3.html">← Chapter 3: VQE: The Algorithm</a> <a href="chapter-5.html">Chapter 5: Beyond H2: The Honest Frontier →</a></p>
+<h3>Disclaimer</h3>
+<ul>
+<li>This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical warranty, etc.).</li>
+<li>This content and accompanying code examples are provided "AS IS" without any warranty, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
+<li>The author and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.</li>
+<li>To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+<li>The content may be changed, updated, or discontinued without notice.</li>
+<li>The copyright and license of this content are subject to the stated conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.</li>
+</ul><div class="navigation">
+    <a href="index.html" class="nav-button">Back to Series Index</a>
+    <a href="chapter-5.html" class="nav-button">Next Chapter →</a>
+</div>
+    </main>
+
+    <footer>
+        <p><strong>Created by</strong>: AI Terakoya Content Team</p>
+        <p><strong>Supervised by</strong>: Dr. Yusuke Hashimoto (Tohoku University)</p>
+        <p><strong>Version</strong>: 1.0 | <strong>Created</strong>: 2025-01-01</p>
+        <p><strong>License</strong>: Creative Commons BY 4.0</p>
+        <p>© 2025 AI Terakoya. All rights reserved.</p>
+    </footer>
+</body>
+</html>

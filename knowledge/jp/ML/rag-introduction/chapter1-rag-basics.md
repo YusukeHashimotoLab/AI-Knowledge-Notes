@@ -89,8 +89,8 @@ RAGシステムは以下の3つの主要コンポーネントで構成されま�
 #### 実装例2: 複数フォーマット対応ローダー
     
     
-    from langchain.document_loaders import (
-        TextLoader, PDFLoader, CSVLoader,
+    from langchain_community.document_loaders import (
+        TextLoader, PyPDFLoader, CSVLoader,
         UnstructuredMarkdownLoader, UnstructuredHTMLLoader
     )
     import os
@@ -100,7 +100,7 @@ RAGシステムは以下の3つの主要コンポーネントで構成されま�
     
         LOADERS = {
             '.txt': TextLoader,
-            '.pdf': PDFLoader,
+            '.pdf': PyPDFLoader,
             '.csv': CSVLoader,
             '.md': UnstructuredMarkdownLoader,
             '.html': UnstructuredHTMLLoader,

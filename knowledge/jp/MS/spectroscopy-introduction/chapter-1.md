@@ -4,6 +4,22 @@ chapter_title: 第1章：分光法の基礎
 subtitle: 光と物質の相互作用から理解する分光分析の原理
 ---
 
+## ビデオ講義
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/pEHTAkGLAO0"
+    title="分光分析入門 第1章: 分光法の基礎"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> このビデオは以下のテキストと同じ内容をカバーしています。お好みの学習形式をお選びください。
+
 ## イントロダクション
 
 分光法（Spectroscopy）は、光（電磁波）と物質の相互作用を利用して、物質の構造、組成、電子状態を解析する強力な分析手法です。材料科学において、分光法は非破壊的に試料の特性を評価できる点で極めて重要な役割を果たしています。
@@ -149,11 +165,11 @@ $$A = \log_{10}\left(\frac{I_0}{I}\right) = \varepsilon c l$$
     graph LR
         subgraph "光と物質の相互作用"
         A[入射光] --> B{物質}
-        B --> C[吸収エネルギー吸収]
-        B --> D[発光エネルギー放出]
-        B --> E[散乱方向変化]
-        E --> F[レイリー弾性]
-        E --> G[ラマン非弾性]
+        B --> C[吸収<br/>エネルギー吸収]
+        B --> D[発光<br/>エネルギー放出]
+        B --> E[散乱<br/>方向変化]
+        E --> F[レイリー<br/>弾性]
+        E --> G[ラマン<br/>非弾性]
         end
     
         style A fill:#4ecdc4,stroke:#333,stroke-width:2px
@@ -559,7 +575,7 @@ $$W_{i \to f} = \frac{2\pi}{\hbar} |\langle f | \hat{H}' | i \rangle|^2 \rho(E_f
     def transition_dipole_moment(n_i, n_f, x, alpha=1.0):
         """
         調和振動子間の遷移双極子モーメント積分
-        mu_fi = <f|x|i>
+        mu_fi = 
         """
         psi_i = harmonic_oscillator_wavefunction(x, n_i, alpha)
         psi_f = harmonic_oscillator_wavefunction(x, n_f, alpha)
@@ -601,7 +617,7 @@ $$W_{i \to f} = \frac{2\pi}{\hbar} |\langle f | \hat{H}' | i \rangle|^2 \rho(E_f
     ax2.set_title('|Transition Dipole Moment| Matrix', fontsize=12, fontweight='bold')
     ax2.set_xticks(range(n_max))
     ax2.set_yticks(range(n_max))
-    plt.colorbar(im, ax=ax2, label='|<f|x|i>|')
+    plt.colorbar(im, ax=ax2, label='||')
     
     # 左下：許容遷移 (Delta n = +1) の可視化
     ax3 = axes[1, 0]
@@ -660,7 +676,7 @@ $$W_{i \to f} = \frac{2\pi}{\hbar} |\langle f | \hat{H}' | i \rangle|^2 \rho(E_f
     print()
     print("選択則: Delta n = +/- 1 のみ許容")
     print()
-    print(f"{'遷移':<15} {'|<f|x|i>|':<15} {'許容/禁制':<15}")
+    print(f"{'遷移':<15} {'||':<15} {'許容/禁制':<15}")
     print("-" * 45)
     for n_i in range(4):
         for n_f in range(4):
@@ -785,7 +801,7 @@ $$W_{i \to f} = \frac{2\pi}{\hbar} |\langle f | \hat{H}' | i \rangle|^2 \rho(E_f
     
     ```mermaid
     graph LR
-        A[光源] --> B[モノクロメーターまたは干渉計]
+        A[光源] --> B[モノクロメーター<br/>または干渉計]
         B --> C[試料]
         C --> D[検出器]
         D --> E[データ処理]

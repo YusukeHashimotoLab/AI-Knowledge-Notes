@@ -4,6 +4,23 @@ chapter_title: "第3章: マルコフ過程とポアソン過程"
 subtitle: Markov Processes and Poisson Processes
 ---
 
+## ビデオ講義
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/SCN8skog8rE"
+    title="確率論と確率過程 第3章: マルコフ過程とポアソン過程"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> このビデオは以下のテキストと同じ内容をカバーしています。お好みの学習形式をお選びください。
+
+---
+
 🌐 JP | [🇬🇧 EN](<../../../en/FM/probability-stochastic-processes/chapter-3.html>) | Last sync: 2025-11-16
 
 [基礎数理道場](<../index.html>) > [確率論と確率過程](<index.html>) > 第3章 

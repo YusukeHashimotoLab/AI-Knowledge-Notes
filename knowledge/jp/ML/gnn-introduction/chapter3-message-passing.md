@@ -8,6 +8,22 @@ code_examples: 8
 exercises: 5
 ---
 
+## ビデオ講義
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/F84C0BHumac"
+    title="GNN入門 第3章: メッセージパッシングとGNN"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> このビデオは以下のテキストと同じ内容をカバーしています。お好みの学習形式をお選びください。
+
 ## 学習目標
 
 この章を読むことで、以下を習得できます：

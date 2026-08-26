@@ -39,8 +39,8 @@ In materials discovery, **chemical composition** (types and ratios of elements) 
     graph LR
         A["Chemical FormulaFe₂O₃"] --> B["Element ExtractionFe: 2 atomsO: 3 atoms"]
         B --> C["Elemental Property RetrievalFe: Atomic Radius=1.26Å, IE=7.9eVO: Atomic Radius=0.66Å, IE=13.6eV"]
-        C --> D["Statistical AggregationMean Atomic Radius=0.92ÅMean IE=10.1eV..."]
-        D --> E["Feature Vector[0.92, 10.1, ...](145 dimensions)"]
+        C --> D["Statistical AggregationMean Atomic Radius=0.900ÅMean IE=11.32eV..."]
+        D --> E["Feature Vector[0.900, 11.32, ...](132 dimensions)"]
     ```
 
 ### Comparison of Information Content: Chemical Composition vs Crystal Structure
@@ -49,7 +49,7 @@ There are two major approaches to describing materials:
 
 Approach | Required Information | Information Content | Prediction Accuracy | Computation Speed  
 ---|---|---|---|---  
-**Composition-Based** | Chemical formula only (e.g., Fe₂O₃) | Low (~150 dimensions) | Medium (R²=0.7-0.85) | Fast (1 million compounds in 1 second)  
+**Composition-Based** | Chemical formula only (e.g., Fe₂O₃) | Low (~132 dimensions) | Medium (R²=0.7-0.85) | Fast (1 million compounds in ~10 minutes)  
 **Structure-Based** (GNN) | Atomic coordinates, bonding information | High (~thousands of dimensions) | High (R²=0.85-0.95) | Slow (1000 compounds in 1 minute)  
   
 #### 💡 Three Cases Where Composition-Based Approach is Advantageous
@@ -106,7 +106,7 @@ For compounds consisting of multiple elements (e.g., Fe₂O₃), properties of e
 **Calculation Results** :
 
   * Mean: $0.4 \times 1.26 + 0.6 \times 0.66 = 0.900$ Å
-  * Variance: $0.4(1.26-0.90)^2 + 0.6(0.66-0.90)^2 = 0.086$ Ų
+  * Variance: $0.4(1.26-0.90)^2 + 0.6(0.66-0.90)^2 = 0.0864$ Ų
   * Max: 1.26 Å, Min: 0.66 Å, Range: 0.60 Å
 
 ### Code Example 1: Basic Operations with pymatgen Composition Class
@@ -148,6 +148,8 @@ For compounds consisting of multiple elements (e.g., Fe₂O₃), properties of e
     # - matplotlib>=3.7.0
     
     """
+    Example: Code Example 2: Elemental Property Extraction and Visualizat
+    
     Purpose: Demonstrate data visualization techniques
     Target: Beginner to Intermediate
     Execution time: 2-5 seconds
@@ -240,8 +242,8 @@ For compounds consisting of multiple elements (e.g., Fe₂O₃), properties of e
     
     # Example output:
     #   mean: 0.9000 Å
-    #   std: 0.2933 Å
-    #   variance: 0.0860 Ų
+    #   std: 0.2939 Å
+    #   variance: 0.0864 Ų
     #   max: 1.2600 Å
     #   min: 0.6600 Å
     #   range: 0.6000 Å
@@ -392,7 +394,7 @@ Radius Ratio | Coordination Number | Coordination Structure | Example
         print(f"  {i+1}. {col}")
     
     # Example output:
-    # Number of generated features: 145
+    # Number of generated features: 132
     # Feature name examples:
     #   1. MagpieData mean Number
     #   2. MagpieData avg_dev Number
@@ -611,6 +613,8 @@ Atomic Coordinates (Precise) | High (Single crystal XRD, neutron diffraction) | 
     # - seaborn>=0.12.0
     
     """
+    Example: Code Example 7: Feature Correlation Analysis (pandas, seabor
+    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds
@@ -677,6 +681,8 @@ Atomic Coordinates (Precise) | High (Single crystal XRD, neutron diffraction) | 
     # - pandas>=2.0.0, <2.2.0
     
     """
+    Example: Code Example 8: Simple Linear Regression Model Application (
+    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 30-60 seconds
@@ -796,7 +802,7 @@ Exercise 1-1: Chemical Formula Analysis
     #   P: 3 atoms
     #   O: 12 atoms
     # Total atoms: 20.0
-    # Total weight: 397.48 g/mol
+    # Total weight: 417.43 g/mol
     # Composition ratios:
     #   Li: 0.1500
     #   Fe: 0.1000
@@ -1431,7 +1437,7 @@ Can you answer the following questions?
   * Can you explain what composition-based features are in 3 sentences?
   * Can you manually calculate atomic radius statistics for Fe₂O₃?
   * Can you determine whether composition-based or GNN is appropriate?
-  * Can you generate a 145-dimensional vector from a chemical formula using matminer?
+  * Can you generate a 132-dimensional vector from a chemical formula using matminer?
 
 **If all are Yes** , proceed to Chapter 2 (Magpie Details)!
 

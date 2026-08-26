@@ -8,6 +8,23 @@ code_examples: 8
 exercises: 5
 ---
 
+## Video Lecture
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/3mLug1AEGuA"
+    title="Transformers Ch.3: Pre-training and Fine-tuning"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> This video covers the same content as the text below. Choose your preferred learning format.
+
+---
+
 This chapter covers Pre. You will learn importance of pre-training, differences between Causal Language Modeling (CLM), and full-parameter fine-tuning techniques.
 
 ## Learning Objectives

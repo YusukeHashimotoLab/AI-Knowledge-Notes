@@ -10,6 +10,23 @@ version: 1.0
 created_at: 2025-10-18
 ---
 
+## Video Lecture
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/XIV3OaozphE"
+    title="Chemoinformatics Ch.2: Introduction to QSAR/QSPR - Fundamentals of Property Prediction"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> This video covers the same content as the text below. Choose your preferred learning format.
+
+---
+
 # Chapter 2: Introduction to QSAR/QSPR - Fundamentals of Property Prediction
 
 This chapter covers the fundamentals of Introduction to QSAR/QSPR, which fundamentals of property prediction. You will learn essential concepts and techniques.

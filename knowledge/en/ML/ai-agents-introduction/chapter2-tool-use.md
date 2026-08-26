@@ -3,6 +3,23 @@ title: "Chapter 2: Tool Use and Function Calling"
 chapter_title: "Chapter 2: Tool Use and Function Calling"
 ---
 
+## Video Lecture
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/lz7tqSSSS3I"
+    title="AI Agents Ch.2: Tool Use and Function Calling"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> This video covers the same content as the text below. Choose your preferred learning format.
+
+---
+
 This chapter covers Tool Use and Function Calling. You will learn essential concepts and techniques.
 
 ## What is Function Calling

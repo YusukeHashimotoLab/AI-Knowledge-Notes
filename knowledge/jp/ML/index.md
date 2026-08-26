@@ -132,7 +132,7 @@ PyTorch Geometric入門 (ML-L04)
 
 [開始 →](<./pytorch-geometric-introduction/index.html>)
 
-🚀 Deep Learning発展シリーズ（6シリーズ）
+🚀 Deep Learning発展シリーズ（7シリーズ）
 
 📕
 
@@ -193,6 +193,16 @@ Q学習からDQN・PPOまでの実装ガイド
 上級 130-160分 5章・37例
 
 [開始 →](<./reinforcement-learning-introduction/index.html>)
+
+🏆
+
+AlphaGoからAlphaFoldへ
+
+DeepMindの2つの画期的システムの歴史と原理——AlphaGoからMuZeroまでのMCTSと自己対局、そしてMSA・共進化とタンパク質折りたたみのブレークスルー、2024年ノーベル賞まで。誇張なし、実行できるNumPyデモつき
+
+初級〜中級 100-130分 5章・5例
+
+[開始 →](<./alphago-to-alphafold/index.html>)
 
 ⚙️ 実践MLOpsシリーズ（4シリーズ）
 

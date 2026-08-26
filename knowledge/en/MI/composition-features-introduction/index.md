@@ -49,8 +49,8 @@ Material features have two main approaches:
             Limitations of Conventional Descriptors : Density and symmetry are insufficient
             Background of Magpie : Utilizing elemental properties
         section Chapter 2 : Magpie Details
-            Types of Statistical Descriptors : Mean, variance, max, min
-            145 Elemental Properties : Periodic table database
+            Six Statistical Descriptors : min, max, range, mean, avg_dev, mode
+            22 Elemental Properties to 132 Features : Magpie periodic table database
             Mathematical Implementation : Weighted statistics
         section Chapter 3 : Databases
             Elemental Property Databases : Magpie/Deml/Jarvis
@@ -112,10 +112,10 @@ Material features have two main approaches:
 
 #### Learning Content
 
-  1. **Mathematical Definition of Magpie Descriptors** \- 145-dimensional statistics
-  2. **Types of Statistical Descriptors** \- Mean, variance, maximum, minimum, range, mode
-  3. **Weighted vs Unweighted** \- Effect of composition ratio weighting
-  4. **22 Types of Elemental Properties** \- Ionization energy, electronegativity, atomic radius, etc.
+  1. **Mathematical Definition of Magpie Descriptors** \- 132-dimensional statistics
+  2. **The Six Statistical Descriptors** \- minimum, maximum, range, fraction-weighted mean, avg_dev, mode
+  3. **Fraction-Weighted Mean vs Plain Average** \- Why Magpie's mean is composition-weighted
+  4. **22 Types of Elemental Properties** \- Electronegativity, covalent radius, melting point, valence and unfilled-orbital counts, etc.
   5. **Implementation Example** \- Manual calculation using NumPy
 
 #### Learning Objectives
@@ -240,11 +240,11 @@ Q1: Should I use composition-based features or GNNs (structure-based)?
   * **GNN** advantages: (1) Properties with strong structure dependence (elastic modulus, thermal conductivity), (2) Accuracy priority, (3) Sufficient data available (>10000 samples)
   * **Hybrid** is strongest: Using both composition and GNN features improves accuracy (implemented in Chapter 5)
 
-Q2: Aren't 145 dimensions of Magpie descriptors too many? Concerns about overfitting?
+Q2: Aren't 132 dimensions of Magpie descriptors too many? Concerns about overfitting?
 
 **A:** This is rarely a problem in practice:
 
-  * 145 dimensions is considered low in modern machine learning (GNNs learn thousands of dimensions in embeddings)
+  * 132 dimensions is considered low in modern machine learning (GNNs learn thousands of dimensions in embeddings)
   * Elemental properties have physical meaning, unlike random high dimensions
   * Dimensionality reduction possible with regularization (L1/L2) or feature selection
   * Good performance reported experimentally even with 100-1000 samples
@@ -269,7 +269,7 @@ Q4: Can Magpie descriptors be calculated automatically from chemical formulas (e
     
     featurizer = ElementProperty.from_preset("magpie")
     features = featurizer.featurize_dataframe(df, col_id="composition")
-    # Automatically generates 145-dimensional vectors from df["composition"] column (Fe2O3, etc.)
+    # Automatically generates 132-dimensional vectors from df["composition"] column (Fe2O3, etc.)
 
 Chapter 5 provides detailed code examples.
 

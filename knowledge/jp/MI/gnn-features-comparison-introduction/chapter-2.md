@@ -3,6 +3,22 @@ title: 第2章：CGCNN実装
 chapter_title: 第2章：CGCNN実装
 ---
 
+## ビデオ講義
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/FlyNv7sqbQ0"
+    title="GNN特徴量比較入門 第2章: CGCNN実装"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> このビデオは以下のテキストと同じ内容をカバーしています。お好みの学習形式をお選びください。
+
 **結晶材料専用GNN：エッジゲート機構によるソフトアテンションと周期境界条件の実装**
 
 ## 2.1 CGCNNアーキテクチャの詳細

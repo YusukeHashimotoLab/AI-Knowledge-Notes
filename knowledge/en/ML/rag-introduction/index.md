@@ -34,7 +34,7 @@ This series is an intermediate-advanced educational content consisting of 4 chap
 
 * * *
 
-### [Chapter 2: Embeddings and Search](<./chapter2-embeddings.html>)
+### [Chapter 2: Embeddings and Vector Databases](<./chapter2-embeddings.html>)
 
 **Difficulty** : Intermediate | **Learning Time** : 30-35 minutes | **Code Examples** : 6
 

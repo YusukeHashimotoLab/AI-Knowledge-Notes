@@ -10,9 +10,8 @@ subtitle: "Phonon Angular Momentum, Symmetry Requirements, and Berry Phase Forma
   <iframe
     width="560"
     height="315"
-    src="https://www.youtube.com/embed/WFXDUTY74Ws"
+    src="https://www.youtube.com/embed/OxkdCdUGIy4"
     title="Chiral Phonons Ch.1: Theoretical Foundations"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>

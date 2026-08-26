@@ -10,9 +10,8 @@ subtitle: "2次元材料から3次元カイラル結晶まで"
   <iframe
     width="560"
     height="315"
-    src="https://www.youtube.com/embed/vbbjqY8Q4ko"
+    src="https://www.youtube.com/embed/spaCONTFZMs"
     title="カイラルフォノン 第2章: 材料"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>

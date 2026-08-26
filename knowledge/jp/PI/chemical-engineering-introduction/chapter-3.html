@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第3章：プロセス制御の基礎 - AI Terakoya</title>
+
+    <style>
+        :root {
+            --color-primary: #2c3e50;
+            --color-primary-dark: #1a252f;
+            --color-accent: #7b2cbf;
+            --color-accent-light: #9d4edd;
+            --color-text: #2d3748;
+            --color-text-light: #4a5568;
+            --color-bg: #ffffff;
+            --color-bg-alt: #f7fafc;
+            --color-border: #e2e8f0;
+            --color-code-bg: #f8f9fa;
+            --color-link: #3182ce;
+            --color-link-hover: #2c5aa0;
+
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+
+            --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+            --border-radius: 8px;
+            --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-body);
+            line-height: 1.7;
+            color: var(--color-text);
+            background-color: var(--color-bg);
+            font-size: 16px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            padding: var(--spacing-xl) var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+            box-shadow: var(--box-shadow);
+        }
+
+        .header-content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: var(--spacing-sm);
+            line-height: 1.2;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            font-weight: 400;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-md);
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-md) var(--spacing-xl);
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-xl);
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-xs);
+            border-bottom: 3px solid var(--color-accent);
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-lg);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        h4 {
+            font-size: 1.1rem;
+            color: var(--color-primary-dark);
+            margin-top: var(--spacing-md);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        p {
+            margin-bottom: var(--spacing-md);
+            color: var(--color-text);
+        }
+
+        a {
+            color: var(--color-link);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        a:hover {
+            color: var(--color-link-hover);
+            text-decoration: underline;
+        }
+
+        ul, ol {
+            margin-left: var(--spacing-lg);
+            margin-bottom: var(--spacing-md);
+        }
+
+        li {
+            margin-bottom: var(--spacing-xs);
+            color: var(--color-text);
+        }
+
+        pre {
+            background-color: var(--color-code-bg);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            overflow-x: auto;
+            margin-bottom: var(--spacing-md);
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        code {
+            font-family: var(--font-mono);
+            font-size: 0.9em;
+            background-color: var(--color-code-bg);
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+        }
+
+        pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: var(--spacing-md);
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            border: 1px solid var(--color-border);
+            padding: var(--spacing-sm);
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--color-bg-alt);
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        blockquote {
+            border-left: 4px solid var(--color-accent);
+            padding-left: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            color: var(--color-text-light);
+            font-style: italic;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        .mermaid {
+            text-align: center;
+            margin: var(--spacing-lg) 0;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        details {
+            background-color: var(--color-bg-alt);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+        }
+
+        summary {
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--color-primary);
+            user-select: none;
+            padding: var(--spacing-xs);
+            margin: calc(-1 * var(--spacing-md));
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        summary:hover {
+            background-color: rgba(123, 44, 191, 0.1);
+        }
+
+        details[open] summary {
+            margin-bottom: var(--spacing-md);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .learning-objectives {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: var(--spacing-lg);
+            border-radius: var(--border-radius);
+            border-left: 4px solid var(--color-accent);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .learning-objectives h2 {
+            margin-top: 0;
+            border-bottom: none;
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            gap: var(--spacing-md);
+            margin: var(--spacing-xl) 0;
+            padding-top: var(--spacing-lg);
+            border-top: 2px solid var(--color-border);
+        }
+
+        .nav-button {
+            flex: 1;
+            padding: var(--spacing-md);
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            border-radius: var(--border-radius);
+            text-align: center;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: var(--box-shadow);
+        }
+
+        .nav-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            text-decoration: none;
+        }
+
+        footer {
+            margin-top: var(--spacing-xl);
+            padding: var(--spacing-lg) var(--spacing-md);
+            background-color: var(--color-bg-alt);
+            border-top: 1px solid var(--color-border);
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--color-text-light);
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            h2 {
+                font-size: 1.4rem;
+            }
+
+            h3 {
+                font-size: 1.2rem;
+            }
+
+            .meta {
+                font-size: 0.85rem;
+            }
+
+            .navigation {
+                flex-direction: column;
+            }
+
+            table {
+                font-size: 0.85rem;
+            }
+
+            th, td {
+                padding: var(--spacing-xs);
+            }
+        }
+    </style>
+
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+
+    <!-- MathJax for LaTeX equation rendering -->
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\(', '\)']],
+                displayMath: [['$$', '$$'], ['\[', '\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" id="MathJax-script" async></script>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <h1>第3章：プロセス制御の基礎</h1>
+            <p class="subtitle">プラントを望みの状態に保つ</p>
+            <div class="meta">
+                <span class="meta-item">📖 読了時間: 20-25分</span>
+                <span class="meta-item">📊 難易度: 初級</span>
+                <span class="meta-item">💻 コード例: 1個</span>
+                <span class="meta-item">📝 演習問題: 3問</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+<h1>第3章：プロセス制御の基礎</h1>
+<p>本章では、化学プラントになぜ自動制御が必要なのか、フィードバックループはどのように働くのか、PID制御器の P・I・D の各項は何をしているのか、そしてなぜプロセスダイナミクスが制御を見た目以上に難しくするのかを説明します。</p>
+<p><strong>プラントを望みの状態に保つ</strong></p>
+<h2>学習目標</h2>
+<p>本章を修了すると、以下ができるようになります:</p>
+<ul>
+<li>✅ プラントがなぜ定常状態にとどまらないかを説明し、制御目的を安全から利益まで順位づけできる</li>
+<li>✅ センサーから制御器を経て調節弁に至るフィードバックループをたどれる</li>
+<li>✅ P・I・D がそれぞれ何に寄与するか、そしてなぜ産業用ループの多くが PI として運用されるかを説明できる</li>
+<li>✅ 時定数とむだ時間が、ループをどこまで強くチューニング（整定）できるかをどのように制限するかを説明できる</li>
+<li>✅ カスケード制御・フィードフォワード制御・比率制御を見分け、モデル予測制御（MPC）がそれらの上位のどこに位置するかを理解できる</li>
+</ul>
+<p><strong>読了時間</strong>: 20-25分 <strong>コード例</strong>: 1 <strong>演習</strong>: 3</p>
+<hr />
+<h2>3.1 なぜ制御が必要か</h2>
+<p>第1章の収支は定常状態 — 時間とともに何も変化しない状態 — を前提としていました。それは便宜的な仮構です。実際のプラントは放っておいて定常を保つことはありません。<strong>原料組成は変動し</strong>、<strong>外気条件は変わり</strong>、<strong>触媒は失活し</strong>、熱交換器は汚れ、<strong>需要は週ごとに変化します</strong>。放置すればプロセスは設計点からさまよい出ます。<strong>プロセス制御</strong>は、プラントが今どうなっているかを測定し、それを継続的に元へ引き戻します。その目的は、次の優先順位（上ほど高い）で並びます:</p>
+<table>
+<thead>
+<tr>
+<th>目的</th>
+<th>例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>安全</strong></td>
+<td>暴走温度より下に保つ</td>
+</tr>
+<tr>
+<td><strong>環境規制の順守</strong></td>
+<td>排出許容値の範囲内に収める</td>
+</tr>
+<tr>
+<td><strong>設備の保護</strong></td>
+<td>キャビテーション（ポンプ内で蒸気泡が崩壊する現象）、圧縮機サージ（激しい流れの逆流）、熱衝撃を避ける</td>
+</tr>
+<tr>
+<td><strong>製品品質</strong></td>
+<td>純度を規格内に保つ</td>
+</tr>
+<tr>
+<td><strong>利益</strong></td>
+<td>制約ぎりぎりの近くで運転する</td>
+</tr>
+</tbody>
+</table>
+<p>目的同士が衝突するとき、制御システムは安全を手放す前に利益を手放します。</p>
+<h3>動機づけとなる例：発熱反応器</h3>
+<p>第2章では Arrhenius 式から得られる経験則 — 10 °C の上昇でおおよそ<strong>反応速度が2倍になる</strong>（典型的な活性化エネルギーでは2〜4倍） — を示しました。冷却された反応器に発熱反応を入れてみましょう。温度上昇は反応を加速し、反応はより速く熱を放出し、それが温度をさらに押し上げます。一方、ジャケット冷却はおおむね温度差に比例してしか増えません。したがって、ある運転点の近傍では、両者のうちどちらが温度に対してより速く増加するかが問題になります。熱発生が熱除去よりも温度に対して速く増加すれば、バランスは傾きます。温度は落ち着く代わりに加速して離れていきます。これが<strong>熱暴走</strong>です。それが起こりうるかどうかは化学だけで決まるものではなく、設計と選ばれた運転点に依存します。まさにそれこそが、発熱反応器の設計（第4章）と制御（本章）を難しいものにしている理由です。</p>
+<h2>3.2 フィードバックループ</h2>
+<p><strong>センサー</strong>が制御変数を測定します。<strong>制御器</strong>がそれを<strong>設定値</strong>と比較し、<strong>偏差</strong>を計算します。<strong>アクチュエータ</strong> — ほとんどの場合<strong>調節弁</strong> — が、冷却水流量や蒸気流量といった操作変数を変化させます。プロセスがそれに応答し、そしてこのサイクルが繰り返されます。</p>
+<div class="mermaid">
+flowchart LR
+    SP["Setpoint"] --> C["Controller"]
+    C --> V["Control valve"]
+    V --> P["Process"]
+    D["Disturbance"] --> P
+    P --> Y["Controlled variable"]
+    Y --> S["Sensor"]
+    S --> C
+</div>
+
+<p>外乱は制御器を通ってではなく、プロセスに直接入ります。このためフィードバックには2つの仕事があります: <strong>外乱抑制</strong>（設定値は固定で、ループが変動を打ち消す — ほとんどのループがほとんどの時間やっていること）と、<strong>設定値追従</strong>（生産量や銘柄の切り替え時に目標値そのものが動く）です。フィードバックには1つの決定的な限界があります: <strong>制御器は偏差が生じた後にしか動けない</strong>、ということです。変動を防ぐことはできず、修正できるだけです — この隙間を突くのがフィードフォワード（3.5節）です。</p>
+<h3>80/20 の現実</h3>
+<p>大規模プラントでは数千のループが動いていることもありますが、その圧倒的多数は単純な<strong>1入力1出力（SISO）フィードバックループ</strong> — 1つの測定、1つの設定値、1つのバルブ — です。多変数の制御方式は学会論文になりますが、プラントを動かしているのはありふれた流量・レベル・圧力・温度のループであり、そのほぼすべてで最終制御要素は調節弁です。バルブはまた<strong>フェイルセーフ</strong>の思想も担っています。計装用空気が失われたとき、それぞれが安全な位置へ動くのです。</p>
+<h2>3.3 PID 制御</h2>
+<p>産業界の主力は <strong>PID 制御器</strong>です。産業界の実務調査は一貫して、プラントのループの大多数が PID 型であり、その多くが微分動作を切った <strong>PI</strong> として運用されていることを示しています。PID は偏差 <em>e = 設定値 − 測定値</em> から、3つの項 — 偏差の<strong>現在・過去・未来</strong> — を用いて出力を計算します:</p>
+<table>
+<thead>
+<tr>
+<th>項</th>
+<th>読み取るもの</th>
+<th>効果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>P</strong>（比例）</td>
+<td><em>今</em>の偏差</td>
+<td>偏差が大きいほど、修正も大きい</td>
+</tr>
+<tr>
+<td><strong>I</strong>（積分）</td>
+<td>蓄積された<em>過去</em>の偏差</td>
+<td>偏差がゼロになるまで押し続ける</td>
+</tr>
+<tr>
+<td><strong>D</strong>（微分）</td>
+<td><em>傾向</em>、すなわち未来</td>
+<td>変化率に反応する</td>
+</tr>
+</tbody>
+</table>
+<p>標準形（ISA 形）では:</p>
+<p>$$ u(t) = K_c \left[ e(t) + \frac{1}{\tau_I} \int e\,dt + \tau_D \frac{de}{dt} \right] $$</p>
+<p>ここで <strong>Kc</strong> は制御器ゲイン、<strong>τI</strong> は積分（リセット）時間、<strong>τD</strong> は微分時間です。∫ e dt は過去の偏差の累計、de/dt は偏差が今どれだけ速く変化しているか、と読んでください。どちらも手計算する必要はありません。制御器がやってくれます。</p>
+<p><strong>P 単独ではオフセット（定常偏差）が残ります</strong>。なぜなら、P は偏差が<em>ある</em>ときにしか出力を生まないからです。偏差をなくせば、バルブを開けておく信号もなくなってしまい、結果として定常的なずれが残ります。<strong>I はそれを取り除きます</strong>。偏差が残っている限り積分は蓄積を続け、その値を新しい定常出力として保持するからです。事実上すべての産業用ループが積分動作を持つのはこのためです。<strong>D はしばしば切られます</strong>。ノイズを含む測定値を微分するとバルブを叩くことになるためで、D が価値を発揮するのは主に応答の遅い温度ループです。</p>
+<p>以下のシミュレーションは、1次プロセス（時定数5分）に PI 制御器を付け、<em>t</em> = 0 で設定値をステップ変化させたものです:</p>
+<pre><code class="language-python"># PI control of a first-order process, integrated with explicit Euler
+tau, K = 5.0, 1.0        # process: time constant 5 min, steady-state gain 1
+Kc, tauI = 2.0, 5.0      # PI tuning (lambda/IMC rule, explained in Section 3.4; lambda = 2.5 min)
+dt, t\_end = 0.01, 30.0   # Euler step must be much smaller than tau
+setpoint = 1.0           # unit step in setpoint applied at t = 0
+
+y, integral = 0.0, 0.0   # process output, and running integral of the error
+for step in range(int(t\_end / dt)):
+    t = step * dt
+    e = setpoint - y                    # where I want it minus where it is
+    integral += e * dt                  # accumulated past error
+    u = Kc * (e + integral / tauI)      # PI control action (valve signal)
+    dydt = (-y + K * u) / tau           # first-order process dynamics
+    y += dydt * dt                      # explicit Euler step
+    if step % 500 == 0:                 # report every 5 minutes
+        print(f&quot;t = {t:4.1f} min   y = {y:5.3f}   u = {u:5.3f}&quot;)
+
+# t =  0.0 min   y = 0.004   u = 2.004
+# t =  5.0 min   y = 0.866   u = 1.134
+# t = 10.0 min   y = 0.982   u = 1.018
+# t = 15.0 min   y = 0.997   u = 1.002
+# t = 20.0 min   y = 1.000   u = 1.000
+# t = 25.0 min   y = 1.000   u = 1.000
+</code></pre>
+<p>出力は設定値に<strong>ぴったり</strong>到達します — 積分動作が仕事をしているのです。<code>integral / tauI</code> の項を削除して P のみにすると、出力は 0.667 で止まります。33% のオフセットです。</p>
+<h2>3.4 プロセスダイナミクス：制御が難しい理由</h2>
+<p>プロセスが瞬時に応答するなら、制御は簡単なものでしょう。それを妨げる効果が2つあります。</p>
+<p><strong>慣性（時定数 τ）</strong>。液で満たされた撹拌槽には熱容量があります。蒸気弁を開けても、温度は徐々にしか上がりません。1次プロセスは、1時定数で変化のおよそ63%を消化し、4〜5時定数でほぼ完了します。</p>
+<p><strong>むだ時間（θ）</strong>。バルブが動いた後、しばらくの間<em>まったく何も起こりません</em>。流体は配管を進まなければならず、組成の変化は分析計まで届かなければなりません。この<strong>輸送遅れ</strong>の間、制御器は目隠し状態で、古い情報に基づいて押し続けています。強く押しすぎると、ようやく届く修正が過大になり、ループは振動します。</p>
+<p>この2つを組み合わせると、<strong>むだ時間を伴う1次系（FOPDT）</strong>モデル — 産業用ループの普遍的な近似記述 — が得られます。ステップ試験から得られる3つの数値、すなわちゲイン <em>K</em>、時定数 <em>τ</em>、むだ時間 <em>θ</em> です。重要な経験則は<strong>むだ時間比 θ/τ</strong> です:</p>
+<table>
+<thead>
+<tr>
+<th>θ/τ</th>
+<th>難易度</th>
+<th>典型例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>&lt; 0.1</td>
+<td>易しい — 強めにチューニングできる</td>
+<td>流量ループ、レベルループ</td>
+</tr>
+<tr>
+<td>0.1 – 1</td>
+<td>中程度 — 通常のチューニング</td>
+<td>ほとんどの温度ループ</td>
+</tr>
+<tr>
+<td>&gt; 1</td>
+<td>難しい — 穏やかにするしかない</td>
+<td>分析計による組成ループ</td>
+</tr>
+</tbody>
+</table>
+<p><strong>むだ時間比が大きいほど、制御器は緩慢でなければなりません</strong> — まだ手元にない情報を修正することはできないのです。</p>
+<p><strong>Ziegler と Nichols は 1942 年に古典的なチューニング経験則を発表しました</strong>。簡単なプラント試験から <em>Kc</em>、<em>τI</em>、<em>τD</em> を導くもので、今なお標準的な出発点です。彼らの設定値は強めで振動しやすいため、現代の実務ではより穏やかなモデルベースの規則 — <strong>ラムダチューニング</strong>あるいは <strong>IMC（内部モデル制御）チューニング</strong> — が好まれます。これは技術者が閉ループ応答の速さを直接指定するもので、上の <code>Kc = 2</code>、<code>τI = 5</code> がその例です。</p>
+<h2>3.5 単一ループを超えて</h2>
+<p>単一ループでは扱えないことの大半は、3つの単純な構造で処理できます。</p>
+<p><strong>カスケード制御</strong>は、あるループを別のループの内側に入れ子にします。ジャケット付き反応器では、反応器温度の<em>マスター</em>制御器はバルブを動かしません。ジャケット温度の<strong>スレーブ制御器の設定値</strong>を与え、そちらがバルブを動かします。速い内側ループが冷却水の外乱を反応器に届く前に吸収します。これは内側ループが外側ループよりずっと速いときに機能します。</p>
+<p><strong>フィードフォワード制御</strong>は<em>外乱そのもの</em>を測定し、その影響が現れる前に動きます。加熱器への供給流体が冷たくなれば、フィードフォワードは出口温度が下がるのを待たずに、冷たい供給が検出された瞬間に蒸気流量を増やします。外乱のモデルが必要で、決して完璧にはならないため、常にフィードバックと組み合わせて使われます。</p>
+<p><strong>比率制御</strong>は、ある流量を別の流量と一定比率に保ちます。古典的な例は加熱炉の<strong>燃料／空気比</strong>で、燃焼を完全かつ安全に保つために空気が燃料に追従します。</p>
+<p>これらのループの上には、プラント全体の階層があります。<strong>分散制御システム（DCS）</strong>が数千のループを実行し、オペレータ画面を駆動し、<strong>アラームシステム</strong>を動かします。さらにその上には<strong>高度プロセス制御（APC）</strong> — 通常は<strong>モデル予測制御（MPC）</strong> — があり、動的モデルを用いて多数の相互作用する変数を制約下で同時に最適化し、下位の PID ループへ設定値を出します。プラントが意図的に制約ぎりぎりで運転できるのはこの層があるからです。この層が存在するのはループ同士が相互作用するためです。第1章の<strong>リサイクル流</strong>はプラント後段の外乱を再び前段へと運びます。そのため、あるユニットで修正された変動が、後になってリサイクルを通って戻ってくることがあります — プラント全体の制御が個々のループの総和以上である理由の1つです。より深く学ぶには、<strong>Introduction to Process Monitoring and Control</strong> および <strong>Process Informatics Introduction</strong> シリーズを参照してください。</p>
+<h2>3.6 本章のまとめ</h2>
+<ul>
+<li>プラントは放っておいて定常を保つことはなく、熱発生が熱除去を上回れば発熱反応器は暴走しうる。制御目的は 安全 → 環境 → 設備 → 品質 → 利益 の順に並ぶ</li>
+<li>フィードバックループ — センサー → 制御器 → バルブ → プロセス — は外乱を抑制し、設定値に追従する。ほとんどのループは SISO であり、末端は調節弁である</li>
+<li>PID は偏差の現在（P）・過去（I）・未来（D）を読む。P 単独ではオフセットが残り、I がそれを取り除き、D はノイズを増幅する — だからほとんどのループは PI として動く</li>
+<li>ループの速度限界を決めるのは慣性よりもむだ時間である。FOPDT と θ/τ が標準的なモデルであり、Ziegler–Nichols（1942 年）が古典的なチューニング経験則である</li>
+<li>カスケード制御・フィードフォワード制御・比率制御が単一ループを拡張する。DCS と MPC はそれらの上位に位置する</li>
+</ul>
+<p><strong>次章</strong>: プロセス設計 — そしてそのつながりは双方向です。なぜなら<strong>よく設計されたプロセスは制御しやすいプロセス</strong>だからです。</p>
+<h2>演習問題</h2>
+<ol>
+<li>
+<p><strong>概念</strong>: ある調節弁が発熱反応器のジャケットへ冷却水を送っている。計装用空気が失われたとき、この弁はフェイルオープンとフェイルクローズのどちらであるべきか。またそれは 3.1 節のどの目的をトレードオフしているか。
+   <em>ヒント</em>: 冷却が止まったら何が起こるかを問い、それから優先順位を当てはめてください。
+   <em>解答</em>: <strong>フェイルオープン</strong>です。空気を失うことは制御を失うことを意味し、冷却されない発熱反応器は暴走へ向かいます。これは<strong>製品品質</strong>と<strong>利益</strong>を犠牲にして<strong>安全</strong>と<strong>設備の保護</strong>に資します — 過冷却はバッチを台無しにしますが、それが正しいトレードオフです。</p>
+</li>
+<li>
+<p><strong>定量</strong>: コード例（<em>K</em> = 1、設定値ステップ 1.0）について、P 単独の制御器はバイアスなしで <em>y</em> = <em>Kc</em>・<em>K</em> / (1 + <em>Kc</em>・<em>K</em>) に落ち着く。<em>Kc</em> = 2 と <em>Kc</em> = 9 のときのオフセットを計算せよ。ゲインを上げることが実務上の解決策にならないのはなぜか。
+   <em>ヒント</em>: オフセットは設定値と整定値との差です。
+   <em>解答</em>: <em>Kc</em> = 2 では <em>y</em> = 0.667、オフセットは <strong>0.333</strong>。<em>Kc</em> = 9 では <em>y</em> = 0.900、オフセットは <strong>0.100</strong>。オフセットはゲインとともに小さくなりますが決して消えず、むだ時間のある実プロセスでは高ゲインのループは振動的になり、やがて不安定になります。<strong>積分動作</strong>なら、控えめなゲインのままオフセットを取り除けます。</p>
+</li>
+<li>
+<p><strong>議論</strong>: ループ A は <em>τ</em> = 20 分、<em>θ</em> = 1 分。ループ B は <em>τ</em> = 4 分、<em>θ</em> = 4 分である。θ/τ を計算せよ — どちらが強くチューニングするのが難しいか。主な変動が冷却水温度の変動である反応器に対しては、カスケードとフィードフォワードのどちらを追加するか。
+   <em>ヒント</em>: θ/τ の表を使い、それから速い内側ループがすでにその外乱を見ているかどうかを問うてください。
+   <em>解答</em>: ループ A は θ/τ = 0.05（易しい）。ループ B は θ/τ = 1.0 — 時定数まるまる1つ分のあいだ目隠し状態なので、緩めにチューニングせざるを得ず、<strong>はるかに難しい</strong>です。冷却水の変動に対しては<strong>カスケード</strong>が自然な選択です。ジャケット温度のスレーブがその変動をほぼ即座にとらえ、反応器温度が動く前に修正します。フィードフォワードは有効な補完策ですが、外乱のモデルを必要とします。</p>
+</li>
+</ol><div class="navigation">
+    <a href="index.html" class="nav-button">シリーズ目次に戻る</a>
+    <a href="chapter-4.html" class="nav-button">次の章 →</a>
+</div>
+    </main>
+
+    <footer>
+        <p><strong>作成者</strong>: AI Terakoya Content Team</p>
+        <p><strong>監修</strong>: Dr. Yusuke Hashimoto（東北大学）</p>
+        <p><strong>バージョン</strong>: 1.0 | <strong>作成日</strong>: 2026-08-23</p>
+        <p><strong>ライセンス</strong>: Creative Commons BY 4.0</p>
+        <p>© 2025 AI Terakoya. All rights reserved.</p>
+    </footer>
+</body>
+</html>

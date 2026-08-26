@@ -2,16 +2,16 @@
 title: Introduction to Bioinformatics Series v1.0
 chapter_title: Introduction to Bioinformatics Series v1.0
 subtitle: Protein Engineering and Biomaterial Design
-reading_time: 100-120 minutes
+reading_time: 130-155 minutes
 difficulty: Beginner to Intermediate
-code_examples: 33
-exercises: 12
+code_examples: 41
+exercises: 22
 version: 1.0
 ---
 
 ## Series Overview
 
-This series is a comprehensive 4-chapter educational resource designed to progressively build practical skills for applying bioinformatics to biomaterial design, drug delivery systems (DDS), and biosensor development, starting from fundamental concepts.
+This series is a comprehensive 5-chapter educational resource designed to progressively build practical skills for applying bioinformatics to biomaterial design, drug delivery systems (DDS), and biosensor development, starting from fundamental concepts.
 
 **Bioinformatics** is an interdisciplinary field that analyzes biological data using computational science and information science. In recent years, revolutionary advances have emerged at the intersection of materials science and biology, including AlphaFold2's breakthrough protein structure prediction, machine learning-based sequence-function correlation analysis, and drug design through molecular docking. In the biomaterials field, computational approaches now enable researchers to solve challenges previously intractable with conventional experimental methods, such as structural analysis of biological materials like collagen and silk, antibody drug design, and functional prediction of peptide hydrogels.
 
@@ -19,12 +19,12 @@ This series is a comprehensive 4-chapter educational resource designed to progre
 
 **Background and Challenges** : Biomaterial researchers and nanomedicine developers need to understand the structure and function of proteins and peptides, but experimental structure determination is time-consuming and expensive (X-ray crystallography can take months to years). Additionally, predicting the binding affinity of proteins used as DDS carriers to target cells and the selectivity of antibodies serving as biosensor recognition elements traditionally required extensive experimental work.
 
-**What You'll Learn in This Series** : This series provides systematic learning through executable Python code examples and case studies, covering everything from retrieving protein structures from the PDB (Protein Data Bank), structure prediction with AlphaFold2, sequence analysis and machine learning-based function prediction, to interaction analysis through molecular docking. You'll progressively acquire practical skills including sequence manipulation with Biopython, visualization with PyMOL, and docking calculations with AutoDock Vina. The final chapter provides detailed explanations of real-world applications in biosensor design, DDS material design, and peptide material development, along with career paths as a bioinformatician.
+**What You'll Learn in This Series** : This series provides systematic learning through executable Python code examples and case studies, covering everything from retrieving protein structures from the PDB (Protein Data Bank), structure prediction with AlphaFold2, sequence analysis and machine learning-based function prediction, to interaction analysis through molecular docking. You'll progressively acquire practical skills including sequence manipulation with Biopython, visualization with PyMOL, and docking calculations with AutoDock Vina. Chapter 4 provides detailed explanations of real-world applications in biosensor design, DDS material design, and peptide material development, along with career paths as a bioinformatician. The final chapter takes a deep dive into AlphaFold, from its Evoformer architecture to structure prediction with ColabFold and applications in drug discovery and materials science.
 
 ### Key Features
 
-  * ✅ **Progressive Structure** : Each chapter can be read as an independent article, with all 4 chapters covering comprehensive content
-  * ✅ **Practice-Oriented** : 33 executable code examples and 4 detailed case studies
+  * ✅ **Progressive Structure** : Each chapter can be read as an independent article, with all 5 chapters covering comprehensive content
+  * ✅ **Practice-Oriented** : 41 executable code examples and 4 detailed case studies
   * ✅ **Biomaterials Focus** : Concentrates on applications to material design, DDS, and biosensors rather than general bioinformatics
   * ✅ **Latest Technologies** : Comprehensive coverage of cutting-edge methods including AlphaFold2, machine learning-based sequence analysis, and molecular docking
   * ✅ **Career Support** : Provides specific career paths and learning roadmaps
@@ -47,23 +47,25 @@ This series is a comprehensive 4-chapter educational resource designed to progre
         A[Chapter 1: Protein Structure and Biomaterials] --> B[Chapter 2: Sequence Analysis and Machine Learning]
         B --> C[Chapter 3: Molecular Docking and Interaction Analysis]
         C --> D[Chapter 4: Biosensor and DDS Material Design]
+        D --> E[Chapter 5: AlphaFold and Protein Structure Prediction]
     
         style A fill:#e3f2fd
         style B fill:#fff3e0
         style C fill:#f3e5f5
         style D fill:#e8f5e9
+        style E fill:#fce4ec
     ```
 
 **For Beginners (First time learning bioinformatics):**
 
-  * Chapter 1 → Chapter 2 → Chapter 3 → Chapter 4 (all chapters recommended)
-  * Time required: 100-120 minutes
+  * Chapter 1 → Chapter 2 → Chapter 3 → Chapter 4 → Chapter 5 (all chapters recommended)
+  * Time required: 130-155 minutes
   * Prerequisites: Python fundamentals, molecular biology basics, machine learning basics
 
 **For Intermediate Learners (with biology experience):**
 
-  * Chapter 2 → Chapter 3 → Chapter 4
-  * Time required: 75-90 minutes
+  * Chapter 2 → Chapter 3 → Chapter 4 → Chapter 5
+  * Time required: 105-125 minutes
   * Chapter 1 can be skipped (reference as needed)
 
 **For Practical Skill Enhancement (material design focus):**
@@ -89,7 +91,8 @@ This series is a comprehensive 4-chapter educational resource designed to progre
         Ch1 --> Ch2[Proceed to Chapter 2]
         Ch2 --> Ch3[Proceed to Chapter 3]
         Ch3 --> Ch4[Proceed to Chapter 4]
-        Ch4 --> Complete[Series Complete]
+        Ch4 --> Ch5[Proceed to Chapter 5]
+        Ch5 --> Complete[Series Complete]
     
         Complete --> Next[Next Steps]
         Next --> Project[Independent Projects]
@@ -233,6 +236,39 @@ This series is a comprehensive 4-chapter educational resource designed to progre
 
 **[Read Chapter 4 →](<chapter-4.html>)**
 
+### Chapter 5: AlphaFold - The Revolution in Protein Structure Prediction
+
+📖 Reading Time: 30-35 minutes 📊 Difficulty: Intermediate 💻 Code Examples: 8
+
+#### Learning Content
+
+  * **Historical Significance of AlphaFold**
+    * The 50-year "protein folding problem"
+    * Historic success at CASP14 (GDT 92.4)
+    * Impact on industry and research
+  * **AlphaFold Architecture**
+    * Algorithm overview (MSA, Evoformer, Structure Module)
+    * Innovation in the attention mechanism
+    * Importance of MSA (Multiple Sequence Alignment)
+  * **Practical Applications of AlphaFold**
+    * Easy structure prediction with ColabFold
+    * Applications in drug discovery
+    * Applications in materials science
+  * **Limitations and Future Prospects**
+    * Current limitations (flexible regions, complexes, dynamic behavior)
+    * Evolution of AlphaFold 3
+    * Future prospects
+
+#### Learning Objectives
+
+  * ✅ Explain the significance of GDT 92.4 achieved at CASP14
+  * ✅ Interpret pLDDT scores and evaluate prediction quality
+  * ✅ Explain why MSA is crucial for structure prediction
+  * ✅ Perform structure predictions for new sequences using ColabFold
+  * ✅ Understand AlphaFold's limitations and combine it with experimental methods
+
+**[Read Chapter 5 →](<chapter-5.html>)**
+
 ## Overall Learning Outcomes
 
 Upon completing this series, you will acquire the following skills and knowledge:
@@ -276,7 +312,8 @@ Upon completing this series, you will acquire the following skills and knowledge
 
   * Day 1-2: Chapter 3 (Molecular docking)
   * Day 3-4: Chapter 4 (Biosensors and DDS)
-  * Day 5-7: Comprehensive exercises, portfolio creation
+  * Day 5-6: Chapter 5 (AlphaFold and structure prediction)
+  * Day 7: Comprehensive exercises, portfolio creation
 
 **Deliverables** :
 
@@ -292,7 +329,8 @@ Upon completing this series, you will acquire the following skills and knowledge
   * Day 1: Chapter 1 (PDB and AlphaFold)
   * Day 2-3: Chapter 2 (full code implementation)
   * Day 4-5: Chapter 3 (docking practice)
-  * Day 6-7: Chapter 4 + review
+  * Day 6: Chapter 4 (biosensors and DDS)
+  * Day 7: Chapter 5 (AlphaFold) + review
 
 **Deliverables** :
 
@@ -327,7 +365,7 @@ If you're uncertain, complete the [official Python tutorial](<https://docs.pytho
 **A** : It depends on your learning time and goals:
 
   * **Conceptual understanding only** : 2-3 days (Chapters 1 and 2)
-  * **Basic implementation skills** : 1-2 weeks (all 4 chapters)
+  * **Basic implementation skills** : 1-2 weeks (all 5 chapters)
   * **Practical project execution ability** : 3-4 weeks (all chapters + independent project)
   * **Professional/research-level skills** : 3-6 months (series completion + practical experience)
 

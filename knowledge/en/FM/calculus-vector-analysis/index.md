@@ -4,7 +4,25 @@ chapter_title: 📐 Introduction to Calculus and Vector Analysis
 subtitle: Calculus and Vector Analysis for Materials Informatics
 ---
 
-[AI Terakoya Top](<../index.html>)›[Fundamentals of Mathematics](<../../index.html>)›[Calculus Vector Analysis](<../../FM/calculus-vector-analysis/index.html>)
+## Video Lecture
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/BEElvcgY5Uk"
+    title="Calculus & Vector Analysis - Full Series"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> The whole series is available as a single video with chapter markers. Each chapter page starts this video at that chapter.
+
+---
+
+[AI Terakoya Top](<../../index.html>)›[Fundamentals of Mathematics](<../index.html>)›[Calculus Vector Analysis](<../../FM/calculus-vector-analysis/index.html>)
 
 🌐 EN | [🇯🇵 JP](<../../../jp/FM/calculus-vector-analysis/index.html>) | Last sync: 2025-11-16
 
@@ -15,22 +33,21 @@ subtitle: Calculus and Vector Analysis for Materials Informatics
 Calculus and vector analysis are the essential mathematical foundations for all areas of materials science, process engineering, and machine learning. This series covers single-variable and multivariable differential and integral calculus, vector fields, gradients, divergence, curl, line integrals, and surface integrals, with paired theory and implementation (Python/NumPy/SymPy). 
 
 ### Learning Path
-    
-    
-    ```mermaid
-    flowchart LR
-        A[Chapter 1Differentiation & Integration]
-        B[Chapter 2Multivariable Calculus]
-        C[Chapter 3Vector Fields]
-        D[Chapter 4Gradient/Divergence/Curl]
-        E[Chapter 5Numerical Calculus]
-        A --> B --> C --> D --> E
-        style A fill:#667eea,stroke:#764ba2,stroke-width:2px,color:#fff
-        style B fill:#667eea,stroke:#764ba2,stroke-width:2px,color:#fff
-        style C fill:#667eea,stroke:#764ba2,stroke-width:2px,color:#fff
-        style D fill:#667eea,stroke:#764ba2,stroke-width:2px,color:#fff
-        style E fill:#667eea,stroke:#764ba2,stroke-width:2px,color:#fff
-    ```
+
+```mermaid
+flowchart LR
+    A["Chapter 1<br>Differentiation &<br>Numerical Differentiation"]
+    B["Chapter 2<br>Integration &<br>Numerical Integration"]
+    C["Chapter 3<br>Multivariable Calculus"]
+    D["Chapter 4<br>Vector Fields &<br>Differential Operators"]
+    E["Chapter 5<br>Line/Surface Integrals &<br>Integral Theorems"]
+    A --> B --> C --> D --> E
+    style A fill:#667eea,stroke:#764ba2,stroke-width:2px,color:#fff
+    style B fill:#667eea,stroke:#764ba2,stroke-width:2px,color:#fff
+    style C fill:#667eea,stroke:#764ba2,stroke-width:2px,color:#fff
+    style D fill:#667eea,stroke:#764ba2,stroke-width:2px,color:#fff
+    style E fill:#667eea,stroke:#764ba2,stroke-width:2px,color:#fff
+```
 
 ### 📋 Learning Objectives
 
@@ -42,7 +59,7 @@ Calculus and vector analysis are the essential mathematical foundations for all 
 
 ### 📖 Prerequisites
 
-Basic knowledge of high school mathematics (Calculus III level) is sufficient. Understanding basic Python usage (variables, functions, lists) is recommended.
+High school level single-variable differentiation and integration, plus basic vectors, are sufficient. Understanding basic Python usage (variables, functions, lists) is recommended.
 
 Chapter 1
 
@@ -60,7 +77,7 @@ Chapter 2
 
 Fundamentals of Integration and Numerical Integration
 
-Learn the definition of definite integrals, calculation of indefinite integrals, and the relationship between integration and differentiation (fundamental theorem of calculus), and implement numerical integration methods such as the trapezoidal rule, Simpson's rule, and Gaussian quadrature. Applications to heat calculation and spectral analysis are also covered. 
+Learn the definition of definite integrals, calculation of indefinite integrals, and the relationship between integration and differentiation (fundamental theorem of calculus), and implement numerical integration methods such as the trapezoidal rule and Simpson's rule, together with SciPy's adaptive quadrature. Applications to heat calculation and improper/singular integrals are also covered. 
 
 Definite & Indefinite Integrals Fundamental Theorem Trapezoidal Rule Simpson's Rule SciPy Implementation
 
@@ -72,9 +89,9 @@ Chapter 3
 
 Multivariable Calculus
 
-Learn partial derivatives, total differentials, chain rule, and Jacobian matrices, and handle extremum problems of multivariable functions (Lagrange multipliers). Multiple integrals (double integrals, triple integrals) and variable transformations (polar, cylindrical, spherical coordinates) are also implemented. 
+Learn partial derivatives, the total differential and the chain rule, and the gradient, and handle extremum problems of multivariable functions (gradient descent, Lagrange multipliers). Double integrals and the change of variables to polar coordinates are also implemented. 
 
-Partial Derivatives Total Differential Jacobian Matrix Multiple Integrals Extremum Problems
+Partial Derivatives Total Differential Chain Rule Gradient Double Integrals Extremum Problems
 
 💻 7 Code Examples ⏱️ 18-22 minutes
 
@@ -96,7 +113,7 @@ Chapter 5
 
 Line Integrals, Surface Integrals, and Integral Theorems
 
-Learn calculation methods for line integrals (scalar and vector fields) and surface integrals (scalar and vector fields). Understand Green's theorem, Gauss's divergence theorem, and Stokes' theorem, and implement applications to electromagnetism and fluid dynamics. 
+Learn calculation methods for line integrals (scalar and vector fields) and surface integrals (scalar and vector fields). Understand Green's theorem, Gauss's divergence theorem, and Stokes' theorem, and implement an application to atomic diffusion via the continuity equation. 
 
 Line Integrals Surface Integrals Green's Theorem Divergence Theorem Stokes' Theorem
 

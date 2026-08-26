@@ -5,6 +5,22 @@ subtitle: Understanding Light-Matter Interactions and the Physical Basis of Spec
 difficulty: Intermediate
 ---
 
+## Video Lecture
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/pEHTAkGLAO0"
+    title="Spectroscopy Introduction Ch.1: Fundamentals of Spectroscopy"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> This video covers the same content as the text below. Choose your preferred learning format.
+
 ## Introduction
 
 Spectroscopy is the study of the interaction between electromagnetic radiation and matter. By analyzing how materials absorb, emit, or scatter light across different wavelengths, we can determine their chemical composition, electronic structure, molecular bonding, and physical properties. This chapter establishes the fundamental principles that underpin all spectroscopic techniques.
@@ -104,13 +120,13 @@ When light interacts with matter, three fundamental processes can occur:
     ```mermaid
     flowchart TD
         A[Incident Light] --> B{Light-Matter Interaction}
-        B -->|Absorption| C[Energy absorbed by materialElectron promoted to higher state]
-        B -->|Emission| D[Light released by materialElectron returns to lower state]
-        B -->|Scattering| E[Light redirectedElastic or inelastic]
+        B -->|Absorption| C[Energy absorbed by material<br/>Electron promoted to higher state]
+        B -->|Emission| D[Light released by material<br/>Electron returns to lower state]
+        B -->|Scattering| E[Light redirected<br/>Elastic or inelastic]
     
-        C --> C1[UV-Vis AbsorptionIR Absorption]
-        D --> D1[FluorescencePhosphorescence]
-        E --> E1[Rayleigh: ElasticRaman: Inelastic]
+        C --> C1[UV-Vis Absorption<br/>IR Absorption]
+        D --> D1[Fluorescence<br/>Phosphorescence]
+        E --> E1[Rayleigh: Elastic<br/>Raman: Inelastic]
     
         style A fill:#f093fb,color:#fff
         style C fill:#ff6b6b,color:#fff
@@ -156,14 +172,19 @@ $$\Delta E = E_{\text{final}} - E_{\text{initial}} = h\nu$$
         'Far-IR': {'range': (25, 1000), 'unit': 'um', 'technique': 'THz',
                    'transition': 'Lattice vibrations'},
         'Microwave': {'range': (1, 100), 'unit': 'mm', 'technique': 'ESR',
-                      'transition': 'Rotations, spin'}
+                      'transition': 'Rotations, electron spin'},
+        'Radio': {'range': (0.1, 100), 'unit': 'm', 'technique': 'NMR',
+                  'transition': 'Nuclear spin'}
     }
     
     # Create visualization of energy ranges
     fig, ax = plt.subplots(figsize=(14, 6))
     
     # Energy scale (eV) - logarithmic
-    energies = np.logspace(-4, 4, 1000)
+    # Note the range must reach 1e-8 eV: NMR transitions are radiofrequency
+    # (~1e-7 eV at typical laboratory field strengths), far below the microwave
+    # region where ESR and molecular rotations sit.
+    energies = np.logspace(-8, 4, 1000)
     
     # Color mapping for visible spectrum
     def wavelength_to_rgb(wavelength):
@@ -185,19 +206,20 @@ $$\Delta E = E_{\text{final}} - E_{\text{initial}} = h\nu$$
         return (r, g, b)
     
     # Plot spectral regions as colored bars
-    y_positions = [1, 1, 1, 1, 1, 1, 1]
-    colors = ['#9b59b6', '#3498db', 'rainbow', '#e74c3c', '#f39c12', '#2ecc71', '#1abc9c']
-    labels = ['X-ray', 'UV', 'Visible', 'Near-IR', 'Mid-IR', 'Far-IR', 'Microwave']
+    y_positions = [1, 1, 1, 1, 1, 1, 1, 1]
+    colors = ['#9b59b6', '#3498db', 'rainbow', '#e74c3c', '#f39c12', '#2ecc71', '#1abc9c', '#7f8c8d']
+    labels = ['X-ray', 'UV', 'Visible', 'Near-IR', 'Mid-IR', 'Far-IR', 'Microwave', 'Radio']
     
     # Energy ranges in eV
     energy_ranges = [
-        (100, 10000),   # X-ray
-        (3.1, 100),     # UV
-        (1.77, 3.1),    # Visible
-        (0.5, 1.77),    # Near-IR
-        (0.05, 0.5),    # Mid-IR
-        (0.001, 0.05),  # Far-IR
-        (0.00001, 0.001) # Microwave
+        (100, 10000),    # X-ray
+        (3.1, 100),      # UV
+        (1.77, 3.1),     # Visible
+        (0.5, 1.77),     # Near-IR
+        (0.05, 0.5),     # Mid-IR
+        (0.001, 0.05),   # Far-IR
+        (0.00001, 0.001),# Microwave
+        (1e-8, 1e-5)     # Radio (NMR)
     ]
     
     for i, (label, (e_min, e_max)) in enumerate(zip(labels, energy_ranges)):
@@ -215,7 +237,7 @@ $$\Delta E = E_{\text{final}} - E_{\text{initial}} = h\nu$$
             ax.axvspan(e_min, e_max, ymin=0.3, ymax=0.7, color=color, alpha=0.6, label=label)
     
     ax.set_xscale('log')
-    ax.set_xlim(1e-5, 1e4)
+    ax.set_xlim(1e-8, 1e4)
     ax.set_ylim(0, 2)
     ax.set_xlabel('Energy (eV)', fontsize=12)
     ax.set_title('Electromagnetic Spectrum and Spectroscopic Techniques', fontsize=14, fontweight='bold')
@@ -228,7 +250,8 @@ $$\Delta E = E_{\text{final}} - E_{\text{initial}} = h\nu$$
         (1, 1.4, 'NIR'),
         (0.1, 1.4, 'FTIR'),
         (0.01, 1.4, 'THz'),
-        (0.0001, 1.4, 'ESR/NMR')
+        (0.0001, 1.4, 'ESR'),
+        (1e-7, 1.4, 'NMR')
     ]
     
     for x, y, text in techniques:
@@ -239,7 +262,8 @@ $$\Delta E = E_{\text{final}} - E_{\text{initial}} = h\nu$$
         (1000, 0.1, 'Core electrons'),
         (10, 0.1, 'Valence electrons'),
         (0.1, 0.1, 'Molecular vibrations'),
-        (0.0001, 0.1, 'Rotations/Spin')
+        (0.0001, 0.1, 'Rotations/electron spin'),
+        (1e-7, 0.1, 'Nuclear spin')
     ]
     
     for x, y, text in transitions:
@@ -267,7 +291,8 @@ Visible | 400 - 700 nm | 1.8 - 3.1 eV | Electronic transitions | UV-Vis, Colorim
 Near-IR | 0.7 - 2.5 um | 0.5 - 1.8 eV | Overtones, combinations | NIR spectroscopy  
 Mid-IR | 2.5 - 25 um | 0.05 - 0.5 eV | Molecular vibrations | FTIR, IR absorption  
 Far-IR/THz | 25 - 1000 um | 0.001 - 0.05 eV | Lattice modes, large molecules | THz spectroscopy  
-Microwave | 1 - 100 mm | 0.01 - 1 meV | Molecular rotations | Microwave spectroscopy  
+Microwave | 1 - 100 mm | 0.01 - 1 meV | Molecular rotations, electron spin | Microwave spectroscopy, ESR  
+Radio | 0.1 - 100 m | $10^{-8}$ - $10^{-5}$ eV | Nuclear spin transitions | NMR spectroscopy  
   
 ### 2.2 Energy Level Separation
 
@@ -359,7 +384,9 @@ The typical energy scales are:
     print("=" * 50)
     print(f"Electronic transition: ~{excited_e:.1f} eV ({1239.8/excited_e:.0f} nm)")
     print(f"Vibrational transition: ~{vib_spacing:.2f} eV ({1239.8/vib_spacing:.0f} nm = {vib_spacing*8065:.0f} cm-1)")
-    print(f"Rotational transition: ~0.001 eV ({1239.8/0.001:.0f} um)")
+    # 1239.8 / E(eV) gives the wavelength in NANOMETRES (hc = 1239.8 eV*nm),
+    # so divide by 1000 to quote the rotational transition in micrometres.
+    print(f"Rotational transition: ~0.001 eV ({1239.8/0.001:.0f} nm = {1239.8/0.001/1000:.0f} um)")
     
 
 ## 3\. Energy Quantization and Transitions
@@ -450,11 +477,18 @@ $$\nu_0 = \frac{1}{2\pi}\sqrt{\frac{k}{\mu}}$$
     # Demonstrate effect of isotope substitution
     print("\n\nIsotope Effect: H-Cl vs D-Cl")
     print("-" * 50)
-    _, wn_hcl, _ = calculate_vibrational_frequency(516, 1.008, 35.45)
-    _, wn_dcl, _ = calculate_vibrational_frequency(516, 2.014, 35.45)
-    print(f"H-Cl: {wn_hcl:.0f} cm-1")
-    print(f"D-Cl: {wn_dcl:.0f} cm-1")
-    print(f"Ratio: {wn_hcl/wn_dcl:.3f} (theoretical sqrt(2) = {np.sqrt(2):.3f})")
+    _, wn_hcl, mu_hcl = calculate_vibrational_frequency(516, 1.008, 35.45)
+    _, wn_dcl, mu_dcl = calculate_vibrational_frequency(516, 2.014, 35.45)
+    print(f"H-Cl: {wn_hcl:.0f} cm-1  (reduced mass {mu_hcl/amu:.4f} amu)")
+    print(f"D-Cl: {wn_dcl:.0f} cm-1  (reduced mass {mu_dcl/amu:.4f} amu)")
+    
+    # The exact ratio follows from the reduced masses, NOT from sqrt(2):
+    #   nu_HCl / nu_DCl = sqrt(mu_DCl / mu_HCl) = sqrt(1.9057 / 0.9801) = 1.394
+    print(f"Ratio: {wn_hcl/wn_dcl:.3f} "
+          f"(theoretical sqrt(mu_DCl/mu_HCl) = {np.sqrt(mu_dcl/mu_hcl):.3f})")
+    print(f"Crude approximation sqrt(2) = {np.sqrt(2):.3f} - valid only if the Cl")
+    print("atom were infinitely heavy (mu -> m_H and m_D); the real Cl mass")
+    print("pulls the ratio down to ~1.394.")
     
     # Output shows isotope effect - heavier isotopes have lower vibrational frequencies
     

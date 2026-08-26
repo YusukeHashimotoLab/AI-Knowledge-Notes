@@ -1,20 +1,20 @@
 ---
 title: 第2章：Magpieと統計記述子
 chapter_title: 第2章：Magpieと統計記述子
-subtitle: 145次元特徴量で材料空間を高精度にマッピング
+subtitle: 132次元特徴量で材料空間を高精度にマッピング
 ---
 
 ### 🎯 この章の学習目標
 
 #### 基本理解
 
-  * ✅ Magpie記述子の145次元構成（元素特性22種類×統計量6-7種類）を説明できる
-  * ✅ 元素特性の種類（原子特性、電子特性、周期表特性、熱力学特性）を理解している
-  * ✅ 統計的集約手法（mean, min, max, range, mode, weighted average）の原理を理解している
+  * ✅ Magpie記述子の132次元構成（元素特性22種類×統計量6種類）を説明できる
+  * ✅ `magpie`プリセットの元素特性22種類（周期表上の位置、原子・熱的特性、価電子数、未充填軌道数、基底状態DFT特性）を理解している
+  * ✅ 統計的集約手法6種類（minimum, maximum, range, 原子分率重み付きmean, avg_dev, mode）の原理を理解している
 
 #### 実践スキル
 
-  * ✅ matminer MagpieFeaturizerを実装し、145次元特徴量を生成できる
+  * ✅ matminerの`ElementProperty.from_preset('magpie')`を実装し、132次元特徴量を生成できる
   * ✅ PCA/t-SNEによる次元削減と可視化ができる
   * ✅ Random Forestで特徴量重要度を分析できる
 
@@ -34,33 +34,38 @@ Magpie（Materials Agnostic Platform for Informatics and Exploration）記述子
 
   1. **物理的解釈性** ：すべての特徴量が元素の物理化学的性質に基づく
   2. **スケーラビリティ** ：任意の化学式（元素数2-10程度）に適用可能
-  3. **情報最大化** ：元素特性22種類×統計量6-7種類=145次元で材料空間を包括的に記述
+  3. **情報最大化** ：元素特性22種類×統計量6種類=132次元で材料空間を包括的に記述
 
-#### 💡 なぜ145次元なのか？
+#### 💡 なぜ132次元なのか？（そして「145」はどこから来たのか）
 
-Ward et al.は、元素特性を増やしすぎると冗長性が高まり、少なすぎると表現力が不足することを発見しました。145次元は**情報量と計算効率のバランス** を最適化した結果です（Ward et al., 2016, p. 4）。実際、OQMD（Open Quantum Materials Database）の形成エンタルピー予測で、Magpieは構造ベース記述子に匹敵するMAE=0.12 eV/atomを達成しています（Ward et al., 2017, p. 6）。
+Ward et al.は、元素特性を増やしすぎると冗長性が高まり、少なすぎると表現力が不足することを発見しました。matminerの`ElementProperty.from_preset('magpie')`が返す132次元は、**情報量と計算効率のバランス** を最適化した結果です（Ward et al., 2016, p. 4）。
 
-### 145次元ベクトルの構成
+一方で「**145次元**」という数字もよく目にします。これはWard et al. (2016)の論文が提案した完全な属性セットの大きさで、元素特性統計量の上にさらに3つのファミリーを積み上げたものです：化学量論属性6個 + **元素特性統計量132個** + 価電子軌道属性4個 + イオン性化合物属性3個 = 145。matminerではこの追加ファミリーが別々のFeaturizer（`Stoichiometry`、`ValenceOrbital`、`IonProperty`）として実装されているため、`magpie`プリセット単体は**どのバージョンでも常に132列** です。本章で「Magpie特徴量」と言う場合、明示的にWard 2016の属性セットを指していない限り、この132列を意味します。
+
+実際、OQMD（Open Quantum Materials Database）の形成エンタルピー予測で、Magpieは構造ベース記述子に匹敵するMAE=0.12 eV/atomを達成しています（Ward et al., 2017, p. 6）。
+
+### 132次元ベクトルの構成
 
 Magpie記述子は以下の階層構造を持ちます：
     
     
     ```mermaid
     graph TD
-        A[Magpie 145次元] --> B[元素特性 22種類]
-        A --> C[統計量 6-7種類]
+        A[Magpie 132次元] --> B[元素特性 22種類]
+        A --> C[統計量 6種類]
     
-        B --> D[原子特性 8種類]
-        B --> E[電子特性 6種類]
-        B --> F[周期表特性 3種類]
-        B --> G[熱力学特性 5種類]
+        B --> D[周期表上の位置 4種類]
+        B --> E[原子・熱的特性 4種類]
+        B --> F[価電子数 5種類]
+        B --> G[未充填軌道数 5種類]
+        B --> N[基底状態DFT特性 4種類]
     
-        C --> H[mean 平均]
-        C --> I[min 最小値]
-        C --> J[max 最大値]
-        C --> K[range 範囲]
-        C --> L[mode 最頻値]
-        C --> M[weighted mean 重み付き平均]
+        C --> H[minimum 最小値]
+        C --> I[maximum 最大値]
+        C --> J[range 範囲]
+        C --> K[mean 原子分率重み付き平均]
+        C --> L[avg_dev 平均絶対偏差]
+        C --> M[mode 最頻値]
     
         style A fill:#f093fb,stroke:#f5576c,stroke-width:3px,color:#fff
         style B fill:#e3f2fd
@@ -69,13 +74,13 @@ Magpie記述子は以下の階層構造を持ちます：
 
 **具体的な次元数の内訳：**
 
-  * 元素特性22種類 × 平均値 = 22次元
-  * 元素特性22種類 × 最小値 = 22次元
-  * 元素特性22種類 × 最大値 = 22次元
-  * 元素特性22種類 × 範囲（max - min） = 22次元
-  * 元素特性22種類 × 最頻値 = 22次元
-  * 元素特性の一部（原子量、イオン化エネルギー等）× 重み付き平均 = 約35次元
-  * **合計：約145次元**
+  * 元素特性22種類 × 最小値（minimum） = 22次元
+  * 元素特性22種類 × 最大値（maximum） = 22次元
+  * 元素特性22種類 × 範囲（range = max - min） = 22次元
+  * 元素特性22種類 × 原子分率重み付き平均（mean） = 22次元
+  * 元素特性22種類 × 平均絶対偏差（avg_dev） = 22次元
+  * 元素特性22種類 × 最頻値（mode） = 22次元
+  * **合計：132次元**
 
 ### 各次元の物理的意味
 
@@ -83,141 +88,142 @@ Magpie記述子の各次元は、材料特性に直接影響する物理量を�
 
 次元例 | 物理的意味 | 影響する材料特性  
 ---|---|---  
-mean_AtomicRadius | 平均原子半径（Å） | 格子定数、密度、イオン伝導性  
-range_Electronegativity | 電気陰性度の範囲 | イオン結合性、バンドギャップ  
-max_MeltingT | 最大融点（K） | 高温安定性、耐熱性  
-weighted_mean_Valence | 重み付き平均価数 | 酸化還元特性、触媒活性  
-mode_GSvolume_pa | 最頻基底状態体積/原子 | 結晶構造の安定性  
+MagpieData mean CovalentRadius | 原子分率重み付き平均共有結合半径（pm） | 格子定数、密度、イオン伝導性  
+MagpieData range Electronegativity | 電気陰性度の範囲 | イオン結合性、バンドギャップ  
+MagpieData maximum MeltingT | 最大融点（K） | 高温安定性、耐熱性  
+MagpieData avg_dev NValence | 総価電子数のばらつき | 酸化還元特性、触媒活性  
+MagpieData mode GSvolume_pa | 最頻基底状態体積/原子 | 結晶構造の安定性  
   
 ## 2.2 元素特性の種類
 
-### 原子特性（Atomic Properties, 8種類）
+`magpie`プリセットの元素特性22種類は固定です。これは`ElementProperty.from_preset("magpie").features`に格納されているリストそのもので、matminerのリリース間で変わることはありません。以下の5つのグループに自然に分かれます。
 
-原子そのものの構造的特性：
+### 周期表上の位置（Periodic Table Position, 4種類）
 
-  1. **AtomicWeight** （原子量, g/mol）：質量、密度に影響
-  2. **AtomicRadius** （原子半径, Å）：結合長、格子定数を決定
-  3. **CovalentRadius** （共有結合半径, Å）：共有結合材料の結合距離
-  4. **Density** （密度, g/cm³）：バルク材料の密度予測に使用
-  5. **MeltingT** （融点, K）：高温安定性の指標
-  6. **Column** （族番号, 1-18）：化学的性質の周期性
-  7. **Row** （周期番号, 1-7）：電子殻数、原子サイズ
-  8. **NdValence** （d軌道価電子数）：遷移金属の触媒活性
-
-### 電子特性（Electronic Properties, 6種類）
-
-電子状態に関連する特性：
-
-  1. **Electronegativity** （電気陰性度, Pauling scale）：結合のイオン性/共有性
-  2. **IonizationEnergy** （第一イオン化エネルギー, eV）：電子の取り出しやすさ
-  3. **ElectronAffinity** （電子親和力, eV）：電子の受け取りやすさ
-  4. **NsValence** （s軌道価電子数）：金属結合強度
-  5. **NpValence** （p軌道価電子数）：半導体特性
-  6. **NfValence** （f軌道価電子数）：ランタノイド・アクチノイドの磁性
-
-### 周期表特性（Periodic Table Properties, 3種類）
-
-周期表上の位置に関連する特性：
+元素が周期表のどこに位置するか。化学的な類似性を符号化します：
 
   1. **Number** （原子番号, Z）：陽子数、核電荷
-  2. **SpaceGroupNumber** （空間群番号）：結晶対称性の予測
-  3. **GSvolume_pa** （基底状態体積/原子, Å³）：DFT計算による理論体積
+  2. **MendeleevNumber** （メンデレーエフ番号）：化学的に似た元素が隣り合うように並べた順序
+  3. **Column** （族番号, 1-18）：化学的性質の周期性
+  4. **Row** （周期番号, 1-7）：電子殻数、原子サイズ
 
-### 熱力学特性（Thermodynamic Properties, 5種類）
+### 原子・熱的特性（Atomic and Thermal Properties, 4種類）
 
-熱力学的安定性に関連する特性：
+原子の質量・サイズ・結合性・熱的安定性：
 
-  1. **GSenergy_pa** （基底状態エネルギー/原子, eV）：結晶の安定性
+  1. **AtomicWeight** （原子量, g/mol）：質量、密度に影響
+  2. **MeltingT** （融点, K）：高温安定性の指標
+  3. **CovalentRadius** （共有結合半径, pm）：結合長、格子定数を決定
+  4. **Electronegativity** （電気陰性度, Pauling scale）：結合のイオン性/共有性
+
+### 価電子数（Valence Electron Counts, 5種類）
+
+各軌道タイプの価電子数とその合計：
+
+  1. **NsValence** （s軌道価電子数）：金属結合強度
+  2. **NpValence** （p軌道価電子数）：半導体特性
+  3. **NdValence** （d軌道価電子数）：遷移金属の触媒活性
+  4. **NfValence** （f軌道価電子数）：ランタノイド・アクチノイドの磁性
+  5. **NValence** （総価電子数）：全体の結合能力、酸化還元挙動
+
+### 未充填軌道数（Unfilled Orbital Counts, 5種類）
+
+各軌道タイプの**空き** の数。価電子数の裏返しであり、反応性の強いシグナルになります：
+
+  1. **NsUnfilled** （未充填s状態数）：s型アクセプタ準位の利用可能性
+  2. **NpUnfilled** （未充填p状態数）：アニオン性、p帯の充填度
+  3. **NdUnfilled** （未充填d状態数）：遷移金属の反応性と磁性
+  4. **NfUnfilled** （未充填f状態数）：希土類のf電子的挙動
+  5. **NUnfilled** （総未充填状態数）：全体の電子受容能力
+
+### 基底状態DFT特性（Ground-State Properties, 4種類）
+
+元素単体の基底状態結晶についてDFT計算から集計された特性：
+
+  1. **GSvolume_pa** （基底状態体積/原子, Å³）：DFT計算による理論体積
   2. **GSbandgap** （基底状態バンドギャップ, eV）：半導体/絶縁体の電気特性
   3. **GSmagmom** （基底状態磁気モーメント, μB）：磁性材料の特性
-  4. **BoilingT** （沸点, K）：高温プロセスの安定性
-  5. **HeatCapacity** （熱容量, J/mol·K）：熱輸送特性
+  4. **SpaceGroupNumber** （空間群番号）：元素単体結晶の対称性
+
+一見当然のように思える量のいくつかは、この22種類に**含まれていません**：イオン化エネルギー、電子親和力、密度、沸点、熱容量、基底状態エネルギー/原子です。これらが必要な場合は、別のプリセット（matminerには`deml`、`matminer`、`magpie_oxid`もあります）を使うか、`ElementProperty`に特性リストを明示的に渡すか、カスタムFeaturizerを書きます（第3章で解説）。
 
 #### 📊 データベース出典
 
 Magpieの元素特性は以下のデータベースから取得されています：
 
-  * **OQMD** （Open Quantum Materials Database）：DFT計算による基底状態特性（GSenergy_pa, GSvolume_pa等）
+  * **OQMD** （Open Quantum Materials Database）：DFT計算による基底状態特性（GSvolume_pa, GSbandgap, GSmagmom）
   * **Materials Project** ：結晶構造データベース（SpaceGroupNumber等）
-  * **Mendeleev** ：周期表の標準的な元素特性（原子量、電気陰性度、イオン化エネルギー等）
+  * **Mendeleev** ：周期表の標準的な元素特性（原子量、電気陰性度、融点等）
 
-これらのデータベースは、matminerライブラリに統合されており、`pymatgen.Element`クラスを通じてアクセスできます。
+これらの値はmatminerにルックアップテーブルとして同梱されており、同じ量の多くは`pymatgen.Element`クラスからもアクセスできます。
 
 ## 2.3 統計的集約手法
 
-### 基本統計量（5種類）
+### Magpieの6種類の統計量
 
-元素特性を材料全体の特徴量に変換するために、以下の統計量を使用します：
+22種類の元素特性それぞれを6通りの方法で1つの数値に集約し、22 × 6 = 132列を作ります。matminerでの列名は`MagpieData {統計量} {特性}`です。統計量は`minimum`、`maximum`、`range`、`mean`、`avg_dev`、`mode`の6つに固定されています。
 
-#### 1\. Mean（平均値）
+以下、$f_i = n_i / \sum_j n_j$は元素$i$の**原子分率** （$n_i$は原子数）、$p_i$は元素$i$の特性値とします。
 
-最も基本的な統計量。組成中の各元素の特性を等重みで平均します：
-
-$$ \text{mean}(P) = \frac{1}{N} \sum_{i=1}^{N} p_i $$ 
-
-ここで、$N$は元素種数、$p_i$は元素$i$の特性値です。
-
-**例（Fe 2O3の平均原子半径）：**
-
-  * Fe: 1.26 Å（2原子）
-  * O: 0.66 Å（3原子）
-  * mean = (1.26 + 0.66) / 2 = 0.96 Å（元素種数で平均）
-
-#### 2\. Min（最小値）
+#### 1\. Minimum（最小値）
 
 組成中の最小特性値。材料の「ボトルネック」を表現します：
 
-$$ \text{min}(P) = \min_{i=1}^{N} p_i $$ 
+$$ \text{minimum}(P) = \min_{i} p_i $$
 
-**例：** min_Electronegativity = min(Fe: 1.83, O: 3.44) = 1.83（Fe）
+**例：** minimum Electronegativity = min(Fe: 1.83, O: 3.44) = 1.83（Fe）
 
-#### 3\. Max（最大値）
+#### 2\. Maximum（最大値）
 
 組成中の最大特性値。材料の「ピーク性能」を示します：
 
-$$ \text{max}(P) = \max_{i=1}^{N} p_i $$ 
+$$ \text{maximum}(P) = \max_{i} p_i $$
 
-**例：** max_IonizationEnergy = max(Fe: 7.9 eV, O: 13.6 eV) = 13.6 eV（O）
+**例：** maximum MeltingT = max(Fe: 1811 K, O: 54 K) = 1811 K（Fe）
 
-#### 4\. Range（範囲）
+#### 3\. Range（範囲）
 
 最大値と最小値の差。特性の「ばらつき」を表現します：
 
-$$ \text{range}(P) = \text{max}(P) - \text{min}(P) $$ 
+$$ \text{range}(P) = \text{maximum}(P) - \text{minimum}(P) $$
 
-**例：** range_Electronegativity = 3.44 - 1.83 = 1.61（イオン結合性の強さを示唆）
+**例：** range Electronegativity = 3.44 - 1.83 = 1.61（イオン結合性の強さを示唆）
 
-#### 5\. Mode（最頻値）
+#### 4\. Mean（原子分率重み付き平均）
 
-組成中で最も頻繁に現れる特性値。多元素系で重要：
+Magpieの`mean`は元素種数での単純平均では**ありません**。原子分率で重み付けされています：
 
-$$ \text{mode}(P) = \arg\max_{p_i} \text{count}(p_i) $$ 
+$$ \text{mean}(P) = \sum_{i} f_i \cdot p_i $$
 
-**例（LiFePO 4）：** Li: 1, Fe: 1, P: 1, O: 4原子 → O（酸素）の特性が最頻値として選択されます。
-
-### 重み付き統計量（Weighted Average）
-
-元素の**原子分率** （atomic fraction）で重み付けした平均値。より物理的に意味のある統計量です：
-
-$$ \text{weighted_mean}(P) = \sum_{i=1}^{N} f_i \cdot p_i $$ 
-
-ここで、$f_i = n_i / \sum_j n_j$は元素$i$の原子分率、$n_i$は原子数です。
-
-**例（Fe 2O3の重み付き平均原子半径）：**
+**例（Fe 2O3のmean原子半径）：**
 
   * Feの原子分率: $f_{\text{Fe}} = 2 / (2+3) = 0.4$
   * Oの原子分率: $f_{\text{O}} = 3 / (2+3) = 0.6$
-  * weighted_mean = $0.4 \times 1.26 + 0.6 \times 0.66 = 0.504 + 0.396 = 0.90$ Å
+  * mean = $0.4 \times 1.26 + 0.6 \times 0.66 = 0.504 + 0.396 = 0.900$ Å
 
-この値は、材料の**実効的な原子半径** を表し、格子定数や密度の予測に有用です。
+この値は材料の**実効的な原子半径** を表し、格子定数や密度の予測に有用です。元素種数での単純平均$(1.26 + 0.66)/2 = 0.96$ Åは別の量であり、matminerが返す値では**ありません**。
 
-#### ⚠️ MeanとWeighted Meanの使い分け
+#### 5\. Avg_dev（平均絶対偏差）
 
-**Mean** ：元素の種類の多様性を反映（元素種数で平均）
+meanからの原子分率重み付き平均絶対偏差。Magpieにおける「ばらつき」の指標です：
 
-**Weighted Mean** ：組成比を反映（原子数で重み付け）
+$$ \text{avg\_dev}(P) = \sum_{i} f_i \cdot \lvert p_i - \text{mean}(P) \rvert $$
 
-例えば、Li0.01Fe0.99Oのような微量ドープ系では、Meanは3元素を等重視しますが、Weighted MeanはFe-O系として扱います。どちらが適切かは、予測したい材料特性に依存します。
+**例（Fe 2O3の原子半径）：** $0.4 \times |1.26 - 0.900| + 0.6 \times |0.66 - 0.900| = 0.144 + 0.144 = 0.288$ Å
+
+0に近ければどの元素もその特性について似た値を持つことを意味し、大きければ化学的に不均質な組成であることを示します。
+
+#### 6\. Mode（最頻値）
+
+原子分率が最大の元素の特性値。多元素系で重要：
+
+$$ \text{mode}(P) = p_{\arg\max_i f_i} $$
+
+**例（LiFePO 4）：** Li: 1, Fe: 1, P: 1, O: 4原子 → O（酸素）の原子分率が最大なので、Oの特性値が最頻値として返されます。
+
+#### ⚠️ 「weighted_mean」と「std」はMagpieの統計量ではありません
+
+多くの解説記事が上記の統計量と並べて`weighted_mean`や`std`を挙げていますが、どちらもプリセットには含まれません。Magpieの`mean`が**すでに** 原子分率重み付き平均なので、別途「重み付き平均」の列は存在せず、ばらつきは標準偏差ではなく`avg_dev`として報告されます。Magpie特徴量の隣に`weighted_mean`や`std`が並んでいる場合、それは誰かが独自に追加したカスタム統計量です——次節でまさにそれを意図的に行います。
 
 ### 高度な統計量（カスタム設計）
 
@@ -245,7 +251,7 @@ $$ \text{std}(P) = \sqrt{\frac{1}{N} \sum_{i=1}^{N} (p_i - \text{mean}(P))^2} $$
 
 ### 高次元データの次元削減の必要性
 
-145次元のMagpie特徴量は、そのままでは人間が直感的に理解できません。**次元削減** により、145次元→2次元or3次元に圧縮し、可視化することで以下が可能になります：
+132次元のMagpie特徴量は、そのままでは人間が直感的に理解できません。**次元削減** により、132次元→2次元or3次元に圧縮し、可視化することで以下が可能になります：
 
   * 材料のクラスター構造の発見（酸化物、金属、半導体等がグループ化される）
   * 異常値（outliers）の検出
@@ -266,7 +272,7 @@ PCA（Principal Component Analysis）は、**線形変換** により、デー�
 
 $$ \mathbf{Z} = \mathbf{X} \mathbf{W} $$ 
 
-ここで、$\mathbf{X}$は元の145次元データ、$\mathbf{W}$は主成分軸（固有ベクトル）、$\mathbf{Z}$は削減後のデータです。
+ここで、$\mathbf{X}$は元の132次元データ、$\mathbf{W}$は主成分軸（固有ベクトル）、$\mathbf{Z}$は削減後のデータです。
 
 **利点：**
 
@@ -371,16 +377,16 @@ Magpie特徴量をPCAで次元削減すると、以下のような材料クラ�
     
     # 期待される出力:
     # 生成された特徴量の次元数: 132
-    # （注：matminerのバージョンにより、145次元ではなく132次元の場合があります）
+    # （ElementProperty.from_preset("magpie") は常に132列を返します：元素特性22種類 × 統計量6種類）
     
 
-### コード例2: 145次元特徴量の完全生成と詳細表示
+### コード例2: 132次元特徴量の完全生成と詳細表示
 
 [Google Colabで開く](<https://colab.research.google.com/drive/1example_magpie_full>)
     
     
     # ===================================
-    # Example 2: 145次元Magpie特徴量の完全生成
+    # Example 2: 132次元Magpie特徴量の完全生成
     # ===================================
     
     from matminer.featurizers.composition import ElementProperty
@@ -485,7 +491,7 @@ Magpie特徴量をPCAで次元削減すると、以下のような材料クラ�
     X = np.array(all_features)
     print(f"特徴量行列のサイズ: {X.shape}")  # (20材料, 132次元)
     
-    # PCAで145次元→2次元に削減
+    # PCAで132次元→2次元に削減
     pca = PCA(n_components=2)
     X_pca = pca.fit_transform(X)
     
@@ -682,7 +688,7 @@ Magpie特徴量をPCAで次元削減すると、以下のような材料クラ�
     #
     # Fe2O3の原子半径統計:
     #   mean: 0.960 Å
-    #   weighted_mean: 0.856 Å
+    #   weighted_mean: 0.900 Å
     #   min: 0.660 Å
     #   max: 1.260 Å
     #   range: 0.600 Å
@@ -1005,7 +1011,7 @@ Magpie特徴量をPCAで次元削減すると、以下のような材料クラ�
     # 期待される出力:
     # === 原子半径の統計量比較 ===
     # Compound  arithmetic_mean  geometric_mean  harmonic_mean  weighted_mean
-    # Fe2O3           0.960          0.914          0.869          0.856
+    # Fe2O3           0.960          0.912          0.866          0.900
     # LiFePO4         0.948          0.895          0.831          0.842
     # BaTiO3          1.313          1.171          1.016          1.076
     # MgB2            0.980          0.930          0.880          0.901
@@ -1013,13 +1019,13 @@ Magpie特徴量をPCAで次元削減すると、以下のような材料クラ�
     #
     # === 統計量の比較（Fe2O3の電気陰性度）===
     # arithmetic_mean     : 2.6350
-    # geometric_mean      : 2.5231
-    # harmonic_mean       : 2.4088
-    # weighted_mean       : 2.8040
+    # geometric_mean      : 2.5090
+    # harmonic_mean       : 2.3891
+    # weighted_mean       : 2.7960
     # min                 : 1.8300
     # max                 : 3.4400
     # range               : 1.6100
-    # std                 : 1.1385
+    # std                 : 0.8050
     
 
 ## 2.6 学習目標の確認
@@ -1028,13 +1034,13 @@ Magpie特徴量をPCAで次元削減すると、以下のような材料クラ�
 
 #### 基本理解
 
-  * ✅ Magpie記述子は145次元（元素特性22種類×統計量6-7種類）で構成されている
+  * ✅ Magpie記述子は132次元（元素特性22種類×統計量6種類）で構成されている
   * ✅ 元素特性は、原子特性・電子特性・周期表特性・熱力学特性の4カテゴリに分類される
   * ✅ 統計的集約手法（mean, min, max, range, mode, weighted mean）により、組成全体の特徴を数値化する
 
 #### 実践スキル
 
-  * ✅ matminer MagpieFeaturizerで145次元特徴量を生成できる
+  * ✅ matminerの`ElementProperty.from_preset('magpie')`で132次元特徴量を生成できる
   * ✅ PCA/t-SNEで次元削減し、材料空間を2次元可視化できる
   * ✅ Random Forestで特徴量重要度を分析し、材料特性予測に寄与する要因を特定できる
 
@@ -1050,54 +1056,57 @@ Magpie特徴量をPCAで次元削減すると、以下のような材料クラ�
 
 **Q1:** Magpie記述子の総次元数は何次元ですか？また、その構成要素（元素特性の種類数と統計量の種類数）を答えてください。
 
-**正解:** 145次元（matminerのバージョンにより132次元の場合もあり）
+**正解:** 132次元
 
 **構成要素:**
 
   * 元素特性: 22種類
-  * 統計量: 6-7種類（mean, min, max, range, mode, weighted mean等）
+  * 統計量: 6種類（minimum, maximum, range, 原子分率重み付きmean, avg_dev, mode）
 
-**解説:** Magpie記述子は、Ward et al. (2016)が設計した組成ベース特徴量の標準です。22種類の元素特性（原子半径、電気陰性度、イオン化エネルギー等）に対して、6-7種類の統計量を計算することで、約145次元のベクトルを生成します。この次元数は、情報量と計算効率のバランスを最適化した結果です。
+**解説:** Magpie記述子は、Ward et al. (2016)が設計した組成ベース特徴量の標準です。matminerの`ElementProperty.from_preset('magpie')`は、22種類の元素特性それぞれに6種類の統計量を計算し、22 × 6 = 132列を生成します。よく引用される「145」はWard et al. (2016)論文の完全な属性セット（化学量論6 + 元素特性統計量132 + 価電子軌道4 + イオン性化合物3）の大きさで、matminerではこの追加ファミリーは別のFeaturizerになっています。
 
-**Q2:** Fe2O3の**mean AtomicRadius** と**weighted_mean AtomicRadius** を計算してください。Feの原子半径は1.26 Å、Oの原子半径は0.66 Åとします。
+**Q2:** Fe2O3の原子半径についてMagpieの**mean** と**avg_dev** を計算し、meanを元素種数での単純平均と比較してください。Feの原子半径は1.26 Å、Oの原子半径は0.66 Åとします。
 
 **正解:**
 
-  * mean AtomicRadius = 0.96 Å
-  * weighted_mean AtomicRadius = 0.90 Å
+  * Magpie mean = 0.900 Å
+  * Magpie avg_dev = 0.288 Å
+  * 元素種数での単純平均 = 0.96 Å（Magpie特徴量ではない）
 
 **計算過程:**
 
-**mean（算術平均）:**
-
-元素種数で平均：(1.26 + 0.66) / 2 = 1.92 / 2 = 0.96 Å
-
-**weighted_mean（重み付き平均）:**
+**mean（原子分率重み付き）:**
 
 Feの原子分率: 2 / (2+3) = 0.4
 
 Oの原子分率: 3 / (2+3) = 0.6
 
-weighted_mean = 0.4 × 1.26 + 0.6 × 0.66 = 0.504 + 0.396 = 0.90 Å
+mean = 0.4 × 1.26 + 0.6 × 0.66 = 0.504 + 0.396 = 0.900 Å
 
-**解説:** meanは元素の種類の多様性を反映し、weighted_meanは組成比を考慮した実効値を表します。weighted_meanの方が、材料の実際の原子配置をより正確に反映しています。
+**avg_dev（原子分率重み付き平均絶対偏差）:**
 
-**Q3:** 次の元素特性のうち、**電子特性（Electronic Properties）** に分類されるものをすべて選んでください。  
+avg_dev = 0.4 × |1.26 − 0.900| + 0.6 × |0.66 − 0.900| = 0.4 × 0.360 + 0.6 × 0.240 = 0.144 + 0.144 = 0.288 Å
+
+**元素種数での単純平均:** (1.26 + 0.66) / 2 = 1.92 / 2 = 0.96 Å
+
+**解説:** Magpieのmeanは組成比で重み付けした実効値なので、材料の実際の原子配置を反映します。元素種数での単純平均は微量ドーパントを母材と同等に扱ってしまい、matminerが返す値でもありません。
+
+**Q3:** 次のうち、matminerの`magpie`プリセットの元素特性22種類に含まれるものをすべて選んでください。  
 a) Electronegativity（電気陰性度）  
 b) MeltingT（融点）  
 c) IonizationEnergy（イオン化エネルギー）  
 d) AtomicRadius（原子半径）  
-e) ElectronAffinity（電子親和力）
+e) NdUnfilled（未充填d状態数）
 
-**正解:** a) Electronegativity、c) IonizationEnergy、e) ElectronAffinity
+**正解:** a) Electronegativity、b) MeltingT、e) NdUnfilled
 
 **解説:**
 
-  * **電子特性** : 電子状態に関連する特性（Electronegativity, IonizationEnergy, ElectronAffinity, NsValence, NpValence, NfValence）
-  * **熱力学特性** : b) MeltingT（融点）
-  * **原子特性** : d) AtomicRadius（原子半径）
+  * a), b), e) はプリセットに含まれます。ElectronegativityとMeltingTは原子・熱的特性グループ、NdUnfilledは未充填軌道数グループです。
+  * c) IonizationEnergyは**含まれません**。ElectronAffinityも同様で、多くのMagpie解説に登場するにもかかわらずプリセット外です。
+  * d) AtomicRadiusも**含まれません**。Magpieが保持する半径は**CovalentRadius** です。
 
-電子特性は、材料のバンドギャップ、イオン結合性/共有結合性、酸化還元特性などに直接影響します。
+イオン化エネルギーや電子親和力が必要な場合は、`ElementProperty`に特性リストを明示的に渡すか、カスタムFeaturizerを書きます（第3章）。
 
 ### Medium（応用）
 
@@ -1166,21 +1175,22 @@ perplexity | 可視化の特徴 | 適用ケース
 
 **実例:** 材料探索（100-1000化合物）では、perplexity=20-30が最も材料クラスの分離が明瞭になることが多いです。
 
-**Q7:** matminerのMagpieFeaturizerで生成される特徴量の次元数が132次元の場合と145次元の場合があるのはなぜですか？この違いが予測精度に与える影響を考察してください。
+**Q7:** 文献や解説記事ではMagpieが「132次元」とも「145次元」とも書かれています。matminerが実際に生成するのはどちらで、もう一方の数字はどこから来たのでしょうか？
 
-**次元数の違いの原因:**
+**正解:** matminerの`ElementProperty.from_preset('magpie')`が生成するのは**132列** で、これは一貫して変わりません（元素特性22種類 × 統計量6種類）。このプリセットが145列を返すmatminerのバージョンは存在しません。
 
-  * **matminerのバージョン:** v0.6以前では132次元、v0.7以降では145次元に拡張されました。
-  * **元素特性データベースの更新:** Materials ProjectやOQMDのデータベース更新により、新しい元素特性（GSmagmom等）が追加されました。
-  * **統計量の追加:** weighted_mean統計量が一部の元素特性に追加されました。
+**145はどこから来たか:** Ward et al. (2016)が提案した完全な属性セットの大きさで、4つのファミリーから構成されます：
 
-**予測精度への影響:**
+  * **化学量論属性** 6個（組成ベクトルのL^pノルム。どの元素かに依らない）
+  * **元素特性統計量** 132個（matminerの`magpie`プリセットが実装している部分）
+  * **価電子軌道属性** 4個（価電子のうちs, p, d, f状態にある割合）
+  * **イオン性化合物属性** 3個（電荷中性なイオン配置が存在するか、および最大イオン性）
 
-  1. **情報量の増加:** 145次元の方が元素特性をより詳細に表現できるため、複雑な材料特性（磁性、電子状態等）の予測精度が向上する可能性があります。Ward et al. (2017)によると、形成エンタルピー予測のMAEが約5-10%改善されています（p. 8）。
-  2. **過学習のリスク:** データ数が少ない場合（<100サンプル）、145次元は過剰な特徴量となり、過学習を引き起こす可能性があります。この場合、PCAで次元削減するか、特徴量選択（feature selection）を行うべきです。
-  3. **計算コスト:** 132次元→145次元の増加は計算コストに大きな影響を与えません（10%未満の増加）。
+6 + 132 + 4 + 3 = 145です。matminerではこの追加3ファミリーが`Stoichiometry`、`ValenceOrbital`、`IonProperty`という別のFeaturizerになっています。
 
-**実践的アドバイス:** 大規模データ（>1000サンプル）では145次元を使用し、小規模データでは132次元またはPCAで50-80次元に削減することを推奨します。
+**実務上の帰結:** Ward et al. (2016)の属性セットを再現するには、`MultipleFeaturizer([ElementProperty.from_preset('magpie'), Stoichiometry(), ValenceOrbital(), IonProperty()])`のように4つを連結します。`magpie`プリセットだけを呼んで「145特徴量」と報告しているなら、その数字は誤りです。次元数を書く前に`len(featurizer.feature_labels())`で確認してください。
+
+**次元数に関する助言:** 小規模データ（<100サンプル）では132列でも過学習し得るので、PCAや特徴量選択を適用します。追加13属性の計算コスト増はごくわずかですが、特徴量セット自体は変わるため、Featurizerの定義はモデルと一緒にバージョン管理してください。
 
 ### Hard（発展）
 
@@ -1340,7 +1350,7 @@ UMAP | ⭐⭐⭐⭐
     import time
     
     # データ準備（10,000化合物のMagpie特徴量）
-    # X = np.array(magpie_features)  # shape: (10000, 145)
+    # X = np.array(magpie_features)  # shape: (10000, 132)
     
     methods = {
         "PCA": PCA(n_components=2),
@@ -1382,9 +1392,9 @@ UMAP | ⭐⭐⭐⭐
 
 この章では、Magpie記述子の詳細構成、元素特性の種類、統計的集約手法、次元削減による可視化を学びました。
 
-次の第3章では、**Stoichiometric記述子と元素割合ベクトル** を学び、化学量論比（stoichiometry）を直接特徴量として利用する手法を探求します。
+次の第3章では、**元素特性データベースとFeaturizer** を学び、多様なデータソースを統合してカスタム特徴量を設計する手法を探求します。
 
-[← 第1章：組成ベース特徴量の基礎](<./chapter-1.html>) [シリーズ目次に戻る](<./index.html>) [第3章：Stoichiometric記述子 →](<./chapter-3.html>)
+[← 第1章：組成ベース特徴量の基礎](<./chapter-1.html>) [シリーズ目次に戻る](<./index.html>) [第3章：元素特性データベースとFeaturizer →](<./chapter-3.html>)
 
 ## 参考文献
 

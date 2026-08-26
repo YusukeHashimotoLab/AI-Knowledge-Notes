@@ -4,6 +4,22 @@ chapter_title: 第1章：PIの基礎概念とプロセス産業におけるデ�
 subtitle: プロセス産業のデジタル変革の基礎
 ---
 
+## ビデオ講義
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/zPcyIoxLi8Y"
+    title="プロセス・インフォマティクス入門 第1章: PIの基礎概念とプロセス産業におけるデータ活用"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> このビデオは以下のテキストと同じ内容をカバーしています。お好みの学習形式をお選びください。
+
 # 第1章：PIの基礎概念とプロセス産業におけるデータ活用
 
 プロセス・インフォマティクス（PI）の基本概念を理解し、プロセス産業における特徴とデータの種類を学びます。データ駆動型アプローチによる実際の改善事例を通じて、PIの価値を実感しましょう。

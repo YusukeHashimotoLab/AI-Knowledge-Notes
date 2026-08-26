@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第4章：管内流れと圧力損失 - AI Terakoya</title>
+
+    <style>
+        :root {
+            --color-primary: #2c3e50;
+            --color-primary-dark: #1a252f;
+            --color-accent: #7b2cbf;
+            --color-accent-light: #9d4edd;
+            --color-text: #2d3748;
+            --color-text-light: #4a5568;
+            --color-bg: #ffffff;
+            --color-bg-alt: #f7fafc;
+            --color-border: #e2e8f0;
+            --color-code-bg: #f8f9fa;
+            --color-link: #3182ce;
+            --color-link-hover: #2c5aa0;
+
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+
+            --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+            --border-radius: 8px;
+            --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-body);
+            line-height: 1.7;
+            color: var(--color-text);
+            background-color: var(--color-bg);
+            font-size: 16px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            padding: var(--spacing-xl) var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+            box-shadow: var(--box-shadow);
+        }
+
+        .header-content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: var(--spacing-sm);
+            line-height: 1.2;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            font-weight: 400;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-md);
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-md) var(--spacing-xl);
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-xl);
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-xs);
+            border-bottom: 3px solid var(--color-accent);
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-lg);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        h4 {
+            font-size: 1.1rem;
+            color: var(--color-primary-dark);
+            margin-top: var(--spacing-md);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        p {
+            margin-bottom: var(--spacing-md);
+            color: var(--color-text);
+        }
+
+        a {
+            color: var(--color-link);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        a:hover {
+            color: var(--color-link-hover);
+            text-decoration: underline;
+        }
+
+        ul, ol {
+            margin-left: var(--spacing-lg);
+            margin-bottom: var(--spacing-md);
+        }
+
+        li {
+            margin-bottom: var(--spacing-xs);
+            color: var(--color-text);
+        }
+
+        pre {
+            background-color: var(--color-code-bg);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            overflow-x: auto;
+            margin-bottom: var(--spacing-md);
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        code {
+            font-family: var(--font-mono);
+            font-size: 0.9em;
+            background-color: var(--color-code-bg);
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+        }
+
+        pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: var(--spacing-md);
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            border: 1px solid var(--color-border);
+            padding: var(--spacing-sm);
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--color-bg-alt);
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        blockquote {
+            border-left: 4px solid var(--color-accent);
+            padding-left: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            color: var(--color-text-light);
+            font-style: italic;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        .mermaid {
+            text-align: center;
+            margin: var(--spacing-lg) 0;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        details {
+            background-color: var(--color-bg-alt);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+        }
+
+        summary {
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--color-primary);
+            user-select: none;
+            padding: var(--spacing-xs);
+            margin: calc(-1 * var(--spacing-md));
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        summary:hover {
+            background-color: rgba(123, 44, 191, 0.1);
+        }
+
+        details[open] summary {
+            margin-bottom: var(--spacing-md);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .learning-objectives {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: var(--spacing-lg);
+            border-radius: var(--border-radius);
+            border-left: 4px solid var(--color-accent);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .learning-objectives h2 {
+            margin-top: 0;
+            border-bottom: none;
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            gap: var(--spacing-md);
+            margin: var(--spacing-xl) 0;
+            padding-top: var(--spacing-lg);
+            border-top: 2px solid var(--color-border);
+        }
+
+        .nav-button {
+            flex: 1;
+            padding: var(--spacing-md);
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            border-radius: var(--border-radius);
+            text-align: center;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: var(--box-shadow);
+        }
+
+        .nav-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            text-decoration: none;
+        }
+
+        footer {
+            margin-top: var(--spacing-xl);
+            padding: var(--spacing-lg) var(--spacing-md);
+            background-color: var(--color-bg-alt);
+            border-top: 1px solid var(--color-border);
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--color-text-light);
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            h2 {
+                font-size: 1.4rem;
+            }
+
+            h3 {
+                font-size: 1.2rem;
+            }
+
+            .meta {
+                font-size: 0.85rem;
+            }
+
+            .navigation {
+                flex-direction: column;
+            }
+
+            table {
+                font-size: 0.85rem;
+            }
+
+            th, td {
+                padding: var(--spacing-xs);
+            }
+        }
+    </style>
+
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+
+    <!-- MathJax for LaTeX equation rendering -->
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\(', '\)']],
+                displayMath: [['$$', '$$'], ['\[', '\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" id="MathJax-script" async></script>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <h1>第4章：管内流れと圧力損失</h1>
+            <p class="subtitle">摩擦係数と、流体を動かすコスト</p>
+            <div class="meta">
+                <span class="meta-item">📖 読了時間: 20-25分</span>
+                <span class="meta-item">📊 難易度: 中級</span>
+                <span class="meta-item">💻 コード例: 1個</span>
+                <span class="meta-item">📝 演習問題: 3問</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+<h2>ビデオ講義</h2>
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/lfGMREF-V-c?start=2266"
+    title="化学工学流体力学 第4章: 管内流れと圧力損失"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+<blockquote>
+<p>このビデオは以下のテキストと同じ内容をカバーしています。お好みの学習形式をお選びください。</p>
+</blockquote>
+<hr />
+<h1>第4章：管内流れと圧力損失</h1>
+<p>本章では、<a href="chapter-2.html">第2章</a>が記号のまま残した摩擦項を数値に変えます。ダルシー・ワイスバッハ式と摩擦係数（friction factor）があれば、ある配管系統を送液するのにいくらかかるかを計算できます。そしてその答えは管径に対して非常に急峻にスケールするので、フローシート上のほぼすべての配管のサイズを決めてしまうのです。</p>
+<p><strong>摩擦係数と、流体を動かすコスト</strong></p>
+<h2>学習目標</h2>
+<p>本章を修了すると、以下ができるようになります:</p>
+<ul>
+<li>✅ 摩擦による圧力損失が、プラントの生涯にわたって繰り返し発生する運転コストである理由を説明できる</li>
+<li>✅ ダルシー・ワイスバッハ式を適用し、ダルシー（ムーディ）摩擦係数とファニング摩擦係数を区別できる</li>
+<li>✅ 層流の結果 $f = 64/Re$ が、姿を変えたハーゲン・ポアズイユの法則であることを示せる</li>
+<li>✅ ムーディ線図を概念的に読み取れる: レイノルズ数と相対粗さの役割</li>
+<li>✅ 配管系統の圧力損失とポンプ動力を計算し、それらが管径に対してどうスケールするかを予測できる</li>
+<li>✅ 相当長さ法と $K$ 係数法を用いて、継手とバルブを勘定に入れられる</li>
+</ul>
+<p><strong>読了時間</strong>: 20-25分 <strong>コード例</strong>: 1 <strong>演習</strong>: 3</p>
+<hr />
+<h2>4.1 圧力損失は運転コストである</h2>
+<p><a href="chapter-2.html">第2章</a>の機械エネルギー収支は、$h_f$ と書かれた項 — 摩擦損失 — と、それはいずれ仮定ではなく計算されるという約束で終わっていました。この項は帳簿上の厄介事ではありません。請求書です。</p>
+<p>摩擦は機械エネルギーを、二度と戻ってこない熱へと変えます。流体が管壁に対して失ったぶんは、ポンプが入れ直さなければならず、そのポンプを駆動するモーターは、プラントが動いているあいだ毎時間、電力を引きます。0.5 kW を無駄にする配管1本は、連続運転では年間およそ 4,400 kWh のコストになります — 何千本もの配管を持つプラントの、たった1本でです。配管の設備費は一度きりですが、その摩擦は永久に払い続けます。</p>
+<p>この捉え方が、設計上の問いを立ち上げます。太い管は同じ流量をより低い流速で運び、低い流速は摩擦を劇的に減らします — しかし太い管は、鋼材も、支持も、溶接も余計にかかります。細い管は買うのは安く、動かすのは高くつきます。その和を最小にする管径がどこかにあり、それを見つけるには摩擦の定量的なモデル、すなわち摩擦係数が必要です。</p>
+<h2>4.2 ダルシー摩擦係数</h2>
+<p>まっすぐな円管区間における摩擦圧力損失の実用式が、<strong>ダルシー・ワイスバッハ式</strong>です:</p>
+<p>$$ \Delta P = f \, \frac{L}{D} \, \frac{\rho v^2}{2} $$</p>
+<p>$h_f = \Delta P/\rho$ は同じ損失を J/kg（第2章の単位）で表したもの、$\Delta P/(\rho g)$ はヘッド（m）として表したものです。</p>
+<p>ここで $L$ は管長、$D$ は内径、$\rho$ は流体密度、$v$ は平均流速、$f$ は無次元の<strong>摩擦係数</strong>です。計算に入る前にその構造を読み取ってください。圧力損失は長さに比例し、管径に反比例し、<strong>速度ヘッド</strong> $\rho v^2/2$ に比例します — ベルヌーイの式を貫いていたのと同じ運動エネルギーの項です。$f$ が一定なら流速を2倍にすると損失は4倍になります — 実際には $f$ は $Re$ とともにわずかに下がっていくので、<a href="chapter-3.html">第3章</a>で触れた $v^{1.8-2}$ の挙動になります。</p>
+<blockquote>
+<p>⚠️ <strong>約束事の注意 — ダルシーかファニングか?</strong> 2つの摩擦係数が流通しており、両者は4倍だけ異なります: $f_{\text{Darcy}} = 4 f_{\text{Fanning}}$。<strong>本シリーズでは一貫してダルシー（ムーディとも呼ばれる）摩擦係数を用います</strong>。層流の結果が $f = 64/Re$ となるほうです。化学工学の教科書のなかにはファニング係数を使うものもあり、そちらでは層流の結果が $f = 16/Re$ で、式には明示的な 4 が付きます。両者を混同するのは古典的な誤りで、圧力損失が4倍ずれた答えを生みます。線図、相関式、ソフトウェアが何を返しているのかをつねに確認してください — もっとも手早い判定は層流の直線です。64 ならダルシー、16 ならファニングです。</p>
+</blockquote>
+<p><strong>層流では</strong>、$f$ はまったく経験的な量ではなく、厳密です:</p>
+<p>$$ f = \frac{64}{Re} $$</p>
+<p>これは<a href="chapter-3.html">第3章</a>のハーゲン・ポアズイユの法則を書き換えたものです。あの法則は $\Delta P = 32\mu L v / D^2$ を与えます。これをダルシー・ワイスバッハ式に代入して $f$ について解くと $f = \frac{32\mu L v}{D^2}\cdot\frac{D}{L}\cdot\frac{2}{\rho v^2} = \frac{64\mu}{\rho v D} = \frac{64}{Re}$ となります。同じ物理を2通りの表記で書いただけです — そして、層流の圧力損失が流速の2乗ではなく流速に比例するのは、ダルシー・ワイスバッハ式の $v^2$ が $f$ の中に隠れた $1/v$ によって打ち消されるからだ、という点に注意してください。</p>
+<p><strong>乱流では</strong>、そのような導出は存在しません。摩擦係数は、2つの無次元数 — レイノルズ数と、<strong>相対粗さ</strong> $\varepsilon/D$、すなわち壁面の凹凸の高さを管径で割ったもの — における実験的な相関式になります。0.05 mm の凸起は 10 mm の細管では効きますが、1 m のヘッダーでは見えません。だからこそ、絶対的な高さではなく比が支配するのです。</p>
+<table>
+<thead>
+<tr>
+<th>配管材質</th>
+<th>絶対粗さ $\varepsilon$</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>引抜管（銅、ガラス）</strong></td>
+<td>≈ 0.0015 mm — 事実上滑らか</td>
+</tr>
+<tr>
+<td><strong>市販鋼管 / 錬鉄</strong></td>
+<td><strong>≈ 0.045 mm</strong> — 標準的な設計値</td>
+</tr>
+<tr>
+<td><strong>亜鉛めっき鉄</strong></td>
+<td>≈ 0.15 mm</td>
+</tr>
+<tr>
+<td><strong>コンクリート</strong></td>
+<td>≈ 0.3–3 mm</td>
+</tr>
+</tbody>
+</table>
+<p>プロセス配管に典型的なレイノルズ数（$10^4$ から $10^6$）における市販管では、$f$ はふつう <strong>0.02 から 0.04</strong> の範囲に収まります — 大口径で滑らかで流速の速い配管では下限寄り、小口径や粗い配管ではより高くなります。清浄な鋼管に対して $f \approx 0.02$ を頭の中の既定値として持っておけば、桁のオーダーの圧力損失は暗算でできるようになります。</p>
+<h2>4.3 ムーディ線図</h2>
+<p>$f$ を得る古典的な方法が<strong>ムーディ線図</strong>です。摩擦係数をレイノルズ数に対して両対数で描いた図で、それぞれ相対粗さ $\varepsilon/D$ の値がラベルされた曲線群を伴っています。その形は<a href="chapter-3.html">第3章</a>の流動状態を符号化しています。</p>
+<div class="mermaid">
+flowchart TB
+    R["Reynolds number Re"] --> L["Below 2,100: laminar"]
+    R --> T["Above 4,000: turbulent"]
+    L --> L2["f = 64/Re exactly<br/>single steep straight line<br/>roughness has no effect"]
+    T --> T2["f = f(Re, roughness/D)<br/>curves fan out by roughness"]
+    T2 --> T3["Rising Re: curves flatten"]
+    T3 --> T4["Fully rough regime:<br/>f depends on roughness/D alone<br/>Re no longer matters"]
+</div>
+
+<p>レイノルズ数が低いところでは、線図は<strong>1本の急な直線</strong>を示します — すべての管がその上に乗ります。層流では流体が壁の肌理をまったく感じないからです。遷移領域を過ぎると曲線は<strong>相対粗さによって扇状に広がり</strong>、それから<strong>右へ向かって平坦になります</strong>。その平坦な、<strong>完全粗管</strong>の領域では、摩擦係数はレイノルズ数への依存をすっかりやめ、$\varepsilon/D$ だけで決まります。実務上の帰結もあります。粗い管を高流量で流す場合、圧力損失は単純に $v^2$ に比例する形に戻るのです。</p>
+<p>いまや産業界で紙の線図から $f$ を読む人はいません。ソフトウェアが相関式を評価し、乱流に対する基準となる相関式は<strong>コールブルック式</strong>です。これは陰形式で、反復して解かなければなりません。陽な近似式はその反復を避けます — <strong>スワミー・ジェイン</strong>の式がもっとも広く使われており、実用範囲でコールブルック式を約1%以内で再現します。それでも線図は頭の中の地図として残り続けます。自分が層流の直線の上にいるのか、粗さに敏感な中間域にいるのか、それとも $\varepsilon/D$ だけが効く平坦域に出ているのかを、一目で教えてくれるからです。</p>
+<h2>4.4 設計の例題</h2>
+<p>$\rho = 998$ kg/m³ の水が、$D = 0.05$ m の市販鋼管を $v = 2$ m/s で、$L = 100$ m にわたって流れているとします。<a href="chapter-3.html">第3章</a>の定義から $Re = \rho v D/\mu \approx 998 \times 2 \times 0.05 / 10^{-3} \approx 1.0 \times 10^5$ — 堅実に乱流です — そして典型値 $f = 0.02$ を取ります（スワミー・ジェインの相関式はここで 0.022 を与えますが、きれいな手計算のために 0.02 に丸めます — $\Delta P$ を約10%過小評価することになります）。</p>
+<p>$$ \Delta P = 0.02 \times \frac{100}{0.05} \times \frac{998 \times 2^2}{2} = 0.02 \times 2000 \times 1996 = 79{,}840\ \text{Pa} \approx 0.80\ \text{bar} $$</p>
+<p>これを金額に換算しましょう。体積流量は $Q = vA = 2 \times (\pi \times 0.05^2/4) = 2 \times 0.001963 = 0.003927$ m³/s であり、<strong>水力動力</strong> — 流体が実際に吸収する機械的動力 — は、流量と、克服される圧力損失との積です:</p>
+<p>$$ P_{\text{hyd}} = Q\,\Delta P = 0.003927 \times 79{,}840 = 313.5\ \text{W} \approx 0.31\ \text{kW} $$</p>
+<p>ポンプはこれをただで供給してはくれません。ポンプとモーターを合わせた効率を典型的な65%とすると、電気の消費は $0.313/0.65 \approx 0.48$ kW — 連続運転では年間およそ 4,200 kWh を、水を管の中で動かすためだけに使うことになります。</p>
+<p>次に、流量を一定に保ったまま管径を変えてみます。$Q$ 一定では流速は $D^{-2}$ でスケールし（断面積が $D^2$ で変わるため）、したがって $v^2 \propto D^{-4}$ です。これをダルシー・ワイスバッハ式の明示的な $1/D$ と組み合わせると、</p>
+<p>$$ \Delta P \propto \frac{1}{D}\cdot\frac{1}{D^4} = D^{-5} \qquad \text{(fixed } Q,\ \text{fixed } f) $$</p>
+<p>となり、$Q$ が一定なのでポンプ動力も同じようにスケールします。<strong>管径を半分にすると、ポンプ動力は32倍になります。</strong></p>
+<pre><code class="language-python">import math
+
+RHO = 998.0     # kg/m3, water at ~20 C
+Q   = 0.003927  # m3/s, fixed volumetric flow (= 2 m/s in a 0.05 m pipe)
+L   = 100.0     # m, pipe length
+F   = 0.02      # Darcy friction factor, held fixed to isolate the D dependence
+ETA = 0.65      # pump + motor efficiency, typical
+
+print(f&quot;{'D [m]':&gt;7} {'v [m/s]':&gt;8} {'dP [kPa]':&gt;10} {'P\_hyd [kW]':&gt;11} {'P\_elec [kW]':&gt;12}&quot;)
+for D in [0.025, 0.040, 0.050, 0.065, 0.080, 0.100]:
+    A  = math.pi * D**2 / 4
+    v  = Q / A
+    dP = F * (L / D) * (RHO * v**2 / 2)   # Darcy-Weisbach, Pa
+    Ph = Q * dP                            # hydraulic power, W
+    print(f&quot;{D:7.3f} {v:8.2f} {dP/1e3:10.1f} {Ph/1e3:11.3f} {Ph/ETA/1e3:12.3f}&quot;)
+
+# scaling check: dP ratio between 0.05 m and 0.10 m against the D^-5 law
+print(f&quot;\nD^-5 law: halving D raises dP by {(0.10/0.05)**5:.0f}x&quot;)
+
+#   D [m]  v [m/s]   dP [kPa]  P\_hyd [kW]  P\_elec [kW]
+#   0.025     8.00     2554.9      10.033       15.435
+#   0.040     3.13      243.7       0.957        1.472
+#   0.050     2.00       79.8       0.314        0.482
+#   0.065     1.18       21.5       0.084        0.130
+#   0.080     0.78        7.6       0.030        0.046
+#   0.100     0.50        2.5       0.010        0.015
+#
+# D^-5 law: halving D raises dP by 32x
+</code></pre>
+<p>この表の両端を読んでください。25 mm では、この配管は 15 kW を超える電力を要求します。100 mm では 15 W です。管径は4倍、1メートルあたりの費用はおそらく6倍から8倍になり、そして運転コストを1000分の1に削りました。これが、プロセス工学において5乗が他のほとんどどの指数よりも重要である理由です — そして同時に、誰も単純に入手できる最大の管を指定したりはしない理由でもあります。設備費は際限なく上がっていくのに対して、動力の節約の絶対量はやがて無視できるほど小さくなるからです。</p>
+<h2>4.5 継手、バルブ、相当長さ</h2>
+<p>現実の配管は曲がり、分岐し、拡大し、縮小し、バルブを通ります。そのいずれもが圧力を消費します。等価な2つの勘定方法が使われています。</p>
+<p><strong>$K$ 係数（損失係数）</strong>法（速度ヘッド法とも呼ばれます）は、各継手に無次元の損失係数を割り当て、それを速度ヘッドに対して課します:</p>
+<p>$$ \Delta P_{\text{fitting}} = K \, \frac{\rho v^2}{2} $$</p>
+<p><strong>相当長さ</strong>法は代わりに、各継手を同じ損失を生じる直管の長さとして表し — たとえばエルボを「管径30個ぶんに等しい」といった具合に — それを $L$ に加えてから、ダルシー・ワイスバッハ式を一度だけ適用します。両者は同じ主張を書き換えたものにすぎず（$L_{\text{eq}}/D = K/f$）、どちらを選ぶかは習慣の問題です。</p>
+<table>
+<thead>
+<tr>
+<th>継手</th>
+<th>損失</th>
+<th>備考</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>ロングラジアスエルボ</strong></td>
+<td>小</td>
+<td>緩やかに曲がる。ショートラジアスエルボは目に見えて高くつく</td>
+</tr>
+<tr>
+<td><strong>ティー、直進側の流れ</strong></td>
+<td>小</td>
+<td>まっすぐ通り抜ける経路はほぼただ</td>
+</tr>
+<tr>
+<td><strong>ティー、分岐側の流れ</strong></td>
+<td>中</td>
+<td>角を曲がることこそが代金になる</td>
+</tr>
+<tr>
+<td><strong>仕切弁、全開</strong></td>
+<td>小</td>
+<td>遮断のための設計: 開口が大きく、障害が最小</td>
+</tr>
+<tr>
+<td><strong>玉形弁、全開</strong></td>
+<td><strong>大</strong></td>
+<td>内部経路が入り組んでいる — 仕切弁の数十倍になることも多い</td>
+</tr>
+<tr>
+<td><strong>調節弁、運転中</strong></td>
+<td><strong>設計上、大</strong></td>
+<td>以下を参照</td>
+</tr>
+</tbody>
+</table>
+<p>最後の行は、一見すると工学の失敗のように見えます。<em>化学工学入門</em>シリーズの調節弁（<a href="../chemical-engineering-introduction/chapter-3.html">第3章</a>）は、ほぼすべてのフィードバックループの終端にあり、それらはまさに<strong>絞ること</strong>によって — 圧力損失を消費することによって — 機能します。全開時にほとんど圧力損失を取らないバルブは、動いたときに流量を変える能力もほとんど持たないでしょう。回路の残りの部分が支配的になってしまうからです。制御技術者はこれを<strong>調節弁オーソリティ</strong>と呼び、よくある経験則では系の動的な圧力損失の4分の1から3分の1をバルブに割り当てます。<strong>制御性はエネルギーで買うもの</strong>であり、しかも永続的に払い続けます — 正当な買い物ですが、配管径と同じ貸借対照表に載るべきものです。</p>
+<p>そこから、<a href="chapter-1.html">第1章</a>の<strong>経済流速</strong>という経験則、液体配管でおおよそ 1–3 m/s に戻ってきます。この範囲は流体力学の定数ではありません。コストの最小点が観測される場所です。それより下では要らない鋼材を買っていることになり、それより上では $D^{-5}$ の法則が主導権を握り、何十年も電気代を払うことになります。これはまさに、<em>入門</em>シリーズで<strong>還流比</strong>を決めているのと同じトレードオフです（<a href="../chemical-engineering-introduction/chapter-4.html">第4章</a>）: 機器を一度買うか、ユーティリティを20年間毎時間払うか。</p>
+<h2>4.6 本章のまとめ</h2>
+<ul>
+<li>摩擦による圧力損失は<strong>モデル上の細部ではなく、運転コスト</strong>である: 失われたエネルギーをプラント稼働中は毎時間ポンプが補充するので、配管の設備費は一度きり、摩擦は永久に払い続ける</li>
+<li><strong>ダルシー・ワイスバッハ</strong>: $\Delta P = f (L/D)(\rho v^2/2)$ — 長さに比例、管径に反比例、速度ヘッドに比例。本シリーズは<strong>ダルシー（ムーディ）</strong>係数を用いる。$f_{\text{Darcy}} = 4 f_{\text{Fanning}}$ であり、混同すると答えが4倍ずれる。層流の直線を確認せよ: 64 ならダルシー、16 ならファニング</li>
+<li><strong>層流</strong>: $f = 64/Re$ が厳密に成り立つ — 代数的にハーゲン・ポアズイユと同一であり、粗さは無関係。<strong>乱流</strong>: $f = f(Re, \varepsilon/D)$ で経験的、プロセスのレイノルズ数域における市販鋼管（$\varepsilon \approx 0.045$ mm）では典型的に <strong>0.02–0.04</strong></li>
+<li><strong>ムーディ線図</strong>は、相対粗さの族ごとに $f$ を $Re$ に対して描いた地図である: 急な層流の直線、粗さによって扇状に広がる曲線、そして $\varepsilon/D$ だけが効く完全粗管の平坦域。いまやソフトウェアは<strong>コールブルック</strong>（あるいは陽な<strong>スワミー・ジェイン</strong>近似）を用いるが、線図は頭の中の地図として残る</li>
+<li>例題 — 水、$v = 2$ m/s、$D = 0.05$ m、$L = 100$ m、$f = 0.02$: $\Delta P = $ <strong>79,840 Pa ≈ 0.80 bar</strong>、$Q = 0.003927$ m³/s、水力動力 <strong>≈ 0.31 kW</strong>、典型的な65%の効率では電力 <strong>≈ 0.48 kW</strong></li>
+<li><strong>流量一定</strong>のもとでは $v \propto D^{-2}$ なので $\Delta P \propto D^{-5}$: 管径を半分にするとポンプ動力は <strong>32</strong> 倍になる</li>
+<li>継手は <strong>$K$ 係数</strong>（$\Delta P = K\rho v^2/2$）または<strong>相当長さ</strong>（$L_{\text{eq}}/D = K/f$）で勘定する。仕切弁は開いていれば安く、玉形弁は高く、<strong>調節弁は意図的に絞られている</strong> — 調節弁オーソリティは圧力損失で買うものだからである</li>
+<li><strong>経済流速</strong> 1–3 m/s は、設備費と動力費の最小点を示す — 蒸留の還流比とまったく同じ形のトレードオフである</li>
+</ul>
+<p><strong>次章</strong>: 本章は請求書を計算しました。<strong><a href="chapter-5.html">第5章</a>：ポンプと配管システム</strong>では、それを支払う機械を紹介します — ポンプ特性曲線、システム曲線、両者が交わる運転点、そして NPSH、すなわちポンプがそもそも動くのか、それともキャビテーションで自らを壊してしまうのかを決める制約です。</p>
+<h2>演習問題</h2>
+<ol>
+<li>
+<p><strong>概念 — どちらの係数か?</strong> 同僚の表計算が管の圧力損失を計算し、$Re = 1000$ の層流の場合について摩擦係数 0.016 を返しています。(a) この表計算はどちらの約束事を使っているか。(b) その数値を本章に書かれたとおりのダルシー・ワイスバッハ式に入れると、圧力損失は何倍、どちらの向きに誤るか。(c) この層流の計算に相対粗さがどこにも現れないのはなぜか。
+   <em>ヒント</em>: 何かを決める前に、$Re = 1000$ で層流の両方の式を評価せよ。
+   <em>解答</em>: (a) $64/1000 = 0.064$、$16/1000 = 0.016$ なので、この表計算が返しているのは<strong>ファニング</strong>係数です。(b) ここに書かれたダルシー・ワイスバッハ式は $f_{\text{Darcy}} = 4f_{\text{Fanning}}$ を期待しているので、0.016 をそのまま使うと圧力損失は<strong>4分の1に小さく</strong>出ます — ポンプが過小サイズになるため、危険な向きの誤りです。0.064 を使うか、明示的に4倍を入れてください。(c) 層流では流体は秩序だった層をなして動き、壁の凹凸は壁近くの粘性領域の内側に収まっています。それらと相互作用する乱流の渦が存在しないのです。滑らかであれ粗いであれ、すべての管が同じ層流の直線に乗ります。</p>
+</li>
+<li>
+<p><strong>定量 — 管径の法則</strong>: 例題では、水（$\rho = 998$ kg/m³）$Q = 0.003927$ m³/s を $D = 0.05$ m、$L = 100$ m、$f = 0.02$ で流し、$\Delta P = 79{,}840$ Pa を得ました。<strong>同じ体積流量</strong>、同じ $f$ のまま $D = 0.10$ m について計算を繰り返し、結果を $D^{-5}$ の法則と照合せよ。
+   <em>ヒント</em>: まず $Q = vA$ から新しい流速を求めよ — 流速をスケールさせるのは管径ではなく断面積である。
+   <em>解答</em>: 断面積は4倍になり（$A = \pi \times 0.10^2/4 = 0.007854$ m²）、したがって $v = 0.003927/0.007854 = $ <strong>0.5 m/s</strong> です。すると $\Delta P = 0.02 \times (100/0.10) \times (998 \times 0.5^2/2) = 0.02 \times 1000 \times 124.75 = $ <strong>2,495 Pa ≈ 0.025 bar</strong>。比は $79{,}840 / 2{,}495 = $ <strong>32.0</strong> で、$D^{-5}$ の法則が予測する $2^5 = 32$ にぴたりと一致します。水力動力は 313.5 W から $0.003927 \times 2495 = $ <strong>9.8 W</strong> へ下がります。（実際には改善はこれよりわずかに小さくなります。$D$ を2倍にすると $Re$ は半分に、$\varepsilon/D$ も半分になるので、真の $f$ は少しずれます — もっとも、5乗のスケーリングはそうした補正のいずれをも圧倒します。）</p>
+</li>
+<li>
+<p><strong>議論 — 配管サイズを決める</strong>: 新しい冷却水配管のサイズを決めている若手技術者が、エロージョン限界を下回る範囲で流速を保てる最小の管を提案し、それがコストを最小にすると主張しています。(a) 彼らが最小化しているのはどのコストで、何を無視しているか。(b) この配管が20年間 24時間稼働する場合と、月に数時間しか使わない場合とで、答えはどう変わるか。(c) 配管に調節弁を追加すると、なぜ圧力損失の予算がわざと大きくなるのか、そしてそれは無駄なのか。
+   <em>ヒント</em>: 一度きりのコストと繰り返し発生するコストを分け、そのうえで制御器が制御するために何を必要とするかを問え。
+   <em>解答</em>: (a) 彼らが最小化しているのは<strong>設備費</strong> — 配管、継手、支持、断熱、据付工事 — であり、無視しているのは送液の<strong>運転コスト</strong>です。これは流量一定のもとで $D^{-5}$ でスケールします。管径をわずかに大きくするだけで、設備費の何割かの増加と引き換えにポンプ動力を1桁削れることがあり、だからこそ経済的な最適点はエロージョン限界ではなく 1–3 m/s の近くに位置するのです。(b) <strong>稼働率が最適点を変えます。</strong> 連続運転では動力の項が20年間積み上がり、より太い管へと押します。間欠的な配管ではエネルギーコストはほとんど積み上がらないので、最適点は機械的・水力的に許容できる最小の管のほうへ戻ります。サイジングの経験則は連続運転を前提としています。(c) 調節弁は<strong>絞ること</strong>によって — 圧力損失を消費することによって — 流量を調節するので、圧力損失が無視できるバルブは<strong>オーソリティ</strong>も無視できるほど小さくなります。動かしても流量はほとんど変わりません。配管の固定抵抗が支配的になるからです。動的な圧力損失のかなりの割合をバルブに割り当てるのは、無駄ではなく制御性の代価です。それは実在する永続的なエネルギーコストであり、制御が不要なところ（あるいは可変速駆動が絞りを代替できるところ）では、払うべきではありません。</p>
+</li>
+</ol><div class="navigation">
+    <a href="chapter-3.html" class="nav-button">← 前の章</a>
+    <a href="index.html" class="nav-button">シリーズ目次に戻る</a>
+    <a href="chapter-5.html" class="nav-button">次の章 →</a>
+</div>
+    </main>
+
+    <footer>
+        <p><strong>作成者</strong>: AI Terakoya Content Team</p>
+        <p><strong>監修</strong>: Dr. Yusuke Hashimoto（東北大学）</p>
+        <p><strong>バージョン</strong>: 1.0 | <strong>作成日</strong>: 2026-08-23</p>
+        <p><strong>ライセンス</strong>: Creative Commons BY 4.0</p>
+        <p>© 2025 AI Terakoya. All rights reserved.</p>
+    </footer>
+</body>
+</html>

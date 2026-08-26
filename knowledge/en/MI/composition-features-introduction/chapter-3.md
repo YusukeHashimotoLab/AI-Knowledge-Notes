@@ -236,6 +236,8 @@ All Featurizers inherit from `BaseFeaturizer`. The main methods are as follows:
     # - pandas>=2.0.0, <2.2.0
     
     """
+    Example: All Featurizers inherit fromBaseFeaturizer. The main methods
+    
     Purpose: Demonstrate data manipulation and preprocessing
     Target: Beginner to Intermediate
     Execution time: 5-10 seconds
@@ -486,6 +488,8 @@ Where $\chi_i$ is the electronegativity of element $i$, and $\text{OxState}_i$ i
     # - pandas>=2.0.0, <2.2.0
     
     """
+    Example: Where $\chi_i$ is the electronegativity of element $i$, and 
+    
     Purpose: Demonstrate data manipulation and preprocessing
     Target: Beginner to Intermediate
     Execution time: 5-10 seconds
@@ -577,6 +581,25 @@ Featurizer | Feature Dimensions | Application | Computational Cost
 **CohesiveEnergy** | 2 | Cohesive energy (mechanical properties) | High (ML prediction)  
 **YangSolidSolution** | 4 | Solid solution formation parameters (HEA design) | Low  
   
+### 3.3.5 Meredig: Element Fractions Plus Curated Descriptors
+
+`Meredig` reproduces the descriptor set of Meredig et al. (2014) — the study that screened roughly 1.6 million candidate ternary compounds for thermodynamic stability using composition alone. Its output concatenates two very different blocks. The first is the **atomic fraction of each of the first 103 elements** (H through Lr), one column per element, almost all of them zero for any real compound. The second is a block of **16 curated physical descriptors** : mean atomic weight, mean periodic-table row and column, mean and range of atomic number, atomic radius and electronegativity, and the valence-electron counts and fractions for the s, p, d and f orbitals. 103 + 16 = **119 features**.
+
+The design point is the opposite of Magpie's. Magpie throws away element identity and keeps only statistics of element properties; Meredig keeps element identity explicitly, which lets a tree ensemble memorise chemistry that averaging would smooth away. The two are complementary, and stacking them in a `MultipleFeaturizer` is common practice.
+
+
+    from matminer.featurizers.composition import Meredig
+    from pymatgen.core import Composition
+
+    featurizer = Meredig()
+    print(len(featurizer.feature_labels()))   # 119
+    print(featurizer.feature_labels()[-16:])  # the 16 curated descriptors
+
+    values = featurizer.featurize(Composition("Fe2O3"))
+    print(values[:5])                         # mostly 0.0 — the element-fraction block
+
+Watch the sparsity: with only a few hundred training samples, 103 mostly-zero columns are prime candidates for the variance filter described in Section 3.4.5.
+
 ## 3.4 Custom Feature Design
 
 When existing Featurizers cannot handle special material systems or you want to verify your own hypotheses, you can implement custom Featurizers. Simply inherit `BaseFeaturizer` and implement the `featurize()` method. 
@@ -639,11 +662,15 @@ The steps for implementing a custom Featurizer are as follows:
     
             # Gini coefficient (composition heterogeneity, 0=perfectly uniform, 1=perfectly heterogeneous)
             # G = (Σ_i Σ_j |f_i - f_j|) / (2n Σ_i f_i)
+            # NOTE: every equimolar composition gives G = 0 exactly, because all
+            # |f_i - f_j| vanish. Only the non-equimolar Al0.5CoCrCuFeNi below is non-zero.
             n = len(fractions)
             gini = np.sum(np.abs(fractions[:, None] - fractions[None, :])) / (2 * n)
     
-            # Effective number of elements
-            # N_eff = exp(H) = 1 / Σ(f_i^2)
+            # Effective number of elements (Simpson / Hill number of order 2)
+            # N_eff = 1 / Σ(f_i^2)
+            # NOTE: this is NOT exp(H). The two coincide for equimolar compositions
+            # but diverge otherwise (Al0.5CoCrCuFeNi: 1/Σf² = 5.76 vs exp(H) = 5.86).
             effective_n = 1.0 / np.sum(fractions ** 2)
     
             return [shannon_entropy, gini, effective_n]
@@ -712,11 +739,11 @@ The steps for implementing a custom Featurizer are as follows:
     # === Custom Features: Element Diversity ===
     #               formula  shannon_entropy  gini_coefficient  effective_n_elements
     #                    Fe            0.000             0.000                  1.00
-    #                 FeNi            0.693             0.250                  2.00
-    #              CoCrNi            1.099             0.333                  3.00
-    #            CoCrFeNi            1.386             0.375                  4.00
-    #         CoCrFeMnNi            1.609             0.400                  5.00
-    #   Al0.5CoCrCuFeNi            1.705             0.429                  5.45
+    #                 FeNi            0.693             0.000                  2.00
+    #              CoCrNi            1.099             0.000                  3.00
+    #            CoCrFeNi            1.386             0.000                  4.00
+    #         CoCrFeMnNi            1.609             0.000                  5.00
+    #   Al0.5CoCrCuFeNi            1.768             0.076                  5.76
     #
     # === High Entropy Alloy (HEA) Determination ===
     # Fe                   | H=0.000 | N_eff=1.00 | ❌ Non-HEA
@@ -724,7 +751,7 @@ The steps for implementing a custom Featurizer are as follows:
     # CoCrNi               | H=1.099 | N_eff=3.00 | ❌ Non-HEA
     # CoCrFeNi             | H=1.386 | N_eff=4.00 | ❌ Non-HEA
     # CoCrFeMnNi           | H=1.609 | N_eff=5.00 | ✅ HEA
-    # Al0.5CoCrCuFeNi      | H=1.705 | N_eff=5.45 | ✅ HEA
+    # Al0.5CoCrCuFeNi      | H=1.768 | N_eff=5.76 | ✅ HEA
     
 
 ### 3.4.2 Integrating Multiple Featurizers
@@ -739,6 +766,8 @@ By combining multiple Featurizers, you can build a richer feature set. Using `Mu
     # - pandas>=2.0.0, <2.2.0
     
     """
+    Example: By combining multiple Featurizers, you can build a richer fe
+    
     Purpose: Demonstrate data manipulation and preprocessing
     Target: Beginner to Intermediate
     Execution time: 5-10 seconds
@@ -847,6 +876,8 @@ When handling large datasets (10,000+ compositions), batch processing optimizati
     # - pandas>=2.0.0, <2.2.0
     
     """
+    Example: When handling large datasets (10,000+ compositions), batch p
+    
     Purpose: Demonstrate data manipulation and preprocessing
     Target: Advanced
     Execution time: 5-10 seconds
@@ -1139,6 +1170,63 @@ For production-level applications, it's important to integrate data from multipl
     #       O  ionization_energy  13.62  mendeleev        0.95
     
 
+### 3.4.5 Practical Add-Ons: Cost, Abundance, and Feature Preprocessing
+
+Screening workflows rarely stop at physics. Two custom featurizers appear again and again in production pipelines, and both are short subclasses of the pattern in Section 3.4.1.
+
+**Element cost.** A candidate that is predicted to be excellent but is 40% platinum is not a candidate. Aggregate a tabulated element price (USD/kg) the same way Magpie aggregates a physical property — the fraction-weighted mean is the useful default, and the maximum flags the single worst offender.
+
+
+    # Element prices in USD/kg (excerpt — maintain your own table with a date stamp)
+    ELEMENT_COST = {"Fe": 0.12, "Ni": 15.0, "Co": 33.0, "Cu": 8.5, "Pt": 30000.0}
+
+    class ElementCostFeaturizer(BaseFeaturizer):
+        """Fraction-weighted mean and maximum element price of a composition."""
+
+        def featurize(self, comp):
+            fracs = comp.fractional_composition.get_el_amt_dict()
+            costs = {el: ELEMENT_COST.get(el) for el in fracs}
+            if any(c is None for c in costs.values()):
+                return [float("nan"), float("nan")]   # unpriced element — do not guess
+            mean_cost = sum(fracs[el] * costs[el] for el in fracs)
+            return [mean_cost, max(costs.values())]
+
+        def feature_labels(self):
+            return ["mean element cost (USD/kg)", "max element cost (USD/kg)"]
+
+**Element abundance / rarity.** The same shape with a different table: crustal abundance in ppm. Because abundances span ten orders of magnitude, aggregate the **logarithm** — a fraction-weighted mean of raw ppm is dominated entirely by oxygen and silicon and tells you nothing. A weighted mean of $\log_{10}(\text{ppm})$, together with the minimum over the constituent elements, gives a usable "rarity" signal for supply-risk screening.
+
+Return `NaN` rather than a default when an element is missing from your table. A silently substituted value propagates into the model and is almost impossible to trace later.
+
+**Feature preprocessing before ML.** Composition featurizers are generous: chaining Magpie, Stoichiometry, Meredig and a couple of custom featurizers easily yields 300+ columns, many of them constant or near-duplicates. Three cheap steps, always in this order, remove most of the damage:
+
+  1. **Variance threshold** — drop columns that are constant or nearly constant across the dataset. On the Meredig element-fraction block this typically removes 60-80 columns at once.
+  2. **Correlation filtering** — among any pair of features with $|r| > 0.95$, keep one. Magpie's `minimum`/`maximum`/`range` triples are correlated by construction.
+  3. **Standardization** — zero mean, unit variance. Mandatory for distance- and gradient-based models (SVM, k-NN, neural networks, PCA); harmless but unnecessary for tree ensembles.
+
+
+    from sklearn.feature_selection import VarianceThreshold
+    from sklearn.preprocessing import StandardScaler
+    from sklearn.pipeline import Pipeline
+    import numpy as np
+
+    def drop_correlated(X, threshold=0.95):
+        """Return X with one member of every |r| > threshold pair removed."""
+        corr = np.corrcoef(X, rowvar=False)
+        upper = np.triu(np.abs(corr), k=1)
+        keep = [j for j in range(X.shape[1]) if not (upper[:, j] > threshold).any()]
+        return X[:, keep], keep
+
+    # Fit the whole chain on the TRAINING split only, then apply to test data.
+    prep = Pipeline([
+        ("variance", VarianceThreshold(threshold=0.0)),
+        ("scale", StandardScaler()),
+    ])
+    X_train_prep = prep.fit_transform(X_train)
+    X_test_prep = prep.transform(X_test)
+
+Fit every one of these on the training split only. Fitting a scaler or a variance filter on the full dataset leaks test-set information and inflates your reported accuracy — a mistake that is easy to make and hard to spot in a materials screening report.
+
 ## Learning Objectives Review
 
 Having completed this chapter, you can now explain and implement the following:
@@ -1359,7 +1447,7 @@ View Answer
 **Q8** : Design a custom Featurizer to identify high entropy alloys (HEA). Show an implementation that calculates the following features:
 
   * Shannon entropy: $H = -\sum_i f_i \ln(f_i)$
-  * Effective number of elements: $N_{\text{eff}} = \exp(H)$
+  * Effective number of elements (Simpson / Hill number of order 2): $N_{\text{eff}} = 1 / \sum_i f_i^2$
   * HEA determination: $H > 1.5$ and $N_{\text{eff}} > 4.0$
 
 View Answer
@@ -1402,9 +1490,11 @@ View Answer
             # Add small value to avoid log(0)
             shannon_entropy = -np.sum(fractions * np.log(fractions + 1e-10))
     
-            # Effective number of elements
-            # N_eff = exp(H)
-            effective_n = np.exp(shannon_entropy)
+            # Effective number of elements (Simpson / Hill number of order 2)
+            # N_eff = 1 / Σ(f_i^2) — the same definition used in Example 5.
+            # (exp(H) is the order-1 Hill number; it agrees only for equimolar
+            #  compositions, so do not mix the two in one feature set.)
+            effective_n = 1.0 / np.sum(fractions ** 2)
     
             # HEA determination
             is_hea = 1.0 if (shannon_entropy > 1.5 and effective_n > 4.0) else 0.0

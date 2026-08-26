@@ -8,6 +8,23 @@ code_examples: 12
 exercises: 5
 ---
 
+## Video Lecture
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/K_MFtpnkZ3U"
+    title="Transformers Ch.2: Transformer Architecture"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> This video covers the same content as the text below. Choose your preferred learning format.
+
+---
+
 This chapter covers Transformer Architecture. You will learn Fully implementing Transformer in PyTorch.
 
 ## Learning Objectives

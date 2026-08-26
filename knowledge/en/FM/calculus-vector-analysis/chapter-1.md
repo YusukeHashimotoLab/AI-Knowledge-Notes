@@ -4,6 +4,24 @@ chapter_title: "Chapter 1: Fundamentals of Differentiation and Numerical Differe
 subtitle: Fundamentals of Differentiation and Numerical Differentiation
 ---
 
+## Video Lecture
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/BEElvcgY5Uk"
+    title="Calculus & Vector Analysis Ch.1: Fundamentals of Differentiation and Numerical Differentiation"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> This video covers the same content as the text below. Choose your preferred learning format.
+
+---
+
 🌐 EN | [🇯🇵 JP](<../../../jp/FM/calculus-vector-analysis/chapter-1.html>) | Last sync: 2025-11-16
 
 [AI Terakoya Top](<../index.html>) > [FM Dojo](<../index.html>) > [Calculus & Vector Analysis](<index.html>) > Chapter 1 
@@ -18,52 +36,58 @@ Differentiation represents the concept of "instantaneous rate of change" of a fu
 ### 💻 Code Example 1: Numerical Calculation of Derivatives (Forward Difference Method)
 
 Python Implementation: Numerical Differentiation Using Forward Difference Method
-    
-    
-    # Requirements:
-    # - Python 3.9+
-    # - matplotlib>=3.7.0
-    # - numpy>=1.24.0, <2.0.0
-    
-    import numpy as np
-    import matplotlib.pyplot as plt
-    
-    # Function definition: f(x) = x^2
-    def f(x):
-        return x**2
-    
-    # Approximation of derivative using forward difference method
-    def forward_difference(f, x, h=1e-5):
-        """Forward difference method: f'(x) ≈ [f(x+h) - f(x)] / h"""
-        return (f(x + h) - f(x)) / h
-    
-    # Calculate derivative at x = 2
-    x0 = 2.0
-    numerical_derivative = forward_difference(f, x0)
-    analytical_derivative = 2 * x0  # Analytical solution: f'(x) = 2x
-    
-    print(f"Numerical derivative: f'({x0}) ≈ {numerical_derivative:.6f}")
-    print(f"Analytical solution:  f'({x0}) = {analytical_derivative:.6f}")
-    print(f"Error:                {abs(numerical_derivative - analytical_derivative):.2e}")
-    
-    # Visualization
-    x = np.linspace(0, 4, 100)
-    y = f(x)
-    tangent_y = analytical_derivative * (x - x0) + f(x0)
-    
-    plt.figure(figsize=(8, 6))
-    plt.plot(x, y, label='f(x) = x²', linewidth=2)
-    plt.plot(x, tangent_y, '--', label=f"Tangent line (slope={analytical_derivative})", linewidth=2)
-    plt.scatter([x0], [f(x0)], color='red', s=100, zorder=5)
-    plt.xlabel('x', fontsize=12)
-    plt.ylabel('f(x)', fontsize=12)
-    plt.title('Derivative and Tangent Line', fontsize=14)
-    plt.legend()
-    plt.grid(True, alpha=0.3)
-    plt.show()
-    
 
-Numerical derivative: f'(2.0) ≈ 4.000010 Analytical solution: f'(2.0) = 4.000000 Error: 1.00e-05 
+```python
+# Requirements:
+# - Python 3.9+
+# - matplotlib>=3.7.0
+# - numpy>=1.24.0, <2.0.0
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Function definition: f(x) = x^2
+def f(x):
+    return x**2
+
+# Approximation of derivative using forward difference method
+def forward_difference(f, x, h=1e-5):
+    """Forward difference method: f'(x) ≈ [f(x+h) - f(x)] / h"""
+    return (f(x + h) - f(x)) / h
+
+# Calculate derivative at x = 2
+x0 = 2.0
+numerical_derivative = forward_difference(f, x0)
+analytical_derivative = 2 * x0  # Analytical solution: f'(x) = 2x
+
+print(f"Numerical derivative: f'({x0}) ≈ {numerical_derivative:.6f}")
+print(f"Analytical solution:  f'({x0}) = {analytical_derivative:.6f}")
+print(f"Error:                {abs(numerical_derivative - analytical_derivative):.2e}")
+
+# Visualization
+x = np.linspace(0, 4, 100)
+y = f(x)
+tangent_y = analytical_derivative * (x - x0) + f(x0)
+
+plt.figure(figsize=(8, 6))
+plt.plot(x, y, label='f(x) = x²', linewidth=2)
+plt.plot(x, tangent_y, '--', label=f"Tangent line (slope={analytical_derivative})", linewidth=2)
+plt.scatter([x0], [f(x0)], color='red', s=100, zorder=5)
+plt.xlabel('x', fontsize=12)
+plt.ylabel('f(x)', fontsize=12)
+plt.title('Derivative and Tangent Line', fontsize=14)
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.show()
+```
+
+**Output:**
+
+```
+Numerical derivative: f'(2.0) ≈ 4.000010
+Analytical solution:  f'(2.0) = 4.000000
+Error:                1.00e-05
+```
 
 ## 1.2 Differentiation Rules
 
@@ -82,30 +106,42 @@ Numerical derivative: f'(2.0) ≈ 4.000010 Analytical solution: f'(2.0) = 4.0000
 ### 💻 Code Example 2: Symbolic Differentiation Using SymPy
 
 Python Implementation: Symbolic Differentiation Using SymPy
-    
-    
-    import sympy as sp
-    
-    # Define symbolic variable
-    x = sp.Symbol('x')
-    
-    # Differentiation of various functions
-    functions = [
-        x**3,
-        sp.exp(x),
-        sp.ln(x),
-        sp.sin(x),
-        x**2 * sp.exp(x),
-        sp.sin(x) / x
-    ]
-    
-    print("Examples of symbolic differentiation:")
-    for func in functions:
-        derivative = sp.diff(func, x)
-        print(f"d/dx({func}) = {derivative}")
-    
 
-Examples of symbolic differentiation: d/dx(x**3) = 3*x**2 d/dx(exp(x)) = exp(x) d/dx(log(x)) = 1/x d/dx(sin(x)) = cos(x) d/dx(x**2*exp(x)) = x**2*exp(x) + 2*x*exp(x) d/dx(sin(x)/x) = -sin(x)/x**2 + cos(x)/x 
+```python
+import sympy as sp
+
+# Define symbolic variable
+x = sp.Symbol('x')
+
+# Differentiation of various functions
+functions = [
+    x**3,
+    sp.exp(x),
+    sp.ln(x),
+    sp.sin(x),
+    x**2 * sp.exp(x),
+    sp.sin(x) / x
+]
+
+print("Examples of symbolic differentiation:")
+for func in functions:
+    derivative = sp.diff(func, x)
+    print(f"d/dx({func}) = {derivative}")
+```
+
+**Output:**
+
+```
+Examples of symbolic differentiation:
+d/dx(x**3) = 3*x**2
+d/dx(exp(x)) = exp(x)
+d/dx(log(x)) = 1/x
+d/dx(sin(x)) = cos(x)
+d/dx(x**2*exp(x)) = x**2*exp(x) + 2*x*exp(x)
+d/dx(sin(x)/x) = cos(x)/x - sin(x)/x**2
+```
+
+(SymPy prints sums in its own canonical order, so the exact term order may differ between versions; `cos(x)/x - sin(x)/x**2` and `-sin(x)/x**2 + cos(x)/x` are the same expression.)
 
 ## 1.3 Comparison of Numerical Differentiation Methods
 
@@ -114,167 +150,171 @@ In actual data analysis, numerical differentiation is often necessary when the f
 ### 💻 Code Example 3: Comparison of Forward, Backward, and Central Difference Methods
 
 Python Implementation: Accuracy Comparison of Numerical Differentiation Methods
-    
-    
-    def forward_diff(f, x, h):
-        """Forward difference method: O(h)"""
-        return (f(x + h) - f(x)) / h
-    
-    def backward_diff(f, x, h):
-        """Backward difference method: O(h)"""
-        return (f(x) - f(x - h)) / h
-    
-    def central_diff(f, x, h):
-        """Central difference method: O(h²) - higher accuracy"""
-        return (f(x + h) - f(x - h)) / (2 * h)
-    
-    # Test function: f(x) = sin(x), f'(x) = cos(x)
-    f = np.sin
-    f_prime_exact = np.cos
-    
-    x0 = np.pi / 4  # 45 degrees
-    exact = f_prime_exact(x0)
-    
-    # Evaluate error for various step sizes
-    h_values = np.logspace(-10, -1, 50)
-    errors_forward = []
-    errors_backward = []
-    errors_central = []
-    
-    for h in h_values:
-        errors_forward.append(abs(forward_diff(f, x0, h) - exact))
-        errors_backward.append(abs(backward_diff(f, x0, h) - exact))
-        errors_central.append(abs(central_diff(f, x0, h) - exact))
-    
-    # Visualization
-    plt.figure(figsize=(10, 6))
-    plt.loglog(h_values, errors_forward, label='Forward difference', marker='o', markersize=3)
-    plt.loglog(h_values, errors_backward, label='Backward difference', marker='s', markersize=3)
-    plt.loglog(h_values, errors_central, label='Central difference', marker='^', markersize=3)
-    plt.loglog(h_values, h_values, '--', label='O(h)', alpha=0.5)
-    plt.loglog(h_values, h_values**2, '--', label='O(h²)', alpha=0.5)
-    plt.xlabel('Step size h', fontsize=12)
-    plt.ylabel('Absolute error', fontsize=12)
-    plt.title('Accuracy Comparison of Numerical Differentiation Methods', fontsize=14)
-    plt.legend()
-    plt.grid(True, alpha=0.3)
-    plt.show()
-    
-    print(f"Analytical solution: cos(π/4) = {exact:.10f}")
-    print(f"Forward difference (h=1e-5): {forward_diff(f, x0, 1e-5):.10f}")
-    print(f"Central difference (h=1e-5): {central_diff(f, x0, 1e-5):.10f}")
 
-**📝 Note:** The central difference method has higher accuracy (O(h²)) than forward/backward difference methods, but requires twice the computational cost. In practice, choose based on the balance between accuracy and computational cost. 
+```python
+def forward_diff(f, x, h):
+    """Forward difference method: O(h)"""
+    return (f(x + h) - f(x)) / h
+
+def backward_diff(f, x, h):
+    """Backward difference method: O(h)"""
+    return (f(x) - f(x - h)) / h
+
+def central_diff(f, x, h):
+    """Central difference method: O(h²) - higher accuracy"""
+    return (f(x + h) - f(x - h)) / (2 * h)
+
+# Test function: f(x) = sin(x), f'(x) = cos(x)
+f = np.sin
+f_prime_exact = np.cos
+
+x0 = np.pi / 4  # 45 degrees
+exact = f_prime_exact(x0)
+
+# Evaluate error for various step sizes
+h_values = np.logspace(-10, -1, 50)
+errors_forward = []
+errors_backward = []
+errors_central = []
+
+for h in h_values:
+    errors_forward.append(abs(forward_diff(f, x0, h) - exact))
+    errors_backward.append(abs(backward_diff(f, x0, h) - exact))
+    errors_central.append(abs(central_diff(f, x0, h) - exact))
+
+# Visualization
+plt.figure(figsize=(10, 6))
+plt.loglog(h_values, errors_forward, label='Forward difference', marker='o', markersize=3)
+plt.loglog(h_values, errors_backward, label='Backward difference', marker='s', markersize=3)
+plt.loglog(h_values, errors_central, label='Central difference', marker='^', markersize=3)
+plt.loglog(h_values, h_values, '--', label='O(h)', alpha=0.5)
+plt.loglog(h_values, h_values**2, '--', label='O(h²)', alpha=0.5)
+plt.xlabel('Step size h', fontsize=12)
+plt.ylabel('Absolute error', fontsize=12)
+plt.title('Accuracy Comparison of Numerical Differentiation Methods', fontsize=14)
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.show()
+
+print(f"Analytical solution: cos(π/4) = {exact:.10f}")
+print(f"Forward difference (h=1e-5): {forward_diff(f, x0, 1e-5):.10f}")
+print(f"Central difference (h=1e-5): {central_diff(f, x0, 1e-5):.10f}")
+```
+
+**📝 Note:** The central difference method has higher accuracy (O(h²)) than forward/backward difference methods (O(h)). As implemented above, all three methods evaluate f exactly twice per derivative, so the cost is the same; central difference costs one extra evaluation only when f(x) is already known and can be reused (as in a Newton iteration). Central difference is therefore the default choice unless f can only be sampled on one side of x. 
 
 ## 1.4 Higher-Order Derivatives
 
 Further differentiation of a derivative is called higher-order derivatives. The second derivative f''(x) characterizes the convexity of the function, and third and higher-order derivatives characterize finer shape details. 
 
 ### 💻 Code Example 4: Numerical Calculation of Higher-Order Derivatives
-    
-    
-    def second_derivative(f, x, h=1e-5):
-        """Second derivative: f''(x) ≈ [f(x+h) - 2f(x) + f(x-h)] / h²"""
-        return (f(x + h) - 2*f(x) + f(x - h)) / h**2
-    
-    def third_derivative(f, x, h=1e-4):
-        """Third derivative (central difference)"""
-        return (f(x + 2*h) - 2*f(x + h) + 2*f(x - h) - f(x - 2*h)) / (2 * h**3)
-    
-    # Test function: f(x) = x^4
-    f = lambda x: x**4
-    x0 = 2.0
-    
-    # Comparison of analytical and numerical solutions
-    print("Higher-order derivatives of f(x) = x^4 (x=2):")
-    print(f"f'(x) = 4x³     → f'(2) = {4 * x0**3:.1f} (analytical)")
-    print(f"f'(x)           → f'(2) ≈ {central_diff(f, x0, 1e-5):.6f} (numerical)")
-    print(f"f''(x) = 12x²   → f''(2) = {12 * x0**2:.1f} (analytical)")
-    print(f"f''(x)          → f''(2) ≈ {second_derivative(f, x0):.6f} (numerical)")
-    print(f"f'''(x) = 24x   → f'''(2) = {24 * x0:.1f} (analytical)")
-    print(f"f'''(x)         → f'''(2) ≈ {third_derivative(f, x0):.6f} (numerical)")
+
+```python
+def second_derivative(f, x, h=1e-5):
+    """Second derivative: f''(x) ≈ [f(x+h) - 2f(x) + f(x-h)] / h²"""
+    return (f(x + h) - 2*f(x) + f(x - h)) / h**2
+
+def third_derivative(f, x, h=1e-4):
+    """Third derivative (central difference)"""
+    return (f(x + 2*h) - 2*f(x + h) + 2*f(x - h) - f(x - 2*h)) / (2 * h**3)
+
+# Test function: f(x) = x^4
+f = lambda x: x**4
+x0 = 2.0
+
+# Comparison of analytical and numerical solutions
+print("Higher-order derivatives of f(x) = x^4 (x=2):")
+print(f"f'(x) = 4x³     → f'(2) = {4 * x0**3:.1f} (analytical)")
+print(f"f'(x)           → f'(2) ≈ {central_diff(f, x0, 1e-5):.6f} (numerical)")
+print(f"f''(x) = 12x²   → f''(2) = {12 * x0**2:.1f} (analytical)")
+print(f"f''(x)          → f''(2) ≈ {second_derivative(f, x0):.6f} (numerical)")
+print(f"f'''(x) = 24x   → f'''(2) = {24 * x0:.1f} (analytical)")
+print(f"f'''(x)         → f'''(2) ≈ {third_derivative(f, x0):.6f} (numerical)")
+```
 
 ## 1.5 Application to Materials Science: Thermal Expansion Coefficient
 
 **🔬 Application Example:** The thermal expansion coefficient α of a material is defined as the rate of change of length L with respect to temperature T: \\[\alpha = \frac{1}{L}\frac{dL}{dT}\\] Calculate the thermal expansion coefficient from measured data using numerical differentiation. 
 
 ### 💻 Code Example 5: Numerical Calculation of Thermal Expansion Coefficient
-    
-    
-    # Experimental data: Temperature T (K) vs Length L (mm)
-    temperature = np.array([300, 350, 400, 450, 500, 550, 600])
-    length = np.array([100.000, 100.087, 100.175, 100.265, 100.357, 100.450, 100.545])
-    
-    # Create smooth function using spline interpolation
-    from scipy.interpolate import UnivariateSpline
-    spline = UnivariateSpline(temperature, length, s=0, k=3)
-    
-    # Obtain dL/dT by differentiation
-    dL_dT = spline.derivative()(temperature)
-    
-    # Thermal expansion coefficient α = (1/L) * dL/dT
-    alpha = dL_dT / length
-    
-    # Display results
-    print("Thermal expansion coefficient calculation results:")
-    print("T (K)\tL (mm)\tdL/dT (mm/K)\tα (1/K)")
-    for T, L, dLdT, a in zip(temperature, length, dL_dT, alpha):
-        print(f"{T:.0f}\t{L:.3f}\t{dLdT:.6f}\t{a:.2e}")
-    
-    # Visualization
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
-    
-    # Left plot: Temperature dependence of length
-    T_fine = np.linspace(300, 600, 100)
-    ax1.plot(temperature, length, 'o', label='Experimental data', markersize=8)
-    ax1.plot(T_fine, spline(T_fine), '-', label='Spline interpolation', linewidth=2)
-    ax1.set_xlabel('Temperature T (K)', fontsize=12)
-    ax1.set_ylabel('Length L (mm)', fontsize=12)
-    ax1.set_title('Thermal Expansion Curve', fontsize=14)
-    ax1.legend()
-    ax1.grid(True, alpha=0.3)
-    
-    # Right plot: Temperature dependence of thermal expansion coefficient
-    ax2.plot(temperature, alpha * 1e6, 'o-', linewidth=2, markersize=8)
-    ax2.set_xlabel('Temperature T (K)', fontsize=12)
-    ax2.set_ylabel('Thermal expansion coefficient α (10⁻⁶/K)', fontsize=12)
-    ax2.set_title('Temperature Dependence of Thermal Expansion Coefficient', fontsize=14)
-    ax2.grid(True, alpha=0.3)
-    
-    plt.tight_layout()
-    plt.show()
+
+```python
+# Experimental data: Temperature T (K) vs Length L (mm)
+temperature = np.array([300, 350, 400, 450, 500, 550, 600])
+length = np.array([100.000, 100.087, 100.175, 100.265, 100.357, 100.450, 100.545])
+
+# Create smooth function using spline interpolation
+from scipy.interpolate import UnivariateSpline
+spline = UnivariateSpline(temperature, length, s=0, k=3)
+
+# Obtain dL/dT by differentiation
+dL_dT = spline.derivative()(temperature)
+
+# Thermal expansion coefficient α = (1/L) * dL/dT
+alpha = dL_dT / length
+
+# Display results
+print("Thermal expansion coefficient calculation results:")
+print("T (K)\tL (mm)\tdL/dT (mm/K)\tα (1/K)")
+for T, L, dLdT, a in zip(temperature, length, dL_dT, alpha):
+    print(f"{T:.0f}\t{L:.3f}\t{dLdT:.6f}\t{a:.2e}")
+
+# Visualization
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+
+# Left plot: Temperature dependence of length
+T_fine = np.linspace(300, 600, 100)
+ax1.plot(temperature, length, 'o', label='Experimental data', markersize=8)
+ax1.plot(T_fine, spline(T_fine), '-', label='Spline interpolation', linewidth=2)
+ax1.set_xlabel('Temperature T (K)', fontsize=12)
+ax1.set_ylabel('Length L (mm)', fontsize=12)
+ax1.set_title('Thermal Expansion Curve', fontsize=14)
+ax1.legend()
+ax1.grid(True, alpha=0.3)
+
+# Right plot: Temperature dependence of thermal expansion coefficient
+ax2.plot(temperature, alpha * 1e6, 'o-', linewidth=2, markersize=8)
+ax2.set_xlabel('Temperature T (K)', fontsize=12)
+ax2.set_ylabel('Thermal expansion coefficient α (10⁻⁶/K)', fontsize=12)
+ax2.set_title('Temperature Dependence of Thermal Expansion Coefficient', fontsize=14)
+ax2.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+```
 
 ## 1.6 High-Precision Richardson Extrapolation
 
 Richardson extrapolation is a technique that combines numerical differentiation results at different step sizes to obtain more accurate approximations. 
 
 ### 💻 Code Example 6: Richardson Extrapolation
-    
-    
-    def richardson_extrapolation(f, x, h, order=4):
-        """High-precision numerical differentiation using Richardson extrapolation"""
-        # Central difference with different step sizes
-        D1 = central_diff(f, x, h)
-        D2 = central_diff(f, x, h/2)
-    
-        # First-order extrapolation (O(h⁴) accuracy)
-        D_improved = (4 * D2 - D1) / 3
-    
-        return D_improved
-    
-    # Test: f(x) = exp(x), f'(x) = exp(x)
-    f = np.exp
-    x0 = 1.0
-    exact = np.exp(x0)
-    
-    h = 0.1
-    D_central = central_diff(f, x0, h)
-    D_richardson = richardson_extrapolation(f, x0, h)
-    
-    print(f"Analytical solution:     {exact:.10f}")
-    print(f"Central difference (h=0.1): {D_central:.10f}, error = {abs(D_central - exact):.2e}")
-    print(f"Richardson extrapolation:   {D_richardson:.10f}, error = {abs(D_richardson - exact):.2e}")
-    print(f"Accuracy improvement: {abs(D_central - exact) / abs(D_richardson - exact):.1f}x")
+
+```python
+def richardson_extrapolation(f, x, h, order=4):
+    """High-precision numerical differentiation using Richardson extrapolation"""
+    # Central difference with different step sizes
+    D1 = central_diff(f, x, h)
+    D2 = central_diff(f, x, h/2)
+
+    # First-order extrapolation (O(h⁴) accuracy)
+    D_improved = (4 * D2 - D1) / 3
+
+    return D_improved
+
+# Test: f(x) = exp(x), f'(x) = exp(x)
+f = np.exp
+x0 = 1.0
+exact = np.exp(x0)
+
+h = 0.1
+D_central = central_diff(f, x0, h)
+D_richardson = richardson_extrapolation(f, x0, h)
+
+print(f"Analytical solution:     {exact:.10f}")
+print(f"Central difference (h=0.1): {D_central:.10f}, error = {abs(D_central - exact):.2e}")
+print(f"Richardson extrapolation:   {D_richardson:.10f}, error = {abs(D_richardson - exact):.2e}")
+print(f"Accuracy improvement: {abs(D_central - exact) / abs(D_richardson - exact):.1f}x")
+```
 
 ## 1.7 Practice Problems
 
@@ -283,34 +323,35 @@ Richardson extrapolation is a technique that combines numerical differentiation 
 **✏️ Exercise 2:** A process variable y(t) is given as y(t) = 10 + 5sin(πt/10) with respect to time t. Find the rate of change dy/dt at t = 5 using numerical differentiation and determine the need for control. 
 
 ### 💻 Code Example 7: Solutions to Practice Problems
-    
-    
-    # Solution to Exercise 1
-    x = sp.Symbol('x')
-    f_sym = x**3 - 3*x**2 + 2*x + 1
-    f_prime_sym = sp.diff(f_sym, x)
-    f_prime_at_2 = f_prime_sym.subs(x, 2)
-    
-    f_num = lambda x: x**3 - 3*x**2 + 2*x + 1
-    x0 = 2.0
-    
-    print("Solution to Exercise 1:")
-    print(f"(1) Analytical solution: f'(2) = {f_prime_at_2}")
-    print(f"(2) Forward difference: f'(2) ≈ {forward_diff(f_num, x0, 1e-5):.6f}")
-    print(f"(3) Central difference: f'(2) ≈ {central_diff(f_num, x0, 1e-5):.6f}")
-    
-    # Solution to Exercise 2
-    def y(t):
-        return 10 + 5 * np.sin(np.pi * t / 10)
-    
-    t0 = 5.0
-    dy_dt = central_diff(y, t0, 0.01)
-    
-    print(f"\nSolution to Exercise 2:")
-    print(f"dy/dt at t = 5 = {dy_dt:.4f}")
-    print(f"Analytical solution: dy/dt = (5π/10)cos(π·5/10) = {5*np.pi/10 * np.cos(np.pi*5/10):.4f}")
-    if abs(dy_dt) > 0.5:
-        print("→ Control intervention required due to large rate of change")
+
+```python
+# Solution to Exercise 1
+x = sp.Symbol('x')
+f_sym = x**3 - 3*x**2 + 2*x + 1
+f_prime_sym = sp.diff(f_sym, x)
+f_prime_at_2 = f_prime_sym.subs(x, 2)
+
+f_num = lambda x: x**3 - 3*x**2 + 2*x + 1
+x0 = 2.0
+
+print("Solution to Exercise 1:")
+print(f"(1) Analytical solution: f'(2) = {f_prime_at_2}")
+print(f"(2) Forward difference: f'(2) ≈ {forward_diff(f_num, x0, 1e-5):.6f}")
+print(f"(3) Central difference: f'(2) ≈ {central_diff(f_num, x0, 1e-5):.6f}")
+
+# Solution to Exercise 2
+def y(t):
+    return 10 + 5 * np.sin(np.pi * t / 10)
+
+t0 = 5.0
+dy_dt = central_diff(y, t0, 0.01)
+
+print(f"\nSolution to Exercise 2:")
+print(f"dy/dt at t = 5 = {dy_dt:.4f}")
+print(f"Analytical solution: dy/dt = (5π/10)cos(π·5/10) = {5*np.pi/10 * np.cos(np.pi*5/10):.4f}")
+if abs(dy_dt) > 0.5:
+    print("→ Control intervention required due to large rate of change")
+```
 
 ## Summary
 

@@ -7,7 +7,7 @@ chapter_title: "Chapter 1: RAG Fundamentals"
   <iframe
     width="560"
     height="315"
-    src="https://www.youtube.com/embed/eYlOsCp3Tzs"
+    src="https://www.youtube.com/embed/7A40IyhJr_0"
     title="RAG Introduction Ch.1: RAG Fundamentals"
     frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -15,7 +15,7 @@ chapter_title: "Chapter 1: RAG Fundamentals"
   </iframe>
 </div>
 
-This chapter covers the fundamentals of RAG Fundamentals, which 1. what is rag. You will learn essential concepts and techniques.
+This chapter introduces what RAG is and why it matters, walks through the basic architecture of a RAG system, and covers document processing and the main chunking strategies.
 
 ## 1\. What is RAG
 
@@ -103,8 +103,8 @@ Various loaders are available for loading documents in different formats:
 #### Implementation Example 2: Multi-Format Loader
     
     
-    from langchain.document_loaders import (
-        TextLoader, PDFLoader, CSVLoader,
+    from langchain_community.document_loaders import (
+        TextLoader, PyPDFLoader, CSVLoader,
         UnstructuredMarkdownLoader, UnstructuredHTMLLoader
     )
     import os
@@ -114,7 +114,7 @@ Various loaders are available for loading documents in different formats:
     
         LOADERS = {
             '.txt': TextLoader,
-            '.pdf': PDFLoader,
+            '.pdf': PyPDFLoader,
             '.csv': CSVLoader,
             '.md': UnstructuredMarkdownLoader,
             '.html': UnstructuredHTMLLoader,

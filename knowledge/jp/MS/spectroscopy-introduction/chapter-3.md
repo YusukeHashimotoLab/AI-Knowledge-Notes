@@ -4,6 +4,22 @@ chapter_title: 第3章：赤外分光法
 subtitle: 分子振動から官能基を同定し、材料の化学構造を解明する
 ---
 
+## ビデオ講義
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/XF1VYwWRuMk"
+    title="分光分析入門 第3章: 赤外分光法"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> このビデオは以下のテキストと同じ内容をカバーしています。お好みの学習形式をお選びください。
+
 **この章で学ぶこと**
 
 赤外分光法（Infrared Spectroscopy, IR）は、分子の振動エネルギーに対応する赤外光の吸収を測定することで、化学結合や官能基の情報を得る分析手法です。本章では、分子振動の基礎理論から、FTIR（フーリエ変換赤外分光法）の原理、官能基同定の実践的手法、ATR-FTIRによる表面分析まで、IRスペクトル解析に必要な知識を体系的に学びます。Pythonを用いたスペクトルデータ解析の実装も行います。

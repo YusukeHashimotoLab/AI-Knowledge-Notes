@@ -2,21 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
-<meta content="Chapter 2: Embeddings and Search - RAG Introduction Series" name="description"/>
+<meta content="Chapter 2: Embeddings and Vector Databases - RAG Introduction Series" name="description"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<meta content="Embeddings and Search - Vector Representation, Similarity Search, Vector Databases" name="description"/>
-<title>Chapter 2: Embeddings and Search - RAG Introduction Series</title>
-<link rel="canonical" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/en/ML/rag-introduction/chapter2-embeddings.html">
-<link rel="alternate" hreflang="ja" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/jp/ML/rag-introduction/chapter2-embeddings.html">
-<link rel="alternate" hreflang="en" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/en/ML/rag-introduction/chapter2-embeddings.html">
-<link rel="alternate" hreflang="x-default" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/en/ML/rag-introduction/chapter2-embeddings.html">
-<meta property="og:title" content="Chapter 2: Embeddings and Search - RAG Introduction Series">
-<meta property="og:type" content="article">
-<meta property="og:url" content="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/en/ML/rag-introduction/chapter2-embeddings.html">
-<meta property="og:site_name" content="AI Terakoya">
-<meta property="og:locale" content="en_US">
-<meta property="og:description" content="Chapter 2: Embeddings and Search - RAG Introduction Series">
-<script async="" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js" integrity="sha384-Wuix6BuhrWbjDBs24bXrjf4ZQ5aFeFWBuKkFekO2t8xFU0iNaLQfp2K6/1Nxveei" crossorigin="anonymous"></script>
+<meta content="Embeddings and Vector Databases - Vector Representation, Similarity Search, Vector Databases" name="description"/>
+<title>Chapter 2: Embeddings and Vector Databases - RAG Introduction Series</title>
+<script async="" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js"></script>
 <link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
 </head>
 <body>
@@ -33,7 +23,7 @@
 </div>
 <header>
 <div class="container">
-<h1>Chapter 2: Embeddings and Search</h1>
+<h1>Chapter 2: Embeddings and Vector Databases</h1>
 <p style="font-size: 1.1rem; margin-top: 0.5rem; opacity: 0.95;">Vector Representation and Similarity Search</p>
 <div class="meta">
 <span>📖 Study Time: 30-35 minutes</span>
@@ -44,17 +34,7 @@
 </header>
 <main class="container">
 
-<div class="video-container">
-  <iframe
-    width="560"
-    height="315"
-    src="https://www.youtube.com/embed/DkDPo6pqQOQ"
-    title="RAG Introduction Ch.2: Embeddings and Vector Databases"
-    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-    allowfullscreen>
-  </iframe>
-</div>
-<p class="chapter-description">This chapter covers Embeddings and Search. You will learn essential concepts and techniques.</p>
+<p class="chapter-description">This chapter covers embeddings and vector databases. You will learn essential concepts and techniques.</p>
 <h2>1. Vector Embeddings</h2>
 <h3>1.1 Embedding Concepts</h3>
 <p>Embeddings are a technique that represents text as points in a high-dimensional vector space. Semantically similar texts are positioned close together in the vector space.</p>
@@ -362,7 +342,6 @@ faiss_store.save_local("./faiss_index")</code></pre>
 <p>An open-source vector database that excels at metadata filtering.</p>
 <h4>Implementation Example 4: ChromaDB Implementation</h4>
 <pre><code>import chromadb
-from chromadb.config import Settings
 from langchain.vectorstores import Chroma
 from langchain.embeddings import OpenAIEmbeddings
 
@@ -374,11 +353,8 @@ class ChromaVectorStore:
         self.persist_directory = persist_directory
         self.vectorstore = None
 
-        # Client configuration
-        self.client = chromadb.Client(Settings(
-            chroma_db_impl="duckdb+parquet",
-            persist_directory=persist_directory
-        ))
+        # Client configuration (data is persisted under the given path)
+        self.client = chromadb.PersistentClient(path=persist_directory)
 
     def create_collection(self, documents, collection_name="default"):
         """Create collection"""
@@ -389,8 +365,7 @@ class ChromaVectorStore:
             persist_directory=self.persist_directory
         )
 
-        # Persist
-        self.vectorstore.persist()
+        # Persistence is automatic in current Chroma (no persist() call needed)
         print(f"Collection created: {collection_name}")
 
     def add_documents(self, documents):
@@ -399,7 +374,6 @@ class ChromaVectorStore:
             raise ValueError("Collection not created")
 
         self.vectorstore.add_documents(documents)
-        self.vectorstore.persist()
         print(f"{len(documents)} documents added")
 
     def search_with_filter(self, query, k=5, where=None, where_document=None):
@@ -480,33 +454,32 @@ print(f"\nMMR search results: {len(diverse_results)} items")</code></pre>
 <h3>3.3 Pinecone</h3>
 <p>A cloud-native vector database that excels at scalability.</p>
 <h4>Implementation Example 5: Pinecone Implementation</h4>
-<pre><code>import pinecone
-from langchain.vectorstores import Pinecone
+<pre><code>from pinecone import Pinecone, ServerlessSpec
+from langchain.vectorstores import Pinecone as LangChainPinecone
 from langchain.embeddings import OpenAIEmbeddings
 import time
 
 class PineconeVectorStore:
     """Pinecone vector store implementation"""
 
-    def __init__(self, api_key, environment, embeddings):
+    def __init__(self, api_key, embeddings):
         self.embeddings = embeddings
 
-        # Initialize Pinecone
-        pinecone.init(
-            api_key=api_key,
-            environment=environment
-        )
+        # Initialize the Pinecone client (v3+ API; no environment argument)
+        self.pc = Pinecone(api_key=api_key)
 
-    def create_index(self, index_name, dimension=1536, metric='cosine'):
-        """Create index"""
+    def create_index(self, index_name, dimension=1536, metric='dotproduct'):
+        """Create index
+
+        Note: hybrid (sparse-dense) search requires metric="dotproduct"
+        """
         # Check for existing index
-        if index_name not in pinecone.list_indexes():
-            pinecone.create_index(
+        if index_name not in self.pc.list_indexes().names():
+            self.pc.create_index(
                 name=index_name,
                 dimension=dimension,
                 metric=metric,
-                pods=1,
-                pod_type='p1.x1'
+                spec=ServerlessSpec(cloud='aws', region='us-east-1')
             )
             # Wait for index to be ready
             time.sleep(1)
@@ -516,7 +489,7 @@ class PineconeVectorStore:
 
     def upsert_documents(self, index_name, documents):
         """Upsert documents"""
-        vectorstore = Pinecone.from_documents(
+        vectorstore = LangChainPinecone.from_documents(
             documents,
             self.embeddings,
             index_name=index_name
@@ -526,7 +499,7 @@ class PineconeVectorStore:
 
     def search_with_namespace(self, index_name, query, k=5, namespace=None):
         """Search with namespace specification"""
-        vectorstore = Pinecone.from_existing_index(
+        vectorstore = LangChainPinecone.from_existing_index(
             index_name=index_name,
             embedding=self.embeddings,
             namespace=namespace
@@ -535,37 +508,63 @@ class PineconeVectorStore:
         results = vectorstore.similarity_search_with_score(query, k=k)
         return results
 
-    def hybrid_search(self, index_name, query, k=5, alpha=0.5):
+    @staticmethod
+    def hybrid_scale(dense, sparse, alpha):
+        """Weight the dense and sparse vectors on the client side
+
+        alpha=1 -> pure dense (vector search), alpha=0 -> pure sparse (keyword search)
+        """
+        if not 0 <= alpha <= 1:
+            raise ValueError("alpha must be between 0 and 1")
+
+        hsparse = {
+            'indices': sparse['indices'],
+            'values': [v * (1 - alpha) for v in sparse['values']]
+        }
+        hdense = [v * alpha for v in dense]
+        return hdense, hsparse
+
+    def hybrid_search(self, index_name, query, sparse_encoder, k=5, alpha=0.5):
         """Hybrid search (dense vector + sparse vector)
 
         alpha: 0=keyword search only, 1=vector search only
+        Note: alpha is NOT a Pinecone API parameter. The weighting is applied
+        on the client side by scaling both vectors before the query is sent.
+        sparse_encoder: a keyword encoder such as pinecone_text.sparse.BM25Encoder
         """
-        # Pinecone hybrid search feature
-        index = pinecone.Index(index_name)
+        index = self.pc.Index(index_name)
 
-        # Query embedding
-        query_vector = self.embeddings.embed_query(query)
+        # Dense vector (query embedding) and sparse vector (keyword weights)
+        dense_vector = self.embeddings.embed_query(query)
+        sparse_vector = sparse_encoder.encode_queries(query)
 
-        # Execute hybrid search
+        # Apply the alpha weighting before querying
+        dense_vector, sparse_vector = self.hybrid_scale(
+            dense_vector, sparse_vector, alpha
+        )
+
+        # Execute hybrid search (the index must use metric="dotproduct")
         results = index.query(
-            vector=query_vector,
+            vector=dense_vector,
+            sparse_vector={
+                'indices': sparse_vector['indices'],
+                'values': sparse_vector['values']
+            },
             top_k=k,
-            include_metadata=True,
-            # Hybrid search parameter
-            alpha=alpha
+            include_metadata=True
         )
 
         return results
 
     def delete_index(self, index_name):
         """Delete index"""
-        if index_name in pinecone.list_indexes():
-            pinecone.delete_index(index_name)
+        if index_name in self.pc.list_indexes().names():
+            self.pc.delete_index(index_name)
             print(f"Index deleted: {index_name}")
 
     def get_index_stats(self, index_name):
         """Get index statistics"""
-        index = pinecone.Index(index_name)
+        index = self.pc.Index(index_name)
         stats = index.describe_index_stats()
         return stats
 
@@ -573,7 +572,6 @@ class PineconeVectorStore:
 embeddings = OpenAIEmbeddings(openai_api_key="your-openai-key")
 pinecone_store = PineconeVectorStore(
     api_key="your-pinecone-key",
-    environment="us-west1-gcp",
     embeddings=embeddings
 )
 

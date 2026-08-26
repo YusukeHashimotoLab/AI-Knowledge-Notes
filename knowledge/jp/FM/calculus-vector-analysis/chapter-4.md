@@ -4,6 +4,24 @@ chapter_title: "第4章: ベクトル場と微分演算子"
 subtitle: Vector Fields and Differential Operators
 ---
 
+## ビデオ講義
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/BEElvcgY5Uk?start=2579"
+    title="微積分とベクトル解析入門 第4章: ベクトル場と微分演算子"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> このビデオは以下のテキストと同じ内容をカバーしています。お好みの学習形式をお選びください。
+
+---
+
 🌐 JP | [🇬🇧 EN](<../../../en/FM/calculus-vector-analysis/chapter-4.html>) | Last sync: 2025-11-16
 
 [基礎数理道場](<../index.html>) > [微積分とベクトル解析入門](<index.html>) > 第4章 
@@ -15,7 +33,49 @@ subtitle: Vector Fields and Differential Operators
 
 ### 💻 コード例1: 2次元ベクトル場の可視化
 
-import numpy as np import matplotlib.pyplot as plt # 2次元ベクトル場の定義: F(x,y) = (-y, x) (回転場) def vector_field(x, y): """回転するベクトル場""" Fx = -y Fy = x return Fx, Fy # グリッドの作成 x = np.linspace(-3, 3, 15) y = np.linspace(-3, 3, 15) X, Y = np.meshgrid(x, y) Fx, Fy = vector_field(X, Y) # quiverプロットでベクトル場を可視化 plt.figure(figsize=(10, 8)) plt.quiver(X, Y, Fx, Fy, np.sqrt(Fx**2 + Fy**2), cmap='viridis') plt.colorbar(label='ベクトルの大きさ') plt.xlabel('x') plt.ylabel('y') plt.title('回転ベクトル場 F = (-y, x)') plt.axis('equal') plt.grid(True, alpha=0.3) plt.show() # 流線（streamline）の描画 x_fine = np.linspace(-3, 3, 100) y_fine = np.linspace(-3, 3, 100) X_fine, Y_fine = np.meshgrid(x_fine, y_fine) Fx_fine, Fy_fine = vector_field(X_fine, Y_fine) plt.figure(figsize=(10, 8)) plt.streamplot(X_fine, Y_fine, Fx_fine, Fy_fine, density=1.5, color='blue', linewidth=1) plt.xlabel('x') plt.ylabel('y') plt.title('ベクトル場の流線') plt.axis('equal') plt.grid(True, alpha=0.3) plt.show()
+```python
+import numpy as np
+import matplotlib.pyplot as plt
+
+# 2次元ベクトル場の定義: F(x,y) = (-y, x) (回転場)
+def vector_field(x, y):
+    """回転するベクトル場"""
+    Fx = -y
+    Fy = x
+    return Fx, Fy
+
+# グリッドの作成
+x = np.linspace(-3, 3, 15)
+y = np.linspace(-3, 3, 15)
+X, Y = np.meshgrid(x, y)
+Fx, Fy = vector_field(X, Y)
+
+# quiverプロットでベクトル場を可視化
+plt.figure(figsize=(10, 8))
+plt.quiver(X, Y, Fx, Fy, np.sqrt(Fx**2 + Fy**2), cmap='viridis')
+plt.colorbar(label='ベクトルの大きさ')
+plt.xlabel('x')
+plt.ylabel('y')
+plt.title('回転ベクトル場 F = (-y, x)')
+plt.axis('equal')
+plt.grid(True, alpha=0.3)
+plt.show()
+
+# 流線（streamline）の描画
+x_fine = np.linspace(-3, 3, 100)
+y_fine = np.linspace(-3, 3, 100)
+X_fine, Y_fine = np.meshgrid(x_fine, y_fine)
+Fx_fine, Fy_fine = vector_field(X_fine, Y_fine)
+
+plt.figure(figsize=(10, 8))
+plt.streamplot(X_fine, Y_fine, Fx_fine, Fy_fine, density=1.5, color='blue', linewidth=1)
+plt.xlabel('x')
+plt.ylabel('y')
+plt.title('ベクトル場の流線')
+plt.axis('equal')
+plt.grid(True, alpha=0.3)
+plt.show()
+```
 
 ## 4.2 勾配（gradient, grad）
 
@@ -24,7 +84,44 @@ import numpy as np import matplotlib.pyplot as plt # 2次元ベクトル場の�
 
 ### 💻 コード例2: 勾配ベクトル場の計算と可視化
 
-def scalar_field(x, y): """スカラー場: φ(x,y) = x² + y²""" return x**2 + y**2 def gradient_field(x, y): """勾配: ∇φ = (2x, 2y)""" grad_x = 2*x grad_y = 2*y return grad_x, grad_y # 可視化 x = np.linspace(-2, 2, 20) y = np.linspace(-2, 2, 20) X, Y = np.meshgrid(x, y) phi = scalar_field(X, Y) grad_x, grad_y = gradient_field(X, Y) fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 6)) # 左図: スカラー場の等高線 contour = ax1.contourf(X, Y, phi, levels=20, cmap='viridis') fig.colorbar(contour, ax=ax1, label='φ(x,y)') ax1.set_xlabel('x') ax1.set_ylabel('y') ax1.set_title('スカラー場 φ = x² + y²') ax1.axis('equal') # 右図: 勾配ベクトル場 ax2.contour(X, Y, phi, levels=10, colors='gray', alpha=0.3) ax2.quiver(X, Y, grad_x, grad_y, color='red') ax2.set_xlabel('x') ax2.set_ylabel('y') ax2.set_title('勾配ベクトル場 ∇φ = (2x, 2y)') ax2.axis('equal') plt.tight_layout() plt.show()
+```python
+def scalar_field(x, y):
+    """スカラー場: φ(x,y) = x² + y²"""
+    return x**2 + y**2
+
+def gradient_field(x, y):
+    """勾配: ∇φ = (2x, 2y)"""
+    grad_x = 2*x
+    grad_y = 2*y
+    return grad_x, grad_y
+
+# 可視化
+x = np.linspace(-2, 2, 20)
+y = np.linspace(-2, 2, 20)
+X, Y = np.meshgrid(x, y)
+phi = scalar_field(X, Y)
+grad_x, grad_y = gradient_field(X, Y)
+
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 6))
+
+# 左図: スカラー場の等高線
+contour = ax1.contourf(X, Y, phi, levels=20, cmap='viridis')
+fig.colorbar(contour, ax=ax1, label='φ(x,y)')
+ax1.set_xlabel('x')
+ax1.set_ylabel('y')
+ax1.set_title('スカラー場 φ = x² + y²')
+ax1.axis('equal')
+
+# 右図: 勾配ベクトル場
+ax2.contour(X, Y, phi, levels=10, colors='gray', alpha=0.3)
+ax2.quiver(X, Y, grad_x, grad_y, color='red')
+ax2.set_xlabel('x')
+ax2.set_ylabel('y')
+ax2.set_title('勾配ベクトル場 ∇φ = (2x, 2y)')
+ax2.axis('equal')
+plt.tight_layout()
+plt.show()
+```
 
 ## 4.3 発散（divergence, div）
 
@@ -33,7 +130,35 @@ def scalar_field(x, y): """スカラー場: φ(x,y) = x² + y²""" return x**2 +
 
 ### 💻 コード例3: 発散の計算
 
-def divergence_numerical(Fx, Fy, x, y, h=1e-5): """発散の数値計算: div F = ∂Fx/∂x + ∂Fy/∂y""" dFx_dx = (Fx(x+h, y) - Fx(x-h, y)) / (2*h) dFy_dy = (Fy(x, y+h) - Fy(x, y-h)) / (2*h) return dFx_dx + dFy_dy # 例1: 発散が正のベクトル場（発散場） def Fx_diverging(x, y): return x def Fy_diverging(x, y): return y # 例2: 発散がゼロのベクトル場（回転場） def Fx_rotating(x, y): return -y def Fy_rotating(x, y): return x # 発散の計算 x0, y0 = 1, 1 div_diverging = divergence_numerical(Fx_diverging, Fy_diverging, x0, y0) div_rotating = divergence_numerical(Fx_rotating, Fy_rotating, x0, y0) print(f"発散場 F=(x,y) の発散: div F = {div_diverging:.6f} (解析解: 2)") print(f"回転場 F=(-y,x) の発散: div F = {div_rotating:.6f} (解析解: 0)")
+```python
+def divergence_numerical(Fx, Fy, x, y, h=1e-5):
+    """発散の数値計算: div F = ∂Fx/∂x + ∂Fy/∂y"""
+    dFx_dx = (Fx(x+h, y) - Fx(x-h, y)) / (2*h)
+    dFy_dy = (Fy(x, y+h) - Fy(x, y-h)) / (2*h)
+    return dFx_dx + dFy_dy
+
+# 例1: 発散が正のベクトル場（発散場）
+def Fx_diverging(x, y):
+    return x
+
+def Fy_diverging(x, y):
+    return y
+
+# 例2: 発散がゼロのベクトル場（回転場）
+def Fx_rotating(x, y):
+    return -y
+
+def Fy_rotating(x, y):
+    return x
+
+# 発散の計算
+x0, y0 = 1, 1
+div_diverging = divergence_numerical(Fx_diverging, Fy_diverging, x0, y0)
+div_rotating = divergence_numerical(Fx_rotating, Fy_rotating, x0, y0)
+
+print(f"発散場 F=(x,y) の発散: div F = {div_diverging:.6f} (解析解: 2)")
+print(f"回転場 F=(-y,x) の発散: div F = {div_rotating:.6f} (解析解: 0)")
+```
 
 ## 4.4 回転（rotation, curl）
 
@@ -42,7 +167,23 @@ def divergence_numerical(Fx, Fy, x, y, h=1e-5): """発散の数値計算: div F 
 
 ### 💻 コード例4: 2次元での回転（スカラー）
 
-# 2次元では回転はスカラー値: rot F = ∂Fy/∂x - ∂Fx/∂y def curl_2d(Fx, Fy, x, y, h=1e-5): """2次元での回転の数値計算""" dFy_dx = (Fy(x+h, y) - Fy(x-h, y)) / (2*h) dFx_dy = (Fx(x, y+h) - Fx(x, y-h)) / (2*h) return dFy_dx - dFx_dy # 回転場での回転を計算 curl_rotating = curl_2d(Fx_rotating, Fy_rotating, x0, y0) print(f"\n回転場 F=(-y,x) の回転: rot F = {curl_rotating:.6f} (解析解: 2)") # 発散場での回転を計算 curl_diverging = curl_2d(Fx_diverging, Fy_diverging, x0, y0) print(f"発散場 F=(x,y) の回転: rot F = {curl_diverging:.6f} (解析解: 0)")
+```python
+# 2次元では回転はスカラー値: rot F = ∂Fy/∂x - ∂Fx/∂y
+
+def curl_2d(Fx, Fy, x, y, h=1e-5):
+    """2次元での回転の数値計算"""
+    dFy_dx = (Fy(x+h, y) - Fy(x-h, y)) / (2*h)
+    dFx_dy = (Fx(x, y+h) - Fx(x, y-h)) / (2*h)
+    return dFy_dx - dFx_dy
+
+# 回転場での回転を計算
+curl_rotating = curl_2d(Fx_rotating, Fy_rotating, x0, y0)
+print(f"\n回転場 F=(-y,x) の回転: rot F = {curl_rotating:.6f} (解析解: 2)")
+
+# 発散場での回転を計算
+curl_diverging = curl_2d(Fx_diverging, Fy_diverging, x0, y0)
+print(f"発散場 F=(x,y) の回転: rot F = {curl_diverging:.6f} (解析解: 0)")
+```
 
 ## 4.5 ラプラシアン（Laplacian, Δ）
 
@@ -51,20 +192,158 @@ def divergence_numerical(Fx, Fy, x, y, h=1e-5): """発散の数値計算: div F 
 
 ### 💻 コード例5: ラプラシアンの計算と応用
 
-def laplacian_2d(phi, x, y, h=1e-4): """2次元ラプラシアンの数値計算""" lap = (phi(x+h, y) + phi(x-h, y) + phi(x, y+h) + phi(x, y-h) - 4*phi(x, y)) / h**2 return lap # テスト関数: φ(x,y) = x² + y² phi = lambda x, y: x**2 + y**2 lap = laplacian_2d(phi, 1, 1) print(f"\nφ = x² + y² のラプラシアン: Δφ = {lap:.6f} (解析解: 4)") # ラプラス方程式 Δφ = 0 の解（調和関数） phi_harmonic = lambda x, y: x**2 - y**2 lap_harmonic = laplacian_2d(phi_harmonic, 1, 1) print(f"φ = x² - y² のラプラシアン: Δφ = {lap_harmonic:.6f} (解析解: 0)")
+```python
+def laplacian_2d(phi, x, y, h=1e-4):
+    """2次元ラプラシアンの数値計算"""
+    lap = (phi(x+h, y) + phi(x-h, y) + phi(x, y+h) + phi(x, y-h) - 4*phi(x, y)) / h**2
+    return lap
+
+# テスト関数: φ(x,y) = x² + y²
+phi = lambda x, y: x**2 + y**2
+
+lap = laplacian_2d(phi, 1, 1)
+print(f"\nφ = x² + y² のラプラシアン: Δφ = {lap:.6f} (解析解: 4)")
+
+# ラプラス方程式 Δφ = 0 の解（調和関数）
+phi_harmonic = lambda x, y: x**2 - y**2
+lap_harmonic = laplacian_2d(phi_harmonic, 1, 1)
+print(f"φ = x² - y² のラプラシアン: Δφ = {lap_harmonic:.6f} (解析解: 0)")
+```
 
 ## 4.6 保存場とポテンシャル関数
 
 **📐 定理: 保存場の条件**  
-ベクトル場 F が保存場（スカラーポテンシャル φ が存在）である条件は： $$\text{rot}\,\mathbf{F} = \mathbf{0}$$ このとき F = grad φ と表せます。 
+**単連結**な領域（穴のない領域。ℝ³全体や球など）において、 ベクトル場 F が保存場（スカラーポテンシャル φ が存在）である条件は： $$\text{rot}\,\mathbf{F} = \mathbf{0}$$ このとき F = grad φ と表せます。 単連結という仮定は本質的です。rot F = 0 は常に必要条件ですが、穴のある領域では十分条件になりません。 例えば ℝ²∖{0} 上の F = (−y/(x²+y²), x/(x²+y²)) は定義域上のあらゆる点で rot F = 0 ですが、 原点を囲む任意の閉曲線で ∮F·dr = 2π となり、一価のポテンシャルは存在しません。 
 
 ### 💻 コード例6: 保存場の判定とポテンシャル関数の計算
 
-import sympy as sp x, y = sp.symbols('x y') # ベクトル場 F = (2xy, x² + 2y) Fx_sym = 2*x*y Fy_sym = x**2 + 2*y # 回転の計算 curl_z = sp.diff(Fy_sym, x) - sp.diff(Fx_sym, y) print("ベクトル場 F = (2xy, x² + 2y) の保存場判定:") print(f"rot F = ∂Fy/∂x - ∂Fx/∂y = {curl_z}") if curl_z == 0: print("→ rot F = 0 なので保存場です\n") # ポテンシャル関数の計算 # φ を ∂φ/∂x = Fx, ∂φ/∂y = Fy となるように求める phi = sp.integrate(Fx_sym, x) # x で積分 print(f"∫ Fx dx = {phi} + g(y)") # y の関数 g(y) を決定 dPhi_dy = sp.diff(phi, y) g_prime = Fy_sym - dPhi_dy g = sp.integrate(g_prime, y) phi_final = phi + g print(f"ポテンシャル関数: φ = {phi_final}") # 検証 grad_phi_x = sp.diff(phi_final, x) grad_phi_y = sp.diff(phi_final, y) print(f"\n検証:") print(f"∂φ/∂x = {grad_phi_x} = Fx ✓") print(f"∂φ/∂y = {grad_phi_y} = Fy ✓")
+```python
+import sympy as sp
+
+x, y = sp.symbols('x y')
+
+# ベクトル場 F = (2xy, x² + 2y)
+Fx_sym = 2*x*y
+Fy_sym = x**2 + 2*y
+
+# 回転の計算
+curl_z = sp.diff(Fy_sym, x) - sp.diff(Fx_sym, y)
+print("ベクトル場 F = (2xy, x² + 2y) の保存場判定:")
+print(f"rot F = ∂Fy/∂x - ∂Fx/∂y = {curl_z}")
+
+if curl_z == 0:
+    print("→ rot F = 0 なので保存場です\n")
+
+    # ポテンシャル関数の計算
+    # φ を ∂φ/∂x = Fx, ∂φ/∂y = Fy となるように求める
+    phi = sp.integrate(Fx_sym, x)  # x で積分
+    print(f"∫ Fx dx = {phi} + g(y)")
+
+    # y の関数 g(y) を決定
+    dPhi_dy = sp.diff(phi, y)
+    g_prime = Fy_sym - dPhi_dy
+    g = sp.integrate(g_prime, y)
+    phi_final = phi + g
+
+    print(f"ポテンシャル関数: φ = {phi_final}")
+
+    # 検証: 残差は厳密に0に簡約されなければならない。
+    # コードが実際に確認していない「✓」を出力してはいけない。
+    residual_x = sp.simplify(sp.diff(phi_final, x) - Fx_sym)
+    residual_y = sp.simplify(sp.diff(phi_final, y) - Fy_sym)
+    print(f"\n検証（残差が厳密に0に簡約されること）:")
+    print(f"∂φ/∂x - Fx = {residual_x}  → {'OK' if residual_x == 0 else 'MISMATCH'}")
+    print(f"∂φ/∂y - Fy = {residual_y}  → {'OK' if residual_y == 0 else 'MISMATCH'}")
+```
+
+**実行結果:**
+
+```
+ベクトル場 F = (2xy, x² + 2y) の保存場判定:
+rot F = ∂Fy/∂x - ∂Fx/∂y = 0
+→ rot F = 0 なので保存場です
+
+∫ Fx dx = x**2*y + g(y)
+ポテンシャル関数: φ = x**2*y + y**2
+
+検証（残差が厳密に0に簡約されること）:
+∂φ/∂x - Fx = 0  → OK
+∂φ/∂y - Fy = 0  → OK
+```
 
 ### 💻 コード例7: 材料科学への応用（拡散流束）
 
-# Fickの第一法則: J = -D ∇C （拡散流束） # 濃度勾配により拡散流束が生じる def concentration(x, y): """濃度分布 C(x,y)""" return np.exp(-(x**2 + y**2)) # 勾配（濃度勾配）を計算 x = np.linspace(-2, 2, 20) y = np.linspace(-2, 2, 20) X, Y = np.meshgrid(x, y) # 数値微分で勾配を計算 h = x[1] - x[0] C = concentration(X, Y) dC_dx = np.gradient(C, h, axis=1) dC_dy = np.gradient(C, h, axis=0) # 拡散流束: J = -D ∇C D = 1.0 # 拡散係数 Jx = -D * dC_dx Jy = -D * dC_dy fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 6)) # 左図: 濃度分布 contour = ax1.contourf(X, Y, C, levels=15, cmap='viridis') fig.colorbar(contour, ax=ax1, label='濃度 C') ax1.set_xlabel('x') ax1.set_ylabel('y') ax1.set_title('濃度分布 C(x,y) = exp(-(x²+y²))') ax1.axis('equal') # 右図: 拡散流束ベクトル ax2.contour(X, Y, C, levels=10, colors='gray', alpha=0.3) ax2.quiver(X, Y, Jx, Jy, color='red', alpha=0.7) ax2.set_xlabel('x') ax2.set_ylabel('y') ax2.set_title('拡散流束 J = -D∇C') ax2.axis('equal') plt.tight_layout() plt.show() # 発散 div J（正味の流出入） div_J = np.gradient(Jx, h, axis=1) + np.gradient(Jy, h, axis=0) print(f"\n中心点での発散: div J = {div_J[len(y)//2, len(x)//2]:.6f}") print("(負 → 流入, 正 → 流出)")
+```python
+# Fickの第一法則: J = -D ∇C （拡散流束）
+# 濃度勾配により拡散流束が生じる
+
+def concentration(x, y):
+    """濃度分布 C(x,y)"""
+    return np.exp(-(x**2 + y**2))
+
+# 勾配（濃度勾配）を計算
+# 点数を21（奇数）にすると原点がちょうど格子点になる。
+# 下で発散を読み取りたいのがこの原点である。
+x = np.linspace(-2, 2, 21)
+y = np.linspace(-2, 2, 21)
+X, Y = np.meshgrid(x, y)
+
+# 数値微分で勾配を計算
+h = x[1] - x[0]
+C = concentration(X, Y)
+dC_dx = np.gradient(C, h, axis=1)
+dC_dy = np.gradient(C, h, axis=0)
+
+# 拡散流束: J = -D ∇C
+D = 1.0  # 拡散係数
+Jx = -D * dC_dx
+Jy = -D * dC_dy
+
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 6))
+
+# 左図: 濃度分布
+contour = ax1.contourf(X, Y, C, levels=15, cmap='viridis')
+fig.colorbar(contour, ax=ax1, label='濃度 C')
+ax1.set_xlabel('x')
+ax1.set_ylabel('y')
+ax1.set_title('濃度分布 C(x,y) = exp(-(x²+y²))')
+ax1.axis('equal')
+
+# 右図: 拡散流束ベクトル
+ax2.contour(X, Y, C, levels=10, colors='gray', alpha=0.3)
+ax2.quiver(X, Y, Jx, Jy, color='red', alpha=0.7)
+ax2.set_xlabel('x')
+ax2.set_ylabel('y')
+ax2.set_title('拡散流束 J = -D∇C')
+ax2.axis('equal')
+plt.tight_layout()
+plt.show()
+
+# 発散 div J（正味の流出入）
+div_J = np.gradient(Jx, h, axis=1) + np.gradient(Jy, h, axis=0)
+
+# 厳密値と比較する: div J = -D ∇²C であり、C = exp(-(x²+y²)) のとき
+# ∇²C = (4(x²+y²) - 4)·C。
+i_c, j_c = len(y)//2, len(x)//2
+exact_div_J = -D * (4*(X[i_c, j_c]**2 + Y[i_c, j_c]**2) - 4) * C[i_c, j_c]
+
+print(f"\n使用した格子点: (x, y) = ({X[i_c, j_c]:.3f}, {Y[i_c, j_c]:.3f}), h = {h:.3f}")
+print(f"中心点での発散: div J = {div_J[i_c, j_c]:.6f}")
+print(f"厳密値 -D∇²C:   div J = {exact_div_J:.6f}")
+print(f"離散化誤差:             {abs(div_J[i_c, j_c] - exact_div_J):.2e}")
+print("(負 → 流入, 正 → 流出)")
+```
+
+**実行結果:**
+
+```
+使用した格子点: (x, y) = (0.000, 0.000), h = 0.200
+中心点での発散: div J = 3.696405
+厳密値 -D∇²C:   div J = 4.000000
+離散化誤差:             3.04e-01
+```
+
+**📝 注意:** この7.6%のずれはバグではありません。`np.gradient`を2回適用すると 実質4h間隔の広い2階差分ステンシルになり、h = 0.2 におけるその打ち切り誤差がちょうどこの大きさです。 hを半分にすると誤差はおよそ1/4になります。数値の隣には必ず厳密値や参照値を出力しましょう。 そうしないと、離散化誤差なのかコーディングのミスなのかを区別できません。
 
 ## まとめ
 

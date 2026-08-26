@@ -4,6 +4,22 @@ chapter_title: 創薬MI実装ハンズオン
 subtitle: RDKitとPythonで学ぶ実践的分子設計
 ---
 
+## ビデオ講義
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/XLP5IrnQ3TI"
+    title="創薬・医薬品開発へのMI応用 第3章: 創薬MI実装ハンズオン"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> このビデオは以下のテキストと同じ内容をカバーしています。お好みの学習形式をお選びください。
+
 # 第3章：Pythonで実装する創薬MI - RDKit & ChEMBL実践
 
 **30個の実行可能なコード例で学ぶ実践的創薬AI**
@@ -136,8 +152,9 @@ GPU利用 | ローカルGPU | ローカルGPU | 無料クラウドGPU
     
     # 期待される出力:
     # 分子式: C9H8O4
-    # 原子数: 21  # 陽子Hを含む
-    # 結合数: 21
+    # 原子数: 13  # GetNumAtoms()は重原子のみを数えます
+    # 結合数: 13
+    # （Chem.AddHs(mol)を適用すると21原子、21結合になります）
     
 
 **重要ポイント:** \- `Chem.MolFromSmiles()` は無効なSMILESに対して `None` を返す \- エラーハンドリングが必須

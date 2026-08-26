@@ -253,7 +253,7 @@ This series is a 4-chapter educational content designed to teach you how to appl
   * Disease: Obsessive-Compulsive Disorder (OCD)
   * Technology: Active Learning, Multi-objective Optimization
   * Results: Candidate compound discovery in 12 months (conventional 4.5 years)
-  * Status: Phase II clinical trial (started 2023)
+  * Status: the OCD candidate DSP-1181 was discontinued after Phase I in 2021; Exscientia merged into Recursion in November 2024
   * Impact: Demonstrated feasibility of AI drug discovery
 
 **Case Study 2: Insilico Medicine - Idiopathic Pulmonary Fibrosis (IPF) Treatment**
@@ -277,7 +277,7 @@ This series is a 4-chapter educational content designed to teach you how to appl
   * Approach: Finding new indications for approved drugs (Drug Repurposing)
   * Technology: Knowledge Graph, Natural Language Processing
   * Discovery: Baricitinib (rheumatoid arthritis drug) for ALS indication
-  * Status: Clinical trial preparation
+  * Status: BenevolentAI wound down and was delisted in 2025
   * Advantage: Leveraging existing safety data, shortened development period
 
 **Case Study 5: Google DeepMind - AlphaFold 2**
@@ -299,7 +299,7 @@ This series is a 4-chapter educational content designed to teach you how to appl
 
 **AI Drug Discovery Startups:**
 
-  * **Exscientia** : Raised $525M, market cap $2.4B (IPO 2021)
+  * **Exscientia** : Raised $525M, market cap $2.4B (IPO 2021); merged into Recursion, November 2024
   * **Insilico Medicine** : Raised $400M, 30+ pipeline
   * **Recursion Pharmaceuticals** : Raised $500M, robotic laboratory
   * **Schrodinger** : Raised $532M, computational chemistry platform

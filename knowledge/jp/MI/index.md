@@ -216,7 +216,7 @@ Active Learning入門
 
 [開始 →](<./quantum-machine-learning-introduction/index.html>)
 
-🏭 産業応用シリーズ（5シリーズ）
+🏭 産業応用シリーズ（6シリーズ）
 
 📙
 
@@ -257,6 +257,16 @@ GNNと次元削減で実現する高次元材料空間の可視化と探索
 中級 90-110分 4章・30例
 
 [開始 →](<./catalyst-mi-application/index.html>)
+
+🌊
+
+OERの計算化学
+
+触媒インフォマティクスの背後にある物理 - CHEモデル、スケーリング則、火山型プロット、NumPyによるスクリーニングの実装（教育用の値、ブラックボックスなし）
+
+初級〜中級 100-130分 5章・10例
+
+[開始 →](<./oer-computational-chemistry/index.html>)
 
 📙
 

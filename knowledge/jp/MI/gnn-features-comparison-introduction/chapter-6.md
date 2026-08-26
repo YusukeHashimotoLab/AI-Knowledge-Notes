@@ -3,6 +3,22 @@ title: "Chapter 6: PyTorch Geometricワークフロー"
 chapter_title: "Chapter 6: PyTorch Geometricワークフロー"
 ---
 
+## ビデオ講義
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/rtsU1yqheoI"
+    title="GNN特徴量比較入門 第6章: PyTorch Geometricワークフロー"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> このビデオは以下のテキストと同じ内容をカバーしています。お好みの学習形式をお選びください。
+
 🌐 JP | [🇬🇧 EN](<../../../en/MI/gnn-features-comparison-introduction/chapter-6.html>) | Last sync: 2025-11-16
 
 # Chapter 6: PyTorch Geometricワークフロー

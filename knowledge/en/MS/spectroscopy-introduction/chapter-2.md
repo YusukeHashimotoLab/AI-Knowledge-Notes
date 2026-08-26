@@ -4,6 +4,22 @@ chapter_title: "Chapter 2: UV-Vis Spectroscopy"
 subtitle: Electronic Transitions, Beer-Lambert Law, and Band Gap Determination
 ---
 
+## Video Lecture
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/zw1WM-IgHhw"
+    title="Spectroscopy Introduction Ch.2: UV-Vis Spectroscopy"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> This video covers the same content as the text below. Choose your preferred learning format.
+
 This chapter covers UV-Vis (ultraviolet-visible) spectroscopy, a fundamental technique for studying electronic transitions in molecules and materials. You will learn about electronic transition types, the Beer-Lambert law for quantitative analysis, chromophores and auxochromes, instrumentation principles, and practical applications including band gap determination for semiconductors using Tauc plots.
 
 ## Introduction
@@ -30,11 +46,11 @@ Electronic transitions in molecules involve the promotion of electrons between d
         A[Electronic Transitions] --> B[Bonding to Antibonding]
         A --> C[Non-bonding to Antibonding]
     
-        B --> B1["sigma to sigma* (High Energy)150-200 nm"]
-        B --> B2["pi to pi* (Medium Energy)200-500 nm"]
+        B --> B1["sigma to sigma* (High Energy)<br/>&lt;150 nm (vacuum UV)"]
+        B --> B2["pi to pi* (Medium Energy)<br/>200-500 nm"]
     
-        C --> C1["n to sigma* (Medium-High Energy)150-250 nm"]
-        C --> C2["n to pi* (Low Energy)250-400 nm"]
+        C --> C1["n to sigma* (Medium-High Energy)<br/>150-250 nm"]
+        C --> C2["n to pi* (Low Energy)<br/>250-400 nm"]
     
         style A fill:#f093fb,color:#fff
         style B fill:#f5576c,color:#fff
@@ -128,18 +144,22 @@ $n \to \pi^*$ | 250-400 nm | 10-100 | C=O, N=O, -NO2
         ax1.legend(loc='upper right', fontsize=10)
     
         # Plot absorption spectrum simulation
-        wavelengths = np.linspace(150, 700, 1000)
+        wavelengths = np.linspace(120, 700, 1000)
     
         # Simulate absorption bands for each transition
         def gaussian_band(wavelength, center, width, intensity):
             return intensity * np.exp(-(wavelength - center)**2 / (2 * width**2))
     
+        # Band centres follow the energy ordering
+        #   sigma->sigma* > n->sigma* > pi->pi* > n->pi*
+        # so, in WAVELENGTH, the order is reversed: n->pi* (lowest energy)
+        # must sit at the LONGEST wavelength of the four.
         spectrum = np.zeros_like(wavelengths)
         bands = [
-            {'center': 180, 'width': 15, 'intensity': 0.8, 'label': r'$\sigma \to \sigma^*$'},
+            {'center': 135, 'width': 12, 'intensity': 0.8, 'label': r'$\sigma \to \sigma^*$'},
             {'center': 220, 'width': 20, 'intensity': 0.5, 'label': r'$n \to \sigma^*$'},
-            {'center': 350, 'width': 40, 'intensity': 1.0, 'label': r'$\pi \to \pi^*$'},
-            {'center': 300, 'width': 25, 'intensity': 0.2, 'label': r'$n \to \pi^*$'}
+            {'center': 280, 'width': 40, 'intensity': 1.0, 'label': r'$\pi \to \pi^*$'},
+            {'center': 350, 'width': 25, 'intensity': 0.2, 'label': r'$n \to \pi^*$'}
         ]
     
         colors = ['#e74c3c', '#e67e22', '#2ecc71', '#3498db']
@@ -155,14 +175,14 @@ $n \to \pi^*$ | 250-400 nm | 10-100 | C=O, N=O, -NO2
         ax2.plot(wavelengths, spectrum, 'k-', linewidth=2, label='Total Absorption')
     
         # Add UV/Visible regions
-        ax2.axvspan(150, 200, alpha=0.1, color='purple', label='Vacuum UV')
+        ax2.axvspan(120, 200, alpha=0.1, color='purple', label='Vacuum UV')
         ax2.axvspan(200, 400, alpha=0.1, color='violet', label='UV')
         ax2.axvspan(400, 700, alpha=0.1, color='yellow', label='Visible')
     
         ax2.set_xlabel('Wavelength (nm)', fontsize=12)
         ax2.set_ylabel('Absorbance (a.u.)', fontsize=12)
         ax2.set_title('Simulated UV-Vis Absorption Spectrum', fontsize=14, fontweight='bold')
-        ax2.set_xlim(150, 700)
+        ax2.set_xlim(120, 700)
         ax2.grid(True, alpha=0.3)
         ax2.legend(loc='upper right', fontsize=9)
     
@@ -783,14 +803,14 @@ A UV-Vis spectrometer consists of several key components that work together to m
         C --> D[Detector]
         D --> E[Data Processing]
     
-        A1[Deuterium LampUV: 190-400 nm] --> A
-        A2[Tungsten LampVis: 350-900 nm] --> A
+        A1[Deuterium Lamp<br/>UV: 190-400 nm] --> A
+        A2[Tungsten Lamp<br/>Vis: 350-900 nm] --> A
     
-        B1[Diffraction Gratingor Prism] --> B
+        B1[Diffraction Grating<br/>or Prism] --> B
     
-        C1[CuvetteQuartz or Glass] --> C
+        C1[Cuvette<br/>Quartz or Glass] --> C
     
-        D1[Photomultiplieror CCD] --> D
+        D1[Photomultiplier<br/>or CCD] --> D
     
         style A fill:#f093fb,color:#fff
         style B fill:#f5576c,color:#fff
@@ -1214,14 +1234,23 @@ where:
         wavelengths = np.linspace(250, 800, 551)
         energies = 1239.8 / wavelengths
     
-        # Absorption above band gap
+        # Absorption above band gap.
+        # For a DIRECT allowed transition the Tauc relation is
+        #     (alpha * h*nu)^2 = A^2 * (h*nu - E_g)
+        # so alpha itself must carry an explicit 1 / (h*nu) factor:
+        #     alpha = A * sqrt(h*nu - E_g) / (h*nu)
+        # Omitting the 1/(h*nu) leaves (alpha*h*nu)^2 proportional to
+        # (h*nu - E_g) * (h*nu)^2, which makes the "linear region" of the
+        # Tauc plot visibly curved and biases the extrapolated band gap.
         alpha = np.zeros_like(energies)
         above_gap = energies > E_g
-        alpha[above_gap] = 5e4 * np.sqrt(energies[above_gap] - E_g)
+        alpha[above_gap] = 2e5 * np.sqrt(energies[above_gap] - E_g) / energies[above_gap]
     
-        # Urbach tail below band gap
+        # Urbach tail below band gap (same 1/(h*nu) prefactor for continuity)
         below_gap = energies <= E_g
-        alpha[below_gap] = 5e4 * np.sqrt(0.01) * np.exp((energies[below_gap] - E_g) / urbach_energy)
+        alpha[below_gap] = (2e5 * np.sqrt(0.01)
+                            * np.exp((energies[below_gap] - E_g) / urbach_energy)
+                            / energies[below_gap])
     
         # Convert to absorbance (assuming 100 nm film)
         thickness = 100e-7  # cm
@@ -1772,11 +1801,12 @@ After completing this chapter, verify your understanding of the following concep
 ## References
 
   1. Skoog, D. A., Holler, F. J., Crouch, S. R. (2017). _Principles of Instrumental Analysis_ (7th ed.). Cengage Learning, pp. 301-350 (UV-Vis spectroscopy fundamentals).
-  2. Tauc, J. (1966). Optical properties and electronic structure of amorphous Ge and Si. _Materials Research Bulletin_ , 3(1), 37-46. DOI: 10.1016/0025-5408(68)90023-8
-  3. Perkampus, H.-H. (1992). _UV-VIS Spectroscopy and Its Applications_. Springer-Verlag, pp. 15-45 (electronic transitions), pp. 78-95 (chromophores).
-  4. Owen, T. (1996). _Fundamentals of Modern UV-visible Spectroscopy_. Agilent Technologies, pp. 25-40 (instrumentation), pp. 55-70 (quantitative analysis).
-  5. Murphy, A. B. (2007). Band-gap determination from diffuse reflectance measurements of semiconductor films. _Solar Energy Materials and Solar Cells_ , 91(14), 1326-1337. DOI: 10.1016/j.solmat.2007.05.005
-  6. Makula, P., Pacia, M., Macyk, W. (2018). How to correctly determine the band gap energy of modified semiconductor photocatalysts. _The Journal of Physical Chemistry Letters_ , 9(23), 6814-6817. DOI: 10.1021/acs.jpclett.8b02892
+  2. Tauc, J., Grigorovici, R., Vancu, A. (1966). Optical properties and electronic structure of amorphous germanium. _Physica Status Solidi (b)_ , 15(2), 627-637. DOI: 10.1002/pssb.19660150224 (the original Tauc-plot paper).
+  3. Tauc, J. (1968). Optical properties and electronic structure of amorphous Ge and Si. _Materials Research Bulletin_ , 3(1), 37-46. DOI: 10.1016/0025-5408(68)90023-8
+  4. Perkampus, H.-H. (1992). _UV-VIS Spectroscopy and Its Applications_. Springer-Verlag, pp. 15-45 (electronic transitions), pp. 78-95 (chromophores).
+  5. Owen, T. (1996). _Fundamentals of Modern UV-visible Spectroscopy_. Agilent Technologies, pp. 25-40 (instrumentation), pp. 55-70 (quantitative analysis).
+  6. Murphy, A. B. (2007). Band-gap determination from diffuse reflectance measurements of semiconductor films. _Solar Energy Materials and Solar Cells_ , 91(14), 1326-1337. DOI: 10.1016/j.solmat.2007.05.005
+  7. Makula, P., Pacia, M., Macyk, W. (2018). How to correctly determine the band gap energy of modified semiconductor photocatalysts. _The Journal of Physical Chemistry Letters_ , 9(23), 6814-6817. DOI: 10.1021/acs.jpclett.8b02892
 
 ## Next Steps
 

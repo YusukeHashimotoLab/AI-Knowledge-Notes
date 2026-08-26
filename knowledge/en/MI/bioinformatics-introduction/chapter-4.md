@@ -10,6 +10,23 @@ version: 1.0
 created_at: 2025-10-17
 ---
 
+## Video Lecture
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/19mMCx43g94"
+    title="Bioinformatics Ch.4: Biosensor and Drug Delivery Material Design"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> This video covers the same content as the text below. Choose your preferred learning format.
+
+---
+
 # Chapter 4: Biosensor and Drug Delivery Material Design
 
 This chapter covers Biosensor and Drug Delivery Material Design. You will learn biosensor design principles (recognition elements, DDS material (nanoparticles, and Design peptide materials with self-assembly.
@@ -708,10 +725,10 @@ This chapter covers Biosensor and Drug Delivery Material Design. You will learn 
     
         # Cost and success rate
         costs = {
-            'Phase 1': 5000,  # 10k USD
-            'Phase 2': 10000,
-            'Phase 3': 50000,
-            'Phase 4': 500000
+            'Phase 1': 50,  # million USD
+            'Phase 2': 100,
+            'Phase 3': 500,
+            'Phase 4': 5000
         }
     
         success_rates = {
@@ -732,11 +749,11 @@ This chapter covers Biosensor and Drug Delivery Material Design. You will learn 
     
             total_cost += cost
             print(f"{phase}")
-            print(f"  Cost: {cost:,} (10k USD)")
+            print(f"  Cost: {cost:,} (million USD)")
             print(f"  Success rate: {success*100:.1f}%")
             print(f"  Cumulative success rate: {cumulative_success*100:.2f}%")
     
-        print(f"\nTotal development cost: {total_cost:,} (10k USD)")
+        print(f"\nTotal development cost: {total_cost:,} (million USD)")
         print(f"Cumulative success rate to market: {cumulative_success*100:.2f}%")
     
     simulate_rd_workflow()
@@ -758,13 +775,15 @@ This chapter covers Biosensor and Drug Delivery Material Design. You will learn 
     
     === Development Cost and Success Rate ===
     Phase 1: Basic Research (6-12 months)
-      Cost: 5,000 (10k USD)
+      Cost: 50 (million USD)
       Success rate: 30.0%
       Cumulative success rate: 30.00%
     ...
-    Total development cost: 565,000 (10k USD)
+    Total development cost: 5,650 (million USD)
     Cumulative success rate to market: 0.03%
     
+
+**Note** : These figures are capitalized costs per approved drug \- they include the money spent on the many candidates that never reach market, so they are far larger than the out-of-pocket cost of a single successful programme. Industry estimates vary widely; treat them as orders of magnitude, not precise values.
 
 * * *
 
@@ -860,11 +879,11 @@ This chapter covers Biosensor and Drug Delivery Material Design. You will learn 
 
   4. **Career Paths** \- Biomaterial companies \- Pharmaceutical companies \- Biotech ventures
 
-### Series Completion
+### Next Chapter
 
-Congratulations! You have completed the Bioinformatics Introduction series.
+That wraps up the applications chapter. One chapter remains: [Chapter 5: The AlphaFold Revolution](<chapter-5.html>) tells the story of the AI system that cracked protein structure prediction, and shows you how to download, score, and analyze its predictions yourself.
 
-**Next Steps** : \- [Chemoinformatics Introduction](<../chemoinformatics-introduction/index.html>) \- [Data-driven Materials Design Introduction](<../data-driven-materials-introduction/index.html>) \- Start your own project
+**After the Series** : \- [Chemoinformatics Introduction](<../chemoinformatics-introduction/index.html>) \- [Data-driven Materials Design Introduction](<../data-driven-materials-introduction/index.html>) \- Start your own project
 
 * * *
 
@@ -911,7 +930,7 @@ Sample Answer **Proposed sequence**: `RGDVKVEVKVKVDPPT` **Design rationale**: 1\
 
 ## Navigation
 
-**[← Chapter 3](<chapter-3.html>)** | **[Table of Contents](<./index.html>)**
+**[← Chapter 3](<chapter-3.html>)** | **[Table of Contents](<./index.html>)** | **[Chapter 5 →](<chapter-5.html>)**
 
 * * *
 
@@ -923,4 +942,4 @@ Sample Answer **Proposed sequence**: `RGDVKVEVKVKVDPPT` **Design rationale**: 1\
 
 * * *
 
-**Congratulations on completing the Bioinformatics Introduction series!**
+**Next up: [Chapter 5: The AlphaFold Revolution](<chapter-5.html>)**

@@ -10,9 +10,8 @@ subtitle: "円偏光ラマン分光法から超高速分光法まで"
   <iframe
     width="560"
     height="315"
-    src="https://www.youtube.com/embed/2zZUqP-cboU"
+    src="https://www.youtube.com/embed/wW5X1EXoWgE"
     title="カイラルフォノン 第3章: 実験的検出"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>

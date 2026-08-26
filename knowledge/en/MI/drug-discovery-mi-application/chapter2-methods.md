@@ -4,6 +4,22 @@ chapter_title: Drug Discovery-Specific MI Methods
 subtitle: From Molecular Descriptors to Generative Models
 ---
 
+## Video Lecture
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/g-J4py0aOdg"
+    title="Drug Discovery MI Ch.2: Drug Discovery-Specific MI Methods"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> This video covers the same content as the text below. Choose your preferred learning format.
+
 # Chapter 2: Drug Discovery-Specific MI Methods
 
 This chapter covers Drug Discovery. You will learn 4 types of molecular representations (SMILES, QSAR principles, and ADMET 5 items specifically.
@@ -993,6 +1009,8 @@ View Answer **Recommended Method: Random Forest** **Reasoning:** 1\. **Fit with 
     # - shap>=0.42.0
     
     """
+    Example: Q8: For the following drug discovery project, which machine 
+    
     Purpose: Demonstrate data visualization techniques
     Target: Advanced
     Execution time: 1-5 minutes

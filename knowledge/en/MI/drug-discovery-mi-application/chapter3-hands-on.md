@@ -4,6 +4,22 @@ chapter_title: Drug Discovery MI Implementation Hands-On
 subtitle: Practical Molecular Design with RDKit and Python
 ---
 
+## Video Lecture
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/XLP5IrnQ3TI"
+    title="Drug Discovery MI Ch.3: Drug Discovery MI Implementation Hands-On"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> This video covers the same content as the text below. Choose your preferred learning format.
+
 # Chapter 3: Drug Discovery MI Implementation with Python - RDKit & ChEMBL Practice
 
 This chapter covers Drug Discovery MI Implementation with Python. You will learn essential concepts and techniques.
@@ -138,8 +154,9 @@ Recommended For | Beginners | Intermediate | All levels
     
     # Expected output:
     # Molecular formula: C9H8O4
-    # Number of atoms: 21  # Including explicit H
-    # Number of bonds: 21
+    # Number of atoms: 13  # GetNumAtoms() counts heavy atoms only
+    # Number of bonds: 13
+    # (Chem.AddHs(mol) first → 21 atoms, 21 bonds)
     
 
 **Important Points:** \- `Chem.MolFromSmiles()` returns `None` for invalid SMILES \- Error handling is essential

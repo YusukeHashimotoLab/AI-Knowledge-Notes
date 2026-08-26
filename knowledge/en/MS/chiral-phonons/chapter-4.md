@@ -10,9 +10,8 @@ subtitle: "Chiral Phonons Series - From DFT Calculations to Device Applications"
   <iframe
     width="560"
     height="315"
-    src="https://www.youtube.com/embed/eh4l3F1ANtA"
+    src="https://www.youtube.com/embed/bWqfo0IBMbs"
     title="Chiral Phonons Ch.4: Applications and Computational Methods"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>

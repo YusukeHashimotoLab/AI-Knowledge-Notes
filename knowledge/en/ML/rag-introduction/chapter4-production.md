@@ -7,7 +7,7 @@ chapter_title: "Chapter 4: Production Deployment"
   <iframe
     width="560"
     height="315"
-    src="https://www.youtube.com/embed/cLtv8Vhuus4"
+    src="https://www.youtube.com/embed/mus9y7s6Cv4"
     title="RAG Introduction Ch.4: Production Deployment"
     frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -178,7 +178,7 @@ Utilize caching for frequent queries to reduce response time.
     
     
     import redis
-    from functools import lru_cache
+    from collections import OrderedDict
     import hashlib
     import json
     import time
@@ -186,9 +186,10 @@ Utilize caching for frequent queries to reduce response time.
     class MultiLevelCache:
         """Multi-level caching system"""
     
-        def __init__(self, redis_url: str = "redis://localhost:6379"):
-            # L1: Memory cache (LRU)
-            self.memory_cache_size = 100
+        def __init__(self, redis_url: str = "redis://localhost:6379", l1_size: int = 1000):
+            # L1: Memory cache (in-process LRU)
+            self.l1_size = l1_size
+            self.l1_cache = OrderedDict()
     
             # L2: Redis
             self.redis_client = redis.from_url(redis_url)
@@ -206,25 +207,25 @@ Utilize caching for frequent queries to reduce response time.
             cache_input = f"{query}:{json.dumps(params, sort_keys=True)}"
             return hashlib.md5(cache_input.encode()).hexdigest()
     
-        @lru_cache(maxsize=100)
         def _l1_get(self, key: str):
             """L1 cache get (memory)"""
-            # Automatically managed by LRU decorator
-            return None
+            if key not in self.l1_cache:
+                return None
+    
+            # Mark as most recently used
+            self.l1_cache.move_to_end(key)
+            return self.l1_cache[key]
     
         def get(self, query: str, params: dict):
             """Cache get (L1 → L2)"""
             key = self._generate_key(query, params)
     
             # L1 check
-            try:
-                result = self._l1_get(key)
-                if result:
-                    self.stats['hits'] += 1
-                    self.stats['l1_hits'] += 1
-                    return result
-            except:
-                pass
+            result = self._l1_get(key)
+            if result is not None:
+                self.stats['hits'] += 1
+                self.stats['l1_hits'] += 1
+                return result
     
             # L2 check (Redis)
             try:
@@ -245,10 +246,14 @@ Utilize caching for frequent queries to reduce response time.
             return None
     
         def _l1_set(self, key: str, value):
-            """L1 cache set"""
-            # Set in LRU cache
-            self._l1_get.__wrapped__(self, key)  # Trigger
-            self._l1_get.cache_info()
+            """L1 cache set (memory)"""
+            if key in self.l1_cache:
+                self.l1_cache.move_to_end(key)
+            self.l1_cache[key] = value
+    
+            # Size cap: evict the least recently used entry
+            if len(self.l1_cache) > self.l1_size:
+                self.l1_cache.popitem(last=False)
     
         def set(self, query: str, params: dict, value, ttl: int = 3600):
             """Cache set (L1 & L2)"""
@@ -270,7 +275,7 @@ Utilize caching for frequent queries to reduce response time.
         def invalidate(self, pattern: str = "*"):
             """Cache invalidation"""
             # L1 clear
-            self._l1_get.cache_clear()
+            self.l1_cache.clear()
     
             # L2 clear (pattern matching)
             try:
@@ -603,7 +608,7 @@ Define metrics to measure RAG system quality and performance.
                 "accuracy_score": <1-5>,
                 "relevance_score": <1-5>,
                 "completeness_score": <1-5>,
-                "reasoning": "<reason>"
+                "reasoning": ""
             }}
             """
     

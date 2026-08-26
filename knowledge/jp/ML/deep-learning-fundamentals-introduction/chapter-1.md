@@ -8,6 +8,22 @@ code_examples: 8
 exercises: 5
 ---
 
+## ビデオ講義
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/foSKIPf6jo4"
+    title="ディープラーニング基礎入門 第1章: ディープラーニングの基礎概念"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> このビデオは以下のテキストと同じ内容をカバーしています。お好みの学習形式をお選びください。
+
 この章では、ディープラーニングの定義と歴史、ニューラルネットワークの基本構造、活性化関数について学びます。パーセプトロンから現代のディープラーニングまでの発展を追い、理論を実装コードで確認します。 
 
 ## 学習目標

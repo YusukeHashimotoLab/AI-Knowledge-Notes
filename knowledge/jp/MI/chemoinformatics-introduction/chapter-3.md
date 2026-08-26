@@ -8,6 +8,23 @@ code_examples: 11
 exercises: 3
 ---
 
+## ビデオ講義
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/KNF1z2nbrDc"
+    title="ケモインフォマティクス入門 第3章: 化学空間探索と類似性検索"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> このビデオは以下のテキストと同じ内容をカバーしています。お好みの学習形式をお選びください。
+
+---
+
 # 第3章：化学空間探索と類似性検索
 
 ## この章で学ぶこと

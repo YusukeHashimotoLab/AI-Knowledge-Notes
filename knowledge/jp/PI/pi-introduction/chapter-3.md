@@ -4,6 +4,22 @@ chapter_title: 第3章：プロセスモデリングの基礎
 subtitle: 機械学習によるプロセス予測と最適化
 ---
 
+## ビデオ講義
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/NKkbLoHxc14"
+    title="プロセス・インフォマティクス入門 第3章: プロセスモデリングの基礎"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> このビデオは以下のテキストと同じ内容をカバーしています。お好みの学習形式をお選びください。
+
 # 第3章：プロセスモデリングの基礎
 
 プロセスモデリングは、PIの核心技術です。線形回帰から始めて、PLS、ソフトセンサー、非線形モデルまで、実践的なモデル構築手法を習得します。

@@ -4,6 +4,23 @@ chapter_title: "Chapter 4: Stochastic Differential Equations and Wiener Process"
 subtitle: Stochastic Differential Equations and Wiener Process
 ---
 
+## Video Lecture
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/Qihm4DwRnZ4"
+    title="Probability & Stochastic Processes Ch.4: Stochastic Differential Equations and Wiener Process"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> This video covers the same content as the text below. Choose your preferred learning format.
+
+---
+
 🌐 EN | [🇯🇵 JP](<../../../jp/FM/probability-stochastic-processes/chapter-4.html>) | Last sync: 2025-11-16
 
 [Fundamentals of Mathematics Dojo](<../index.html>) > [Probability Theory and Stochastic Processes](<index.html>) > Chapter 4 

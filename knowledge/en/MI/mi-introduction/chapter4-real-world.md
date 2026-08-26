@@ -18,7 +18,6 @@ created_at: "by:"
     height="315"
     src="https://www.youtube.com/embed/Wuc1XsYtP-s"
     title="MI Introduction Ch.4: Real-World Applications and Future"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>

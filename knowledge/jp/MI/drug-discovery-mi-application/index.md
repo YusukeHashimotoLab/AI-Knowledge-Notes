@@ -151,7 +151,7 @@ chapter_title: 創薬・医薬品開発へのMI応用シリーズ
            F --> G{活性OK?}
            G -->|Yes| H[前臨床試験]
            G -->|No| E
-    ```
+       ``
     学習目標
     
     ✅ 4種類の分子表現法を説明し、使い分けられる
@@ -269,7 +269,7 @@ chapter_title: 創薬・医薬品開発へのMI応用シリーズ
     疾患: 強迫性障害（OCD）
     技術: Active Learning, Multi-objective Optimization
     結果: 候補化合物発見まで12ヶ月（従来4.5年）
-    現状: Phase II臨床試験（2023年開始）
+    現状: OCD候補DSP-1181は2021年にPhase I後に開発中止。Exscientiaは2024年11月にRecursionと統合
     影響: AI創薬の実現可能性を実証
     
     Case Study 2: Insilico Medicine - 特発性肺線維症（IPF）治療薬
@@ -293,7 +293,7 @@ chapter_title: 創薬・医薬品開発へのMI応用シリーズ
     アプローチ: 既承認薬の新適応症探索（Drug Repurposing）
     技術: Knowledge Graph, Natural Language Processing
     発見: Baricitinib（関節リウマチ薬）のALS適応
-    現状: 臨床試験準備中
+    現状: BenevolentAIは2025年に事業を縮小し上場廃止となりました
     利点: 既存安全性データ活用、開発期間短縮
     
     Case Study 5: Google DeepMind - AlphaFold 2
@@ -316,7 +316,7 @@ chapter_title: 創薬・医薬品開発へのMI応用シリーズ
     
     AI創薬スタートアップ:
     
-    Exscientia: 資金調達$525M、時価総額$2.4B（IPO 2021）
+    Exscientia: 資金調達$525M、時価総額$2.4B（IPO 2021）。2024年11月にRecursionと統合
     Insilico Medicine: 資金調達$400M、パイプライン30+
     Recursion Pharmaceuticals: 資金調達$500M、ロボット実験室
     Schrodinger: 資金調達$532M、計算化学プラットフォーム

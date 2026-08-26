@@ -6,6 +6,22 @@ version: 1.0
 created_at: 2025-10-25
 ---
 
+## Video Lecture
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/SCxfASHrfoc"
+    title="Process Informatics Introduction Ch.2: Process Data Preprocessing and Visualization"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> This video covers the same content as the text below. Choose your preferred learning format.
+
 # Chapter 2: Process Data Preprocessing and Visualization
 
 Process data preprocessing is the most critical step to obtain high-quality analysis results. Learn practical methods for handling time series data, addressing missing values and outliers, and data scaling techniques.
@@ -357,6 +373,8 @@ Type | Description | Example | Recommended Approach
     # - pandas>=2.0.0, <2.2.0
     
     """
+    Example: Code Example 4: Missing Value Detection and Multiple Imputat
+    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds
@@ -597,6 +615,8 @@ Outliers occur due to various causes including measurement errors, sensor failur
     # - pandas>=2.0.0, <2.2.0
     
     """
+    Example: Code Example 6: Machine Learning-Based Outlier Detection (Is
+    
     Purpose: Demonstrate data visualization techniques
     Target: Advanced
     Execution time: 2-5 seconds
@@ -970,6 +990,8 @@ Appropriate visualization is essential for understanding the essence of data. Le
     # - seaborn>=0.12.0
     
     """
+    Example: Code Example 9: Multi-dimensional Visualization of Process O
+    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds

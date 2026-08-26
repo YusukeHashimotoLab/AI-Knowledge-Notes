@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="第1章は、独立した2つの理由によって囲碁が不可能に見える状態で終わりました。木は探索するには広すぎ、そして葉は判定できない。">
+    <title>第2章: AlphaGo: 探索と学習の出会い - AI Terakoya</title>
+    <link rel="canonical" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/jp/ML/alphago-to-alphafold/chapter-2.html">
+    <link rel="alternate" hreflang="ja" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/jp/ML/alphago-to-alphafold/chapter-2.html">
+    <link rel="alternate" hreflang="en" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/en/ML/alphago-to-alphafold/chapter-2.html">
+    <link rel="alternate" hreflang="x-default" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/en/ML/alphago-to-alphafold/chapter-2.html">
+    <meta property="og:title" content="第2章: AlphaGo: 探索と学習の出会い - AI Terakoya">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/jp/ML/alphago-to-alphafold/chapter-2.html">
+    <meta property="og:site_name" content="AI Terakoya">
+    <meta property="og:locale" content="ja_JP">
+    <meta property="og:description" content="第1章は、独立した2つの理由によって囲碁が不可能に見える状態で終わりました。木は探索するには広すぎ、そして葉は判定できない。">
+
+    <style>
+        :root {
+            --color-primary: #2c3e50;
+            --color-primary-dark: #1a252f;
+            --color-accent: #7b2cbf;
+            --color-accent-light: #9d4edd;
+            --color-text: #2d3748;
+            --color-text-light: #4a5568;
+            --color-bg: #ffffff;
+            --color-bg-alt: #f7fafc;
+            --color-border: #e2e8f0;
+            --color-code-bg: #f8f9fa;
+            --color-link: #3182ce;
+            --color-link-hover: #2c5aa0;
+
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+
+            --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+            --border-radius: 8px;
+            --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-body);
+            line-height: 1.7;
+            color: var(--color-text);
+            background-color: var(--color-bg);
+            font-size: 16px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            padding: var(--spacing-xl) var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+            box-shadow: var(--box-shadow);
+        }
+
+        .header-content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: var(--spacing-sm);
+            line-height: 1.2;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            font-weight: 400;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-md);
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-md) var(--spacing-xl);
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-xl);
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-xs);
+            border-bottom: 3px solid var(--color-accent);
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-lg);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        h4 {
+            font-size: 1.1rem;
+            color: var(--color-primary-dark);
+            margin-top: var(--spacing-md);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        p {
+            margin-bottom: var(--spacing-md);
+            color: var(--color-text);
+        }
+
+        a {
+            color: var(--color-link);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        a:hover {
+            color: var(--color-link-hover);
+            text-decoration: underline;
+        }
+
+        ul, ol {
+            margin-left: var(--spacing-lg);
+            margin-bottom: var(--spacing-md);
+        }
+
+        li {
+            margin-bottom: var(--spacing-xs);
+            color: var(--color-text);
+        }
+
+        pre {
+            background-color: var(--color-code-bg);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            overflow-x: auto;
+            margin-bottom: var(--spacing-md);
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        code {
+            font-family: var(--font-mono);
+            font-size: 0.9em;
+            background-color: var(--color-code-bg);
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+        }
+
+        pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: var(--spacing-md);
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            border: 1px solid var(--color-border);
+            padding: var(--spacing-sm);
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--color-bg-alt);
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        blockquote {
+            border-left: 4px solid var(--color-accent);
+            padding-left: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            color: var(--color-text-light);
+            font-style: italic;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        .mermaid {
+            text-align: center;
+            margin: var(--spacing-lg) 0;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        details {
+            background-color: var(--color-bg-alt);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+        }
+
+        summary {
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--color-primary);
+            user-select: none;
+            padding: var(--spacing-xs);
+            margin: calc(-1 * var(--spacing-md));
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        summary:hover {
+            background-color: rgba(123, 44, 191, 0.1);
+        }
+
+        details[open] summary {
+            margin-bottom: var(--spacing-md);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .learning-objectives {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: var(--spacing-lg);
+            border-radius: var(--border-radius);
+            border-left: 4px solid var(--color-accent);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .learning-objectives h2 {
+            margin-top: 0;
+            border-bottom: none;
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            gap: var(--spacing-md);
+            margin: var(--spacing-xl) 0;
+            padding-top: var(--spacing-lg);
+            border-top: 2px solid var(--color-border);
+        }
+
+        .nav-button {
+            flex: 1;
+            padding: var(--spacing-md);
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            border-radius: var(--border-radius);
+            text-align: center;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: var(--box-shadow);
+        }
+
+        .nav-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            text-decoration: none;
+        }
+
+        footer {
+            margin-top: var(--spacing-xl);
+            padding: var(--spacing-lg) var(--spacing-md);
+            background-color: var(--color-bg-alt);
+            border-top: 1px solid var(--color-border);
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--color-text-light);
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            h2 {
+                font-size: 1.4rem;
+            }
+
+            h3 {
+                font-size: 1.2rem;
+            }
+
+            .meta {
+                font-size: 0.85rem;
+            }
+
+            .navigation {
+                flex-direction: column;
+            }
+
+            table {
+                font-size: 0.85rem;
+            }
+
+            th, td {
+                padding: var(--spacing-xs);
+            }
+        }
+    </style>
+
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+
+    <!-- MathJax for LaTeX equation rendering -->
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\(', '\)']],
+                displayMath: [['$$', '$$'], ['\[', '\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" id="MathJax-script" async></script>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <h1>第2章: AlphaGo: 探索と学習の出会い</h1>
+            <p class="subtitle">モンテカルロ木探索、2つのニューラルネットワーク、そして世界チャンピオンを席から立たせた一手</p>
+            <div class="meta">
+                <span class="meta-item">📖 Reading Time: 20-25 minutes</span>
+                <span class="meta-item">📊 Difficulty: Beginner</span>
+                <span class="meta-item">💻 Code Examples: 0</span>
+                <span class="meta-item">📝 Exercises: 0</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+<h2>ビデオ講義</h2>
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/f8yUJ99dm6A"
+    title="AlphaGoからAlphaFoldへ 第2章: AlphaGo: 探索と学習の出会い"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+<p class="video-note">このビデオは以下のテキストと同じ内容をカバーしています。お好みの学習形式をお選びください。</p>
+
+<p>🌐 JP | <a href="../../../en/ML/alphago-to-alphafold/chapter-2.html">🇬🇧 EN</a> | Last sync: 2026-08-19</p>
+<p><a href="../index.html">機械学習道場</a> &gt; <a href="index.html">AlphaGoからAlphaFoldへ</a> &gt; 第2章</p>
+<p>第1章は、独立した2つの理由によって囲碁が不可能に見える状態で終わりました。木は探索するには広すぎ、そして葉は判定できない。どちらか一方の壁だけでも深刻でしたが、その2つが揃って、40年の努力に対してこのゲームを守り抜いてきたのです。</p>
+<p>本章は、その両方の壁がどのようにして同時に崩れたのかを扱います。そして解の形は、始める前に述べておく価値があります。それは本シリーズの残りが従うテンプレートだからです。</p>
+<blockquote>
+<p><strong>学習された直観が「そこを見よ」と告げる場所を探索せよ。そして学習された判断が「そこで何が見つかるか」を告げたら、探索をやめよ。</strong></p>
+</blockquote>
+<p>機構を順番に構築していきます。まず <strong>モンテカルロ木探索（MCTS）</strong> をゼロから——その4つのステップ、それを操舵する数式、そしてなぜ開始するのに評価関数を必要としないのか。次にAlphaGoが加えた2つのニューラルネットワークと、それらが正確にどこに差し込まれるのか。それから対局の話、コンピュータのゲームプレイ史上で最も議論された2つの手を含めて。そして最後に、あなたが走らせられる完全なMCTS——思考時間を与えるにつれてランダムな打ち方から本質的に完璧な打ち方へと変わっていくもの——を示します。</p>
+<p>強化学習の機構をきちんと展開してほしい読者——価値関数、方策勾配、一般形での探索と活用のトレードオフ——は、本シリーズと並行して <a href="../reinforcement-learning-introduction/index.html">強化学習入門</a> シリーズを読んでください。ここではそれらの考え方を <em>使い</em>、あちらではそれらが <em>構築</em> されます。</p>
+<h2>2.1 モンテカルロ木探索をゼロから</h2>
+<p>古典的なミニマックス法は木を <strong>一様に</strong> 成長させます。すべての枝が、その価値にかかわらず同じ深さまで探索されます。だからこそ分岐因子250で死ぬのです。MCTSは一様性を完全に放棄します。<strong>ゲームが面白いところでは深く、それ以外のあらゆる場所では浅い</strong> 木を成長させ、しかもどちらであるかを自分自身の蓄積した統計から決めます。</p>
+<p>このアルゴリズムはメモリ上に木を1つ保持します。各ノードは局面と2つの数値——<strong>訪問回数</strong> \(N\) と累積された <strong>総価値</strong> \(W\) ——を保持します。アルゴリズムの1回の反復——1回の <em>シミュレーション</em> ——は、根から葉へ歩き、対局を打ち切り、戻り道で数値を更新します。それがすべてです。時間切れになるまでこれを繰り返します。</p>
+<p>各シミュレーションは4つのステップからなります。</p>
+<p><strong>ステップ1 — 選択（Selection）。</strong> 根から始めます。現在のノードのすべての子がすでに作られている限り、そのうちの1つを選んで降りていきます。この選択はランダムでも貪欲でもありません。2.2節のUCBの規則を使い、最も良く見える手をたどることと、あまり試されていない手を確認することのバランスを取ります。まだ未探索の手が残っているノード、あるいは終局に達するまで降り続けます。</p>
+<p><strong>ステップ2 — 展開（Expansion）。</strong> そのノードで、一度も試されていない手を1つ取り、それが導く子局面を作成して木に追加します。したがって木は <strong>1シミュレーションあたりちょうど1ノード</strong> ずつ成長します。これがメモリを制御下に置き、成長を一様ではなく適応的にしているのです。</p>
+<p><strong>ステップ3 — シミュレーション（ロールアウト）。</strong> 新しいノードから、安価な方策を使って対局を終局まで打ちます。最も素朴な版では、その方策は <em>一様ランダム</em> です。結果——勝ち、負け、引き分け——を記録します。これが第1章のモンテカルロ評価器であり、古典的なプログラムなら代わりに手作りの評価関数を呼んでいた場所です。</p>
+<p><strong>ステップ4 — バックアップ（Backup）。</strong> いま降りてきた経路を、新しいノードから根まで逆にたどります。その経路上のすべてのノードで \(N\) を1増やし、結果を \(W\) に加えます。アルゴリズムがそもそも機能するかどうかを決める細部が1つあります。結果は <strong>そのノードへ入る手を選んだプレイヤーの視点から</strong> 記録されなければなりません。黒の勝ちは、黒が選んだノードでは勝ちであり、白が選んだノードでは負けです。これを逆にすると、探索は自信満々に最悪の手を見つけ出します。</p>
+<p>最後のシミュレーションが終わると、プログラムは根から手を打ちます。注目すべきことに、選ばれる手はたいてい <strong>最も訪問された</strong> 子であって、最も得点の高い子ではありません。3回の訪問での高い平均はノイズです。訪問回数が多いということは、精査のもとで選択規則が繰り返しそこへ戻ったということです。訪問回数のほうが頑健な統計量であり、2.7節のコードもそれを使います。</p>
+<h3>📚 エニータイム性</h3>
+<p>MCTSには、アルファベータ探索にはない特徴があり、それは実務においてどんな個別の技術的細部よりも重要です。</p>
+<p><strong>いつでも止めてよく、その時点での最良の答えを返してくれる。</strong> 10回のシミュレーションの後では下手に打ち、1万回の後では上手に打ち、1000万回の後ではさらに上手に打ちます。無効な中間状態はなく、数値が意味をもつために完了させねばならない深さもなく、木が整合的になるために終わらせねばならない反復もありません。各シミュレーションは、推定値に対する完結した自己充足的な改善なのです。</p>
+<p>これは <strong>エニータイム性（anytime property）</strong> と呼ばれ、挙げるに値する帰結が3つあります。</p>
+<ul>
+<li><strong>時間制御が自明になる。</strong> 探索に締切を与えるだけです。締切が来た時点で持っているものが、そのまま使えます。対照的に深さ制限つきのアルファベータ探索は、あらかじめ深さを決めなければならず、反復の途中で捕まって使えない部分結果しか持たないこともあります。</li>
+<li><strong>スケーリングが滑らかである。</strong> 計算量を増やせば強さが連続的に増えます。閾値もなく、崖もありません。これは第1章でランダムプレイアウトを魅力的にしたのと同じ性質が、探索全体に受け継がれたものです。</li>
+<li><strong>探索は構成上、非対称である。</strong> シミュレーションは有望な部分木に積み上がるので、重要な変化における実効的な深さは、木の平均深さよりはるかに大きくなります。250という分岐因子は致命的でなくなります。MCTSはそもそも250手すべてを展開する気などなかったからです。</li>
+</ul>
+<h2>2.2 UCB: 探索はどこを見るかをどう決めるのか</h2>
+<p>選択はこのアルゴリズムの心臓であり、多腕バンディット問題でおなじみのジレンマに直面します。現在最も良く見える手を <strong>活用（exploit）</strong> するのか、それとも推定がまだ不確かな手を <strong>探索（explore）</strong> するのか?</p>
+<p>純粋な活用は罠です。最強の手が、たまたま運悪く最初の2回のランダムプレイアウトで負けたとしましょう。貪欲な探索者はそれを永久に見捨て、しかもその誤りは回復不能です。誤りを正すはずの証拠を二度と集めないからです。純粋な探索も同じくらい無用です。250手にシミュレーションを均等にばらまくのは、機能しえないと先に確認した一様探索そのものです。</p>
+<p><strong>上側信頼限界（Upper Confidence Bound, UCB）</strong> の規則がこれを解決します。ノード \(s\) において、その子 \(a\) のうち、次を最大化するものを選びます。</p>
+<p>\[ \mathrm{UCB}(s,a) \;=\; \underbrace{\frac{W(s,a)}{N(s,a)}}<em _text_exploration="\text{exploration">{\text{exploitation}} \;+\; \underbrace{c\,\sqrt{\frac{\ln N(s)}{N(s,a)}}}</em> \]}</p>
+<p>ここで \(N(s,a)\) は子 \(a\) を通ったシミュレーションの回数、\(W(s,a)\) はその総価値、\(N(s)\) は親への訪問回数、そして \(c\) はバランスを制御する定数です。</p>
+<p>2つの項を別々に読みましょう。</p>
+<p><strong>第1項はその手の経験的な勝率</strong> \(W/N\) です。探索がその手についてこれまでに学んだことのすべてであり、それ以上ではありません。</p>
+<p><strong>第2項は無知の度合いの尺度です。</strong> \(N(s,a)\) が小さいとき（この手は兄弟に比べて探索不足である）に大きくなり、また親が訪問を蓄積するにつれて——ゆっくりとですが——大きくなります（ノード全体がより熱心に研究されているので、未検証の兄弟はもう一度見られる価値がある）。名前はその由来から来ています。2つの項の和は、その手の真の価値に対する楽観的な上界であり、それによって選択することが <strong>「不確実性に直面したときの楽観主義」</strong> という原理を実装しているのです。</p>
+<h3>📚 なぜ平方根と対数なのか</h3>
+<p>探索項の形は恣意的ではなく、2つの部分は異なる仕事をしています。</p>
+<p>\(1/\sqrt{N(s,a)}\) という因子は <strong>統計的な誤差棒</strong> の形です。\(N\) 個の標本の平均の不確かさは \(1/\sqrt{N}\) のように縮むので、このボーナスは定数倍を除いて、勝率のまわりの信頼区間の幅そのものです。4回サンプルされた手は、16回サンプルされた手の2倍のボーナスを担います。</p>
+<p>\(\sqrt{\ln N(s)}\) という因子は、ボーナスを親の訪問回数とともに増加させますが、<strong>対数的にしか</strong> ——きわめてゆっくりとしか——増加させません。これが保証を成立させます。ボーナスは決して増加を止めないので、どの手も恒久的に見捨てられることはなく、すべての子はいずれ再訪されます。しかしその増加があまりに遅いので、探索は圧倒的多数の労力を良い手に費やし続けます。その帰結として、悪い手に浪費されるシミュレーションの割合は \(\ln N\) のようにしか増えないのに対し、総シミュレーション数は \(N\) のように増えるのです。</p>
+<p>定数 \(c\) はバランスを直接に設定します。小さな \(c\) は早く決め打ちして見落としうる探索を、大きな \(c\) はいつまでも自分を疑い続ける探索を作ります。よくある既定値は \(c = \sqrt{2}\) であり、2.7節のコードもそれを使っています。いろいろ試してみる価値があります。</p>
+<p><strong>決定的な性質</strong> は、そしてこの仕組み全体が手作りの評価器を上回る理由は、シミュレーションが蓄積するにつれて何が起きるかにあります。初期には推定値はランダムプレイアウトから来ており、貧弱です。しかし十分深く降りたシミュレーションはすべて、ランダムな当て推量を実際の対局結果に置き換えて木を上へ伝播させ、選択規則はシミュレーションを重要な変化へ押し込み続けます。<strong>評価器が自分自身を改善するのです。</strong> 人間は囲碁の知識を1つも書き込んでいません。知識はその場で、ルールと計算から製造されます。</p>
+<h2>2.3 MCTSがなお弱かったところ</h2>
+<p>モンテカルロ木探索は、コンピュータ囲碁をか弱いレベルから強いアマチュアのレベルへ引き上げました。それ単独でプロの棋力には達せず、その2つの限界がまさにAlphaGoが加えたものを指し示しています。</p>
+<p><strong>ロールアウトが愚かすぎる。</strong> 一様ランダムな打ち方は、どんな囲碁棋士も見覚えのない対局を生み出します。価値が精確な手順に依存する局面——死活の戦い、際どい攻め合い——では、ランダムな継続が答えを決めているまさにその構造を破壊してしまい、統計は自信をもって誤った数値へ収束します。ロールアウトをわずかにランダムでなくする手書きの「高速方策」は助けになりましたが、それはモンテカルロが排除するはずだった手作り知識の問題を、ちょうど再導入することでもありました。</p>
+<p><strong>分岐因子はどのノードでも依然として250である。</strong> MCTSは不均等に探索しますが、これは大きな改善であるものの、ある手が悪いと判断する前に、それを展開して少なくとも1回はサンプルしなければなりません。どのノードにも250の合法手がある以上、あらゆるシミュレーション予算の大きな割合が、明らかにひどい手がひどいと発見するために費やされます。</p>
+<p>この2つの弱点を必要事項として述べ直せば、AlphaGoの設計はおのずと書き下されます。</p>
+<ul>
+<li>探索の前に、<strong>どの手がそもそも考慮する価値があるのか</strong> を告げる何かが必要である。</li>
+<li>葉において、200手のランダムな打ち回しをせずに <strong>この局面がどれくらい良いのか</strong> を告げる何かが必要である。</li>
+</ul>
+<p>これらは2つの異なる学習された関数であり、AlphaGoはそれぞれに1つずつ訓練しました。</p>
+<h2>2.4 2つのネットワーク: 探索を絞り、葉を判定する</h2>
+<p>AlphaGoは、<strong>2016年にNature誌で発表された</strong> 論文で記述されたシステムであり、MCTSに2つの深層ニューラルネットワークを加えました。どちらも盤面の表現を入力に取ります。答える問いが違います。</p>
+<h3>方策ネットワーク: 何を考慮すべきか?</h3>
+<p><strong>方策ネットワーク（policy network）</strong> は局面を取り、<strong>合法手上の確率分布</strong> を出力します。各手がどれくらい打たれそうかという推定です。これは事実上 <em>もっともらしさ</em> のモデルであり、2段階で構築されました。</p>
+<p><strong>第1段階: 人間から学ぶ。</strong> ネットワークはまず、強い人間棋士による対局の大規模なコレクションから取った局面に対して、人間が実際に選んだ手を目標として、教師あり学習で訓練されました。これは通常の分類です。盤面を入力し、手を予測する。こうして得られるのは、<strong>囲碁の直観</strong> と呼べるものを備えたネットワークです——局面を見て、強い棋士が考慮するであろうひと握りの手を即座に提案する能力です。ここで何が起きたのかに注目してください。数十年にわたって手によるコード化に抵抗した知識——厚み、形、勢力——は、まったく書き下されませんでした。それは例から <em>暗黙のうちに吸収された</em> のです。専門家の手を予測できるようにする内部特徴として、なんであれ機能したものとして。</p>
+<p><strong>第2段階: 自己対局で改善する。</strong> 人間を模倣するよう訓練されたネットワークは、人間の模倣が上限になります。そして模倣は目的ではありません——勝つことが目的です。そこで方策ネットワークの複製が <strong>強化学習</strong> によって改善されました。ネットワークは自分自身の過去のバージョンと対局し、勝った対局の手はより打たれやすく、負けた対局の手はより打たれにくくされたのです。これは <strong>方策勾配</strong> の考え方であり、<a href="../reinforcement-learning-introduction/index.html">強化学習シリーズ</a> できちんと展開されています。決定的な転換は訓練信号にあります。「ここで人間なら何を打っただろうか?」から「実際に何が勝つのか?」へ。</p>
+<p><strong>MCTSへの差し込まれ方</strong>: 方策ネットワークの確率は <strong>選択</strong> ステップにバイアスをかけ、それがもっともらしいと考える手へシミュレーションを操舵する事前分布を加えます。ネットワークが無視できるほどの確率しか与えない手は、形式的には禁じられていませんが、めったに訪問されません。実効的な分岐因子は250から、探索が実際に扱える水準へ崩れ落ちます——しかも <em>どの手も</em> 恒久的に排除されることなく。UCBの探索項が下でなお働いているからです。</p>
+<h3>価値ネットワーク: この局面はどれくらい良いのか?</h3>
+<p><strong>価値ネットワーク（value network）</strong> は局面を取り、1つの数値——そこから <strong>手番のプレイヤーが勝つ確率</strong> の推定——を出力します。これこそ誰も手で書けなかった静的評価関数であり、やはり書くことによってではなく、きわめて多数の自己対局の結果から学習することによって得られました。</p>
+<p><strong>MCTSへの差し込まれ方</strong>: これは <strong>ロールアウト</strong> のステップを置き換える、あるいは補強します。200手のランダムな手を打って誰が勝ったかを観察する代わりに、探索は価値ネットワークに直接尋ねます。AlphaGoはロールアウトを完全に捨てはしませんでした。2つの推定を組み合わせたのであり、両方を残すのには良い理由があります。両者は異なる仕方で失敗するのです。価値ネットワークは訓練データに似ていない局面について自信満々に誤りうる一方、ロールアウトはある意味で不偏ですがきわめてノイジーで、精確な手順に対して盲目です。<strong>相関しない</strong> 失敗モードをもつ2つの不完全な推定器は、どちらか一方だけよりも強いのです。</p>
+<h3>📚 分業を、1つの表で</h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>方策ネットワーク</th>
+<th>価値ネットワーク</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>答える問い</td>
+<td>どの手が考慮する価値があるか?</td>
+<td>ここでは誰が勝っているか?</td>
+</tr>
+<tr>
+<td>出力</td>
+<td>合法手上の分布</td>
+<td>1つの数値: 勝率</td>
+</tr>
+<tr>
+<td>訓練データ</td>
+<td>人間の専門家の手、次に自己対局</td>
+<td>自己対局の結果</td>
+</tr>
+<tr>
+<td>MCTS内での役割</td>
+<td><strong>選択</strong> にバイアス——木を絞る</td>
+<td><strong>ロールアウト</strong> を置換／補強——葉を評価する</td>
+</tr>
+<tr>
+<td>どちらの壁を攻めるか</td>
+<td>分岐因子（幅）</td>
+<td>欠けた評価関数（深さ）</td>
+</tr>
+</tbody>
+</table>
+<p>最後の行が本章全体の要点です。第1章は <strong>2つの</strong> 独立した壁を特定し、そしてこれは <strong>それぞれに1つずつネットワークを向けた</strong> システムであり、それらを、すでに計算量を強さへ変換するのが得意だった探索が結び合わせています。どちらのネットワークも単独では囲碁を打ちません。方策ネットワークだけなら、計算の裏づけのないもっともらしく見える手を打つでしょう。価値ネットワークだけなら、手を考慮する方法すらありません。探索だけでは、すでに見たとおり、離陸すらできません。<strong>組み合わせこそが達成なのです。</strong> そして直観と探索が互いを強化し合う点は精確に述べる価値があります。ネットワークは探索を、深くなれるほど効率的にします。そして探索は、変化を実際に打ち切ることでネットワークの誤りを正します。</p>
+<h2>2.5 対局</h2>
+<p>3年間に3つの対局が、このシステムを「興味深い研究」から、一般の人々の大半が実際に目撃した瞬間へと押し上げました。</p>
+<p><strong>ファン・フイ、2015年。</strong> AlphaGoはヨーロッパ王者ファン・フイと対局し、<strong>5-0</strong> で勝ちました。プログラムがプロ棋士に、全盤面の互先で勝ったのはこれが初めてであり、Nature論文と同時に発表されました。囲碁界の反応は抑制されたものでした——ヨーロッパのプロの棋力はゲームの頂点からはかなり下であり、多くの強豪棋士は最上位との差がなお数年は保たれると予想していたのです。</p>
+<p><strong>イ・セドル、2016年。</strong> AlphaGoは同世代最強の棋士の1人であるイ・セドルと五番勝負を戦い、<strong>4-1</strong> で勝ちました。この対局からの2つの手が、いまなお議論されています。</p>
+<p>1つ目は <strong>第2局の第37手</strong> です。AlphaGoは五線への肩ツキを打ちました——囲碁を学ぶ者が早い段階で習う定跡的な常識に反する手であり、解説者たちは当初それを間違いかバグだと考えました。どちらでもありませんでした。局面が進むにつれてその石の勢力は決定的であることが判明し、いまではこの手は、コンピュータの奇癖ではなく囲碁理論への真に創造的な貢献として広く見なされています。この対局に文化的な重みを与えたのはこの瞬間でした。人間より速く計算する機械ではなく、人間なら思いつかなかったことを打ち、しかも <em>正しかった</em> 機械なのです。</p>
+<p>2つ目は <strong>第4局の第78手</strong>、イ・セドルが打った手です——AlphaGoの陣形の真ん中への割り込みであり、プログラムは明らかにそれを重く見ていませんでした。AlphaGoのその後の打ち回しは崩れ、イ・セドルがその局を制しました。このマッチにおいて、そのバージョンのシステムに対して誰かが勝った唯一の1局です。両方の手がこの物語に属しており、2つ目を省くと教訓を取り違えます。AlphaGoは無謬ではありませんでした。学習された判断が薄い領域をゲームの中に持っており、世界最高水準の人間が、途方もない重圧の下でその1つを見つけ出したのです。</p>
+<p><strong>柯潔、2017年。</strong> その後のバージョンのシステムが、当時の世界ランキング1位だった柯潔と対局し、勝ちました。その対局のすぐ後、プログラムは <strong>競技から引退</strong> しました。その時点で、人間の対戦相手ともっと打つことで確立できることはあまり残っておらず、研究はすでに第3章が取り上げる問いへ移っていたのです。訓練から人間の対局を完全に取り除いたら何が起きるのか、という問いへ。</p>
+<h3>📚 対局を誠実に読む</h3>
+<p>3つの留保を述べます。これは誇張を招く物語だからです。</p>
+<p><strong>「囲碁で超人的」は狭い主張である。</strong> それが意味するのは、このゲームにおいて、このルールで、この持ち時間の下で、このシステムがこれらの棋士に勝った、ということです。システムが囲碁を理解していたとか、手を説明できたとか、少し違うルールの変種を打てたとか、他に何かができたとか、そういうことは一切意味しません。</p>
+<p><strong>第37手は訓練についての証拠であって、意識についての証拠ではない。</strong> AlphaGoが人間なら考慮しない手を打てた理由は、その方策が模倣だけでなく自己対局によって形作られていたからです。人間の手を模倣するためだけに訓練されたネットワークは、構成上、人間が打たない手を生み出しにくい。目的が <em>専門家の手に一致すること</em> ではなく <em>勝つこと</em> になった途端、到達可能な戦略の空間は人間の分布を超えて広がりました。これがここでの「創造性」に対する精確で機械的な説明であり、神秘的な説明よりも有用です。</p>
+<p><strong>第78手はカバレッジについての証拠である。</strong> 学習された評価器は、訓練が訪れた局面空間の領域では信頼でき、その外では信頼できません。イ・セドルは、AlphaGoの経験において薄かった局面のタイプを見つけました。この失敗モード——訓練分布の外で、自信満々に、流暢に、そして誤る——は囲碁に固有のものではありません。第5章へ持ち越すべき最も重要な留保がこれです。そこでは同じアーキテクチャがタンパク質に向けられ、「この入力は訓練データに似ているか?」という問いが、現実の帰結を伴う科学的な問いになるのです。</p>
+<h2>2.6 なぜこれが囲碁を超えて重要だったのか</h2>
+<p>囲碁の部分を取り除くと、一般的なテンプレートが残ります。それが、構造生物学で終わるシリーズの冒頭に本章が属する理由です。</p>
+<p><strong>学習された直観が提案し、探索が処分する。</strong> ニューラルネットワークは、扱いようもなく大きな選択肢の空間を、もっともらしいものの短いリストに変えます。次に探索の手続きがそのリストをきちんと吟味し、そして——決定的なことに——その結果はネットワークを <em>却下できます</em>。ネットワークは速いが時に誤り、探索は遅いが実際のルールに根ざしています。それぞれが相手の失敗モードを覆うのです。</p>
+<p>3つの教訓がボードゲームを超えて一般化します。</p>
+<ul>
+<li><strong>直観は書かれるのではなく学習されうる。</strong> 40年の手作業のコード化を打ち負かした諸概念は、専門家の選択を予測するよう訓練されたネットワークによって暗黙のうちに捕捉されました。実践者が完全には <em>説明</em> できない何かを <em>実行</em> できる分野はすべて、同じ処方の候補です——そしてそれは実験科学の非常に大きな部分を言い当てています。</li>
+<li><strong>勝ちを定義できるとき、自己対局は模倣に勝る。</strong> 模倣はあなたを教師のところで頭打ちにします。測定できる目的関数は、教師を超えることを許します。落とし穴は条件のほうにあり、それが本シリーズ全体の蝶番です。<em>勝ちを定義できるとき</em>。囲碁はその定義を無償で手渡します。第4章は、それを構築しなければならないときに何が起きるのかを扱います。</li>
+<li><strong>探索は、学習されたモデルを信頼できるものにする手立てである。</strong> ネットワークの出力は、それ単独では当て推量です。同じ出力を、変化を実際に打ち切る探索の誘導に使えば、それは検査された当て推量になります。このパターン——速い学習された提案の後に、より遅い接地された検証——は応用機械学習に絶えず再登場し、モデルが流暢だが信頼できないときの良い既定戦略です。</li>
+</ul>
+<p>残る問いは、本シリーズの後半を可能にするものです。AlphaGoは出発点として人間の対局を必要としました。もしこの手法全体が専門家である人間の判断の大規模なコーパスに依存するのなら、その射程はそうしたコーパスをもつひと握りのドメインに限られます。<strong>本当にそうなのでしょうか?</strong> 第3章がそれに答え、その答えこそが、ゲームプレイの成果を科学の道具へと変えるものです。</p>
+<h2>2.7 ハンズオン: 80行の完全なMCTS</h2>
+<p>MCTSについて語るより、走らせるほうがずっと説得力があります。以下は三目並べ（tic-tac-toe）のための完全な実装です——4つのステップすべて、2.2節に書いたとおりのUCBの規則、そしてランダムなロールアウト。<strong>ニューラルネットワークもいかなる評価関数もありません。</strong> このプログラムに含まれる囲碁的な知識は、ゲームのルールだけです。</p>
+<p>実験の内容: いくつかのシミュレーション予算のもとで、探索を一様ランダムに打つ相手と対局させ、棋力が本当に計算量に追随するかを見ます。シミュレーション0回の行は、両者が同じランダム方策であり、「探索なし」がどう見えるかのベースラインとして含めています。</p>
+<pre><code class="language-python">import math
+
+import numpy as np
+
+# ---------------------------------------------------------------
+# 完全なモンテカルロ木探索、およそ80行。
+# ゲーム: 三目並べ。ニューラルネットワークも手作りの評価関数も
+# 使わない——知識の源は「ランダムなプレイアウト」だけである。
+# ---------------------------------------------------------------
+LINES = [(0, 1, 2), (3, 4, 5), (6, 7, 8),
+         (0, 3, 6), (1, 4, 7), (2, 5, 8),
+         (0, 4, 8), (2, 4, 6)]
+
+
+def winner(board):
+    &quot;&quot;&quot;そのプレイヤーが3つ並べていれば1か2を、そうでなければ0を返す。&quot;&quot;&quot;
+    for i, j, k in LINES:
+        if board[i] != 0 and board[i] == board[j] == board[k]:
+            return board[i]
+    return 0
+
+
+def legal(board):
+    return [i for i in range(9) if board[i] == 0]
+
+
+def apply_move(board, move, player):
+    nb = list(board)
+    nb[move] = player
+    return tuple(nb)
+
+
+class Node:
+    &quot;&quot;&quot;探索木の中の1局面。
+
+    `player` はここでの手番の側。`W` はこのノードへ「入る手を打った」側、
+    すなわち親での手番の側の視点から結果を累積する。この約束事こそが、
+    親におけるUCBの比較を同じ土俵の比較にしているものである。
+    &quot;&quot;&quot;
+
+    def __init__(self, board, player, parent=None, move=None):
+        self.board, self.player = board, player
+        self.parent, self.move = parent, move
+        self.children = []
+        self.result = winner(board)
+        self.terminal = self.result != 0 or not legal(board)
+        self.untried = [] if self.terminal else legal(board)
+        self.N, self.W = 0, 0.0
+
+    def ucb(self, c):
+        &quot;&quot;&quot;上側信頼限界（UCB）: 活用 + 探索。&quot;&quot;&quot;
+        return self.W / self.N + c * math.sqrt(math.log(self.parent.N) / self.N)
+
+
+def reward(win, mover):
+    &quot;&quot;&quot;終局した対局を `mover` の視点から採点する。&quot;&quot;&quot;
+    if win == 0:
+        return 0.5
+    return 1.0 if win == mover else 0.0
+
+
+def mcts_move(board, player, n_sims, rng, c=math.sqrt(2)):
+    root = Node(board, player)
+    for _ in range(n_sims):
+        node = root
+
+        # --- 1. 選択: ノードが完全に展開されている限りUCBで降りる
+        while not node.terminal and not node.untried:
+            node = max(node.children, key=lambda ch: ch.ucb(c))
+
+        # --- 2. 展開: 未探索の子を1つ追加する
+        if not node.terminal:
+            mv = node.untried.pop(rng.integers(len(node.untried)))
+            child = Node(apply_move(node.board, mv, node.player),
+                         3 - node.player, parent=node, move=mv)
+            node.children.append(child)
+            node = child
+
+        # --- 3. シミュレーション: 残りの対局をランダムに打つ
+        b, p = node.board, node.player
+        win = winner(b)
+        while win == 0 and 0 in b:
+            mv = legal(b)[rng.integers(len(legal(b)))]
+            b = apply_move(b, mv, p)
+            win, p = winner(b), 3 - p
+
+        # --- 4. バックアップ: いま辿った経路を上へ結果を押し上げる
+        while node is not None:
+            node.N += 1
+            if node.parent is not None:
+                node.W += reward(win, node.parent.player)
+            node = node.parent
+
+    # 最も得点の高い手ではなく、最も訪問された手を打つ:
+    # 訪問回数のほうが頑健な統計量である。
+    return max(root.children, key=lambda ch: ch.N).move
+
+
+def random_move(board, player, rng):
+    mv = legal(board)
+    return mv[rng.integers(len(mv))]
+
+
+def play_game(n_sims, rng):
+    &quot;&quot;&quot;MCTS（プレイヤー1、先手）対 一様ランダムな相手。&quot;&quot;&quot;
+    board, player = (0,) * 9, 1
+    while True:
+        w = winner(board)
+        if w or not legal(board):
+            return w
+        if player == 1:
+            mv = random_move(board, player, rng) if n_sims == 0 \
+                else mcts_move(board, player, n_sims, rng)
+        else:
+            mv = random_move(board, player, rng)
+        board, player = apply_move(board, mv, player), 3 - player
+
+
+# --- 実験: 探索を増やすと本当に棋力が上がるのか? ---
+N_GAMES = 200
+rng = np.random.default_rng(0)
+
+print(f&quot;MCTS (X, first) vs random (O) -- {N_GAMES} games per setting&quot;)
+print(f&quot;{'simulations/move':&gt;18} {'win':&gt;8} {'draw':&gt;8} {'loss':&gt;8}&quot;)
+print(&quot;-&quot; * 46)
+for n_sims in [0, 10, 100, 1000]:
+    results = np.array([play_game(n_sims, rng) for _ in range(N_GAMES)])
+    win = np.mean(results == 1) * 100
+    draw = np.mean(results == 0) * 100
+    loss = np.mean(results == 2) * 100
+    label = &quot;0 (pure random)&quot; if n_sims == 0 else str(n_sims)
+    print(f&quot;{label:&gt;18} {win:7.1f}% {draw:7.1f}% {loss:7.1f}%&quot;)
+</code></pre>
+<p><strong>出力:</strong></p>
+<pre><code>MCTS (X, first) vs random (O) -- 200 games per setting
+  simulations/move      win     draw     loss
+----------------------------------------------
+   0 (pure random)    58.5%    12.5%    29.0%
+                10    87.5%     5.5%     7.0%
+               100    97.5%     2.5%     0.0%
+              1000    98.0%     2.0%     0.0%
+</code></pre>
+<p><strong>結果の読み方。</strong> 重要度の低いものから順に4つ挙げます。</p>
+<ul>
+<li>
+<p><strong>ベースラインは、このゲームが自明に勝てるものではないことを確認します。</strong> ランダム対ランダムで先手なら58.5%勝ち、そして <em>29.0%負けます</em>。先手の利は存在しますが、それだけで押し切れはしません。以下の行におけるあらゆる改善は、探索に、そして探索だけに帰せられます。</p>
+</li>
+<li>
+<p><strong>1手あたり10回のシミュレーションでさえ大きな改善です。</strong> ランダムプレイアウト10回はばかばかしいほど小さな予算です——木のノード数は盤の升目数をわずかに超える程度——にもかかわらず、勝率は58.5%から87.5%へ跳ね上がり、負けは29.0%から7.0%へ落ちます。これは範囲の最下端でエニータイム性が有用であることの表れです。ほとんど無償の探索が、すでに探索なしよりはるかに良いのです。</p>
+</li>
+<li>
+<p><strong>負けはゼロになり、そこに留まります。</strong> 1手あたり100回のシミュレーションで、プログラムは200局のうち <strong>0.0%</strong> しか負けません。1000回でも同じです。これが重要な質的変化です。より多く勝つことは量的な改善ですが、<em>決して負けない</em> ことは、探索が三目並べの勝敗を決める必然手順——即詰みと相手の脅威への受け——を確実に見つけていることを意味します。事実上、このプログラムはルールとランダムプレイアウトだけから、このゲームの打ち方を割り出したのです。</p>
+</li>
+<li>
+<p><strong>収穫は逓減し、そしてそれには良い理由があります。</strong> 100回から1000回へ進んでも、勝率は97.5%から98.0%にしか動きません。計算量10倍に対して0.5ポイントです。探索はこのゲームを本質的に解いてしまっており、残る引き分けは誤りではありません——ランダムな相手がたまたま正しい受けの手に転がり込んだ対局であり、正しい受けに対しては引き分けが得られる最善の結果なのです。<strong>ここでの天井はアルゴリズムではなく、ゲームのほうです。</strong> これはまさに見たい光景であり、この実験が身内びいきの見せ物ではなく公平な実証である理由です。</p>
+</li>
+</ul>
+<p>試してみるべきことが3つあり、それぞれが具体的な何かを教えてくれます。</p>
+<ul>
+<li><strong>探索定数を変える。</strong> <code>mcts_move</code> で <code>c=0.0</code>（純粋な活用）と <code>c=5.0</code>（ほぼ純粋な探索）に設定し、100シミュレーションの行を再実行してください。どちらも \(\sqrt{2}\) より悪いはずで、しかも悪くなり方が異なるはずです。</li>
+<li><strong>探索側を後手にする。</strong> <code>play_game</code> の役割を入れ替えて、ランダムなプレイヤーが先手になるようにしてください。結果は全体に悪くなります——三目並べは先手有利です——が、十分に高い予算では負けはやはり消えるはずです。</li>
+<li><strong>本物の評価器を接続する。</strong> ステップ3を、<code>node.board</code> に対して勝率を返す任意の関数の呼び出しに置き換えれば、このプログラムはAlphaGoの骨格に変わります。その置換——ランダムプレイアウトの代わりに学習された判断——こそが本章で最大の着想であり、5行の変更で済むのです。</li>
+</ul>
+<h3>🎯 演習問題</h3>
+<ol>
+<li>
+<p><strong>符号の約束事。</strong> 2.1節は、バックアップのステップが各ノードへ <em>入る手を打った</em> プレイヤーの視点から結果を記録しなければならないと警告しています。コードの中でこれを実装している行を見つけてください。そのうえで、<code>node.parent.player</code> を <code>node.player</code> に変えたらプログラムがどう打つようになるかを言葉で予測し、なぜそれが単にランダムに打つより悪いのかを説明してください。</p>
+</li>
+<li>
+<p><strong>UCBの式を読む。</strong> あるノードが100回訪問されています。子Aは50回の訪問で \(W/N = 0.6\)、子Bは4回の訪問で \(W/N = 0.8\) です。\(c = \sqrt{2}\) として、両方のUCBスコアを手で計算し、どちらが選ばれるかを述べてください。次に、Bの勝率を固定したまま、Aが代わりに選ばれるようになるにはBへの追加訪問が何回必要かを求めてください。</p>
+</li>
+<li>
+<p><strong>どの壁に、どのネットワーク。</strong> 以下のそれぞれについて、幅の問題と評価の問題のどちらに対処するものかを述べ、AlphaGoの2つのネットワークのどちら（あるいはどちらでもないか）がその役割を担うかを述べてください。(a) アルファベータ枝刈り、(b) UCBの探索項、(c) ランダムなロールアウト、(d) 方策ネットワークの手の確率、(e) 価値ネットワークの勝率推定。</p>
+</li>
+<li>
+<p><strong>模倣か目的関数か。</strong> <em>人間の対局だけ</em> で訓練された方策ネットワークが、第37手のような手を生み出す見込みがきわめて低い理由を訓練信号の観点から説明し、自己対局の訓練がそうした手を到達可能にする理由を説明してください。次に、自己対局が導入する一方で模倣学習にはないリスクを1つ述べてください。</p>
+</li>
+<li>
+<p><strong>第78手を診断する。</strong> イ・セドルの第4局の割り込みは、AlphaGoが誤って評価していた局面のタイプを露呈させました。学習された評価器を配備する <em>前に</em> 測定できて、そうした盲点について警告を与えてくれる具体的な事柄を2つ述べてください。それぞれの測定が何を検出でき、何を検出できないのかを明確に述べてください。</p>
+</li>
+</ol>
+<h2>まとめ</h2>
+<p><strong>モンテカルロ木探索</strong> は、ゲームが面白いところでは深く、それ以外では浅い木を、1シミュレーションあたり1ノードずつ、4つのステップを通して成長させます。既存の木を降りる <strong>選択</strong>、新しい子を1つ加える <strong>展開</strong>、終局までロールアウトする <strong>シミュレーション</strong>、そして辿った経路に沿って結果を戻す <strong>バックアップ</strong> ——結果は各ノードへ入る手を打ったプレイヤーの視点から記録されます。MCTSは <strong>エニータイム性</strong> をもちます。いつ中断しても、その時点の最良の答えが有効であり、したがって計算量は閾値なしに滑らかに強さへ変換されます。</p>
+<p>選択は <strong>UCBの規則</strong> \(W/N + c\sqrt{\ln N(s) / N(s,a)}\) を使います。第1項は経験的な勝率、第2項は統計的な誤差棒の形をした無知の尺度です。\(1/\sqrt{N(s,a)}\) の因子がサンプル不足の手を魅力的にし、\(\ln N(s)\) の増加が、どの手も恒久的には見捨てられないことを保証しつつ、浪費されるシミュレーションの割合を小さく保ちます。決定的なのは、シミュレーションが蓄積するにつれて <strong>評価器が自分自身を改善する</strong> ことです——開始に人間の知識は要りません。</p>
+<p>MCTS単独では強いアマチュア囲碁で頭打ちになりました。理由は2つ。ランダムなロールアウトが多くの局面を決める精確な手順を破壊すること、そして各ノードにはなお約250の手があり、却下される前にそれぞれをサンプルしなければならないことです。<strong>2016年にNature誌で発表されたAlphaGoは、それぞれの問題に1つずつネットワークを加えました。</strong> <strong>方策ネットワーク</strong> ——まず人間の専門家の手で訓練され、次に自己対局の方策勾配で改善——は、もっともらしい手の分布を出力して <em>選択</em> にバイアスをかけ、何も禁じることなく実効的な分岐因子を崩壊させます。<strong>価値ネットワーク</strong> ——自己対局の結果で訓練——は勝率を出力して <em>ロールアウト</em> を置換／補強し、数十年の手作業のコード化が生み出せなかった静的評価関数を供給します。2つはロールアウトを置き換えるのではなく組み合わされました。異なる仕方で失敗する推定器は、一緒のほうが強いからです。</p>
+<p>結果はすぐに続きました。<strong>2015年のファン・フイ戦（5-0）</strong>、互先で破られた最初のプロ。<strong>2016年のイ・セドル戦（4-1）</strong>、常識に反しながら正しかった肩ツキである <strong>第2局の第37手</strong>、そしてイ・セドルが盲点へ割り込んでこのマッチでAlphaGoに勝った唯一の1局を生んだ <strong>第4局の第78手</strong> で記憶されています。そして <strong>2017年の柯潔戦</strong>、その後システムは競技から引退しました。誠実に読めば、第37手は訓練目的についての証拠——自己対局が方策を人間の分布から解き放つ——であり、第78手はカバレッジについての証拠——訓練経験の外で学習された評価器が示す、自信満々で誤る失敗——です。</p>
+<p>一般化するテンプレートは <strong>学習された直観が提案し、探索が処分する</strong> です。速いネットワークが扱いようもない空間を短いリストに絞り、接地された探索がそれを検査し、却下することもできます。私たちの三目並べの実装は、その探索の半分だけを、学習をまったく使わずに実証しました——負けはシミュレーション0回での29.0%から、10回で7.0%へ、そして <strong>100回で0.0%</strong> へ落ち、残る2%の引き分けはアルゴリズムではなくゲーム自身の天井でした。</p>
+<p>依存関係が1つ残っており、それがこのすべてが科学に届くかどうかを決めます。AlphaGoは、人間の専門家の対局の大規模なコーパスから直観を学びました。次章はそのコーパスを完全に取り除き、ルールだけから出発したシステムが自力で何を発見するのかを検討し、ゲームそのものを取り上げたときにこの手法に何が残るのかを問います。</p>
+<p><a href="chapter-1.html">← 第1章: ゲームという試金石</a> <a href="chapter-3.html">第3章: Zeroとその先: 人間なしで学ぶ →</a></p>
+<h3>免責事項</h3>
+<ul>
+<li>本コンテンツは教育・研究・情報提供のみを目的としており、専門的な助言(法律・会計・技術的保証など)を提供するものではありません。</li>
+<li>本コンテンツおよび付随するCode examplesは「現状有姿(AS IS)」で提供され、明示または黙示を問わず、商品性、特定目的適合性、権利非侵害、正確性・完全性、動作・安全性等いかなる保証もしません。</li>
+<li>外部リンク、第三者が提供するデータ・ツール・ライブラリ等の内容・可用性・安全性について、作成者および東北大学は一切の責任を負いません。</li>
+<li>本コンテンツの利用・実行・解釈により直接的・間接的・付随的・特別・結果的・懲罰的損害が生じた場合でも、適用法で許容される最大限の範囲で、作成者および東北大学は責任を負いません。</li>
+<li>本コンテンツの内容は、予告なく変更・更新・提供停止されることがあります。</li>
+<li>本コンテンツの著作権・ライセンスは明記された条件(例: CC BY 4.0)に従います。当該ライセンスは通常、無保証条項を含みます。</li>
+</ul><div class="navigation">
+    <a href="index.html" class="nav-button">シリーズトップへ戻る</a>
+    <a href="chapter-3.html" class="nav-button">次の章へ →</a>
+</div>
+    </main>
+
+    <footer>
+        <p><strong>制作</strong>: AI寺子屋 コンテンツチーム</p>
+        <p><strong>監修</strong>: 橋本 佑介 博士（東北大学）</p>
+        <p><strong>バージョン</strong>: 1.0 | <strong>作成日</strong>: 2025-01-01</p>
+        <p><strong>ライセンス</strong>: Creative Commons BY 4.0</p>
+        <p>© 2025 AI寺子屋 - Dr. Yusuke Hashimoto, Tohoku University</p>
+    </footer>
+</body>
+</html>

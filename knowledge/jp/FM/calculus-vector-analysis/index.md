@@ -4,6 +4,24 @@ chapter_title: 📐 微積分とベクトル解析入門
 subtitle: Calculus and Vector Analysis for Materials Informatics
 ---
 
+## ビデオ講義
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/BEElvcgY5Uk"
+    title="微積分とベクトル解析入門 - 全章"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> シリーズ全体を1本の動画にまとめています。各章ページのビデオは、その章の頭から再生されます。
+
+---
+
 🌐 JP | [🇬🇧 EN](<../../../en/FM/calculus-vector-analysis/index.html>) | Last sync: 2025-11-16
 
 [AI寺子屋トップ](<../../index.html>)›[基礎数理](<../../FM/index.html>)›[Calculus Vector Analysis](<../../FM/calculus-vector-analysis/index.html>)
@@ -24,7 +42,7 @@ subtitle: Calculus and Vector Analysis for Materials Informatics
 
 ### 📖 前提知識
 
-高校数学（数学III程度）の基礎知識があれば学習可能です。Pythonの基本的な使い方（変数、関数、リスト）を理解していることが望ましいです。
+高校数学レベルの一変数の微分・積分と、基本的なベクトルの知識があれば学習可能です。Pythonの基本的な使い方（変数、関数、リスト）を理解していることが望ましいです。
 
 第1章
 
@@ -42,7 +60,7 @@ subtitle: Calculus and Vector Analysis for Materials Informatics
 
 積分の基礎と数値積分
 
-定積分の定義、不定積分の計算法、積分と微分の関係（微積分の基本定理）を学び、台形則・Simpson則・Gauss求積法などの数値積分法を実装します。 熱量計算やスペクトル解析への応用も扱います。 
+定積分の定義、不定積分の計算法、積分と微分の関係（微積分の基本定理）を学び、台形則・Simpson則やSciPyの適応型求積などの数値積分法を実装します。 熱量計算や広義積分・特異点をもつ積分への応用も扱います。 
 
 定積分・不定積分 基本定理 台形則 Simpson則 SciPy実装
 
@@ -54,9 +72,9 @@ subtitle: Calculus and Vector Analysis for Materials Informatics
 
 多変数関数の微積分
 
-偏微分、全微分、連鎖律、ヤコビ行列を学び、多変数関数の極値問題（ラグランジュの未定乗数法）を扱います。 重積分（二重積分・三重積分）と変数変換（極座標、円筒座標、球座標）も実装します。 
+偏微分、全微分と連鎖律、勾配を学び、多変数関数の極値問題（勾配降下法、ラグランジュの未定乗数法）を扱います。 二重積分と極座標への変数変換も実装します。 
 
-偏微分 全微分 ヤコビ行列 重積分 極値問題
+偏微分 全微分 連鎖律 勾配 二重積分 極値問題
 
 💻 7コード例 ⏱️ 18-22分
 
@@ -72,13 +90,13 @@ subtitle: Calculus and Vector Analysis for Materials Informatics
 
 💻 7コード例 ⏱️ 18-22分
 
-第4章を読む →（準備中）
+[第4章を読む →](<chapter-4.html>)
 
 第5章
 
 線積分・面積分と積分定理
 
-線積分（スカラー場・ベクトル場）、面積分（スカラー場・ベクトル場）の計算法を学びます。 Greenの定理、Gaussの発散定理、Stokesの定理を理解し、電磁気学や流体力学への応用を実装します。 
+線積分（スカラー場・ベクトル場）、面積分（スカラー場・ベクトル場）の計算法を学びます。 Greenの定理、Gaussの発散定理、Stokesの定理を理解し、連続の式を用いた原子拡散への応用を実装します。 
 
 線積分 面積分 Greenの定理 発散定理 Stokesの定理
 

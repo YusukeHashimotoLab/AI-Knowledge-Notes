@@ -4,6 +4,23 @@ chapter_title: "Chapter 5: Applications to Process Control"
 subtitle: Applications to Process Control
 ---
 
+## Video Lecture
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/s6UkUzZ4eV4"
+    title="Probability & Stochastic Processes Ch.5: Applications to Process Control"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> This video covers the same content as the text below. Choose your preferred learning format.
+
+---
+
 🌐 EN | [🇯🇵 JP](<../../../jp/FM/probability-stochastic-processes/chapter-5.html>) | Last sync: 2025-11-16
 
 [Fundamentals of Mathematics Dojo](<../index.html>) > [Probability Theory and Stochastic Processes](<index.html>) > Chapter 5 

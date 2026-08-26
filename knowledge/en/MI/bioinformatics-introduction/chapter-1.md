@@ -10,6 +10,23 @@ version: 1.0
 created_at: "by:"
 ---
 
+## Video Lecture
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/WaSSd8bYhZE"
+    title="Bioinformatics Ch.1: Protein Structure and Biomaterials"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> This video covers the same content as the text below. Choose your preferred learning format.
+
+---
+
 # Chapter 1: Protein Structure and Biomaterials
 
 This chapter covers Protein Structure and Biomaterials. You will learn definition of bioinformatics, Read structure files, and Evaluate AlphaFold2 prediction accuracy.
@@ -89,7 +106,7 @@ Protein structure is described at four levels:
 
 **PDB (Protein Data Bank)** is the world's largest database for publicly sharing three-dimensional structures of proteins and nucleic acids.
 
-**Statistics (as of 2025)** : \- Registered structures: Over 200,000 \- X-ray crystallography: 90% \- NMR: 8% \- Electron microscopy: 2%
+**Statistics (approximate, current)** : \- Registered structures: Over 230,000 \- X-ray crystallography: roughly 80-85% \- Cryo-electron microscopy: over 10% (the fastest-growing method) \- NMR: a few percent
 
 **Access** : <https://www.rcsb.org/>
 
@@ -197,6 +214,8 @@ PDB files are text-based and contain atomic coordinates with associated informat
     # - numpy>=1.24.0, <2.0.0
     
     """
+    Example: Example 3: Extracting Atomic Coordinates and Calculating Dis
+    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
     Execution time: ~5 seconds
@@ -357,8 +376,8 @@ PDB files are text-based and contain atomic coordinates with associated informat
             print(f"Error: {e}")
             return False
     
-    # Example: Download hemoglobin beta chain (P69905)
-    download_alphafold_structure('P69905', 'hemoglobin_beta.pdb')
+    # Example: Download hemoglobin alpha chain (P69905)
+    download_alphafold_structure('P69905', 'hemoglobin_alpha.pdb')
     
 
 * * *
@@ -392,7 +411,7 @@ PDB files are text-based and contain atomic coordinates with associated informat
     
     # Read AlphaFold structure
     parser = PDBParser(QUIET=True)
-    structure = parser.get_structure('alphafold', 'hemoglobin_beta.pdb')
+    structure = parser.get_structure('alphafold', 'hemoglobin_alpha.pdb')
     
     # pLDDT is stored in the B-factor column
     model = structure[0]
@@ -420,7 +439,7 @@ PDB files are text-based and contain atomic coordinates with associated informat
     
     plt.xlabel('Residue Number', fontsize=12)
     plt.ylabel('pLDDT Score', fontsize=12)
-    plt.title('AlphaFold Prediction Confidence (Hemoglobin Beta Chain)',
+    plt.title('AlphaFold Prediction Confidence (Hemoglobin Alpha Chain)',
               fontsize=14)
     plt.legend()
     plt.grid(alpha=0.3)
@@ -609,7 +628,7 @@ PDB files are text-based and contain atomic coordinates with associated informat
 
   2. **Protein Structural Hierarchy** \- Primary structure (sequence) → Secondary structure (α-helix, β-sheet) \- Tertiary structure (folding) → Quaternary structure (complex)
 
-  3. **PDB Database** \- Over 200,000 structural data entries \- Analysis methods with Biopython
+  3. **PDB Database** \- Over 230,000 structural data entries \- Analysis methods with Biopython
 
   4. **AlphaFold2** \- High-accuracy structure prediction from sequence \- Reliability assessment using pLDDT
 
@@ -686,6 +705,8 @@ Solution Example
     # - numpy>=1.24.0, <2.0.0
     
     """
+    Example: Analyze the pLDDT scores of an AlphaFold predicted structure
+    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
     Execution time: ~5 seconds

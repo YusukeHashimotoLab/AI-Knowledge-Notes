@@ -6,6 +6,22 @@ version: 1.0
 created_at: 2025-10-25
 ---
 
+## Video Lecture
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/vYfFdBrNolQ"
+    title="Process Informatics Introduction Ch.4: Practical Exercises Using Real Process Data"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> This video covers the same content as the text below. Choose your preferred learning format.
+
 # Chapter 4: Practical Exercises Using Real Process Data
 
 This chapter integrates all the PI techniques learned so far and conducts a comprehensive exercise using actual chemical plant data. Experience the workflow directly applicable to real-world practice, from data exploration to quality prediction and process optimization.
@@ -59,6 +75,8 @@ purity | Product Purity (Target Variable) | Once per day | %
     # - seaborn>=0.12.0
     
     """
+    Example: Code Example 1: Data Generation and EDA (Exploratory Data An
+    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds
@@ -1132,6 +1150,8 @@ Integrating all previous steps, we establish an end-to-end PI project workflow.
     # - pandas>=2.0.0, <2.2.0
     
     """
+    Example: Code Example 8: Integrated Pipeline and Deployment Preparati
+    
     Purpose: Demonstrate data visualization techniques
     Target: Advanced
     Execution time: 30-60 seconds

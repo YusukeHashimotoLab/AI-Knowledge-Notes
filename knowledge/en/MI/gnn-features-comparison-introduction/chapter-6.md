@@ -3,6 +3,22 @@ title: "Chapter 6: PyTorch Geometric Workflow"
 chapter_title: "Chapter 6: PyTorch Geometric Workflow"
 ---
 
+## Video Lecture
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/rtsU1yqheoI"
+    title="GNN Features Comparison Ch.6: PyTorch Geometric Workflow"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> This video covers the same content as the text below. Choose your preferred learning format.
+
 🌐 EN | [🇯🇵 JP](<../../../jp/MI/gnn-features-comparison-introduction/chapter-6.html>) | Last sync: 2025-11-16
 
 # Chapter 6: PyTorch Geometric Workflow
@@ -23,6 +39,8 @@ To use the Materials Project API, you need a free API key. Please create an acco
     # - pandas>=2.0.0, <2.2.0
     
     """
+    Example: To use the Materials Project API, you need a free API key. P
+    
     Purpose: Demonstrate data manipulation and preprocessing
     Target: Beginner to Intermediate
     Execution time: 5-10 seconds
@@ -881,6 +899,8 @@ We will publish the trained model as a REST API and make it available from web a
     # - torch>=2.0.0, <2.3.0
     
     """
+    Example: We will publish the trained model as a REST API and make it 
+    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Advanced
     Execution time: 10-20 seconds
@@ -1103,6 +1123,8 @@ Using the Materials Project API, create code to retrieve 100 stable oxide materi
     # - pandas>=2.0.0, <2.2.0
     
     """
+    Example: Using the Materials Project API, create code to retrieve 100
+    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Beginner to Intermediate
     Execution time: 10-30 seconds
@@ -1286,6 +1308,8 @@ Create code to compare normal FP32 training and Mixed Precision Training (FP16) 
     # - torch>=2.0.0, <2.3.0
     
     """
+    Example: Create code to compare normal FP32 training and Mixed Precis
+    
     Purpose: Demonstrate optimization techniques
     Target: Advanced
     Execution time: 1-5 minutes
@@ -1371,6 +1395,8 @@ Create code to interrupt training midway, then resume training from a saved chec
     # - torch>=2.0.0, <2.3.0
     
     """
+    Example: Create code to interrupt training midway, then resume traini
+    
     Purpose: Demonstrate optimization techniques
     Target: Advanced
     Execution time: 1-5 minutes
@@ -1448,6 +1474,8 @@ Create benchmark code to compare the speed of PyTorch native inference and ONNX 
     # - torch>=2.0.0, <2.3.0
     
     """
+    Example: Create benchmark code to compare the speed of PyTorch native
+    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Advanced
     Execution time: 10-30 seconds
@@ -1546,6 +1574,8 @@ Using FastAPI's background task feature, implement an asynchronous API that batc
     # - torch>=2.0.0, <2.3.0
     
     """
+    Example: Using FastAPI's background task feature, implement an asynch
+    
     Purpose: Demonstrate core concepts and implementation patterns
     Target: Advanced
     Execution time: 10-30 seconds

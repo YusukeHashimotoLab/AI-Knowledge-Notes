@@ -34,7 +34,7 @@ chapter_title: 🔍 RAG入門シリーズ v1.0
 
 * * *
 
-### [第2章：エンベディングと検索](<./chapter2-embeddings.html>)
+### [第2章：エンベディングとベクトルデータベース](<./chapter2-embeddings.html>)
 
 **難易度** : 中級 | **学習時間** : 30-35分 | **コード例** : 6個
 

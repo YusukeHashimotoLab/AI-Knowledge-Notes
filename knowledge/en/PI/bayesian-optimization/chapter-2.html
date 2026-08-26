@@ -6,50 +6,126 @@
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <meta content="Chapter 2: Gaussian Process Modeling - Bayesian Optimization Introduction Series" name="description"/>
 <title>Chapter 2: Gaussian Process Modeling - Bayesian Optimization Introduction | PI Terakoya</title>
-<link rel="canonical" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/en/PI/bayesian-optimization/chapter-2.html">
-<link rel="alternate" hreflang="ja" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/jp/PI/bayesian-optimization/chapter-2.html">
-<link rel="alternate" hreflang="en" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/en/PI/bayesian-optimization/chapter-2.html">
-<link rel="alternate" hreflang="x-default" href="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/en/PI/bayesian-optimization/chapter-2.html">
-<meta property="og:title" content="Chapter 2: Gaussian Process Modeling - Bayesian Optimization Introduction | PI Terakoya">
-<meta property="og:type" content="article">
-<meta property="og:url" content="https://yusukehashimotolab.github.io/AI-Knowledge-Notes/knowledge/en/PI/bayesian-optimization/chapter-2.html">
-<meta property="og:site_name" content="AI Terakoya">
-<meta property="og:locale" content="en_US">
-<meta property="og:description" content="Chapter 2: Gaussian Process Modeling - Bayesian Optimization Introduction | PI Terakoya">
-<link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
 <style>
-    /* page-specific residual (Wave C) */
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.8; color: #333; background: #f5f5f5 }
-    header { padding: 2rem 1rem }
-    h1 { margin-bottom: 0.5rem }
-    .subtitle { opacity: 1 }
-    .container { max-width: 1200px; margin: 2rem auto; padding: 0 1rem }
-    .back-link { display: inline-block; padding: 0.5rem 1rem; background: white; color: #11998e; border-radius: 6px; font-weight: 600 }
-    .content-box { background: white; padding: 2rem; border-radius: 12px; margin-bottom: 2rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1) }
-    h2 { color: #11998e; margin: 2rem 0 1rem 0 }
-    h3 { margin: 1.5rem 0 1rem 0 }
-    h4 { color: #2c3e50; margin: 1rem 0 0.5rem 0 }
-    p { margin-bottom: 1rem }
-    ul { margin-bottom: 1rem }
-    ol { margin-bottom: 1rem }
-    pre { background: #1e1e1e; color: #d4d4d4; margin: 1rem 0; border-left: 4px solid #11998e }
-    code { font-family: "Courier New", monospace; font-size: 0.9rem }
-    .key-point { background: #e8f5e9; padding: 1rem; border-radius: 6px; border-left: 4px solid #4caf50; margin: 1rem 0 }
-    .tech-note { background: #e3f2fd; padding: 1rem; border-radius: 6px; border-left: 4px solid #2196f3; margin: 1rem 0 }
-    .formula { background: #f0f7ff; padding: 1rem; border-radius: 6px; margin: 1rem 0; overflow-x: auto }
-    table { margin: 1rem 0 }
-    th { border: 1px solid #ddd; padding: 0.75rem; background: #11998e; color: white }
-    td { border: 1px solid #ddd; padding: 0.75rem }
-    tr:nth-child(even) { background: #f9f9f9 }
-    .nav-buttons { margin-top: 3rem }
-    .nav-buttons a { padding: 0.75rem 1.5rem; background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white; text-decoration: none; border-radius: 6px; font-weight: 600 }
-    footer { background: #2c3e50; color: white; padding: 2rem 1rem; margin-top: 4rem }
-    @media (max-width: 768px) {
-        h1 { font-size: 1.6rem }
-        .container { padding: 0 0.5rem }
-        pre { padding: 1rem }
-    }
-</style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            line-height: 1.8; color: #333; background: #f5f5f5;
+        }
+        header {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white; padding: 2rem 1rem; text-align: center;
+        }
+        h1 { font-size: 2rem; margin-bottom: 0.5rem; }
+        .subtitle { opacity: 0.9; font-size: 1.1rem; }
+        .container { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
+        .back-link {
+            display: inline-block; margin-bottom: 2rem; padding: 0.5rem 1rem;
+            background: white; color: #11998e; text-decoration: none;
+            border-radius: 6px; font-weight: 600;
+        }
+        .content-box {
+            background: white; padding: 2rem; border-radius: 12px;
+            margin-bottom: 2rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        h2 {
+            color: #11998e; margin: 2rem 0 1rem 0;
+            padding-bottom: 0.5rem; border-bottom: 3px solid #11998e;
+        }
+        h3 { color: #2c3e50; margin: 1.5rem 0 1rem 0; }
+        h4 { color: #2c3e50; margin: 1rem 0 0.5rem 0; }
+        p { margin-bottom: 1rem; }
+        ul, ol { margin-left: 2rem; margin-bottom: 1rem; }
+        li { margin-bottom: 0.5rem; }
+        pre {
+            background: #1e1e1e; color: #d4d4d4; padding: 1.5rem;
+            border-radius: 8px; overflow-x: auto; margin: 1rem 0;
+            border-left: 4px solid #11998e;
+        }
+        code {
+            font-family: 'Courier New', monospace; font-size: 0.9rem;
+        }
+        .key-point {
+            background: #e8f5e9; padding: 1rem; border-radius: 6px;
+            border-left: 4px solid #4caf50; margin: 1rem 0;
+        }
+        .tech-note {
+            background: #e3f2fd; padding: 1rem; border-radius: 6px;
+            border-left: 4px solid #2196f3; margin: 1rem 0;
+        }
+        .formula {
+            background: #f0f7ff; padding: 1rem; border-radius: 6px;
+            margin: 1rem 0; overflow-x: auto;
+        }
+        table {
+            width: 100%; border-collapse: collapse; margin: 1rem 0;
+        }
+        th, td {
+            border: 1px solid #ddd; padding: 0.75rem; text-align: left;
+        }
+        th {
+            background: #11998e; color: white; font-weight: 600;
+        }
+        tr:nth-child(even) { background: #f9f9f9; }
+        .nav-buttons {
+            display: flex; justify-content: space-between; margin-top: 3rem;
+        }
+        .nav-buttons a {
+            padding: 0.75rem 1.5rem;
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white; text-decoration: none; border-radius: 6px;
+            font-weight: 600;
+        }
+        footer {
+            background: #2c3e50; color: white; text-align: center;
+            padding: 2rem 1rem; margin-top: 4rem;
+        }
+        @media (max-width: 768px) {
+            h1 { font-size: 1.6rem; }
+            .container { padding: 0 0.5rem; }
+            pre { padding: 1rem; }
+        }
+
+
+
+        /* Breadcrumb styles */
+        .breadcrumb {
+            background: #f7fafc;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+        }
+
+        .breadcrumb-content {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .breadcrumb a {
+            color: #667eea;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .breadcrumb a:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+
+        .breadcrumb-separator {
+            color: #a0aec0;
+            margin: 0 0.25rem;
+        }
+
+        .breadcrumb-current {
+            color: #4a5568;
+            font-weight: 500;
+        }
+    </style>
 </head>
 <body>
 <nav class="breadcrumb">
@@ -151,8 +227,7 @@ print(f"Log marginal likelihood: {gp.log_marginal_likelihood_value_:.2f}")
 # Log marginal likelihood: -12.45
 # Plot: Yield peak around 90°C, uncertainty increases at edges</code></pre>
 <div class="callout">
-<div class="callout-title">🔍
- Explanation: Meaning of Confidence Intervals</div>
+<div class="callout-title">🔍 Explanation: Meaning of Confidence Intervals</div>
 <p>The <strong>95% confidence interval</strong> (μ ± 1.96σ) indicates that the true yield falls within this range with 95% probability. In regions far from experimental data (around 40°C, 140°C), uncertainty increases and the interval widens. This is the key to <strong>promoting exploration of unexplored regions</strong> in Bayesian optimization.</p>
 </div>
 <h2 id="kernels">2.2 Kernel Function Selection</h2>
@@ -181,7 +256,7 @@ print(f"Log marginal likelihood: {gp.log_marginal_likelihood_value_:.2f}")
 </tr>
 <tr>
 <td><strong>Matérn (ν=2.5)</strong></td>
-<td>k(x, x') = σ² (1 + √5r/ℓ + 5r²/3ℓ²) exp(-√5r/ℓ)</td>
+<td>k(x, x') = σ² (1 + √5r/ℓ + 5r²/(3ℓ²)) exp(-√5r/ℓ)</td>
 <td>Twice differentiable</td>
 <td>Catalyst activity curve</td>
 </tr>
@@ -255,7 +330,13 @@ print(f"Pressure direction: {gp_rbf.kernel_.k2.length_scale[1]:.2f} MPa")
 # Optimized length scale: [12.34  0.68]
 # Temperature direction: 12.34°C
 # Pressure direction: 0.68 MPa
-# → Yield characteristics more sensitive to pressure changes than temperature</code></pre>
+# → Length scales carry the units of their own variable (°C vs MPa), so the raw
+#   numbers must NOT be compared directly. Normalize each by the search range of
+#   that variable (temperature 50-110°C = 60°C, pressure 0.8-3.0 MPa = 2.2 MPa):
+#     temperature: 12.34 / 60  = 0.21
+#     pressure   : 0.68  / 2.2 = 0.31
+#   Temperature has the SMALLER relative length scale, so over the region explored
+#   the yield responds more sensitively to temperature than to pressure.</code></pre>
 <h3 id="example-3">Example 3: Matérn Kernel (ν=1.5)</h3>
 <pre><code>from sklearn.gaussian_process.kernels import Matern
 
@@ -311,10 +392,15 @@ gp_matern25.fit(X_train, y_train)
 
 y_pred_matern25, sigma_matern25 = gp_matern25.predict(X_test_1d, return_std=True)
 
+# Evaluate the RBF model on the SAME 1D cross-section as the two Matérn models.
+# (y_pred_grid from Example 2 is the flattened 50x50 = 2500-point contour grid,
+#  so slicing it with [:100] would plot two rows of that grid, not this section.)
+y_pred_rbf_1d, sigma_rbf_1d = gp_rbf.predict(X_test_1d, return_std=True)
+
 # Comparison plot of three kernels
 plt.figure(figsize=(12, 6))
 
-plt.plot(X_test_1d[:, 0], y_pred_grid[:100], 'b-',
+plt.plot(X_test_1d[:, 0], y_pred_rbf_1d, 'b-',
          label='RBF (∞ times differentiable)', linewidth=2)
 plt.plot(X_test_1d[:, 0], y_pred_matern, 'g--',
          label='Matérn(ν=1.5)', linewidth=2)
@@ -750,7 +836,7 @@ print(f"Assessment: {'✅ Good' if 90 &lt;= coverage &lt;= 100 else '⚠️ Need
 <pre><code>kernel = C(1.0) * RBF(length_scale=[10.0, 1.0, 5.0],
                    length_scale_bounds=(1e-2, 1e3))
 # [Temperature 10°C, Pressure 1.0MPa, Concentration 5% initial length scales]</code></pre>
-<p><strong>Interpretation</strong>: After optimization, if pressure's length scale is small at 0.5, it indicates yield is sensitive to pressure changes. If temperature is large at 50, temperature dependence is low.</p>
+<p><strong>Interpretation</strong>: Each length scale is expressed in the units of its own variable, so the raw values cannot be compared across dimensions. Always compare a length scale with the <strong>search range of that same variable</strong>. For example, if temperature is searched over a 100°C span and its length scale optimizes to 50, the relative length scale is 50/100 = 0.5; if pressure is searched over a 1.0 MPa span and its length scale optimizes to 0.5, the relative length scale is also 0.5 — the same sensitivity, despite the hundred-fold difference in the raw numbers. The <strong>smaller the relative length scale, the more sensitively</strong> the yield responds to that variable.</p>
 </details>
 <h2 id="next-steps">Next Steps</h2>
 <p>You can now quantify uncertainty with Gaussian process models. In Chapter 3, we will learn about <strong>acquisition functions that intelligently select the next experimental point</strong> using this uncertainty.</p>

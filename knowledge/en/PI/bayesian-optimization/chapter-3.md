@@ -10,13 +10,13 @@ This chapter covers Acquisition Functions. You will learn essential concepts and
 
 Acquisition functions are crucial components in Bayesian optimization that determine which candidate point should be evaluated next. They take the mean and uncertainty predicted by the Gaussian process as input and quantify "which point should be tested next." 
 
-#### =¡ Role of Acquisition Functions
+#### 💡 Role of Acquisition Functions
 
   * **Exploration** : Investigate regions with high uncertainty
   * **Exploitation** : Examine areas around the current best value in detail
   * **Balance Control** : Regulate the ratio of exploration to exploitation based on problem and progress
 
-In this chapter, we will implement seven representative acquisition functions and understand their characteristics and application scenarios. 
+In this chapter, we will implement six representative acquisition functions - EI, PI, UCB, Thompson Sampling, Knowledge Gradient and Entropy Search - and understand their characteristics and application scenarios. 
 
 ## 3.2 Expected Improvement (EI)
 
@@ -109,7 +109,7 @@ The most widely used acquisition function. It maximizes the expected value of im
     print("Saved: ei_acquisition.png")
     
 
-####  Characteristics of EI
+#### ✅ Characteristics of EI
 
   * Well-balanced exploration and exploitation (recommended default)
   * Adjustable via parameter `xi` (typically 0.01-0.1)
@@ -164,7 +164,7 @@ An acquisition function that maximizes the probability of improving the current 
     print(f"Difference: {abs(next_x[0] - next_x_pi[0]):.3f}")
     
 
-####   PI Cautions
+#### ⚠️ PI Cautions
 
 PI only considers the "probability" of improvement, not the "magnitude" of improvement. Therefore, it may select points with high probability even for minimal improvements. EI is more practical in most cases.
 
@@ -207,7 +207,7 @@ Maximizes the weighted sum of predicted mean and uncertainty. Allows explicit co
         ax.scatter(X_init, y_init, c='red', s=80, zorder=10)
         ax.axvline(next_x_ucb, color='green', linestyle=':', linewidth=2)
     
-        ax.set_title(f'º = {kappa} (Next: {next_x_ucb[0]:.2f})')
+        ax.set_title(f'κ = {kappa} (Next: {next_x_ucb[0]:.2f})')
         ax.set_xlabel('Temperature')
         ax.set_ylabel('Value')
         ax.legend(loc='upper right', fontsize=8)
@@ -220,10 +220,10 @@ Maximizes the weighted sum of predicted mean and uncertainty. Allows explicit co
     for kappa in kappas:
         ucb = upper_confidence_bound(X_test, gp, kappa=kappa)
         next_x = X_test[np.argmax(ucb)]
-        print(f"º={kappa:.1f}: Next experiment point = {next_x[0]:.3f}")
+        print(f"κ={kappa:.1f}: Next experiment point = {next_x[0]:.3f}")
     
 
-#### =¡ UCB Parameter Selection Guide
+#### 💡 UCB Parameter Selection Guide
 
   * `kappa = 0.5-1.0`: Exploitation-focused (precise search around best value)
   * `kappa = 2.0-3.0`: Balanced (recommended default)
@@ -297,7 +297,7 @@ Bayesian approach. Samples from the posterior distribution of the Gaussian proce
     print(f"Selection frequency: {ts_score.max()}/50")
     
 
-####  Advantages of Thompson Sampling
+#### ✅ Advantages of Thompson Sampling
 
   * Theoretically optimal exploration strategy (Bayesian regret minimization)
   * Proven track record in multi-armed bandit problems
@@ -380,7 +380,7 @@ A lookahead acquisition function that predicts the amount of improvement after t
     print(f"KG value: {kg_values.max():.4f}")
     
 
-####   KG Computational Cost
+#### ⚠️ KG Computational Cost
 
 Knowledge Gradient has high computational cost because it retrains the GP for each candidate point. In practice, use evaluation on coarse grids or analytical approximations (KG*). 
 
@@ -480,7 +480,7 @@ Selects points that most reduce the uncertainty (entropy) about the location of 
     print(f"Expected entropy reduction: {es_values.max():.4f}")
     
 
-#### =¡ Characteristics of Entropy Search
+#### 💡 Characteristics of Entropy Search
 
   * Rigorous formulation based on information theory
   * Efficient for optimal solution identification (suited for identification problems)
@@ -488,7 +488,7 @@ Selects points that most reduce the uncertainty (entropy) about the location of 
 
 ## 3.8 Comparative Experiments of Acquisition Functions
 
-We compare the six acquisition functions learned so far in a real process optimization problem. 
+Of the six acquisition functions learned so far, the benchmark below runs the three closed-form ones - EI, PI and UCB - against a random-search baseline on a real process optimization problem. Thompson Sampling, Knowledge Gradient and Entropy Search are excluded here because each needs its own sampling or lookahead loop, which would make the runs incomparable at a fixed iteration count. 
 
 ### Example 7: Comprehensive Comparison of Acquisition Functions
     
@@ -599,7 +599,7 @@ We compare the six acquisition functions learned so far in a real process optimi
     print(f"  Final value: {results[best_acq][-1]:.3f}")
     
 
-####  Insights from Comparison Experiments
+#### ✅ Insights from Comparison Experiments
 
   * **EI** : Best balance, recommended for most cases
   * **UCB** : High flexibility with parameter tuning
@@ -617,7 +617,7 @@ Acquisition Function | Application Scenario | Advantages | Disadvantages
 **KG** | Expensive experiments, few samples | Lookahead optimal, efficient | High computational cost  
 **Entropy Search** | Optimal solution identification objective | Information-theoretic rigor | Complex implementation  
   
-#### =¡ Recommended Practical Strategy
+#### 💡 Recommended Practical Strategy
 
   1. **Start with EI** : Good performance in most cases
   2. **Insufficient exploration** : UCB (increase kappa) or Thompson Sampling
@@ -627,7 +627,7 @@ Acquisition Function | Application Scenario | Advantages | Disadvantages
 
 ## Summary
 
-In this chapter, we learned about seven acquisition functions, the heart of Bayesian optimization, with implementation examples.
+In this chapter, we learned about six acquisition functions, the heart of Bayesian optimization, with implementation examples.
 
 ### Key Points
 
@@ -641,7 +641,7 @@ In this chapter, we learned about seven acquisition functions, the heart of Baye
 
 In Chapter 4, we will cover **multi-objective optimization** (balancing quality and efficiency, etc.) and **constrained optimization** (optimization within safe regions) that frequently appear in real processes. We will also learn advanced strategies combining multiple acquisition functions. 
 
-[� Chapter 2: Gaussian Processes](<chapter-2.html>) [Back to Contents](<index.html>) [Chapter 4: Multi-objective and Constrained Optimization ’](<chapter-4.html>)
+[← Chapter 2: Gaussian Processes](<chapter-2.html>) [Back to Contents](<index.html>) [Chapter 4: Multi-objective and Constrained Optimization →](<chapter-4.html>)
 
 ## References
 

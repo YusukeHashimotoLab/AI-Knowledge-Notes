@@ -178,7 +178,7 @@ Intermediate 80-100 min 4 chapters
 
 [Start →](<./experimental-data-analysis-introduction/index.html>)
 
-🎯 Application Domains (3 series)
+🎯 Application Domains (4 series)
 
 🔋
 
@@ -199,6 +199,16 @@ AI-driven catalyst design and optimization
 Intermediate 80-100 min 4 chapters
 
 [Start →](<./catalyst-mi-application/index.html>)
+
+🌊
+
+Computational Chemistry of OER
+
+The physics behind catalyst informatics — CHE model, scaling relations, volcano plots, and a full screening workflow in NumPy (teaching values, no black boxes)
+
+Beginner to Intermediate 100-130 min 5 chapters
+
+[Start →](<./oer-computational-chemistry/index.html>)
 
 💊
 

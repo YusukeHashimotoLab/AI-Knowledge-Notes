@@ -4,6 +4,24 @@ chapter_title: "第2章: 積分の基礎と数値積分"
 subtitle: Fundamentals of Integration and Numerical Integration
 ---
 
+## ビデオ講義
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/BEElvcgY5Uk?start=904"
+    title="微積分とベクトル解析入門 第2章: 積分の基礎と数値積分"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> このビデオは以下のテキストと同じ内容をカバーしています。お好みの学習形式をお選びください。
+
+---
+
 🌐 JP | [🇬🇧 EN](<../../../en/FM/calculus-vector-analysis/chapter-2.html>) | Last sync: 2025-11-16
 
 [基礎数理道場](<../index.html>) > [微積分とベクトル解析入門](<index.html>) > 第2章 
@@ -11,20 +29,111 @@ subtitle: Fundamentals of Integration and Numerical Integration
 ## 2.1 定積分と不定積分
 
 **📐 定義: 定積分**  
-関数 f(x) の区間 [a, b] における定積分は、リーマン和の極限として定義されます： $$\int_a^b f(x) dx = \lim_{n \to \infty} \sum_{i=1}^n f(x_i^*) \Delta x$$ 幾何学的には、曲線 y = f(x) と x 軸で囲まれた面積を表します。 
+関数 f(x) の区間 [a, b] における定積分は、リーマン和の極限として定義されます： $$\int_a^b f(x) dx = \lim_{n \to \infty} \sum_{i=1}^n f(x_i^*) \Delta x$$ 幾何学的には、曲線 y = f(x) と x 軸の間の**符号付き面積**を表します。 x軸より上の部分は正、下の部分は負として寄与します。 区間全体で f(x) ≥ 0 のときに限り、定積分は通常の（符号なしの）面積と一致します。 
 
 積分は「累積量」を計算する操作です。材料科学では熱量計算、プロセス工学では反応物の総量、 機械学習では確率分布の正規化定数などに使われます。 
 
 ### 💻 コード例1: リーマン和による定積分の近似
 
-`import numpy as np import matplotlib.pyplot as plt def f(x): """被積分関数: f(x) = x^2""" return x**2 # リーマン和による積分の近似 def riemann_sum(f, a, b, n, method='midpoint'): """ method: 'left' (左端), 'right' (右端), 'midpoint' (中点) """ dx = (b - a) / n x = np.linspace(a, b, n+1) if method == 'left': x_sample = x[:-1] elif method == 'right': x_sample = x[1:] else: # midpoint x_sample = (x[:-1] + x[1:]) / 2 return np.sum(f(x_sample) * dx) # ∫₀¹ x² dx = 1/3 を計算 a, b = 0, 1 exact_value = 1/3 n_values = [4, 10, 50, 100, 500] print("リーマン和による積分近似:") print(f"解析解: ∫₀¹ x² dx = {exact_value:.10f}\n") for n in n_values: approx = riemann_sum(f, a, b, n, 'midpoint') error = abs(approx - exact_value) print(f"n={n:3d}: 近似値 = {approx:.10f}, 誤差 = {error:.2e}") # 可視化: n=10 の場合の中点リーマン和 n = 10 x = np.linspace(a, b, 1000) dx = (b - a) / n x_rect = np.linspace(a, b, n+1) x_mid = (x_rect[:-1] + x_rect[1:]) / 2 fig, ax = plt.subplots(figsize=(10, 6)) ax.plot(x, f(x), 'b-', linewidth=2, label='f(x) = x²') ax.fill_between(x, 0, f(x), alpha=0.2) # 長方形を描画 for i in range(n): height = f(x_mid[i]) rect = plt.Rectangle((x_rect[i], 0), dx, height, edgecolor='red', facecolor='none', linewidth=1.5) ax.add_patch(rect) ax.plot([x_mid[i]], [height], 'ro', markersize=6) ax.set_xlabel('x', fontsize=12) ax.set_ylabel('f(x)', fontsize=12) ax.set_title(f'中点リーマン和 (n={n})', fontsize=14) ax.legend() ax.grid(True, alpha=0.3) plt.tight_layout() plt.show()`
+```python
+import numpy as np
+import matplotlib.pyplot as plt
+
+def f(x):
+    """被積分関数: f(x) = x^2"""
+    return x**2
+
+# リーマン和による積分の近似
+def riemann_sum(f, a, b, n, method='midpoint'):
+    """
+    method: 'left' (左端), 'right' (右端), 'midpoint' (中点)
+    """
+    dx = (b - a) / n
+    x = np.linspace(a, b, n+1)
+
+    if method == 'left':
+        x_sample = x[:-1]
+    elif method == 'right':
+        x_sample = x[1:]
+    else:  # midpoint
+        x_sample = (x[:-1] + x[1:]) / 2
+
+    return np.sum(f(x_sample) * dx)
+
+# ∫₀¹ x² dx = 1/3 を計算
+a, b = 0, 1
+exact_value = 1/3
+
+n_values = [4, 10, 50, 100, 500]
+print("リーマン和による積分近似:")
+print(f"解析解: ∫₀¹ x² dx = {exact_value:.10f}\n")
+
+for n in n_values:
+    approx = riemann_sum(f, a, b, n, 'midpoint')
+    error = abs(approx - exact_value)
+    print(f"n={n:3d}: 近似値 = {approx:.10f}, 誤差 = {error:.2e}")
+
+# 可視化: n=10 の場合の中点リーマン和
+n = 10
+x = np.linspace(a, b, 1000)
+dx = (b - a) / n
+x_rect = np.linspace(a, b, n+1)
+x_mid = (x_rect[:-1] + x_rect[1:]) / 2
+
+fig, ax = plt.subplots(figsize=(10, 6))
+ax.plot(x, f(x), 'b-', linewidth=2, label='f(x) = x²')
+ax.fill_between(x, 0, f(x), alpha=0.2)
+
+# 長方形を描画
+for i in range(n):
+    height = f(x_mid[i])
+    rect = plt.Rectangle((x_rect[i], 0), dx, height,
+                         edgecolor='red', facecolor='none', linewidth=1.5)
+    ax.add_patch(rect)
+    ax.plot([x_mid[i]], [height], 'ro', markersize=6)
+
+ax.set_xlabel('x', fontsize=12)
+ax.set_ylabel('f(x)', fontsize=12)
+ax.set_title(f'中点リーマン和 (n={n})', fontsize=14)
+ax.legend()
+ax.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.show()
+```
 
 **📐 定理: 微積分の基本定理**  
 f(x) が連続関数で F(x) が f(x) の原始関数（不定積分）のとき： $$\int_a^b f(x) dx = F(b) - F(a)$$ この定理により、微分と積分が互いに逆操作であることがわかります。 
 
 ### 💻 コード例2: SymPyによる記号積分
 
-`import sympy as sp x = sp.Symbol('x') # 不定積分（原始関数） functions = [ x**2, sp.exp(x), sp.sin(x), 1/x, x * sp.exp(x) ] print("不定積分の例:") for func in functions: integral = sp.integrate(func, x) print(f"∫ {func} dx = {integral} + C") print("\n定積分の例:") # ∫₀¹ x² dx result = sp.integrate(x**2, (x, 0, 1)) print(f"∫₀¹ x² dx = {result}") # ∫₀^π sin(x) dx result = sp.integrate(sp.sin(x), (x, 0, sp.pi)) print(f"∫₀^π sin(x) dx = {result}")`
+```python
+import sympy as sp
+
+x = sp.Symbol('x')
+
+# 不定積分（原始関数）
+functions = [
+    x**2,
+    sp.exp(x),
+    sp.sin(x),
+    1/x,
+    x * sp.exp(x)
+]
+
+print("不定積分の例:")
+for func in functions:
+    integral = sp.integrate(func, x)
+    print(f"∫ {func} dx = {integral} + C")
+
+print("\n定積分の例:")
+# ∫₀¹ x² dx
+result = sp.integrate(x**2, (x, 0, 1))
+print(f"∫₀¹ x² dx = {result}")
+
+# ∫₀^π sin(x) dx
+result = sp.integrate(sp.sin(x), (x, 0, sp.pi))
+print(f"∫₀^π sin(x) dx = {result}")
+```
 
 ## 2.2 台形則による数値積分
 
@@ -32,7 +141,50 @@ f(x) が連続関数で F(x) が f(x) の原始関数（不定積分）のとき
 
 ### 💻 コード例3: 台形則の実装
 
-`def trapezoidal_rule(f, a, b, n): """ 台形則による数値積分 精度: O(h²) where h = (b-a)/n """ x = np.linspace(a, b, n+1) y = f(x) h = (b - a) / n # 台形則の公式: h * [f(a)/2 + f(x₁) + ... + f(xₙ₋₁) + f(b)/2] integral = h * (y[0]/2 + np.sum(y[1:-1]) + y[-1]/2) return integral # テスト: ∫₀^π sin(x) dx = 2 f = np.sin a, b = 0, np.pi exact = 2.0 print("台形則による積分:") print(f"解析解: ∫₀^π sin(x) dx = {exact}\n") for n in [10, 50, 100, 500]: approx = trapezoidal_rule(f, a, b, n) error = abs(approx - exact) print(f"n={n:3d}: 近似値 = {approx:.10f}, 誤差 = {error:.2e}") # 収束性の確認 n_values = np.array([10, 20, 50, 100, 200, 500, 1000]) errors = [] for n in n_values: approx = trapezoidal_rule(f, a, b, n) errors.append(abs(approx - exact)) plt.figure(figsize=(8, 6)) plt.loglog(n_values, errors, 'o-', linewidth=2, markersize=8, label='台形則の誤差') plt.loglog(n_values, 1/n_values**2, '--', label='O(1/n²)', alpha=0.5) plt.xlabel('分割数 n', fontsize=12) plt.ylabel('絶対誤差', fontsize=12) plt.title('台形則の収束性', fontsize=14) plt.legend() plt.grid(True, alpha=0.3) plt.show()`
+```python
+def trapezoidal_rule(f, a, b, n):
+    """
+    台形則による数値積分
+    精度: O(h²) where h = (b-a)/n
+    """
+    x = np.linspace(a, b, n+1)
+    y = f(x)
+    h = (b - a) / n
+
+    # 台形則の公式: h * [f(a)/2 + f(x₁) + ... + f(xₙ₋₁) + f(b)/2]
+    integral = h * (y[0]/2 + np.sum(y[1:-1]) + y[-1]/2)
+    return integral
+
+# テスト: ∫₀^π sin(x) dx = 2
+f = np.sin
+a, b = 0, np.pi
+exact = 2.0
+
+print("台形則による積分:")
+print(f"解析解: ∫₀^π sin(x) dx = {exact}\n")
+
+for n in [10, 50, 100, 500]:
+    approx = trapezoidal_rule(f, a, b, n)
+    error = abs(approx - exact)
+    print(f"n={n:3d}: 近似値 = {approx:.10f}, 誤差 = {error:.2e}")
+
+# 収束性の確認
+n_values = np.array([10, 20, 50, 100, 200, 500, 1000])
+errors = []
+for n in n_values:
+    approx = trapezoidal_rule(f, a, b, n)
+    errors.append(abs(approx - exact))
+
+plt.figure(figsize=(8, 6))
+plt.loglog(n_values, errors, 'o-', linewidth=2, markersize=8, label='台形則の誤差')
+plt.loglog(n_values, 1/n_values**2, '--', label='O(1/n²)', alpha=0.5)
+plt.xlabel('分割数 n', fontsize=12)
+plt.ylabel('絶対誤差', fontsize=12)
+plt.title('台形則の収束性', fontsize=14)
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.show()
+```
 
 ## 2.3 Simpson則による高精度積分
 
@@ -40,7 +192,57 @@ Simpson則は、曲線を2次関数（放物線）で近似する方法で、台
 
 ### 💻 コード例4: Simpson則の実装
 
-`def simpson_rule(f, a, b, n): """ Simpson則による数値積分 n は偶数である必要がある 精度: O(h⁴) where h = (b-a)/n """ if n % 2 != 0: raise ValueError("n must be even for Simpson's rule") x = np.linspace(a, b, n+1) y = f(x) h = (b - a) / n # Simpson則の公式 integral = h/3 * (y[0] + 4*np.sum(y[1:-1:2]) + 2*np.sum(y[2:-1:2]) + y[-1]) return integral # 台形則とSimpson則の比較 print("台形則 vs Simpson則:") print(f"解析解: ∫₀^π sin(x) dx = {exact}\n") n = 100 trap_result = trapezoidal_rule(f, a, b, n) simp_result = simpson_rule(f, a, b, n) print(f"n={n}:") print(f"台形則: {trap_result:.10f}, 誤差 = {abs(trap_result - exact):.2e}") print(f"Simpson則: {simp_result:.10f}, 誤差 = {abs(simp_result - exact):.2e}") # 精度比較の可視化 n_values = np.array([10, 20, 50, 100, 200, 500]) errors_trap = [] errors_simp = [] for n in n_values: errors_trap.append(abs(trapezoidal_rule(f, a, b, n) - exact)) errors_simp.append(abs(simpson_rule(f, a, b, n if n%2==0 else n+1) - exact)) plt.figure(figsize=(10, 6)) plt.loglog(n_values, errors_trap, 'o-', linewidth=2, markersize=8, label='台形則') plt.loglog(n_values, errors_simp, 's-', linewidth=2, markersize=8, label='Simpson則') plt.loglog(n_values, 1/n_values**2, '--', label='O(1/n²)', alpha=0.5) plt.loglog(n_values, 1/n_values**4, '--', label='O(1/n⁴)', alpha=0.5) plt.xlabel('分割数 n', fontsize=12) plt.ylabel('絶対誤差', fontsize=12) plt.title('数値積分法の精度比較', fontsize=14) plt.legend() plt.grid(True, alpha=0.3) plt.show()`
+```python
+def simpson_rule(f, a, b, n):
+    """
+    Simpson則による数値積分
+    n は偶数である必要がある
+    精度: O(h⁴) where h = (b-a)/n
+    """
+    if n % 2 != 0:
+        raise ValueError("n must be even for Simpson's rule")
+
+    x = np.linspace(a, b, n+1)
+    y = f(x)
+    h = (b - a) / n
+
+    # Simpson則の公式
+    integral = h/3 * (y[0] + 4*np.sum(y[1:-1:2]) + 2*np.sum(y[2:-1:2]) + y[-1])
+    return integral
+
+# 台形則とSimpson則の比較
+print("台形則 vs Simpson則:")
+print(f"解析解: ∫₀^π sin(x) dx = {exact}\n")
+
+n = 100
+trap_result = trapezoidal_rule(f, a, b, n)
+simp_result = simpson_rule(f, a, b, n)
+
+print(f"n={n}:")
+print(f"台形則:    {trap_result:.10f}, 誤差 = {abs(trap_result - exact):.2e}")
+print(f"Simpson則: {simp_result:.10f}, 誤差 = {abs(simp_result - exact):.2e}")
+
+# 精度比較の可視化
+n_values = np.array([10, 20, 50, 100, 200, 500])
+errors_trap = []
+errors_simp = []
+
+for n in n_values:
+    errors_trap.append(abs(trapezoidal_rule(f, a, b, n) - exact))
+    errors_simp.append(abs(simpson_rule(f, a, b, n if n%2==0 else n+1) - exact))
+
+plt.figure(figsize=(10, 6))
+plt.loglog(n_values, errors_trap, 'o-', linewidth=2, markersize=8, label='台形則')
+plt.loglog(n_values, errors_simp, 's-', linewidth=2, markersize=8, label='Simpson則')
+plt.loglog(n_values, 1/n_values**2, '--', label='O(1/n²)', alpha=0.5)
+plt.loglog(n_values, 1/n_values**4, '--', label='O(1/n⁴)', alpha=0.5)
+plt.xlabel('分割数 n', fontsize=12)
+plt.ylabel('絶対誤差', fontsize=12)
+plt.title('数値積分法の精度比較', fontsize=14)
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.show()
+```
 
 ## 2.4 SciPyによる高度な数値積分
 
@@ -48,7 +250,66 @@ SciPyライブラリは、適応的刻み幅調整や高次の求積法を実装
 
 ### 💻 コード例5: SciPyの数値積分関数
 
-`from scipy import integrate # 様々な積分法の比較 def test_function(x): """振動の激しい関数""" return np.sin(x) * np.exp(-x/10) a, b = 0, 20 exact_value = integrate.quad(test_function, a, b, limit=1000)[0] # 高精度参照値 print("SciPyの数値積分:") print(f"参照値 (quad): {exact_value:.10f}\n") # quad: 適応的Gauss-Kronrod求積法 result, error = integrate.quad(test_function, a, b) print(f"quad (適応的): {result:.10f}, 推定誤差 = {error:.2e}") # fixed_quad: 固定次数Gauss-Legendre求積法 result, _ = integrate.fixed_quad(test_function, a, b, n=50) print(f"fixed_quad (n=50): {result:.10f}, 誤差 = {abs(result-exact_value):.2e}") # romberg: Romberg積分（Richardson外挿の拡張） result = integrate.romberg(test_function, a, b, show=False) print(f"romberg: {result:.10f}, 誤差 = {abs(result-exact_value):.2e}") # 可視化 x = np.linspace(a, b, 1000) y = test_function(x) plt.figure(figsize=(10, 6)) plt.plot(x, y, linewidth=2) plt.fill_between(x, 0, y, alpha=0.3) plt.xlabel('x', fontsize=12) plt.ylabel('f(x)', fontsize=12) plt.title('被積分関数: f(x) = sin(x)·exp(-x/10)', fontsize=14) plt.grid(True, alpha=0.3) plt.axhline(y=0, color='k', linewidth=0.5) plt.show()`
+```python
+from scipy import integrate
+
+# 様々な積分法の比較
+def test_function(x):
+    """振動の激しい関数"""
+    return np.sin(x) * np.exp(-x/10)
+
+def antiderivative(x):
+    """∫ sin(x)·exp(-0.1x) dx の閉形式"""
+    return -np.exp(-0.1*x) * (0.1*np.sin(x) + np.cos(x)) / 1.01
+
+a, b = 0, 20
+# 解析的な参照値（別の数値解ではない）
+exact_value = antiderivative(b) - antiderivative(a)
+
+print("SciPyの数値積分:")
+print(f"解析的参照値:         {exact_value:.10f}\n")
+
+# quad: 適応的Gauss-Kronrod求積法
+result, error = integrate.quad(test_function, a, b)
+print(f"quad (適応的):        {result:.10f}, 推定誤差 = {error:.2e}, "
+      f"真の誤差 = {abs(result-exact_value):.2e}")
+
+# fixed_quad: 固定次数Gauss-Legendre求積法
+result, _ = integrate.fixed_quad(test_function, a, b, n=50)
+print(f"fixed_quad (n=50):    {result:.10f}, 真の誤差 = {abs(result-exact_value):.2e}")
+
+# romb: 2^k+1 個の等間隔サンプル上でのRomberg積分
+# （integrate.rombergはSciPy 1.15で削除されたため、サンプルベースのrombを使う）
+k = 10
+xs = np.linspace(a, b, 2**k + 1)
+result = integrate.romb(test_function(xs), dx=(b - a) / 2**k)
+print(f"romb (2^10+1点):      {result:.10f}, 真の誤差 = {abs(result-exact_value):.2e}")
+
+# 可視化
+x = np.linspace(a, b, 1000)
+y = test_function(x)
+
+plt.figure(figsize=(10, 6))
+plt.plot(x, y, linewidth=2)
+plt.fill_between(x, 0, y, alpha=0.3)
+plt.xlabel('x', fontsize=12)
+plt.ylabel('f(x)', fontsize=12)
+plt.title('被積分関数: f(x) = sin(x)·exp(-x/10)', fontsize=14)
+plt.grid(True, alpha=0.3)
+plt.axhline(y=0, color='k', linewidth=0.5)
+plt.show()
+```
+
+**実行結果:**
+
+```
+SciPyの数値積分:
+解析的参照値:         0.9231848794
+
+quad (適応的):        0.9231848794, 推定誤差 = 5.75e-12, 真の誤差 = 2.22e-16
+fixed_quad (n=50):    0.9231848794, 真の誤差 = 8.88e-16
+romb (2^10+1点):      0.9231848794, 真の誤差 = 0.00e+00
+```
 
 ## 2.5 材料科学への応用: 熱容量の計算
 
@@ -56,7 +317,78 @@ SciPyライブラリは、適応的刻み幅調整や高次の求積法を実装
 
 ### 💻 コード例6: 熱量計算
 
-`# 銅の熱容量の温度依存性（実験式） def copper_heat_capacity(T): """ 銅の定圧熱容量 Cp [J/(mol·K)] T: 温度 [K] """ # Shomate equation (簡略版) A, B, C = 22.64, 6.28e-3, 0 return A + B*T + C*T**2 # 300K から 600K まで加熱するのに必要な熱量 T1, T2 = 300, 600 # 数値積分 Q_numerical, error = integrate.quad(copper_heat_capacity, T1, T2) # 解析積分（検証用） def Q_analytical(T1, T2): A, B = 22.64, 6.28e-3 return A*(T2-T1) + B/2*(T2**2-T1**2) Q_exact = Q_analytical(T1, T2) print(f"銅 1 mol を {T1}K → {T2}K に加熱する熱量:") print(f"数値積分: Q = {Q_numerical:.2f} J/mol (推定誤差: {error:.2e})") print(f"解析解: Q = {Q_exact:.2f} J/mol") print(f"差: {abs(Q_numerical - Q_exact):.2e} J/mol") # Cp(T) の可視化 T = np.linspace(200, 800, 100) Cp = copper_heat_capacity(T) fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5)) # 左図: 熱容量の温度依存性 ax1.plot(T, Cp, linewidth=2) ax1.axvspan(T1, T2, alpha=0.2, color='orange', label='積分区間') ax1.set_xlabel('温度 T (K)', fontsize=12) ax1.set_ylabel('熱容量 Cp (J/(mol·K))', fontsize=12) ax1.set_title('銅の熱容量', fontsize=14) ax1.legend() ax1.grid(True, alpha=0.3) # 右図: 熱量の累積 T_range = np.linspace(300, 800, 100) Q_cumulative = [integrate.quad(copper_heat_capacity, 300, T)[0] for T in T_range] ax2.plot(T_range, Q_cumulative, linewidth=2) ax2.axhline(y=Q_numerical, color='red', linestyle='--', label=f'Q(300→600K) = {Q_numerical:.0f} J/mol') ax2.set_xlabel('温度 T (K)', fontsize=12) ax2.set_ylabel('累積熱量 (J/mol)', fontsize=12) ax2.set_title('300Kからの累積加熱量', fontsize=14) ax2.legend() ax2.grid(True, alpha=0.3) plt.tight_layout() plt.show()`
+```python
+# 銅の熱容量の温度依存性（実験式）
+def copper_heat_capacity(T):
+    """
+    銅の定圧熱容量 Cp [J/(mol·K)]
+    T: 温度 [K]
+    """
+    # Maier-Kelley型の線形フィット（300-600 K付近で有効）
+    # （これはShomate式ではない。Shomate式は t = T/1000 を用いた
+    #   A + B*t + C*t**2 + D*t**3 + E/t**2 の形をとる。）
+    A, B = 22.64, 6.28e-3
+    return A + B*T
+
+# 300K から 600K まで加熱するのに必要な熱量
+T1, T2 = 300, 600
+
+# 数値積分
+Q_numerical, error = integrate.quad(copper_heat_capacity, T1, T2)
+
+# 解析積分（検証用）
+def Q_analytical(T1, T2):
+    A, B = 22.64, 6.28e-3
+    return A*(T2-T1) + B/2*(T2**2-T1**2)
+
+Q_exact = Q_analytical(T1, T2)
+
+print(f"銅 1 mol を {T1}K → {T2}K に加熱する熱量:")
+print(f"数値積分: Q = {Q_numerical:.2f} J/mol (推定誤差: {error:.2e})")
+print(f"解析解:   Q = {Q_exact:.2f} J/mol")
+print(f"差:       {abs(Q_numerical - Q_exact):.2e} J/mol")
+
+# Cp(T) の可視化
+T = np.linspace(200, 800, 100)
+Cp = copper_heat_capacity(T)
+
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+
+# 左図: 熱容量の温度依存性
+ax1.plot(T, Cp, linewidth=2)
+ax1.axvspan(T1, T2, alpha=0.2, color='orange', label='積分区間')
+ax1.set_xlabel('温度 T (K)', fontsize=12)
+ax1.set_ylabel('熱容量 Cp (J/(mol·K))', fontsize=12)
+ax1.set_title('銅の熱容量', fontsize=14)
+ax1.legend()
+ax1.grid(True, alpha=0.3)
+
+# 右図: 熱量の累積
+T_range = np.linspace(300, 800, 100)
+Q_cumulative = [integrate.quad(copper_heat_capacity, 300, T)[0] for T in T_range]
+
+ax2.plot(T_range, Q_cumulative, linewidth=2)
+ax2.axhline(y=Q_numerical, color='red', linestyle='--', label=f'Q(300→600K) = {Q_numerical:.0f} J/mol')
+ax2.set_xlabel('温度 T (K)', fontsize=12)
+ax2.set_ylabel('累積熱量 (J/mol)', fontsize=12)
+ax2.set_title('300Kからの累積加熱量', fontsize=14)
+ax2.legend()
+ax2.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+```
+
+**実行結果:**
+
+```
+銅 1 mol を 300K → 600K に加熱する熱量:
+数値積分: Q = 7639.80 J/mol (推定誤差: 8.48e-11)
+解析解:   Q = 7639.80 J/mol
+差:       0.00e+00 J/mol
+```
+
+参考までに、同じ区間でNISTのShomate式（Cu, cr）を積分すると7681.83 J/molとなり、 この線形フィットは約0.55%低い値です。手法の説明には十分な精度ですが、熱化学データ表の代わりにはなりません。
 
 ## 2.6 広義積分と特異点の扱い
 
@@ -64,7 +396,33 @@ SciPyライブラリは、適応的刻み幅調整や高次の求積法を実装
 
 ### 💻 コード例7: 広義積分の計算
 
-`# 例1: 積分区間が無限大 def integrand1(x): return np.exp(-x**2) # ∫₀^∞ exp(-x²) dx = √π/2 result, error = integrate.quad(integrand1, 0, np.inf) exact = np.sqrt(np.pi) / 2 print("広義積分の例:") print(f"∫₀^∞ exp(-x²) dx = {result:.10f} (解析解: {exact:.10f})") print(f"推定誤差: {error:.2e}, 実誤差: {abs(result-exact):.2e}\n") # 例2: 特異点がある場合 def integrand2(x): """x=0 で特異点を持つ""" return 1/np.sqrt(x) # ∫₀¹ 1/√x dx = 2 result, error = integrate.quad(integrand2, 0, 1) exact = 2.0 print(f"∫₀¹ 1/√x dx = {result:.10f} (解析解: {exact:.10f})") print(f"推定誤差: {error:.2e}, 実誤差: {abs(result-exact):.2e}") # 特異点を明示的に指定 result2, error2 = integrate.quad(integrand2, 0, 1, points=[0]) print(f"特異点指定: {result2:.10f}, 誤差: {abs(result2-exact):.2e}")`
+```python
+# 例1: 積分区間が無限大
+def integrand1(x):
+    return np.exp(-x**2)
+
+# ∫₀^∞ exp(-x²) dx = √π/2
+result, error = integrate.quad(integrand1, 0, np.inf)
+exact = np.sqrt(np.pi) / 2
+print("広義積分の例:")
+print(f"∫₀^∞ exp(-x²) dx = {result:.10f} (解析解: {exact:.10f})")
+print(f"推定誤差: {error:.2e}, 実誤差: {abs(result-exact):.2e}\n")
+
+# 例2: 特異点がある場合
+def integrand2(x):
+    """x=0 で特異点を持つ"""
+    return 1/np.sqrt(x)
+
+# ∫₀¹ 1/√x dx = 2
+result, error = integrate.quad(integrand2, 0, 1)
+exact = 2.0
+print(f"∫₀¹ 1/√x dx = {result:.10f} (解析解: {exact:.10f})")
+print(f"推定誤差: {error:.2e}, 実誤差: {abs(result-exact):.2e}")
+
+# 特異点を明示的に指定
+result2, error2 = integrate.quad(integrand2, 0, 1, points=[0])
+print(f"特異点指定: {result2:.10f}, 誤差: {abs(result2-exact):.2e}")
+```
 
 ## 2.7 練習問題
 
@@ -74,10 +432,10 @@ SciPyライブラリは、適応的刻み幅調整や高次の求積法を実装
 
 ## まとめ
 
-  * 定積分は曲線と軸で囲まれた面積を表し、累積量の計算に使われる
+  * 定積分は曲線と軸の間の符号付き面積を表し、累積量の計算に使われる
   * 台形則は O(h²)、Simpson則は O(h⁴) の精度を持つ基本的な数値積分法
   * SciPyの quad 関数は適応的刻み幅調整により高精度な積分を実現
-  * 材料科学では熱量計算、スペクトル解析など様々な場面で積分が活用される
+  * 材料科学では熱量計算、累積量の解析など様々な場面で積分が活用される
   * 広義積分や特異点を含む積分も、適切な手法で数値計算可能
 
 [← 第1章: 微分の基礎](<chapter-1.html>) [第3章: 多変数関数の微積分 →](<chapter-3.html>)

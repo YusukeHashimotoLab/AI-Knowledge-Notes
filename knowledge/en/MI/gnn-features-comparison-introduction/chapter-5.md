@@ -3,6 +3,22 @@ title: "Chapter 5: Hybrid Approaches"
 chapter_title: "Chapter 5: Hybrid Approaches"
 ---
 
+## Video Lecture
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/x2-L_yYs8pQ"
+    title="GNN Features Comparison Ch.5: Hybrid Approaches"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> This video covers the same content as the text below. Choose your preferred learning format.
+
 🌐 EN | [🇯🇵 JP](<../../../jp/MI/gnn-features-comparison-introduction/chapter-5.html>) | Last sync: 2025-11-16
 
 # Chapter 5: Hybrid Approaches
@@ -938,6 +954,8 @@ We comprehensively compare the performance of all hybrid methods implemented in 
     # - pandas>=2.0.0, <2.2.0
     
     """
+    Example: We comprehensively compare the performance of all hybrid met
+    
     Purpose: Demonstrate data visualization techniques
     Target: Beginner to Intermediate
     Execution time: 1-5 minutes

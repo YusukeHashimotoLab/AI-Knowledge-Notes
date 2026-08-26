@@ -8,6 +8,22 @@ code_examples: 12
 exercises: 6
 ---
 
+## ビデオ講義
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/U-IJQiG3mr8"
+    title="GNN入門 第1章: グラフとグラフ表現学習の基礎"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> このビデオは以下のテキストと同じ内容をカバーしています。お好みの学習形式をお選びください。
+
 ## 学習目標
 
 この章を読むことで、以下を習得できます：

@@ -8,6 +8,23 @@ code_examples: 9
 exercises: 3
 ---
 
+## ビデオ講義
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/2vQvTjDfQJY"
+    title="バイオインフォマティクス入門 第3章: 分子ドッキングと相互作用解析"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> このビデオは以下のテキストと同じ内容をカバーしています。お好みの学習形式をお選びください。
+
+---
+
 # 第3章：分子ドッキングと相互作用解析
 
 **タンパク質-リガンド結合の予測**

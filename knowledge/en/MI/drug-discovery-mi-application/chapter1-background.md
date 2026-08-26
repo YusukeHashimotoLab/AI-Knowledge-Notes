@@ -4,6 +4,22 @@ chapter_title: Drug Discovery and the Role of Materials Informatics
 subtitle: Fundamentals of Drug Development and AI-Driven Drug Discovery
 ---
 
+## Video Lecture
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/3shMwOruY8Y"
+    title="Drug Discovery MI Ch.1: Drug Discovery and the Role of Materials Informatics"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> This video covers the same content as the text below. Choose your preferred learning format.
+
 # Chapter 1: The Role of Materials Informatics in Drug Discovery
 
 This chapter covers The Role of Materials Informatics in Drug Discovery. You will learn 5 stages of drug discovery, Traditional drug discovery duration (12 years), and Three bottlenecks in drug discovery (time.
@@ -119,7 +135,7 @@ Developing new drugs is one of the most important scientific challenges in prote
     ```mermaid
     flowchart TD
         A["Screening
-    1000000 compounds"] -->|0.01%| B["Hits
+    1000000 compounds"] -->|0.1%| B["Hits
     1000 compounds"]
         B -->|5%| C["Leads
     50 compounds"]
@@ -138,7 +154,7 @@ Developing new drugs is one of the most important scientific challenges in prote
         style H fill:#e8f5e9
     ```
 
-**Final Success Rate** : 0.00006% (1 million → 0.06)
+**Final Success Rate** : 0.000006% (1 million → 0.06 — about 6 approvals per 100 million compounds screened)
 
 **Major Causes of Failure** : 1\. **Insufficient Efficacy** (40%): No expected effect in Phase II/III 2\. **Toxicity Issues** (30%): Hepatotoxicity, cardiotoxicity, carcinogenicity 3\. **Poor PK/PD** (20%): Inappropriate pharmacokinetics, low tissue accessibility 4\. **Commercial Reasons** (10%): Market potential judgment, patent issues
 
@@ -320,7 +336,7 @@ The integration of Materials Informatics (MI) with AI/machine learning can overc
 
 ### 1.3.1 Market Size and Global Trends
 
-**Rapid Growth of AI Drug Discovery Market** : \- **2020** : $1.2B \- **2024** : $4.5B (estimated) \- **2030** : $25B (forecast, 33% CAGR) \- **2035** : $50B+ (forecast)
+**Rapid Growth of AI Drug Discovery Market** (approximate market-research estimates; sources vary widely) : \- **Early 2020s** : roughly $1B \- **Mid-2020s** : roughly $4-5B (estimated) \- **Early 2030s** : projected toward $15-25B \- Implied growth: roughly 30-40% CAGR, depending on the series used
 
 **Investment Trends** : \- Venture capital investment (2015-2023 cumulative): $20B+ \- AI investment by pharma giants: $5-10B/year \- M&A activity: 50+ deals from 2020-2023
 
@@ -328,7 +344,7 @@ The integration of Materials Informatics (MI) with AI/machine learning can overc
 
 ### 1.3.2 Reduction in Development Time and Costs
 
-**Development Time Reduction** : \- Traditional: 10-15 years \- AI-enabled: 3-5 years (60-70% reduction) \- Examples: \- Exscientia (OCD drug): 12 months (traditional 4.5 years, 73% reduction) \- Insilico Medicine (IPF drug): 18 months (traditional 3-5 years, 70% reduction)
+**Development Time Reduction** : \- Traditional: 10-15 years \- AI-enabled: 3-5 years (60-70% reduction) \- Examples: \- Exscientia (OCD drug DSP-1181): 12 months to a candidate (traditional 4.5 years, 73% reduction) — the candidate was discontinued after Phase I in 2021 \- Insilico Medicine (IPF drug): 18 months (traditional 3-5 years, 70% reduction)
 
 **Cost Reduction** : \- Traditional: $2.6B/drug \- AI-enabled: $500M-$1B/drug (60-80% reduction) \- Reduction areas: \- Lead discovery: $500M → $50M (90% reduction) \- Preclinical studies: $500M → $200M (60% reduction) \- Lower clinical trial failure rate: $700M failure cost reduction
 
@@ -338,7 +354,7 @@ The integration of Materials Informatics (MI) with AI/machine learning can overc
 
 #### Major Players
 
-**Exscientia (UK, Oxford)** : \- Founded: 2012 \- Funding: $525M (IPO 2021, market cap $2.4B) \- Pipeline: 30+ compounds (3 in Phase I/II) \- Partners: Sanofi, Bayer, BMS
+**Exscientia (UK, Oxford)** : \- Founded: 2012 \- Funding: $525M (IPO 2021, market cap $2.4B) \- Pipeline: 30+ compounds (3 in Phase I/II) \- Partners: Sanofi, Bayer, BMS \- Status: merged into Recursion Pharmaceuticals in November 2024; the figures above describe the company as an independent business
 
 **Insilico Medicine (Hong Kong/USA)** : \- Founded: 2014 \- Funding: $400M \- Technology: Generative Chemistry (GAN), Reinforcement Learning \- Pipeline: 30+ compounds, 6 starting Phase I \- Partners: Pfizer, Fosun Pharma
 
@@ -348,7 +364,7 @@ The integration of Materials Informatics (MI) with AI/machine learning can overc
 
 **Schrödinger (USA, New York)** : \- Founded: 1990 (AI pivot around 2015) \- Funding: $532M (IPO 2020) \- Technology: Physics-based + ML \- Products: Maestro, LiveDesign (computational chemistry platform)
 
-**BenevolentAI (UK, London)** : \- Founded: 2013 \- Funding: $292M \- Technology: Knowledge Graph, NLP \- Track record: Drug repurposing (ALS, COVID-19)
+**BenevolentAI (UK, London)** : \- Founded: 2013 \- Funding: $292M \- Technology: Knowledge Graph, NLP \- Track record: Drug repurposing (ALS, COVID-19) \- Status: wound down and delisted in 2025; retained here as a historical case study
 
 #### AI Drug Discovery in Japan
 
@@ -380,7 +396,7 @@ The integration of Materials Informatics (MI) with AI/machine learning can overc
 
 **Birth of QSAR (Quantitative Structure-Activity Relationship)** : \- **1962** : Hansch & Fujita published first QSAR equation `log(1/C) = a * logP + b * σ + c * Es + d` \- C: Biological activity concentration \- logP: Partition coefficient (lipophilicity) \- σ: Hammett constant (electronic effect) \- Es: Steric parameter
 
-  * **1979** : CoMFA (Comparative Molecular Field Analysis)
+  * **1988** : CoMFA (Comparative Molecular Field Analysis, Cramer et al.)
   * 3D-QSAR, analysis of electrostatic and steric fields around molecules
 
 **Limitations** : \- Linear regression models only (cannot capture nonlinear relationships) \- Limited descriptors (insufficient computational power) \- Small datasets (< 100 compounds)
@@ -447,7 +463,7 @@ After completing this chapter, you will be able to explain:
 
 ### Industry Trends
 
-  * ✅ AI drug discovery market size (2024 $4.5B → 2030 $25B)
+  * ✅ AI drug discovery market size (roughly $1B in the early 2020s → a projected $15-25B by the early 2030s; sources vary)
   * ✅ Track record of 6 major startups (Exscientia, Insilico, etc.)
   * ✅ AI investment by pharma giants ($1-3B scale)
 
@@ -477,7 +493,7 @@ View Answer **Correct Answer**: Toxicity **ADMET**: \- **A**bsorption \- **D**is
 
 View Answer **Correct Answer**: Traditional 3-5 years → 18 months (1.5 years), 70-85% reduction **Calculation**: \- Reduction rate = (Traditional years - AI years) / Traditional years × 100 \- 3-year basis: (3 - 1.5) / 3 = 50% → but actually 70% up to preclinical \- 5-year basis: (5 - 1.5) / 5 = 70% 
 
-**Q4** : The AI drug discovery market is forecast to grow from $4.5B in 2024 to $25B in 2030. Calculate the CAGR (Compound Annual Growth Rate) for this period.
+**Q4** : One market-research series puts the AI drug discovery market at $4.5B in 2024 and $25B in 2030 (other series are lower — see 1.3.1). Calculate the CAGR (Compound Annual Growth Rate) for this period.
 
 View Answer **Correct Answer**: Approximately 33% **Calculation**: CAGR = (Ending value/Starting value)^(1/years) - 1 = (25/4.5)^(1/6) - 1 = 5.56^0.167 - 1 = 1.33 - 1 = 0.33 = 33% 
 

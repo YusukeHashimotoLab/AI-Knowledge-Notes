@@ -18,7 +18,6 @@ created_at: 2025-10-16
     height="315"
     src="https://www.youtube.com/embed/9SvXCQAT960"
     title="MI Introduction Ch.3: Hands-on Python for Materials Informatics"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>

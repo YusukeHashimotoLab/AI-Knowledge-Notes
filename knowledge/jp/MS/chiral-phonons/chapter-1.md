@@ -13,9 +13,8 @@ last_updated: "2025-12-19"
   <iframe
     width="560"
     height="315"
-    src="https://www.youtube.com/embed/WFXDUTY74Ws"
+    src="https://www.youtube.com/embed/OxkdCdUGIy4"
     title="カイラルフォノン 第1章: 理論的基礎"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>

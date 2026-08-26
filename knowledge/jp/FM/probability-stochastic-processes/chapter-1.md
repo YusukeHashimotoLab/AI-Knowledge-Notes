@@ -4,6 +4,23 @@ chapter_title: "第1章: 確率変数と確率分布の基礎"
 subtitle: Random Variables and Probability Distributions
 ---
 
+## ビデオ講義
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/UaU41cjUShE"
+    title="確率論と確率過程 第1章: 確率変数と確率分布の基礎"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> このビデオは以下のテキストと同じ内容をカバーしています。お好みの学習形式をお選びください。
+
+---
+
 🌐 JP | [🇬🇧 EN](<../../../en/FM/probability-stochastic-processes/chapter-1.html>) | Last sync: 2025-11-16
 
 [基礎数理道場](<../index.html>) > [確率論と確率過程](<index.html>) > 第1章 

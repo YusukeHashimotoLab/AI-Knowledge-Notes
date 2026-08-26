@@ -8,6 +8,22 @@ code_examples: 12
 exercises: 6
 ---
 
+## Video Lecture
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/U-IJQiG3mr8"
+    title="GNN Introduction Ch.1: Fundamentals of Graphs and Graph Representation Learning"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> This video covers the same content as the text below. Choose your preferred learning format.
+
 This chapter covers the fundamentals of Fundamentals of Graphs and Graph Representation Learning, which fundamentals of graph theory. You will learn basic graph concepts (nodes, different types of graphs (trees, and Calculate graph features (degree.
 
 ## Learning Objectives

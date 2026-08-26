@@ -1,7 +1,7 @@
 ---
 title: "Chapter 2: Magpie and Statistical Descriptors"
 chapter_title: "Chapter 2: Magpie and Statistical Descriptors"
-subtitle: High-precision mapping of materials space with 145-dimensional features
+subtitle: High-precision mapping of materials space with 132-dimensional features
 ---
 
 This chapter covers Magpie and Statistical Descriptors. You will learn essential concepts and techniques.
@@ -10,13 +10,13 @@ This chapter covers Magpie and Statistical Descriptors. You will learn essential
 
 #### Basic Understanding
 
-  * ✅ Explain the 145-dimensional structure of Magpie descriptors (22 elemental properties × 6-7 statistical measures)
-  * ✅ Understand the types of elemental properties (atomic, electronic, periodic table, thermodynamic)
-  * ✅ Understand the principles of statistical aggregation methods (mean, min, max, range, mode, weighted average)
+  * ✅ Explain the 132-dimensional structure of Magpie descriptors (22 elemental properties × 6 statistical measures)
+  * ✅ Understand the 22 elemental properties of the `magpie` preset (periodic-table position, atomic/thermal, valence counts, unfilled-orbital counts, ground-state DFT)
+  * ✅ Understand the principles of the six statistical aggregation methods (minimum, maximum, range, fraction-weighted mean, avg_dev, mode)
 
 #### Practical Skills
 
-  * ✅ Implement matminer MagpieFeaturizer to generate 145-dimensional features
+  * ✅ Implement matminer's `ElementProperty.from_preset('magpie')` to generate 132-dimensional features
   * ✅ Perform dimensionality reduction and visualization using PCA/t-SNE
   * ✅ Analyze feature importance using Random Forest
 
@@ -36,33 +36,38 @@ The core design is based on three principles:
 
   1. **Physical interpretability** : All features are based on physicochemical properties of elements
   2. **Scalability** : Applicable to arbitrary chemical formulas (approximately 2-10 elements)
-  3. **Information maximization** : Comprehensive description of materials space with 145 dimensions from 22 elemental properties × 6-7 statistical measures
+  3. **Information maximization** : Comprehensive description of materials space with 132 dimensions from 22 elemental properties × 6 statistical measures
 
-#### 💡 Why 145 Dimensions?
+#### 💡 Why 132 Dimensions? (And Where "145" Comes From)
 
-Ward et al. found that adding too many elemental properties increases redundancy, while too few reduces expressiveness. The 145 dimensions are the result of optimizing the **balance between information content and computational efficiency** (Ward et al., 2016, p. 4). In fact, Magpie achieved MAE=0.12 eV/atom in predicting formation enthalpies in OQMD (Open Quantum Materials Database), comparable to structure-based descriptors (Ward et al., 2017, p. 6).
+Ward et al. found that adding too many elemental properties increases redundancy, while too few reduces expressiveness. The 132 dimensions returned by matminer's `ElementProperty.from_preset('magpie')` are the result of optimizing the **balance between information content and computational efficiency** (Ward et al., 2016, p. 4).
 
-### Structure of the 145-Dimensional Vector
+You will often see the number **145** quoted instead. That is the size of the full attribute set described in the Ward et al. (2016) paper, which stacks three extra families on top of the elemental-property statistics: 6 stoichiometric attributes + **132 elemental-property statistics** + 4 valence-orbital fraction attributes + 3 ionic-compound attributes = 145. In matminer those extra families live in separate featurizers (`Stoichiometry`, `ValenceOrbital`, `IonProperty`), so the `magpie` preset on its own is always 132 columns — in every version of the library. Throughout this chapter, "Magpie features" means those 132 columns unless the Ward 2016 attribute set is named explicitly.
+
+In fact, Magpie achieved MAE=0.12 eV/atom in predicting formation enthalpies in OQMD (Open Quantum Materials Database), comparable to structure-based descriptors (Ward et al., 2017, p. 6).
+
+### Structure of the 132-Dimensional Vector
 
 Magpie descriptors have the following hierarchical structure:
     
     
     ```mermaid
     graph TD
-        A[Magpie 145 Dimensions] --> B[Elemental Properties 22 Types]
-        A --> C[Statistical Measures 6-7 Types]
+        A[Magpie 132 Dimensions] --> B[Elemental Properties 22 Types]
+        A --> C[Statistical Measures 6 Types]
     
-        B --> D[Atomic Properties 8 Types]
-        B --> E[Electronic Properties 6 Types]
-        B --> F[Periodic Table Properties 3 Types]
-        B --> G[Thermodynamic Properties 5 Types]
+        B --> D[Periodic Table Position 4 Types]
+        B --> E[Atomic and Thermal 4 Types]
+        B --> F[Valence Electron Counts 5 Types]
+        B --> G[Unfilled Orbital Counts 5 Types]
+        B --> N[Ground State DFT 4 Types]
     
-        C --> H[mean Average]
-        C --> I[min Minimum]
-        C --> J[max Maximum]
-        C --> K[range Range]
-        C --> L[mode Mode]
-        C --> M[weighted mean Weighted Average]
+        C --> H[minimum]
+        C --> I[maximum]
+        C --> J[range]
+        C --> K[mean fraction weighted]
+        C --> L[avg_dev]
+        C --> M[mode]
     
         style A fill:#f093fb,stroke:#f5576c,stroke-width:3px,color:#fff
         style B fill:#e3f2fd
@@ -71,13 +76,13 @@ Magpie descriptors have the following hierarchical structure:
 
 **Breakdown of dimensions:**
 
-  * 22 elemental properties × mean = 22 dimensions
   * 22 elemental properties × minimum = 22 dimensions
   * 22 elemental properties × maximum = 22 dimensions
   * 22 elemental properties × range (max - min) = 22 dimensions
+  * 22 elemental properties × mean (fraction-weighted) = 22 dimensions
+  * 22 elemental properties × avg_dev (mean absolute deviation) = 22 dimensions
   * 22 elemental properties × mode = 22 dimensions
-  * Subset of elemental properties (atomic weight, ionization energy, etc.) × weighted average = ~35 dimensions
-  * **Total: ~145 dimensions**
+  * **Total: 132 dimensions**
 
 ### Physical Meaning of Each Dimension
 
@@ -85,145 +90,144 @@ Each dimension of Magpie descriptors represents a physical quantity that directl
 
 Example Dimension | Physical Meaning | Affected Material Properties  
 ---|---|---  
-mean_AtomicRadius | Average atomic radius (Å) | Lattice constants, density, ionic conductivity  
-range_Electronegativity | Electronegativity range | Ionic bonding character, band gap  
-max_MeltingT | Maximum melting point (K) | High-temperature stability, heat resistance  
-weighted_mean_Valence | Weighted average valence | Redox properties, catalytic activity  
-mode_GSvolume_pa | Mode ground-state volume/atom | Crystal structure stability  
+MagpieData mean CovalentRadius | Fraction-weighted mean covalent radius (pm) | Lattice constants, density, ionic conductivity  
+MagpieData range Electronegativity | Electronegativity range | Ionic bonding character, band gap  
+MagpieData maximum MeltingT | Maximum melting point (K) | High-temperature stability, heat resistance  
+MagpieData avg_dev NValence | Spread of the total valence-electron count | Redox properties, catalytic activity  
+MagpieData mode GSvolume_pa | Mode ground-state volume/atom | Crystal structure stability  
   
 ## 2.2 Types of Elemental Properties
 
-### Atomic Properties (8 Types)
+The 22 elemental properties of the `magpie` preset are fixed — they are exactly the list held in `ElementProperty.from_preset("magpie").features`, and they do not change between matminer releases. They fall into five natural groups.
 
-Structural properties of atoms themselves:
+### Periodic Table Position (4 Types)
 
-  1. **AtomicWeight** (Atomic weight, g/mol): Affects mass and density
-  2. **AtomicRadius** (Atomic radius, Å): Determines bond lengths and lattice constants
-  3. **CovalentRadius** (Covalent radius, Å): Bond distances in covalent materials
-  4. **Density** (Density, g/cm³): Used for bulk material density prediction
-  5. **MeltingT** (Melting point, K): Indicator of high-temperature stability
-  6. **Column** (Group number, 1-18): Chemical property periodicity
-  7. **Row** (Period number, 1-7): Electron shell count, atomic size
-  8. **NdValence** (d-orbital valence electrons): Catalytic activity of transition metals
-
-### Electronic Properties (6 Types)
-
-Properties related to electronic states:
-
-  1. **Electronegativity** (Electronegativity, Pauling scale): Ionic/covalent character of bonds
-  2. **IonizationEnergy** (First ionization energy, eV): Ease of electron removal
-  3. **ElectronAffinity** (Electron affinity, eV): Ease of electron acceptance
-  4. **NsValence** (s-orbital valence electrons): Metallic bond strength
-  5. **NpValence** (p-orbital valence electrons): Semiconductor properties
-  6. **NfValence** (f-orbital valence electrons): Magnetism in lanthanides and actinides
-
-### Periodic Table Properties (3 Types)
-
-Properties related to position in the periodic table:
+Where an element sits in the periodic table, which encodes chemical similarity:
 
   1. **Number** (Atomic number, Z): Proton count, nuclear charge
-  2. **SpaceGroupNumber** (Space group number): Crystal symmetry prediction
-  3. **GSvolume_pa** (Ground-state volume/atom, Å³): Theoretical volume from DFT calculations
+  2. **MendeleevNumber** (Mendeleev number): An ordering that places chemically similar elements next to each other
+  3. **Column** (Group number, 1-18): Chemical property periodicity
+  4. **Row** (Period number, 1-7): Electron shell count, atomic size
 
-### Thermodynamic Properties (5 Types)
+### Atomic and Thermal Properties (4 Types)
 
-Properties related to thermodynamic stability:
+Mass, size, bonding character, and thermal stability of the atom:
 
-  1. **GSenergy_pa** (Ground-state energy/atom, eV): Crystal stability
+  1. **AtomicWeight** (Atomic weight, g/mol): Affects mass and density
+  2. **MeltingT** (Melting point, K): Indicator of high-temperature stability
+  3. **CovalentRadius** (Covalent radius, pm): Determines bond lengths and lattice constants
+  4. **Electronegativity** (Electronegativity, Pauling scale): Ionic/covalent character of bonds
+
+### Valence Electron Counts (5 Types)
+
+The number of valence electrons in each orbital type, plus their total:
+
+  1. **NsValence** (s-orbital valence electrons): Metallic bond strength
+  2. **NpValence** (p-orbital valence electrons): Semiconductor properties
+  3. **NdValence** (d-orbital valence electrons): Catalytic activity of transition metals
+  4. **NfValence** (f-orbital valence electrons): Magnetism in lanthanides and actinides
+  5. **NValence** (Total valence electrons): Overall bonding capacity and redox behaviour
+
+### Unfilled Orbital Counts (5 Types)
+
+The number of *vacancies* in each orbital type — the counterpart of the valence counts, and a strong signal for reactivity:
+
+  1. **NsUnfilled** (Unfilled s states): Availability of s-type acceptor states
+  2. **NpUnfilled** (Unfilled p states): Anion character, p-band filling
+  3. **NdUnfilled** (Unfilled d states): Transition-metal reactivity and magnetism
+  4. **NfUnfilled** (Unfilled f states): f-electron behaviour in rare earths
+  5. **NUnfilled** (Total unfilled states): Overall electron-accepting capacity
+
+### Ground-State (DFT) Properties (4 Types)
+
+Properties of the element's own ground-state crystal, tabulated from DFT calculations:
+
+  1. **GSvolume_pa** (Ground-state volume/atom, Å³): Theoretical volume from DFT calculations
   2. **GSbandgap** (Ground-state band gap, eV): Electrical properties of semiconductors/insulators
   3. **GSmagmom** (Ground-state magnetic moment, μB): Properties of magnetic materials
-  4. **BoilingT** (Boiling point, K): Stability in high-temperature processes
-  5. **HeatCapacity** (Heat capacity, J/mol·K): Heat transport properties
+  4. **SpaceGroupNumber** (Space group number): Crystal symmetry of the elemental solid
+
+Several quantities that feel like obvious candidates are **not** in these 22: ionization energy, electron affinity, density, boiling point, heat capacity, and ground-state energy per atom. If your problem needs them, use a different preset (matminer also ships `deml`, `matminer`, and `magpie_oxid`), pass an explicit property list to `ElementProperty`, or write a custom featurizer — Chapter 3 shows how.
 
 #### 📊 Database Sources
 
 Magpie elemental properties are obtained from the following databases:
 
-  * **OQMD** (Open Quantum Materials Database): Ground-state properties from DFT calculations (GSenergy_pa, GSvolume_pa, etc.)
+  * **OQMD** (Open Quantum Materials Database): Ground-state properties from DFT calculations (GSvolume_pa, GSbandgap, GSmagmom)
   * **Materials Project** : Crystal structure database (SpaceGroupNumber, etc.)
-  * **Mendeleev** : Standard periodic table elemental properties (atomic weight, electronegativity, ionization energy, etc.)
+  * **Mendeleev** : Standard periodic table elemental properties (atomic weight, electronegativity, melting point, etc.)
 
-These databases are integrated into the matminer library and can be accessed through the `pymatgen.Element` class.
+The values are shipped with matminer as a lookup table, and the same underlying quantities are also reachable through the `pymatgen.Element` class.
 
 ## 2.3 Statistical Aggregation Methods
 
-### Basic Statistical Measures (5 Types)
+### The Six Magpie Statistics
 
-The following statistical measures are used to convert elemental properties into overall material features:
+Each of the 22 elemental properties is collapsed into a single number six different ways, giving 22 × 6 = 132 columns named `MagpieData {statistic} {property}`. The six statistics are fixed: `minimum`, `maximum`, `range`, `mean`, `avg_dev`, `mode`.
 
-#### 1\. Mean (Average)
+Throughout, $f_i = n_i / \sum_j n_j$ is the **atomic fraction** of element $i$ (with $n_i$ its atom count), and $p_i$ is the property value of element $i$.
 
-The most basic statistical measure. Averages each element's property with equal weight:
-
-$$ \text{mean}(P) = \frac{1}{N} \sum_{i=1}^{N} p_i $$ 
-
-Where $N$ is the number of element types, and $p_i$ is the property value of element $i$.
-
-**Example (average atomic radius of Fe 2O3):**
-
-  * Fe: 1.26 Å (2 atoms)
-  * O: 0.66 Å (3 atoms)
-  * mean = (1.26 + 0.66) / 2 = 0.96 Å (averaged by number of element types)
-
-#### 2\. Min (Minimum)
+#### 1\. Minimum
 
 Minimum property value in the composition. Represents the material's "bottleneck":
 
-$$ \text{min}(P) = \min_{i=1}^{N} p_i $$ 
+$$ \text{minimum}(P) = \min_{i} p_i $$
 
-**Example:** min_Electronegativity = min(Fe: 1.83, O: 3.44) = 1.83 (Fe)
+**Example:** minimum Electronegativity = min(Fe: 1.83, O: 3.44) = 1.83 (Fe)
 
-#### 3\. Max (Maximum)
+#### 2\. Maximum
 
 Maximum property value in the composition. Indicates the material's "peak performance":
 
-$$ \text{max}(P) = \max_{i=1}^{N} p_i $$ 
+$$ \text{maximum}(P) = \max_{i} p_i $$
 
-**Example:** max_IonizationEnergy = max(Fe: 7.9 eV, O: 13.6 eV) = 13.6 eV (O)
+**Example:** maximum MeltingT = max(Fe: 1811 K, O: 54 K) = 1811 K (Fe)
 
-#### 4\. Range
+#### 3\. Range
 
 Difference between maximum and minimum values. Represents property "spread":
 
-$$ \text{range}(P) = \text{max}(P) - \text{min}(P) $$ 
+$$ \text{range}(P) = \text{maximum}(P) - \text{minimum}(P) $$
 
-**Example:** range_Electronegativity = 3.44 - 1.83 = 1.61 (indicates ionic bonding strength)
+**Example:** range Electronegativity = 3.44 - 1.83 = 1.61 (indicates ionic bonding strength)
 
-#### 5\. Mode
+#### 4\. Mean (Fraction-Weighted)
 
-Most frequently occurring property value in the composition. Important for multi-element systems:
+Magpie's `mean` is **not** a plain average over element types — it is weighted by atomic fraction:
 
-$$ \text{mode}(P) = \arg\max_{p_i} \text{count}(p_i) $$ 
+$$ \text{mean}(P) = \sum_{i} f_i \cdot p_i $$
 
-**Example (LiFePO 4):** Li: 1, Fe: 1, P: 1, O: 4 atoms → O (oxygen) properties are selected as mode.
-
-### Weighted Statistical Measures (Weighted Average)
-
-Average weighted by **atomic fraction**. A more physically meaningful statistical measure:
-
-$$ \text{weighted_mean}(P) = \sum_{i=1}^{N} f_i \cdot p_i $$ 
-
-Where $f_i = n_i / \sum_j n_j$ is the atomic fraction of element $i$, and $n_i$ is the atom count.
-
-**Example (weighted average atomic radius of Fe 2O3):**
+**Example (mean atomic radius of Fe 2O3):**
 
   * Atomic fraction of Fe: $f_{\text{Fe}} = 2 / (2+3) = 0.4$
   * Atomic fraction of O: $f_{\text{O}} = 3 / (2+3) = 0.6$
-  * weighted_mean = $0.4 \times 1.26 + 0.6 \times 0.66 = 0.504 + 0.396 = 0.90$ Å
+  * mean = $0.4 \times 1.26 + 0.6 \times 0.66 = 0.504 + 0.396 = 0.900$ Å
 
-This value represents the **effective atomic radius** of the material and is useful for predicting lattice constants and density.
+This value represents the **effective atomic radius** of the material and is useful for predicting lattice constants and density. The unweighted average over element types, $(1.26 + 0.66)/2 = 0.96$ Å, is a different quantity and is *not* what matminer returns.
 
-#### ⚠️ When to Use Mean vs Weighted Mean
+#### 5\. Avg_dev (Mean Absolute Deviation)
 
-**Mean** : Reflects diversity of element types (averaged by number of element types)
+The fraction-weighted mean absolute deviation from the mean. This is Magpie's measure of how spread out a property is:
 
-**Weighted Mean** : Reflects composition ratio (weighted by atom count)
+$$ \text{avg\_dev}(P) = \sum_{i} f_i \cdot \lvert p_i - \text{mean}(P) \rvert $$
 
-For example, in trace-doped systems like Li0.01Fe0.99O, Mean treats all three elements equally, while Weighted Mean treats it as an Fe-O system. Which is appropriate depends on the material property you want to predict.
+**Example (atomic radius of Fe 2O3):** $0.4 \times |1.26 - 0.900| + 0.6 \times |0.66 - 0.900| = 0.144 + 0.144 = 0.288$ Å
+
+A value near zero means every element carries a similar value of that property; a large value flags a chemically heterogeneous composition.
+
+#### 6\. Mode
+
+The property value of the element with the largest atomic fraction. Important for multi-element systems:
+
+$$ \text{mode}(P) = p_{\arg\max_i f_i} $$
+
+**Example (LiFePO 4):** Li: 1, Fe: 1, P: 1, O: 4 atoms → O (oxygen) has the largest atomic fraction, so O's property value is returned as the mode.
+
+#### ⚠️ "Weighted Mean" and "Std" Are Not Magpie Statistics
+
+Many tutorials list `weighted_mean` and `std` alongside the statistics above. Neither is part of the preset. Magpie's `mean` already **is** the fraction-weighted mean, so there is no separate weighted-mean column, and dispersion is reported as `avg_dev`, never as a standard deviation. When you see `weighted_mean` or `std` next to Magpie features, someone has added a custom statistic on top — which is exactly what the next subsection does deliberately.
 
 ### Advanced Statistical Measures (Custom Design)
-
-In addition to standard Magpie statistical measures, the following statistical functions can also be designed:
 
 #### Geometric Mean
 
@@ -247,7 +251,7 @@ $$ \text{std}(P) = \sqrt{\frac{1}{N} \sum_{i=1}^{N} (p_i - \text{mean}(P))^2} $$
 
 ### Need for Dimensionality Reduction in High-Dimensional Data
 
-145-dimensional Magpie features cannot be intuitively understood by humans as-is. **Dimensionality reduction** compresses 145 dimensions → 2D or 3D for visualization, enabling:
+132-dimensional Magpie features cannot be intuitively understood by humans as-is. **Dimensionality reduction** compresses 132 dimensions → 2D or 3D for visualization, enabling:
 
   * Discovery of material cluster structures (oxides, metals, semiconductors, etc. group together)
   * Detection of outliers
@@ -268,7 +272,7 @@ PCA (Principal Component Analysis) is a method that finds directions (principal 
 
 $$ \mathbf{Z} = \mathbf{X} \mathbf{W} $$ 
 
-Where $\mathbf{X}$ is the original 145-dimensional data, $\mathbf{W}$ is the principal component axes (eigenvectors), and $\mathbf{Z}$ is the reduced data.
+Where $\mathbf{X}$ is the original 132-dimensional data, $\mathbf{W}$ is the principal component axes (eigenvectors), and $\mathbf{Z}$ is the reduced data.
 
 **Advantages:**
 
@@ -347,6 +351,8 @@ When Magpie features are dimensionally reduced with PCA, the following material 
     # - pandas>=2.0.0, <2.2.0
     
     """
+    Example: Code Example 1: Basic matminer MagpieFeaturizer Implementati
+    
     Purpose: Demonstrate data manipulation and preprocessing
     Target: Beginner to Intermediate
     Execution time: ~5 seconds
@@ -384,10 +390,10 @@ When Magpie features are dimensionally reduced with PCA, the following material 
     
     # Expected output:
     # Number of generated features: 132
-    # (Note: Depending on matminer version, may be 132 instead of 145 dimensions)
+    # (ElementProperty.from_preset("magpie") always returns 132 columns: 22 properties x 6 statistics)
     
 
-### Code Example 2: Complete 145-Dimensional Feature Generation and Detailed Display
+### Code Example 2: Complete 132-Dimensional Feature Generation and Detailed Display
 
 [Open in Google Colab](<https://colab.research.google.com/drive/1example_magpie_full>)
     
@@ -398,6 +404,8 @@ When Magpie features are dimensionally reduced with PCA, the following material 
     # - pandas>=2.0.0, <2.2.0
     
     """
+    Example: Code Example 2: Complete 132-Dimensional Feature Generation 
+    
     Purpose: Demonstrate data manipulation and preprocessing
     Target: Beginner to Intermediate
     Execution time: 10-30 seconds
@@ -405,7 +413,7 @@ When Magpie features are dimensionally reduced with PCA, the following material 
     """
     
     # ===================================
-    # Example 2: Complete 145-Dimensional Magpie Feature Generation
+    # Example 2: Complete 132-Dimensional Magpie Feature Generation
     # ===================================
     
     from matminer.featurizers.composition import ElementProperty
@@ -478,6 +486,8 @@ When Magpie features are dimensionally reduced with PCA, the following material 
     # - pandas>=2.0.0, <2.2.0
     
     """
+    Example: Code Example 3: PCA Dimensionality Reduction and Visualizati
+    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds
@@ -523,7 +533,7 @@ When Magpie features are dimensionally reduced with PCA, the following material 
     X = np.array(all_features)
     print(f"Feature matrix size: {X.shape}")  # (20 materials, 132 dimensions)
     
-    # Reduce 145 dimensions → 2 dimensions with PCA
+    # Reduce 132 dimensions → 2 dimensions with PCA
     pca = PCA(n_components=2)
     X_pca = pca.fit_transform(X)
     
@@ -578,6 +588,8 @@ When Magpie features are dimensionally reduced with PCA, the following material 
     # - pandas>=2.0.0, <2.2.0
     
     """
+    Example: Code Example 4: t-SNE Visualization (with perplexity optimiz
+    
     Purpose: Demonstrate data visualization techniques
     Target: Advanced
     Execution time: 2-5 seconds
@@ -672,6 +684,8 @@ When Magpie features are dimensionally reduced with PCA, the following material 
     # - pandas>=2.0.0, <2.2.0
     
     """
+    Example: Code Example 5: Using Elemental Property Databases (pymatgen
+    
     Purpose: Demonstrate data manipulation and preprocessing
     Target: Beginner to Intermediate
     Execution time: 10-30 seconds
@@ -744,7 +758,7 @@ When Magpie features are dimensionally reduced with PCA, the following material 
     #
     # Atomic radius statistics for Fe2O3:
     #   mean: 0.960 Å
-    #   weighted_mean: 0.856 Å
+    #   weighted_mean: 0.900 Å
     #   min: 0.660 Å
     #   max: 1.260 Å
     #   range: 0.600 Å
@@ -762,6 +776,8 @@ When Magpie features are dimensionally reduced with PCA, the following material 
     # - pandas>=2.0.0, <2.2.0
     
     """
+    Example: Code Example 6: Feature Importance Analysis with Random Fore
+    
     Purpose: Demonstrate data visualization techniques
     Target: Advanced
     Execution time: 1-5 minutes
@@ -879,6 +895,8 @@ When Magpie features are dimensionally reduced with PCA, the following material 
     # - seaborn>=0.12.0
     
     """
+    Example: Code Example 7: Feature Distribution by Material Class (seab
+    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 2-5 seconds
@@ -1099,7 +1117,7 @@ When Magpie features are dimensionally reduced with PCA, the following material 
     # Expected output:
     # === Atomic Radius Statistics Comparison ===
     # Compound  arithmetic_mean  geometric_mean  harmonic_mean  weighted_mean
-    # Fe2O3           0.960          0.914          0.869          0.856
+    # Fe2O3           0.960          0.912          0.866          0.900
     # LiFePO4         0.948          0.895          0.831          0.842
     # BaTiO3          1.313          1.171          1.016          1.076
     # MgB2            0.980          0.930          0.880          0.901
@@ -1107,13 +1125,13 @@ When Magpie features are dimensionally reduced with PCA, the following material 
     #
     # === Statistics Comparison (Fe2O3 Electronegativity) ===
     # arithmetic_mean     : 2.6350
-    # geometric_mean      : 2.5231
-    # harmonic_mean       : 2.4088
-    # weighted_mean       : 2.8040
+    # geometric_mean      : 2.5090
+    # harmonic_mean       : 2.3891
+    # weighted_mean       : 2.7960
     # min                 : 1.8300
     # max                 : 3.4400
     # range               : 1.6100
-    # std                 : 1.1385
+    # std                 : 0.8050
     
 
 ## 2.6 Learning Objectives Review
@@ -1122,13 +1140,13 @@ When Magpie features are dimensionally reduced with PCA, the following material 
 
 #### Basic Understanding
 
-  * ✅ Magpie descriptors consist of 145 dimensions (22 elemental properties × 6-7 statistical measures)
-  * ✅ Elemental properties are classified into four categories: atomic, electronic, periodic table, and thermodynamic
-  * ✅ Statistical aggregation methods (mean, min, max, range, mode, weighted mean) quantify overall composition features
+  * ✅ Magpie descriptors consist of 132 dimensions (22 elemental properties × 6 statistical measures)
+  * ✅ The 22 elemental properties fall into five groups: periodic-table position, atomic/thermal, valence-electron counts, unfilled-orbital counts, and ground-state DFT properties
+  * ✅ The six statistical aggregation methods (minimum, maximum, range, fraction-weighted mean, avg_dev, mode) quantify overall composition features
 
 #### Practical Skills
 
-  * ✅ Can generate 145-dimensional features with matminer MagpieFeaturizer
+  * ✅ Can generate 132-dimensional features with matminer's `ElementProperty.from_preset('magpie')`
   * ✅ Can perform dimensionality reduction with PCA/t-SNE and visualize materials space in 2D
   * ✅ Can analyze feature importance with Random Forest and identify factors contributing to material property prediction
 
@@ -1144,54 +1162,57 @@ When Magpie features are dimensionally reduced with PCA, the following material 
 
 **Q1:** What is the total dimensionality of Magpie descriptors? Also, state their components (number of elemental property types and number of statistical measure types).
 
-**Answer:** 145 dimensions (may be 132 dimensions depending on matminer version)
+**Answer:** 132 dimensions
 
 **Components:**
 
   * Elemental properties: 22 types
-  * Statistical measures: 6-7 types (mean, min, max, range, mode, weighted mean, etc.)
+  * Statistical measures: 6 types (minimum, maximum, range, fraction-weighted mean, avg_dev, mode)
 
-**Explanation:** Magpie descriptors are the standard for composition-based features designed by Ward et al. (2016). By calculating 6-7 statistical measures for 22 elemental properties (atomic radius, electronegativity, ionization energy, etc.), approximately 145-dimensional vectors are generated. This dimensionality is the result of optimizing the balance between information content and computational efficiency.
+**Explanation:** Magpie descriptors are the standard for composition-based features designed by Ward et al. (2016). matminer's `ElementProperty.from_preset('magpie')` computes 6 statistics for each of 22 elemental properties, giving 22 × 6 = 132 columns. The number 145 that is often quoted refers to the full attribute set of the Ward et al. (2016) paper (6 stoichiometric + 132 elemental-property + 4 valence-orbital + 3 ionic-compound attributes); in matminer those extra families are separate featurizers.
 
-**Q2:** Calculate **mean AtomicRadius** and **weighted_mean AtomicRadius** for Fe2O3. The atomic radius of Fe is 1.26 Å and O is 0.66 Å.
+**Q2:** Calculate the Magpie **mean** and **avg_dev** of atomic radius for Fe2O3, and compare the mean with a plain average over element types. The atomic radius of Fe is 1.26 Å and O is 0.66 Å.
 
 **Answer:**
 
-  * mean AtomicRadius = 0.96 Å
-  * weighted_mean AtomicRadius = 0.90 Å
+  * Magpie mean = 0.900 Å
+  * Magpie avg_dev = 0.288 Å
+  * Plain average over element types = 0.96 Å (not a Magpie feature)
 
 **Calculation process:**
 
-**mean (arithmetic mean):**
-
-Average by number of element types: (1.26 + 0.66) / 2 = 1.92 / 2 = 0.96 Å
-
-**weighted_mean (weighted average):**
+**mean (fraction-weighted):**
 
 Atomic fraction of Fe: 2 / (2+3) = 0.4
 
 Atomic fraction of O: 3 / (2+3) = 0.6
 
-weighted_mean = 0.4 × 1.26 + 0.6 × 0.66 = 0.504 + 0.396 = 0.90 Å
+mean = 0.4 × 1.26 + 0.6 × 0.66 = 0.504 + 0.396 = 0.900 Å
 
-**Explanation:** Mean reflects the diversity of element types, while weighted_mean represents an effective value considering composition ratio. Weighted_mean more accurately reflects the actual atomic arrangement in the material.
+**avg_dev (fraction-weighted mean absolute deviation):**
 
-**Q3:** Among the following elemental properties, select all that are classified as **Electronic Properties**.  
+avg_dev = 0.4 × |1.26 − 0.900| + 0.6 × |0.66 − 0.900| = 0.4 × 0.360 + 0.6 × 0.240 = 0.144 + 0.144 = 0.288 Å
+
+**Plain average over element types:** (1.26 + 0.66) / 2 = 1.92 / 2 = 0.96 Å
+
+**Explanation:** Magpie's mean is the composition-weighted effective value, so it reflects the actual atomic arrangement in the material; the unweighted average over element types treats a trace dopant as equal to the host and is not what matminer returns.
+
+**Q3:** Among the following, select all that belong to the 22 elemental properties of matminer's `magpie` preset.  
 a) Electronegativity  
 b) MeltingT (melting point)  
 c) IonizationEnergy (ionization energy)  
 d) AtomicRadius (atomic radius)  
-e) ElectronAffinity (electron affinity)
+e) NdUnfilled (unfilled d states)
 
-**Answer:** a) Electronegativity, c) IonizationEnergy, e) ElectronAffinity
+**Answer:** a) Electronegativity, b) MeltingT, e) NdUnfilled
 
 **Explanation:**
 
-  * **Electronic properties** : Properties related to electronic states (Electronegativity, IonizationEnergy, ElectronAffinity, NsValence, NpValence, NfValence)
-  * **Thermodynamic properties** : b) MeltingT (melting point)
-  * **Atomic properties** : d) AtomicRadius (atomic radius)
+  * a), b), e) are in the preset: Electronegativity and MeltingT belong to the atomic/thermal group, NdUnfilled to the unfilled-orbital group.
+  * c) IonizationEnergy is **not** in the preset, and neither is ElectronAffinity — despite appearing in many descriptions of Magpie.
+  * d) AtomicRadius is **not** in the preset either; the radius Magpie stores is **CovalentRadius**.
 
-Electronic properties directly affect material band gaps, ionic/covalent bonding character, and redox properties.
+If you need ionization energy or electron affinity, supply an explicit property list to `ElementProperty` or write a custom featurizer (Chapter 3).
 
 ### Medium (Application)
 
@@ -1260,21 +1281,22 @@ perplexity | Visualization characteristics | Application cases
 
 **Example:** For materials exploration (100-1000 compounds), perplexity=20-30 often provides the clearest material class separation.
 
-**Q7:** Why does matminer's MagpieFeaturizer sometimes generate 132 dimensions and sometimes 145 dimensions? Consider the impact of this difference on prediction accuracy.
+**Q7:** Literature and tutorials describe Magpie as both "132-dimensional" and "145-dimensional." Which does matminer produce, and where does the other number come from?
 
-**Reasons for dimensional differences:**
+**Answer:** matminer's `ElementProperty.from_preset('magpie')` produces **132 columns**, and always has — 22 elemental properties × 6 statistics. There is no matminer version in which this preset returns 145 columns.
 
-  * **matminer version:** 132 dimensions in v0.6 and earlier, expanded to 145 dimensions in v0.7 and later.
-  * **Elemental property database updates:** New elemental properties (GSmagmom, etc.) were added through Materials Project and OQMD database updates.
-  * **Statistical measure additions:** weighted_mean statistical measures were added for some elemental properties.
+**Where 145 comes from:** it is the size of the complete attribute set proposed in Ward et al. (2016), which is built from four families:
 
-**Impact on prediction accuracy:**
+  * 6 **stoichiometric** attributes (L^p norms of the composition vector, independent of which elements are present)
+  * 132 **elemental-property** statistics (the part matminer's `magpie` preset implements)
+  * 4 **valence-orbital** attributes (fraction of valence electrons in s, p, d, f states)
+  * 3 **ionic-compound** attributes (whether a charge-neutral ionic configuration exists, plus maximum ionic character)
 
-  1. **Increased information content:** 145 dimensions can represent elemental properties in more detail, potentially improving prediction accuracy for complex material properties (magnetism, electronic states, etc.). According to Ward et al. (2017), formation enthalpy prediction MAE improved by about 5-10% (p. 8).
-  2. **Overfitting risk:** With small data (<100 samples), 145 dimensions may be excessive features causing overfitting. In this case, perform PCA dimensionality reduction or feature selection.
-  3. **Computational cost:** The increase from 132 to 145 dimensions doesn't significantly impact computational cost (less than 10% increase).
+6 + 132 + 4 + 3 = 145. In matminer, the three extra families are separate featurizers: `Stoichiometry`, `ValenceOrbital`, and `IonProperty`.
 
-**Practical advice:** For large datasets (>1000 samples), use 145 dimensions; for small datasets, use 132 dimensions or reduce to 50-80 dimensions with PCA.
+**Practical consequence:** to reproduce the Ward et al. (2016) attribute set, chain the four featurizers with `MultipleFeaturizer([ElementProperty.from_preset('magpie'), Stoichiometry(), ValenceOrbital(), IonProperty()])`. If you only call the `magpie` preset and report "145 features," the number is wrong — check `len(featurizer.feature_labels())` before quoting a dimensionality.
+
+**Sizing advice:** with small datasets (<100 samples) even 132 columns can overfit; apply PCA or feature selection. Adding the extra 13 attributes changes computational cost negligibly, but it does change the feature set, so keep the featurizer definition under version control alongside the model.
 
 ### Hard (Advanced)
 
@@ -1461,7 +1483,7 @@ Somewhat preserved | **Best balance (recommended)**
     import time
     
     # Data preparation (10,000 compound Magpie features)
-    # X = np.array(magpie_features)  # shape: (10000, 145)
+    # X = np.array(magpie_features)  # shape: (10000, 132)
     
     methods = {
         "PCA": PCA(n_components=2),
@@ -1503,9 +1525,9 @@ Somewhat preserved | **Best balance (recommended)**
 
 In this chapter, we learned the detailed structure of Magpie descriptors, types of elemental properties, statistical aggregation methods, and visualization through dimensionality reduction.
 
-In the next Chapter 3, we will learn **Stoichiometric Descriptors and Elemental Fraction Vectors** , exploring methods to directly use stoichiometric ratios as features.
+In the next Chapter 3, we will learn **Element Property Databases and Featurizers** , integrating diverse data sources to design custom features.
 
-[← Chapter 1: Composition-Based Features Fundamentals](<chapter-1.html>) [Return to Series Table of Contents](<./index.html>) [Chapter 3: Stoichiometric Descriptors →](<chapter-3.html>)
+[← Chapter 1: Composition-Based Features Fundamentals](<chapter-1.html>) [Return to Series Table of Contents](<./index.html>) [Chapter 3: Element Property Databases and Featurizers →](<chapter-3.html>)
 
 ## References
 

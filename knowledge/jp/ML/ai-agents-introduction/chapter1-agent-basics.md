@@ -3,6 +3,23 @@ title: "第1章: AIエージェント基礎"
 chapter_title: "第1章: AIエージェント基礎"
 ---
 
+## ビデオ講義
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/eokRY4usm5A"
+    title="AIエージェント 第1章: AIエージェント基礎"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> このビデオは以下のテキストと同じ内容をカバーしています。お好みの学習形式をお選びください。
+
+---
+
 ## AIエージェントとは
 
 ### 定義と特徴

@@ -6,6 +6,22 @@ version: 1.0
 created_at: 2025-10-25
 ---
 
+## Video Lecture
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/NKkbLoHxc14"
+    title="Process Informatics Introduction Ch.3: Fundamentals of Process Modeling"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> This video covers the same content as the text below. Choose your preferred learning format.
+
 # Chapter 3: Fundamentals of Process Modeling
 
 Process modeling is the core technology of PI. Starting from linear regression and extending to PLS, soft sensors, and nonlinear models, you will master practical model building techniques.
@@ -46,6 +62,8 @@ Where $y$ is the objective variable (e.g., product purity), $x$ is the explanato
     # - pandas>=2.0.0, <2.2.0
     
     """
+    Example: Code Example 1: Quality Prediction Model with Simple Regress
+    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 30-60 seconds
@@ -188,6 +206,8 @@ $$y = \beta_0 + \beta_1 x_1 + \beta_2 x_2 + \cdots + \beta_p x_p + \epsilon$$
     # - seaborn>=0.12.0
     
     """
+    Example: Code Example 2: Distillation Column Purity Prediction with M
+    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 30-60 seconds
@@ -473,6 +493,8 @@ VIF > 10 indicates multicollinearity, and caution is needed even when VIF > 5.
     # - pandas>=2.0.0, <2.2.0
     
     """
+    Example: Code Example 4: Multicollinearity Diagnosis and VIF Calculat
+    
     Purpose: Demonstrate machine learning model training and evaluation
     Target: Intermediate
     Execution time: 1-5 minutes
@@ -768,6 +790,8 @@ PLS finds latent variables (components) that maximize the covariance between exp
     # - pandas>=2.0.0, <2.2.0
     
     """
+    Example: Code Example 6: Comparison of PLS and Principal Component Re
+    
     Purpose: Demonstrate data visualization techniques
     Target: Intermediate
     Execution time: 1-5 minutes
@@ -900,6 +924,8 @@ Semiconductors | Film thickness, composition | Process gas flow rate, temperatur
     # - pandas>=2.0.0, <2.2.0
     
     """
+    Example: Code Example 7: Distillation Column Soft Sensor Design and I
+    
     Purpose: Demonstrate data visualization techniques
     Target: Advanced
     Execution time: 1-5 minutes
@@ -1245,6 +1271,8 @@ relative errors
     # - pandas>=2.0.0, <2.2.0
     
     """
+    Example: Code Example 9: Implementation and Interpretation of Model E
+    
     Purpose: Demonstrate data visualization techniques
     Target: Advanced
     Execution time: 1-5 minutes
@@ -1398,6 +1426,8 @@ relative errors
     # - pandas>=2.0.0, <2.2.0
     
     """
+    Example: Code Example 10: Performance Evaluation with Cross-Validatio
+    
     Purpose: Demonstrate data visualization techniques
     Target: Advanced
     Execution time: 1-5 minutes

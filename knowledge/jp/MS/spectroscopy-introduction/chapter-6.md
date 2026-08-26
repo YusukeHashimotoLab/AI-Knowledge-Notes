@@ -3,17 +3,33 @@ title: "第6章: Python実践：分光データ解析ワークフロー"
 chapter_title: "第6章: Python実践：分光データ解析ワークフロー"
 ---
 
+## ビデオ講義
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/xKkjG60u0-4"
+    title="分光分析入門 第6章: Python実践：分光データ解析ワークフロー"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> このビデオは以下のテキストと同じ内容をカバーしています。お好みの学習形式をお選びください。
+
 🌐 JP | [🇬🇧 EN](<../../../en/MS/spectroscopy-introduction/chapter-6.html>) | Last sync: 2025-11-16
 
-[AI寺子屋トップ](<../../index.html>)›[材料科学](<../../MS/index.html>)›[Spectroscopy](<../../MS/spectroscopy-introduction/index.html>)›Chapter 5
+[AI寺子屋トップ](<../../index.html>)›[材料科学](<../../MS/index.html>)›[Spectroscopy](<../../MS/spectroscopy-introduction/index.html>)›Chapter 6
 
 # 第6章: Python実践：分光データ解析ワークフロー
 
-**この章で学ぶこと:** 本章では、第1章から第4章で学んだ分光分析法（IR、Raman、UV-Vis、XPS）を統合し、実践的なPythonデータ解析ワークフローを構築します。汎用スペクトルデータローダー、自動ピーク検出アルゴリズム、機械学習による分類・回帰、バッチ処理システム、インタラクティブ可視化まで、研究現場で即座に活用できる実用的なツールキットを開発します。全てのコードは再利用可能なモジュール形式で提供され、読者自身の研究データに容易に適用できます。
+**この章で学ぶこと:** 本章では、第1章から第5章で学んだ分光分析法（IR、Raman、UV-Vis、XPS）を統合し、実践的なPythonデータ解析ワークフローを構築します。汎用スペクトルデータローダー、自動ピーク検出アルゴリズム、機械学習による分類・回帰、バッチ処理システム、インタラクティブ可視化まで、研究現場で即座に活用できる実用的なツールキットを開発します。全てのコードは再利用可能なモジュール形式で提供され、読者自身の研究データに容易に適用できます。
 
-## 5.1 統合分光データローダーの設計
+## 6.1 統合分光データローダーの設計
 
-### 5.1.1 汎用データ読み込みクラス
+### 6.1.1 汎用データ読み込みクラス
 
 分光装置から出力されるデータ形式は多様です（CSV、TXT、装置固有バイナリ形式等）。汎用的なデータローダークラスを設計することで、異なる形式のデータを統一的に扱えます。
     
@@ -35,7 +51,7 @@ chapter_title: "第6章: Python実践：分光データ解析ワークフロー"
             style F fill:#e8f5e9
             style G fill:#fce4ec
             style H fill:#ffe0b2
-    ```
+        
     コード例1: 汎用スペクトルデータローダークラス
     import numpy as np
     import pandas as pd
@@ -272,8 +288,8 @@ chapter_title: "第6章: Python実践：分光データ解析ワークフロー"
         import os
         os.unlink(temp_path)
     
-    5.2 自動ピーク検出と特徴抽出
-    5.2.1 ピーク検出アルゴリズムの統合
+    6.2 自動ピーク検出と特徴抽出
+    6.2.1 ピーク検出アルゴリズムの統合
     スペクトルからピークを自動検出することは、多数のサンプルを効率的に解析する上で重要です。scipy.signal.find_peaksを拡張し、分光分析に特化したピーク検出クラスを実装します。
     コード例2: 高度な自動ピーク検出システム
     import numpy as np
@@ -490,7 +506,7 @@ chapter_title: "第6章: Python実践：分光データ解析ワークフロー"
         x = np.linspace(400, 700, 600)
         y = (0.8 * np.exp(-((x - 450)**2) / (2 * 30**2)) +
              0.6 * np.exp(-((x - 550)**2) / (2 * 40**2)) +
-             0.9 * np.exp(-((x - 620)**2) / (2  25**2)) +
+             0.9 * np.exp(-((x - 620)**2) / (2 * 25**2)) +
              np.random.normal(0, 0.02, len(x)))
     
         spectrum = SpectralData(x, y, x_label="Wavelength (nm)", y_label="Absorbance")
@@ -514,8 +530,8 @@ chapter_title: "第6章: Python実践：分光データ解析ワークフロー"
         # プロット
         detector.plot_detected_peaks(show_labels=True)
     
-    5.3 機械学習による分光スペクトル分類
-    5.3.1 スペクトル特徴量の抽出
+    6.3 機械学習による分光スペクトル分類
+    6.3.1 スペクトル特徴量の抽出
     機械学習モデルにスペクトルを入力するには、適切な特徴量を抽出する必要があります。
     
     スペクトル特徴量の種類
@@ -533,6 +549,7 @@ chapter_title: "第6章: Python実践：分光データ解析ワークフロー"
     from sklearn.model_selection import train_test_split, cross_val_score
     from sklearn.metrics import classification_report, confusion_matrix
     from sklearn.decomposition import PCA
+    from typing import List
     import seaborn as sns
     
     class SpectralClassifier:
@@ -721,14 +738,14 @@ chapter_title: "第6章: Python実践：分光データ解析ワークフロー"
         print(f"Feature dimension: {X.shape[1]}")
         print(f"Training samples: {len(X_train)}, Test samples: {len(X_test)}")
     
-    5.4 バッチ処理とデータ管理
-    5.4.1 複数ファイルの一括処理
+    6.4 バッチ処理とデータ管理
+    6.4.1 複数ファイルの一括処理
     研究現場では、数十〜数百のスペクトルファイルを処理することが一般的です。効率的なバッチ処理システムが必要です。
     コード例4: バッチ処理パイプライン
     import numpy as np
     import pandas as pd
     from pathlib import Path
-    from typing import List, Dict, Callable
+    from typing import List, Dict, Callable, Union
     from concurrent.futures import ProcessPoolExecutor, as_completed
     from tqdm import tqdm
     import json
@@ -960,14 +977,14 @@ chapter_title: "第6章: Python実践：分光データ解析ワークフロー"
         shutil.rmtree(temp_dir)
         print(f"\nTemporary directory removed")
     
-    5.5 インタラクティブ可視化とダッシュボード
-    5.5.1 Plotlyによる動的プロット
+    6.5 インタラクティブ可視化とダッシュボード
+    6.5.1 Plotlyによる動的プロット
     静的なMatplotlibに加え、インタラクティブな可視化ライブラリPlotlyを使用することで、ズーム、パン、ホバー情報表示などの機能を持つ動的なプロットを作成できます。
     コード例5: インタラクティブスペクトルビューア
     import numpy as np
     import plotly.graph_objects as go
     from plotly.subplots import make_subplots
-    from typing import List
+    from typing import List, Dict
     
     class InteractiveSpectralViewer:
         """
@@ -1226,8 +1243,8 @@ chapter_title: "第6章: Python実践：分光データ解析ワークフロー"
         print("  - ドラッグでズーム、ダブルクリックでリセット")
         print("  - 凡例クリックで系列の表示/非表示")
     
-    5.6 統合解析ワークフローの実装
-    5.6.1 エンドツーエンドパイプライン
+    6.6 統合解析ワークフローの実装
+    6.6.1 エンドツーエンドパイプライン
     これまでのコンポーネントを統合し、データ読み込みから結果出力までの完全なワークフローを構築します。
     
         flowchart LR
@@ -1510,8 +1527,8 @@ chapter_title: "第6章: Python実践：分光データ解析ワークフロー"
         # クリーンアップ
         shutil.rmtree(temp_dir)
     
-    5.7 実践演習：実データ解析プロジェクト
-    5.7.1 プロジェクトテンプレート
+    6.7 実践演習：実データ解析プロジェクト
+    6.7.1 プロジェクトテンプレート
     本章で学んだツールを使用して、実際の研究データを解析するためのプロジェクトテンプレートを提供します。
     コード例7: プロジェクトテンプレート生成ツール
     import os
@@ -1688,7 +1705,7 @@ chapter_title: "第6章: Python実践：分光データ解析ワークフロー"
         # プロジェクト作成
         SpectralProjectTemplate.create_project("my_spectroscopy_project")
     
-    5.8 演習問題
+    6.8 演習問題
     
     基礎問題（Easy）
     問題1: SpectralDataクラスの使用
@@ -1824,6 +1841,8 @@ chapter_title: "第6章: Python実践：分光データ解析ワークフロー"
     解答を見る
     
     解答:
+    from typing import Dict
+    
     def batch_statistical_analysis(spectrum: SpectralData) -> Dict:
         """
         スペクトルの統計解析
@@ -1938,6 +1957,8 @@ chapter_title: "第6章: Python実践：分光データ解析ワークフロー"
     解答:
     # TensorFlow/Kerasが必要: pip install tensorflow
     
+    import numpy as np
+    import matplotlib.pyplot as plt
     import tensorflow as tf
     from tensorflow import keras
     from tensorflow.keras import layers
@@ -2128,6 +2149,7 @@ chapter_title: "第6章: Python実践：分光データ解析ワークフロー"
     解答を見る
     
     解答:
+    import json
     import sqlite3
     import pickle
     
@@ -2276,7 +2298,7 @@ chapter_title: "第6章: Python実践：分光データ解析ワークフロー"
     
     McKinney, W. (2017). Python for Data Analysis (2nd ed.). O'Reilly Media, pp. 89-95 (DataFrame operations), pp. 125-145 (data cleaning), pp. 263-270 (time series), pp. 310-325 (aggregation). - Pandas、NumPyを用いたデータ処理の実践的解説
     VanderPlas, J. (2023). Python Data Science Handbook (2nd ed.). O'Reilly Media, pp. 200-225 (NumPy), pp. 280-310 (pandas), pp. 330-365 (matplotlib), pp. 400-435 (scikit-learn), pp. 470-500 (dimensionality reduction). - 機械学習、scikit-learn、データ可視化の包括的ガイド
-    Eilers, P. H. C., Boelens, H. F. M. (2005). Baseline correction with asymmetric least squares smoothing. Analytical Chemistry, 77(21), 6729-6736. DOI: 10.1021/ac051370e - 非対称最小二乗法によるベースライン補正アルゴリズム（コード例で実装）
+    Eilers, P. H. C., Boelens, H. F. M. (2005). Baseline correction with asymmetric least squares smoothing. Analytical Chemistry, 77(21), 6729-6736. DOI: 10.1021/ac051370e - 非対称最小二乗（ALS）法によるベースライン補正アルゴリズムの原典。ALSはSciPyには含まれず、独自実装またはpybaselines等の外部パッケージが必要
     Geladi, P., Kowalski, B. R. (1986). Partial least-squares regression: a tutorial. Analytica Chimica Acta, 185, 1-17. DOI: 10.1016/0003-2670(86)80028-9 - ケモメトリクス、PLS回帰によるスペクトル解析の基礎
     SciPy 1.11 documentation. scipy.signal.find_peaks, scipy.signal.savgol_filter, scipy.signal.peak_widths. https://docs.scipy.org/doc/scipy/reference/signal.html - 信号処理アルゴリズム、ピーク検出、フィルタリング
     scikit-learn 1.3 documentation. RandomForestClassifier, Pipeline, StandardScaler. https://scikit-learn.org/stable/modules/ensemble.html - ランダムフォレスト、機械学習パイプライン構築

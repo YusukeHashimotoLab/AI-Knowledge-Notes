@@ -8,6 +8,23 @@ code_examples: 10
 exercises: 5
 ---
 
+## Video Lecture
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/h7lJFZX05pc"
+    title="Transformers Ch.5: Large Language Models (LLMs)"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> This video covers the same content as the text below. Choose your preferred learning format.
+
+---
+
 This chapter covers Large Language Models (LLMs). You will learn Compare major LLM architectures including GPT and prompt engineering techniques such as Zero-shot.
 
 ## Learning Objectives

@@ -327,7 +327,7 @@ This series is a comprehensive 4-chapter educational content designed to teach h
 
 \- Achievement: Capacity retention 70% → 90% (500 cycles)
 
-\- Impact: Energy density 500 Wh/kg achieved
+\- Impact: about 400-500 Wh/kg demonstrated in prototype cells; production cells have not reached this yet
 
 **Case Study 3: Fast Charging Optimization - 10-Minute Charging Protocol**
 
@@ -337,11 +337,11 @@ This series is a comprehensive 4-chapter educational content designed to teach h
 
 \- Achievement: 80% charge in 10 minutes, degradation rate < 1%/1000 cycles
 
-\- Paper: Stanford University (2020), _Nature Energy_ **Case Study 4: Co-Reduced Cathode Materials - Ni Ratio Optimization**
+\- Paper: Attia et al., _Nature_ (2020) **Case Study 4: Co-Reduced Cathode Materials - Ni Ratio Optimization**
 
-\- Challenge: High Co cost ($40,000/ton) and supply risk
+\- Challenge: high and volatile Co price (2022 peak about $40,000/t) and supply risk
 
-\- Strategy: Increase Ni ratio (NCM811, NCM9½½)
+\- Strategy: Increase Ni ratio (NCM811, NCM90-05-05)
 
 \- ML technology: Multi-fidelity Optimization
 

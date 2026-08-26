@@ -1,6 +1,6 @@
 ---
-title: 第2章：エンベディングと検索
-chapter_title: 第2章：エンベディングと検索
+title: 第2章：エンベディングとベクトルデータベース
+chapter_title: 第2章：エンベディングとベクトルデータベース
 ---
 
 ## 1\. ベクトルエンベディング
@@ -334,7 +334,6 @@ Metaが開発した高速類似度検索ライブラリで、ローカル環境�
     
     
     import chromadb
-    from chromadb.config import Settings
     from langchain.vectorstores import Chroma
     from langchain.embeddings import OpenAIEmbeddings
     
@@ -346,11 +345,8 @@ Metaが開発した高速類似度検索ライブラリで、ローカル環境�
             self.persist_directory = persist_directory
             self.vectorstore = None
     
-            # クライアント設定
-            self.client = chromadb.Client(Settings(
-                chroma_db_impl="duckdb+parquet",
-                persist_directory=persist_directory
-            ))
+            # クライアント設定（指定パスにデータが永続化される）
+            self.client = chromadb.PersistentClient(path=persist_directory)
     
         def create_collection(self, documents, collection_name="default"):
             """コレクション作成"""
@@ -361,8 +357,7 @@ Metaが開発した高速類似度検索ライブラリで、ローカル環境�
                 persist_directory=self.persist_directory
             )
     
-            # 永続化
-            self.vectorstore.persist()
+            # 現行のChromaでは永続化は自動（persist()の呼び出しは不要）
             print(f"コレクション作成: {collection_name}")
     
         def add_documents(self, documents):
@@ -371,7 +366,6 @@ Metaが開発した高速類似度検索ライブラリで、ローカル環境�
                 raise ValueError("コレクション未作成")
     
             self.vectorstore.add_documents(documents)
-            self.vectorstore.persist()
             print(f"{len(documents)}ドキュメント追加")
     
         def search_with_filter(self, query, k=5, where=None, where_document=None):
@@ -457,33 +451,32 @@ Metaが開発した高速類似度検索ライブラリで、ローカル環境�
 #### 実装例5: Pinecone実装
     
     
-    import pinecone
-    from langchain.vectorstores import Pinecone
+    from pinecone import Pinecone, ServerlessSpec
+    from langchain.vectorstores import Pinecone as LangChainPinecone
     from langchain.embeddings import OpenAIEmbeddings
     import time
     
     class PineconeVectorStore:
         """Pinecone ベクトルストア実装"""
     
-        def __init__(self, api_key, environment, embeddings):
+        def __init__(self, api_key, embeddings):
             self.embeddings = embeddings
     
-            # Pinecone初期化
-            pinecone.init(
-                api_key=api_key,
-                environment=environment
-            )
+            # Pineconeクライアント初期化（v3以降のAPI。environment引数は廃止）
+            self.pc = Pinecone(api_key=api_key)
     
-        def create_index(self, index_name, dimension=1536, metric='cosine'):
-            """インデックス作成"""
+        def create_index(self, index_name, dimension=1536, metric='dotproduct'):
+            """インデックス作成
+    
+            注意: ハイブリッド検索（密+疎）には metric="dotproduct" が必須
+            """
             # 既存インデックス確認
-            if index_name not in pinecone.list_indexes():
-                pinecone.create_index(
+            if index_name not in self.pc.list_indexes().names():
+                self.pc.create_index(
                     name=index_name,
                     dimension=dimension,
                     metric=metric,
-                    pods=1,
-                    pod_type='p1.x1'
+                    spec=ServerlessSpec(cloud='aws', region='us-east-1')
                 )
                 # インデックス準備待ち
                 time.sleep(1)
@@ -493,7 +486,7 @@ Metaが開発した高速類似度検索ライブラリで、ローカル環境�
     
         def upsert_documents(self, index_name, documents):
             """ドキュメントアップサート"""
-            vectorstore = Pinecone.from_documents(
+            vectorstore = LangChainPinecone.from_documents(
                 documents,
                 self.embeddings,
                 index_name=index_name
@@ -503,7 +496,7 @@ Metaが開発した高速類似度検索ライブラリで、ローカル環境�
     
         def search_with_namespace(self, index_name, query, k=5, namespace=None):
             """名前空間指定検索"""
-            vectorstore = Pinecone.from_existing_index(
+            vectorstore = LangChainPinecone.from_existing_index(
                 index_name=index_name,
                 embedding=self.embeddings,
                 namespace=namespace
@@ -512,37 +505,63 @@ Metaが開発した高速類似度検索ライブラリで、ローカル環境�
             results = vectorstore.similarity_search_with_score(query, k=k)
             return results
     
-        def hybrid_search(self, index_name, query, k=5, alpha=0.5):
+        @staticmethod
+        def hybrid_scale(dense, sparse, alpha):
+            """密ベクトルと疎ベクトルをクライアント側で重み付け
+    
+            alpha=1 で密ベクトルのみ（ベクトル検索）、alpha=0 で疎ベクトルのみ（キーワード検索）
+            """
+            if not 0 <= alpha <= 1:
+                raise ValueError("alphaは0以上1以下である必要があります")
+    
+            hsparse = {
+                'indices': sparse['indices'],
+                'values': [v * (1 - alpha) for v in sparse['values']]
+            }
+            hdense = [v * alpha for v in dense]
+            return hdense, hsparse
+    
+        def hybrid_search(self, index_name, query, sparse_encoder, k=5, alpha=0.5):
             """ハイブリッド検索（密ベクトル + 疎ベクトル）
     
             alpha: 0=キーワード検索のみ, 1=ベクトル検索のみ
+            注意: alphaはPinecone APIのパラメータではない。クエリ送信前に
+            両ベクトルをクライアント側でスケーリングして重み付けを行う。
+            sparse_encoder: pinecone_text.sparse.BM25Encoder などのキーワードエンコーダ
             """
-            # Pineconeのハイブリッド検索機能
-            index = pinecone.Index(index_name)
+            index = self.pc.Index(index_name)
     
-            # クエリエンベディング
-            query_vector = self.embeddings.embed_query(query)
+            # 密ベクトル（クエリエンベディング）と疎ベクトル（キーワード重み）
+            dense_vector = self.embeddings.embed_query(query)
+            sparse_vector = sparse_encoder.encode_queries(query)
     
-            # ハイブリッド検索実行
+            # クエリ前にalphaの重み付けを適用
+            dense_vector, sparse_vector = self.hybrid_scale(
+                dense_vector, sparse_vector, alpha
+            )
+    
+            # ハイブリッド検索実行（インデックスは metric="dotproduct" である必要がある）
             results = index.query(
-                vector=query_vector,
+                vector=dense_vector,
+                sparse_vector={
+                    'indices': sparse_vector['indices'],
+                    'values': sparse_vector['values']
+                },
                 top_k=k,
-                include_metadata=True,
-                # ハイブリッド検索パラメータ
-                alpha=alpha
+                include_metadata=True
             )
     
             return results
     
         def delete_index(self, index_name):
             """インデックス削除"""
-            if index_name in pinecone.list_indexes():
-                pinecone.delete_index(index_name)
+            if index_name in self.pc.list_indexes().names():
+                self.pc.delete_index(index_name)
                 print(f"インデックス削除: {index_name}")
     
         def get_index_stats(self, index_name):
             """インデックス統計取得"""
-            index = pinecone.Index(index_name)
+            index = self.pc.Index(index_name)
             stats = index.describe_index_stats()
             return stats
     
@@ -550,7 +569,6 @@ Metaが開発した高速類似度検索ライブラリで、ローカル環境�
     embeddings = OpenAIEmbeddings(openai_api_key="your-openai-key")
     pinecone_store = PineconeVectorStore(
         api_key="your-pinecone-key",
-        environment="us-west1-gcp",
         embeddings=embeddings
     )
     

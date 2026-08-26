@@ -18,7 +18,6 @@ created_at: 2025-10-16
     height="315"
     src="https://www.youtube.com/embed/xuyOM6ba3x4"
     title="MI Introduction Ch.1: Why Materials Informatics Now?"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>

@@ -8,6 +8,23 @@ code_examples: 4
 exercises: 5
 ---
 
+## ビデオ講義
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/P6nHJW9lzYo"
+    title="電池材料設計へのMI応用 第2章: 電池材料設計に特化したMI手法"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> このビデオは以下のテキストと同じ内容をカバーしています。お好みの学習形式をお選びください。
+
+---
+
 # 第2章：電池材料設計に特化したMI手法
 
 **学習目標:** \- 電池材料記述子の種類と用途を理解する \- 容量・電圧予測モデルの構築方法を習得する \- サイクル劣化予測手法を学ぶ \- 高速材料スクリーニング戦略を把握する
@@ -231,7 +248,7 @@ exercises: 5
 
 **URL** : https://data.matr.io/
 
-**データ:** \- 充放電曲線：20,000+セル \- サイクル試験データ：多様な条件 \- 実験条件：温度、C-rate、電圧範囲
+**データ:** \- 充放電曲線：複数の研究機関から集約された標準化サイクル試験データ（固定サイズのデータセットではなく共通基盤です） \- サイクル試験データ：多様な条件 \- 実験条件：温度、C-rate、電圧範囲
 
 **特徴:** \- 生データ公開（前処理不要） \- 複数研究機関のデータ統合 \- 機械学習ベンチマーク提供
 
