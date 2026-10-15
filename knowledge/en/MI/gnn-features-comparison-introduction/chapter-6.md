@@ -11,7 +11,6 @@ chapter_title: "Chapter 6: PyTorch Geometric Workflow"
     height="315"
     src="https://www.youtube.com/embed/rtsU1yqheoI"
     title="GNN Features Comparison Ch.6: PyTorch Geometric Workflow"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>

@@ -12,7 +12,6 @@ subtitle: 分子振動から官能基を同定し、材料の化学構造を解�
     height="315"
     src="https://www.youtube.com/embed/XF1VYwWRuMk"
     title="分光分析入門 第3章: 赤外分光法"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>

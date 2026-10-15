@@ -11,7 +11,6 @@ chapter_title: "Chapter 6: PyTorch Geometricワークフロー"
     height="315"
     src="https://www.youtube.com/embed/rtsU1yqheoI"
     title="GNN特徴量比較入門 第6章: PyTorch Geometricワークフロー"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>

@@ -12,7 +12,6 @@ subtitle: Fundamentals of Differentiation and Numerical Differentiation
     height="315"
     src="https://www.youtube.com/embed/BEElvcgY5Uk"
     title="Calculus & Vector Analysis Ch.1: Fundamentals of Differentiation and Numerical Differentiation"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>

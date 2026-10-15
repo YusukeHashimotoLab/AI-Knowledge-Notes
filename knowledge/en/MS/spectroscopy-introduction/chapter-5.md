@@ -11,7 +11,6 @@ chapter_title: "Chapter 5: X-ray Photoelectron Spectroscopy (XPS)"
     height="315"
     src="https://www.youtube.com/embed/so3riEt-4Ew"
     title="Spectroscopy Introduction Ch.5: X-ray Photoelectron Spectroscopy (XPS)"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>

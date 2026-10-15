@@ -17,7 +17,6 @@ created_at: 2026-08-23
     height="315"
     src="https://www.youtube.com/embed/lfGMREF-V-c"
     title="Chemical Engineering Fluid Mechanics - Full Series"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>

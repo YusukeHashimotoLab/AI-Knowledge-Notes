@@ -14,7 +14,6 @@ created_at: "by:"
     height="315"
     src="https://www.youtube.com/embed/zPcyIoxLi8Y"
     title="Process Informatics Introduction Ch.1: Fundamental Concepts of PI and Data Utilization in Process Industries"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>

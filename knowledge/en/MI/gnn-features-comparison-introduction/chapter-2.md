@@ -11,7 +11,6 @@ chapter_title: "Chapter 2: CGCNN Implementation"
     height="315"
     src="https://www.youtube.com/embed/FlyNv7sqbQ0"
     title="GNN Features Comparison Ch.2: CGCNN Implementation"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>

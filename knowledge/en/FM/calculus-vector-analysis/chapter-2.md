@@ -12,7 +12,6 @@ subtitle: Fundamentals of Integration and Numerical Integration
     height="315"
     src="https://www.youtube.com/embed/BEElvcgY5Uk?start=904"
     title="Calculus & Vector Analysis Ch.2: Fundamentals of Integration and Numerical Integration"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>

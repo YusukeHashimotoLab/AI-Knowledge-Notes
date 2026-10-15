@@ -11,7 +11,6 @@ chapter_title: "第5章: X線光電子分光法（XPS）"
     height="315"
     src="https://www.youtube.com/embed/so3riEt-4Ew"
     title="分光分析入門 第5章: X線光電子分光法（XPS）"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>

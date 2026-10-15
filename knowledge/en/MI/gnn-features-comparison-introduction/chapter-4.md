@@ -11,7 +11,6 @@ chapter_title: "Chapter 4: Composition-based vs GNN Quantitative Comparison"
     height="315"
     src="https://www.youtube.com/embed/jhb8eUbR3XA"
     title="GNN Features Comparison Ch.4: Composition-based vs GNN Quantitative Comparison"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>

@@ -11,7 +11,6 @@ chapter_title: "Chapter 3: MPNN Implementation"
     height="315"
     src="https://www.youtube.com/embed/hafzDcJLayQ"
     title="GNN Features Comparison Ch.3: MPNN Implementation"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>

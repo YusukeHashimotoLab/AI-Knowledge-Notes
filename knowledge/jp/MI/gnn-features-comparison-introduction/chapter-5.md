@@ -11,7 +11,6 @@ chapter_title: 第5章：ハイブリッドアプローチ
     height="315"
     src="https://www.youtube.com/embed/x2-L_yYs8pQ"
     title="GNN特徴量比較入門 第5章: ハイブリッドアプローチ"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>

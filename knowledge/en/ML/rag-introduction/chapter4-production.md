@@ -9,7 +9,6 @@ chapter_title: "Chapter 4: Production Deployment"
     height="315"
     src="https://www.youtube.com/embed/mus9y7s6Cv4"
     title="RAG Introduction Ch.4: Production Deployment"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>

@@ -11,7 +11,6 @@ chapter_title: "第4章: ラマン分光法 (Raman Spectroscopy)"
     height="315"
     src="https://www.youtube.com/embed/n6yPS5_-4bA"
     title="分光分析入門 第4章: ラマン分光法 (Raman Spectroscopy)"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>

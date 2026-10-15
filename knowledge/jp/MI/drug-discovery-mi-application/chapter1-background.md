@@ -12,7 +12,6 @@ subtitle: 医薬品開発とAI駆動創薬の基礎
     height="315"
     src="https://www.youtube.com/embed/3shMwOruY8Y"
     title="創薬・医薬品開発へのMI応用 第1章: 創薬とマテリアルズ・インフォマティクスの役割"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>

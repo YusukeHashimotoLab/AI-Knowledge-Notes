@@ -12,7 +12,6 @@ subtitle: 分子記述子から生成モデルまで
     height="315"
     src="https://www.youtube.com/embed/g-J4py0aOdg"
     title="創薬・医薬品開発へのMI応用 第2章: 創薬に特化したMI手法"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>

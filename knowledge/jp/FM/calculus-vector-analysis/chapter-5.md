@@ -12,7 +12,6 @@ subtitle: Line Integrals, Surface Integrals, and Integral Theorems
     height="315"
     src="https://www.youtube.com/embed/BEElvcgY5Uk?start=3408"
     title="微積分とベクトル解析入門 第5章: 線積分・面積分と積分定理"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>

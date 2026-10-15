@@ -13,7 +13,6 @@ difficulty: Intermediate
     height="315"
     src="https://www.youtube.com/embed/pEHTAkGLAO0"
     title="Spectroscopy Introduction Ch.1: Fundamentals of Spectroscopy"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>

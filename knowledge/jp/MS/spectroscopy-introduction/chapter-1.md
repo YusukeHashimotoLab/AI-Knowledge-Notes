@@ -12,7 +12,6 @@ subtitle: 光と物質の相互作用から理解する分光分析の原理
     height="315"
     src="https://www.youtube.com/embed/pEHTAkGLAO0"
     title="分光分析入門 第1章: 分光法の基礎"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>

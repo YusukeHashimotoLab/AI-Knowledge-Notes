@@ -16,7 +16,6 @@ exercises: 6
     height="315"
     src="https://www.youtube.com/embed/U-IJQiG3mr8"
     title="GNN Introduction Ch.1: Fundamentals of Graphs and Graph Representation Learning"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>

@@ -11,7 +11,6 @@ chapter_title: 第1章：GNN構造ベース特徴量の基礎
     height="315"
     src="https://www.youtube.com/embed/GLes8v5VCyM"
     title="GNN特徴量比較入門 第1章: GNN構造ベース特徴量の基礎"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>

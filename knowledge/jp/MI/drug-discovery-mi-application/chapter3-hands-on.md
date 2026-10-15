@@ -12,7 +12,6 @@ subtitle: RDKitとPythonで学ぶ実践的分子設計
     height="315"
     src="https://www.youtube.com/embed/XLP5IrnQ3TI"
     title="創薬・医薬品開発へのMI応用 第3章: 創薬MI実装ハンズオン"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>

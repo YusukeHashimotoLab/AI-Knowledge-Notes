@@ -17,7 +17,6 @@ created_at: 2026-08-23
     height="315"
     src="https://www.youtube.com/embed/ANAuU3W1DPw"
     title="化学工学物質移動と分離 - 全章"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>

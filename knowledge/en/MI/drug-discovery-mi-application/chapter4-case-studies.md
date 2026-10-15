@@ -12,7 +12,6 @@ subtitle: Learning Practical Methods from 5 Industrial Applications
     height="315"
     src="https://www.youtube.com/embed/13bl-oKijr4"
     title="Drug Discovery MI Ch.4: Drug Discovery MI Practical Case Studies"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>

@@ -12,7 +12,6 @@ subtitle: From Molecular Descriptors to Generative Models
     height="315"
     src="https://www.youtube.com/embed/g-J4py0aOdg"
     title="Drug Discovery MI Ch.2: Drug Discovery-Specific MI Methods"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>

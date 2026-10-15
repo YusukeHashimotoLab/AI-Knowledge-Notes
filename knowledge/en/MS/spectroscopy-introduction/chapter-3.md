@@ -12,7 +12,6 @@ version: 1.0
     height="315"
     src="https://www.youtube.com/embed/XF1VYwWRuMk"
     title="Spectroscopy Introduction Ch.3: Infrared Spectroscopy"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>

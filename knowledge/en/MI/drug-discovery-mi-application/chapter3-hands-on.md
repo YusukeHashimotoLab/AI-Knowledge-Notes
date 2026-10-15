@@ -12,7 +12,6 @@ subtitle: Practical Molecular Design with RDKit and Python
     height="315"
     src="https://www.youtube.com/embed/XLP5IrnQ3TI"
     title="Drug Discovery MI Ch.3: Drug Discovery MI Implementation Hands-On"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>

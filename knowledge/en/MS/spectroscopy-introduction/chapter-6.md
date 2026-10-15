@@ -11,7 +11,6 @@ chapter_title: "Chapter 6: Python Practice - Spectroscopic Data Analysis Workflo
     height="315"
     src="https://www.youtube.com/embed/xKkjG60u0-4"
     title="Spectroscopy Introduction Ch.6: Python Practice - Spectroscopic Data Analysis Workflow"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>

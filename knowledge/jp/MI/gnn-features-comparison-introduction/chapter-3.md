@@ -11,7 +11,6 @@ chapter_title: 第3章：MPNN実装
     height="315"
     src="https://www.youtube.com/embed/hafzDcJLayQ"
     title="GNN特徴量比較入門 第3章: MPNN実装"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>

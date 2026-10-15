@@ -12,7 +12,6 @@ subtitle: Fundamentals of Drug Development and AI-Driven Drug Discovery
     height="315"
     src="https://www.youtube.com/embed/3shMwOruY8Y"
     title="Drug Discovery MI Ch.1: Drug Discovery and the Role of Materials Informatics"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>

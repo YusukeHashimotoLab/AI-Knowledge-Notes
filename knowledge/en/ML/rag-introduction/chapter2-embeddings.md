@@ -9,7 +9,6 @@ chapter_title: "Chapter 2: Embeddings and Vector Databases"
     height="315"
     src="https://www.youtube.com/embed/mFmcB_EwLT0"
     title="RAG Introduction Ch.2: Embeddings and Vector Databases"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>

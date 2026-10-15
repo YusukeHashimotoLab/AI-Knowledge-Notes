@@ -12,7 +12,6 @@ subtitle: Electronic Transitions, Beer-Lambert Law, and Band Gap Determination
     height="315"
     src="https://www.youtube.com/embed/zw1WM-IgHhw"
     title="Spectroscopy Introduction Ch.2: UV-Vis Spectroscopy"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>

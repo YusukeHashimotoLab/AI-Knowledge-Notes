@@ -12,7 +12,6 @@ subtitle: Vector Fields and Differential Operators
     height="315"
     src="https://www.youtube.com/embed/BEElvcgY5Uk?start=2579"
     title="Calculus & Vector Analysis Ch.4: Vector Fields and Differential Operators"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>

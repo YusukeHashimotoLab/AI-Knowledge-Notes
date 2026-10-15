@@ -9,7 +9,6 @@ chapter_title: "Chapter 1: RAG Fundamentals"
     height="315"
     src="https://www.youtube.com/embed/7A40IyhJr_0"
     title="RAG Introduction Ch.1: RAG Fundamentals"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>

@@ -17,7 +17,6 @@ created_at: 2026-08-23
     height="315"
     src="https://www.youtube.com/embed/tGOpNey5U9E"
     title="化学工学熱力学 - 全章"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>

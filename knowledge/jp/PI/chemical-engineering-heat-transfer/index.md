@@ -17,7 +17,6 @@ created_at: 2026-08-23
     height="315"
     src="https://www.youtube.com/embed/fpjFV6KX1hc"
     title="化学工学伝熱 - 全章"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>

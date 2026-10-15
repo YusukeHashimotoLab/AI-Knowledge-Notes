@@ -16,7 +16,6 @@ exercises: 6
     height="315"
     src="https://www.youtube.com/embed/U-IJQiG3mr8"
     title="GNN入門 第1章: グラフとグラフ表現学習の基礎"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>

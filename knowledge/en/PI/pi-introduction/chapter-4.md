@@ -14,7 +14,6 @@ created_at: 2025-10-25
     height="315"
     src="https://www.youtube.com/embed/vYfFdBrNolQ"
     title="Process Informatics Introduction Ch.4: Practical Exercises Using Real Process Data"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>

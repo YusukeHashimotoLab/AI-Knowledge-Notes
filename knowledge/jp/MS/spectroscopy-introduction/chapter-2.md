@@ -12,7 +12,6 @@ subtitle: 電子遷移で探る物質の電子構造とバンドギャップ
     height="315"
     src="https://www.youtube.com/embed/zw1WM-IgHhw"
     title="分光分析入門 第2章: UV-Vis分光法"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>

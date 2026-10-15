@@ -11,7 +11,6 @@ chapter_title: "第6章: Python実践：分光データ解析ワークフロー"
     height="315"
     src="https://www.youtube.com/embed/xKkjG60u0-4"
     title="分光分析入門 第6章: Python実践：分光データ解析ワークフロー"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>

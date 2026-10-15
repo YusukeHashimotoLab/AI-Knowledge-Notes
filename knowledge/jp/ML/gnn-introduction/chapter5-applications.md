@@ -16,7 +16,6 @@ exercises: 5
     height="315"
     src="https://www.youtube.com/embed/lVrhwzFdN9w"
     title="GNN入門 第5章: GNNの応用 (GNN Applications)"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>

@@ -12,7 +12,6 @@ subtitle: プロセス産業のデジタル変革の基礎
     height="315"
     src="https://www.youtube.com/embed/zPcyIoxLi8Y"
     title="プロセス・インフォマティクス入門 第1章: PIの基礎概念とプロセス産業におけるデータ活用"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>

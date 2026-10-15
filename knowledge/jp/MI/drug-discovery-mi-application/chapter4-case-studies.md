@@ -12,7 +12,6 @@ subtitle: 産業応用5事例から学ぶ実践手法
     height="315"
     src="https://www.youtube.com/embed/13bl-oKijr4"
     title="創薬・医薬品開発へのMI応用 第4章: 創薬MI実践ケーススタディ"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>

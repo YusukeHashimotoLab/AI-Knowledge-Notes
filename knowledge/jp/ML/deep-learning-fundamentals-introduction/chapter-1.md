@@ -16,7 +16,6 @@ exercises: 5
     height="315"
     src="https://www.youtube.com/embed/foSKIPf6jo4"
     title="ディープラーニング基礎入門 第1章: ディープラーニングの基礎概念"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>

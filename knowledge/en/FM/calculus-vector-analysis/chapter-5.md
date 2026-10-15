@@ -12,7 +12,6 @@ subtitle: Line Integrals, Surface Integrals, and Integral Theorems
     height="315"
     src="https://www.youtube.com/embed/BEElvcgY5Uk?start=3408"
     title="Calculus & Vector Analysis Ch.5: Line Integrals, Surface Integrals, and Integral Theorems"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>

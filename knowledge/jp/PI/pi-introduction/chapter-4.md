@@ -12,7 +12,6 @@ subtitle: 総合演習：化学プラントデータの分析から最適化ま�
     height="315"
     src="https://www.youtube.com/embed/vYfFdBrNolQ"
     title="プロセス・インフォマティクス入門 第4章: 実プロセスデータを用いた実践演習"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>

@@ -11,7 +11,6 @@ chapter_title: "Chapter 1: Fundamentals of GNN Structure-Based Features"
     height="315"
     src="https://www.youtube.com/embed/GLes8v5VCyM"
     title="GNN Features Comparison Ch.1: Fundamentals of GNN Structure-Based Features"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>

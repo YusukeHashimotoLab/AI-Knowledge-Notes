@@ -12,7 +12,6 @@ subtitle: Calculus and Vector Analysis for Materials Informatics
     height="315"
     src="https://www.youtube.com/embed/BEElvcgY5Uk"
     title="微積分とベクトル解析入門 - 全章"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>

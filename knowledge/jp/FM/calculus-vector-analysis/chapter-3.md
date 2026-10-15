@@ -12,7 +12,6 @@ subtitle: Multivariable Calculus
     height="315"
     src="https://www.youtube.com/embed/BEElvcgY5Uk?start=1684"
     title="微積分とベクトル解析入門 第3章: 多変数関数の微積分"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>

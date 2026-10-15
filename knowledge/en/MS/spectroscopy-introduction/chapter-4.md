@@ -13,7 +13,6 @@ created_at: 2025-12-26
     height="315"
     src="https://www.youtube.com/embed/n6yPS5_-4bA"
     title="Spectroscopy Introduction Ch.4: Raman Spectroscopy"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>

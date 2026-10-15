@@ -12,7 +12,6 @@ subtitle: データ品質を高める実践的前処理手法
     height="315"
     src="https://www.youtube.com/embed/SCxfASHrfoc"
     title="プロセス・インフォマティクス入門 第2章: プロセスデータの前処理と可視化"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>

@@ -11,7 +11,6 @@ chapter_title: "Chapter 5: Hybrid Approaches"
     height="315"
     src="https://www.youtube.com/embed/x2-L_yYs8pQ"
     title="GNN Features Comparison Ch.5: Hybrid Approaches"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>

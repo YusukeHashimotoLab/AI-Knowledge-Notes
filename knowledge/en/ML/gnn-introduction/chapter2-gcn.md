@@ -16,7 +16,6 @@ exercises: 5
     height="315"
     src="https://www.youtube.com/embed/2yKPXfTCyGw"
     title="GNN Introduction Ch.2: Graph Convolutional Networks (GCN)"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>
