@@ -151,25 +151,23 @@
 </div>
 </header>
 <main class="container">
-
-<p class="chapter-description">This chapter covers the fundamentals of Fundamentals of Bayesian Optimization, which black-box optimization problems. You will learn ✅ Can explain the characteristics.</p>
-<section>
+<p>This chapter covers the fundamentals of Fundamentals of Bayesian Optimization, which black-box optimization problems. You will learn ✅ Can explain the characteristics.</p>
 <h2>1.1 Black-Box Optimization Problems</h2>
 <p>In process industries, there are many "black-box" problems where the relationship between inputs and outputs is complex and cannot be described analytically. For example, when searching for optimal operating conditions for a chemical reactor, the relationship between parameters such as temperature, pressure, and reaction time and the yield can only be evaluated through experiments or simulations.</p>
-<div class="info-box">
 <p><strong>💡 Characteristics of Black-Box Optimization</strong></p>
 <ul>
-<li><strong>Unknown objective function</strong>: The formula for f(x) is unknown</li>
-<li><strong>High evaluation cost</strong>: Each experiment takes hours to days</li>
-<li><strong>Gradient information unavailable</strong>: ∇f(x) cannot be calculated</li>
-<li><strong>Presence of noise</strong>: Measurement errors are included</li>
+<li><strong>Unknown objective function</strong> : The formula for f(x) is unknown</li>
+<li><strong>High evaluation cost</strong> : Each experiment takes hours to days</li>
+<li><strong>Gradient information unavailable</strong> : ∇f(x) cannot be calculated</li>
+<li><strong>Presence of noise</strong> : Measurement errors are included</li>
 </ul>
-</div>
 <h3>Example 1: Formulation of Black-Box Problem (Chemical Reactor)</h3>
-<p>We define a problem that optimizes three parameters: temperature, pressure, and catalyst concentration, assuming a polymerization reaction process.</p>
+<p>We define a problem that optimizes three parameters: temperature, pressure, and catalyst concentration, assuming a polymerization reaction process. The two evaluations below compare initial and reference conditions; the reference point is not the optimum. The catalyst term increases with concentration, so the noise-free optimum lies at the upper bound C = 1.0 mol/L. We add <code>np.random.seed(42)</code> to make the observation noise reproducible.</p>
 <pre><code>import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import cm
+
+np.random.seed(42)
 
 # ===================================
 # Example 1: Black-box optimization problem for chemical reactor
@@ -190,7 +188,7 @@ class ChemicalReactor:
         self.noise_level = noise_level
         self.bounds = np.array([[300, 400], [1, 5], [0.1, 1.0]])
         self.dim_names = ['Temperature (K)', 'Pressure (bar)', 'Catalyst (mol/L)']
-        self.optimal_x = np.array([350, 3.0, 0.5])  # True optimal solution
+        self.reference_x = np.array([350, 3.0, 0.5])  # Reference conditions, not the optimum
 
     def evaluate(self, x):
         """Calculate yield (equivalent to actual experiment/simulation)
@@ -266,35 +264,97 @@ yield_initial = reactor.evaluate(x_initial)
 print(f"Initial conditions: T={x_initial[0]}K, P={x_initial[1]}bar, C={x_initial[2]}mol/L")
 print(f"Initial yield: {yield_initial:.3f}")
 
-# Evaluate near optimal conditions
-x_optimal = np.array([350, 3.0, 0.5])
-yield_optimal = reactor.evaluate(x_optimal)
-print(f"\nOptimal conditions: T={x_optimal[0]}K, P={x_optimal[1]}bar, C={x_optimal[2]}mol/L")
-print(f"Optimal yield: {yield_optimal:.3f}")
+# Evaluate reference conditions
+x_reference = np.array([350, 3.0, 0.5])
+yield_reference = reactor.evaluate(x_reference)
+print(f"\nReference conditions: T={x_reference[0]}K, P={x_reference[1]}bar, C={x_reference[2]}mol/L")
+print(f"Reference yield: {yield_reference:.3f}")
 
 # Visualization
 fig = reactor.plot_landscape()
 plt.show()
 </code></pre>
-<div class="example-output">
-<strong>Example output:</strong><br/>
-                Initial conditions: T=320K, P=2.0bar, C=0.3mol/L<br/>
-                Initial yield: 0.523<br/>
-<br/>
-                Optimal conditions: T=350K, P=3.0bar, C=0.5mol/L<br/>
-                Optimal yield: 0.887
-            </div>
-<div class="tip-box">
+<p><strong>Example output:</strong><br />
+Initial conditions: T=320.0K, P=2.0bar, C=0.3mol/L<br />
+Initial yield: 0.207  </p>
+<p>Reference conditions: T=350.0K, P=3.0bar, C=0.5mol/L<br />
+Reference yield: 0.604  </p>
 <p><strong>💡 Practical Implications</strong></p>
-<p>For problems with such complex response surfaces, traditional grid search or random search are inefficient. Bayesian optimization is a powerful method that can reach optimal solutions with fewer evaluations.</p>
-</div>
-</section>
-<section>
+<p>The seeded evaluations give yields of 0.207 and 0.604 at the initial and reference conditions; this two-point comparison does not establish optimization efficiency, although Bayesian optimization can help when evaluations are expensive.</p>
 <h2>1.2 Sequential Design Strategy</h2>
 <p>The core of Bayesian optimization lies in "Sequential Design". By leveraging previous observation results, it enables efficient optimization by intelligently selecting the next point to evaluate.</p>
 <h3>Example 2: Sequential Design vs Random Sampling</h3>
-<p>We demonstrate how optimization performance greatly differs depending on strategy, even with the same number of evaluations.</p>
-<pre><code>import numpy as np
+<p>We compare GP-EI sequential design with random sampling using exactly 13 objective evaluations each (3 initial points plus 10 proposals for GP-EI). Both use <code>default_rng(42)</code>; acquisition search uses only the fitted GP, and the true-function curves are evaluated separately for visualization.</p>
+<pre><code>import warnings
+
+import numpy as np
+from scipy.optimize import minimize
+from scipy.stats import norm
+from sklearn.exceptions import ConvergenceWarning
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import RBF, ConstantKernel, WhiteKernel
+
+
+def make_gp(noise: float = 1e-4, d: int = 1, min_length_scale: float = 1e-2) -&gt; GaussianProcessRegressor:
+    kernel = (ConstantKernel(1.0, (1e-2, 1e2))
+              * RBF(length_scale=np.ones(d) * 0.2, length_scale_bounds=(min_length_scale, 1e1))
+              + WhiteKernel(noise, (1e-6, 1e-1)))
+    return GaussianProcessRegressor(kernel=kernel, normalize_y=True, n_restarts_optimizer=3, random_state=0)
+
+
+def scale(X, bounds) -&gt; np.ndarray:
+    b = np.asarray(bounds, dtype=float)
+    return (np.asarray(X, dtype=float) - b[:, 0]) / (b[:, 1] - b[:, 0])
+
+
+def unscale(U, bounds) -&gt; np.ndarray:
+    b = np.asarray(bounds, dtype=float)
+    return b[:, 0] + np.asarray(U, dtype=float) * (b[:, 1] - b[:, 0])
+
+
+def expected_improvement(mu, sigma, best, xi=0.01) -&gt; np.ndarray:
+    mu, sigma = np.asarray(mu, dtype=float), np.asarray(sigma, dtype=float)
+    imp = mu - best - xi
+    out = np.maximum(imp, 0.0)  # sigma == 0: the improvement is certain (or certainly absent)
+    pos = sigma &gt; 1e-12
+    z = imp[pos] / sigma[pos]
+    out[pos] = imp[pos] * norm.cdf(z) + sigma[pos] * norm.pdf(z)
+    return out
+
+
+def ucb(mu, sigma, kappa) -&gt; np.ndarray:
+    return np.asarray(mu, dtype=float) + kappa * np.asarray(sigma, dtype=float)
+
+
+def _fit(X, Y, bounds, gp_kwargs: dict | None = None) -&gt; GaussianProcessRegressor:
+    X = np.atleast_2d(np.asarray(X, dtype=float))
+    gp = make_gp(d=X.shape[1], **(gp_kwargs or {}))
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", ConvergenceWarning)
+        gp.fit(scale(X, bounds), np.asarray(Y, dtype=float))
+    return gp
+
+
+def _acq(gp, U, best, acq, kappa):
+    mu, sd = gp.predict(np.atleast_2d(U), return_std=True)
+    return expected_improvement(mu, sd, best) if acq == "ei" else ucb(mu, sd, kappa)
+
+
+def propose(gp, bounds, best, acq: str, rng, kappa=2.0, n_candidates=2000) -&gt; np.ndarray:
+    """Maximise the acquisition: n_candidates uniform points in the unit cube, then the best 5
+    refined with L-BFGS-B. Returns the proposal in original units."""
+    bounds = np.asarray(bounds, dtype=float); d = len(bounds)
+    U = rng.random((n_candidates, d))
+    a = _acq(gp, U, best, acq, kappa)
+    starts = U[np.argsort(-a, kind="stable")[:5]]
+    best_u, best_a = starts[0], a[np.argsort(-a, kind="stable")[0]]
+    for u0 in starts:
+        res = minimize(lambda u: -_acq(gp, u, best, acq, kappa)[0], u0, method="L-BFGS-B", bounds=[(0.0, 1.0)] * d)
+        if -res.fun &gt; best_a:
+            best_u, best_a = np.clip(res.x, 0.0, 1.0), -res.fun
+    return unscale(best_u, bounds)
+
+
 import matplotlib.pyplot as plt
 
 # ===================================
@@ -314,33 +374,19 @@ class SequentialDesigner:
         self.X_observed = []
         self.Y_observed = []
 
-        # Initial points (Latin Hypercube Sampling)
-        np.random.seed(42)
+        # Initial points (uniform random sampling)
+        self.rng = np.random.default_rng(42)
         for _ in range(n_initial):
-            x = np.random.uniform(bounds[0], bounds[1])
+            x = self.rng.uniform(bounds[0], bounds[1])
             y = objective_func(x)
             self.X_observed.append(x)
             self.Y_observed.append(y)
 
     def select_next_point(self):
-        """Select next evaluation point (simplified version: balance of exploration and exploitation)"""
-        # Generate candidate points
-        candidates = np.linspace(self.bounds[0], self.bounds[1], 100)
-
-        # Distance from observed points (exploration)
-        min_distances = []
-        for c in candidates:
-            distances = [abs(c - x) for x in self.X_observed]
-            min_distances.append(min(distances))
-
-        # Expected improvement from current best value (exploitation)
-        best_y = max(self.Y_observed)
-        improvements = [max(0, self.objective(c) - best_y) for c in candidates]
-
-        # Score calculation (60% exploration + 40% exploitation)
-        scores = 0.6 * np.array(min_distances) + 0.4 * np.array(improvements)
-
-        return candidates[np.argmax(scores)]
+        """Maximize GP expected improvement without evaluating the objective."""
+        bounds = np.asarray([self.bounds], dtype=float)
+        gp = _fit(np.asarray(self.X_observed).reshape(-1, 1), self.Y_observed, bounds)
+        return propose(gp, bounds, max(self.Y_observed), "ei", self.rng)[0]
 
     def optimize(self, n_iterations=10):
         """Execute optimization"""
@@ -366,8 +412,8 @@ X_seq, Y_seq = seq_designer.optimize(n_iterations=10)
 
 # 2. Random sampling
 print("\n=== Random Sampling ===")
-np.random.seed(42)
-X_random = np.random.uniform(bounds[0], bounds[1], n_total)
+rng = np.random.default_rng(42)
+X_random = rng.uniform(bounds[0], bounds[1], n_total)
 Y_random = [simple_objective(x) for x in X_random]
 for i, (x, y) in enumerate(zip(X_random, Y_random), 1):
     current_best = max(Y_random[:i])
@@ -421,27 +467,80 @@ plt.legend()
 plt.grid(alpha=0.3)
 plt.show()
 </code></pre>
-<div class="example-output">
-<strong>Example output (sequential design final result):</strong><br/>
-                Iteration 10: x=2.89, y=2.847, best=2.847<br/>
-<strong>Random sampling final result:</strong><br/>
-                Sample 13: x=1.23, y=0.456, best=2.312<br/>
-<br/>
-<strong>Improvement rate: 23% improvement (same number of evaluations)</strong>
-</div>
-</section>
-<section>
+<p><strong>Example output:</strong><br />
+=== Sequential Design ===<br />
+Iteration 1: x=1.16, y=3.587, best=3.587<br />
+Iteration 2: x=0.00, y=2.000, best=3.587<br />
+Iteration 3: x=1.43, y=0.122, best=3.587<br />
+Iteration 4: x=1.14, y=3.980, best=3.980<br />
+Iteration 5: x=1.07, y=5.048, best=5.048<br />
+Iteration 6: x=0.86, y=6.202, best=6.202<br />
+Iteration 7: x=0.90, y=6.312, best=6.312<br />
+Iteration 8: x=3.00, y=2.000, best=6.312<br />
+Iteration 9: x=5.00, y=2.529, best=6.312<br />
+Iteration 10: x=3.43, y=2.187, best=6.312  </p>
+<p>=== Random Sampling ===<br />
+Sample 1: x=3.87, y=1.638, best=1.638<br />
+Sample 2: x=2.19, y=2.649, best=2.649<br />
+Sample 3: x=4.29, y=1.160, best=2.649<br />
+Sample 4: x=3.49, y=2.234, best=2.649<br />
+Sample 5: x=0.47, y=-2.531, best=2.649<br />
+Sample 6: x=4.88, y=4.384, best=4.384<br />
+Sample 7: x=3.81, y=1.884, best=4.384<br />
+Sample 8: x=3.93, y=1.378, best=4.384<br />
+Sample 9: x=0.64, y=2.341, best=4.384<br />
+Sample 10: x=2.25, y=2.540, best=4.384<br />
+Sample 11: x=1.85, y=1.797, best=4.384<br />
+Sample 12: x=4.63, y=4.466, best=4.466<br />
+Sample 13: x=3.22, y=2.018, best=4.466  </p>
+<p><strong>In this seeded run, GP-EI reaches 6.312 versus 4.466 for random sampling, a 41.3% improvement with the same 13-evaluation budget.</strong></p>
 <h2>1.3 Exploration-Exploitation Trade-off</h2>
 <p>The most important concept in Bayesian optimization is the balance between "Exploration" and "Exploitation".</p>
 <ul>
-<li><strong>Exploitation</strong>: Intensively investigate near the current best point to pursue local improvements</li>
-<li><strong>Exploration</strong>: Investigate unknown regions to discover better global optimal solutions</li>
+<li><strong>Exploitation</strong> : Intensively investigate near the current best point to pursue local improvements</li>
+<li><strong>Exploration</strong> : Investigate unknown regions to discover better global optimal solutions</li>
 </ul>
 <h3>Example 3: Visualization of Exploration vs Exploitation</h3>
-<p>We visually understand the impact of different balances on optimization.</p>
-<pre><code>import numpy as np
-import matplotlib.pyplot as plt
+<p>We visualize a fitted Gaussian process posterior and UCB = mean + α × standard deviation, using inputs scaled to [0, 1]. We add <code>np.random.seed(42)</code> for the observation noise; exploitation selects x = 0.90, maximum uncertainty selects x = 10.00, and UCB selects x = 0.30 (α = 0.5) or x = 0.00 (α = 1.5).</p>
+<pre><code>import warnings
+
+import numpy as np
+from scipy.optimize import minimize
 from scipy.stats import norm
+from sklearn.exceptions import ConvergenceWarning
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import RBF, ConstantKernel, WhiteKernel
+
+
+def make_gp(noise: float = 1e-4, d: int = 1, min_length_scale: float = 1e-2) -&gt; GaussianProcessRegressor:
+    kernel = (ConstantKernel(1.0, (1e-2, 1e2))
+              * RBF(length_scale=np.ones(d) * 0.2, length_scale_bounds=(min_length_scale, 1e1))
+              + WhiteKernel(noise, (1e-6, 1e-1)))
+    return GaussianProcessRegressor(kernel=kernel, normalize_y=True, n_restarts_optimizer=3, random_state=0)
+
+
+def scale(X, bounds) -&gt; np.ndarray:
+    b = np.asarray(bounds, dtype=float)
+    return (np.asarray(X, dtype=float) - b[:, 0]) / (b[:, 1] - b[:, 0])
+
+
+def unscale(U, bounds) -&gt; np.ndarray:
+    b = np.asarray(bounds, dtype=float)
+    return b[:, 0] + np.asarray(U, dtype=float) * (b[:, 1] - b[:, 0])
+
+
+def _fit(X, Y, bounds, gp_kwargs: dict | None = None) -&gt; GaussianProcessRegressor:
+    X = np.atleast_2d(np.asarray(X, dtype=float))
+    gp = make_gp(d=X.shape[1], **(gp_kwargs or {}))
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", ConvergenceWarning)
+        gp.fit(scale(X, bounds), np.asarray(Y, dtype=float))
+    return gp
+
+
+import matplotlib.pyplot as plt
+
+np.random.seed(42)
 
 # ===================================
 # Example 3: Exploration-Exploitation Trade-off
@@ -460,18 +559,10 @@ class ExplorationExploitationDemo:
         self.Y_obs = self.true_func(self.X_obs) + np.random.normal(0, 0.1, len(self.X_obs))
 
     def predict_with_uncertainty(self, x):
-        """Simple prediction mean and uncertainty (Gaussian process approximation)"""
-        # Distance-based weighted average
-        weights = np.exp(-((self.X_obs[:, None] - x) / 1.0)**2)
-        weights = weights / (weights.sum(axis=0) + 1e-10)
-
-        mean = (weights.T @ self.Y_obs)
-
-        # Uncertainty (depends on distance from observed points)
-        min_dist = np.min(np.abs(self.X_obs[:, None] - x), axis=0)
-        uncertainty = 0.5 * (1 - np.exp(-min_dist / 2.0))
-
-        return mean, uncertainty
+        """Gaussian process posterior mean and standard deviation."""
+        bounds = np.array([[0.0, 10.0]])
+        gp = _fit(self.X_obs.reshape(-1, 1), self.Y_obs, bounds)
+        return gp.predict(scale(np.asarray(x).reshape(-1, 1), bounds), return_std=True)
 
     def exploitation_strategy(self):
         """Exploitation strategy: Select point with maximum predicted mean"""
@@ -569,26 +660,21 @@ print(f"Balanced (UCB, α=1.5): x = {demo.balanced_strategy(alpha=1.5):.2f}")
 fig = demo.visualize()
 plt.show()
 </code></pre>
-<div class="example-output">
-<strong>Example output:</strong><br/>
-                Exploitation (best predicted point): x = 3.05<br/>
-                Exploration (maximum uncertainty): x = 5.52<br/>
-                Balanced (UCB, α=0.5): x = 3.81<br/>
-                Balanced (UCB, α=1.5): x = 5.27
-            </div>
-<div class="warning-box">
+<p><strong>Example output:</strong><br />
+=== Exploration vs Exploitation ===<br />
+Exploitation (best predicted point): x = 0.90<br />
+Exploration (maximum uncertainty): x = 10.00<br />
+Balanced (UCB, α=0.5): x = 0.30<br />
+Balanced (UCB, α=1.5): x = 0.00  </p>
 <p><strong>⚠️ Practical Considerations</strong></p>
 <p>Biasing too much towards exploitation leads to local optima, while biasing too much towards exploration slows convergence. Adjusting hyperparameters (e.g., α in UCB) is important. A general guideline is α = 1.0 to 2.0.</p>
-</div>
-</section>
-<section>
 <h2>1.4 Basic Loop of Bayesian Optimization</h2>
 <p>The Bayesian optimization algorithm repeats the following four steps:</p>
 <ol>
-<li><strong>Build surrogate model</strong>: Approximate the objective function from observed data</li>
-<li><strong>Calculate acquisition function</strong>: Quantify the promise of the next point to evaluate</li>
-<li><strong>Select next point</strong>: Choose the point that maximizes the acquisition function</li>
-<li><strong>Evaluate and update</strong>: Actually evaluate and add to observed data</li>
+<li><strong>Build surrogate model</strong> : Approximate the objective function from observed data</li>
+<li><strong>Calculate acquisition function</strong> : Quantify the promise of the next point to evaluate</li>
+<li><strong>Select next point</strong> : Choose the point that maximizes the acquisition function</li>
+<li><strong>Evaluate and update</strong> : Actually evaluate and add to observed data</li>
 </ol>
 <h3>Example 4: Simple Bayesian Optimization Implementation</h3>
 <p>We understand the overall flow with a minimal implementation.</p>
@@ -654,6 +740,8 @@ class SimpleBayesianOptimization:
         # Predicted variance
         k_star_star = self.gaussian_kernel(x_test, x_test)
         variance = k_star_star - k_star.T @ K_inv @ k_star
+        if variance.ndim == 2:
+            variance = np.diag(variance)  # Marginal variance for each query point
         std = np.sqrt(np.maximum(variance, 0))
 
         return mean.flatten(), std.flatten()
@@ -724,7 +812,7 @@ class SimpleBayesianOptimization:
         ax1.grid(alpha=0.3)
 
         # Acquisition function
-        ei_values = [-self.expected_improvement(x) for x in x_plot]
+        ei_values = -self.expected_improvement(x_plot)
         ax2.plot(x_plot, ei_values, 'g-', linewidth=2, label='Expected Improvement')
         ax2.fill_between(x_plot, 0, ei_values, alpha=0.3, color='green')
         ax2.axvline(self.X_obs[-1], color='red', linestyle='--',
@@ -754,25 +842,97 @@ print(f"Best y: {y_best:.4f}")
 fig = bo.plot_progress()
 plt.show()
 </code></pre>
-<div class="example-output">
-<strong>Example output:</strong><br/>
-                Iter 1: x=2.876, y=3.234, best=3.234<br/>
-                Iter 2: x=2.451, y=3.589, best=3.589<br/>
-                ...<br/>
-                Iter 12: x=2.503, y=3.612, best=3.612<br/>
-<br/>
-                Best x: 2.5030<br/>
-                Best y: 3.612
-            </div>
-</section>
-<section>
+<p><strong>Example output:</strong><br />
+=== Simple Bayesian Optimization ===  </p>
+<p>Iter 1: x=2.058, y=2.858, best=2.993<br />
+Iter 2: x=0.000, y=2.971, best=2.993<br />
+Iter 3: x=0.917, y=2.343, best=2.993<br />
+Iter 4: x=1.331, y=1.941, best=2.993<br />
+Iter 5: x=1.456, y=2.055, best=2.993<br />
+Iter 6: x=4.405, y=2.732, best=2.993<br />
+Iter 7: x=1.966, y=2.756, best=2.993<br />
+Iter 8: x=2.280, y=3.004, best=3.004<br />
+Iter 9: x=2.787, y=2.998, best=3.004<br />
+Iter 10: x=2.663, y=2.980, best=3.004<br />
+Iter 11: x=0.853, y=0.851, best=3.004<br />
+Iter 12: x=0.325, y=3.494, best=3.494  </p>
+<p>=== Final Result ===<br />
+Best x: 0.3253<br />
+Best y: 3.4938  </p>
 <h2>1.5 Comparison: BO vs Grid Search vs Random Search</h2>
-<p>We quantitatively evaluate the superiority of Bayesian optimization.</p>
+<p>We compare the best values reached by three methods on the same Branin problem and evaluation budget.</p>
 <h3>Example 5: Performance Comparison of Three Methods</h3>
-<pre><code>import numpy as np
-import matplotlib.pyplot as plt
+<pre><code>import warnings
+
+import numpy as np
 from scipy.optimize import minimize
 from scipy.stats import norm
+from sklearn.exceptions import ConvergenceWarning
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import RBF, ConstantKernel, WhiteKernel
+
+
+def make_gp(noise: float = 1e-4, d: int = 1, min_length_scale: float = 1e-2) -&gt; GaussianProcessRegressor:
+    kernel = (ConstantKernel(1.0, (1e-2, 1e2))
+              * RBF(length_scale=np.ones(d) * 0.2, length_scale_bounds=(min_length_scale, 1e1))
+              + WhiteKernel(noise, (1e-6, 1e-1)))
+    return GaussianProcessRegressor(kernel=kernel, normalize_y=True, n_restarts_optimizer=3, random_state=0)
+
+
+def scale(X, bounds) -&gt; np.ndarray:
+    b = np.asarray(bounds, dtype=float)
+    return (np.asarray(X, dtype=float) - b[:, 0]) / (b[:, 1] - b[:, 0])
+
+
+def unscale(U, bounds) -&gt; np.ndarray:
+    b = np.asarray(bounds, dtype=float)
+    return b[:, 0] + np.asarray(U, dtype=float) * (b[:, 1] - b[:, 0])
+
+
+def expected_improvement(mu, sigma, best, xi=0.01) -&gt; np.ndarray:
+    mu, sigma = np.asarray(mu, dtype=float), np.asarray(sigma, dtype=float)
+    imp = mu - best - xi
+    out = np.maximum(imp, 0.0)  # sigma == 0: the improvement is certain (or certainly absent)
+    pos = sigma &gt; 1e-12
+    z = imp[pos] / sigma[pos]
+    out[pos] = imp[pos] * norm.cdf(z) + sigma[pos] * norm.pdf(z)
+    return out
+
+
+def ucb(mu, sigma, kappa) -&gt; np.ndarray:
+    return np.asarray(mu, dtype=float) + kappa * np.asarray(sigma, dtype=float)
+
+
+def _fit(X, Y, bounds, gp_kwargs: dict | None = None) -&gt; GaussianProcessRegressor:
+    X = np.atleast_2d(np.asarray(X, dtype=float))
+    gp = make_gp(d=X.shape[1], **(gp_kwargs or {}))
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", ConvergenceWarning)
+        gp.fit(scale(X, bounds), np.asarray(Y, dtype=float))
+    return gp
+
+
+def _acq(gp, U, best, acq, kappa):
+    mu, sd = gp.predict(np.atleast_2d(U), return_std=True)
+    return expected_improvement(mu, sd, best) if acq == "ei" else ucb(mu, sd, kappa)
+
+
+def propose(gp, bounds, best, acq: str, rng, kappa=2.0, n_candidates=2000) -&gt; np.ndarray:
+    """Maximise the acquisition: n_candidates uniform points in the unit cube, then the best 5
+    refined with L-BFGS-B. Returns the proposal in original units."""
+    bounds = np.asarray(bounds, dtype=float); d = len(bounds)
+    U = rng.random((n_candidates, d))
+    a = _acq(gp, U, best, acq, kappa)
+    starts = U[np.argsort(-a, kind="stable")[:5]]
+    best_u, best_a = starts[0], a[np.argsort(-a, kind="stable")[0]]
+    for u0 in starts:
+        res = minimize(lambda u: -_acq(gp, u, best, acq, kappa)[0], u0, method="L-BFGS-B", bounds=[(0.0, 1.0)] * d)
+        if -res.fun &gt; best_a:
+            best_u, best_a = np.clip(res.x, 0.0, 1.0), -res.fun
+    return unscale(best_u, bounds)
+
+
+import matplotlib.pyplot as plt
 
 # ===================================
 # Example 5: BO vs Grid Search vs Random Search
@@ -814,8 +974,8 @@ class OptimizationComparison:
 
     def random_search(self, seed=42):
         """Random search"""
-        np.random.seed(seed)
-        X_random = np.random.uniform(
+        rng = np.random.default_rng(seed)
+        X_random = rng.uniform(
             self.bounds[:, 0], self.bounds[:, 1],
             size=(self.budget, self.dim)
         )
@@ -824,47 +984,16 @@ class OptimizationComparison:
         return X_random, Y_random
 
     def bayesian_optimization(self, seed=42):
-        """Bayesian optimization (simplified version)"""
-        np.random.seed(seed)
-
-        # Initial samples (5 points)
+        """Gaussian process optimization with expected improvement."""
+        rng = np.random.default_rng(seed)
         n_init = 5
-        X = np.random.uniform(self.bounds[:, 0], self.bounds[:, 1],
-                             size=(n_init, self.dim))
+        X = unscale(rng.random((n_init, self.dim)), self.bounds)
         Y = [self.objective(x) for x in X]
 
-        # Sequential optimization
         for _ in range(self.budget - n_init):
-            # Simple GP prediction
-            def gp_mean_std(x_test):
-                distances = np.linalg.norm(X - x_test, axis=1)
-                weights = np.exp(-distances**2 / 2.0)
-                weights = weights / (weights.sum() + 1e-10)
-
-                mean = weights @ Y
-                std = 1.0 * np.exp(-np.min(distances) / 1.5)
-
-                return mean, std
-
-            # EI acquisition function
-            def neg_ei(x):
-                mean, std = gp_mean_std(x)
-                best_y = max(Y)
-                z = (mean - best_y) / (std + 1e-9)
-                ei = (mean - best_y) * norm.cdf(z) + std * norm.pdf(z)
-                return -ei
-
-            # Next point selection
-            result = minimize(
-                neg_ei,
-                x0=np.random.uniform(self.bounds[:, 0], self.bounds[:, 1]),
-                bounds=self.bounds,
-                method='L-BFGS-B'
-            )
-
-            x_next = result.x
+            gp = _fit(X, Y, self.bounds)
+            x_next = propose(gp, self.bounds, max(Y), "ei", rng)
             y_next = self.objective(x_next)
-
             X = np.vstack([X, x_next])
             Y.append(y_next)
 
@@ -944,27 +1073,69 @@ for method, trials in results.items():
 fig = comparison.plot_comparison(results)
 plt.show()
 </code></pre>
-<div class="example-output">
-<strong>Example output (final performance summary):</strong><br/>
-                Grid Search              : -12.345 ± 2.134<br/>
-                Random Search            : -8.912 ± 1.567<br/>
-                Bayesian Optimization    : -3.456 ± 0.823<br/>
-<br/>
-<strong>All three methods were given the same budget of 30 evaluations</strong>, so this compares the quality of the best value found within that budget, not speed. These objective values are negative (the Branin function is negated for maximization), so their <strong>ratios carry no meaning</strong> &mdash; compare the remaining <strong>gap to the optimum</strong> instead. The best attainable value on these bounds is about -0.40, giving gaps of 11.95 (grid), 8.51 (random) and 3.06 (BO).
-</div>
-<div class="success-box">
+<p><strong>Example output:</strong><br />
+Running optimization comparison...  </p>
+<p>=== Trial 1/5 ===<br />
+Grid Search best: -1.9431<br />
+Random Search best: -1.6409<br />
+Bayesian Optimization best: -0.4049  </p>
+<p>=== Trial 2/5 ===<br />
+Grid Search best: -1.9431<br />
+Random Search best: -1.7697<br />
+Bayesian Optimization best: -0.3980  </p>
+<p>=== Trial 3/5 ===<br />
+Grid Search best: -1.9431<br />
+Random Search best: -0.8426<br />
+Bayesian Optimization best: -0.3981  </p>
+<p>=== Trial 4/5 ===<br />
+Grid Search best: -1.9431<br />
+Random Search best: -5.0113<br />
+Bayesian Optimization best: -0.3980  </p>
+<p>=== Trial 5/5 ===<br />
+Grid Search best: -1.9431<br />
+Random Search best: -2.7390<br />
+Bayesian Optimization best: -0.3984  </p>
+<p>=== Final Performance Summary ===<br />
+Grid Search              : -1.9431 ± 0.0000<br />
+Random Search            : -2.4007 ± 1.4375<br />
+Bayesian Optimization    : -0.3995 ± 0.0027  </p>
+<p><strong>All three methods were given the same budget of 30 evaluations</strong> , so this compares the quality of the best value found within that budget, not speed. These objective values are negative (the Branin function is negated for maximization), so their <strong>ratios carry no meaning</strong> — compare the remaining <strong>gap to the optimum</strong> instead. The best attainable value on these bounds is approximately -0.397887; the table uses that value to compute gaps from the mean best values across five trials:</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Best found in 30 evaluations</th>
+<th>Remaining gap to the optimum</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Grid Search</td>
+<td>-1.9431</td>
+<td>1.5452</td>
+</tr>
+<tr>
+<td>Random Search</td>
+<td>-2.4007</td>
+<td>2.0028</td>
+</tr>
+<tr>
+<td>Bayesian Optimization</td>
+<td>-0.3995</td>
+<td>0.0016</td>
+</tr>
+</tbody>
+</table>
 <p><strong>✅ Advantages of Bayesian Optimization</strong></p>
 <ul>
-<li><strong>Evaluation efficiency</strong>: On the same 30-evaluation budget, BO closes about 74% of the gap that grid search still leaves open, and about 64% of the gap left by random search</li>
-<li><strong>How the budget scales</strong>: Grid search can only afford <code>ceil(30**(1/2)) = 6</code> points per dimension here (a 6&times;6 lattice truncated to 30 points); halving the grid spacing in 2D would cost 4&times; the evaluations, whereas BO spends each additional evaluation where its model says the information gain is largest</li>
-<li><strong>Robustness</strong>: Small standard deviation across the 5 trials (stable performance)</li>
+<li><strong>Evaluation efficiency</strong> : Across these five seeded trials with 30 evaluations each, GP-EI has the best mean result, closing about 99.9% of the gap left by grid search and about 99.9% of the gap left by random search</li>
+<li><strong>How the budget scales</strong> : Grid search can only afford <code>ceil(30**(1/2)) = 6</code> points per dimension here (a 6×6 lattice truncated to 30 points); halving the grid spacing in 2D would cost 4× the evaluations, whereas GP-EI spends each additional evaluation where its fitted model predicts the greatest expected improvement</li>
+<li><strong>Robustness</strong> : The GP-EI final-value standard deviation is 0.0027 across these five trials; this indicates stability in this experiment, not a general guarantee</li>
 </ul>
-</div>
-</section>
-<section>
 <h2>1.6 Convergence Analysis and Iteration Tracking</h2>
 <p>We quantitatively evaluate optimization progress and learn methods for convergence determination.</p>
 <h3>Example 6: Convergence Diagnostic Tool</h3>
+<p>This diagnostic example retains a separate distance-weighted heuristic search history, rather than a GP posterior. The true optimum is not supplied: 3.62 was not a valid optimum for this objective, so <code>true_optimum=None</code> omits the optimality gap. The run finds 7.006472 but does not satisfy the stopping rule; its largest improvement is at iteration 16 (Δy = 3.494641).</p>
 <pre><code>import numpy as np
 import matplotlib.pyplot as plt
 
@@ -1107,7 +1278,7 @@ class ConvergenceAnalyzer:
         print(f"Largest improvement at iteration: {max_imp_iter + 1} "
               f"(Δy = {metrics['improvements'][max_imp_iter]:.6f})")
 
-# Demo execution (using results from Example 4)
+# Demo execution (same objective as Example 4, separate noisy history)
 np.random.seed(42)
 
 def test_func(x):
@@ -1128,7 +1299,7 @@ for _ in range(3):
 
 # Sequential optimization (15 iterations)
 for iteration in range(15):
-    # Simple GP prediction
+    # Distance-weighted heuristic prediction (not a GP posterior)
     def gp_predict(x_test):
         dists = np.abs(np.array(X_hist) - x_test)
         weights = np.exp(-dists**2 / 0.5)
@@ -1154,25 +1325,20 @@ for iteration in range(15):
     Y_hist.append(y_next)
 
 # Convergence analysis
-analyzer = ConvergenceAnalyzer(X_hist, Y_hist, true_optimum=3.62)
+analyzer = ConvergenceAnalyzer(X_hist, Y_hist, true_optimum=None)
 analyzer.print_summary()
 fig = analyzer.plot_diagnostics()
 plt.show()
 </code></pre>
-<div class="example-output">
-<strong>Example output:</strong><br/>
-                Total iterations: 18<br/>
-                Best value found: 3.608521<br/>
-                Final improvement: 0.000000<br/>
-                True optimum: 3.620000<br/>
-                Optimality gap: 0.011479 (0.32%)<br/>
-                Converged: Yes<br/>
-                Largest improvement at iteration: 6 (Δy = 0.234567)
-            </div>
-</section>
-<section>
+<p><strong>Example output:</strong><br />
+=== Convergence Analysis Summary ===<br />
+Total iterations: 18<br />
+Best value found: 7.006472<br />
+Final improvement: 0.000000<br />
+Converged: No<br />
+Largest improvement at iteration: 16 (Δy = 3.494641)  </p>
 <h2>1.7 Practical Example of Hyperparameter Tuning</h2>
-<p>We implement hyperparameter tuning of machine learning models as a representative application of Bayesian optimization.</p>
+<p>Hyperparameter tuning is an application of Bayesian optimization; this compact example retains a distance-weighted heuristic surrogate with an EI-style selection rule, so it does not implement the GP posterior used in Examples 2, 3, and 5. Both random forests use <code>n_jobs=1</code> to keep tree averaging and the resulting search deterministic.</p>
 <h3>Example 7: Hyperparameter Optimization of Random Forest</h3>
 <pre><code>import numpy as np
 import matplotlib.pyplot as plt
@@ -1191,7 +1357,7 @@ np.random.seed(42)
 X_data, y_data = make_regression(n_samples=200, n_features=10, noise=10, random_state=42)
 
 class HyperparameterOptimizer:
-    """Bayesian optimization of Random Forest hyperparameters"""
+    """EI-style search of Random Forest hyperparameters with a heuristic surrogate"""
 
     def __init__(self, X_train, y_train):
         self.X_train = X_train
@@ -1234,7 +1400,7 @@ class HyperparameterOptimizer:
             max_depth=max_d,
             min_samples_split=min_split,
             random_state=42,
-            n_jobs=-1
+            n_jobs=1
         )
 
         # Cross-validation R² score
@@ -1243,7 +1409,7 @@ class HyperparameterOptimizer:
         return scores.mean()
 
     def _gp_predict(self, params_test):
-        """Simple Gaussian process prediction"""
+        """Distance-weighted heuristic prediction (not a GP posterior)"""
         X_obs_array = np.array(self.X_obs)
         params_array = np.array(params_test).reshape(1, -1)
 
@@ -1271,7 +1437,7 @@ class HyperparameterOptimizer:
         return -ei  # Minimization problem
 
     def optimize(self, n_iterations=15):
-        """Execute Bayesian optimization"""
+        """Execute the heuristic EI-style search"""
         print("=== Hyperparameter Optimization ===\n")
 
         for i in range(n_iterations):
@@ -1380,37 +1546,46 @@ plt.show()
 
 # Comparison with baseline
 print("\n=== Comparison with Default Parameters ===")
-default_model = RandomForestRegressor(random_state=42, n_jobs=-1)
+default_model = RandomForestRegressor(random_state=42, n_jobs=1)
 default_score = cross_val_score(default_model, X_data, y_data, cv=5, scoring='r2').mean()
 print(f"Default R² score: {default_score:.4f}")
 print(f"Optimized R² score: {best_score:.4f}")
 print(f"Improvement: {(best_score - default_score) / default_score * 100:.2f}%")
 </code></pre>
-<div class="example-output">
-<strong>Example output:</strong><br/>
-                Iter 15: n_est=142, max_depth=18, min_split=2 → R²=0.9234 (best=0.9234)<br/>
-<br/>
-                Best Hyperparameters:<br/>
-                n_estimators: 142<br/>
-                max_depth: 18<br/>
-                min_samples_split: 2<br/>
-                Best R² score: 0.9234<br/>
-<br/>
-                Default R² score: 0.8567<br/>
-                Optimized R² score: 0.9234<br/>
-                Improvement: 7.78%
-            </div>
-<div class="tip-box">
+<p><strong>Example output:</strong><br />
+=== Hyperparameter Optimization ===  </p>
+<p>Iter 1: n_est=185, max_depth=16, min_split=20 → R²=0.6402 (best=0.7324)<br />
+Iter 2: n_est=10, max_depth=20, min_split=2 → R²=0.6670 (best=0.7324)<br />
+Iter 3: n_est=50, max_depth=20, min_split=10 → R²=0.6945 (best=0.7324)<br />
+Iter 4: n_est=10, max_depth=20, min_split=20 → R²=0.5485 (best=0.7324)<br />
+Iter 5: n_est=161, max_depth=9, min_split=12 → R²=0.7046 (best=0.7324)<br />
+Iter 6: n_est=10, max_depth=5, min_split=9 → R²=0.6190 (best=0.7324)<br />
+Iter 7: n_est=200, max_depth=20, min_split=2 → R²=0.7397 (best=0.7397)<br />
+Iter 8: n_est=98, max_depth=15, min_split=19 → R²=0.6435 (best=0.7397)<br />
+Iter 9: n_est=16, max_depth=3, min_split=19 → R²=0.5038 (best=0.7397)<br />
+Iter 10: n_est=200, max_depth=3, min_split=20 → R²=0.5538 (best=0.7397)<br />
+Iter 11: n_est=10, max_depth=12, min_split=2 → R²=0.6664 (best=0.7397)<br />
+Iter 12: n_est=90, max_depth=3, min_split=11 → R²=0.5750 (best=0.7397)<br />
+Iter 13: n_est=118, max_depth=20, min_split=2 → R²=0.7381 (best=0.7397)<br />
+Iter 14: n_est=200, max_depth=10, min_split=2 → R²=0.7368 (best=0.7397)<br />
+Iter 15: n_est=67, max_depth=15, min_split=10 → R²=0.7061 (best=0.7397)  </p>
+<p>=== Best Hyperparameters ===<br />
+n_estimators: 200<br />
+max_depth: 20<br />
+min_samples_split: 2<br />
+Best R² score: 0.7397  </p>
+<p>=== Comparison with Default Parameters ===<br />
+Default R² score: 0.7368<br />
+Optimized R² score: 0.7397<br />
+Improvement: 0.40%  </p>
+<p>The best parameters in this run are <code>n_estimators=200</code>, <code>max_depth=20</code>, and <code>min_samples_split=2</code>: mean cross-validation R² rises from 0.7368 to 0.7397, a small 0.40% relative gain on these folds, not an independently validated test-set improvement.</p>
 <p><strong>💡 Practical Applications</strong></p>
 <p>This approach can be directly applied to the following process industry problems:</p>
 <ul>
-<li><strong>Quality prediction models</strong>: Predict product quality from sensor data</li>
-<li><strong>Anomaly detection models</strong>: Early detection of anomalies from plant operation data</li>
-<li><strong>Control parameter optimization</strong>: Tuning of PID gains, etc.</li>
+<li><strong>Quality prediction models</strong> : Predict product quality from sensor data</li>
+<li><strong>Anomaly detection models</strong> : Early detection of anomalies from plant operation data</li>
+<li><strong>Control parameter optimization</strong> : Tuning of PID gains, etc.</li>
 </ul>
-</div>
-</section>
-<section>
 <h2>Learning Objectives Review</h2>
 <p>Upon completing this chapter, you will be able to explain and implement the following:</p>
 <h3>Basic Understanding</h3>
@@ -1432,11 +1607,8 @@ print(f"Improvement: {(best_score - default_score) / default_score * 100:.2f}%")
 <li>✅ Can select appropriate optimization methods for practical problems</li>
 <li>✅ Can evaluate the reliability of optimization results</li>
 </ul>
-</section>
-<section>
 <h2>Next Steps</h2>
 <p>In Chapter 1, we learned the basic concepts and implementation of Bayesian optimization. In the next chapter, we will learn in detail about "Gaussian Processes", the core technology of Bayesian optimization.</p>
-<div class="info-box">
 <p><strong>📚 Next Chapter Preview (Chapter 2)</strong></p>
 <ul>
 <li>Mathematical foundations of Gaussian processes</li>
@@ -1444,22 +1616,17 @@ print(f"Improvement: {(best_score - default_score) / default_score * 100:.2f}%")
 <li>Maximum likelihood estimation of hyperparameters</li>
 <li>Fitting to real data</li>
 </ul>
-</div>
-</section>
 <div class="navigation">
 <a class="nav-button" href="index.html">← Back to Series Contents</a>
 <a class="nav-button" href="chapter-2.html">Chapter 2: Gaussian Processes →</a>
 </div>
-<section>
 <h2>References</h2>
 <ol>
 <li>Montgomery, D. C. (2019). <em>Design and Analysis of Experiments</em> (9th ed.). Wiley.</li>
 <li>Box, G. E. P., Hunter, J. S., &amp; Hunter, W. G. (2005). <em>Statistics for Experimenters: Design, Innovation, and Discovery</em> (2nd ed.). Wiley.</li>
 <li>Seborg, D. E., Edgar, T. F., Mellichamp, D. A., &amp; Doyle III, F. J. (2016). <em>Process Dynamics and Control</em> (4th ed.). Wiley.</li>
-<li>McKay, M. D., Beckman, R. J., &amp; Conover, W. J. (2000). "A Comparison of Three Methods for Selecting Values of Input Variables in the Analysis of Output from a Computer Code." <em>Technometrics</em>, 42(1), 55-61.</li>
+<li>McKay, M. D., Beckman, R. J., &amp; Conover, W. J. (2000). "A Comparison of Three Methods for Selecting Values of Input Variables in the Analysis of Output from a Computer Code." <em>Technometrics</em> , 42(1), 55-61.</li>
 </ol>
-</section>
-<section class="disclaimer">
 <h3>Disclaimer</h3>
 <ul>
 <li>This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical warranty, etc.).</li>
@@ -1469,7 +1636,6 @@ print(f"Improvement: {(best_score - default_score) / default_score * 100:.2f}%")
 <li>The content may be changed, updated, or discontinued without notice.</li>
 <li>The copyright and license of this content are subject to the stated conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.</li>
 </ul>
-</section>
 
 </main>
 <footer style="background-color: var(--color-bg-alt); padding: var(--spacing-lg); margin-top: var(--spacing-xl); text-align: center; border-top: 1px solid var(--color-border);">

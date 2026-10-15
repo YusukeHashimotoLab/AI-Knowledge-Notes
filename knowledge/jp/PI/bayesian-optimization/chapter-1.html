@@ -217,84 +217,79 @@
     </header>
 
     <main class="container">
-        <section>
-            <h2>1.1 ブラックボックス最適化問題</h2>
-
-            <p>プロセス産業では、入力と出力の関係が複雑で解析的に記述できない「ブラックボックス」な問題が多く存在します。例えば、化学反応器の最適操作条件を探索する場合、温度・圧力・反応時間などのパラメータと収率の関係は、実験やシミュレーションでしか評価できません。</p>
-
-            <div class="info-box">
-                <p><strong>💡 ブラックボックス最適化の特徴</strong></p>
-                <ul>
-                    <li><strong>目的関数が未知</strong>: f(x) の数式が分からない</li>
-                    <li><strong>評価コストが高い</strong>: 1回の実験に数時間〜数日</li>
-                    <li><strong>勾配情報が利用不可</strong>: ∇f(x) が計算できない</li>
-                    <li><strong>ノイズの存在</strong>: 測定誤差が含まれる</li>
-                </ul>
-            </div>
-
-            <h3>Example 1: ブラックボックス問題の定式化（化学反応器）</h3>
-            <p>重合反応プロセスを想定し、温度・圧力・触媒濃度の3パラメータを最適化する問題を定義します。</p>
-
+<h2>1.1 ブラックボックス最適化問題</h2>
+<p>プロセス産業では、入力と出力の関係が複雑で解析的に記述できない「ブラックボックス」な問題が多く存在します。例えば、化学反応器の最適操作条件を探索する場合、温度・圧力・反応時間などのパラメータと収率の関係は、実験やシミュレーションでしか評価できません。</p>
+<p><strong>💡 ブラックボックス最適化の特徴</strong></p>
+<ul>
+<li><strong>目的関数が未知</strong> : f(x) の数式が分からない</li>
+<li><strong>評価コストが高い</strong> : 1回の実験に数時間〜数日</li>
+<li><strong>勾配情報が利用不可</strong> : ∇f(x) が計算できない</li>
+<li><strong>ノイズの存在</strong> : 測定誤差が含まれる</li>
+</ul>
+<h3>Example 1: ブラックボックス問題の定式化（化学反応器）</h3>
+<p>重合反応プロセスを想定し、温度・圧力・触媒濃度の3パラメータを最適化する問題を定義します。以下の2回の評価は初期条件と参照条件の比較であり、参照点は最適点ではありません。触媒の項は濃度とともに増加するため、ノイズのない最適点では触媒濃度が上限の C = 1.0 mol/L になります。観測ノイズの再現性を確保するため、<code>np.random.seed(42)</code> を追加しています。</p>
 <pre><code>import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import cm
 
+np.random.seed(42)
+
 # ===================================
-# Example 1: 化学反応器のブラックボックス最適化問題
+# Example 1: Black-box optimization problem for chemical reactor
 # ===================================
 
 class ChemicalReactor:
-    """化学反応器のブラックボックスシミュレータ
+    """Chemical reactor black-box simulator
 
-    パラメータ:
-        - 温度 (T): 300-400 K
-        - 圧力 (P): 1-5 bar
-        - 触媒濃度 (C): 0.1-1.0 mol/L
+    Parameters:
+        - Temperature (T): 300-400 K
+        - Pressure (P): 1-5 bar
+        - Catalyst concentration (C): 0.1-1.0 mol/L
 
-    目的: 収率 (Yield) を最大化
+    Objective: Maximize yield
     """
 
     def __init__(self, noise_level=0.02):
         self.noise_level = noise_level
         self.bounds = np.array([[300, 400], [1, 5], [0.1, 1.0]])
         self.dim_names = ['Temperature (K)', 'Pressure (bar)', 'Catalyst (mol/L)']
-        self.optimal_x = np.array([350, 3.0, 0.5])  # 真の最適解
+        self.reference_x = np.array([350, 3.0, 0.5])  # Reference conditions, not the optimum
 
     def evaluate(self, x):
-        """収率を計算（実際の実験/シミュレーションに相当）
+        """Calculate yield (equivalent to actual experiment/simulation)
 
         Args:
-            x: [温度, 圧力, 触媒濃度]
+            x: [temperature, pressure, catalyst concentration]
 
         Returns:
-            yield: 収率 [0-1] + ノイズ
+            yield: Yield [0-1] + noise
         """
         T, P, C = x
 
-        # 温度依存性（Arrhenius型）
+        # Temperature dependency (Arrhenius type)
         T_opt = 350
         temp_factor = np.exp(-((T - T_opt) / 30)**2)
 
-        # 圧力依存性（放物線型）
+        # Pressure dependency (parabolic type)
         P_opt = 3.0
         pressure_factor = 1 - 0.3 * ((P - P_opt) / 2)**2
 
-        # 触媒濃度依存性（Langmuir型）
+        # Catalyst concentration dependency (Langmuir type)
         catalyst_factor = C / (0.2 + C)
 
-        # 相互作用項（温度と圧力の協調効果）
+        # Interaction term (synergistic effect of temperature and pressure)
         interaction = 0.1 * np.sin((T - 300) / 50 * np.pi) * (P - 1) / 4
 
-        # 収率計算
+        # Yield calculation
         yield_val = 0.85 * temp_factor * pressure_factor * catalyst_factor + interaction
 
-        # ノイズ追加（測定誤差）
+        # Add noise (measurement error)
         noise = np.random.normal(0, self.noise_level)
 
         return float(np.clip(yield_val + noise, 0, 1))
 
     def plot_landscape(self, fixed_catalyst=0.5):
-        """目的関数の可視化（触媒濃度固定）"""
+        """Visualize objective function (catalyst concentration fixed)"""
         T_range = np.linspace(300, 400, 50)
         P_range = np.linspace(1, 5, 50)
         T_grid, P_grid = np.meshgrid(T_range, P_range)
@@ -325,62 +320,118 @@ class ChemicalReactor:
         plt.tight_layout()
         return fig
 
-# 使用例
+# Usage example
 reactor = ChemicalReactor(noise_level=0.02)
 
-# 初期条件で評価
+# Evaluate at initial conditions
 x_initial = np.array([320, 2.0, 0.3])
 yield_initial = reactor.evaluate(x_initial)
 print(f"Initial conditions: T={x_initial[0]}K, P={x_initial[1]}bar, C={x_initial[2]}mol/L")
 print(f"Initial yield: {yield_initial:.3f}")
 
-# 最適条件付近で評価
-x_optimal = np.array([350, 3.0, 0.5])
-yield_optimal = reactor.evaluate(x_optimal)
-print(f"\nOptimal conditions: T={x_optimal[0]}K, P={x_optimal[1]}bar, C={x_optimal[2]}mol/L")
-print(f"Optimal yield: {yield_optimal:.3f}")
+# Evaluate reference conditions
+x_reference = np.array([350, 3.0, 0.5])
+yield_reference = reactor.evaluate(x_reference)
+print(f"\nReference conditions: T={x_reference[0]}K, P={x_reference[1]}bar, C={x_reference[2]}mol/L")
+print(f"Reference yield: {yield_reference:.3f}")
 
-# 可視化
+# Visualization
 fig = reactor.plot_landscape()
 plt.show()
 </code></pre>
+<p><strong>出力例 / Example output:</strong><br />
+Initial conditions: T=320.0K, P=2.0bar, C=0.3mol/L<br />
+Initial yield: 0.207  </p>
+<p>Reference conditions: T=350.0K, P=3.0bar, C=0.5mol/L<br />
+Reference yield: 0.604  </p>
+<p><strong>💡 実務への示唆</strong></p>
+<p>シードを固定した評価では初期条件と参照条件の収率はそれぞれ0.207と0.604ですが、この2点の比較だけでは最適化の効率は示せず、ベイズ最適化は評価コストが高い場合に有用となり得ます。</p>
+<h2>1.2 逐次設計戦略</h2>
+<p>ベイズ最適化の核心は「逐次設計（Sequential Design）」にあります。前回までの観測結果を活用して、次に評価すべき点を賢く選択することで、効率的な最適化を実現します。</p>
+<h3>Example 2: 逐次設計 vs ランダムサンプリング</h3>
+<p>GP-EIによる逐次設計とランダムサンプリングを、それぞれ正確に13回の目的関数評価で比較します（GP-EIは初期3点と追加10点）。両者とも <code>default_rng(42)</code> を使用し、獲得関数の探索では学習済みGPだけを使います。真の関数の曲線は可視化のために別途評価します。</p>
+<pre><code>import warnings
 
-            <div class="example-output">
-                <strong>出力例:</strong><br>
-                Initial conditions: T=320K, P=2.0bar, C=0.3mol/L<br>
-                Initial yield: 0.523<br>
-                <br>
-                Optimal conditions: T=350K, P=3.0bar, C=0.5mol/L<br>
-                Optimal yield: 0.887
-            </div>
+import numpy as np
+from scipy.optimize import minimize
+from scipy.stats import norm
+from sklearn.exceptions import ConvergenceWarning
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import RBF, ConstantKernel, WhiteKernel
 
-            <div class="tip-box">
-                <p><strong>💡 実務への示唆</strong></p>
-                <p>このような複雑な応答曲面を持つ問題では、従来のグリッドサーチやランダムサーチは非効率です。ベイズ最適化は、少ない評価回数で最適解に到達できる強力な手法です。</p>
-            </div>
-        </section>
 
-        <section>
-            <h2>1.2 逐次設計戦略</h2>
+def make_gp(noise: float = 1e-4, d: int = 1, min_length_scale: float = 1e-2) -&gt; GaussianProcessRegressor:
+    kernel = (ConstantKernel(1.0, (1e-2, 1e2))
+              * RBF(length_scale=np.ones(d) * 0.2, length_scale_bounds=(min_length_scale, 1e1))
+              + WhiteKernel(noise, (1e-6, 1e-1)))
+    return GaussianProcessRegressor(kernel=kernel, normalize_y=True, n_restarts_optimizer=3, random_state=0)
 
-            <p>ベイズ最適化の核心は「逐次設計（Sequential Design）」にあります。前回までの観測結果を活用して、次に評価すべき点を賢く選択することで、効率的な最適化を実現します。</p>
 
-            <h3>Example 2: 逐次設計 vs ランダムサンプリング</h3>
-            <p>同じ評価回数でも、戦略の違いで最適化性能が大きく変わることを示します。</p>
+def scale(X, bounds) -&gt; np.ndarray:
+    b = np.asarray(bounds, dtype=float)
+    return (np.asarray(X, dtype=float) - b[:, 0]) / (b[:, 1] - b[:, 0])
 
-<pre><code>import numpy as np
+
+def unscale(U, bounds) -&gt; np.ndarray:
+    b = np.asarray(bounds, dtype=float)
+    return b[:, 0] + np.asarray(U, dtype=float) * (b[:, 1] - b[:, 0])
+
+
+def expected_improvement(mu, sigma, best, xi=0.01) -&gt; np.ndarray:
+    mu, sigma = np.asarray(mu, dtype=float), np.asarray(sigma, dtype=float)
+    imp = mu - best - xi
+    out = np.maximum(imp, 0.0)  # sigma == 0: the improvement is certain (or certainly absent)
+    pos = sigma &gt; 1e-12
+    z = imp[pos] / sigma[pos]
+    out[pos] = imp[pos] * norm.cdf(z) + sigma[pos] * norm.pdf(z)
+    return out
+
+
+def ucb(mu, sigma, kappa) -&gt; np.ndarray:
+    return np.asarray(mu, dtype=float) + kappa * np.asarray(sigma, dtype=float)
+
+
+def _fit(X, Y, bounds, gp_kwargs: dict | None = None) -&gt; GaussianProcessRegressor:
+    X = np.atleast_2d(np.asarray(X, dtype=float))
+    gp = make_gp(d=X.shape[1], **(gp_kwargs or {}))
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", ConvergenceWarning)
+        gp.fit(scale(X, bounds), np.asarray(Y, dtype=float))
+    return gp
+
+
+def _acq(gp, U, best, acq, kappa):
+    mu, sd = gp.predict(np.atleast_2d(U), return_std=True)
+    return expected_improvement(mu, sd, best) if acq == "ei" else ucb(mu, sd, kappa)
+
+
+def propose(gp, bounds, best, acq: str, rng, kappa=2.0, n_candidates=2000) -&gt; np.ndarray:
+    """Maximise the acquisition: n_candidates uniform points in the unit cube, then the best 5
+    refined with L-BFGS-B. Returns the proposal in original units."""
+    bounds = np.asarray(bounds, dtype=float); d = len(bounds)
+    U = rng.random((n_candidates, d))
+    a = _acq(gp, U, best, acq, kappa)
+    starts = U[np.argsort(-a, kind="stable")[:5]]
+    best_u, best_a = starts[0], a[np.argsort(-a, kind="stable")[0]]
+    for u0 in starts:
+        res = minimize(lambda u: -_acq(gp, u, best, acq, kappa)[0], u0, method="L-BFGS-B", bounds=[(0.0, 1.0)] * d)
+        if -res.fun &gt; best_a:
+            best_u, best_a = np.clip(res.x, 0.0, 1.0), -res.fun
+    return unscale(best_u, bounds)
+
+
 import matplotlib.pyplot as plt
 
 # ===================================
-# Example 2: 逐次設計戦略のデモンストレーション
+# Example 2: Demonstration of sequential design strategy
 # ===================================
 
 def simple_objective(x):
-    """1次元テスト関数（解析解あり）"""
+    """1D test function (analytical solution available)"""
     return -(x - 3)**2 * np.sin(5 * x) + 2
 
 class SequentialDesigner:
-    """逐次設計による最適化"""
+    """Optimization by sequential design"""
 
     def __init__(self, objective_func, bounds, n_initial=3):
         self.objective = objective_func
@@ -388,36 +439,22 @@ class SequentialDesigner:
         self.X_observed = []
         self.Y_observed = []
 
-        # 初期点（Latin Hypercube Sampling）
-        np.random.seed(42)
+        # Initial points (uniform random sampling)
+        self.rng = np.random.default_rng(42)
         for _ in range(n_initial):
-            x = np.random.uniform(bounds[0], bounds[1])
+            x = self.rng.uniform(bounds[0], bounds[1])
             y = objective_func(x)
             self.X_observed.append(x)
             self.Y_observed.append(y)
 
     def select_next_point(self):
-        """次の評価点を選択（簡易版: 探索と活用のバランス）"""
-        # 候補点を生成
-        candidates = np.linspace(self.bounds[0], self.bounds[1], 100)
-
-        # 既観測点からの距離（探索）
-        min_distances = []
-        for c in candidates:
-            distances = [abs(c - x) for x in self.X_observed]
-            min_distances.append(min(distances))
-
-        # 現在の最良値からの期待改善（活用）
-        best_y = max(self.Y_observed)
-        improvements = [max(0, self.objective(c) - best_y) for c in candidates]
-
-        # スコア計算（探索60% + 活用40%）
-        scores = 0.6 * np.array(min_distances) + 0.4 * np.array(improvements)
-
-        return candidates[np.argmax(scores)]
+        """Maximize GP expected improvement without evaluating the objective."""
+        bounds = np.asarray([self.bounds], dtype=float)
+        gp = _fit(np.asarray(self.X_observed).reshape(-1, 1), self.Y_observed, bounds)
+        return propose(gp, bounds, max(self.Y_observed), "ei", self.rng)[0]
 
     def optimize(self, n_iterations=10):
-        """最適化実行"""
+        """Execute optimization"""
         for i in range(n_iterations):
             x_next = self.select_next_point()
             y_next = self.objective(x_next)
@@ -429,32 +466,32 @@ class SequentialDesigner:
 
         return self.X_observed, self.Y_observed
 
-# 比較実験
+# Comparison experiment
 bounds = [0, 5]
-n_total = 13  # 初期3点 + 追加10点
+n_total = 13  # 3 initial points + 10 additional points
 
-# 1. 逐次設計
+# 1. Sequential design
 print("=== Sequential Design ===")
 seq_designer = SequentialDesigner(simple_objective, bounds, n_initial=3)
 X_seq, Y_seq = seq_designer.optimize(n_iterations=10)
 
-# 2. ランダムサンプリング
+# 2. Random sampling
 print("\n=== Random Sampling ===")
-np.random.seed(42)
-X_random = np.random.uniform(bounds[0], bounds[1], n_total)
+rng = np.random.default_rng(42)
+X_random = rng.uniform(bounds[0], bounds[1], n_total)
 Y_random = [simple_objective(x) for x in X_random]
 for i, (x, y) in enumerate(zip(X_random, Y_random), 1):
     current_best = max(Y_random[:i])
     print(f"Sample {i}: x={x:.2f}, y={y:.3f}, best={current_best:.3f}")
 
-# 可視化
+# Visualization
 fig, axes = plt.subplots(1, 2, figsize=(14, 5))
 
-# 真の関数
+# True function
 x_true = np.linspace(0, 5, 200)
 y_true = simple_objective(x_true)
 
-# 逐次設計
+# Sequential design
 axes[0].plot(x_true, y_true, 'k-', linewidth=2, label='True function', alpha=0.7)
 axes[0].scatter(X_seq, Y_seq, c=range(len(X_seq)), cmap='viridis',
                 s=100, edgecolor='black', linewidth=1.5, label='Sequential samples', zorder=5)
@@ -466,7 +503,7 @@ axes[0].set_title('Sequential Design (Best: {:.3f})'.format(max(Y_seq)))
 axes[0].legend()
 axes[0].grid(alpha=0.3)
 
-# ランダムサンプリング
+# Random sampling
 axes[1].plot(x_true, y_true, 'k-', linewidth=2, label='True function', alpha=0.7)
 axes[1].scatter(X_random, Y_random, c=range(len(X_random)), cmap='plasma',
                 s=100, edgecolor='black', linewidth=1.5, label='Random samples', zorder=5)
@@ -481,7 +518,7 @@ axes[1].grid(alpha=0.3)
 plt.tight_layout()
 plt.show()
 
-# 収束比較
+# Convergence comparison
 best_seq = [max(Y_seq[:i+1]) for i in range(len(Y_seq))]
 best_random = [max(Y_random[:i+1]) for i in range(len(Y_random))]
 
@@ -495,87 +532,126 @@ plt.legend()
 plt.grid(alpha=0.3)
 plt.show()
 </code></pre>
+<p><strong>出力例 / Example output:</strong><br />
+=== Sequential Design ===<br />
+Iteration 1: x=1.16, y=3.587, best=3.587<br />
+Iteration 2: x=0.00, y=2.000, best=3.587<br />
+Iteration 3: x=1.43, y=0.122, best=3.587<br />
+Iteration 4: x=1.14, y=3.980, best=3.980<br />
+Iteration 5: x=1.07, y=5.048, best=5.048<br />
+Iteration 6: x=0.86, y=6.202, best=6.202<br />
+Iteration 7: x=0.90, y=6.312, best=6.312<br />
+Iteration 8: x=3.00, y=2.000, best=6.312<br />
+Iteration 9: x=5.00, y=2.529, best=6.312<br />
+Iteration 10: x=3.43, y=2.187, best=6.312  </p>
+<p>=== Random Sampling ===<br />
+Sample 1: x=3.87, y=1.638, best=1.638<br />
+Sample 2: x=2.19, y=2.649, best=2.649<br />
+Sample 3: x=4.29, y=1.160, best=2.649<br />
+Sample 4: x=3.49, y=2.234, best=2.649<br />
+Sample 5: x=0.47, y=-2.531, best=2.649<br />
+Sample 6: x=4.88, y=4.384, best=4.384<br />
+Sample 7: x=3.81, y=1.884, best=4.384<br />
+Sample 8: x=3.93, y=1.378, best=4.384<br />
+Sample 9: x=0.64, y=2.341, best=4.384<br />
+Sample 10: x=2.25, y=2.540, best=4.384<br />
+Sample 11: x=1.85, y=1.797, best=4.384<br />
+Sample 12: x=4.63, y=4.466, best=4.466<br />
+Sample 13: x=3.22, y=2.018, best=4.466  </p>
+<p><strong>このシードでの実行では、同じ13回の評価予算でGP-EIが6.312、ランダムサンプリングが4.466となり、41.3%向上しました。</strong></p>
+<h2>1.3 探索と活用のトレードオフ</h2>
+<p>ベイズ最適化の最も重要な概念が「探索（Exploration）」と「活用（Exploitation）」のバランスです。</p>
+<ul>
+<li><strong>活用（Exploitation）</strong> : 現在の最良点付近を集中的に調査し、局所的な改善を追求</li>
+<li><strong>探索（Exploration）</strong> : 未知の領域を調査し、より良い大域的最適解を発見</li>
+</ul>
+<h3>Example 3: 探索 vs 活用の可視化</h3>
+<p>入力を [0, 1] にスケーリングしたガウス過程の事後分布と、UCB = 平均 + α × 標準偏差を可視化します。観測ノイズに <code>np.random.seed(42)</code> を追加しています。活用は x = 0.90、不確実性の最大化は x = 10.00、UCBは x = 0.30（α = 0.5）または x = 0.00（α = 1.5）を選択します。</p>
+<pre><code>import warnings
 
-            <div class="example-output">
-                <strong>出力例（逐次設計の最終結果）:</strong><br>
-                Iteration 10: x=2.89, y=2.847, best=2.847<br>
-                <strong>ランダムサンプリングの最終結果:</strong><br>
-                Sample 13: x=1.23, y=0.456, best=2.312<br>
-                <br>
-                <strong>改善率: 23%向上（同じ評価回数）</strong>
-            </div>
-        </section>
-
-        <section>
-            <h2>1.3 探索と活用のトレードオフ</h2>
-
-            <p>ベイズ最適化の最も重要な概念が「探索（Exploration）」と「活用（Exploitation）」のバランスです。</p>
-
-            <ul>
-                <li><strong>活用（Exploitation）</strong>: 現在の最良点付近を集中的に調査し、局所的な改善を追求</li>
-                <li><strong>探索（Exploration）</strong>: 未知の領域を調査し、より良い大域的最適解を発見</li>
-            </ul>
-
-            <h3>Example 3: 探索 vs 活用の可視化</h3>
-            <p>異なるバランスが最適化に与える影響を視覚的に理解します。</p>
-
-<pre><code>import numpy as np
-import matplotlib.pyplot as plt
+import numpy as np
+from scipy.optimize import minimize
 from scipy.stats import norm
+from sklearn.exceptions import ConvergenceWarning
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import RBF, ConstantKernel, WhiteKernel
+
+
+def make_gp(noise: float = 1e-4, d: int = 1, min_length_scale: float = 1e-2) -&gt; GaussianProcessRegressor:
+    kernel = (ConstantKernel(1.0, (1e-2, 1e2))
+              * RBF(length_scale=np.ones(d) * 0.2, length_scale_bounds=(min_length_scale, 1e1))
+              + WhiteKernel(noise, (1e-6, 1e-1)))
+    return GaussianProcessRegressor(kernel=kernel, normalize_y=True, n_restarts_optimizer=3, random_state=0)
+
+
+def scale(X, bounds) -&gt; np.ndarray:
+    b = np.asarray(bounds, dtype=float)
+    return (np.asarray(X, dtype=float) - b[:, 0]) / (b[:, 1] - b[:, 0])
+
+
+def unscale(U, bounds) -&gt; np.ndarray:
+    b = np.asarray(bounds, dtype=float)
+    return b[:, 0] + np.asarray(U, dtype=float) * (b[:, 1] - b[:, 0])
+
+
+def _fit(X, Y, bounds, gp_kwargs: dict | None = None) -&gt; GaussianProcessRegressor:
+    X = np.atleast_2d(np.asarray(X, dtype=float))
+    gp = make_gp(d=X.shape[1], **(gp_kwargs or {}))
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", ConvergenceWarning)
+        gp.fit(scale(X, bounds), np.asarray(Y, dtype=float))
+    return gp
+
+
+import matplotlib.pyplot as plt
+
+np.random.seed(42)
 
 # ===================================
-# Example 3: 探索と活用のトレードオフ
+# Example 3: Exploration-Exploitation Trade-off
 # ===================================
 
 class ExplorationExploitationDemo:
-    """探索・活用のバランスを可視化"""
+    """Visualize exploration-exploitation balance"""
 
     def __init__(self):
-        # サンプル関数: 複数の局所最適解を持つ
+        # Sample function: has multiple local optima
         self.x_range = np.linspace(0, 10, 200)
         self.true_func = lambda x: np.sin(x) + 0.3 * np.sin(3*x) + 0.5 * np.cos(5*x)
 
-        # 既観測点（5点）
+        # Observed points (5 points)
         self.X_obs = np.array([1.0, 3.0, 4.5, 7.0, 9.0])
         self.Y_obs = self.true_func(self.X_obs) + np.random.normal(0, 0.1, len(self.X_obs))
 
     def predict_with_uncertainty(self, x):
-        """簡易的な予測平均と不確実性（ガウス過程の近似）"""
-        # 距離ベースの重み付け平均
-        weights = np.exp(-((self.X_obs[:, None] - x) / 1.0)**2)
-        weights = weights / (weights.sum(axis=0) + 1e-10)
-
-        mean = (weights.T @ self.Y_obs)
-
-        # 不確実性（既観測点からの距離に依存）
-        min_dist = np.min(np.abs(self.X_obs[:, None] - x), axis=0)
-        uncertainty = 0.5 * (1 - np.exp(-min_dist / 2.0))
-
-        return mean, uncertainty
+        """Gaussian process posterior mean and standard deviation."""
+        bounds = np.array([[0.0, 10.0]])
+        gp = _fit(self.X_obs.reshape(-1, 1), self.Y_obs, bounds)
+        return gp.predict(scale(np.asarray(x).reshape(-1, 1), bounds), return_std=True)
 
     def exploitation_strategy(self):
-        """活用戦略: 予測平均が最大の点を選択"""
+        """Exploitation strategy: Select point with maximum predicted mean"""
         mean, _ = self.predict_with_uncertainty(self.x_range)
         return self.x_range[np.argmax(mean)]
 
     def exploration_strategy(self):
-        """探索戦略: 不確実性が最大の点を選択"""
+        """Exploration strategy: Select point with maximum uncertainty"""
         _, uncertainty = self.predict_with_uncertainty(self.x_range)
         return self.x_range[np.argmax(uncertainty)]
 
     def balanced_strategy(self, alpha=0.5):
-        """バランス戦略: UCB (Upper Confidence Bound)"""
+        """Balanced strategy: UCB (Upper Confidence Bound)"""
         mean, uncertainty = self.predict_with_uncertainty(self.x_range)
         ucb = mean + alpha * uncertainty
         return self.x_range[np.argmax(ucb)]
 
     def visualize(self):
-        """可視化"""
+        """Visualization"""
         mean, uncertainty = self.predict_with_uncertainty(self.x_range)
 
         fig, axes = plt.subplots(2, 2, figsize=(14, 10))
 
-        # (1) 真の関数と予測
+        # (1) True function and prediction
         ax = axes[0, 0]
         ax.plot(self.x_range, self.true_func(self.x_range), 'k--',
                 linewidth=2, label='True function', alpha=0.7)
@@ -590,7 +666,7 @@ class ExplorationExploitationDemo:
         ax.legend()
         ax.grid(alpha=0.3)
 
-        # (2) 活用戦略
+        # (2) Exploitation strategy
         ax = axes[0, 1]
         x_exploit = self.exploitation_strategy()
         ax.plot(self.x_range, mean, 'b-', linewidth=2, label='Predicted mean')
@@ -603,7 +679,7 @@ class ExplorationExploitationDemo:
         ax.legend()
         ax.grid(alpha=0.3)
 
-        # (3) 探索戦略
+        # (3) Exploration strategy
         ax = axes[1, 0]
         x_explore = self.exploration_strategy()
         ax.plot(self.x_range, uncertainty, 'g-', linewidth=2, label='Uncertainty')
@@ -617,7 +693,7 @@ class ExplorationExploitationDemo:
         ax.legend()
         ax.grid(alpha=0.3)
 
-        # (4) バランス戦略（UCB）
+        # (4) Balanced strategy (UCB)
         ax = axes[1, 1]
         alpha = 1.5
         x_balanced = self.balanced_strategy(alpha=alpha)
@@ -637,48 +713,36 @@ class ExplorationExploitationDemo:
         plt.tight_layout()
         return fig
 
-# 実行
+# Execution
 demo = ExplorationExploitationDemo()
 
 print("=== Exploration vs Exploitation ===")
-print(f"Exploitation (最良予測点): x = {demo.exploitation_strategy():.2f}")
-print(f"Exploration (最大不確実性): x = {demo.exploration_strategy():.2f}")
+print(f"Exploitation (best predicted point): x = {demo.exploitation_strategy():.2f}")
+print(f"Exploration (maximum uncertainty): x = {demo.exploration_strategy():.2f}")
 print(f"Balanced (UCB, α=0.5): x = {demo.balanced_strategy(alpha=0.5):.2f}")
 print(f"Balanced (UCB, α=1.5): x = {demo.balanced_strategy(alpha=1.5):.2f}")
 
 fig = demo.visualize()
 plt.show()
 </code></pre>
-
-            <div class="example-output">
-                <strong>出力例:</strong><br>
-                Exploitation (最良予測点): x = 3.05<br>
-                Exploration (最大不確実性): x = 5.52<br>
-                Balanced (UCB, α=0.5): x = 3.81<br>
-                Balanced (UCB, α=1.5): x = 5.27
-            </div>
-
-            <div class="warning-box">
-                <p><strong>⚠️ 実務での注意点</strong></p>
-                <p>活用に偏りすぎると局所最適解に陥り、探索に偏りすぎると収束が遅くなります。ハイパーパラメータ（例: UCBのα）の調整が重要です。一般的な目安は α = 1.0〜2.0 です。</p>
-            </div>
-        </section>
-
-        <section>
-            <h2>1.4 ベイズ最適化の基本ループ</h2>
-
-            <p>ベイズ最適化のアルゴリズムは、以下の4ステップを反復します：</p>
-
-            <ol>
-                <li><strong>サロゲートモデルの構築</strong>: 観測データから目的関数を近似</li>
-                <li><strong>獲得関数の計算</strong>: 次に評価すべき点の有望度を定量化</li>
-                <li><strong>次点の選択</strong>: 獲得関数を最大化する点を選択</li>
-                <li><strong>評価と更新</strong>: 実際に評価し、観測データに追加</li>
-            </ol>
-
-            <h3>Example 4: シンプルなベイズ最適化の実装</h3>
-            <p>最小限の実装で全体の流れを理解します。</p>
-
+<p><strong>出力例 / Example output:</strong><br />
+=== Exploration vs Exploitation ===<br />
+Exploitation (best predicted point): x = 0.90<br />
+Exploration (maximum uncertainty): x = 10.00<br />
+Balanced (UCB, α=0.5): x = 0.30<br />
+Balanced (UCB, α=1.5): x = 0.00  </p>
+<p><strong>⚠️ 実務での注意点</strong></p>
+<p>活用に偏りすぎると局所最適解に陥り、探索に偏りすぎると収束が遅くなります。ハイパーパラメータ（例: UCBのα）の調整が重要です。一般的な目安は α = 1.0〜2.0 です。</p>
+<h2>1.4 ベイズ最適化の基本ループ</h2>
+<p>ベイズ最適化のアルゴリズムは、以下の4ステップを反復します：</p>
+<ol>
+<li><strong>サロゲートモデルの構築</strong> : 観測データから目的関数を近似</li>
+<li><strong>獲得関数の計算</strong> : 次に評価すべき点の有望度を定量化</li>
+<li><strong>次点の選択</strong> : 獲得関数を最大化する点を選択</li>
+<li><strong>評価と更新</strong> : 実際に評価し、観測データに追加</li>
+</ol>
+<h3>Example 4: シンプルなベイズ最適化の実装</h3>
+<p>最小限の実装で全体の流れを理解します。</p>
 <pre><code>import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import norm
@@ -689,7 +753,7 @@ from scipy.optimize import minimize
 # ===================================
 
 class SimpleBayesianOptimization:
-    """シンプルなベイズ最適化（1次元）"""
+    """Simple Bayesian optimization (1D)"""
 
     def __init__(self, objective_func, bounds, noise_std=0.01):
         self.objective = objective_func
@@ -699,7 +763,7 @@ class SimpleBayesianOptimization:
         self.X_obs = []
         self.Y_obs = []
 
-        # 初期サンプリング（3点）
+        # Initial sampling (3 points)
         np.random.seed(42)
         for _ in range(3):
             x = np.random.uniform(bounds[0], bounds[1])
@@ -708,58 +772,60 @@ class SimpleBayesianOptimization:
             self.Y_obs.append(y)
 
     def evaluate(self, x):
-        """目的関数の評価（ノイズ付き）"""
+        """Evaluate objective function (with noise)"""
         return self.objective(x) + np.random.normal(0, self.noise_std)
 
     def gaussian_kernel(self, x1, x2, length_scale=0.5):
-        """RBFカーネル"""
+        """RBF kernel"""
         return np.exp(-0.5 * ((x1 - x2) / length_scale)**2)
 
     def predict(self, x_test):
-        """ガウス過程による予測（簡易版）"""
+        """Prediction by Gaussian process (simplified version)"""
         X_obs_array = np.array(self.X_obs).reshape(-1, 1)
         Y_obs_array = np.array(self.Y_obs).reshape(-1, 1)
         x_test_array = np.array(x_test).reshape(-1, 1)
 
-        # カーネル行列
+        # Kernel matrix
         K = np.zeros((len(self.X_obs), len(self.X_obs)))
         for i in range(len(self.X_obs)):
             for j in range(len(self.X_obs)):
                 K[i, j] = self.gaussian_kernel(self.X_obs[i], self.X_obs[j])
 
-        # ノイズ項追加
+        # Add noise term
         K += self.noise_std**2 * np.eye(len(self.X_obs))
 
-        # テスト点とのカーネル
+        # Kernel with test point
         k_star = np.array([self.gaussian_kernel(self.X_obs[i], x_test)
                           for i in range(len(self.X_obs))])
 
-        # 予測平均
+        # Predicted mean
         K_inv = np.linalg.inv(K)
         mean = k_star.T @ K_inv @ Y_obs_array
 
-        # 予測分散
+        # Predicted variance
         k_star_star = self.gaussian_kernel(x_test, x_test)
         variance = k_star_star - k_star.T @ K_inv @ k_star
+        if variance.ndim == 2:
+            variance = np.diag(variance)  # Marginal variance for each query point
         std = np.sqrt(np.maximum(variance, 0))
 
         return mean.flatten(), std.flatten()
 
     def expected_improvement(self, x):
-        """Expected Improvement 獲得関数"""
+        """Expected Improvement acquisition function"""
         mean, std = self.predict(x)
         best_y = max(self.Y_obs)
 
-        # EI計算
+        # EI calculation
         with np.errstate(divide='ignore', invalid='ignore'):
             z = (mean - best_y) / (std + 1e-9)
             ei = (mean - best_y) * norm.cdf(z) + std * norm.pdf(z)
             ei[std == 0] = 0.0
 
-        return -ei  # 最小化問題に変換
+        return -ei  # Convert to minimization problem
 
     def select_next_point(self):
-        """次の評価点を選択（EI最大化）"""
+        """Select next evaluation point (maximize EI)"""
         result = minimize(
             lambda x: self.expected_improvement(x),
             x0=np.random.uniform(self.bounds[0], self.bounds[1]),
@@ -769,13 +835,13 @@ class SimpleBayesianOptimization:
         return result.x[0]
 
     def optimize(self, n_iterations=10, verbose=True):
-        """最適化実行"""
+        """Execute optimization"""
         for i in range(n_iterations):
-            # 次点選択
+            # Select next point
             x_next = self.select_next_point()
             y_next = self.evaluate(x_next)
 
-            # データ更新
+            # Update data
             self.X_obs.append(x_next)
             self.Y_obs.append(y_next)
 
@@ -787,14 +853,14 @@ class SimpleBayesianOptimization:
         return self.X_obs[best_idx], self.Y_obs[best_idx]
 
     def plot_progress(self):
-        """最適化の進捗を可視化"""
+        """Visualize optimization progress"""
         x_plot = np.linspace(self.bounds[0], self.bounds[1], 200)
         y_true = [self.objective(x) for x in x_plot]
         mean, std = self.predict(x_plot)
 
         fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 8))
 
-        # サロゲートモデル
+        # Surrogate model
         ax1.plot(x_plot, y_true, 'k--', linewidth=2, label='True function', alpha=0.7)
         ax1.plot(x_plot, mean, 'b-', linewidth=2, label='GP mean')
         ax1.fill_between(x_plot, mean - 2*std, mean + 2*std, alpha=0.3, label='95% CI')
@@ -810,8 +876,8 @@ class SimpleBayesianOptimization:
         ax1.legend()
         ax1.grid(alpha=0.3)
 
-        # 獲得関数
-        ei_values = [-self.expected_improvement(x) for x in x_plot]
+        # Acquisition function
+        ei_values = -self.expected_improvement(x_plot)
         ax2.plot(x_plot, ei_values, 'g-', linewidth=2, label='Expected Improvement')
         ax2.fill_between(x_plot, 0, ei_values, alpha=0.3, color='green')
         ax2.axvline(self.X_obs[-1], color='red', linestyle='--',
@@ -825,11 +891,11 @@ class SimpleBayesianOptimization:
         plt.tight_layout()
         return fig
 
-# テスト関数
+# Test function
 def test_function(x):
     return -(x - 2.5)**2 * np.sin(10 * x) + 3
 
-# 実行
+# Execution
 print("=== Simple Bayesian Optimization ===\n")
 bo = SimpleBayesianOptimization(test_function, bounds=[0, 5], noise_std=0.05)
 x_best, y_best = bo.optimize(n_iterations=12, verbose=True)
@@ -841,38 +907,105 @@ print(f"Best y: {y_best:.4f}")
 fig = bo.plot_progress()
 plt.show()
 </code></pre>
+<p><strong>出力例 / Example output:</strong><br />
+=== Simple Bayesian Optimization ===  </p>
+<p>Iter 1: x=2.058, y=2.858, best=2.993<br />
+Iter 2: x=0.000, y=2.971, best=2.993<br />
+Iter 3: x=0.917, y=2.343, best=2.993<br />
+Iter 4: x=1.331, y=1.941, best=2.993<br />
+Iter 5: x=1.456, y=2.055, best=2.993<br />
+Iter 6: x=4.405, y=2.732, best=2.993<br />
+Iter 7: x=1.966, y=2.756, best=2.993<br />
+Iter 8: x=2.280, y=3.004, best=3.004<br />
+Iter 9: x=2.787, y=2.998, best=3.004<br />
+Iter 10: x=2.663, y=2.980, best=3.004<br />
+Iter 11: x=0.853, y=0.851, best=3.004<br />
+Iter 12: x=0.325, y=3.494, best=3.494  </p>
+<p>=== Final Result ===<br />
+Best x: 0.3253<br />
+Best y: 3.4938  </p>
+<h2>1.5 比較: BO vs グリッドサーチ vs ランダムサーチ</h2>
+<p>同じBranin問題と評価予算で、3手法が到達した最良値を比較します。</p>
+<h3>Example 5: 3手法の性能比較</h3>
+<pre><code>import warnings
 
-            <div class="example-output">
-                <strong>出力例:</strong><br>
-                Iter 1: x=2.876, y=3.234, best=3.234<br>
-                Iter 2: x=2.451, y=3.589, best=3.589<br>
-                ...<br>
-                Iter 12: x=2.503, y=3.612, best=3.612<br>
-                <br>
-                Best x: 2.5030<br>
-                Best y: 3.612
-            </div>
-        </section>
-
-        <section>
-            <h2>1.5 比較: BO vs グリッドサーチ vs ランダムサーチ</h2>
-
-            <p>ベイズ最適化の優位性を定量的に評価します。</p>
-
-            <h3>Example 5: 3手法の性能比較</h3>
-
-<pre><code>import numpy as np
-import matplotlib.pyplot as plt
+import numpy as np
 from scipy.optimize import minimize
 from scipy.stats import norm
+from sklearn.exceptions import ConvergenceWarning
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import RBF, ConstantKernel, WhiteKernel
+
+
+def make_gp(noise: float = 1e-4, d: int = 1, min_length_scale: float = 1e-2) -&gt; GaussianProcessRegressor:
+    kernel = (ConstantKernel(1.0, (1e-2, 1e2))
+              * RBF(length_scale=np.ones(d) * 0.2, length_scale_bounds=(min_length_scale, 1e1))
+              + WhiteKernel(noise, (1e-6, 1e-1)))
+    return GaussianProcessRegressor(kernel=kernel, normalize_y=True, n_restarts_optimizer=3, random_state=0)
+
+
+def scale(X, bounds) -&gt; np.ndarray:
+    b = np.asarray(bounds, dtype=float)
+    return (np.asarray(X, dtype=float) - b[:, 0]) / (b[:, 1] - b[:, 0])
+
+
+def unscale(U, bounds) -&gt; np.ndarray:
+    b = np.asarray(bounds, dtype=float)
+    return b[:, 0] + np.asarray(U, dtype=float) * (b[:, 1] - b[:, 0])
+
+
+def expected_improvement(mu, sigma, best, xi=0.01) -&gt; np.ndarray:
+    mu, sigma = np.asarray(mu, dtype=float), np.asarray(sigma, dtype=float)
+    imp = mu - best - xi
+    out = np.maximum(imp, 0.0)  # sigma == 0: the improvement is certain (or certainly absent)
+    pos = sigma &gt; 1e-12
+    z = imp[pos] / sigma[pos]
+    out[pos] = imp[pos] * norm.cdf(z) + sigma[pos] * norm.pdf(z)
+    return out
+
+
+def ucb(mu, sigma, kappa) -&gt; np.ndarray:
+    return np.asarray(mu, dtype=float) + kappa * np.asarray(sigma, dtype=float)
+
+
+def _fit(X, Y, bounds, gp_kwargs: dict | None = None) -&gt; GaussianProcessRegressor:
+    X = np.atleast_2d(np.asarray(X, dtype=float))
+    gp = make_gp(d=X.shape[1], **(gp_kwargs or {}))
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", ConvergenceWarning)
+        gp.fit(scale(X, bounds), np.asarray(Y, dtype=float))
+    return gp
+
+
+def _acq(gp, U, best, acq, kappa):
+    mu, sd = gp.predict(np.atleast_2d(U), return_std=True)
+    return expected_improvement(mu, sd, best) if acq == "ei" else ucb(mu, sd, kappa)
+
+
+def propose(gp, bounds, best, acq: str, rng, kappa=2.0, n_candidates=2000) -&gt; np.ndarray:
+    """Maximise the acquisition: n_candidates uniform points in the unit cube, then the best 5
+    refined with L-BFGS-B. Returns the proposal in original units."""
+    bounds = np.asarray(bounds, dtype=float); d = len(bounds)
+    U = rng.random((n_candidates, d))
+    a = _acq(gp, U, best, acq, kappa)
+    starts = U[np.argsort(-a, kind="stable")[:5]]
+    best_u, best_a = starts[0], a[np.argsort(-a, kind="stable")[0]]
+    for u0 in starts:
+        res = minimize(lambda u: -_acq(gp, u, best, acq, kappa)[0], u0, method="L-BFGS-B", bounds=[(0.0, 1.0)] * d)
+        if -res.fun &gt; best_a:
+            best_u, best_a = np.clip(res.x, 0.0, 1.0), -res.fun
+    return unscale(best_u, bounds)
+
+
+import matplotlib.pyplot as plt
 
 # ===================================
 # Example 5: BO vs Grid Search vs Random Search
 # ===================================
 
-# テスト関数（2次元）
+# Test function (2D)
 def branin_function(x):
-    """Branin関数（グローバル最適化のベンチマーク）"""
+    """Branin function (global optimization benchmark)"""
     x1, x2 = x[0], x[1]
     a, b, c = 1, 5.1/(4*np.pi**2), 5/np.pi
     r, s, t = 6, 10, 1/(8*np.pi)
@@ -881,10 +1014,10 @@ def branin_function(x):
     term2 = s * (1 - t) * np.cos(x1)
     term3 = s
 
-    return -(term1 + term2 + term3)  # 最大化問題に変換
+    return -(term1 + term2 + term3)  # Convert to maximization problem
 
 class OptimizationComparison:
-    """3手法の比較実験"""
+    """Comparison experiment of three methods"""
 
     def __init__(self, objective, bounds, budget=30):
         self.objective = objective
@@ -893,7 +1026,7 @@ class OptimizationComparison:
         self.dim = len(bounds)
 
     def grid_search(self):
-        """グリッドサーチ"""
+        """Grid search"""
         n_per_dim = int(np.ceil(self.budget ** (1/self.dim)))
 
         grid_1d = [np.linspace(b[0], b[1], n_per_dim) for b in self.bounds]
@@ -905,9 +1038,9 @@ class OptimizationComparison:
         return X_grid, Y_grid
 
     def random_search(self, seed=42):
-        """ランダムサーチ"""
-        np.random.seed(seed)
-        X_random = np.random.uniform(
+        """Random search"""
+        rng = np.random.default_rng(seed)
+        X_random = rng.uniform(
             self.bounds[:, 0], self.bounds[:, 1],
             size=(self.budget, self.dim)
         )
@@ -916,54 +1049,23 @@ class OptimizationComparison:
         return X_random, Y_random
 
     def bayesian_optimization(self, seed=42):
-        """ベイズ最適化（簡易版）"""
-        np.random.seed(seed)
-
-        # 初期サンプル（5点）
+        """Gaussian process optimization with expected improvement."""
+        rng = np.random.default_rng(seed)
         n_init = 5
-        X = np.random.uniform(self.bounds[:, 0], self.bounds[:, 1],
-                             size=(n_init, self.dim))
+        X = unscale(rng.random((n_init, self.dim)), self.bounds)
         Y = [self.objective(x) for x in X]
 
-        # 逐次最適化
         for _ in range(self.budget - n_init):
-            # 簡易GP予測
-            def gp_mean_std(x_test):
-                distances = np.linalg.norm(X - x_test, axis=1)
-                weights = np.exp(-distances**2 / 2.0)
-                weights = weights / (weights.sum() + 1e-10)
-
-                mean = weights @ Y
-                std = 1.0 * np.exp(-np.min(distances) / 1.5)
-
-                return mean, std
-
-            # EI獲得関数
-            def neg_ei(x):
-                mean, std = gp_mean_std(x)
-                best_y = max(Y)
-                z = (mean - best_y) / (std + 1e-9)
-                ei = (mean - best_y) * norm.cdf(z) + std * norm.pdf(z)
-                return -ei
-
-            # 次点選択
-            result = minimize(
-                neg_ei,
-                x0=np.random.uniform(self.bounds[:, 0], self.bounds[:, 1]),
-                bounds=self.bounds,
-                method='L-BFGS-B'
-            )
-
-            x_next = result.x
+            gp = _fit(X, Y, self.bounds)
+            x_next = propose(gp, self.bounds, max(Y), "ei", rng)
             y_next = self.objective(x_next)
-
             X = np.vstack([X, x_next])
             Y.append(y_next)
 
         return X, Y
 
     def compare(self, n_trials=5):
-        """複数回試行して平均性能を比較"""
+        """Compare average performance over multiple trials"""
         results = {
             'Grid Search': [],
             'Random Search': [],
@@ -994,7 +1096,7 @@ class OptimizationComparison:
         return results
 
     def plot_comparison(self, results):
-        """比較結果の可視化"""
+        """Visualize comparison results"""
         fig, ax = plt.subplots(figsize=(10, 6))
 
         colors = {'Grid Search': 'blue', 'Random Search': 'orange',
@@ -1020,14 +1122,14 @@ class OptimizationComparison:
 
         return fig
 
-# 実験実行
-bounds = [[-5, 10], [0, 15]]  # Branin関数の定義域
+# Run experiment
+bounds = [[-5, 10], [0, 15]]  # Domain of Branin function
 comparison = OptimizationComparison(branin_function, bounds, budget=30)
 
 print("Running optimization comparison...")
 results = comparison.compare(n_trials=5)
 
-# 最終性能のサマリー
+# Final performance summary
 print("\n=== Final Performance Summary ===")
 for method, trials in results.items():
     final_values = [trial[-1] for trial in trials]
@@ -1036,42 +1138,78 @@ for method, trials in results.items():
 fig = comparison.plot_comparison(results)
 plt.show()
 </code></pre>
-
-            <div class="example-output">
-                <strong>出力例（最終性能サマリー）:</strong><br>
-                Grid Search              : -12.345 ± 2.134<br>
-                Random Search            : -8.912 ± 1.567<br>
-                Bayesian Optimization    : -3.456 ± 0.823<br>
-                <br>
-                <strong>3つの手法はいずれも同じ 30 回の評価予算</strong>で実行しているため、ここで比較しているのは「速さ」ではなく「同じ予算で得られた最良値の良さ」です。これらの目的関数値は負の値なので<strong>比をとっても意味がありません</strong>。最適値（約 -0.40）までの残差はグリッド 11.95、ランダム 8.51、BO 3.06 です。
-            </div>
-
-            <div class="success-box">
-                <p><strong>✅ ベイズ最適化の優位性</strong></p>
-                <ul>
-                    <li><strong>評価効率</strong>: 同じ 30 回の予算で、BO はグリッドサーチが残した残差の約 74%、ランダムサーチが残した残差の約 64% を埋めています</li>
-                    <li><strong>予算のスケール</strong>: グリッドサーチは 1 次元あたり <code>ceil(30**(1/2)) = 6</code> 点しか取れません（6&times;6 格子を 30 点に切り詰め）。2次元で格子幅を半分にするには評価回数が 4 倍必要です</li>
-                    <li><strong>ロバスト性</strong>: 5 回の試行での標準偏差が小さい（安定した性能）</li>
-                </ul>
-            </div>
-        </section>
-
-        <section>
-            <h2>1.6 収束解析とイテレーション追跡</h2>
-
-            <p>最適化の進捗を定量的に評価し、収束判定の方法を学びます。</p>
-
-            <h3>Example 6: 収束診断ツール</h3>
-
+<p><strong>出力例 / Example output:</strong><br />
+Running optimization comparison...  </p>
+<p>=== Trial 1/5 ===<br />
+Grid Search best: -1.9431<br />
+Random Search best: -1.6409<br />
+Bayesian Optimization best: -0.4049  </p>
+<p>=== Trial 2/5 ===<br />
+Grid Search best: -1.9431<br />
+Random Search best: -1.7697<br />
+Bayesian Optimization best: -0.3980  </p>
+<p>=== Trial 3/5 ===<br />
+Grid Search best: -1.9431<br />
+Random Search best: -0.8426<br />
+Bayesian Optimization best: -0.3981  </p>
+<p>=== Trial 4/5 ===<br />
+Grid Search best: -1.9431<br />
+Random Search best: -5.0113<br />
+Bayesian Optimization best: -0.3980  </p>
+<p>=== Trial 5/5 ===<br />
+Grid Search best: -1.9431<br />
+Random Search best: -2.7390<br />
+Bayesian Optimization best: -0.3984  </p>
+<p>=== Final Performance Summary ===<br />
+Grid Search              : -1.9431 ± 0.0000<br />
+Random Search            : -2.4007 ± 1.4375<br />
+Bayesian Optimization    : -0.3995 ± 0.0027  </p>
+<p><strong>3つの手法はいずれも同じ 30 回の評価予算</strong> で実行しているため、ここで比較しているのは「速さ」ではなく「同じ予算で得られた最良値の良さ」です。これらの目的関数値は負の値（Branin関数の符号を反転して最大化問題にしている）なので、<strong>比をとっても意味がありません</strong>。代わりに最適値までの<strong>残差</strong>で比較します。この探索範囲での最適値は約 -0.397887 です。表ではこの値を用いて、5回の試行の最良値の平均から残差を計算しています：</p>
+<table>
+<thead>
+<tr>
+<th>手法</th>
+<th>30回の評価での最良値</th>
+<th>最適値までの残差</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>グリッドサーチ</td>
+<td>-1.9431</td>
+<td>1.5452</td>
+</tr>
+<tr>
+<td>ランダムサーチ</td>
+<td>-2.4007</td>
+<td>2.0028</td>
+</tr>
+<tr>
+<td>ベイズ最適化</td>
+<td>-0.3995</td>
+<td>0.0016</td>
+</tr>
+</tbody>
+</table>
+<p><strong>✅ ベイズ最適化の優位性</strong></p>
+<ul>
+<li><strong>評価効率</strong> : 各30回の評価を行う5つのシードでの試行では、GP-EIの平均結果が最良で、グリッドサーチが残した残差の約99.9%、ランダムサーチが残した残差の約99.9%を埋めています</li>
+<li><strong>予算のスケール</strong> : ここでのグリッドサーチは 1 次元あたり <code>ceil(30**(1/2)) = 6</code> 点しか取れません（6×6 格子を 30 点に切り詰めています）。2次元で格子幅を半分にするには評価回数が 4 倍必要ですが、GP-EIは学習済みモデルが期待改善量を最大と予測する点に1回ずつ評価を振り向けます</li>
+<li><strong>ロバスト性</strong> : GP-EIの最終値の標準偏差はこの5回の試行で0.0027です。この実験での安定性を示しますが、一般的な保証ではありません</li>
+</ul>
+<h2>1.6 収束解析とイテレーション追跡</h2>
+<p>最適化の進捗を定量的に評価し、収束判定の方法を学びます。</p>
+<h3>Example 6: 収束診断ツール</h3>
+<p>この診断例では、GPの事後分布ではなく、距離に基づく重み付き平均を用いた簡易探索による別の履歴を維持しています。真の最適値は与えません。3.62はこの目的関数の正しい最適値ではなかったため、<code>true_optimum=None</code> として最適値までの残差を省きます。この実行では7.006472が得られますが停止条件を満たさず、最大の改善は反復16（Δy = 3.494641）で生じます。</p>
 <pre><code>import numpy as np
 import matplotlib.pyplot as plt
 
 # ===================================
-# Example 6: 収束解析とイテレーション追跡
+# Example 6: Convergence analysis and iteration tracking
 # ===================================
 
 class ConvergenceAnalyzer:
-    """ベイズ最適化の収束性を分析"""
+    """Analyze convergence of Bayesian optimization"""
 
     def __init__(self, X_history, Y_history, true_optimum=None):
         self.X_history = np.array(X_history)
@@ -1080,26 +1218,26 @@ class ConvergenceAnalyzer:
         self.n_iter = len(Y_history)
 
     def compute_metrics(self):
-        """収束メトリクスを計算"""
-        # 累積最良値
+        """Calculate convergence metrics"""
+        # Cumulative best value
         cumulative_best = [max(self.Y_history[:i+1]) for i in range(self.n_iter)]
 
-        # 改善量（各イテレーションでの向上）
+        # Improvement (progress at each iteration)
         improvements = [0]
         for i in range(1, self.n_iter):
             improvements.append(max(0, cumulative_best[i] - cumulative_best[i-1]))
 
-        # 最適性ギャップ（真の最適値が既知の場合）
+        # Optimality gap (if true optimum is known)
         if self.true_optimum is not None:
             optimality_gap = [self.true_optimum - cb for cb in cumulative_best]
         else:
             optimality_gap = None
 
-        # 収束率（直近5点の改善の標準偏差）
+        # Convergence rate (standard deviation of recent 5 improvements)
         convergence_rate = []
         window = 5
         for i in range(self.n_iter):
-            if i < window:
+            if i &lt; window:
                 convergence_rate.append(np.nan)
             else:
                 recent_improvements = improvements[i-window+1:i+1]
@@ -1113,25 +1251,25 @@ class ConvergenceAnalyzer:
         }
 
     def is_converged(self, tolerance=1e-3, patience=5):
-        """収束判定"""
+        """Convergence determination"""
         metrics = self.compute_metrics()
         improvements = metrics['improvements']
 
-        # 直近patience回のイテレーションで改善がtolerance以下
-        if len(improvements) < patience:
+        # Improvement is less than tolerance for recent patience iterations
+        if len(improvements) &lt; patience:
             return False
 
         recent_improvements = improvements[-patience:]
-        return all(imp < tolerance for imp in recent_improvements)
+        return all(imp &lt; tolerance for imp in recent_improvements)
 
     def plot_diagnostics(self):
-        """診断プロット"""
+        """Diagnostic plots"""
         metrics = self.compute_metrics()
 
         fig, axes = plt.subplots(2, 2, figsize=(14, 10))
         iterations = np.arange(1, self.n_iter + 1)
 
-        # (1) 累積最良値の推移
+        # (1) Transition of cumulative best value
         ax = axes[0, 0]
         ax.plot(iterations, metrics['cumulative_best'], 'b-', linewidth=2, marker='o')
         if self.true_optimum is not None:
@@ -1143,7 +1281,7 @@ class ConvergenceAnalyzer:
         ax.set_title('Convergence: Cumulative Best')
         ax.grid(alpha=0.3)
 
-        # (2) 各イテレーションでの改善量
+        # (2) Improvement at each iteration
         ax = axes[0, 1]
         ax.bar(iterations, metrics['improvements'], color='green', alpha=0.7)
         ax.set_xlabel('Iteration')
@@ -1151,11 +1289,11 @@ class ConvergenceAnalyzer:
         ax.set_title('Improvement per Iteration')
         ax.grid(alpha=0.3, axis='y')
 
-        # (3) 最適性ギャップ（対数スケール）
+        # (3) Optimality gap (log scale)
         ax = axes[1, 0]
         if metrics['optimality_gap'] is not None:
             gap = np.array(metrics['optimality_gap'])
-            gap[gap <= 0] = 1e-10  # 負値を処理
+            gap[gap &lt;= 0] = 1e-10  # Handle negative values
             ax.semilogy(iterations, gap, 'r-', linewidth=2, marker='s')
             ax.set_xlabel('Iteration')
             ax.set_ylabel('Optimality Gap (log scale)')
@@ -1167,7 +1305,7 @@ class ConvergenceAnalyzer:
             ax.set_xticks([])
             ax.set_yticks([])
 
-        # (4) 収束率（改善の変動性）
+        # (4) Convergence rate (variability of improvements)
         ax = axes[1, 1]
         valid_idx = ~np.isnan(metrics['convergence_rate'])
         ax.plot(iterations[valid_idx], np.array(metrics['convergence_rate'])[valid_idx],
@@ -1184,7 +1322,7 @@ class ConvergenceAnalyzer:
         return fig
 
     def print_summary(self):
-        """サマリーレポート"""
+        """Summary report"""
         metrics = self.compute_metrics()
 
         print("=== Convergence Analysis Summary ===")
@@ -1200,33 +1338,33 @@ class ConvergenceAnalyzer:
         converged = self.is_converged()
         print(f"Converged: {'Yes' if converged else 'No'}")
 
-        # 最大改善が起きたイテレーション
+        # Iteration with maximum improvement
         max_imp_iter = np.argmax(metrics['improvements'])
         print(f"Largest improvement at iteration: {max_imp_iter + 1} "
               f"(Δy = {metrics['improvements'][max_imp_iter]:.6f})")
 
-# デモ実行（Example 4の結果を使用）
+# Demo execution (same objective as Example 4, separate noisy history)
 np.random.seed(42)
 
 def test_func(x):
     return -(x - 2.5)**2 * np.sin(10 * x) + 3
 
-# BOを実行してhistoryを取得
+# Run BO and obtain history
 from scipy.stats import norm
 from scipy.optimize import minimize
 
 X_hist, Y_hist = [], []
 bounds = [0, 5]
 
-# 初期サンプリング
+# Initial sampling
 for _ in range(3):
     x = np.random.uniform(bounds[0], bounds[1])
     X_hist.append(x)
     Y_hist.append(test_func(x) + np.random.normal(0, 0.02))
 
-# 逐次最適化（15イテレーション）
+# Sequential optimization (15 iterations)
 for iteration in range(15):
-    # 簡易GP予測
+    # Distance-weighted heuristic prediction (not a GP posterior)
     def gp_predict(x_test):
         dists = np.abs(np.array(X_hist) - x_test)
         weights = np.exp(-dists**2 / 0.5)
@@ -1234,14 +1372,14 @@ for iteration in range(15):
         std = 0.5 * (1 - np.exp(-np.min(dists) / 1.0))
         return mean, std
 
-    # EI獲得関数
+    # EI acquisition function
     def neg_ei(x):
         mean, std = gp_predict(x)
         z = (mean - max(Y_hist)) / (std + 1e-9)
         ei = (mean - max(Y_hist)) * norm.cdf(z) + std * norm.pdf(z)
         return -ei
 
-    # 次点選択
+    # Next point selection
     res = minimize(neg_ei, x0=np.random.uniform(bounds[0], bounds[1]),
                   bounds=[bounds], method='L-BFGS-B')
 
@@ -1251,32 +1389,22 @@ for iteration in range(15):
     X_hist.append(x_next)
     Y_hist.append(y_next)
 
-# 収束解析
-analyzer = ConvergenceAnalyzer(X_hist, Y_hist, true_optimum=3.62)
+# Convergence analysis
+analyzer = ConvergenceAnalyzer(X_hist, Y_hist, true_optimum=None)
 analyzer.print_summary()
 fig = analyzer.plot_diagnostics()
 plt.show()
 </code></pre>
-
-            <div class="example-output">
-                <strong>出力例:</strong><br>
-                Total iterations: 18<br>
-                Best value found: 3.608521<br>
-                Final improvement: 0.000000<br>
-                True optimum: 3.620000<br>
-                Optimality gap: 0.011479 (0.32%)<br>
-                Converged: Yes<br>
-                Largest improvement at iteration: 6 (Δy = 0.234567)
-            </div>
-        </section>
-
-        <section>
-            <h2>1.7 ハイパーパラメータチューニング実践例</h2>
-
-            <p>ベイズ最適化の代表的な応用例として、機械学習モデルのハイパーパラメータチューニングを実装します。</p>
-
-            <h3>Example 7: Random Forestのハイパーパラメータ最適化</h3>
-
+<p><strong>出力例 / Example output:</strong><br />
+=== Convergence Analysis Summary ===<br />
+Total iterations: 18<br />
+Best value found: 7.006472<br />
+Final improvement: 0.000000<br />
+Converged: No<br />
+Largest improvement at iteration: 16 (Δy = 3.494641)  </p>
+<h2>1.7 ハイパーパラメータチューニング実践例</h2>
+<p>ハイパーパラメータチューニングはベイズ最適化の応用先ですが、この簡潔な例では距離に基づく重み付き平均の簡易サロゲートとEI形式の選択規則を維持しており、Example 2・3・5で使うGPの事後分布は実装していません。木の予測の平均化と探索結果の再現性を確保するため、両方のRandom Forestに <code>n_jobs=1</code> を指定します。</p>
+<h3>Example 7: Random Forestのハイパーパラメータ最適化</h3>
 <pre><code>import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.ensemble import RandomForestRegressor
@@ -1286,31 +1414,31 @@ from scipy.stats import norm
 from scipy.optimize import minimize
 
 # ===================================
-# Example 7: ハイパーパラメータチューニング
+# Example 7: Hyperparameter tuning
 # ===================================
 
-# サンプルデータセット生成（化学プロセスのセンサーデータを想定）
+# Generate sample dataset (assuming sensor data from chemical process)
 np.random.seed(42)
 X_data, y_data = make_regression(n_samples=200, n_features=10, noise=10, random_state=42)
 
 class HyperparameterOptimizer:
-    """Random Forestのハイパーパラメータをベイズ最適化"""
+    """EI-style search of Random Forest hyperparameters with a heuristic surrogate"""
 
     def __init__(self, X_train, y_train):
         self.X_train = X_train
         self.y_train = y_train
 
-        # 最適化する3つのハイパーパラメータ
+        # Three hyperparameters to optimize
         self.param_bounds = {
-            'n_estimators': [10, 200],      # 決定木の数
-            'max_depth': [3, 20],            # 最大深さ
-            'min_samples_split': [2, 20]     # 分割最小サンプル数
+            'n_estimators': [10, 200],      # Number of decision trees
+            'max_depth': [3, 20],            # Maximum depth
+            'min_samples_split': [2, 20]     # Minimum samples for split
         }
 
         self.X_obs = []
         self.Y_obs = []
 
-        # 初期ランダムサンプリング（5点）
+        # Initial random sampling (5 points)
         for _ in range(5):
             params = self._sample_random_params()
             score = self._evaluate(params)
@@ -1318,7 +1446,7 @@ class HyperparameterOptimizer:
             self.Y_obs.append(score)
 
     def _sample_random_params(self):
-        """ランダムにハイパーパラメータをサンプリング"""
+        """Randomly sample hyperparameters"""
         return [
             np.random.randint(self.param_bounds['n_estimators'][0],
                             self.param_bounds['n_estimators'][1] + 1),
@@ -1329,7 +1457,7 @@ class HyperparameterOptimizer:
         ]
 
     def _evaluate(self, params):
-        """ハイパーパラメータの性能評価（5-fold CV）"""
+        """Evaluate hyperparameter performance (5-fold CV)"""
         n_est, max_d, min_split = [int(p) for p in params]
 
         model = RandomForestRegressor(
@@ -1337,7 +1465,7 @@ class HyperparameterOptimizer:
             max_depth=max_d,
             min_samples_split=min_split,
             random_state=42,
-            n_jobs=-1
+            n_jobs=1
         )
 
         # Cross-validation R² score
@@ -1346,15 +1474,15 @@ class HyperparameterOptimizer:
         return scores.mean()
 
     def _gp_predict(self, params_test):
-        """簡易ガウス過程予測"""
+        """Distance-weighted heuristic prediction (not a GP posterior)"""
         X_obs_array = np.array(self.X_obs)
         params_array = np.array(params_test).reshape(1, -1)
 
-        # 正規化
+        # Normalization
         X_obs_norm = (X_obs_array - X_obs_array.mean(axis=0)) / (X_obs_array.std(axis=0) + 1e-10)
         params_norm = (params_array - X_obs_array.mean(axis=0)) / (X_obs_array.std(axis=0) + 1e-10)
 
-        # 距離ベースの重み
+        # Distance-based weights
         dists = np.linalg.norm(X_obs_norm - params_norm, axis=1)
         weights = np.exp(-dists**2 / 2.0)
 
@@ -1364,21 +1492,21 @@ class HyperparameterOptimizer:
         return mean, std
 
     def _expected_improvement(self, params):
-        """EI獲得関数"""
+        """EI acquisition function"""
         mean, std = self._gp_predict(params)
         best_y = max(self.Y_obs)
 
         z = (mean - best_y) / (std + 1e-9)
         ei = (mean - best_y) * norm.cdf(z) + std * norm.pdf(z)
 
-        return -ei  # 最小化問題
+        return -ei  # Minimization problem
 
     def optimize(self, n_iterations=15):
-        """ベイズ最適化実行"""
+        """Execute the heuristic EI-style search"""
         print("=== Hyperparameter Optimization ===\n")
 
         for i in range(n_iterations):
-            # 次のハイパーパラメータを選択
+            # Select next hyperparameters
             bounds_array = [
                 self.param_bounds['n_estimators'],
                 self.param_bounds['max_depth'],
@@ -1402,7 +1530,7 @@ class HyperparameterOptimizer:
             print(f"Iter {i+1}: n_est={params_next[0]}, max_depth={params_next[1]}, "
                   f"min_split={params_next[2]} → R²={score_next:.4f} (best={current_best:.4f})")
 
-        # 最良パラメータ
+        # Best parameters
         best_idx = np.argmax(self.Y_obs)
         best_params = self.X_obs[best_idx]
         best_score = self.Y_obs[best_idx]
@@ -1416,13 +1544,13 @@ class HyperparameterOptimizer:
         return best_params, best_score
 
     def plot_optimization_history(self):
-        """最適化履歴の可視化"""
+        """Visualize optimization history"""
         fig, axes = plt.subplots(2, 2, figsize=(14, 10))
 
         iterations = np.arange(1, len(self.Y_obs) + 1)
         cumulative_best = [max(self.Y_obs[:i+1]) for i in range(len(self.Y_obs))]
 
-        # (1) R² scoreの推移
+        # (1) Transition of R² score
         ax = axes[0, 0]
         ax.plot(iterations, self.Y_obs, 'o-', linewidth=2, markersize=8,
                label='Observed R²', alpha=0.7)
@@ -1434,7 +1562,7 @@ class HyperparameterOptimizer:
         ax.legend()
         ax.grid(alpha=0.3)
 
-        # (2) n_estimatorsの探索軌跡
+        # (2) Exploration trajectory of n_estimators
         ax = axes[0, 1]
         n_estimators = [x[0] for x in self.X_obs]
         scatter = ax.scatter(iterations, n_estimators, c=self.Y_obs,
@@ -1445,7 +1573,7 @@ class HyperparameterOptimizer:
         plt.colorbar(scatter, ax=ax, label='R² Score')
         ax.grid(alpha=0.3)
 
-        # (3) max_depthの探索軌跡
+        # (3) Exploration trajectory of max_depth
         ax = axes[1, 0]
         max_depth = [x[1] for x in self.X_obs]
         scatter = ax.scatter(iterations, max_depth, c=self.Y_obs,
@@ -1456,7 +1584,7 @@ class HyperparameterOptimizer:
         plt.colorbar(scatter, ax=ax, label='R² Score')
         ax.grid(alpha=0.3)
 
-        # (4) パラメータ空間の探索（2D投影: n_estimators vs max_depth）
+        # (4) Parameter space exploration (2D projection: n_estimators vs max_depth)
         ax = axes[1, 1]
         scatter = ax.scatter(n_estimators, max_depth, c=self.Y_obs,
                            s=150, cmap='viridis', edgecolor='black', linewidth=1.5)
@@ -1474,97 +1602,89 @@ class HyperparameterOptimizer:
         plt.tight_layout()
         return fig
 
-# 実行
+# Execution
 optimizer = HyperparameterOptimizer(X_data, y_data)
 best_params, best_score = optimizer.optimize(n_iterations=15)
 
 fig = optimizer.plot_optimization_history()
 plt.show()
 
-# ベースラインとの比較
+# Comparison with baseline
 print("\n=== Comparison with Default Parameters ===")
-default_model = RandomForestRegressor(random_state=42, n_jobs=-1)
+default_model = RandomForestRegressor(random_state=42, n_jobs=1)
 default_score = cross_val_score(default_model, X_data, y_data, cv=5, scoring='r2').mean()
 print(f"Default R² score: {default_score:.4f}")
 print(f"Optimized R² score: {best_score:.4f}")
 print(f"Improvement: {(best_score - default_score) / default_score * 100:.2f}%")
 </code></pre>
-
-            <div class="example-output">
-                <strong>出力例:</strong><br>
-                Iter 15: n_est=142, max_depth=18, min_split=2 → R²=0.9234 (best=0.9234)<br>
-                <br>
-                Best Hyperparameters:<br>
-                n_estimators: 142<br>
-                max_depth: 18<br>
-                min_samples_split: 2<br>
-                Best R² score: 0.9234<br>
-                <br>
-                Default R² score: 0.8567<br>
-                Optimized R² score: 0.9234<br>
-                Improvement: 7.78%
-            </div>
-
-            <div class="tip-box">
-                <p><strong>💡 実務での活用</strong></p>
-                <p>このアプローチは以下のようなプロセス産業の問題に直接適用できます：</p>
-                <ul>
-                    <li><strong>品質予測モデル</strong>: センサーデータから製品品質を予測</li>
-                    <li><strong>異常検知モデル</strong>: プラント運転データから異常を早期検出</li>
-                    <li><strong>制御パラメータ最適化</strong>: PIDゲインなどの調整</li>
-                </ul>
-            </div>
-        </section>
-
-        <section>
-            <h2>学習目標の確認</h2>
-
-            <p>この章を完了すると、以下を説明・実装できるようになります：</p>
-
-            <h3>基本理解</h3>
-            <ul>
-                <li>✅ ブラックボックス最適化問題の特徴と課題を説明できる</li>
-                <li>✅ 逐次設計戦略の利点をランダムサーチと比較して述べられる</li>
-                <li>✅ 探索と活用のトレードオフの概念を理解している</li>
-            </ul>
-
-            <h3>実践スキル</h3>
-            <ul>
-                <li>✅ 化学プロセスのブラックボックス問題を定式化できる</li>
-                <li>✅ シンプルなベイズ最適化ループを実装できる</li>
-                <li>✅ 3手法（BO/Grid/Random）の性能を比較評価できる</li>
-                <li>✅ 収束診断ツールを使って最適化の進捗を分析できる</li>
-            </ul>
-
-            <h3>応用力</h3>
-            <ul>
-                <li>✅ 機械学習モデルのハイパーパラメータチューニングに応用できる</li>
-                <li>✅ 実務問題に対して適切な最適化手法を選択できる</li>
-                <li>✅ 最適化結果の信頼性を評価できる</li>
-            </ul>
-        </section>
-
-        <section>
-            <h2>次のステップ</h2>
-
-            <p>第1章では、ベイズ最適化の基本概念と実装を学びました。次章では、ベイズ最適化の中核技術である「ガウス過程」について詳しく学びます。</p>
-
-            <div class="info-box">
-                <p><strong>📚 次章の内容（第2章予告）</strong></p>
-                <ul>
-                    <li>ガウス過程の数学的基礎</li>
-                    <li>カーネル関数の種類と選択</li>
-                    <li>ハイパーパラメータの最尤推定</li>
-                    <li>実データへのフィッティング</li>
-                </ul>
-            </div>
-        </section>
-
+<p><strong>出力例 / Example output:</strong><br />
+=== Hyperparameter Optimization ===  </p>
+<p>Iter 1: n_est=185, max_depth=16, min_split=20 → R²=0.6402 (best=0.7324)<br />
+Iter 2: n_est=10, max_depth=20, min_split=2 → R²=0.6670 (best=0.7324)<br />
+Iter 3: n_est=50, max_depth=20, min_split=10 → R²=0.6945 (best=0.7324)<br />
+Iter 4: n_est=10, max_depth=20, min_split=20 → R²=0.5485 (best=0.7324)<br />
+Iter 5: n_est=161, max_depth=9, min_split=12 → R²=0.7046 (best=0.7324)<br />
+Iter 6: n_est=10, max_depth=5, min_split=9 → R²=0.6190 (best=0.7324)<br />
+Iter 7: n_est=200, max_depth=20, min_split=2 → R²=0.7397 (best=0.7397)<br />
+Iter 8: n_est=98, max_depth=15, min_split=19 → R²=0.6435 (best=0.7397)<br />
+Iter 9: n_est=16, max_depth=3, min_split=19 → R²=0.5038 (best=0.7397)<br />
+Iter 10: n_est=200, max_depth=3, min_split=20 → R²=0.5538 (best=0.7397)<br />
+Iter 11: n_est=10, max_depth=12, min_split=2 → R²=0.6664 (best=0.7397)<br />
+Iter 12: n_est=90, max_depth=3, min_split=11 → R²=0.5750 (best=0.7397)<br />
+Iter 13: n_est=118, max_depth=20, min_split=2 → R²=0.7381 (best=0.7397)<br />
+Iter 14: n_est=200, max_depth=10, min_split=2 → R²=0.7368 (best=0.7397)<br />
+Iter 15: n_est=67, max_depth=15, min_split=10 → R²=0.7061 (best=0.7397)  </p>
+<p>=== Best Hyperparameters ===<br />
+n_estimators: 200<br />
+max_depth: 20<br />
+min_samples_split: 2<br />
+Best R² score: 0.7397  </p>
+<p>=== Comparison with Default Parameters ===<br />
+Default R² score: 0.7368<br />
+Optimized R² score: 0.7397<br />
+Improvement: 0.40%  </p>
+<p>この実行での最良パラメータは <code>n_estimators=200</code>、<code>max_depth=20</code>、<code>min_samples_split=2</code> です。交差検証の平均R²は0.7368から0.7397へと相対的に0.40%だけ向上していますが、同じ分割での小さな改善であり、独立したテスト集合で検証された改善ではありません。</p>
+<p><strong>💡 実務での活用</strong></p>
+<p>このアプローチは以下のようなプロセス産業の問題に直接適用できます：</p>
+<ul>
+<li><strong>品質予測モデル</strong> : センサーデータから製品品質を予測</li>
+<li><strong>異常検知モデル</strong> : プラント運転データから異常を早期検出</li>
+<li><strong>制御パラメータ最適化</strong> : PIDゲインなどの調整</li>
+</ul>
+<h2>学習目標の確認</h2>
+<p>この章を完了すると、以下を説明・実装できるようになります：</p>
+<h3>基本理解</h3>
+<ul>
+<li>✅ ブラックボックス最適化問題の特徴と課題を説明できる</li>
+<li>✅ 逐次設計戦略の利点をランダムサーチと比較して述べられる</li>
+<li>✅ 探索と活用のトレードオフの概念を理解している</li>
+</ul>
+<h3>実践スキル</h3>
+<ul>
+<li>✅ 化学プロセスのブラックボックス問題を定式化できる</li>
+<li>✅ シンプルなベイズ最適化ループを実装できる</li>
+<li>✅ 3手法（BO/Grid/Random）の性能を比較評価できる</li>
+<li>✅ 収束診断ツールを使って最適化の進捗を分析できる</li>
+</ul>
+<h3>応用力</h3>
+<ul>
+<li>✅ 機械学習モデルのハイパーパラメータチューニングに応用できる</li>
+<li>✅ 実務問題に対して適切な最適化手法を選択できる</li>
+<li>✅ 最適化結果の信頼性を評価できる</li>
+</ul>
+<h2>次のステップ</h2>
+<p>第1章では、ベイズ最適化の基本概念と実装を学びました。次章では、ベイズ最適化の中核技術である「ガウス過程」について詳しく学びます。</p>
+<p><strong>📚 次章の内容（第2章予告）</strong></p>
+<ul>
+<li>ガウス過程の数学的基礎</li>
+<li>カーネル関数の種類と選択</li>
+<li>ハイパーパラメータの最尤推定</li>
+<li>実データへのフィッティング</li>
+</ul>
         <div class="navigation">
             <a href="index.html" class="nav-button">← シリーズ目次に戻る</a>
             <a href="chapter-2.html" class="nav-button">第2章：ガウス過程 →</a>
         </div>
-    <section class="disclaimer">
 <h3>免責事項</h3>
 <ul>
 <li>本コンテンツは教育・研究・情報提供のみを目的としており、専門的な助言(法律・会計・技術的保証など)を提供するものではありません。</li>
@@ -1574,7 +1694,6 @@ print(f"Improvement: {(best_score - default_score) / default_score * 100:.2f}%")
 <li>本コンテンツの内容は、予告なく変更・更新・提供停止されることがあります。</li>
 <li>本コンテンツの著作権・ライセンスは明記された条件(例: CC BY 4.0)に従います。当該ライセンスは通常、無保証条項を含みます。</li>
 </ul>
-</section>
 
 </main>
 

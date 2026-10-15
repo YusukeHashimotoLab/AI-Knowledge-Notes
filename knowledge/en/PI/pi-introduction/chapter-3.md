@@ -158,32 +158,36 @@ Where $y$ is the objective variable (e.g., product purity), $x$ is the explanato
     
 
 **Example Output** :
-    
-    
-    Basic Statistics of Data:
-           temperature       yield
-    count   100.000000  100.000000
-    mean    175.234567   57.834567
-    std       8.678901    4.234567
-    ...
-    
-    Correlation Coefficient: 0.8234
-    
-    【Model Parameters】
-    Intercept (β₀): 42.3456
-    Slope (β₁): 0.4876
-    Model Equation: y = 42.3456 + 0.4876 × Temperature
-    
-    【Model Performance】
-    R² (Coefficient of Determination): 0.6780
-    RMSE (Root Mean Squared Error): 2.1234%
-    MAE (Mean Absolute Error): 1.7890%
-    
-    【Prediction Example】
-    Temperature 165°C → Predicted Yield: 52.80%
-    Temperature 175°C → Predicted Yield: 57.68%
-    Temperature 185°C → Predicted Yield: 62.56%
-    
+
+```text
+Basic Statistics of Data:
+       temperature       yield
+count   100.000000  100.000000
+mean    174.105422   57.050550
+std       8.924682    4.561234
+min     160.165664   48.839561
+25%     165.796023   53.133181
+50%     173.924274   56.421742
+75%     181.906094   60.796295
+max     189.606608   66.678100
+
+Correlation Coefficient: 0.9183
+
+【Model Parameters】
+Intercept (β₀): -24.6656
+Slope (β₁): 0.4693
+Model Equation: y = -24.6656 + 0.4693 × Temperature
+
+【Model Performance】
+R² (Coefficient of Determination): 0.8434
+RMSE (Root Mean Squared Error): 1.7962%
+MAE (Mean Absolute Error): 1.4021%
+
+【Prediction Example】
+Temperature 165°C → Predicted Yield: 52.78%
+Temperature 175°C → Predicted Yield: 57.47%
+Temperature 185°C → Predicted Yield: 62.16%
+```
 
 **Explanation** : Simple regression has high interpretability and is easy to understand physically. In the residual plot, confirm that the errors are randomly distributed (if there is a pattern, it suggests a nonlinear relationship).
 
@@ -331,31 +335,36 @@ $$y = \beta_0 + \beta_1 x_1 + \beta_2 x_2 + \cdots + \beta_p x_p + \epsilon$$
     plt.show()
     
     print("\n【Interpretation】")
-    print("✓ Reflux ratio has the greatest impact on purity")
-    print("✓ Pressure is also an important control variable")
-    print("✓ High R² indicates the model shows good prediction performance")
+    print("✓ Pressure has the largest absolute coefficient in the original units")
+    print("✓ Coefficient magnitudes across different units do not directly rank influence")
+    print("✓ Test R² is lower than training R²; assess generalization with cross-validation")
     
 
 **Example Output** :
-    
-    
-    【Multiple Regression Model Results】
-    
-    Training Data - R²: 0.9523, RMSE: 0.3456%
-    Test Data - R²: 0.9487, RMSE: 0.3589%
-    
-    Intercept: 91.2345
-    
-    Coefficients of each variable (influence):
-            Variable  Coefficient  Abs_Coefficient
-    1   reflux_ratio     1.198765         1.198765
-    3       pressure     1.987654         1.987654
-    2  reboiler_duty     0.001987         0.001987
-    0      feed_temp     0.049876         0.049876
-    4      feed_rate    -0.009876         0.009876
-    
 
-**Explanation** : In multiple regression, you can understand the influence of each variable from its coefficient. Since the R² values for training and test data are close, there is no concern about overfitting.
+```text
+【Multiple Regression Model Results】
+
+Training Data - R²: 0.7631, RMSE: 0.4740%
+Test Data - R²: 0.6596, RMSE: 0.5794%
+
+Intercept: 91.1457
+
+Coefficients of each variable (influence):
+        Variable  Coefficient  Abs_Coefficient
+3       pressure     2.856842         2.856842
+1   reflux_ratio     1.195979         1.195979
+0      feed_temp     0.051743         0.051743
+4      feed_rate    -0.010211         0.010211
+2  reboiler_duty     0.001858         0.001858
+
+【Interpretation】
+✓ Pressure has the largest absolute coefficient in the original units
+✓ Coefficient magnitudes across different units do not directly rank influence
+✓ Test R² is lower than training R²; assess generalization with cross-validation
+```
+
+**Explanation** : In multiple regression, each coefficient describes a change per unit of its variable, so magnitudes across different units do not directly rank influence. Training R² is 0.7631 and test R² is 0.6596; this gap warrants cross-validation rather than ruling out overfitting.
 
 #### Code Example 3: Residual Analysis and Model Diagnostics
     
@@ -581,32 +590,47 @@ VIF > 10 indicates multicollinearity, and caution is needed even when VIF > 5.
     print(f"Using all variables (with multicollinearity): R² = {r2_full:.4f}")
     print(f"Excluding energy (reduced multicollinearity): R² = {r2_reduced:.4f}")
     print("\n→ Performance is almost the same even when excluding variables with multicollinearity")
-    print("  Rather, model stability and interpretability improve")
+    print("  Stability improvement requires additional validation")
     
 
 **Example Output** :
-    
-    
-    【VIF (Multicollinearity Diagnosis)】
-        Variable         VIF
-    3     energy  245.678901
-    0  temperature   23.456789
-    1   pressure    18.234567
-    2  flow_rate     2.345678
-    
-    Judgment Criteria:
-      VIF < 5:  No multicollinearity problem
-      5 < VIF < 10: Moderate multicollinearity (caution)
-      VIF > 10: Severe multicollinearity (countermeasures needed)
-    
-    【VIF (after excluding energy)】
-        Variable       VIF
-    0  temperature  3.456789
-    1     pressure  2.987654
-    2    flow_rate  1.234567
-    
 
-**Explanation** : Variables with high VIF can be predicted from other variables and are redundant. Model performance is maintained even when excluded, and stability actually improves.
+```text
+【Correlation Matrix】
+             temperature  pressure  flow_rate  energy  yield
+temperature        1.000     0.722      0.022   0.914  0.643
+pressure           0.722     1.000      0.002   0.759  0.457
+flow_rate          0.022     0.002      1.000   0.061  0.089
+energy             0.914     0.759      0.061   1.000  0.636
+yield              0.643     0.457      0.089   0.636  1.000
+
+【VIF (Multicollinearity Diagnosis)】
+      Variable       VIF
+3       energy  7.060131
+0  temperature  6.207014
+1     pressure  2.393000
+2    flow_rate  1.014201
+
+Judgment Criteria:
+  VIF < 5:  No multicollinearity problem
+  5 < VIF < 10: Moderate multicollinearity (caution)
+  VIF > 10: Severe multicollinearity (countermeasures needed)
+
+【VIF (after excluding energy)】
+      Variable       VIF
+0  temperature  2.090003
+1     pressure  2.088991
+2    flow_rate  1.000894
+
+【Model Performance Comparison】
+Using all variables (with multicollinearity): R² = 0.2268
+Excluding energy (reduced multicollinearity): R² = 0.2194
+
+→ Performance is almost the same even when excluding variables with multicollinearity
+  Stability improvement requires additional validation
+```
+
+**Explanation** : Variables with high VIF can be predicted from other variables and may be redundant. Excluding energy reduces test R² slightly from 0.2268 to 0.2194; this comparison alone does not establish improved model stability. These VIF values use statsmodels 0.15.0, whose function standardizes inputs by default; versions without that default can produce different values for this uncentered input.
 
 ### PLS (Partial Least Squares) Principle and Implementation
 
@@ -643,7 +667,7 @@ PLS finds latent variables (components) that maximize the covariance between exp
     np.random.seed(42)
     n = 500
     
-    # Temperature profile (20 stage temperatures): Highly correlated with each other
+    # Temperature profile (20 stages): Independent noise around fixed stage means
     base_profile = np.linspace(80, 160, 20)
     temperature_profiles = np.array([
         base_profile + np.random.normal(0, 2, 20) for _ in range(n)
@@ -761,24 +785,30 @@ PLS finds latent variables (components) that maximize the covariance between exp
     
     print("\n【Advantages of PLS】")
     print("✓ Stable model construction even with multicollinearity")
-    print("✓ Information aggregated with fewer components (20 variables → 3-5 components)")
+    print(f"✓ Information aggregated with fewer components (20 variables → {optimal_n_components} components)")
     print("✓ Computationally efficient, suitable for real-time prediction")
     print("✓ Improved interpretability (understanding of major latent variables)")
     
 
 **Example Output** :
-    
-    
-    【Optimal Component Selection】
-    Optimal number of components: 4
-    CV R² Score: 0.8923
-    
-    【Model Performance Comparison】
-    PLS (4 components): R² = 0.8956, RMSE = 0.5123%
-    Linear Regression (20 variables): R² = 0.8834, RMSE = 0.5456%
-    
 
-**Explanation** : PLS compresses 20 highly correlated variables into 4 independent components, building an efficient model. It is particularly effective when the number of variables is close to the number of samples or when real-time performance is required for online prediction.
+```text
+【Optimal Component Selection】
+Optimal number of components: 1
+CV R² Score: -0.0363
+
+【Model Performance Comparison】
+PLS (1 components): R² = -0.1581, RMSE = 0.4708%
+Linear Regression (20 variables): R² = -0.1888, RMSE = 0.4770%
+
+【Advantages of PLS】
+✓ Stable model construction even with multicollinearity
+✓ Information aggregated with fewer components (20 variables → 1 components)
+✓ Computationally efficient, suitable for real-time prediction
+✓ Improved interpretability (understanding of major latent variables)
+```
+
+**Explanation** : Here the 20 variables have independent noise around fixed stage means, and cross-validation selects 1 PLS component (CV R² = -0.0363); test R² is -0.1581, so this example does not demonstrate accurate prediction. It is particularly effective when the number of variables is close to the number of samples or when real-time performance is required for online prediction.
 
 #### Code Example 6: Comparison of PLS and Principal Component Regression (PCR)
     
@@ -880,7 +910,6 @@ PLS finds latent variables (components) that maximize the covariance between exp
     axes[1].bar(methods, r2_scores, color=colors, alpha=0.7, edgecolor='black')
     axes[1].set_ylabel('R² Score', fontsize=11)
     axes[1].set_title('Prediction Performance: PLS vs PCR', fontsize=12, fontweight='bold')
-    axes[1].set_ylim([0.8, 1.0])
     axes[1].grid(alpha=0.3, axis='y')
     
     for i, (method, score) in enumerate(zip(methods, r2_scores)):
@@ -894,10 +923,10 @@ PLS finds latent variables (components) that maximize the covariance between exp
     print("     → Prioritize information directly related to prediction")
     print("PCR: Extract components that maximize variance only from explanatory variables")
     print("     → May include information unrelated to prediction")
-    print("\n→ In process modeling, PLS generally shows superior performance")
+    print("\n→ Here PCR has higher test R² than PLS; both scores are negative")
     
 
-**Explanation** : Unlike PCR, PLS extracts latent variables considering the objective variable, resulting in higher prediction performance. For high-dimensional data like process data, PLS is the first choice.
+**Explanation** : Unlike PCR, PLS extracts latent variables considering the objective variable, but here PCR has higher test R² (-0.0279) than PLS (-0.1887), and neither outperforms the test-mean baseline. Compare both methods with validation when choosing a model for high-dimensional process data.
 
 * * *
 
@@ -1057,28 +1086,34 @@ Semiconductors | Film thickness, composition | Process gas flow rate, temperatur
     plt.tight_layout()
     plt.show()
     
-    print("\n【Soft Sensor Benefits】")
+    print("\n【Potential Soft Sensor Benefits (require a validated model)】")
     print(f"✓ Offline measurement: Once per day → Soft sensor: Every 15 minutes (96x frequency)")
-    print(f"✓ Measurement cost reduction: GC analysis ¥5,000/time × 365 times/year = ¥1.82M/year → Nearly zero")
+    print(f"✓ Potential measurement savings: GC analysis ¥5,000/time × 365 times/year ≈ ¥1.82M/year; validation and maintenance still incur costs")
     print(f"✓ Real-time quality control: Early detection of anomalies, immediate control response possible")
     print(f"✓ Process optimization: Continuous quality monitoring accelerates optimal condition search")
     
 
 **Example Output** :
-    
-    
-    【Data Overview】
-    Total data points: 1000
-    Offline measurements: 11 samples (1.1%)
-    Measurement frequency: Once per day (data collected every 15 minutes)
-    
-    【Soft Sensor Performance】
-    R²: 0.9234
-    RMSE: 0.4567%
-    MAE: 0.3456%
-    
 
-**Explanation** : Soft sensors replace low-frequency, high-cost offline measurements with high-frequency, zero-cost real-time predictions. This is one of the most practical applications of PI.
+```text
+【Data Overview】
+Total data points: 1000
+Offline measurements: 11 samples (1.1%)
+Measurement frequency: Once per day (data collected every 15 minutes)
+
+【Soft Sensor Performance】
+R²: -35.9911
+RMSE: 0.3754%
+MAE: 0.3557%
+
+【Potential Soft Sensor Benefits (require a validated model)】
+✓ Offline measurement: Once per day → Soft sensor: Every 15 minutes (96x frequency)
+✓ Potential measurement savings: GC analysis ¥5,000/time × 365 times/year ≈ ¥1.82M/year; validation and maintenance still incur costs
+✓ Real-time quality control: Early detection of anomalies, immediate control response possible
+✓ Process optimization: Continuous quality monitoring accelerates optimal condition search
+```
+
+**Explanation** : A validated soft sensor can supplement low-frequency offline measurements with frequent predictions, but this example trains 5 PLS components on only 7 samples and tests on 4, yielding R² = -35.9911; it does not justify replacing measurements or claiming zero operating cost. Soft sensing is a practical PI application when sufficient data, validation, and maintenance support it.
 
 #### Code Example 8: Soft Sensor Operation and Maintenance
     
@@ -1187,8 +1222,8 @@ Semiconductors | Film thickness, composition | Process gas flow rate, temperatur
     updated_model_mae = np.abs(df_new['purity'] - df_new['purity_soft_sensor_updated']).mean()
     
     print(f"Updated model (retrained with latest data): R² = {updated_model_r2:.4f}, MAE = {updated_model_mae:.4f}%")
-    print(f"\nPerformance improvement: R² {old_model_r2:.4f} → {updated_model_r2:.4f} (+{(updated_model_r2-old_model_r2)*100:.2f}%)")
-    print(f"           MAE {old_model_mae:.4f}% → {updated_model_mae:.4f}% (-{(old_model_mae-updated_model_mae):.4f}%)")
+    print(f"\nPerformance change: R² {old_model_r2:.4f} → {updated_model_r2:.4f} (change {updated_model_r2-old_model_r2:+.4f})")
+    print(f"           MAE {old_model_mae:.4f}% → {updated_model_mae:.4f}% (change {updated_model_mae-old_model_mae:+.4f} percentage points)")
     
     # Visualization
     fig, axes = plt.subplots(2, 1, figsize=(16, 10))
@@ -1230,7 +1265,7 @@ Semiconductors | Film thickness, composition | Process gas flow rate, temperatur
     print("5. Model version management and rollback functionality")
     
 
-**Explanation** : Soft sensors are not "build and forget" but require continuous maintenance. Monitor process characteristic changes (drift) and maintain model performance through regular retraining.
+**Explanation** : Soft sensors are not "build and forget" but require continuous maintenance. Monitor process characteristic changes (drift) and validate each retrained model: here R² worsens from -4.3168 to -6.8735 and MAE rises from 1.2137% to 1.3322%, so retraining does not guarantee improvement.
 
 * * *
 
@@ -1243,7 +1278,7 @@ Understanding appropriate metrics and validation methods is essential for accura
 Metric | Formula | Characteristics | Interpretation  
 ---|---|---|---  
 **R²**  
-(Coefficient of Determination) | $R^2 = 1 - \frac{\sum(y_i - \hat{y}_i)^2}{\sum(y_i - \bar{y})^2}$ | Range 0-1  
+(Coefficient of Determination) | $R^2 = 1 - \frac{\sum(y_i - \hat{y}_i)^2}{\sum(y_i - \bar{y})^2}$ | At most 1; can be negative<br>
 Closer to 1 is better | Proportion of variance  
 explained by model  
 **RMSE**  
@@ -1479,10 +1514,11 @@ relative errors
     fig, axes = plt.subplots(1, 2, figsize=(14, 5))
     
     # Cross-validation score comparison
-    axes[0].boxplot([cv_scores_lr, cv_scores_rf], labels=['Linear Regression', 'Random Forest'],
+    axes[0].boxplot([cv_scores_lr, cv_scores_rf],
                     patch_artist=True,
                     boxprops=dict(facecolor='#11998e', alpha=0.7))
     axes[0].set_ylabel('R² Score', fontsize=11)
+    axes[0].set_xticks([1, 2], labels=['Linear Regression', 'Random Forest'])
     axes[0].set_title('Cross-Validation Performance (5-Fold)', fontsize=12, fontweight='bold')
     axes[0].grid(alpha=0.3, axis='y')
     
@@ -1667,19 +1703,19 @@ Model | Characteristics | Advantages | Disadvantages
     
 
 **Example Output** :
-    
-    
-    【Model Performance Comparison】
-    Linear Regression:       R² = 0.2345, RMSE = 3.4567
-    Polynomial Regression (degree 2): R² = 0.9234, RMSE = 1.0987
-    Random Forest:  R² = 0.9156, RMSE = 1.1567
-    
-    【Polynomial Regression Equation】
-    y = -345.6789 + 5.6789×T + -0.0162×T²
-    
-    Estimated optimal temperature: 175.12°C
-    Estimated maximum yield: 89.87%
-    
+
+```text
+【Model Performance Comparison】
+Linear Regression:       R² = -0.0069, RMSE = 3.3529
+Polynomial Regression (degree 2): R² = 0.7839, RMSE = 1.5533
+Random Forest:  R² = 0.7745, RMSE = 1.5869
+
+【Polynomial Regression Equation】
+y = -1413.2861 + 17.1753×T + -0.0491×T²
+
+Estimated optimal temperature: 175.06°C
+Estimated maximum yield: 90.03%
+```
 
 **Explanation** : When nonlinear relationships exist, linear regression shows poor performance. Polynomial regression can handle nonlinearity while maintaining interpretability and is also useful for estimating optimal conditions.
 
@@ -1778,10 +1814,10 @@ Model | Characteristics | Advantages | Disadvantages
     print("✓ Default values often do not provide optimal performance")
     print("✓ Systematically search for optimal parameters with GridSearchCV")
     print("✓ Search while preventing overfitting with cross-validation")
-    print("✓ Computational cost is high but model performance significantly improves")
+    print("✓ Tuning can improve cross-validation scores, but held-out test performance must be checked")
     
 
-**Explanation** : Hyperparameter tuning is an important step to maximize model performance. Using GridSearchCV allows systematic and efficient discovery of optimal parameters.
+**Explanation** : Hyperparameter tuning is an important step to maximize model performance. GridSearchCV selects parameters by cross-validation, but here the tuned test R² of 0.7425 is lower than the preceding Random Forest result of 0.7745, so better held-out performance is not guaranteed.
 
 * * *
 

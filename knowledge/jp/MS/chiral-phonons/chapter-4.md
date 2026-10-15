@@ -10,7 +10,7 @@ subtitle: "フォノン角運動量の計算、バレートロニクス応用、
   <iframe
     width="560"
     height="315"
-    src="https://www.youtube.com/embed/bWqfo0IBMbs"
+    src="https://www.youtube.com/embed/6BFGvrQna9s?start=1953"
     title="カイラルフォノン 第4章: 応用と計算手法"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
@@ -27,951 +27,1191 @@ subtitle: "フォノン角運動量の計算、バレートロニクス応用、
 
 # 第4章: 応用と計算手法
 
-**フォノン角運動量の計算、バレートロニクス応用、新興デバイス概念**
+**カイラルフォノンシリーズ - 第一原理計算からデバイス応用まで**
 
-## 学習目標
-
-- DFPTによるフォノン固有ベクトル計算手法を理解する
-- フォノン角運動量（PAM）の計算式 \\(\mathbf{L} = \text{Im}[\mathbf{e}^* \times \mathbf{e}]\\) を導出・実装できる
-- Phonopy、Quantum ESPRESSOを用いたカイラルフォノン解析ワークフローを習得する
-- フォノンEinstein-de Haas効果とフォノン角運動量輸送を理解する
-- バレー-フォノン結合の物理とバレートロニクス応用を説明できる
-- カイラルフォノンポラリトンと光物質相互作用を理解する
-- フォノンベースの情報処理デバイスの動作原理を理解する
-- 完全なPAM計算コードをPythonで実装できる
-
-## 導入
-
-第1章から第3章では、カイラルフォノンの理論的基礎、材料系、実験的検出手法を学びました。本章では、この新興分野の応用展開と実践的な計算手法に焦点を当てます。カイラルフォノンの応用は、バレートロニクスにおけるバレー自由度の制御から、フォノン角運動量輸送、さらには新しいフォノンベースの情報処理デバイスまで多岐にわたります。
-
-計算手法の部分では、第一原理計算（DFT/DFPT）によるフォノン固有ベクトルの取得から、フォノン角運動量の抽出まで、完全なワークフローを詳しく解説します。Phonopy、Quantum ESPRESSO、VASPなどの主要ソフトウェアの使用法と、円偏光度の計算、バンド構造解析、対称性検証などの実践的技術を網羅します。
-
-また、フォノン角運動量の輸送現象（フォノンEinstein-de Haas効果、フォノンスピン流）、バレー-フォノン結合を利用したバレートロニクスデバイス、カイラルフォノンポラリトンによる増強された光物質相互作用など、最先端の研究トピックを紹介します。最後に、量子フォノニクスやトポロジカル保護など、将来の研究方向についても展望します。
-
-## 4.1 カイラルフォノンの計算手法
-
-### 4.1.1 フォノン固有ベクトルのDFPT計算
-
-カイラルフォノンの計算の出発点は、密度汎関数摂動論（DFPT）によるフォノン固有ベクトルの取得です。動的行列 \\(D_{\kappa\alpha,\kappa'\beta}(\mathbf{q})\\) の固有値問題を解きます：
-
-\\[
-\sum_{\kappa'\beta} D_{\kappa\alpha,\kappa'\beta}(\mathbf{q}) e_{\kappa'\beta}(\mathbf{q}\nu) = \omega^2(\mathbf{q}\nu) e_{\kappa\alpha}(\mathbf{q}\nu)
-\\]
-
-ここで、\\(\mathbf{q}\\) は波数ベクトル、\\(\nu\\) はバンドインデックス、\\(\omega(\mathbf{q}\nu)\\) はフォノン周波数、\\(e_{\kappa\alpha}(\mathbf{q}\nu)\\) は固有ベクトル（原子 \\(\kappa\\) の \\(\alpha\\) 方向成分）です。
-
-**動的行列の計算**
-
-DFPTでは、原子変位に対する電子密度の応答を自己無撞着に計算します：
-
-\\[
-D_{\kappa\alpha,\kappa'\beta}(\mathbf{q}) = \frac{1}{\sqrt{M_\kappa M_{\kappa'}}} \frac{\partial^2 E}{\partial u_{\kappa\alpha}(\mathbf{q}) \partial u_{\kappa'\beta}(-\mathbf{q})}
-\\]
-
-ここで、\\(M_\kappa\\) は原子質量、\\(E\\) は全エネルギーです。この2階微分は線形応答理論により効率的に計算されます。
-
-### 4.1.2 フォノン角運動量の計算式
-
-フォノン固有ベクトル \\(\mathbf{e}(\mathbf{q}\nu)\\) が得られれば、フォノン角運動量（PAM）は以下の式で計算されます：
-
-\\[
-\mathbf{L}(\mathbf{q}\nu) = \text{Im}\left[\mathbf{e}^*(\mathbf{q}\nu) \times \mathbf{e}(\mathbf{q}\nu)\right]
-\\]
-
-原子ごとの寄与を明示的に書くと：
-
-\\[
-\mathbf{L}(\mathbf{q}\nu) = \sum_\kappa \text{Im}\left[e^*_{\kappa x}(\mathbf{q}\nu) e_{\kappa y}(\mathbf{q}\nu) - e^*_{\kappa y}(\mathbf{q}\nu) e_{\kappa x}(\mathbf{q}\nu)\right] \hat{\mathbf{z}}
-\\]
-
-2次元材料では、PAMは面直方向（\\(z\\) 方向）を向き、その符号がカイラリティを決定します。\\(L_z > 0\\) なら右円偏光、\\(L_z < 0\\) なら左円偏光です。
-
-### 4.1.3 円偏光度の計算
-
-円偏光度（circular polarization degree）は、フォノンモードのカイラリティの強さを定量化する指標です：
-
-\\[
-P_\text{circ}(\mathbf{q}\nu) = \frac{2|L_z(\mathbf{q}\nu)|}{|\mathbf{e}(\mathbf{q}\nu)|^2}
-\\]
-
-完全な円偏光では \\(P_\text{circ} = 1\\)、線形偏光では \\(P_\text{circ} = 0\\) です。実際の材料では、対称性の制約により \\(0 < P_\text{circ} < 1\\) の値をとります。
-
-### 4.1.4 Phonopyを用いた実装
-
-Phonopyは、DFTコード（VASP、Quantum ESPRESSO、ABINIT等）と連携してフォノン計算を行うPythonライブラリです。以下は、Phonopyを用いたカイラルフォノン解析の基本ワークフローです：
-
-```python
-#!/usr/bin/env python3
-"""
-Phonopy を用いたカイラルフォノン解析
-WSe2単層を例とする
-"""
-import numpy as np
-from phonopy import Phonopy
-from phonopy.interface.vasp import read_vasp
-import matplotlib.pyplot as plt
-
-# ステップ1: 構造の読み込み
-unitcell = read_vasp("POSCAR")
-
-# ステップ2: Phonopyオブジェクトの作成
-# スーパーセルサイズを指定（ここでは4×4×1）
-phonon = Phonopy(unitcell, [[4, 0, 0],
-                             [0, 4, 0],
-                             [0, 0, 1]])
-
-# ステップ3: 変位を生成（VASPで力を計算するため）
-phonon.generate_displacements(distance=0.01)  # 0.01 Å変位
-supercells = phonon.get_supercells_with_displacements()
-
-# ここでVASPで各変位に対して力を計算（外部プロセス）
-# 結果はvasprun.xmlに保存される
-
-# ステップ4: 力定数の読み込み
-phonon.produce_force_constants()
-
-# ステップ5: 動的行列の計算
-# K点でのフォノン固有値・固有ベクトルを計算
-q_K = np.array([1.0/3.0, 1.0/3.0, 0.0])  # K点
-phonon.set_qpoints_phonon([q_K])
-phonon.run_qpoints_phonon()
-
-# ステップ6: 固有ベクトルと周波数の取得
-qpoints = phonon.get_qpoints_phonon()
-frequencies = qpoints[0]  # THz単位
-eigenvectors = qpoints[1]  # 複素数配列 (num_modes, num_atoms, 3)
-
-print(f"K点でのフォノン周波数 (THz): {frequencies}")
-print(f"固有ベクトルの形状: {eigenvectors.shape}")
-
-# ステップ7: フォノン角運動量の計算
-def compute_phonon_angular_momentum(eigvec):
-    """
-    フォノン固有ベクトルから角運動量を計算
-
-    Parameters:
-    -----------
-    eigvec : complex array, shape (num_atoms, 3)
-        フォノン固有ベクトル
-
-    Returns:
-    --------
-    L_z : float
-        z方向の角運動量
-    """
-    L = np.zeros(3)
-    for atom_idx in range(eigvec.shape[0]):
-        # Im[e* × e] を計算
-        ex_conj = np.conj(eigvec[atom_idx, 0])
-        ey_conj = np.conj(eigvec[atom_idx, 1])
-        ez_conj = np.conj(eigvec[atom_idx, 2])
-
-        ex = eigvec[atom_idx, 0]
-        ey = eigvec[atom_idx, 1]
-        ez = eigvec[atom_idx, 2]
-
-        # 外積の虚部
-        L[0] += np.imag(ey_conj * ez - ez_conj * ey)
-        L[1] += np.imag(ez_conj * ex - ex_conj * ez)
-        L[2] += np.imag(ex_conj * ey - ey_conj * ex)
-
-    return L
-
-# 各モードのPAMを計算
-num_modes = eigenvectors.shape[0]
-PAM_values = []
-
-for mode_idx in range(num_modes):
-    L = compute_phonon_angular_momentum(eigenvectors[mode_idx])
-    PAM_values.append(L[2])  # z成分のみ
-
-    # 円偏光度の計算
-    norm_sq = np.sum(np.abs(eigenvectors[mode_idx])**2)
-    P_circ = 2 * np.abs(L[2]) / norm_sq if norm_sq > 0 else 0
-
-    print(f"モード {mode_idx}: "
-          f"周波数 = {frequencies[mode_idx]:.3f} THz, "
-          f"PAM (Lz) = {L[2]:.6f}, "
-          f"円偏光度 = {P_circ:.3f}")
-
-# ステップ8: バンド構造解析
-# 高対称点経路を設定
-path = [[[0.0, 0.0, 0.0], [1.0/3.0, 1.0/3.0, 0.0],
-         [0.5, 0.0, 0.0], [0.0, 0.0, 0.0]]]
-labels = ["$\\Gamma$", "K", "M", "$\\Gamma$"]
-
-phonon.run_band_structure(path, labels=labels)
-phonon.plot_band_structure().savefig("phonon_band.png")
-
-print("\nPhonopyワークフロー完了")
-```
-
-### 4.1.5 Quantum ESPRESSOによる完全な計算例
-
-Quantum ESPRESSOは、オープンソースのDFTコードであり、DFPTによるフォノン計算が可能です。以下は、WSe₂単層のK点フォノンを計算する完全な入力ファイルと解析スクリプトです。
-
-```bash
-# ステップ1: SCF計算（pw.x）
-&CONTROL
-  calculation = 'scf'
-  prefix = 'wse2'
-  outdir = './tmp'
-  pseudo_dir = './pseudo'
-/
-&SYSTEM
-  ibrav = 4
-  a = 3.282
-  c = 20.0  ! 真空層
-  nat = 3
-  ntyp = 2
-  ecutwfc = 60.0
-  ecutrho = 480.0
-/
-&ELECTRONS
-  conv_thr = 1.0d-10
-/
-ATOMIC_SPECIES
-  W  183.84  W.upf
-  Se  78.96  Se.upf
-ATOMIC_POSITIONS crystal
-  W   0.333333  0.666667  0.5
-  Se  0.666667  0.333333  0.55
-  Se  0.666667  0.333333  0.45
-K_POINTS automatic
-  12 12 1  0 0 0
-
-# ステップ2: フォノン計算（ph.x）
-&INPUTPH
-  prefix = 'wse2'
-  outdir = './tmp'
-  fildyn = 'wse2.dyn'
-  tr2_ph = 1.0d-14
-  ldisp = .true.
-  nq1 = 6, nq2 = 6, nq3 = 1
-/
-```
-
-動的行列ファイル（wse2.dyn）からフォノン固有ベクトルを読み込み、PAMを計算するPythonスクリプト：
-
-```python
-#!/usr/bin/env python3
-"""
-Quantum ESPRESSO動的行列ファイルからPAM計算
-"""
-import numpy as np
-import re
-
-def read_qe_dynmat(filename):
-    """
-    Quantum ESPRESSOの動的行列ファイルを読み込む
-
-    Returns:
-    --------
-    q_point : array, shape (3,)
-        q点座標
-    frequencies : array, shape (num_modes,)
-        周波数 (cm^-1)
-    eigenvectors : complex array, shape (num_modes, num_atoms, 3)
-        固有ベクトル
-    """
-    with open(filename, 'r') as f:
-        lines = f.readlines()
-
-    # q点の読み込み
-    for i, line in enumerate(lines):
-        if 'q =' in line:
-            parts = line.split()
-            q_point = np.array([float(parts[3]),
-                               float(parts[4]),
-                               float(parts[5])])
-            break
-
-    # 周波数と固有ベクトルの読み込み
-    frequencies = []
-    eigenvectors = []
-
-    i = 0
-    while i < len(lines):
-        if 'freq' in lines[i]:
-            # 周波数の読み込み
-            freq_str = lines[i].split('=')[1].split('[')[0].strip()
-            freq = float(freq_str)
-            frequencies.append(freq)
-
-            # 固有ベクトルの読み込み
-            i += 1
-            eigvec = []
-            for atom in range(3):  # WSe2は3原子
-                i += 1
-                parts = lines[i].split()
-                # 実部と虚部を読み込む
-                # フォーマット: ( Re(x)  Im(x) ) ( Re(y)  Im(y) ) ( Re(z)  Im(z) )
-                x = complex(float(parts[1]), float(parts[2]))
-                y = complex(float(parts[4]), float(parts[5]))
-                z = complex(float(parts[7]), float(parts[8]))
-                eigvec.append([x, y, z])
-
-            eigenvectors.append(eigvec)
-        i += 1
-
-    return q_point, np.array(frequencies), np.array(eigenvectors)
-
-def compute_PAM_full(frequencies, eigenvectors):
-    """
-    全モードのPAMを計算し、カイラリティを分析
-    """
-    num_modes = len(frequencies)
-
-    print(f"{'Mode':>4} {'Freq (cm-1)':>12} {'PAM (Lz)':>12} "
-          f"{'P_circ':>10} {'Type':>10}")
-    print("-" * 60)
-
-    PAM_data = []
-
-    for mode_idx in range(num_modes):
-        freq = frequencies[mode_idx]
-        eigvec = eigenvectors[mode_idx]
-
-        # PAM計算
-        L = np.zeros(3, dtype=complex)
-        for atom_idx in range(eigvec.shape[0]):
-            e_conj = np.conj(eigvec[atom_idx])
-            e = eigvec[atom_idx]
-            # L = Im[e* × e]
-            L += np.array([
-                np.imag(e_conj[1] * e[2] - e_conj[2] * e[1]),
-                np.imag(e_conj[2] * e[0] - e_conj[0] * e[2]),
-                np.imag(e_conj[0] * e[1] - e_conj[1] * e[0])
-            ])
-
-        L_z = L[2].real
-
-        # 円偏光度
-        norm_sq = np.sum(np.abs(eigvec)**2)
-        P_circ = 2 * abs(L_z) / norm_sq if norm_sq > 0 else 0
-
-        # カイラリティ判定
-        if abs(L_z) < 1e-6:
-            chirality = "Linear"
-        elif L_z > 0:
-            chirality = "Right (σ+)"
-        else:
-            chirality = "Left (σ-)"
-
-        print(f"{mode_idx:4d} {freq:12.2f} {L_z:12.6f} "
-              f"{P_circ:10.4f} {chirality:>10}")
-
-        PAM_data.append({
-            'mode': mode_idx,
-            'frequency': freq,
-            'PAM': L_z,
-            'P_circ': P_circ,
-            'chirality': chirality
-        })
-
-    return PAM_data
-
-# メイン実行
-if __name__ == "__main__":
-    # K点の動的行列を読み込む
-    q_point, frequencies, eigenvectors = read_qe_dynmat('wse2.dyn_q1')
-
-    print(f"q点: {q_point}")
-    print(f"モード数: {len(frequencies)}\n")
-
-    # PAM計算と分析
-    PAM_data = compute_PAM_full(frequencies, eigenvectors)
-
-    # カイラルモードの抽出
-    chiral_modes = [d for d in PAM_data if abs(d['PAM']) > 0.01]
-
-    print(f"\nカイラルモード数: {len(chiral_modes)}")
-    print("\n強いカイラリティを持つモード:")
-    for d in sorted(chiral_modes, key=lambda x: -abs(x['PAM']))[:5]:
-        print(f"  モード {d['mode']}: {d['frequency']:.2f} cm⁻¹, "
-              f"PAM = {d['PAM']:.4f}, {d['chirality']}")
-```
-
-**計算の収束性チェック**
-
-正確なPAM計算のためには、以下のパラメータを収束させる必要があります：
-
-- **k点メッシュ**: SCF計算で電荷密度を収束させる（12×12以上推奨）
-- **q点メッシュ**: フォノン計算での動的行列の精度（6×6以上）
-- **エネルギーカットオフ**: ecutwfc, ecutrho（波動関数と電荷密度）
-- **収束閾値**: conv_thr（SCF）、tr2_ph（フォノン）
-
-### 4.1.6 対称性による検証
-
-計算されたPAMは、材料の結晶対称性と整合している必要があります。例えば、WSe₂のようなC₃ᵥ対称性を持つ材料では、K点とK'点でPAMの符号が反転します：
-
-\\[
-\mathbf{L}(\mathbf{K}, \nu) = -\mathbf{L}(-\mathbf{K}, \nu) = -\mathbf{L}(\mathbf{K}', \nu)
-\\]
-
-この関係は時間反転対称性とバレー対称性の帰結であり、計算結果の妥当性を検証する重要なチェック項目です。
-
-## 4.2 フォノン角運動量輸送
-
-### 4.2.1 フォノンEinstein-de Haas効果
-
-Einstein-de Haas効果は、磁化変化による機械的回転を示す古典的な現象ですが、カイラルフォノンにも類似の効果が予測されています。フォノンが角運動量を運ぶため、フォノンの励起・消滅は結晶全体に機械的回転をもたらします。
-
-```
-円偏光レーザー → カイラルフォノン励起 → PAM注入 → 結晶の回転運動 → 角運動量保存 → 測定可能な回転
-```
-
-フォノンモード \\(\nu\\) の占有数が \\(\Delta n_\nu\\) だけ変化すると、結晶に注入される角運動量は：
-
-\\[
-\Delta \mathbf{L}_\text{crystal} = -\hbar \sum_{\mathbf{q}\nu} \mathbf{L}(\mathbf{q}\nu) \Delta n_{\mathbf{q}\nu}
-\\]
-
-ここで、負符号は角運動量保存を表します。この効果は、超高速円偏光ポンプ-プローブ分光法で検出可能です。
-
-### 4.2.2 フォノンスピン流
-
-フォノン角運動量は、温度勾配や電場の下で輸送され、**フォノンスピン流**を形成します。この流れは、ボルツマン輸送方程式の枠組みで記述されます：
-
-\\[
-\mathbf{j}_L = \sum_{\mathbf{q}\nu} \mathbf{L}(\mathbf{q}\nu) \mathbf{v}_{\mathbf{q}\nu} n_{\mathbf{q}\nu}
-\\]
-
-ここで、\\(\mathbf{v}_{\mathbf{q}\nu} = \nabla_\mathbf{q} \omega(\mathbf{q}\nu)\\) は群速度、\\(n_{\mathbf{q}\nu}\\) はBose-Einstein分布関数です。
-
-フォノンスピン流は、界面でのスピン移行を通じて電子スピンと結合し、スピントロニクスデバイスにおける新しい制御手段を提供します。
-
-### 4.2.3 熱ホール効果との関連
-
-カイラルフォノンは、磁場がない状況でも熱ホール効果を引き起こす可能性があります。これは、フォノンの**ベリー曲率**に起因します：
-
-\\[
-\boldsymbol{\Omega}_\nu(\mathbf{q}) = \nabla_\mathbf{q} \times \langle u_{\mathbf{q}\nu} | i\nabla_\mathbf{q} | u_{\mathbf{q}\nu} \rangle
-\\]
-
-熱ホール伝導率は：
-
-\\[
-\kappa_{xy} = \frac{k_B^2 T}{\hbar V} \sum_{\mathbf{q}\nu} c_2\left(\frac{\hbar\omega_\nu}{k_B T}\right) \Omega_{\nu,z}(\mathbf{q})
-\\]
-
-ここで、\\(c_2(x) = (1+x)[\text{Li}_2(-e^x) - \text{Li}_2(-e^{-x})]\\) は熱輸送関数、\\(\text{Li}_2\\) は2次のポリログ関数です。
-
-### 4.2.4 フォノンNernst効果
-
-温度勾配とフォノン角運動量の結合により、横方向の熱電流が生じます。これは**フォノンNernst効果**と呼ばれ、熱電変換デバイスへの応用が期待されます。
-
-**輸送現象の統一的記述**
-
-フォノン輸送現象は、拡張されたボルツマン方程式で統一的に記述されます：
-
-\\[
-\frac{\partial n_{\mathbf{q}\nu}}{\partial t} + \mathbf{v}_{\mathbf{q}\nu} \cdot \nabla n_{\mathbf{q}\nu} + \dot{\mathbf{q}} \cdot \nabla_\mathbf{q} n_{\mathbf{q}\nu} = \left(\frac{\partial n}{\partial t}\right)_\text{coll}
-\\]
-
-ここで、\\(\dot{\mathbf{q}} = -\frac{e}{\hbar}(\mathbf{E} + \mathbf{v} \times \mathbf{B})\\) は外場による波数変化（フォノンに電荷がある場合を仮想的に考慮）、右辺は散乱項です。
-
-## 4.3 バレートロニクスへの応用
-
-### 4.3.1 バレー-フォノン結合の物理
-
-2次元遷移金属ダイカルコゲナイド（TMD）では、運動量空間のK点とK'点に電子バレーが存在します。カイラルフォノンは、これらのバレーと選択的に結合し、バレー自由度の制御を可能にします。
-
-電子-フォノン結合ハミルトニアンは：
-
-\\[
-H_{e-ph} = \sum_{\mathbf{k}\mathbf{q}\nu} g_{\mathbf{k}\mathbf{q}\nu} c^\dagger_{\mathbf{k}+\mathbf{q}} c_{\mathbf{k}} (a_{\mathbf{q}\nu} + a^\dagger_{-\mathbf{q}\nu})
-\\]
-
-ここで、\\(g_{\mathbf{k}\mathbf{q}\nu}\\) は結合定数、\\(c^\dagger, c\\) は電子生成・消滅演算子、\\(a^\dagger, a\\) はフォノン生成・消滅演算子です。
-
-カイラルフォノンの場合、結合定数は円偏光に依存します：
-
-\\[
-g_{K,\sigma^+} \neq g_{K,\sigma^-}, \quad g_{K',\sigma^+} \neq g_{K',\sigma^-}
-\\]
-
-さらに、バレー対称性により：
-
-\\[
-g_{K,\sigma^+} = g_{K',\sigma^-}, \quad g_{K,\sigma^-} = g_{K',\sigma^+}
-\\]
-
-```
-σ+ 光励起 → 右円偏光フォノン → Kバレー電子散乱 → バレー偏極生成
-σ- 光励起 → 左円偏光フォノン → K'バレー電子散乱 → バレー偏極生成
-```
-
-### 4.3.2 カイラルフォノン媒介バレー間散乱
-
-カイラルフォノンは、異なるバレー間の電子散乱を媒介します。この散乱率は、Fermiの黄金律により計算されます：
-
-\\[
-\Gamma_{K \to K'} = \frac{2\pi}{\hbar} \sum_{\mathbf{q}\nu} |g_{\mathbf{q}\nu}|^2 [n_{\mathbf{q}\nu} + f(\omega_\nu)] \delta(E_{\mathbf{k}+\mathbf{q}} - E_\mathbf{k} - \hbar\omega_\nu)
-\\]
-
-ここで、\\(n_{\mathbf{q}\nu}\\) はフォノン占有数、\\(f(\omega)\\) はBose分布関数です。
-
-重要な点は、円偏光フォノンの選択則により、\\(\sigma^+\\) フォノンはK→K'散乱を優先し、\\(\sigma^-\\) フォノンはK'→K散乱を優先することです。
-
-### 4.3.3 バレー情報の保存
-
-バレートロニクスデバイスでは、バレー情報（バレー偏極）を長時間保持することが重要です。バレー偏極の緩和時間 \\(T_v\\) は、バレー間散乱率の逆数で与えられます：
-
-\\[
-\frac{1}{T_v} = \Gamma_{K \to K'} + \Gamma_{K' \to K}
-\\]
-
-カイラルフォノンを制御することで、この緩和時間を調整できます。例えば、円偏光レーザーでカイラルフォノンを選択的に励起することで、バレー間散乱を抑制し、\\(T_v\\) を延長できます。
-
-### 4.3.4 バレートロニクスデバイス概念
-
-カイラルフォノン制御に基づくバレートロニクスデバイスの例：
-
-**1. フォノン制御バレーフィルター**
-
-- **原理**: 円偏光レーザーでカイラルフォノンを励起し、特定のバレーの電子のみを選択的に散乱
-- **入力**: 無偏極電子流
-- **出力**: バレー偏極電子流
-- **利点**: 電極不要、光学的制御
-
-**2. バレー-フォノンメモリ**
-
-- **原理**: バレー偏極をカイラルフォノンの占有数として保存
-- **書き込み**: 円偏光レーザーでフォノン励起
-- **読み出し**: 円偏光ラマン分光
-- **保存時間**: フォノン寿命（ピコ秒～ナノ秒）
-
-**3. バレースイッチ**
-
-- **原理**: フォノン励起により電子をK↔K'間で切り替え
-- **制御**: 円偏光の切り替え
-- **応答時間**: サブピコ秒
-- **応用**: 超高速論理ゲート
-
-## 4.4 新興デバイス概念
-
-### 4.4.1 フォノンベースの情報処理
-
-カイラルフォノンは、電子系とは独立した情報キャリアとして利用できます。フォノンベースの情報処理の利点：
-
-- **低消費電力**: 電荷輸送に伴うジュール熱がない
-- **高速性**: フォノン群速度は音速（km/s）
-- **低干渉**: 電磁ノイズに強い
-- **量子コヒーレンス**: 低温でコヒーレント状態を維持
-
-情報符号化の方法：
-
-- **振幅符号化**: フォノン占有数 \\(n_{\mathbf{q}\nu}\\) で情報を表現
-- **位相符号化**: フォノン波束の位相で情報を表現
-- **カイラリティ符号化**: 右・左円偏光で0・1を表現
-
-### 4.4.2 カイラルフォノントランジスタ
-
-フォノントランジスタは、フォノン流を制御する3端子素子です。カイラルフォノンを用いた設計例：
-
-```
-ソース(フォノン発生) → チャネル(伝播経路) → ドレイン(フォノン検出)
-                          ↑
-                    ゲート(円偏光制御)
-```
-
-**動作原理**：
-
-1. **ソース**: 圧電素子や光励起でフォノンを生成
-2. **ゲート**: 円偏光レーザーでカイラルフォノンの分布を制御
-   - σ+ 光 → 右円偏光フォノン増加
-   - σ- 光 → 左円偏光フォノン増加
-3. **チャネル**: カイラリティに依存した伝播
-   - フォノニック結晶で特定カイラリティのみ透過
-   - 界面でのカイラリティ選択的散乱
-4. **ドレイン**: 円偏光ラマン分光や熱電変換で検出
-
-**性能指標**：
-
-- **On/Off比**: ゲート制御によるフォノン流の変調率（10:1以上目標）
-- **応答時間**: フォノン寿命で制限（ピコ秒オーダー）
-- **エネルギー効率**: ゲート制御に必要な光エネルギー
-
-### 4.4.3 フォノン偏光子とフィルター
-
-**フォノン偏光子**は、特定のカイラリティのフォノンのみを通過させるデバイスです。実現方法の例：
-
-**1. カイラルフォノニック結晶**
-
-周期的な構造により、特定の円偏光フォノンにバンドギャップを形成。反対の円偏光は透過する。
-
-設計方法: トポロジカルフォノニクスの原理を利用し、カイラル対称性を破った超格子構造を設計。
-
-**2. 界面カイラリティフィルター**
-
-2つの材料の界面でのフォノン透過率がカイラリティに依存することを利用。
-
-例: WSe₂/hBN界面では、界面対称性により右・左円偏光フォノンの透過率が異なる。
-
-**3. 回転ドメイン境界フィルター**
-
-2次元材料の回転角度を制御したドメイン境界を利用。
-
-例: ツイストバイレイヤーグラフェンの境界では、回転角度に依存してカイラルフォノンの透過率が変化。
-
-### 4.4.4 集積フォノニクス回路
-
-将来的には、複数のフォノンデバイスを集積した**フォノニクス集積回路**が実現される可能性があります：
-
-```
-フォノン発生器 → カイラル偏光子 → フォノン導波路 → フォノントランジスタ → フォノン検出器
-                                                        ↑
-                                                  制御レーザー
-                                                  バイアス音波
-```
-
-**構成要素**：
-
-- **フォノン発生器**: 圧電素子、光励起、熱勾配
-- **フォノン導波路**: ナノワイヤ、2次元材料リボン
-- **フォノン偏光子・スプリッター**: カイラリティ分離
-- **フォノン論理ゲート**: AND、OR、NOTゲート
-- **フォノンメモリ**: キャビティ閉じ込め
-- **フォノン検出器**: ラマン分光、熱電変換
-
-課題：室温での動作、長距離伝播、高効率変換、大規模集積
-
-## 4.5 カイラルフォノンポラリトン
-
-### 4.5.1 光子-フォノン結合
-
-カイラルフォノンが光子と強く結合すると、**カイラルフォノンポラリトン**が形成されます。これは、光とフォノンの混成状態であり、両者の性質を併せ持ちます。
-
-結合ハミルトニアンは：
-
-\\[
-H = \sum_\mathbf{q} \hbar\omega_\text{ph}(\mathbf{q}) a^\dagger_\mathbf{q} a_\mathbf{q}
-+ \sum_\mathbf{k} \hbar\omega_\text{opt}(\mathbf{k}) b^\dagger_\mathbf{k} b_\mathbf{k}
-+ \sum_{\mathbf{k}\mathbf{q}} g_{\mathbf{k}\mathbf{q}} (a^\dagger_\mathbf{q} b_\mathbf{k} + a_\mathbf{q} b^\dagger_\mathbf{k})
-\\]
-
-ここで、\\(a^\dagger, a\\) はフォノン演算子、\\(b^\dagger, b\\) は光子演算子、\\(g_{\mathbf{k}\mathbf{q}}\\) は結合定数です。
-
-この系の固有状態（ポラリトン）は、上部分枝（UPB）と下部分枝（LPB）に分かれます：
-
-\\[
-\omega_\pm(\mathbf{k}) = \frac{\omega_\text{ph} + \omega_\text{opt}}{2}
-\pm \frac{1}{2}\sqrt{(\omega_\text{ph} - \omega_\text{opt})^2 + 4g^2}
-\\]
-
-共鳴条件（\\(\omega_\text{ph} \approx \omega_\text{opt}\\)）では、ラビ分裂 \\(2g\\) が観測されます。
-
-### 4.5.2 増強された光物質相互作用
-
-カイラルフォノンポラリトンは、通常の光-物質相互作用よりも大きな結合強度を示します。これは以下の理由によります：
-
-- **カイラリティマッチング**: 円偏光光とカイラルフォノンの選択的結合
-- **局在増強**: 2次元材料での電場局在
-- **量子閉じ込め**: ナノ構造でのモード体積縮小
-
-増強因子は、Purcell係数で評価されます：
-
-\\[
-F_P = \frac{3}{4\pi^2}\left(\frac{\lambda}{n}\right)^3 \frac{Q}{V}
-\\]
-
-ここで、\\(Q\\) は共振器のQ値、\\(V\\) はモード体積、\\(\lambda\\) は波長、\\(n\\) は屈折率です。2次元材料のナノキャビティでは、\\(F_P > 100\\) が達成されています。
-
-### 4.5.3 応用: 超低閾値レーザー
-
-強結合ポラリトンは、ボース凝縮による**ポラリトンレーザー**の実現を可能にします。カイラルフォノンポラリトンを用いると、円偏光出力のコヒーレント光源が実現できます。
-
-利点：
-
-- 低閾値（電子系よりも軽い有効質量）
-- 室温動作の可能性
-- 円偏光の制御が容易
-
-### 4.5.4 非線形光学応用
-
-カイラルフォノンポラリトンは、強い非線形光学効果を示します。特に、第二高調波発生（SHG）や和周波発生（SFG）において、カイラリティ選択的な応答が観測されます。
-
-カイラル非線形感受率：
-
-\\[
-\chi^{(2)}_{\sigma^+} \neq \chi^{(2)}_{\sigma^-}
-\\]
-
-これにより、円偏光制御された非線形光学デバイス（光スイッチ、周波数変換器）が実現できます。
-
-## 4.6 将来の方向性
-
-### 4.6.1 カイラリティを持つ量子フォノニクス
-
-量子情報科学への応用として、カイラルフォノンを用いた**量子フォノニクス**が注目されています。
-
-**量子ビット符号化**
-
-カイラルフォノンの量子状態として量子ビットを符号化：
-
-\\[
-|\psi\rangle = \alpha |0, \sigma^+\rangle + \beta |1, \sigma^-\rangle
-\\]
-
-ここで、\\(|0, \sigma^+\rangle\\) は右円偏光フォノン1個、\\(|1, \sigma^-\rangle\\) は左円偏光フォノン1個を表します。
-
-**量子ゲート操作**：
-
-- **単一量子ビットゲート**: 円偏光パルスでカイラリティを回転
-- **2量子ビットゲート**: フォノン-フォノン相互作用（非線形項）を利用
-- **読み出し**: 円偏光分解ラマン分光
-
-課題：デコヒーレンス時間の延長（現状：ピコ秒→目標：ナノ秒）
-
-### 4.6.2 トポロジカル保護
-
-カイラルフォノンとトポロジカル物性の組み合わせにより、**トポロジカル保護されたフォノンモード**が実現できます。
-
-例: Chern数を持つフォノンバンド
-
-\\[
-C = \frac{1}{2\pi} \int_\text{BZ} d^2q \, \Omega_z(\mathbf{q})
-\\]
-
-ここで、\\(\Omega_z(\mathbf{q})\\) はフォノンのベリー曲率です。\\(C \neq 0\\) の場合、エッジにカイラルフォノンモードが現れます。
-
-**利点**：
-
-- 欠陥に対する頑健性（後方散乱の抑制）
-- 方向性のあるフォノン伝播
-- 量子状態の保護
-
-### 4.6.3 室温応用への挑戦
-
-現状の多くの研究は極低温で行われていますが、実用化には室温動作が不可欠です。室温応用への戦略：
-
-**1. 高周波フォノンの利用**
-
-光学フォノン（THz領域）は \\(\hbar\omega \gg k_B T\\) を満たしやすく、熱励起の影響を受けにくい。
-
-**2. 強結合系の利用**
-
-光-フォノン強結合により、ポラリトン分裂 \\(2g\\) を熱エネルギー \\(k_B T\\) より大きくする（\\(g > 25\\) meV @ 室温）。
-
-**3. トポロジカル保護**
-
-トポロジカルフォノンは、無秩序や熱揺らぎに対して頑健。エネルギーギャップ \\(\Delta > k_B T\\) を確保。
-
-**4. ナノ構造の利用**
-
-量子閉じ込め効果により、離散的なエネルギー準位を形成。準位間隔 \\(\Delta E > k_B T\\) とすることで、室温での状態制御が可能。
-
-### 4.6.4 新材料探索
-
-機械学習を用いた大規模材料探索により、より強いカイラリティを持つフォノンモードを示す新材料の発見が期待されます。
-
-探索の観点：
-
-- **対称性**: カイラルな空間群（P3₁, P6₁, etc.）
-- **強いスピン軌道相互作用**: 重元素を含む化合物
-- **バレー縮退**: 2次元材料、特にTMD類似体
-- **高周波光学フォノン**: 室温動作に有利
-
-有望な材料系：
-
-- 新規TMD（MoTe₂、WSeTe混晶）
-- カイラルペロブスカイト
-- トポロジカル絶縁体表面
-- 2次元磁性体（CrI₃、CrBr₃）
-
-### 4.6.5 他分野との融合
-
-カイラルフォノン研究は、他の分野との融合により新しい展開を見せています：
-
-- **スピントロニクス**: フォノン-スピン変換、スピンカロリトロニクス
-- **量子情報**: フォノン量子ビット、量子トランスデューサー
-- **オプトメカニクス**: 光-機械結合、量子測定
-- **熱電変換**: カイラリティ制御による効率向上
-- **化学**: カイラル触媒、不斉合成への応用
-
-```
-カイラルフォノン → スピントロニクス、量子情報、オプトメカニクス、熱電変換、化学・触媒
-                 → 新デバイス、新応用
-```
-
-## 演習問題
-
-### 問題1: PAM計算の実装
-
-以下のフォノン固有ベクトル（規格化済み）が与えられたとき、フォノン角運動量 \\(L_z\\) と円偏光度 \\(P_\text{circ}\\) を計算せよ。
-
-2原子系（W, Se）、K点でのA'₁光学モード：
-
-\\[
-\mathbf{e}_W = \frac{1}{\sqrt{2}}(1, i, 0), \quad
-\mathbf{e}_\text{Se} = \frac{1}{\sqrt{2}}(-1, -i, 0)
-\\]
-
-<details>
-<summary>解答を見る</summary>
-
-**解答**：
-
-各原子の寄与を計算：
-
-W原子: \\(L_{z,W} = \text{Im}[e^*_x e_y - e^*_y e_x] = \text{Im}[1 \cdot i - (-i) \cdot 1] = \text{Im}[i + i] = 2\\)
-
-Se原子: \\(L_{z,\text{Se}} = \text{Im}[(-1) \cdot (-i) - i \cdot (-1)] = \text{Im}[i + i] = 2\\)
-
-合計: \\(L_z = L_{z,W} + L_{z,\text{Se}} = 4\\)
-
-規格化: \\(|\mathbf{e}|^2 = 2\\) なので、\\(P_\text{circ} = 2|L_z|/|\mathbf{e}|^2 = 2 \times 4 / 2 = 4\\)
-
-※実際には規格化により \\(P_\text{circ} \leq 1\\) となるよう調整が必要。この例は教育目的の簡略化。
-
-</details>
-
-### 問題2: バレー-フォノン結合の選択則
-
-WSe₂単層のKバレーの電子が、右円偏光フォノン（σ⁺）を吸収する過程を考える。最終状態のバレー（KまたはK'）と、許される遷移の選択則を、角運動量保存則から導出せよ。
-
-<details>
-<summary>解答を見る</summary>
-
-**解答**：
-
-角運動量保存則: \\(L_\text{final} = L_\text{initial} + L_\text{phonon}\\)
-
-Kバレー電子のバレー指数: \\(\tau = +1\\) （角運動量 \\(+\hbar/2\\) に対応）
-
-K'バレー電子のバレー指数: \\(\tau = -1\\) （角運動量 \\(-\hbar/2\\) に対応）
-
-右円偏光フォノン（σ⁺）: \\(L_z = +\hbar\\)
-
-初期状態: Kバレー (\\(\tau_i = +1\\))
-
-最終状態の角運動量: \\(\tau_f = \tau_i + 1 = +1 + 1 = +2\\) (mod 2) → K'バレー (\\(\tau = -1\\))
-
-**選択則**: K バレー + σ⁺ フォノン → K' バレー
-
-一般化: \\(\tau_f = \tau_i + \text{sgn}(L_z)\\) （\\(\text{sgn}\\) は符号関数）
-
-</details>
-
-### 問題3: フォノン熱ホール伝導率
-
-フォノンのベリー曲率が \\(\Omega_z(\mathbf{q}) = \Omega_0\\) （定数）である2次元材料を考える。温度 \\(T = 300\\) K、フォノン周波数 \\(\omega = 10\\) THz、ブリルアンゾーンの面積 \\(A_\text{BZ} = (2\pi/a)^2\\) （\\(a = 3\\) Å）のとき、熱ホール伝導率 \\(\kappa_{xy}\\) を見積もれ（\\(\Omega_0 = 10\\) Å²と仮定）。
-
-<details>
-<summary>解答を見る</summary>
-
-**解答**：
-
-熱ホール伝導率の式（単一モード近似）:
-
-\\(\kappa_{xy} = \frac{k_B^2 T}{\hbar} n_\text{ph} c_2(x) \Omega_0\\)
-
-ここで、\\(x = \hbar\omega / k_B T\\)、\\(n_\text{ph} = A_\text{BZ}^{-1}\\) はフォノン密度
-
-数値代入:
-
-- \\(k_B T = 26\\) meV @ 300 K
-- \\(\hbar\omega = 10 \times 10^{12} \times 6.58 \times 10^{-16} = 6.58\\) meV
-- \\(x = 6.58 / 26 \approx 0.25\\)
-- \\(c_2(0.25) \approx 0.2\\) （数値計算）
-- \\(n_\text{ph} = (2\pi / 3 \times 10^{-10})^{-2} \approx 2.25 \times 10^{19}\\) m⁻²
-
-\\(\kappa_{xy} \approx \frac{(1.38 \times 10^{-23})^2 \times 300}{1.05 \times 10^{-34}} \times 2.25 \times 10^{19} \times 0.2 \times 10^{-20}\\)
-
-\\(\kappa_{xy} \approx 0.1\\) W/K （オーダー見積もり）
-
-</details>
-
-### 問題4: カイラルフォノンポラリトンのラビ分裂
-
-フォノン周波数 \\(\omega_\text{ph} = 5\\) THz、光共振器周波数 \\(\omega_\text{opt} = 5.2\\) THz、結合定数 \\(g = 0.3\\) THz のカイラルフォノンポラリトン系において、上部・下部ポラリトン分枝の周波数 \\(\omega_\pm\\) とラビ分裂を計算せよ。
-
-<details>
-<summary>解答を見る</summary>
-
-**解答**：
-
-ポラリトン分散式:
-
-\\(\omega_\pm = \frac{\omega_\text{ph} + \omega_\text{opt}}{2} \pm \frac{1}{2}\sqrt{(\omega_\text{ph} - \omega_\text{opt})^2 + 4g^2}\\)
-
-数値代入:
-
-\\(\omega_+ + \omega_- = \frac{5 + 5.2}{2} = 5.1\\) THz
-
-\\(\sqrt{(5 - 5.2)^2 + 4 \times 0.3^2} = \sqrt{0.04 + 0.36} = \sqrt{0.4} \approx 0.632\\) THz
-
-\\(\omega_+ = 5.1 + 0.316 = 5.416\\) THz
-
-\\(\omega_- = 5.1 - 0.316 = 4.784\\) THz
-
-**ラビ分裂**: \\(\Delta\omega = \omega_+ - \omega_- = 0.632\\) THz ≈ 2.6 meV
-
-これは室温熱エネルギー（26 meV）の約1/10なので、明確なポラリトン分裂を観測するには低温が必要。
-
-</details>
-
-### 問題5: カイラルフォノントランジスタの設計
-
-WSe₂リボン（幅100 nm、長さ1 μm）を用いたカイラルフォノントランジスタを設計する。ソースで励起されたフォノンが、ゲート円偏光レーザー（波長600 nm、出力1 mW）によりカイラリティ選択的に制御される。On/Off比10を達成するための設計パラメータを議論せよ。
-
-<details>
-<summary>解答を見る</summary>
-
-**解答**：
-
-**設計方針**:
-
-1. **ソース**: 圧電素子（ZnO薄膜）で幅広い周波数のフォノンを励起
-2. **ゲート**: 円偏光レーザー（600 nm = 2.07 eV）でWSe₂のA励起子（1.65 eV）付近を共鳴励起
-   - σ⁺光 → Kバレー励起 → 右円偏光フォノン選択的散乱
-   - σ⁻光 → K'バレー励起 → 左円偏光フォノン選択的散乱
-3. **チャネル**: WSe₂リボン、カイラリティ依存伝播
-   - 右円偏光フォノン: 電子との散乱が少ない（透過率 90%）
-   - 左円偏光フォノン: 電子との散乱が多い（透過率 10%）
-4. **ドレイン**: 熱電変換素子（Bi₂Te₃）で検出
-
-**On/Off比の計算**:
-
-On状態（σ⁺光）: ドレイン到達フォノン数 \\(N_\text{on} \propto 0.9\\) （透過率90%）
-
-Off状態（σ⁻光）: ドレイン到達フォノン数 \\(N_\text{off} \propto 0.1\\) （透過率10%）
-
-On/Off比: \\(N_\text{on} / N_\text{off} = 0.9 / 0.1 = 9\\) ≈ 10 ✓
-
-**課題**:
-
-- 応答時間: フォノン寿命（～1 ps）で制限
-- ゲート効率: 光吸収率を向上（共振器構造の利用）
-- 熱散逸: 1 mWレーザーによる加熱を抑制（パルス動作）
-
-</details>
-
-## まとめ
-
-本章では、カイラルフォノンの計算手法と多様な応用展開を学びました。DFPTによるフォノン固有ベクトル計算から、フォノン角運動量（PAM）の抽出まで、完全な計算ワークフローをPhonopyとQuantum ESPRESSOを用いて実装しました。重要な計算式 \\(\mathbf{L} = \text{Im}[\mathbf{e}^* \times \mathbf{e}]\\) は、カイラルフォノン研究の基礎となります。
-
-応用面では、フォノン角運動量輸送（Einstein-de Haas効果、熱ホール効果）、バレートロニクスにおけるバレー-フォノン結合の利用、フォノンベースの情報処理デバイス（トランジスタ、偏光子、集積回路）、カイラルフォノンポラリトンによる増強された光物質相互作用など、幅広いトピックをカバーしました。
-
-将来の方向性として、量子フォノニクス、トポロジカル保護、室温応用、新材料探索、他分野との融合が重要な研究課題です。カイラルフォノンは、基礎物理学の理解を深めるだけでなく、次世代の情報処理技術や量子技術の基盤となる可能性を秘めています。
-
-**主要なポイント**：
-
-- PAM計算: \\(\mathbf{L} = \text{Im}[\mathbf{e}^* \times \mathbf{e}]\\)、円偏光度 \\(P_\text{circ} = 2|L_z|/|\mathbf{e}|^2\\)
-- 計算ツール: Phonopy（フォノン解析）、Quantum ESPRESSO（DFPT）、Python（後処理）
-- PAM輸送: Einstein-de Haas効果、フォノンスピン流、熱ホール効果
-- バレートロニクス: バレー-フォノン結合、カイラリティ選択的散乱、バレー情報保存
-- 新デバイス: フォノントランジスタ、偏光子、集積フォノニクス回路
-- ポラリトン: 光-フォノン強結合、ラビ分裂、増強された相互作用
-- 将来展望: 量子フォノニクス、トポロジカル保護、室温応用
+📖 読了時間: 45-60分 | 📊 難易度: 上級 | 💻 コード例: 8 例
 
 ---
 
-[← 第3章](<chapter-3.md>) | [シリーズトップ →](<index.md>)
+本章は、フォノンのカイラリティを計算する手法と、バレートロニクスおよびフォノンを用いたデバイスにおける新興の応用を扱い、理論と応用を橋渡しします。Phonopy と Quantum ESPRESSO による第一原理計算からフォノン角運動量を抽出する方法、フォノン角運動量の輸送現象、そして情報処理にカイラルフォノンを活用するデバイス概念を学びます。
+
+## 学習目標
+
+本章を読むことで、以下ができるようになります。
+
+- ✅ 第一原理計算の結果からフォノン固有ベクトルを計算し、円偏光率を抽出する
+- ✅ 円偏光率からフォノン角運動量を \\(\mathbf{L} = \hbar \sum_\kappa \mathbf{C}_\kappa\\) として計算する（余分な質量因子は付けない）
+- ✅ Phonopy と Quantum ESPRESSO でフォノン計算を設定し実行する
+- ✅ フォノン角運動量の輸送と、フォノン版 Einstein-de Haas 効果を理解する
+- ✅ 谷の操作を含むバレートロニクス応用にカイラルフォノンを適用する
+- ✅ 新興のデバイス概念——フォノントランジスタ、偏光子、フィルタ——を概観する
+- ✅ カイラルフォノン・ポラリトンと光物質結合を理解する
+
+---
+
+## 4.1 フォノンのカイラリティの計算手法
+
+### 4.1.1 第一原理計算に基づくフォノン計算の概観
+
+格子動力学モデルから力学的なフォノン角運動量を計算するには、偏極固有ベクトルが必要です。対称性解析やカイラリティに敏感な実験は、固有ベクトルなしでもカイラルな性格を同定できます。第一原理の密度汎関数理論（DFT）は本章を通じて用いる経路ですが、唯一の経路ではありません。解析的な格子モデル、経験的な力の定数、その他の原子間ポテンシャルも固有ベクトルを与えます。DFT のワークフローは次のとおりです。
+
+```mermaid
+flowchart TD
+    A[構造最適化<br/>DFT による緩和] --> B[力の定数の計算<br/>Phonopy/DFPT]
+    B --> C[動力学行列の対角化<br/>固有値と固有ベクトルを得る]
+    C --> D[フォノン固有ベクトルの抽出<br/>複素ベクトル e<sub>κα</sub>]
+    D --> E[円偏光率の計算<br/>C = Σ<sub>κ</sub> Im[e<sub>κ</sub>* × e<sub>κ</sub>]]
+    E --> F[フォノン角運動量の計算<br/>L = ℏC]
+
+    style A fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    style B fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    style C fill:#fff3e0,stroke:#f57c00,stroke-width:2px
+    style D fill:#e8f5e9,stroke:#388e3c,stroke-width:2px
+    style E fill:#fce4ec,stroke:#c2185b,stroke-width:2px
+    style F fill:#e0f2f1,stroke:#00796b,stroke-width:2px
+```
+
+#### 動力学行列の定式化
+
+フォノン固有ベクトルは動力学行列から得られます。
+
+\\[D_{\kappa\alpha,\kappa'\beta}(\mathbf{q}) = \frac{1}{\sqrt{M_\kappa M_{\kappa'}}} \sum_{\mathbf{R}} \Phi_{\kappa\alpha,\kappa'\beta}(\mathbf{R}) e^{i\mathbf{q}\cdot\mathbf{R}}\\]
+
+ここで:
+
+- \\(\kappa, \kappa'\\): 単位胞内の原子の添字
+- \\(\alpha, \beta\\): デカルト成分（\\(x, y, z\\)）
+- \\(M_\kappa\\): 原子 \\(\kappa\\) の質量
+- \\(\Phi_{\kappa\alpha,\kappa'\beta}(\mathbf{R})\\): 力の定数行列
+- \\(\mathbf{q}\\): フォノンの波数ベクトル
+
+対角化により、フォノンの振動数 \\(\omega_j\\) と固有ベクトル \\(\mathbf{e}_j\\) が得られます。
+
+\\[D(\mathbf{q}) \mathbf{e}_j(\mathbf{q}) = \omega_j^2(\mathbf{q}) \mathbf{e}_j(\mathbf{q})\\]
+
+### 4.1.2 固有ベクトルからの円偏光率の抽出
+
+フォノン固有ベクトル \\(\mathbf{e}_j(\mathbf{q})\\) は、原子の変位のパターンを記述する複素ベクトルです。原子が円を描くように変位するフォノンモードでは、固有ベクトルは直交する成分の間に位相差を示します。
+
+#### 円偏光率の式
+
+**円偏光率**のベクトルは、モードの*力学的*な回転成分を測ります。これは離散回転の固有値ラベルである結晶の擬角運動量 \\(m\\) ではありません（§4.3.1、第1章 §1.2.2）。両者は別々に計算・報告するものであり、一方から他方は導かれません。
+
+固有ベクトル \\(\mathbf{e}_j\\) は \\(3N\\) 個の成分をもち、\\(3N\\) 成分の対象に対する通常の3次元外積は定義されません。そこで外積は、原子 \\(\kappa\\) に属する3つのデカルト成分について原子ごとにとり、そのうえで和をとります。
+
+\\[\mathbf{C}_j(\mathbf{q}) = \sum_\kappa \text{Im}\left[\mathbf{e}_{j,\kappa}^*(\mathbf{q}) \times \mathbf{e}_{j,\kappa}(\mathbf{q})\right]\\]
+
+個々の原子 \\(\kappa\\) については:
+
+\\[\mathbf{C}_{j,\kappa}(\mathbf{q}) = \text{Im}\left[e_{j,\kappa}^*(x) e_{j,\kappa}(y) - e_{j,\kappa}^*(y) e_{j,\kappa}(x)\right] \hat{z} + \text{cyclic permutations}\\]
+
+2次元物質（例えば単層 TMD）で面内の運動に注目すると:
+
+\\[C_{j,\kappa}^z = \text{Im}\left[e_{j,\kappa,x}^* e_{j,\kappa,y} - e_{j,\kappa,y}^* e_{j,\kappa,x}\right]\\]
+
+> **物理的な意味**: \\(C_{j,\kappa}^z > 0\\) は \\(+z\\) から見て反時計回りの*回転偏極*——第1章の \\(e^{-i\omega t}\\) の規約のもとで、楕円軌道も含みます——すなわち左巻きのカイラリティを表し、\\(C_{j,\kappa}^z < 0\\) は時計回りの回転（右巻き）を表します——第1章 §1.2.2 で宣言した唯一の利き手の規約です。この規約は命名の規則にすぎず、それ自体では、どの光のヘリシティがモードを励起あるいは検出するかを定めません。
+
+#### フォノン角運動量（PAM）
+
+規格化されたモードにおける**フォノン1個**が担う角運動量は次式です。
+
+\\[\mathbf{L}_j(\mathbf{q}) = \hbar \sum_\kappa \mathbf{C}_{j,\kappa}(\mathbf{q})\\]
+
+これはフォノン1個あたりの量であって、総量ではありません。単位胞あたりの角運動量には、さらにモードの占有数、零点寄与、そして単位胞数による割り算が必要です。
+
+この和に原子質量は現れません。§4.1.1 の動力学行列はすでに質量で重み付けされており（\\(D = \Phi/\sqrt{M_\kappa M_{\kappa'}}\\)）、そこから得られる固有ベクトルも質量で重み付けされたうえで \\(\sum_\kappa |\mathbf{e}_{j,\kappa}|^2 = 1\\) に規格化されています。\\(M_\kappa\\) をもう一度掛けると質量の重み付けを二重に数えることになります。その結果はもはやフォノン角運動量ですらありません。次元が異なり、\\(\hbar\\) の倍数ではなく amu 単位の原子質量程度の大きさの数値になります。
+
+単位はフォノン 1 個あたり \\(\hbar\\) です。\\(|L_z|\\) が最大値 \\(\hbar\\) に達するのは、0 でないすべての変位の寄与が \\(xy\\) 面内で円を描き、**しかも回転の向きが同じ**場合に限られます。互いに逆向きに回る原子や、異なる面内で回る原子があれば中間の値になるので、\\(L_z\\) は一般には量子化されません。§4.3.1 の離散的な \\(C_3\\) ラベル \\(m\\) は別の量です。\\(m = \pm 1\\) はそれ自体では \\(L_z = \pm\hbar\\) を意味せず、\\(L_z\\) は固有ベクトルから計算しなければなりません。
+
+**💻 コード例: 質量重み付き固有ベクトルからの PAM**
+
+```python
+# Requirements:
+# - Python 3.9+
+# - numpy>=1.24.0, <2.0.0
+
+"""
+Phonon angular momentum from mass-weighted eigenvectors.
+
+The dynamical matrix of §4.1.1 is mass-weighted, D = Phi / sqrt(M_k M_k'), so the
+eigenvectors it returns are already mass-weighted and are normalised to
+sum_k |e_k|^2 = 1. The angular momentum carried by one phonon is therefore
+
+    L_z = hbar * sum_k C_k,   C_k = 2 Im(e*_kx e_ky)
+
+with no atomic mass in the sum: the mass weighting already sits inside the
+eigenvector normalisation. Multiplying C_k by M_k a second time double-counts it
+and returns a dimensionally different quantity - a number of order the atomic
+mass in amu, not a multiple of hbar - which is what the last two rows below show.
+
+Conventions (Chapter 1 §1.2.2): L_z = +hbar is counterclockwise motion viewed
+from +z, i.e. left-handed. That is a naming convention only; which light helicity
+excites or detects a given mode is a separate, process-specific question.
+
+The discrete C3 label m (pseudo-angular momentum, defined modulo 3) is a
+different quantity from the mechanical L_z computed here and is not labelled in
+this script.
+"""
+import numpy as np
+
+# Atomic masses of the WSe2 unit cell (amu), in the atom order used below.
+MASSES = np.array([183.84, 78.97, 78.97])
+
+
+def circular_polarization_z(eigvec):
+    """
+    Per-atom z circular polarization C_k = 2 Im(e*_kx e_ky).
+
+    Args:
+        eigvec: complex array of shape (num_atoms, 3), one phonon eigenvector
+
+    Returns:
+        ndarray of shape (num_atoms,), dimensionless
+    """
+    ex = eigvec[:, 0]
+    ey = eigvec[:, 1]
+    return 2.0 * np.imag(np.conj(ex) * ey)
+
+
+def pam_in_hbar(eigvec):
+    """Phonon angular momentum L_z / hbar = sum_k C_k (no mass factor)."""
+    return float(np.sum(circular_polarization_z(eigvec)))
+
+
+def mass_weighted_sum(eigvec, masses):
+    """The discarded expression sum_k M_k C_k, in amu; shown only for its size."""
+    return float(np.sum(masses * circular_polarization_z(eigvec)))
+
+
+def normalised(rows):
+    """Return the eigenvector normalised to sum_k |e_k|^2 = 1."""
+    e = np.array(rows, dtype=complex)
+    return e / np.linalg.norm(e)
+
+
+def main():
+    modes = {
+        "single atom, CCW circular": normalised([[1, 1j, 0]]),
+        "single atom, CW circular": normalised([[1, -1j, 0]]),
+        "single atom, linear (L_z = 0)": normalised([[1, 0, 0]]),
+        "WSe2: W circular, Se still": normalised([[1, 1j, 0], [0, 0, 0], [0, 0, 0]]),
+        "WSe2: W and Se counter-rot.": normalised([[1, 1j, 0], [1, -1j, 0], [1, -1j, 0]]),
+    }
+
+    print("\nPAM of mass-weighted, unit-normalised eigenvectors")
+    print("=" * 74)
+    print(f"{'mode':30s}{'sum|e|^2':>10s}{'sum C_k':>10s}{'L_z/hbar':>12s}")
+    for name, e in modes.items():
+        norm = float(np.sum(np.abs(e) ** 2))
+        c_sum = float(np.sum(circular_polarization_z(e)))
+        print(f"{name:30s}{norm:>10.4f}{c_sum:>10.4f}{pam_in_hbar(e):>+12.4f}")
+
+    print("\nWhy the mass factor must not be applied twice")
+    print("=" * 74)
+    for name in ("WSe2: W circular, Se still", "WSe2: W and Se counter-rot."):
+        e = modes[name]
+        print(f"{name:30s}  hbar*sum C_k = {pam_in_hbar(e):+8.4f} hbar")
+        print(f"{'':30s}  sum M_k C_k = {mass_weighted_sum(e, MASSES):+8.4f} amu (wrong)")
+
+    print("\nA single atom moving on a circle reaches |L_z| = 1 hbar. With several")
+    print("atoms, |L_z| reaches hbar only when every non-zero displacement is")
+    print("circular in the xy plane with the same sense of rotation; counter-")
+    print("rotating atoms give intermediate values, so L_z is not quantised in")
+    print("general. The discrete C3 label m is a separate quantity, not L_z/hbar.")
+
+
+if __name__ == "__main__":
+    main()
+```
+
+**期待される出力（質量重み付き固有ベクトルからの PAM）:**
+
+```
+
+PAM of mass-weighted, unit-normalised eigenvectors
+==========================================================================
+mode                            sum|e|^2   sum C_k    L_z/hbar
+single atom, CCW circular         1.0000    1.0000     +1.0000
+single atom, CW circular          1.0000   -1.0000     -1.0000
+single atom, linear (L_z = 0)     1.0000    0.0000     +0.0000
+WSe2: W circular, Se still        1.0000    1.0000     +1.0000
+WSe2: W and Se counter-rot.       1.0000   -0.3333     -0.3333
+
+Why the mass factor must not be applied twice
+==========================================================================
+WSe2: W circular, Se still      hbar*sum C_k =  +1.0000 hbar
+                                sum M_k C_k = +183.8400 amu (wrong)
+WSe2: W and Se counter-rot.     hbar*sum C_k =  -0.3333 hbar
+                                sum M_k C_k =  +8.6333 amu (wrong)
+
+A single atom moving on a circle reaches |L_z| = 1 hbar. With several
+atoms, |L_z| reaches hbar only when every non-zero displacement is
+circular in the xy plane with the same sense of rotation; counter-
+rotating atoms give intermediate values, so L_z is not quantised in
+general. The discrete C3 label m is a separate quantity, not L_z/hbar.
+```
+
+### 4.1.3 ソフトウェア: Phonopy と Quantum ESPRESSO
+
+#### Phonopy
+
+[Phonopy](https://phonopy.github.io/phonopy/) は、さまざまな DFT コード（VASP、Quantum ESPRESSO、Abinit など）と連携する Python ベースのフォノン計算ツールです。
+
+**主な機能**:
+
+- 力の定数を求める有限変位法
+- フォノンの分散と状態密度の計算
+- 任意の q 点における固有ベクトルの抽出
+- 対称性ルーチンが対応する q 点におけるモードの既約表現ラベル付け（利用できる解析は Phonopy のバージョンに依存します）
+
+**インストール**:
+
+```bash
+pip install phonopy
+# For plotting
+pip install matplotlib
+# Optional: SeeK-path, a utility that generates standardized high-symmetry
+# q-paths and the associated crystal conventions (it is not a plotting library)
+pip install seekpath
+```
+
+#### Quantum ESPRESSO
+
+[Quantum ESPRESSO](https://www.quantum-espresso.org/) は、DFPT（密度汎関数摂動論）による強力なフォノン計算機能を備えたオープンソースの DFT スイートです。
+
+**主なモジュール**:
+
+- `pw.x`: 基底状態の DFT 計算
+- `ph.x`: DFPT によるフォノン計算
+- `dynmat.x`: 動力学行列の後処理
+
+### 4.1.4 Python コード例: Phonopy 計算からの PAM
+
+以下のスクリプトは、既存の Phonopy 計算を後処理するものです。自己完結してはいません。`POSCAR`（単位胞、構造の入力）、`FORCE_SETS`（有限変位計算の力から組み立てたもの）、および任意で `BORN`（応答計算から得たボルン電荷と誘電テンソル）を読み込みますが、これらは構造と必要な DFT 計算から準備する必要があるファイルであり、通常の1回の計算の生成物ではありません。そのため、ここでは出力ブロックを示しません。
+
+```python
+#!/usr/bin/env python3
+"""
+Phonon Angular Momentum (PAM) Calculator
+Calculates circular polarization and PAM from Phonopy eigenvectors
+
+Requirements: phonopy (>= 2.x), numpy, matplotlib
+
+Input files, read from the working directory. They are not products of one
+ordinary DFT run: each has to be prepared from the structure and from the
+required DFT force and response calculations.
+  POSCAR      unit cell in VASP format (a structure input)
+  FORCE_SETS  displacement-force data assembled from the finite-displacement runs
+  BORN        (optional) Born effective charges and dielectric tensor, from a
+              response calculation, formatted for phonopy
+"""
+
+import numpy as np
+from phonopy import Phonopy
+from phonopy.interface.vasp import read_vasp
+from phonopy.file_IO import parse_FORCE_SETS, parse_BORN
+import matplotlib.pyplot as plt
+
+class PAMCalculator:
+    """Calculate phonon angular momentum from phonon eigenvectors"""
+
+    def __init__(self, phonopy_obj):
+        """
+        Parameters
+        ----------
+        phonopy_obj : Phonopy
+            Phonopy object with force constants set
+        """
+        self.phonopy = phonopy_obj
+
+        # The eigenvectors belong to the PRIMITIVE cell that Phonopy actually
+        # diagonalizes, which may differ from the input unit cell when
+        # primitive_matrix='auto' (it is the same cell when the input already is
+        # an appropriate primitive cell). Atom count and ordering must come from it.
+        self.primitive = phonopy_obj.primitive
+        self.masses = self.primitive.masses
+        self.num_atoms = len(self.masses)
+        # The masses are kept for reference only. They are NOT used below: the
+        # eigenvectors are already mass-weighted (see calculate_PAM).
+
+    def calculate_circular_polarization(self, eigvec):
+        """
+        Calculate circular polarization C = Im[e* x e], atom by atom
+
+        The cross product is taken on the three Cartesian components of each
+        atom separately; the full 3N-component eigenvector has no ordinary
+        three-dimensional cross product.
+
+        Parameters
+        ----------
+        eigvec : ndarray, shape (num_atoms, 3)
+            Complex phonon eigenvector for one mode
+
+        Returns
+        -------
+        C_total : float
+            Sum over atoms of the z-component of circular polarization
+        C_per_atom : ndarray, shape (num_atoms,)
+            z-component per atom
+        """
+        C_per_atom = np.zeros(self.num_atoms)
+
+        for atom_idx in range(self.num_atoms):
+            ex = eigvec[atom_idx, 0]  # x component (complex)
+            ey = eigvec[atom_idx, 1]  # y component (complex)
+
+            # C_z = Im[e_x* e_y - e_y* e_x]
+            #     = Im[e_x* e_y] - Im[e_y* e_x]
+            #     = 2 * Im[e_x* e_y]
+            C_z = 2 * np.imag(np.conj(ex) * ey)
+            C_per_atom[atom_idx] = C_z
+
+        C_total = np.sum(C_per_atom)
+        return C_total, C_per_atom
+
+    def calculate_PAM(self, eigvec):
+        """
+        Calculate phonon angular momentum L = h_bar * sum_kappa C_kappa
+
+        Phonopy diagonalizes the mass-weighted dynamical matrix, so its
+        eigenvectors are already mass-weighted and normalized to
+        sum_kappa |e_kappa|^2 = 1. The masses read in __init__ must therefore
+        NOT be applied again here, and no mass argument is taken.
+
+        Parameters
+        ----------
+        eigvec : ndarray, shape (num_atoms, 3)
+            Complex phonon eigenvector
+
+        Returns
+        -------
+        L_total : float
+            Mechanical angular momentum of one phonon, in units of h_bar
+        L_per_atom : ndarray
+            Contribution per atom, in units of h_bar
+        """
+        C_total, C_per_atom = self.calculate_circular_polarization(eigvec)
+
+        # PAM per atom in units of h_bar; no further mass weighting
+        L_per_atom = C_per_atom
+        L_total = C_total
+
+        return L_total, L_per_atom
+
+    def analyze_qpoint(self, qpoint, plot=True):
+        """
+        Analyze all phonon modes at a specific q-point
+
+        Parameters
+        ----------
+        qpoint : array-like, shape (3,)
+            q-point in fractional (crystal) coordinates of the reciprocal
+            lattice of the primitive cell used by the Phonopy object
+        plot : bool
+            Whether to plot results
+
+        Returns
+        -------
+        results : dict
+            Dictionary containing frequencies, PAM values, etc.
+        """
+        # Eigenvectors are not computed unless they are requested explicitly.
+        self.phonopy.run_qpoints([qpoint], with_eigenvectors=True)
+        qpoints_dict = self.phonopy.get_qpoints_dict()
+
+        # frequencies: shape (num_qpoints, num_modes); keep this q-point only,
+        # so that the masks and prints below act on a 1D array of modes.
+        freqs = qpoints_dict['frequencies'][0]  # THz
+
+        # eigenvectors: shape (num_qpoints, 3*num_atoms, 3*num_atoms).
+        # Mode j is the COLUMN eigvecs_raw[:, j]. Reshaping the matrix as a
+        # whole would mix components belonging to different modes.
+        eigvecs_raw = qpoints_dict['eigenvectors'][0]
+
+        num_modes = 3 * self.num_atoms
+        eigvecs = np.array([
+            eigvecs_raw[:, j].reshape(self.num_atoms, 3)
+            for j in range(num_modes)
+        ])
+
+        # Calculate PAM for each mode
+        PAM_values = []
+        C_values = []
+
+        for mode_idx in range(num_modes):
+            L_total, _ = self.calculate_PAM(eigvecs[mode_idx])
+            C_total, _ = self.calculate_circular_polarization(eigvecs[mode_idx])
+
+            PAM_values.append(L_total)
+            C_values.append(C_total)
+
+        results = {
+            'qpoint': qpoint,
+            'frequencies': freqs,  # THz
+            'PAM': np.array(PAM_values),
+            'circular_polarization': np.array(C_values)
+        }
+
+        if plot:
+            self._plot_PAM_spectrum(results)
+
+        return results
+
+    def _plot_PAM_spectrum(self, results):
+        """Plot frequency vs PAM"""
+        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8))
+
+        freqs = results['frequencies']
+        PAM = results['PAM']
+        C = results['circular_polarization']
+
+        # Plotting choice only: it hides the near-zero branches at Gamma.
+        # Which branches it removes at another q-point depends on the actual
+        # dispersion of the material, so inspect the dispersion before use.
+        mask = freqs > 0.5  # THz
+
+        # Plot PAM
+        ax1.scatter(freqs[mask], PAM[mask], c=PAM[mask],
+                   cmap='RdBu', s=100, alpha=0.7)
+        ax1.axhline(0, color='k', linestyle='--', linewidth=0.5)
+        ax1.set_xlabel('Frequency (THz)', fontsize=12)
+        ax1.set_ylabel('PAM (h_bar per phonon)', fontsize=12)
+        ax1.set_title(f'Phonon Angular Momentum at q = {results["qpoint"]}',
+                     fontsize=14)
+        ax1.grid(True, alpha=0.3)
+
+        # Plot circular polarization
+        ax2.scatter(freqs[mask], C[mask], c=C[mask],
+                   cmap='RdBu', s=100, alpha=0.7)
+        ax2.axhline(0, color='k', linestyle='--', linewidth=0.5)
+        ax2.set_xlabel('Frequency (THz)', fontsize=12)
+        ax2.set_ylabel('Circular Polarization', fontsize=12)
+        ax2.grid(True, alpha=0.3)
+
+        plt.tight_layout()
+        plt.savefig('PAM_spectrum.png', dpi=300, bbox_inches='tight')
+        plt.show()
+
+        return fig
+
+# Example usage
+def main():
+    """Example: Calculate PAM for monolayer WSe2"""
+
+    # Read structure from VASP POSCAR
+    unitcell = read_vasp("POSCAR")
+
+    # Create Phonopy object
+    phonon = Phonopy(unitcell,
+                     supercell_matrix=[[4, 0, 0], [0, 4, 0], [0, 0, 1]],
+                     primitive_matrix='auto')
+
+    # FORCE_SETS holds displacement-force data, not an assembled force-constant
+    # matrix; produce_force_constants() builds that matrix from it.
+    phonon.dataset = parse_FORCE_SETS()
+    phonon.produce_force_constants()
+
+    # Optional non-analytic correction, gated on the DIMENSIONALITY of the
+    # system and not on whether a BORN file happens to be readable. BORN supplies
+    # the standard bulk (3D) correction; an isolated polar monolayer needs a
+    # dedicated 2D treatment (Coulomb truncation and an explicit dielectric
+    # environment), so the branch below is correct for bulk polar crystals only.
+    # This example is monolayer WSe2, hence is_bulk = False.
+    is_bulk = False
+    if is_bulk:
+        try:
+            phonon.nac_params = parse_BORN(phonon.primitive)
+        except Exception as exc:
+            print(f"No usable NAC parameters ({exc}); proceeding without NAC")
+    else:
+        print("Monolayer example: the bulk BORN correction is NOT applied; "
+              "a 2D non-analytic treatment would be required instead")
+
+    # Create PAM calculator
+    pam_calc = PAMCalculator(phonon)
+
+    # Analyze K-point (valley point in TMD).
+    # (1/3, 1/3, 0) are fractional coordinates of the reciprocal lattice of the
+    # hexagonal primitive cell a1 = a(1, 0, 0), a2 = a(-1/2, sqrt(3)/2, 0).
+    # primitive_matrix='auto' may choose a different cell for an arbitrary
+    # POSCAR: check the primitive lattice, or take K from the standardized
+    # reciprocal lattice (e.g. with SeeK-path), before using this triplet.
+    K_point = np.array([1./3., 1./3., 0.0])
+    results_K = pam_calc.analyze_qpoint(K_point, plot=True)
+
+    # Report the modes whose net mechanical angular momentum exceeds a chosen
+    # threshold. The threshold is a reporting choice, not a definition of
+    # phonon chirality and not a statement about the C3 label m.
+    print("\n=== Modes at K with |L_z| > 0.1 h_bar ===")
+    for i, (freq, pam) in enumerate(zip(results_K['frequencies'],
+                                        results_K['PAM'])):
+        if abs(pam) > 0.1 and freq > 0.5:
+            chirality = "Left" if pam > 0 else "Right"
+            print(f"Mode {i}: {freq:.2f} THz, L_z = {pam:+.3f} h_bar ({chirality})")
+
+if __name__ == "__main__":
+    main()
+```
+
+#### コードの主要なステップ
+
+1. **初期化**: 構造を読み込み、変位–力のデータから力の定数を構築し、Phonopy が対角化する原始胞から原子数を取得する
+2. **固有ベクトルの抽出**: q 点で固有ベクトルを明示的に要求し、モード \\(j\\) を固有ベクトル行列の第 \\(j\\) *列*から取り出す
+3. **円偏光率**: 原子ごとに \\(C_z = 2\text{Im}[e_x^* e_y]\\) を計算する
+4. **PAM の計算**: 原子について和をとり \\(L = \hbar \sum_\kappa C_\kappa\\) とする——固有ベクトルはすでに質量で重み付けされているので、質量因子は掛けない
+5. **可視化**: 振動数と PAM をプロットして、力学的角運動量の大きいモードを同定する。縮退した部分空間の中では数値的な固有値ソルバーが任意の基底を返すので、モードごとのカイラリティを割り当てる前に、そこで対称性の基底あるいは角運動量の基底を固定すること
+
+### 4.1.5 例: Quantum ESPRESSO のワークフロー
+
+極性物質では、長距離の静電相互作用を明示的に扱う必要があります。DFPT を備えた Quantum ESPRESSO は適した経路の1つですが——適切な非解析的補正を備え、検証済みの DFPT あるいは有限変位のワークフローであれば何でも構いません——孤立した単層については、その上でさらに2次元の静電気（クーロンの打ち切り、誘電的な環境）を扱わねばなりません。
+
+```bash
+# Step 1: SCF calculation
+pw.x < scf.in > scf.out
+
+# Step 2: Phonon calculation at K-point
+ph.x < ph_K.in > ph_K.out
+
+# Step 3: Post-process dynamical matrix
+dynmat.x < dynmat.in > dynmat.out
+```
+
+**ph.x の入力例（ph_K.in）**:
+
+```bash
+&inputph
+  prefix = 'wse2'
+  outdir = './tmp/'
+  fildyn = 'wse2.dyn'
+
+  ! K-point in TMD Brillouin zone
+  ldisp = .false.
+  qplot = .true.
+
+  tr2_ph = 1.0d-14
+  alpha_mix = 0.7
+/
+1                            ! Number of q-points
+0.333333 0.577350 0.0        ! K, Cartesian, in units of 2*pi/alat
+```
+
+**2つのインタフェースは同じ座標を使いません。** Phonopy は q を逆格子の分数（結晶）座標でとり、そこでは K = (1/3, 1/3, 0) です。`ph.x` は q ベクトルを **\\(2\pi/a_{\text{lat}}\\) を単位とするデカルト座標**で読みます。六方晶胞 \\(\mathbf{a}_1 = a(1,0,0)\\)、\\(\mathbf{a}_2 = a(-1/2, \sqrt{3}/2, 0)\\)（`ibrav = 4`）については、逆格子ベクトルは \\(\mathbf{b}_1 = (2\pi/a)(1, 1/\sqrt{3}, 0)\\) と \\(\mathbf{b}_2 = (2\pi/a)(0, 2/\sqrt{3}, 0)\\) なので、
+
+\\[\mathbf{K} = \tfrac{1}{3}\mathbf{b}_1 + \tfrac{1}{3}\mathbf{b}_2 = \frac{2\pi}{a}\left(\tfrac{1}{3},\ \tfrac{1}{\sqrt{3}},\ 0\right) = \frac{2\pi}{a}\,(0.333333,\ 0.577350,\ 0)\\]
+
+分数座標の三つ組 (0.333333, 0.333333, 0) を `ph.x` に与えると、ブリルアンゾーンの別の点が選ばれてしまいます。
+
+固有ベクトルは動力学行列のファイルから抽出でき、Python で後処理して PAM を計算できます。
+
+---
+
+## 4.2 フォノン角運動量の輸送
+
+### 4.2.1 フォノンの Einstein-de Haas 効果
+
+本来の形の **Einstein–de Haas 効果**は、自由に吊るされた強磁性体が磁化の変化に伴って力学的に回転する現象です。電子の磁化——スピンと軌道の寄与をともに含みます——が手放した角運動量が、剛体としての回転として現れます。フォノン版は、格子振動について同じ収支の問いを立てます。
+
+> 回転が自由で外部トルクを受けない物体について、角運動量 \\(\mathbf{L}_{\text{phonon}}\\) を担うカイラルフォノンを励起すればそれは補償されねばならず、他に利用できるリザーバが無ければ、結晶の剛体回転がその補償のチャネルとなる。
+
+\\[\mathbf{L}_{\text{total}} = \mathbf{L}_{\text{phonon}} + \mathbf{L}_{\text{lattice}} = \text{constant}\\]
+
+ここで \\(\mathbf{L}_{\text{lattice}}\\) は*剛体としての*回転であり、内部の振動的な角運動量とは別のものです。この2項の収支が成り立つのは孤立系についてのみです。光励起は光子場から角運動量を供給しますし、電子スピン、欠陥、試料のマウントもさらなるリザーバ（そして外部トルクの源）であり、それらが存在する場合にはつねに含めなければなりません。
+
+#### 実験の現状
+
+フォノン版の Einstein–de Haas 効果の実験的な実証は、いまも活発な研究領域です。理論的な提案（例えば Zhang & Niu 2014, PRL 112, 085503）を踏まえて、カイラルフォノンの光励起と、フォノン角運動量から格子の回転への移行の可能性を探る取り組みが続いています。報告されている観測とそこから推定される大きさは系や手法によって異なり、注意深い較正と対照実験が欠かせません。
+
+### 4.2.2 フォノンスピン流
+
+電子のスピン流と同様に、**フォノンスピン流**はフォノン角運動量の流れを表します。これは電子の電荷流を伴わずに角運動量を輸送し、それが絶縁体において興味をもたれる理由です。この流れは必ずしも正味のエネルギー流を伴いませんが、両者が独立に消えるのは追加の条件が満たされるときだけであり（例えば、逆向きに伝播する互いに反対のカイラリティのモードが等しく占有されている場合）、エネルギー輸送がゼロになることは自動的には保証されません。
+
+#### 定義
+
+フォノンスピン流の密度は 2 つの添字——流れる方向と、運ばれる角運動量の成分——を持つので、2 つのベクトルのスカラー積ではなくテンソルです。
+
+\\[j_s^{\alpha\beta} = \frac{1}{V} \sum_{j,\mathbf{q}} v_{g,j}^{\alpha}(\mathbf{q}) \, L_j^{\beta}(\mathbf{q}) \, n_j(\mathbf{q})\\]
+
+ここで:
+
+- \\(\alpha\\): 流れのデカルト方向、\\(\beta\\): 運ばれる角運動量のデカルト成分
+- \\(L_j^{\beta}\\): モード \\(j\\) の PAM（\\(\hbar\\) 単位）
+- \\(v_{g,j}^{\alpha}\\): \\(\alpha\\) 方向の群速度成分
+- \\(n_j\\): フォノン占有数
+- \\(V\\): 結晶の体積。モードについての和を密度に規格化する
+
+これは準粒子（半古典）輸送近似です。明確に定義されたモード占有数 \\(n_j\\) を前提とし、モード間のコヒーレンスと、フォノン角運動量が単独では保存されない原因であるトルク項の両方を落としています。対称性がすでに打ち消していない場合には、平衡状態の寄与を差し引く必要があります。
+
+#### 生成の機構
+
+1. **温度勾配**: 対称性によって応答が打ち消されない結晶では、温度差が正味の角運動量をもつフォノンの流れを駆動します。対称性で結ばれたモードの寄与が打ち消し合い得るので、温度勾配だけでそれが保証されるわけではありません
+2. **光励起**: 遷移が双極子あるいはラマンで許容され、運動量が整合している場合には、円偏光が一方のカイラリティを優先的に励起し得ます。遠方場の光子が担う運動量は無視できるほど小さいので、K の谷フォノンは吸収によって直接生成されるのではなく、光学的に用意されたキャリアの緩和を介して間接的に到達されます
+3. **フォノンポンピング**: 適切な偏光の超高速パルスは、2つの縮退したモードを制御された相対位相で駆動し、コヒーレントな円運動の格子運動を生み出し得ます。任意の超高速パルスがそうした振幅と位相を確立するわけではありません
+
+### 4.2.3 熱ホール効果とフォノン角運動量
+
+**熱ホール効果**は温度勾配に垂直な横方向の熱流であり、一部の絶縁体で観測されています。
+
+#### カイラルフォノンとの関係
+
+時間反転対称性が破れた物質（例えば磁場下）では、カイラルフォノンが熱ホール伝導度に寄与し得ます。ベリー曲率による内因的な寄与は次式です。
+
+\\[\kappa_{xy} = -\frac{k_B^2 T}{\hbar} \sum_j \int \frac{d^3q}{(2\pi)^3} \, c_2\!\left(n_j(\mathbf{q})\right) \Omega_j^z(\mathbf{q})\\]
+
+ここで:
+
+- \\(n_j(\mathbf{q})\\): モード \\(j\\) のボース・アインシュタイン占有数
+- \\(c_2(n) = (1+n)\left[\ln\frac{1+n}{n}\right]^2 - (\ln n)^2 - 2\,\text{Li}_2(-n)\\): 無次元の熱的な重み
+- \\(\Omega_j^z\\): 波数空間におけるフォノンのベリー曲率の \\(z\\) 成分。面積の次元を持つ（PAM と関係する）
+
+\\(\int d^3q/(2\pi)^3\\) が体積あたりへの規格化を与えます。\\(k_B^2 T/\hbar\\) は W/K、\\(\Omega\\) は m² の次元を持ち、m⁻³ × m² = m⁻¹ となるので、\\(\kappa_{xy}\\) は熱伝導率がそうでなければならないとおり W m⁻¹ K⁻¹ の単位で得られます（Qin, Zhou & Shi, *Phys. Rev. B* **86**, 104305 (2012)）。
+
+**重要な洞察**: フォノンのベリー曲率はバンド構造の*幾何学的*でモデル依存の性質であり、§4.1.2 のフォノン角運動量は力学的な性質です。両者は特定のモデルにおいて相関しますが、どちらも他方を決定しませんし、どちらもそれ自体でトポロジカルではありません——トポロジカル不変量は、曲率をブリルアンゾーンにわたって適切に積分して初めて生じます。
+
+### 4.2.4 フォノンネルンスト効果
+
+**フォノンネルンスト効果**は、厳密な意味では、温度勾配によって駆動される*フォノン角運動量の横方向の流れ*です。それ自体は電子のネルンスト電圧ではありません。横方向の電圧が現れるのは、さらに別の機構がフォノン角運動量を電荷応答に変換する場合に限られます（以下の TMD のシナリオではキャリアの谷分極を通じてであり、フォノンドラッグは別個のもう1つの経路です）。そうした変換が存在する場合、横方向の電場は次のように書かれます。
+
+\\[E_y = S_{yx} \nabla_x T\\]
+
+ここで \\(S_{yx}\\) は横方向の熱起電力、すなわちネルンスト*信号*です。「ネルンスト係数」という語は、しばしばその信号を磁場で割ったものに充てられます。
+
+**TMD における機構の提案**（それぞれに固有の条件を伴う一連の段階であって、確立された筋道ではありません）:
+
+1. 温度勾配が熱的なフォノンの流れを駆動する
+2. 駆動されたフォノン分布が*正味の*角運動量を運ぶ——これにはモードについての和を経ても残る偏りが必要であり、カイラルなモードが存在するというだけでは足りません
+3. 谷-フォノン結合が、エネルギー・運動量・スピン・\\(C_3\\) の制約を満たす散乱過程を通じて角運動量を谷のキャリアへ移す。この移行は自動的ではありません
+4. 谷の偏りが横方向の電場に変換される。純粋な谷ホール流は正味の電荷を運ばないので、この最後の段階では、電圧が生じる前に電荷応答、駆動力、開回路の境界条件を明示する必要があります
+
+```mermaid
+flowchart LR
+    A[温度勾配<br/>∇T] --> B[カイラルフォノンの流れ<br/>PAM を伴う]
+    B --> C[谷-フォノン結合<br/>角運動量の移行]
+    C --> D[キャリアにおける<br/>谷分極]
+    D --> E[横方向の電圧<br/>V<sub>⊥</sub>]
+
+    style A fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style B fill:#e0f2f1,stroke:#00796b,stroke-width:2px
+    style C fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    style D fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    style E fill:#fff3e0,stroke:#f57c00,stroke-width:2px
+```
+
+---
+
+## 4.3 バレートロニクスにおける応用
+
+### 4.3.1 谷の操作のための谷-フォノン結合
+
+2次元 TMD では、フォノンを通じて谷の自由度（K 谷と K' 谷）を操作でき、どの過程が許されるかは第1章 §1.4.2 の \\(C_3\\) 擬角運動量の帳簿によって制約されます。
+
+#### 選択則
+
+単層 WSe₂ における谷-フォノン結合について:
+
+| 谷 | 励起子の擬角運動量 \\(m\\)（mod 3） | mod 3 の収支におけるフォノンの \\(C_3\\) ラベル | 谷を用意するヘリシティ |
+|--------|--------------------------|---------------------------|------------------|
+| K      | \\(+1\\)                 | \\(m_{\text{phonon}} = +1 \pmod 3\\)     | \\(\sigma^+\\)   |
+| K'     | \\(-1\\)                 | \\(m_{\text{phonon}} = -1 \pmod 3\\)    | \\(\sigma^-\\)   |
+
+この表には3つの但し書きが付きます。中央の列は、第1章 §1.4.2 でそこに考えた特定の谷間過程についての \\(C_3\\) の帳簿であり、対称性ラベルについての 3 を法とした言明です。それは放出されるモードの*力学的*角運動量 \\(L_z\\) を定めません。\\(L_z\\) は固有ベクトルから計算しなければならず（§4.1.2）、多原子の谷フォノンでは一般に \\(\pm\hbar\\) ではありません。最後の列は単層 WSe₂ について報告された谷の準備の規則であり（第1章 §1.4.2）、2段階過程の第1段階についての実験的な入力であって、与えられた左右の向きのフォノンを生成する普遍的な規則ではありません。また谷の指標だけによってフォノンの「カイラリティ」が*要求される*わけでもありません。どのフォノンが放出され得るかは、電子の始状態と終状態、フォノンの分枝と波数ベクトル、そしてその過程が放出か吸収かによって決まります。
+
+#### フォノンによる谷の初期化
+
+1. **光ポンピング**: \\(\sigma^+\\) 光が K 谷の励起子を励起する
+2. **フォノンの放出**: そのキャリアの緩和は、以下の mod 3 の収支を満たす \\(C_3\\) ラベルをもつフォノンを放出し得ます。どの分枝が放出されるかは電子の始状態と終状態に依存し、谷内のチャネル、多分枝のチャネル、そしてフォノンによらないチャネルが競合します。また実際に放出されたモードの力学的な \\(L_z\\) は、\\(m\\) からではなくその固有ベクトルから決まります
+3. **角運動量の収支**: \\(C_3\\) 軸のもとで擬角運動量が保存されるのは **mod 3 においてのみ**であり（第1章 §1.4.2）、電子の始状態と終状態について次のように書けます。
+
+\\[m_{\text{electron}}^{\text{initial}} \equiv m_{\text{electron}}^{\text{final}} + m_{\text{phonon}} \ (\text{mod } 3)\\]
+
+### 4.3.2 カイラルフォノンが媒介する谷間散乱
+
+谷間散乱（K → K' 遷移）は、カイラルフォノンの放出または吸収を介して起こり得ます。
+
+#### 散乱率
+
+谷間散乱率へのフォノン**放出**による寄与の1つは次式です。
+
+\\[\Gamma_{K\rightarrow K'} = \frac{2\pi}{\hbar} |g_{ep}|^2 [n(\omega) + 1] \delta(E_K - E_{K'} - \hbar\omega)\\]
+
+ここで:
+
+- \\(g_{ep}\\): 電子-フォノン結合の強さ
+- \\(n(\omega)\\): フォノン占有数（ボース・アインシュタイン）
+- \\(\omega = 2\pi f\\): カイラルフォノンの角振動数。\\(f\\) はその周波数であり、フォノンのエネルギーは \\(\hbar\omega = hf\\) なので、5.0 THz のフォノンが担うのは 3.29 meV ではなく 20.68 meV である
+
+これは1つのチャネルにすぎません。谷間散乱率の全体には、吸収チャネル（\\(n\\) に比例）、K と K′ を結ぶフォノンの分枝と波数ベクトルについての和、電子の終状態についての和、そしてキャリアの占有因子が加わります。
+
+\\(\delta\\) 関数はエネルギーの逆数の次元を持つので、これを評価することは終状態について和をとることを意味します。絶対的な散乱率には終状態密度 \\(\rho(E_f)\\) が必要です。\\(\rho\\) がなければ、この式が定めるのは \\(\Gamma\\) の**フォノン占有因子**だけであり、以下のシミュレーションが報告するのもその因子だけです。そこでは行列要素、到達可能な終状態、広がり、キャリア分布は固定されていますが、実在の物質ではそれらも温度に依存します。
+
+**温度依存性**: 放出は \\(n+1\\) に、吸収は \\(n\\) に比例するので \\(\Gamma \propto 2n+1\\) です——この段階は、両チャネルについて等しく温度に依存しない前置因子と利用可能な終状態を仮定しており、それによって2つの位相空間因子の和が \\(2n+1\\) に帰着します。\\(T \to 0\\) では占有数は消えますが自発放出は消えず、\\(2n+1 \to 1\\) となるので、散乱率は飽和し、寿命は**有限の低温プラトー**に達します——*ただし自発放出のチャネルが開いている場合に限ります*。\\(\delta\\) 関数はキャリアが少なくとも \\(\hbar\omega\\) の余剰エネルギーをもつことを要求します。等価な2つの谷の底の間ではその条件が満たされないことがあり、その場合フォノンが媒介する散乱率は低温でプラトーに達する代わりに消えます。
+
+### 4.3.3 谷を用いた情報の記憶
+
+**谷を用いた情報の記憶**はバレートロニクスの構想です。2値の情報がキャリアの谷の指標に符号化され、カイラルフォノンは書き込みと緩和の段階における角運動量の帳簿として関与します。一方でフォノン散乱は谷分極を*消去する*チャネルの1つでもあり——どれが支配的かはキャリアの種類と条件により、明るい励起子については電子–正孔交換が特に重要です——カイラルフォノンが正味で有益な役割を果たすことは、仮定するのではなく示さねばなりません。
+
+- **ビット "0"**: K 谷（励起子の擬角運動量 \\(m = +1 \pmod 3\\)）
+- **ビット "1"**: K' 谷（励起子の擬角運動量 \\(m = -1 \pmod 3\\)）
+
+これらのラベルは2つの谷を指すものであって、\\(\pm 1\\) という力学的角運動量の固有値ではありません。
+
+#### 読み書きの操作
+
+**書き込み**:
+
+- \\(\sigma^+\\) のレーザーパルス → K 谷を初期化（ビット "0"）
+- \\(\sigma^-\\) のレーザーパルス → K' 谷を初期化（ビット "1"）
+
+**読み出し**:
+
+- 谷選択的なフォトルミネッセンスを検出する
+- 谷ホール応答を測定する——純粋な谷ホール流は正味の電荷を運ばないので、電気的な読み出しには明示的な変換段階（非局所の谷輸送配置、あるいは谷の偏りが生む電荷ホール応答）が必要である
+
+**寿命とコヒーレンスは別の量です。** 谷の*占有*は谷間散乱によって緩和し、単層 TMD の室温の明るい励起子についてはそれが短い一方、谷の*コヒーレンス*は別に減衰します。純粋な位相緩和は占有を保ったままコヒーレンスを壊しますが、電子–正孔交換は占有を保ちません。それは明るい励起子の谷状態どうしを結合し、谷の擬スピン歳差と脱分極を駆動するので、両方の量に関与します。文献で引用されるはるかに長い谷の寿命は、室温の明るい励起子についてではなく、極低温で残留キャリアやダーク・層間の励起子状態について測定された重要な例です
+
+### 4.3.4 コード例: 谷-フォノン散乱のシミュレーション
+
+```python
+# Requirements:
+# - Python 3.9+
+# - matplotlib>=3.7.0
+# - numpy>=1.24.0, <2.0.0
+
+"""
+Temperature dependence of chiral-phonon-mediated intervalley scattering.
+
+Three things fix what this model can and cannot report:
+
+1. Frequencies are quoted as cyclic frequencies f in THz, so the phonon energy is
+   hbar*omega = h*f with omega = 2*pi*f. Using f as if it were omega understates
+   the phonon energy by 2*pi and overstates the occupation by far more.
+2. The golden rule of §4.3.2 contains a delta function of energy; a number for the
+   rate needs that delta function replaced by a density of final states, which this
+   toy model does not supply. What survives without it is the temperature-dependent
+   factor of the rate, and that factor is what is reported here: the emission plus
+   absorption channels give Gamma(T) proportional to (2n+1), so
+
+       Gamma(T) / Gamma(T -> 0) = 2 n(f, T) + 1,
+
+   a dimensionless ratio. No absolute lifetime is printed, because none is
+   determined by the quantities given.
+3. tau = 1/Gamma is the one-way scattering time. Between two equivalent valleys
+   the population imbalance decays at 2*Gamma, i.e. with lifetime 1/(2*Gamma).
+   The two definitions differ by a factor of two but share the same temperature
+   factor, so the ratio tabulated below applies to either.
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+
+
+class ValleyPhononScattering:
+    """Temperature factor of chiral-phonon-mediated intervalley scattering."""
+
+    def __init__(self, temperature, phonon_freq):
+        """
+        Parameters
+        ----------
+        temperature : float
+            Temperature in Kelvin
+        phonon_freq : float
+            Chiral phonon cyclic frequency f in THz
+        """
+        self.T = temperature
+        self.f = phonon_freq * 1e12            # cyclic frequency, Hz
+        self.omega = 2 * np.pi * self.f        # angular frequency, rad/s
+
+        # Constants (CODATA 2018)
+        self.hbar = 1.054571817e-34  # J·s
+        self.kB = 1.380649e-23       # J/K
+
+    def phonon_occupation(self):
+        """Bose-Einstein occupation n(f, T); the exponent is h*f / (kB*T).
+
+        The exponent divides by T, so only T > 0 can be evaluated; T <= 0 is
+        returned as the limiting value n -> 0 rather than raising.
+        """
+        if self.T <= 0.0:
+            return 0.0
+        x = self.hbar * self.omega / (self.kB * self.T)
+        if x > 50:  # Avoid overflow; n < 2e-22 there
+            return 0.0
+        return 1.0 / (np.exp(x) - 1.0)
+
+    def relative_rate(self):
+        """
+        Intervalley rate relative to its T -> 0 value.
+
+        Emission is proportional to (n + 1) and absorption to n, so the sum is
+        proportional to (2n + 1), which tends to 1 in the limit T -> 0. The
+        occupation routine evaluates positive temperatures and returns that
+        limit for T <= 0.
+        """
+        return 2.0 * self.phonon_occupation() + 1.0
+
+    def relative_lifetime(self):
+        """
+        One-way scattering time relative to its T -> 0 plateau, tau(T)/tau(0)
+        with tau = 1/Gamma. The valley-polarisation lifetime is 1/(2*Gamma) and
+        carries the same temperature factor, so this ratio describes both.
+        """
+        return 1.0 / self.relative_rate()
+
+    def population_imbalance(self, t_over_tau0):
+        """
+        Valley population imbalance (n_K - n_K') normalised to its initial value.
+
+        With a one-way transfer rate Gamma between two equivalent valleys the
+        imbalance relaxes at 2*Gamma, not at Gamma; time is given in units of
+        tau(0) = 1/Gamma(0), the T -> 0 one-way scattering time. The valley
+        polarisation therefore decays with lifetime 1/(2*Gamma), not 1/Gamma.
+        """
+        return np.exp(-2.0 * self.relative_rate() * np.asarray(t_over_tau0))
+
+
+def main():
+    phonon_freq = 5.0  # THz (cyclic), typical for a TMD chiral phonon
+
+    temperatures = np.linspace(10.0, 300.0, 50)  # K
+    rel_lifetimes = [
+        ValleyPhononScattering(T, phonon_freq).relative_lifetime() for T in temperatures
+    ]
+
+    plt.figure(figsize=(10, 6))
+    plt.plot(temperatures, rel_lifetimes, linewidth=2, color='#1976d2')
+    plt.xlabel('Temperature (K)', fontsize=14)
+    plt.ylabel(r'Relative one-way scattering time  $\tau(T)/\tau(0)$', fontsize=14)
+    plt.title('Temperature factor of phonon-mediated intervalley scattering', fontsize=16)
+    plt.ylim(0, 1.05)
+    plt.grid(True, alpha=0.3)
+    plt.tight_layout()
+    plt.savefig('valley_lifetime_vs_T.png', dpi=300)
+    plt.close()
+
+    print(f"\nChiral phonon: f = {phonon_freq:.1f} THz, h*f = "
+          f"{4.135667696 * phonon_freq:.2f} meV")
+    print("=" * 62)
+    print(f"{'T (K)':>8s}{'n(f,T)':>14s}{'2n+1':>12s}{'tau(T)/tau(0)':>18s}")
+    for T in (10.0, 50.0, 100.0, 200.0, 300.0):
+        sim = ValleyPhononScattering(T, phonon_freq)
+        print(f"{T:>8.0f}{sim.phonon_occupation():>14.4e}"
+              f"{sim.relative_rate():>12.4f}{sim.relative_lifetime():>18.4f}")
+
+    print("\nLimits")
+    print("=" * 62)
+    print("T -> 0   : n -> 0, 2n+1 -> 1, so the rate saturates and the lifetime")
+    print("           reaches a finite plateau set by spontaneous emission -")
+    print("           it does not grow without bound as the temperature falls.")
+    print("           This holds only where that emission channel is OPEN: per")
+    print("           section 4.3.2 the carrier needs at least h*f of excess")
+    print("           energy, and where it does not the phonon-mediated rate")
+    print("           vanishes at low temperature instead of reaching a plateau.")
+    print("kB*T >> h*f : n -> kB*T/(h*f), so the rate grows linearly with T.")
+    print("\ntau = 1/Gamma above is the one-way scattering time; the valley")
+    print("population imbalance decays at 2*Gamma, i.e. with lifetime 1/(2*Gamma).")
+    print("Both share the same temperature factor, so the tabulated ratio applies")
+    print("to either definition.")
+    print("\nThe absolute lifetime is not determined by these inputs: it requires")
+    print("the density of final states omitted from the golden rule.")
+
+
+if __name__ == "__main__":
+    main()
+```
+
+**期待される出力（谷-フォノン散乱）:**
+
+```
+
+Chiral phonon: f = 5.0 THz, h*f = 20.68 meV
+==============================================================
+   T (K)        n(f,T)        2n+1     tau(T)/tau(0)
+      10    3.7894e-11      1.0000            1.0000
+      50    8.3044e-03      1.0166            0.9837
+     100    9.9810e-02      1.1996            0.8336
+     200    4.3113e-01      1.8623            0.5370
+     300    8.1615e-01      2.6323            0.3799
+
+Limits
+==============================================================
+T -> 0   : n -> 0, 2n+1 -> 1, so the rate saturates and the lifetime
+           reaches a finite plateau set by spontaneous emission -
+           it does not grow without bound as the temperature falls.
+           This holds only where that emission channel is OPEN: per
+           section 4.3.2 the carrier needs at least h*f of excess
+           energy, and where it does not the phonon-mediated rate
+           vanishes at low temperature instead of reaching a plateau.
+kB*T >> h*f : n -> kB*T/(h*f), so the rate grows linearly with T.
+
+tau = 1/Gamma above is the one-way scattering time; the valley
+population imbalance decays at 2*Gamma, i.e. with lifetime 1/(2*Gamma).
+Both share the same temperature factor, so the tabulated ratio applies
+to either definition.
+
+The absolute lifetime is not determined by these inputs: it requires
+the density of final states omitted from the golden rule.
+```
+
+---
+
+## 4.4 新興のデバイス概念
+
+### 4.4.1 フォノンを用いた情報処理
+
+カイラルフォノンは情報処理の新しいプラットフォームを提供し、次のような利点が期待されます。
+
+- **電荷輸送を伴わない**: フォノンは電荷を動かさずに角運動量を運ぶので、散逸の経路は電子的な論理回路のそれとは異なる。それが正味の消費電力の優位につながるかは確立されておらず、ここでは性能指数を引用しない
+- **高い周波数**: ここで扱う数 THz のモードは振動周期がサブピコ秒であり、一方で音響分枝は連続的にゼロ周波数まで伸びる。THz の振動から THz の*スイッチング速度*が導かれるわけではない。生成、変調、伝播、読み出しがそれぞれ固有の応答時間を課し、そのうち最も遅いものがデバイスの速度を決める
+- **コヒーレンス**: 占有の寿命、偏極（カイラリティ）の寿命、コヒーレンス時間は3つの異なる量である。モード混合、弾性散乱、位相緩和は、振動の占有が保たれたまま円偏光をランダム化し得るので、カイラリティは単純に「フォノンが存在するかぎり保たれる」ものでは*ない*。動作の時間窓は、選んだ符号化と手順が実際に必要とする3つのうちのいずれかによって決まり、いずれも物質と温度に強く依存する
+- **バレートロニクスとの統合**: 谷-フォノン結合は存在し、バレートロニクス論理回路への*提案された*インタフェースを動機づける。具体的なアーキテクチャ、実証、裏付けとなる提案は、ここでは示さない
+
+#### フォノン論理ゲート
+
+フォノンによる論理ゲートとして提案されている方式:
+
+1. **一致（XNOR 型）ゲート**: ビットをカイラリティに符号化する場合、振幅の等しい*互いに反対の*カイラリティの2入力は重ね合わさって正味のカイラリティがゼロの直線偏光した運動となり、*同じ*カイラリティの2入力は足し合わさってカイラルなモードとなります。したがって読み出しは差分信号の*大きさ*（あるいはその2乗）をとってから閾値をかけるものでなければなりません。符号つきの \\(\sigma^+ - \sigma^-\\) 検出器は、入力が等しい2つの場合に互いに逆の符号を返すので、その写像を経て初めて共通の高出力を与えます。それによって出力は、入力が等しければ高く、異なれば低くなります——これは AND ゲートではなく一致（XNOR）ゲートの真理値表です。さらに2点が重要です。直線偏光した運動も両方の円偏光成分を*含む*ので、一方の円偏光成分に選択的な検出器はこれに応答します。消えるのは**差分**の \\(\sigma^+ - \sigma^-\\) 信号であり、これこそがこのゲートが測らねばならない量です。また重ね合わせのためには、2つの入力がコヒーレントで、位相が固定され、周波数が一致し、同じ空間モードにある必要があります——互いに逆の谷から来るフォノンは波数ベクトルが異なりますし、同じカイラリティの入力でも相対位相が悪ければ打ち消し合います。正味のカイラリティがゼロであることは、対称性の固有状態 \\(m = 0\\) とも同じではありません。直線的なベクトルは、互いに逆の2つの回転固有状態の重ね合わせです
+2. **NOT ゲート** — *提案であり、ここでは機構を示しません*: 谷の自由度との結合によるカイラリティの反転。手順も忠実度も、裏付けとなる提案も特定されていません
+3. **XOR ゲート** — *提案であり、ここでは機構を示しません*: 干渉を通じたカイラリティの不一致の検出。干渉のアーキテクチャも検出器も真理値表も特定されていません
+
+### 4.4.2 カイラルフォノントランジスタ
+
+**カイラルフォノントランジスタ**は、外部からの制御によってフォノン角運動量の流れを変調します。
+
+#### デバイス構造
+
+```mermaid
+flowchart LR
+    A[ソース<br/>カイラルフォノン<br/>放出器] --> B[チャネル<br/>2次元 TMD]
+    B --> C[ドレイン<br/>フォノン検出器]
+    D[ゲート<br/>電場/<br/>光パルス] -.->|制御| B
+
+    style A fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    style B fill:#fff3e0,stroke:#f57c00,stroke-width:2px
+    style C fill:#e8f5e9,stroke:#388e3c,stroke-width:2px
+    style D fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+```
+
+#### 動作原理
+
+これは仮想的なアーキテクチャです。以下の各段階は設計上の要求であって、実証されたデバイスではありません。
+
+1. **ソース**: カイラルフォノンを生成する——例えば TMD を \\(\sigma^+\\) で励起し、続くキャリアの緩和による。ヘリシティと物質名だけではフォノン源は指定できません。分枝、励起の経路、エネルギーと運動量の整合、そして放出される占有あるいはコヒーレンスのすべてを述べる必要があります
+2. **チャネル**: 谷-フォノン結合を変調できる2次元物質。ここでは物質に即した実装も、定量的な制御機構も示しません
+3. **ゲート**: 光ポンピングは谷分極を作り得ます。静的なゲート電圧はキャリア密度を変えるだけで、それ自体では時間反転で結ばれた K 谷と K′ 谷を区別しないので、谷の制御には別途、対称性の破れあるいは非平衡の機構が必要です
+4. **ドレイン**: フォノン角運動量を検出する。熱ホール効果はせいぜい間接的なプローブであり——複数の微視的な寄与を受け取ります——モードの偏極に敏感な検出器か、対照実験を伴う検証済みの変換モデルが必要です
+
+**スイッチングの機構**: キャリア密度をゲートすると電子-フォノン散乱率が変わります。それが*カイラリティ*選択的な透過を生むかどうかは、ゲートが全体の密度を制御するのか、谷の偏りを制御するのか、遷移エネルギーを制御するのかに依存します。得られるコントラストは仮定するのではなく計算しなければなりません
+
+### 4.4.3 フォノン偏光子とフィルタ
+
+光学の偏光子と同様に、**フォノン偏光子**は特定のカイラリティのフォノンを選択的に透過させます。
+
+#### 設計の方針
+
+1. **対称性に基づくフィルタリング**:
+   - 取り除かねばならないのは、*デバイス全体*と励起配置がもつ対称性のうち、2つのカイラリティのチャネルを入れ替えるものです——あらゆる鏡映面ではありませんし、磁気的なバイアスや幾何学的な非対称性がその役割を果たすこともあります。一方のカイラリティが吸収され他方が透過するかどうかは、残った対称性と遷移行列要素に依存します
+   - カイラリティ分解した吸収係数は、その対称性解析から導く必要があります
+
+2. **共振によるフィルタリング**:
+   - 時間反転で結ばれたパートナーの縮退を解くようなモード構造と結合をもつ共振器を設計する
+   - 振動数の分裂は、共振において一方の向きを優先させる1つの経路ですが、必須ではありません。カイラリティ選択的な外部結合——ポート結合の不均等、あるいは方向性のある励起——によって、縮退した対の一方を優先させることもできます。いずれにせよ選択性は設計しなければならず（共振器の対称性、伝播方向、共振の分裂、外部結合）、共振が存在することから仮定できるものではありません
+
+3. **谷選択的なフィルタリング**:
+   - 谷分極したキャリアの分布を（光ポンピングによって）作る
+   - それらのキャリアを散乱させ得るフォノンは、キャリアによる正味の吸収が誘導放出やその他の利得過程を上回る場合に減衰します——ポンプされた分布では、正味の効果が減衰にも、ほとんど無視できる減衰にも、利得にもなり得ます。パウリブロッキング、誘導放出、競合するチャネルも関与するので、カイラリティが一致するだけでは吸収は決まりません
+   - 透過のコントラストは、具体的なキャリアの遷移とフォノンに依存する散乱率から決まります
+
+#### 性能の指標
+
+- **消光比**: \\(\eta = I_{\text{transmitted}}^{\text{left}} / I_{\text{transmitted}}^{\text{right}}\\)
+- **帯域幅**: フィルタリングが働く周波数の範囲
+- **損失**: フォノン強度の全体的な減少
+
+### 4.4.4 フォノンサーキュレータ
+
+**フォノンサーキュレータ**は、同一の信号をポートの間で \\(1 \to 2 \to 3 \to 1\\) と巡回的に経路づけ、逆向きの経路を抑制します——これは非相反（non-reciprocal）な経路づけであり、フォノンをカイラリティで選り分けることとは別の機能です。
+
+#### 3 ポートのサーキュレータ
+
+- **巡回的な経路づけ**: ポート 1 に入った電力はポート 2 から出て、ポート 2 に入った電力はポート 3 から出て、ポート 3 に入った電力はポート 1 から出る
+- **選り分けではなく非相反性**: 左巻きのフォノンを一方に、右巻きのフォノンを他方に送る装置はカイラリティの*選別器*である。単一の入力を巡回させるには相反性の破れ（磁場、あるいは時間変調された結合）が必要であり、カイラリティの選択だけではそれは得られない
+- **現状**: デバイスの概念であり、カイラルフォノンのサーキュレータは実証されていない
+
+**応用**: フォノニック回路における非相反な経路づけ。例えば反射してきた信号から信号源を隔離する用途
+
+---
+
+## 4.5 カイラルフォノン・ポラリトン
+
+### 4.5.1 カイラルフォノンと光子の結合
+
+**フォノン・ポラリトン**は、光子とフォノンの強い結合から生じる複合準粒子です。角運動量を担う光学的に活性なフォノンが、対称性と運動量の整合した光子モードと混成するとき、ポラリトンはその角運動量的な性格を受け継ぎ得ます。実際に受け継ぐかどうかは、結合、モードの組成、フォノン分枝の縮退、そして光子の偏光に依存します。波数の大きい谷フォノンは、運動量を整合させる機構が無ければ遠方場の光とはそもそも結合しません。
+
+#### 結合ハミルトニアン
+
+\\[H = \hbar\omega_{\text{ph}} a_{\text{ph}}^\dagger a_{\text{ph}} + \hbar\omega_{\gamma} a_{\gamma}^\dagger a_{\gamma} + \hbar g (a_{\text{ph}}^\dagger a_{\gamma} + a_{\gamma}^\dagger a_{\text{ph}})\\]
+
+ここで:
+
+- \\(a_{\text{ph}}\\): フォノンの消滅演算子
+- \\(a_{\gamma}\\): 光子の消滅演算子
+- \\(g\\): 結合の強さ。角振動数の次元を持つ（\\(\hbar g\\) が結合エネルギー）
+
+#### ポラリトンの分散
+
+コヒーレントな結合がフォノンモードと光子モードの減衰率 \\(\gamma_{\text{ph}}\\)、\\(\gamma_{\gamma}\\) を上回るとき（\\(g > \gamma_{\text{ph}}, \gamma_{\gamma}\\)——これは普遍的な閾値ではなく保守的な十分条件であり、実務的な判定基準は線幅の定義と、コヒーレントな交換・固有値の分裂・スペクトル上で分離したピークのどれを意味するかに依存します）、分散は上枝ポラリトンと下枝ポラリトンに分裂します。
+
+\\[E_{\pm} = \frac{\hbar(\omega_{\text{ph}} + \omega_{\gamma})}{2} \pm \frac{\hbar}{2}\sqrt{(\omega_{\text{ph}} - \omega_{\gamma})^2 + 4g^2}\\]
+
+**ラビ分裂**: 共鳴では、この無損失モデルの 2 つの枝は角振動数で \\(\Omega_R = 2g\\) だけ、すなわちエネルギーギャップ \\(\Delta E = 2\hbar g\\) だけ隔たります。不均等な減衰は複素固有値の分裂を変えるので、測定されるピーク間隔が \\(2\hbar g\\) に近いのは減衰が無視できる場合に限られます。ポラリトンの分散のエネルギー軸には必ず \\(2\hbar g\\) と記さねばならず、\\(2g\\) と記してはなりません。
+
+### 4.5.2 光物質相互作用と円二色性
+
+混成は、カイラルなフォノン共鳴の円二色性（CD）を変化させます。普遍的にそれを増強するわけではありません。配置、離調、損失によって、応答は増強されることも、再分配されることも、減少することも、符号が反転することもあるので、増強の主張には系の特定、指標、基準、そして計算または測定が必要です。
+
+#### 円二色性
+
+\\[\text{CD} = \frac{A_{\sigma^+} - A_{\sigma^-}}{A_{\sigma^+} + A_{\sigma^-}}\\]
+
+ここで \\(A_{\sigma^\pm}\\) は \\(\sigma^\pm\\) 偏光の光に対する吸収です。
+
+**機構**: ポラリトンはフォノンの角運動量と光子のスピンを混成させます。測定される CD が増大するかどうかを決めるのは結合行列要素——光学活性、振動子強度、場の重なり、対称性、モード体積——であって、角運動量を担う2つの成分が存在することではありません。
+
+### 4.5.3 応用
+
+以下の3つはいずれも見込みのある応用であり、ここで実証されたものはありません。
+
+1. **可変 THz 光源**（条件つきの構想）: 放射結合したカイラルポラリトンを適切にポンプし取り出せば、占有されるモードと取り出しの過程がその偏光を選び出す場合には、円偏光した THz 放射を放出し得ます——両方のヘリシティが出ること、モードの占有が混ざること、取り出しの過程が偏光を変えてしまうことが代替の可能性です。ポラリトンが存在することは、ポンプも、可変性も、遠方場への取り出しも、放出される特定のヘリシティも与えません
+2. **量子光学**（提案であり機構は示しません）: 量子情報のための単一フォノン・ポラリトン源。上記の線形な結合振動子ハミルトニアンはそれ自体では非古典的な状態を生成しませんし、準備の機構も裏付けとなる出典も示していません
+3. **非線形光学**（提案であり裏付けとなる結果はありません）: カイラリティの移行を伴う第二高調波発生。増強の主張を裏付ける物質も、非線形結合のモデルも、測定も、引用も、ここにはありません
+
+---
+
+## 4.6 今後の方向性と課題
+
+### 4.6.1 カイラリティを備えた量子フォノニクス
+
+**量子フォノニクス**は、フォノンを量子情報の担い手として利用することを目指します。カイラルフォノンは、量子的な自由度として角運動量を付け加えます。
+
+#### 応用の可能性
+
+- **フォノン量子ビット**: フォノンのカイラリティ（左巻き/右巻き）に量子情報を符号化する
+- **フォノンのもつれ**: もつれ合ったカイラルフォノン対を生成する
+- **量子トランスダクション**: 光子の量子ビットとフォノンの量子ビットを相互に変換する
+
+#### 課題
+
+- **デコヒーレンス**: フォノン-フォノン散乱がコヒーレンス時間を制限する
+- **単一フォノン源**: 単一のフォノンを生成し検出することが難しい
+- **温度**: フォノンの熱的な占有が量子的な忠実度を制限する
+
+### 4.6.2 カイラルフォノンのトポロジカルな保護
+
+カイラルフォノンとトポロジカルな保護を組み合わせれば、頑健なフォノン状態が得られる可能性があります。
+
+#### トポロジカルなカイラルフォノン
+
+- **カイラルな端チャネル**: 端に沿って一方向に伝播するフォノンモード。ここでの「カイラル」はバンド構造の方向性を指す名であって、イオンの運動を指すのではありません。端チャネルが局所的な力学的角運動量を担う必要はなく、2つの概念は区別して扱わねばなりません
+- **ワイルフォノン**: 3次元におけるバンド交差であり、その「カイラリティ」はノードのトポロジカル電荷です——これもまた、格子運動の回転偏極とは別物です
+- **フロケ・エンジニアリング**: 時間周期的な駆動によってトポロジカルなカイラルフォノンのバンドを作る
+
+**利点**: バルクギャップの中にある*孤立したカイラルな*端チャネルには、同じ端の同じエネルギーに逆向きに伝播する相棒が存在しません——0 でないチャーン数が定めるのは端の正味のカイラリティであって、逆向きに伝播する対が追加で存在することを禁じるわけではありません——ので、保護する対称性を尊重する乱れによる後方散乱が抑えられます。これはあらゆるトポロジカルな端チャネルに当てはまるわけではありません。ヘリカルな端や谷で保護された端には逆向きに伝播する相棒が存在し、その保護は設計が実際に依拠する対称性——結晶学的、擬スピン的、あるいは設計された実効的な対称性です。通常のフォノンの時間反転は2乗すると \\(+1\\) になるので、それ自体ではクラマース保護を与えません——あるいは谷の場合には大きな運動量の散乱が抑制されていることが保たれるかぎりにおいてのみ成り立ちます。カイラルな場合であっても、主張されているのは非相反な一方向の経路づけであって、損失のないフォノニック回路ではありません。非調和的な減衰やバルクモードへの漏れは残るからです
+
+### 4.6.3 室温での応用
+
+カイラルフォノンの現在の研究の多くは低温に焦点を当てています。想定される応用の多くは室温での動作を必要とするでしょうが、他のもの——量子トランスダクション、単一フォノン実験、センシング——は極低温でも十分に使えるので、温度についての要求は、実用性一般からではなく意図する応用から決まります。
+
+#### 室温フォノニクスのための方策
+
+1. **高いフォノンエネルギー**: 300 K の \\(k_BT\\) に対してカイラルモードのエネルギーが十分に大きく、定めた最大ボース占有数を満たす物質を用いる——有限のエネルギーをもつモードの占有数は、どんな正の温度でも 0 にはならないので、判定基準は \\(n\\) が小さいことであって 0 であることではありません。これはフォノンのエネルギーについての基準であり、互いに逆のカイラリティの間の分裂や谷の間の分裂は別の量です（項目3）
+2. **超高速なダイナミクス**: 関係する緩和と位相緩和より速い時間スケールで動作させる。それらの時間は物質・モード・励起・過程に依存するので、サブピコ秒と仮定するのではなく、提案するデバイスについて測定あるいは計算しなければなりません
+3. **高い谷のコントラスト**: 谷の分裂が大きいと、高いほうの谷の平衡占有と上り方向の遷移が抑えられます。用意された上側の谷の状態が下り方向に緩和することは別の問題ですし、時間反転で結ばれた谷はそもそも分裂するために時間反転対称性を破る摂動を必要とします
+4. **カプセル化**: 2次元物質を環境による散乱から守る
+
+#### 有望な物質
+
+- **h-BN**: 大きなバンドギャップ、室温で安定なフォノン
+- **14族モノカルコゲナイド（GeS、GeSe、SnS、SnSe）**: 予測あるいは測定されている極性の単層・少数層相における面内強誘電性と、谷選択的な光学応答。これらの化合物のあらゆるバルク形態・層状形態の性質ではありません。転移温度はおおむね測定ではなく予測であり、物質と層の厚さに依存します（これらは遷移金属ではなく14族のモノカルコゲナイドです）
+- **ヘテロ構造**: 積層を通じて谷とフォノンの性質を設計する
+
+### 4.6.4 既存技術との統合
+
+広く普及するためには、カイラルフォノンのデバイスが電子工学および光工学と統合されなければなりません。
+
+#### 統合への道筋
+
+1. **シリコンとの統合**: Si 基板上にフォノニック素子を作製することは1つの段階です。CMOS プロセスとの互換性は、さらに汚染、熱バジェット、材料、製造工程の順序に制約を課します
+2. **ハイブリッド回路**: 電子的な制御とフォノン論理を組み合わせる
+3. **光インターコネクト**（提案されたインタフェース）: カイラルフォノン・ポラリトンを光学とフォノニクスの橋渡しとして用いる。実用的なインターコネクトには、周波数と運動量の整合、効率的な変換段階、そして数値を挙げられるほど小さい伝播損失・読み出し損失が必要です
+4. **熱の管理**: フォノニックな構造化は熱輸送を変化させますが、そこに*カイラリティ*が追加の役割を果たすことは自明ではありません——熱を運ぶ周波数域を同定し、その中で働く具体的なカイラリティ依存の輸送機構を示す必要があります
+
+---
+
+## 4.7 演習問題
+
+### 演習 4.1: 固有ベクトルからの PAM の計算
+
+単層 TMD のフォノンモードで、質量重み付き固有ベクトルの全体が金属原子（質量 180 amu）に乗っており、\\(\sum_\kappa |\mathbf{e}_\kappa|^2 = 1\\) に規格化されている場合を考えます。
+
+- \\(e_x = \frac{1}{\sqrt{2}}\\)
+- \\(e_y = \frac{i}{\sqrt{2}}\\)
+- \\(e_z = 0\\)
+
+**(a)** この原子について円偏光率 \\(C_z\\) を計算してください。
+**(b)** フォノン角運動量を \\(\hbar\\) 単位で計算してください。原子質量が入り込まないこと、したがって答えが \\(180\hbar\\) ではなく \\(+1\hbar\\) になることを確かめてください。
+**(c)** 第1章 §1.2.2 の規約を用い、PAM の符号からカイラリティ（左巻きか右巻きか）を判定してください。
+
+### 演習 4.2: 谷の寿命の温度依存性
+
+谷-フォノン散乱のシミュレーションのコードを用いて、次を調べてください。
+
+**(a)** 周波数 \\(f = 6.0\\) THz のカイラルフォノンについて、相対的な谷の寿命 \\(\tau(T)/\tau(0)\\) を温度に対してプロットしてください。
+**(b)** 相対的な寿命が低温プラトーの半分まで落ちる温度、すなわち \\(2n+1 = 2\\) となる温度はいくらですか。
+**(c)** 寿命が温度とともに減少する理由、\\(T \to 0\\) で発散しない理由、そしてこのモデルが絶対的な寿命をピコ秒単位で述べられない理由を、物理的に説明してください。
+
+### 演習 4.3: フォノン偏光子の設計
+
+2次元 TMD 物質を用いてフォノン偏光子を設計してください。
+
+**(a)** ソース、フィルタとなる媒質、検出器を示して、デバイスの構造を図示してください。
+**(b)** 谷選択的な光ポンピングがどのようにフォノンのカイラリティをフィルタし得るのかを説明してください。
+**(c)** 谷分極 \\(P = (n_K - n_{K'})/(n_K + n_{K'}) = 0.80\\) に対する消光比 \\(\eta = I_{\text{transmitted}}^{\text{left}} / I_{\text{transmitted}}^{\text{right}}\\) を見積もってください。その際、50% の谷-フォノン結合効率を用いてこの分極をカイラリティ選択的な吸収へどのように変換したのかを明示してください。答えを定めるのはそのモデルであって、2 つのパーセンテージだけではありません。
+
+### 演習 4.4: フォノン・ポラリトンのラビ分裂
+
+周波数 \\(f_{\text{ph}} = 5.0\\) THz のカイラルフォノンが、\\(f_{\gamma} = 5.2\\) THz の光子モードと、結合の強さ \\(g = 0.3\\) THz（これも周波数）で結合しています。角振動数はいずれも \\(\omega = 2\pi f\\) なので \\(2\pi\\) は全体で相殺し、\\(E_{\pm} = \frac{h}{2}\left[(f_{\text{ph}} + f_{\gamma}) \pm \sqrt{(f_{\text{ph}} - f_{\gamma})^2 + 4g^2}\right]\\) となります。
+
+**(a)** 上枝ポラリトンと下枝ポラリトンのエネルギー \\(E_+\\) と \\(E_-\\) を（meV 単位で）計算してください。
+**(b)** 共鳴におけるラビ分裂 \\(\Delta E = 2\hbar(2\pi g) = 2hg\\) はいくらですか。また、この離調において 2 つの枝は実際にどれだけ隔たりますか。
+**(c)** 反交差を示すポラリトンの分散図を描いてください。
+
+### 演習 4.5: 量子フォノンの量子ビット
+
+\\(|0\rangle\\) が左巻きのカイラリティ、\\(|1\rangle\\) が右巻きのカイラリティを表すとして、カイラルフォノンを量子ビットとして用いることを考えます。
+
+**(a)** フォノンのコヒーレンス時間が \\(\tau_c = 500\\) ps、1 量子ビットのゲートに 10 ps かかるとして、1 コヒーレンス時間のうちにおおよそ何回のゲート操作が収まるかを見積もってください。これが厳密な上限ではない理由も説明してください——コヒーレンス時間は減衰の特徴的なスケールなので、実用上の操作回数には目標とするゲート忠実度も必要です。
+**(b)** \\(f = 5.0\\) THz のフォノンのボース・アインシュタイン平均占有数を \\(n = 0.01\\) より小さくするのは、どの温度ですか。（\\(\hbar\omega = hf\\) を用いてください。また \\(n < 0.01\\) は、何らかの励起が起こる確率が 1% 未満という条件と同じではないことに注意してください。）
+**(c)** このフォノン量子ビットを初期化し、操作し、読み出す方式を提案してください。
+
+---
+
+## まとめ
+
+本章では、カイラルフォノンの計算手法と応用を扱いました。
+
+- **計算手法**: Phonopy / Quantum ESPRESSO による第一原理計算、原子ごとの円偏光率 \\(\mathbf{C} = \sum_\kappa \text{Im}[\mathbf{e}_\kappa^* \times \mathbf{e}_\kappa]\\) の抽出、そしてフォノン1個あたりの角運動量 \\(\mathbf{L} = \hbar \sum_\kappa \mathbf{C}_\kappa\\)
+- **PAM の輸送**: Einstein-de Haas 効果、フォノンスピン流、熱ホール効果、フォノンネルンスト効果
+- **バレートロニクス**: 谷-フォノン結合、谷間散乱、谷の初期化と情報の記憶
+- **デバイス**: フォノントランジスタ、偏光子、フィルタ、サーキュレータ——本章で概説した具体的な微視的カイラルフォノンのアーキテクチャは、実証を伴わずに提示したデバイスの*概念*である
+- **フォノン・ポラリトン**: カイラルフォノンによる強い光物質結合と、それが円二色性に及ぼすモデル依存の効果
+- **今後の方向性**: 量子フォノニクス、トポロジカルな保護、室温での動作、そして技術との統合
+
+カイラルフォノンは、基礎研究と技術革新の双方に豊かな機会をもたらす、凝縮系物理学のフロンティアです。
+
+---
+
+[← 第3章](chapter-3.md) | [シリーズトップ →](index.md)
 
 ---
 
 ## 免責事項
 
-この教育コンテンツは、橋本研究室のナレッジベース用にAIの支援を受けて作成されました。正確性を期していますが、重要な情報については一次資料や査読済み文献で確認することをお勧めします。
+本教育コンテンツは、橋本研究室のナレッジベースのために AI の補助を受けて作成されました。正確さの確保には努めていますが、読者は重要な情報を一次文献および査読済みの文献で確認してください。カイラルフォノンに関する最新の研究については、Nature、Physical Review Letters、Science などの雑誌の最近の論文を参照してください。

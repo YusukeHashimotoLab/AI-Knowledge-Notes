@@ -130,22 +130,23 @@ Let's calculate descriptive statistics using NumPy and SciPy.
     print(f"Third Quartile (Q3): {q3:.2f}")
     print(f"Interquartile Range (IQR): {iqr:.2f}")
 
-**Execution Result:**
-    
-    
-    Mean: 80.73
-    Median: 80.00
-    Mode: 65
-    
-    Population Variance: 103.29
-    Population Standard Deviation: 10.16
-    Sample Variance: 113.62
-    Sample Standard Deviation: 10.66
-    
-    First Quartile (Q1): 73.50
-    Second Quartile (Q2): 80.00
-    Third Quartile (Q3): 88.00
-    Interquartile Range (IQR): 14.50
+**Execution Output:**
+
+```text
+Mean: 80.73
+Median: 80.00
+Mode: 65
+
+Population Variance: 95.83
+Population Standard Deviation: 9.79
+Sample Variance: 105.42
+Sample Standard Deviation: 10.27
+
+First Quartile (Q1): 73.50
+Second Quartile (Q2): 80.00
+Third Quartile (Q3): 86.50
+Interquartile Range (IQR): 13.00
+```
 
 ## 2\. Data Visualization
 
@@ -193,7 +194,7 @@ A graph that visually represents quartiles and can also identify outliers.
     
     # Draw box plot
     plt.figure(figsize=(10, 6))
-    bp = plt.boxplot(data_groups, labels=['Group A', 'Group B', 'Group C'],
+    bp = plt.boxplot(data_groups, tick_labels=['Group A', 'Group B', 'Group C'],
                      patch_artist=True, notch=True)
     
     # Customize colors
@@ -375,22 +376,23 @@ In other words, even if the test is positive, the probability of actually having
         prob, _ = bayes_theorem(p_disease, sens, p_positive_given_healthy)
         print(f"Sensitivity {sens*100:.1f}%: Disease probability when positive = {prob*100:.2f}%")
 
-**Execution Result:**
-    
-    
-    === Bayes' Theorem in Medical Diagnosis ===
-    Disease prevalence: 1.0%
-    Test sensitivity: 99.0%
-    False positive rate: 5.0%
-    
-    Probability of positive result: 5.94%
-    Probability of actually having disease when positive: 16.64%
-    
-    === Comparison with Varying Sensitivity ===
-    Sensitivity 90.0%: Disease probability when positive = 15.38%
-    Sensitivity 95.0%: Disease probability when positive = 16.10%
-    Sensitivity 99.0%: Disease probability when positive = 16.64%
-    Sensitivity 99.9%: Disease probability when positive = 16.72%
+**Execution Output:**
+
+```text
+=== Bayes' Theorem in Medical Diagnosis ===
+Disease prevalence: 1.0%
+Test sensitivity: 99.0%
+False positive rate: 5.0%
+
+Probability of positive result: 5.94%
+Probability of actually having disease when positive: 16.67%
+
+=== Comparison with Varying Sensitivity ===
+Sensitivity 90.0%: Disease probability when positive = 15.38%
+Sensitivity 95.0%: Disease probability when positive = 16.10%
+Sensitivity 99.0%: Disease probability when positive = 16.67%
+Sensitivity 99.9%: Disease probability when positive = 16.79%
+```
 
 ## 4\. Expected Value and Variance
 
@@ -436,6 +438,8 @@ $$\sigma = \sqrt{\text{Var}(X)}$$
     import numpy as np
     import matplotlib.pyplot as plt
     
+    np.random.seed(42)
+
     # Example of dice roll experiment
     def dice_expectation():
         """Calculate expected value of dice roll"""

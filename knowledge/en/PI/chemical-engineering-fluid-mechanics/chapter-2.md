@@ -18,7 +18,6 @@ created_at: 2026-08-23
     height="315"
     src="https://www.youtube.com/embed/lfGMREF-V-c?start=765"
     title="Chemical Engineering Fluid Mechanics Ch.2: Bernoulli and the Mechanical Energy Balance"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>
@@ -40,8 +39,8 @@ By completing this chapter, you will be able to:
 
   * ✅ Write Bernoulli's equation as an energy balance per kilogram and state the assumptions behind it
   * ✅ Explain the three-way trade among pressure energy, kinetic energy, and elevation
-  * ✅ Derive and apply Torricelli's result $v = \sqrt{2gh}$ to a draining tank, and say why the real jet is slower
-  * ✅ Explain how venturi meters, orifice plates, and pitot tubes turn a pressure difference into a flow rate
+  * ✅ Derive and apply Torricelli's result $v = \sqrt{2gh}$ to a draining tank, and say why the real discharge is smaller
+  * ✅ Explain how venturi meters and orifice plates turn a pressure difference into a flow rate, and how a pitot tube turns one into a local velocity
   * ✅ Extend Bernoulli into the mechanical energy balance with friction loss and pump work
   * ✅ Recognize the conditions that cause cavitation and why they constrain pump suction piping
 
@@ -51,7 +50,7 @@ By completing this chapter, you will be able to:
 
 ## 2.1 An Energy Balance for Moving Fluid
 
-The *Chemical Engineering Thermodynamics* series opened with the First Law for a flowing stream, $\Delta H = Q - W_s$ ([Thermodynamics Chapter 1](../chemical-engineering-thermodynamics/chapter-1.html)), and deliberately dropped the kinetic- and potential-energy terms as negligible. In fluid mechanics those are exactly the terms we care about, and the thermal ones are what we set aside. Take a fluid of constant density with no heat exchange, no shaft work, and — for now — no friction, and what remains is a balance of **mechanical** energy alone. Per kilogram of fluid, three quantities can hold it:
+The *Chemical Engineering Thermodynamics* series opened with the First Law for a flowing stream, $\Delta H = Q - W_s$ ([Thermodynamics Chapter 1](../chemical-engineering-thermodynamics/chapter-1.html)), and deliberately dropped the kinetic- and potential-energy terms as negligible. In fluid mechanics those are exactly the terms we care about, and the thermal ones are what we set aside. Take a fluid of constant density in steady flow along a single streamline, with no heat exchange, no shaft work, and — for now — no friction, and what remains is a balance of **mechanical** energy alone. Per kilogram of fluid, three quantities can hold it:
 
 $$ \frac{P}{\rho} + \frac{v^2}{2} + gz = \text{constant} $$
 
@@ -63,9 +62,9 @@ This is **Bernoulli's equation**. Every term has units of J/kg, and that shared 
 | $v^2/2$ | **Kinetic energy** | Energy of motion | 2 m/s → 2.0 J/kg |
 | $gz$ | **Potential energy** | Energy of elevation above a chosen datum | 10 m → 98.1 J/kg |
 
-Read the right-hand column carefully, because it sets intuition for the rest of the series. At ordinary pipe velocities of 1–3 m/s the kinetic term is **tiny** — a couple of joules per kilogram, about 0.02 bar. Elevation is far larger: 10 m of water is worth roughly 1 bar. Pressure dominates a pumped system, and kinetic energy becomes interesting only where the fluid is deliberately accelerated — which is precisely what a nozzle, an orifice, or a leaking flange does.
+Read the right-hand column carefully, because it sets intuition for the rest of the series. At ordinary pipe velocities of 1–3 m/s the kinetic term is **small** against these particular pressure and elevation changes — a couple of joules per kilogram, about 0.02 bar. Elevation is far larger: 10 m of water is worth roughly 1 bar. Pressure changes often dominate pressurized process piping, and kinetic energy becomes interesting wherever the velocity change is appreciable against the other terms — which is precisely what a nozzle, an orifice, or a leaking flange produces.
 
-Because the sum is constant along a streamline, **any gain in one term is paid for out of the others**. Speed a fluid up and its pressure falls; raise it and, at constant speed, its pressure falls by $\rho g z$. Nothing is created; the accounting simply moves.
+Because the sum is constant along a streamline, **any gain in one term is paid for out of the others**. Speed a fluid up at constant elevation and its static pressure falls; raise it and, at constant speed, its pressure falls by $\rho g z$. Acceleration supplied by a drop in elevation — a falling jet — needs no pressure decrease at all. Nothing is created; the accounting simply moves.
 
 ```mermaid
 flowchart LR
@@ -76,11 +75,11 @@ flowchart LR
     end
 ```
 
-The assumptions are strict and worth stating aloud, because every real application violates at least one: **steady flow, constant density, no friction, no shaft work, along a single streamline.** Bernoulli is therefore a reasoning tool and a first estimate, not a design equation. Section 2.4 repairs it.
+The assumptions are strict and worth stating aloud, because every real application violates at least one: **steady flow, constant density, no friction, no shaft work, along a single streamline.** Bernoulli is therefore first of all a reasoning tool and a first estimate; using it in design means assessing those assumptions and the corrections they demand. Section 2.4 repairs it.
 
 ## 2.2 Torricelli and Tank Draining
 
-The classic application is a vented tank with a hole in its side — a situation every plant contains, as a drain, a nozzle, or a leak.
+The classic application is a vented tank with a hole in its side — a common plant configuration, found as a drain, a nozzle, or a leak.
 
 Apply Bernoulli between the free liquid surface (point 1) and the jet leaving the hole (point 2). Both are open to atmosphere, so the pressure terms cancel; the tank is wide compared with the hole, so the surface descends slowly and $v_1 \approx 0$. Taking the hole as the datum, $z_1 = h$ and $z_2 = 0$:
 
@@ -92,17 +91,17 @@ $$ v = \sqrt{2 \times 9.81 \times 5} = \sqrt{98.1} = 9.9\ \text{m/s} $$
 
 This is identical to the speed of an object dropped from the same height, and for the same reason — potential energy converting to kinetic energy with nothing taken out along the way. Note also what is *absent*: density. Ideal draining is equally fast for water, kerosene, and mercury.
 
-Reality is slower on two counts. **Friction** at the hole edge and within the fluid dissipates some energy. And the streamlines cannot turn a sharp corner instantly, so the jet keeps contracting after it leaves the wall, reaching its narrowest cross-section — the **vena contracta** — a short distance downstream, thinner than the hole it came from.
+Reality delivers less, on two distinct counts. **Friction** at the hole edge and within the fluid dissipates some energy, so the jet really is slower than $\sqrt{2gh}$; that reduction is carried by a velocity coefficient $C_v$. Separately, the streamlines cannot turn a sharp corner instantly, so the jet keeps contracting after it leaves the wall, reaching its narrowest cross-section — the **vena contracta** — a short distance downstream, thinner than the hole it came from. That is a reduction in flow *area*, not in speed: the contracted jet can travel close to Torricelli's velocity while carrying substantially less volume, and it is carried by a contraction coefficient $C_c$.
 
-Both effects are lumped into a **discharge coefficient** $C_d$, an empirical multiplier (dimensionless, always less than 1) converting the ideal prediction into the observed flow:
+The two combine into a **discharge coefficient** $C_d = C_c C_v$, an empirical multiplier (dimensionless, normally below unity for this reservoir-and-orifice arrangement) converting the ideal prediction into the observed volumetric flow:
 
 $$ Q = C_d\, A \sqrt{2gh} $$
 
-For a sharp-edged orifice in a thin plate, $C_d$ is **typically about 0.6–0.65**. So a 25 mm drain hole 5 m below the surface has an ideal flow of $4.909 \times 10^{-4} \times 9.9 = 4.86 \times 10^{-3}$ m³/s, or 17.5 m³/h — but delivers closer to **10.9 m³/h** at $C_d = 0.62$. A rounded, gently tapered nozzle avoids the contraction almost entirely and runs at $C_d$ above 0.95. The shape of a hole matters more than its size.
+For a sharp-edged orifice in a thin plate, $C_d$ is **typically about 0.6–0.65**. So a 25 mm drain hole 5 m below the surface has an ideal flow of $4.909 \times 10^{-4} \times 9.9 = 4.86 \times 10^{-3}$ m³/s, or 17.5 m³/h — but delivers closer to **10.9 m³/h** at $C_d = 0.62$. A rounded, gently tapered nozzle avoids the contraction almost entirely and runs at $C_d$ above 0.95. At a fixed opening area and head, the shape of the edge changes the discharge substantially — which is why a hole cannot be judged by its bore alone.
 
 ## 2.3 Flow Measurement by Pressure Difference
 
-Bernoulli earns its keep in instrumentation. Squeeze a pipe and **continuity** ($A_1 v_1 = A_2 v_2$ for constant density) forces the fluid to speed up through the smaller area. Bernoulli then says the pressure must drop to pay for it. Measure that drop and you have inferred the flow rate without ever putting a moving part in the stream.
+Bernoulli earns its keep in instrumentation. Squeeze a pipe and **continuity** ($A_1 v_1 = A_2 v_2$ for constant density) forces the fluid to speed up through the smaller area. For a horizontal meter, Bernoulli then says the static pressure must drop to pay for it. Measure that drop and you have inferred the flow rate without ever putting a moving part in the stream.
 
 ```mermaid
 flowchart LR
@@ -110,7 +109,7 @@ flowchart LR
     B --> D["Measured pressure difference<br/>delta P"] --> E["Inferred flow rate Q"]
 ```
 
-Combining the two relations for a constriction of area $A_2$ gives the working equation used by every differential-pressure flow meter:
+Combining the two relations for a constriction of area $A_2$ gives the simplified working equation for an incompressible restriction meter:
 
 $$ Q = C_d\, A_2 \sqrt{\frac{2\,\Delta P}{\rho}} $$
 
@@ -118,7 +117,7 @@ As written, this form drops the **velocity-of-approach factor** $1/\sqrt{1-\beta
 
 | Device | How it works | Permanent pressure loss | Cost and use |
 |---|---|---|---|
-| **Orifice plate** | A drilled plate clamped between flanges | High — **typically 50–80%** of the measured $\Delta P$ | Cheap, easy to replace, by far the most common |
+| **Orifice plate** | A drilled plate clamped between flanges | High — **typically 50–80%** of the measured $\Delta P$ | Inexpensive, easy to replace, and widely used, especially among traditional DP meters |
 | **Venturi** | A gradual convergence, throat, and long gentle diffuser | Low — **typically 10–20%** | Expensive and bulky; used where pumping cost or available head matters |
 | **Pitot tube** | A small tube facing into the flow | Negligible | Measures *local* velocity at one point, not total flow |
 
@@ -156,7 +155,7 @@ for dp_kpa in [1, 2, 5, 10, 20, 50, 100]:
 #       100       1000       14.16     62.04        17.20
 ```
 
-The table exposes the characteristic weakness of every differential-pressure meter: **the relationship is square-root, not linear.** Quadrupling $\Delta P$ from 5 to 20 kPa only doubles the flow, from 13.87 to 27.75 m³/h. Near the bottom of the range a large fractional error in $\Delta P$ becomes a large error in $Q$, which is why an orifice meter is normally trusted over a **turndown** — the usable ratio of maximum to minimum flow — of only about 3:1 to 4:1. Operate a plant far below design rate and its flow measurements quietly become unreliable.
+The table exposes the characteristic weakness of a conventional inertial restriction meter: **the relationship is square-root, not linear.** Quadrupling $\Delta P$ from 5 to 20 kPa only doubles the flow, from 13.87 to 27.75 m³/h. Near the bottom of the range a large fractional error in $\Delta P$ becomes a large error in $Q$, which is why an orifice meter is conventionally quoted with a **turndown** — the usable ratio of maximum to minimum flow — of about 3:1 to 4:1; the real limit belongs to the whole measurement system, and follows from the transmitter, the calibration, and the uncertainty the application will tolerate. Run an oversized differential-pressure system far below its design rate and the flow measurement can quietly drift outside its validated range.
 
 ## 2.4 The Real Fluid: Friction Enters
 
@@ -164,47 +163,47 @@ Bernoulli's frictionless fluid does not exist. Real flow rubs against pipe walls
 
 $$ \frac{P_1}{\rho} + \frac{v_1^2}{2} + gz_1 + w_{\text{pump}} = \frac{P_2}{\rho} + \frac{v_2^2}{2} + gz_2 + h_f $$
 
-All terms are J/kg. Two asymmetries deserve attention. **$w_{\text{pump}}$ appears only on the left** — a pump adds mechanical energy, and it is the only thing in the equation that can. **$h_f$ appears only on the right and is always positive**, never negative, no matter which way the fluid goes. Reverse the flow direction and friction still takes its cut.
+All terms are J/kg, and $v$ is the mean velocity over the cross-section — a real velocity profile strictly carries a kinetic-energy correction factor on each velocity term, near 1 for turbulent pipe flow and appreciably larger in laminar flow. Two asymmetries deserve attention. **$w_{\text{pump}}$ appears only on the left** — it is the mechanical energy actually delivered to the fluid, which is less than the shaft work supplied by the efficiency of the pump, and it is the only term that can add energy. **$h_f$ appears only on the right and is never negative** when taken along the actual direction of flow; it vanishes only in the ideal limit. Reverse the flow direction and friction still takes its cut.
 
-That one-sidedness is the Second Law showing up in a pipe. The energy removed by friction is not destroyed: it reappears as **internal energy**, warming the fluid by a fraction of a degree, and the First Law is satisfied exactly. But the conversion runs one way only — warm water does not spontaneously reorganize itself into pressure — so friction converts mechanical energy into internal energy: the Second Law at work. [Thermodynamics Chapter 2](../chemical-engineering-thermodynamics/chapter-2.html) calls this destroyed work potential, and every real flow generates entropy. Friction degrades energy *quality* while conserving its quantity.
+That one-sidedness is the Second Law showing up in a pipe. The energy removed by friction is not destroyed: it reappears as **internal energy**, warming the fluid by an amount the thermal energy balance decides, and the First Law is satisfied exactly. But the conversion runs one way only — warm water does not spontaneously reorganize itself into pressure — so friction converts mechanical energy into internal energy: the Second Law at work. [Thermodynamics Chapter 2](../chemical-engineering-thermodynamics/chapter-2.html) calls this destroyed work potential, and every real flow generates entropy. Friction degrades energy *quality* while conserving its quantity.
 
-Practically, $h_f$ sizes the pump and sets the electricity bill. Everything else in the balance is fixed by the job — the tank is where it is, the pressure is what the process needs. Only $h_f$ follows from design choices: pipe diameter, length, fittings, and roughness. **[Chapter 4](chapter-4.html) is devoted entirely to computing it**, and [Chapter 5](chapter-5.html) to paying for it.
+Practically, $h_f$ sizes the pump and sets the electricity bill. For a specified duty with fixed endpoint conditions — the tank is where it is, the pressure is what the process needs — the piping choices weigh most heavily on $h_f$: pipe diameter, length, fittings, and roughness. Diameter is not purely a friction knob, though, since changing it also changes the velocity and hence the kinetic-energy terms. **[Chapter 4](chapter-4.html) is devoted entirely to computing it**, and [Chapter 5](chapter-5.html) to paying for it.
 
 ## 2.5 Cavitation Preview
 
-The mechanical energy balance also warns of a specific failure. Follow the pressure along a line into a pump suction: elevation losses, friction, and acceleration into the pipe all subtract from it. If the local pressure anywhere falls to the liquid's **vapor pressure** $P_{sat}$ — the pressure at which it boils at the prevailing temperature, from [Thermodynamics Chapter 3](../chemical-engineering-thermodynamics/chapter-3.html) — the liquid vaporizes *in place*. Vapor bubbles form, are swept into the higher-pressure region of the impeller, and collapse violently.
+The mechanical energy balance also warns of a specific failure. Follow the pressure along a line into a pump suction: a suction lift, friction, and acceleration into the pipe all reduce it, while positive static head from a vessel above the pump adds to it. If the local pressure anywhere falls to or below the liquid's **vapor pressure** $P_{sat}$ — the pressure at which it boils at the prevailing temperature, from [Thermodynamics Chapter 3](../chemical-engineering-thermodynamics/chapter-3.html) — vapor cavities can form and grow *in place*, the inception depending also on nuclei, dissolved gas, and how long the fluid spends at that pressure. Those bubbles are swept into the higher-pressure region of the impeller, where they collapse violently.
 
-That collapse is **cavitation**. It sounds like gravel in the casing, erodes impeller metal, wrecks bearings and seals, and destroys the pump's delivered head — a leading cause of pump failure in plants.
+That whole sequence — formation, growth, and collapse of vapor cavities under a local pressure reduction — is **cavitation**; the collapse on pressure recovery is the damaging stage. It sounds like gravel in the casing, erodes impeller metal, wrecks bearings and seals, and destroys the pump's delivered head — a leading cause of pump failure in plants.
 
 Two design rules follow directly from the balance, and both concern the **suction** side:
 
 - **Short**: less pipe length means less $h_f$ subtracted before the fluid reaches the impeller.
 - **Fat**: a larger diameter means lower velocity, which cuts both the friction loss and the $v^2/2$ drawn out of the pressure term.
 
-Hence the piping convention that suction lines are one size larger than discharge lines. Temperature makes the margin narrower still: water at 25 °C boils at about 3.2 kPa absolute, leaving nearly a full atmosphere of headroom, but at 80 °C its vapor pressure is roughly 47 kPa, so an open vessel at atmospheric pressure leaves under 6 m of water head to spend before the liquid flashes. Hot liquids are almost always fed to pumps from an elevated vessel. [Chapter 5](chapter-5.html) makes this quantitative as **NPSH**, net positive suction head.
+Hence the common practice of sizing suction piping generously — often larger than the discharge line — from velocity, losses, NPSH, and installation requirements rather than from a fixed rule. Temperature makes the margin narrower still: water at 25 °C boils at about 3.2 kPa absolute, leaving nearly a full atmosphere of headroom, but at 80 °C its vapor pressure is roughly 47 kPa, so an open vessel at atmospheric pressure leaves under 6 m of water head to spend before the liquid flashes. Hot or near-saturated liquids therefore need suction pressure added deliberately — most often by feeding the pump from an elevated vessel, but a pressurized vessel, a submerged or booster pump, or adequate subcooling can serve instead. [Chapter 5](chapter-5.html) makes this quantitative as **NPSH**, net positive suction head.
 
 ## 2.6 Chapter Summary
 
 - **Bernoulli's equation**, $P/\rho + v^2/2 + gz = \text{constant}$ (J/kg), balances mechanical energy per kilogram of ideal flow; the three terms are interconvertible, so a gain in one is paid for by the others
-- Magnitudes set intuition: 1 bar ≈ 100 J/kg and 10 m of elevation ≈ 98 J/kg, but 2 m/s ≈ only 2 J/kg — **kinetic energy matters only where the fluid is deliberately accelerated**
-- The assumptions — steady, incompressible, frictionless, no shaft work, along a streamline — make Bernoulli a reasoning tool, not a design equation
-- **Torricelli**: a tank draining under 5 m of head gives $v = \sqrt{2 \times 9.81 \times 5} = 9.9$ m/s, independent of density; the real jet is slower through friction and the **vena contracta**, lumped into a **discharge coefficient** of typically **0.6–0.65** for a sharp orifice
-- Constriction plus continuity plus Bernoulli gives $Q = C_d A \sqrt{2\Delta P/\rho}$ — the basis of **orifice plates** (cheap, 50–80% permanent loss), **venturis** (expensive, 10–20%), and **pitot tubes** (local velocity); the square-root form limits such meters to roughly **3:1 to 4:1 turndown**
-- The **mechanical energy balance** adds reality: $P_1/\rho + v_1^2/2 + gz_1 + w_{\text{pump}} = P_2/\rho + v_2^2/2 + gz_2 + h_f$, where $h_f$ is always positive because friction degrades mechanical energy into internal energy — the Second Law's lost work, in a pipe
-- **Cavitation** occurs when local pressure falls to the vapor pressure; suction lines are kept **short and fat**, and hot liquids leave far less margin
+- Magnitudes set intuition: 1 bar ≈ 100 J/kg and 10 m of elevation ≈ 98 J/kg, but 2 m/s ≈ only 2 J/kg — **kinetic energy matters wherever the velocity change is appreciable against the other terms**
+- The assumptions — steady, incompressible, frictionless, no shaft work, along a streamline — make Bernoulli first a reasoning tool; design use means assessing those assumptions and the corrections they require
+- **Torricelli**: a tank draining under 5 m of head gives $v = \sqrt{2 \times 9.81 \times 5} = 9.9$ m/s, independent of density; friction reduces the jet *speed* and the **vena contracta** reduces its *area*, and the two together give a **discharge coefficient** $C_d = C_c C_v$ of typically **0.6–0.65** for a sharp orifice
+- Constriction plus continuity plus Bernoulli gives $Q = C_d A \sqrt{2\Delta P/\rho}$, valid for a small bore-to-pipe diameter ratio — the basis of **orifice plates** (cheap, 50–80% permanent loss) and **venturis** (expensive, 10–20%); a **pitot tube** works differently, reporting a *local* velocity that must be integrated over the profile to give a flow rate. The square-root form is the reason a conventional DP system is traditionally quoted at roughly **3:1 to 4:1 turndown**
+- The **mechanical energy balance** adds reality: $P_1/\rho + v_1^2/2 + gz_1 + w_{\text{pump}} = P_2/\rho + v_2^2/2 + gz_2 + h_f$, where $w_{\text{pump}}$ is the energy delivered to the fluid and $h_f \ge 0$ along the flow direction because friction degrades mechanical energy into internal energy and generates entropy — lost work, in a pipe
+- **Cavitation** is the formation, growth, and collapse of vapor cavities where the local pressure approaches the vapor pressure; suction lines are kept **short and fat**, and hot liquids leave far less margin
 
-**Next chapter**: $h_f$ cannot be computed until we know how the fluid is actually moving. **[Chapter 3](chapter-3.html)** introduces laminar and turbulent flow and the **Reynolds number** that tells them apart — the single dimensionless group that decides whether friction follows a clean formula or an empirical chart.
+**Next chapter**: $h_f$ cannot be computed until we know how the fluid is actually moving. **[Chapter 3](chapter-3.html)** introduces laminar and turbulent flow and the **Reynolds number** that tells them apart — the principal dimensionless group for these simple pipe flows, deciding whether friction follows a clean formula or an empirical correlation.
 
 ## Exercises
 
 1. **Conceptual — where the pressure went**: A horizontal pipe narrows from 100 mm to 50 mm bore and then widens back to 100 mm. Water flows steadily through it. (a) What happens to the velocity in the narrow section, and by what factor? (b) What happens to the pressure there, and why does that not violate conservation of energy? (c) Downstream of the expansion, is the pressure back to its original value?
    *Hint*: apply continuity first, then Bernoulli; then ask what Section 2.4 adds to Bernoulli.
-   *Answer*: (a) Continuity gives $A_1 v_1 = A_2 v_2$, and halving the diameter quarters the area, so the velocity rises by a factor of **4**. (b) The pressure **falls**. Nothing is violated — Bernoulli says the kinetic term $v^2/2$ grew, and it was paid for out of the pressure term $P/\rho$. Energy is conserved; only its form changed. (c) **Not quite.** Ideal Bernoulli predicts full recovery, but the real expansion is a churning, dissipative process that contributes to $h_f$. A gentle venturi diffuser recovers most of the pressure (10–20% permanently lost); an abrupt orifice-type expansion loses 50–80%. The difference between the two is entirely the shape of the outlet.
+   *Answer*: (a) Continuity gives $A_1 v_1 = A_2 v_2$, and halving the diameter quarters the area, so the velocity rises by a factor of **4**. (b) The pressure **falls**. Nothing is violated — Bernoulli says the kinetic term $v^2/2$ grew, and it was paid for out of the pressure term $P/\rho$. Energy is conserved; only its form changed. (c) **Not quite.** Ideal Bernoulli predicts full recovery, but a real expansion is dissipative — especially where the flow separates — and contributes to $h_f$. In meter terms, a gentle venturi diffuser recovers most of the measured differential (10–20% permanently lost); an abrupt orifice-type expansion loses 50–80% of it. Outlet geometry is the strongest single influence on that recovery, though inlet shape, diameter ratio, Reynolds number, and roughness all enter as well.
 
 2. **Quantitative — the water tower**: A water tower holds its free surface **20 m** above a tap at ground level. Take $\rho = 998$ kg/m³ and $g = 9.81$ m/s², and ignore friction. (a) What is the gauge pressure at the closed tap? (b) If the tap is opened to atmosphere, what is the ideal jet speed? (c) Compare the elevation and kinetic energies per kilogram at each condition.
    *Hint*: with the tap closed the fluid is static, so use Chapter 1's hydrostatic result; with it open, all the elevation energy converts to kinetic energy.
-   *Answer*: (a) $P = \rho g h = 998 \times 9.81 \times 20 = 195{,}808$ Pa ≈ **1.96 bar gauge**. (b) $v = \sqrt{2gh} = \sqrt{2 \times 9.81 \times 20} = \sqrt{392.4} = $ **19.8 m/s**. (c) The elevation term is $gz = 9.81 \times 20 = 196.2$ J/kg in both cases. Closed tap: it appears entirely as pressure energy, $P/\rho = 195{,}808/998 = 196.2$ J/kg, with zero kinetic energy. Open tap: it appears entirely as kinetic energy, $v^2/2 = 19.8^2/2 = 196$ J/kg, at zero gauge pressure. **Same 196 J/kg, two different forms** — which is Bernoulli's entire message. In a real tap, friction in the pipework would consume part of it and the jet would be noticeably slower.
+   *Answer*: (a) $P = \rho g h = 998 \times 9.81 \times 20 = 195{,}808$ Pa ≈ **1.96 bar gauge**. (b) $v = \sqrt{2gh} = \sqrt{2 \times 9.81 \times 20} = \sqrt{392.4} = $ **19.8 m/s**. (c) Take the datum at ground level, so the reservoir surface carries $gz = 9.81 \times 20 = 196.2$ J/kg of elevation energy and the tap carries none. At the tap that energy has changed form. Closed tap: it appears entirely as pressure energy, $P/\rho = 195{,}808/998 = 196.2$ J/kg, with zero kinetic energy. Open tap: it appears entirely as kinetic energy, $v^2/2 = 19.8^2/2 = 196$ J/kg, at zero gauge pressure. **Same 196 J/kg, two different forms** — which is Bernoulli's entire message. In a real tap, friction in the pipework would consume part of it and the jet would be slower by an amount the system losses decide.
 
 3. **Discussion — specifying a flow meter**: You must meter a 200 m³/h cooling-water line that runs 24 hours a day. A colleague proposes an orifice plate because it costs a fraction of a venturi, and notes the plant will sometimes run at 25% of design rate. (a) What is the hidden cost of the orifice? (b) What is wrong with metering at 25% rate? (c) Under what circumstances would you accept the orifice anyway?
    *Hint*: consider the permanent pressure loss as a continuous pumping load, and revisit the square-root behavior in Section 2.3.
-   *Answer*: (a) The orifice permanently destroys **50–80%** of its measured $\Delta P$, against 10–20% for a venturi. That loss becomes an extra $h_f$ term in the mechanical energy balance, which the pump must supply for every hour of the plant's life — capital saved once, electricity paid forever. (b) At 25% of design flow the differential is only about **1/16** of its design value, since $Q \propto \sqrt{\Delta P}$. That is outside the roughly 3:1 to 4:1 turndown an orifice is trusted over, and the measurement becomes unreliable exactly when operators most need to know what the plant is doing. (c) The orifice is the right choice when the line has **generous available head** (a gravity feed or an oversized pump makes the permanent loss free in practice), when the flow stays near design rate, or when the measurement feeds a control loop that only needs to hold a setpoint rather than report an accurate absolute rate. If wide turndown genuinely matters, neither device is ideal — a magnetic or Coriolis meter, with no pressure loss and a linear response, is the honest answer.
+   *Answer*: (a) The orifice permanently destroys **50–80%** of its measured $\Delta P$, against 10–20% for a venturi. That loss becomes an extra $h_f$ term in the mechanical energy balance, which the pump must supply for every hour of the plant's life — capital saved once, electricity paid forever. (b) At 25% of design flow the differential is only about **1/16** of its design value, since $Q \propto \sqrt{\Delta P}$. That sits right at the minimum of a 4:1 flow range and below the minimum of a 3:1 range — not outside the conventional band, but at its edge, where the uncertainty at the minimum operating flow has to be checked against the transmitter's specification before the reading can be trusted. (c) The orifice is a defensible choice when the line has **generous available head** — a gravity feed, or a pump whose surplus head would otherwise be thrown away across a control valve, so the meter loss substitutes for dissipation that was happening anyway — when the flow stays near design rate, or when the measurement feeds a control loop that tolerates reduced absolute accuracy, provided its repeatability and low-flow behavior remain adequate. If wide turndown genuinely matters, compare complete measurement systems over the required range: a full-bore magnetic meter adds almost no obstruction loss and responds linearly, and a Coriolis meter measures mass flow directly — though its flow tubes and connections do impose a pressure loss that must be checked when sizing.

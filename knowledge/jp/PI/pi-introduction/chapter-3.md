@@ -53,62 +53,77 @@ $$y = \beta_0 + \beta_1 x + \epsilon$$
 #### コード例1: 単回帰による品質予測モデル
     
     
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    # - pandas>=2.0.0, <2.2.0
+
+    """
+    Example: Code Example 1: Quality Prediction Model with Simple Regress
+
+    Purpose: Demonstrate data visualization techniques
+    Target: Intermediate
+    Execution time: 30-60 seconds
+    Dependencies: None
+    """
+
     import numpy as np
     import pandas as pd
     import matplotlib.pyplot as plt
     from sklearn.linear_model import LinearRegression
     from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
-    
-    # サンプルデータ生成: 反応温度と収率の関係
+
+    # Sample data generation: Relationship between reaction temperature and yield
     np.random.seed(42)
     n = 100
-    
-    # 反応温度（°C）
+
+    # Reaction temperature (°C)
     temperature = np.random.uniform(160, 190, n)
-    
-    # 収率（%）= 線形関係 + ノイズ
-    # 理論: 温度が高いほど収率が向上（最適温度まで）
+
+    # Yield (%) = Linear relationship + Noise
+    # Theory: Higher temperature increases yield (up to optimal temperature)
     yield_percentage = 50 + 0.5 * (temperature - 160) + np.random.normal(0, 2, n)
-    
+
     df = pd.DataFrame({
         'temperature': temperature,
         'yield': yield_percentage
     })
-    
-    print("データの基本統計:")
+
+    print("Basic Statistics of Data:")
     print(df.describe())
-    print(f"\n相関係数: {df['temperature'].corr(df['yield']):.4f}")
-    
-    # 単回帰モデルの構築
+    print(f"\nCorrelation Coefficient: {df['temperature'].corr(df['yield']):.4f}")
+
+    # Simple regression model construction
     X = df[['temperature']].values
     y = df['yield'].values
-    
+
     model = LinearRegression()
     model.fit(X, y)
-    
-    # 予測
+
+    # Prediction
     y_pred = model.predict(X)
-    
-    # モデルパラメータ
-    print(f"\n【モデルパラメータ】")
-    print(f"切片 (β₀): {model.intercept_:.4f}")
-    print(f"傾き (β₁): {model.coef_[0]:.4f}")
-    print(f"モデル式: y = {model.intercept_:.4f} + {model.coef_[0]:.4f} × 温度")
-    
-    # 評価指標
+
+    # Model parameters
+    print(f"\n【Model Parameters】")
+    print(f"Intercept (β₀): {model.intercept_:.4f}")
+    print(f"Slope (β₁): {model.coef_[0]:.4f}")
+    print(f"Model Equation: y = {model.intercept_:.4f} + {model.coef_[0]:.4f} × Temperature")
+
+    # Evaluation metrics
     r2 = r2_score(y, y_pred)
     rmse = np.sqrt(mean_squared_error(y, y_pred))
     mae = mean_absolute_error(y, y_pred)
-    
-    print(f"\n【モデル性能】")
-    print(f"R² (決定係数): {r2:.4f}")
-    print(f"RMSE (二乗平均平方根誤差): {rmse:.4f}%")
-    print(f"MAE (平均絶対誤差): {mae:.4f}%")
-    
-    # 可視化
+
+    print(f"\n【Model Performance】")
+    print(f"R² (Coefficient of Determination): {r2:.4f}")
+    print(f"RMSE (Root Mean Squared Error): {rmse:.4f}%")
+    print(f"MAE (Mean Absolute Error): {mae:.4f}%")
+
+    # Visualization
     fig, axes = plt.subplots(1, 2, figsize=(14, 5))
-    
-    # 散布図と回帰直線
+
+    # Scatter plot and regression line
     axes[0].scatter(df['temperature'], df['yield'], alpha=0.6, s=50,
                     color='#11998e', label='Actual data')
     axes[0].plot(df['temperature'], y_pred, color='red', linewidth=2,
@@ -118,8 +133,8 @@ $$y = \beta_0 + \beta_1 x + \epsilon$$
     axes[0].set_title('Simple Linear Regression: Temperature vs Yield', fontsize=13, fontweight='bold')
     axes[0].legend()
     axes[0].grid(alpha=0.3)
-    
-    # 残差プロット（予測誤差の確認）
+
+    # Residual plot (checking prediction errors)
     residuals = y - y_pred
     axes[1].scatter(y_pred, residuals, alpha=0.6, s=50, color='#11998e')
     axes[1].axhline(y=0, color='red', linestyle='--', linewidth=2)
@@ -127,46 +142,49 @@ $$y = \beta_0 + \beta_1 x + \epsilon$$
     axes[1].set_ylabel('Residuals (%)', fontsize=12)
     axes[1].set_title('Residual Plot (Error Analysis)', fontsize=13, fontweight='bold')
     axes[1].grid(alpha=0.3)
-    
+
     plt.tight_layout()
     plt.show()
-    
-    # 実用例: 新しい温度での収率予測
+
+    # Practical example: Yield prediction at new temperatures
     new_temperatures = np.array([[165], [175], [185]])
     predicted_yields = model.predict(new_temperatures)
-    
-    print(f"\n【予測例】")
-    for temp, pred_yield in zip(new_temperatures, predicted_yields):
-        print(f"温度 {temp[0]}°C → 予測収率: {pred_yield:.2f}%")
-    
 
-**出力例** :
-    
-    
-    データの基本統計:
-           temperature       yield
-    count   100.000000  100.000000
-    mean    175.234567   57.834567
-    std       8.678901    4.234567
-    ...
-    
-    相関係数: 0.8234
-    
-    【モデルパラメータ】
-    切片 (β₀): 42.3456
-    傾き (β₁): 0.4876
-    モデル式: y = 42.3456 + 0.4876 × 温度
-    
-    【モデル性能】
-    R² (決定係数): 0.6780
-    RMSE (二乗平均平方根誤差): 2.1234%
-    MAE (平均絶対誤差): 1.7890%
-    
-    【予測例】
-    温度 165°C → 予測収率: 52.80%
-    温度 175°C → 予測収率: 57.68%
-    温度 185°C → 予測収率: 62.56%
-    
+    print(f"\n【Prediction Example】")
+    for temp, pred_yield in zip(new_temperatures, predicted_yields):
+        print(f"Temperature {temp[0]}°C → Predicted Yield: {pred_yield:.2f}%")
+
+**出力例 / Output Example** :
+
+```text
+Basic Statistics of Data:
+       temperature       yield
+count   100.000000  100.000000
+mean    174.105422   57.050550
+std       8.924682    4.561234
+min     160.165664   48.839561
+25%     165.796023   53.133181
+50%     173.924274   56.421742
+75%     181.906094   60.796295
+max     189.606608   66.678100
+
+Correlation Coefficient: 0.9183
+
+【Model Parameters】
+Intercept (β₀): -24.6656
+Slope (β₁): 0.4693
+Model Equation: y = -24.6656 + 0.4693 × Temperature
+
+【Model Performance】
+R² (Coefficient of Determination): 0.8434
+RMSE (Root Mean Squared Error): 1.7962%
+MAE (Mean Absolute Error): 1.4021%
+
+【Prediction Example】
+Temperature 165°C → Predicted Yield: 52.78%
+Temperature 175°C → Predicted Yield: 57.47%
+Temperature 185°C → Predicted Yield: 62.16%
+```
 
 **解説** : 単回帰は解釈性が高く、物理的な意味を理解しやすい利点があります。残差プロットで、誤差がランダムに分布していることを確認します（パターンがあれば、非線形関係の可能性）。
 
@@ -181,6 +199,22 @@ $$y = \beta_0 + \beta_1 x_1 + \beta_2 x_2 + \cdots + \beta_p x_p + \epsilon$$
 #### コード例2: 重回帰による蒸留塔純度予測
     
     
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    # - pandas>=2.0.0, <2.2.0
+    # - seaborn>=0.12.0
+
+    """
+    Example: Code Example 2: Distillation Column Purity Prediction with M
+
+    Purpose: Demonstrate data visualization techniques
+    Target: Intermediate
+    Execution time: 30-60 seconds
+    Dependencies: None
+    """
+
     import numpy as np
     import pandas as pd
     import matplotlib.pyplot as plt
@@ -188,20 +222,20 @@ $$y = \beta_0 + \beta_1 x_1 + \beta_2 x_2 + \cdots + \beta_p x_p + \epsilon$$
     from sklearn.linear_model import LinearRegression
     from sklearn.model_selection import train_test_split
     from sklearn.metrics import r2_score, mean_squared_error
-    
-    # サンプルデータ生成: 蒸留塔の運転データ
+
+    # Sample data generation: Distillation column operation data
     np.random.seed(42)
     n = 300
-    
+
     df = pd.DataFrame({
-        'feed_temp': np.random.normal(60, 5, n),           # 供給温度（°C）
-        'reflux_ratio': np.random.uniform(1.5, 3.5, n),    # 還流比
-        'reboiler_duty': np.random.normal(1500, 150, n),   # リボイラー熱量（kW）
-        'pressure': np.random.normal(1.2, 0.1, n),         # 塔圧力（MPa）
-        'feed_rate': np.random.normal(100, 10, n)          # 供給流量（kg/h）
+        'feed_temp': np.random.normal(60, 5, n),           # Feed temperature (°C)
+        'reflux_ratio': np.random.uniform(1.5, 3.5, n),    # Reflux ratio
+        'reboiler_duty': np.random.normal(1500, 150, n),   # Reboiler duty (kW)
+        'pressure': np.random.normal(1.2, 0.1, n),         # Column pressure (MPa)
+        'feed_rate': np.random.normal(100, 10, n)          # Feed rate (kg/h)
     })
-    
-    # 製品純度（%）: 複数変数の線形結合 + ノイズ
+
+    # Product purity (%): Linear combination of multiple variables + Noise
     df['purity'] = (
         92 +
         0.05 * df['feed_temp'] +
@@ -211,8 +245,8 @@ $$y = \beta_0 + \beta_1 x_1 + \beta_2 x_2 + \cdots + \beta_p x_p + \epsilon$$
         0.01 * df['feed_rate'] +
         np.random.normal(0, 0.5, n)
     )
-    
-    # 相関マトリックスの可視化
+
+    # Correlation matrix visualization
     plt.figure(figsize=(10, 8))
     corr = df.corr()
     sns.heatmap(corr, annot=True, fmt='.3f', cmap='RdYlGn', center=0,
@@ -220,46 +254,46 @@ $$y = \beta_0 + \beta_1 x_1 + \beta_2 x_2 + \cdots + \beta_p x_p + \epsilon$$
     plt.title('Correlation Matrix - Distillation Column Variables', fontsize=14, fontweight='bold')
     plt.tight_layout()
     plt.show()
-    
-    # データ分割
+
+    # Data split
     X = df[['feed_temp', 'reflux_ratio', 'reboiler_duty', 'pressure', 'feed_rate']]
     y = df['purity']
-    
+
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-    
-    # 重回帰モデルの構築
+
+    # Multiple regression model construction
     model = LinearRegression()
     model.fit(X_train, y_train)
-    
-    # 予測
+
+    # Prediction
     y_train_pred = model.predict(X_train)
     y_test_pred = model.predict(X_test)
-    
-    # 評価
+
+    # Evaluation
     train_r2 = r2_score(y_train, y_train_pred)
     test_r2 = r2_score(y_test, y_test_pred)
     train_rmse = np.sqrt(mean_squared_error(y_train, y_train_pred))
     test_rmse = np.sqrt(mean_squared_error(y_test, y_test_pred))
-    
-    print("【重回帰モデルの結果】")
-    print(f"\n訓練データ - R²: {train_r2:.4f}, RMSE: {train_rmse:.4f}%")
-    print(f"テストデータ - R²: {test_r2:.4f}, RMSE: {test_rmse:.4f}%")
-    
-    # モデルパラメータ（各変数の重要度）
+
+    print("【Multiple Regression Model Results】")
+    print(f"\nTraining Data - R²: {train_r2:.4f}, RMSE: {train_rmse:.4f}%")
+    print(f"Test Data - R²: {test_r2:.4f}, RMSE: {test_rmse:.4f}%")
+
+    # Model parameters (importance of each variable)
     coefficients = pd.DataFrame({
         'Variable': X.columns,
         'Coefficient': model.coef_,
         'Abs_Coefficient': np.abs(model.coef_)
     }).sort_values('Abs_Coefficient', ascending=False)
-    
-    print(f"\n切片: {model.intercept_:.4f}")
-    print("\n各変数の係数（影響度）:")
+
+    print(f"\nIntercept: {model.intercept_:.4f}")
+    print("\nCoefficients of each variable (influence):")
     print(coefficients)
-    
-    # 可視化
+
+    # Visualization
     fig, axes = plt.subplots(2, 2, figsize=(14, 10))
-    
-    # 予測 vs 実測（訓練データ）
+
+    # Predicted vs Actual (training data)
     axes[0, 0].scatter(y_train, y_train_pred, alpha=0.5, s=30, color='#11998e')
     axes[0, 0].plot([y_train.min(), y_train.max()], [y_train.min(), y_train.max()],
                     'r--', linewidth=2, label='Perfect prediction')
@@ -268,8 +302,8 @@ $$y = \beta_0 + \beta_1 x_1 + \beta_2 x_2 + \cdots + \beta_p x_p + \epsilon$$
     axes[0, 0].set_title(f'Training Set (R²={train_r2:.3f})', fontsize=12, fontweight='bold')
     axes[0, 0].legend()
     axes[0, 0].grid(alpha=0.3)
-    
-    # 予測 vs 実測（テストデータ）
+
+    # Predicted vs Actual (test data)
     axes[0, 1].scatter(y_test, y_test_pred, alpha=0.5, s=30, color='#f59e0b')
     axes[0, 1].plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()],
                     'r--', linewidth=2, label='Perfect prediction')
@@ -278,8 +312,8 @@ $$y = \beta_0 + \beta_1 x_1 + \beta_2 x_2 + \cdots + \beta_p x_p + \epsilon$$
     axes[0, 1].set_title(f'Test Set (R²={test_r2:.3f})', fontsize=12, fontweight='bold')
     axes[0, 1].legend()
     axes[0, 1].grid(alpha=0.3)
-    
-    # 残差プロット
+
+    # Residual plot
     residuals_test = y_test - y_test_pred
     axes[1, 0].scatter(y_test_pred, residuals_test, alpha=0.5, s=30, color='#7b2cbf')
     axes[1, 0].axhline(y=0, color='red', linestyle='--', linewidth=2)
@@ -287,87 +321,107 @@ $$y = \beta_0 + \beta_1 x_1 + \beta_2 x_2 + \cdots + \beta_p x_p + \epsilon$$
     axes[1, 0].set_ylabel('Residuals (%)', fontsize=11)
     axes[1, 0].set_title('Residual Plot (Test Set)', fontsize=12, fontweight='bold')
     axes[1, 0].grid(alpha=0.3)
-    
-    # 係数の重要度
+
+    # Coefficient importance
     axes[1, 1].barh(coefficients['Variable'], coefficients['Abs_Coefficient'], color='#11998e')
     axes[1, 1].set_xlabel('Absolute Coefficient Value', fontsize=11)
     axes[1, 1].set_title('Feature Importance (Coefficient Magnitude)', fontsize=12, fontweight='bold')
     axes[1, 1].grid(alpha=0.3, axis='x')
-    
+
     plt.tight_layout()
     plt.show()
-    
-    print("\n【解釈】")
-    print("✓ 還流比が純度に最も大きな影響を与える")
-    print("✓ 圧力も重要な制御変数")
-    print("✓ R²が高く、モデルは良好な予測性能を示す")
-    
 
-**出力例** :
-    
-    
-    【重回帰モデルの結果】
-    
-    訓練データ - R²: 0.9523, RMSE: 0.3456%
-    テストデータ - R²: 0.9487, RMSE: 0.3589%
-    
-    切片: 91.2345
-    
-    各変数の係数（影響度）:
-            Variable  Coefficient  Abs_Coefficient
-    1   reflux_ratio     1.198765         1.198765
-    3       pressure     1.987654         1.987654
-    2  reboiler_duty     0.001987         0.001987
-    0      feed_temp     0.049876         0.049876
-    4      feed_rate    -0.009876         0.009876
-    
+    print("\n【Interpretation】")
+    print("✓ Pressure has the largest absolute coefficient in the original units")
+    print("✓ Coefficient magnitudes across different units do not directly rank influence")
+    print("✓ Test R² is lower than training R²; assess generalization with cross-validation")
 
-**解説** : 重回帰では、各変数の係数から影響度を把握できます。訓練データとテストデータのR²が近いため、過学習の心配はありません。
+**出力例 / Output Example** :
+
+```text
+【Multiple Regression Model Results】
+
+Training Data - R²: 0.7631, RMSE: 0.4740%
+Test Data - R²: 0.6596, RMSE: 0.5794%
+
+Intercept: 91.1457
+
+Coefficients of each variable (influence):
+        Variable  Coefficient  Abs_Coefficient
+3       pressure     2.856842         2.856842
+1   reflux_ratio     1.195979         1.195979
+0      feed_temp     0.051743         0.051743
+4      feed_rate    -0.010211         0.010211
+2  reboiler_duty     0.001858         0.001858
+
+【Interpretation】
+✓ Pressure has the largest absolute coefficient in the original units
+✓ Coefficient magnitudes across different units do not directly rank influence
+✓ Test R² is lower than training R²; assess generalization with cross-validation
+```
+
+**解説** : 重回帰の各係数は、その変数の単位変化に対する変化量を表すため、単位の異なる係数の大きさだけで影響度を順位付けできません。訓練R²は0.7631、テストR²は0.6596であり、この差があるため、過学習を否定せずクロスバリデーションで検証する必要があります。
 
 #### コード例3: 残差分析とモデル診断
     
     
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    # - pandas>=2.0.0, <2.2.0
+    # - scipy>=1.11.0
+
+    """
+    Example: Code Example 3: Residual Analysis and Model Diagnostics
+
+    Purpose: Demonstrate data visualization techniques
+    Target: Advanced
+    Execution time: 2-5 seconds
+    Dependencies: None
+    """
+
     import numpy as np
     import pandas as pd
     import matplotlib.pyplot as plt
     from sklearn.linear_model import LinearRegression
     from scipy import stats
-    
-    # 前のコード例のデータとモデルを使用
-    # （コード例2の続き）
-    
-    # 残差分析
+
+    # Using data and model from previous code example
+    # (Continuation of Code Example 2)
+
+    # Residual analysis
     residuals = y_test - y_test_pred
-    
-    # 統計検定
-    # 1. 正規性検定（Shapiro-Wilk検定）
+
+    # Statistical tests
+    # 1. Normality test (Shapiro-Wilk test)
     statistic, p_value = stats.shapiro(residuals)
-    print("【残差の正規性検定（Shapiro-Wilk）】")
-    print(f"統計量: {statistic:.4f}, p値: {p_value:.4f}")
+    print("【Residual Normality Test (Shapiro-Wilk)】")
+    print(f"Statistic: {statistic:.4f}, p-value: {p_value:.4f}")
     if p_value > 0.05:
-        print("✓ 残差は正規分布に従う（p > 0.05）")
+        print("✓ Residuals follow normal distribution (p > 0.05)")
     else:
-        print("✗ 残差は正規分布から外れている（p < 0.05）")
-    
-    # 2. 等分散性の確認（Breusch-Pagan検定の簡易版）
-    print(f"\n【残差の統計】")
-    print(f"平均: {residuals.mean():.6f}（0に近いほど良好）")
-    print(f"標準偏差: {residuals.std():.4f}")
-    print(f"歪度: {stats.skew(residuals):.4f}（-0.5〜0.5が理想）")
-    print(f"尖度: {stats.kurtosis(residuals):.4f}（-1〜1が理想）")
-    
-    # 可視化: 詳細な残差分析
+        print("✗ Residuals deviate from normal distribution (p < 0.05)")
+
+    # 2. Check homoscedasticity (simplified Breusch-Pagan test)
+    print(f"\n【Residual Statistics】")
+    print(f"Mean: {residuals.mean():.6f} (closer to 0 is better)")
+    print(f"Standard Deviation: {residuals.std():.4f}")
+    print(f"Skewness: {stats.skew(residuals):.4f} (-0.5 to 0.5 is ideal)")
+    print(f"Kurtosis: {stats.kurtosis(residuals):.4f} (-1 to 1 is ideal)")
+
+    # Visualization: Detailed residual analysis
     fig, axes = plt.subplots(2, 2, figsize=(14, 10))
-    
-    # 1. 残差の正規Q-Qプロット
+
+    # 1. Normal Q-Q plot of residuals
     stats.probplot(residuals, dist="norm", plot=axes[0, 0])
     axes[0, 0].set_title('Q-Q Plot (Normality Check)', fontsize=12, fontweight='bold')
     axes[0, 0].grid(alpha=0.3)
-    
-    # 2. 残差のヒストグラム
+
+    # 2. Residual histogram
     axes[0, 1].hist(residuals, bins=30, color='#11998e', alpha=0.7, edgecolor='black')
     axes[0, 1].axvline(x=0, color='red', linestyle='--', linewidth=2)
-    # 正規分布の理論曲線を重ねる
+    # Overlay theoretical normal distribution curve
     mu, sigma = residuals.mean(), residuals.std()
     x = np.linspace(residuals.min(), residuals.max(), 100)
     axes[0, 1].plot(x, len(residuals) * (x[1]-x[0]) * stats.norm.pdf(x, mu, sigma),
@@ -377,11 +431,11 @@ $$y = \beta_0 + \beta_1 x_1 + \beta_2 x_2 + \cdots + \beta_p x_p + \epsilon$$
     axes[0, 1].set_title('Residual Distribution', fontsize=12, fontweight='bold')
     axes[0, 1].legend()
     axes[0, 1].grid(alpha=0.3)
-    
-    # 3. 残差 vs 予測値（等分散性の確認）
+
+    # 3. Residuals vs Predicted values (check homoscedasticity)
     axes[1, 0].scatter(y_test_pred, residuals, alpha=0.5, s=30, color='#11998e')
     axes[1, 0].axhline(y=0, color='red', linestyle='--', linewidth=2)
-    # ローリング標準偏差の追加（等分散性の視覚的確認）
+    # Add rolling standard deviation (visual check for homoscedasticity)
     sorted_indices = np.argsort(y_test_pred)
     rolling_std = pd.Series(residuals.values[sorted_indices]).rolling(window=20).std()
     axes[1, 0].plot(np.sort(y_test_pred), rolling_std, 'orange', linewidth=2, label='Rolling Std')
@@ -390,8 +444,8 @@ $$y = \beta_0 + \beta_1 x_1 + \beta_2 x_2 + \cdots + \beta_p x_p + \epsilon$$
     axes[1, 0].set_title('Residuals vs Fitted (Homoscedasticity Check)', fontsize=12, fontweight='bold')
     axes[1, 0].legend()
     axes[1, 0].grid(alpha=0.3)
-    
-    # 4. 残差の時系列プロット（独立性の確認）
+
+    # 4. Residual time series plot (check independence)
     axes[1, 1].plot(residuals.values, linewidth=1, color='#11998e', alpha=0.7)
     axes[1, 1].axhline(y=0, color='red', linestyle='--', linewidth=2)
     axes[1, 1].fill_between(range(len(residuals)), -2*sigma, 2*sigma,
@@ -401,17 +455,16 @@ $$y = \beta_0 + \beta_1 x_1 + \beta_2 x_2 + \cdots + \beta_p x_p + \epsilon$$
     axes[1, 1].set_title('Residuals Sequence Plot (Independence Check)', fontsize=12, fontweight='bold')
     axes[1, 1].legend()
     axes[1, 1].grid(alpha=0.3)
-    
+
     plt.tight_layout()
     plt.show()
-    
-    # モデル診断の結論
-    print("\n【モデル診断の結論】")
-    print("✓ 正規Q-Qプロット: 点が直線上にあれば残差は正規分布")
-    print("✓ 等分散性: 残差の分散が予測値に依存せず一定であることを確認")
-    print("✓ 独立性: 残差にパターンがなく、ランダムであることを確認")
-    print("✓ これらの条件が満たされれば、線形回帰モデルは適切")
-    
+
+    # Model diagnostics conclusion
+    print("\n【Model Diagnostics Conclusion】")
+    print("✓ Normal Q-Q plot: If points lie on straight line, residuals are normally distributed")
+    print("✓ Homoscedasticity: Confirm that variance of residuals is constant and independent of predicted values")
+    print("✓ Independence: Confirm that residuals show no pattern and are random")
+    print("✓ If these conditions are met, the linear regression model is appropriate")
 
 **解説** : 残差分析は、モデルの妥当性を検証する重要なステップです。正規性、等分散性、独立性の3条件を確認します。これらが満たされない場合、モデルの見直しや変数変換を検討します。
 
@@ -438,30 +491,44 @@ VIF > 10 は多重共線性の兆候、VIF > 5 でも注意が必要です。
 #### コード例4: 多重共線性の診断とVIF計算
     
     
+    # Requirements:
+    # - Python 3.9+
+    # - numpy>=1.24.0, <2.0.0
+    # - pandas>=2.0.0, <2.2.0
+
+    """
+    Example: Code Example 4: Multicollinearity Diagnosis and VIF Calculat
+
+    Purpose: Demonstrate machine learning model training and evaluation
+    Target: Intermediate
+    Execution time: 1-5 minutes
+    Dependencies: None
+    """
+
     import numpy as np
     import pandas as pd
     from sklearn.linear_model import LinearRegression
     from statsmodels.stats.outliers_influence import variance_inflation_factor
-    
-    # サンプルデータ生成: 強い相関を持つ変数
+
+    # Sample data generation: Variables with strong correlation
     np.random.seed(42)
     n = 200
-    
-    # 温度（基準変数）
+
+    # Temperature (reference variable)
     temperature = np.random.normal(175, 5, n)
-    
-    # 圧力（温度と強く相関）
+
+    # Pressure (strongly correlated with temperature)
     pressure = 1.0 + 0.01 * temperature + np.random.normal(0, 0.05, n)
-    
-    # 流量（温度と中程度の相関）
+
+    # Flow rate (moderately correlated with temperature)
     flow_rate = 50 + 0.1 * temperature + np.random.normal(0, 3, n)
-    
-    # エネルギー（温度と圧力の合成変数 → 多重共線性）
+
+    # Energy (composite variable of temperature and pressure → multicollinearity)
     energy = 100 + 2 * temperature + 50 * pressure + np.random.normal(0, 5, n)
-    
-    # 収率（目的変数）
+
+    # Yield (objective variable)
     yield_pct = 80 + 0.3 * temperature + 5 * pressure + 0.05 * flow_rate + np.random.normal(0, 2, n)
-    
+
     df = pd.DataFrame({
         'temperature': temperature,
         'pressure': pressure,
@@ -469,81 +536,95 @@ VIF > 10 は多重共線性の兆候、VIF > 5 でも注意が必要です。
         'energy': energy,
         'yield': yield_pct
     })
-    
-    # 相関マトリックス
-    print("【相関マトリックス】")
+
+    # Correlation matrix
+    print("【Correlation Matrix】")
     corr_matrix = df.corr()
     print(corr_matrix.round(3))
-    
-    # VIF計算
+
+    # VIF calculation
     X = df[['temperature', 'pressure', 'flow_rate', 'energy']]
     vif_data = pd.DataFrame()
     vif_data["Variable"] = X.columns
     vif_data["VIF"] = [variance_inflation_factor(X.values, i) for i in range(X.shape[1])]
     vif_data = vif_data.sort_values('VIF', ascending=False)
-    
-    print("\n【VIF（多重共線性診断）】")
+
+    print("\n【VIF (Multicollinearity Diagnosis)】")
     print(vif_data)
-    print("\n判定基準:")
-    print("  VIF < 5:  多重共線性の問題なし")
-    print("  5 < VIF < 10: 中程度の多重共線性（注意）")
-    print("  VIF > 10: 深刻な多重共線性（対策必要）")
-    
-    # 多重共線性のある変数を除外して再計算
-    X_reduced = df[['temperature', 'pressure', 'flow_rate']]  # energyを除外
+    print("\nJudgment Criteria:")
+    print("  VIF < 5:  No multicollinearity problem")
+    print("  5 < VIF < 10: Moderate multicollinearity (caution)")
+    print("  VIF > 10: Severe multicollinearity (countermeasures needed)")
+
+    # Recalculate excluding variables with multicollinearity
+    X_reduced = df[['temperature', 'pressure', 'flow_rate']]  # Exclude energy
     vif_data_reduced = pd.DataFrame()
     vif_data_reduced["Variable"] = X_reduced.columns
     vif_data_reduced["VIF"] = [variance_inflation_factor(X_reduced.values, i) for i in range(X_reduced.shape[1])]
-    
-    print("\n【VIF（energy除外後）】")
+
+    print("\n【VIF (after excluding energy)】")
     print(vif_data_reduced.sort_values('VIF', ascending=False))
-    
-    # モデル性能の比較
+
+    # Compare model performance
     from sklearn.model_selection import train_test_split
     from sklearn.metrics import r2_score
-    
+
     y = df['yield']
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
     X_train_red, X_test_red = train_test_split(X_reduced, test_size=0.2, random_state=42)[0:2]
-    
-    # 全変数使用
+
+    # Using all variables
     model_full = LinearRegression().fit(X_train, y_train)
     r2_full = r2_score(y_test, model_full.predict(X_test))
-    
-    # energy除外
+
+    # Excluding energy
     model_reduced = LinearRegression().fit(X_train_red, y_train)
     r2_reduced = r2_score(y_test, model_reduced.predict(X_test_red))
-    
-    print(f"\n【モデル性能比較】")
-    print(f"全変数使用（多重共線性あり）: R² = {r2_full:.4f}")
-    print(f"energy除外（多重共線性軽減）: R² = {r2_reduced:.4f}")
-    print("\n→ 多重共線性がある変数を除外しても性能はほぼ同じ")
-    print("  むしろ、モデルの安定性と解釈性が向上")
-    
 
-**出力例** :
-    
-    
-    【VIF（多重共線性診断）】
-        Variable         VIF
-    3     energy  245.678901
-    0  temperature   23.456789
-    1   pressure    18.234567
-    2  flow_rate     2.345678
-    
-    判定基準:
-      VIF < 5:  多重共線性の問題なし
-      5 < VIF < 10: 中程度の多重共線性（注意）
-      VIF > 10: 深刻な多重共線性（対策必要）
-    
-    【VIF（energy除外後）】
-        Variable       VIF
-    0  temperature  3.456789
-    1     pressure  2.987654
-    2    flow_rate  1.234567
-    
+    print(f"\n【Model Performance Comparison】")
+    print(f"Using all variables (with multicollinearity): R² = {r2_full:.4f}")
+    print(f"Excluding energy (reduced multicollinearity): R² = {r2_reduced:.4f}")
+    print("\n→ Performance is almost the same even when excluding variables with multicollinearity")
+    print("  Stability improvement requires additional validation")
 
-**解説** : VIFが高い変数は、他の変数から予測可能であり、冗長です。除外してもモデル性能は維持され、むしろ安定性が向上します。
+**出力例 / Output Example** :
+
+```text
+【Correlation Matrix】
+             temperature  pressure  flow_rate  energy  yield
+temperature        1.000     0.722      0.022   0.914  0.643
+pressure           0.722     1.000      0.002   0.759  0.457
+flow_rate          0.022     0.002      1.000   0.061  0.089
+energy             0.914     0.759      0.061   1.000  0.636
+yield              0.643     0.457      0.089   0.636  1.000
+
+【VIF (Multicollinearity Diagnosis)】
+      Variable       VIF
+3       energy  7.060131
+0  temperature  6.207014
+1     pressure  2.393000
+2    flow_rate  1.014201
+
+Judgment Criteria:
+  VIF < 5:  No multicollinearity problem
+  5 < VIF < 10: Moderate multicollinearity (caution)
+  VIF > 10: Severe multicollinearity (countermeasures needed)
+
+【VIF (after excluding energy)】
+      Variable       VIF
+0  temperature  2.090003
+1     pressure  2.088991
+2    flow_rate  1.000894
+
+【Model Performance Comparison】
+Using all variables (with multicollinearity): R² = 0.2268
+Excluding energy (reduced multicollinearity): R² = 0.2194
+
+→ Performance is almost the same even when excluding variables with multicollinearity
+  Stability improvement requires additional validation
+```
+
+**解説** : VIFが高い変数は他の変数から予測可能であり、冗長な場合があります。energyを除くとテストR²は0.2268から0.2194へわずかに低下しており、この比較だけではモデルの安定性向上を確認できません。このVIF値は入力をデフォルトで標準化するstatsmodels 0.15.0によるもので、そのデフォルトがないバージョンでは、この中心化していない入力に対して異なる値が出る場合があります。
 
 ### PLS（偏最小二乗法）の原理と実装
 
@@ -552,6 +633,21 @@ PLSは、説明変数と目的変数の共分散を最大化する潜在変数�
 #### コード例5: PLSによるソフトセンサー構築
     
     
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    # - pandas>=2.0.0, <2.2.0
+
+    """
+    Example: Code Example 5: Soft Sensor Construction with PLS
+
+    Purpose: Demonstrate data visualization techniques
+    Target: Intermediate
+    Execution time: 30-60 seconds
+    Dependencies: None
+    """
+
     import numpy as np
     import pandas as pd
     import matplotlib.pyplot as plt
@@ -560,86 +656,86 @@ PLSは、説明変数と目的変数の共分散を最大化する潜在変数�
     from sklearn.model_selection import train_test_split, cross_val_score
     from sklearn.metrics import r2_score, mean_squared_error
     from sklearn.preprocessing import StandardScaler
-    
-    # サンプルデータ生成: 蒸留塔の温度プロファイル（20段）から純度を予測
+
+    # Sample data generation: Predict purity from distillation column temperature profile (20 stages)
     np.random.seed(42)
     n = 500
-    
-    # 温度プロファイル（20段の温度）: 互いに相関が高い
+
+    # Temperature profile (20 stages): Independent noise around fixed stage means
     base_profile = np.linspace(80, 160, 20)
     temperature_profiles = np.array([
         base_profile + np.random.normal(0, 2, 20) for _ in range(n)
     ])
-    
-    # 製品純度: 温度プロファイルから計算（特に上段の温度が重要）
+
+    # Product purity: Calculated from temperature profile (especially upper stage temperatures are important)
     purity = (
         95 +
-        0.05 * temperature_profiles[:, 0:5].mean(axis=1) +  # 上段5段の平均温度
-        0.02 * temperature_profiles[:, 15:20].mean(axis=1) +  # 下段5段の平均温度
+        0.05 * temperature_profiles[:, 0:5].mean(axis=1) +  # Average temperature of upper 5 stages
+        0.02 * temperature_profiles[:, 15:20].mean(axis=1) +  # Average temperature of lower 5 stages
         np.random.normal(0, 0.5, n)
     )
-    
-    # データフレーム作成
+
+    # Create dataframe
     X = pd.DataFrame(temperature_profiles, columns=[f'T{i+1}' for i in range(20)])
     y = pd.Series(purity, name='purity')
-    
-    # データ分割
+
+    # Data split
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-    
-    # スケーリング（PLSには必須）
+
+    # Scaling (essential for PLS)
     scaler_X = StandardScaler()
     scaler_y = StandardScaler()
-    
+
     X_train_scaled = scaler_X.fit_transform(X_train)
     X_test_scaled = scaler_X.transform(X_test)
     y_train_scaled = scaler_y.fit_transform(y_train.values.reshape(-1, 1)).ravel()
-    
-    # 最適な成分数の選択（クロスバリデーション）
+
+    # Select optimal number of components (cross-validation)
     max_components = 10
     cv_scores = []
-    
+
     for n_comp in range(1, max_components + 1):
         pls = PLSRegression(n_components=n_comp)
         scores = cross_val_score(pls, X_train_scaled, y_train_scaled, cv=5,
                                  scoring='r2')
         cv_scores.append(scores.mean())
-    
+
     optimal_n_components = np.argmax(cv_scores) + 1
-    print(f"【最適成分数の選択】")
-    print(f"最適成分数: {optimal_n_components}")
-    print(f"CV R²スコア: {max(cv_scores):.4f}")
-    
-    # 最適成分数でPLSモデル構築
+    print(f"【Optimal Component Selection】")
+    print(f"Optimal number of components: {optimal_n_components}")
+    print(f"CV R² Score: {max(cv_scores):.4f}")
+
+    # Build PLS model with optimal number of components
     pls_model = PLSRegression(n_components=optimal_n_components)
     pls_model.fit(X_train_scaled, y_train_scaled)
-    
-    # 予測（スケールを戻す）
+
+    # Prediction (rescale)
     y_train_pred_scaled = pls_model.predict(X_train_scaled)
     y_test_pred_scaled = pls_model.predict(X_test_scaled)
-    
+
     y_train_pred = scaler_y.inverse_transform(y_train_pred_scaled.reshape(-1, 1)).ravel()
     y_test_pred = scaler_y.inverse_transform(y_test_pred_scaled.reshape(-1, 1)).ravel()
-    
-    # 比較: 通常の線形回帰
+
+    # Comparison: Ordinary linear regression
     lr_model = LinearRegression()
     lr_model.fit(X_train_scaled, y_train_scaled)
     y_test_pred_lr_scaled = lr_model.predict(X_test_scaled)
     y_test_pred_lr = scaler_y.inverse_transform(y_test_pred_lr_scaled.reshape(-1, 1)).ravel()
-    
-    # 評価
+
+    # Evaluation
     pls_r2 = r2_score(y_test, y_test_pred)
     pls_rmse = np.sqrt(mean_squared_error(y_test, y_test_pred))
     lr_r2 = r2_score(y_test, y_test_pred_lr)
     lr_rmse = np.sqrt(mean_squared_error(y_test, y_test_pred_lr))
-    
-    print(f"\n【モデル性能比較】")
-    print(f"PLS ({optimal_n_components}成分): R² = {pls_r2:.4f}, RMSE = {pls_rmse:.4f}%")
-    print(f"線形回帰 (20変数): R² = {lr_r2:.4f}, RMSE = {lr_rmse:.4f}%")
-    
-    # 可視化
+
+    print(f"\n【Model Performance Comparison】")
+    print(f"PLS ({optimal_n_components} components): R² = {pls_r2:.4f}, RMSE = {pls_rmse:.4f}%")
+    print(f"Linear Regression (20 variables): R² = {lr_r2:.4f}, RMSE = {lr_rmse:.4f}%")
+
+    # Visualization
     fig, axes = plt.subplots(2, 2, figsize=(14, 10))
-    
-    # 成分数 vs CV Score
+
+    # Number of components vs CV Score
     axes[0, 0].plot(range(1, max_components + 1), cv_scores, marker='o',
                     linewidth=2, markersize=8, color='#11998e')
     axes[0, 0].axvline(x=optimal_n_components, color='red', linestyle='--',
@@ -649,8 +745,8 @@ PLSは、説明変数と目的変数の共分散を最大化する潜在変数�
     axes[0, 0].set_title('Optimal Component Selection', fontsize=12, fontweight='bold')
     axes[0, 0].legend()
     axes[0, 0].grid(alpha=0.3)
-    
-    # PLS予測結果
+
+    # PLS prediction results
     axes[0, 1].scatter(y_test, y_test_pred, alpha=0.6, s=50, color='#11998e')
     axes[0, 1].plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()],
                     'r--', linewidth=2, label='Perfect prediction')
@@ -659,8 +755,8 @@ PLSは、説明変数と目的変数の共分散を最大化する潜在変数�
     axes[0, 1].set_title(f'PLS Model (R²={pls_r2:.3f})', fontsize=12, fontweight='bold')
     axes[0, 1].legend()
     axes[0, 1].grid(alpha=0.3)
-    
-    # 線形回帰予測結果
+
+    # Linear regression prediction results
     axes[1, 0].scatter(y_test, y_test_pred_lr, alpha=0.6, s=50, color='#f59e0b')
     axes[1, 0].plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()],
                     'r--', linewidth=2, label='Perfect prediction')
@@ -669,42 +765,62 @@ PLSは、説明変数と目的変数の共分散を最大化する潜在変数�
     axes[1, 0].set_title(f'Linear Regression (R²={lr_r2:.3f})', fontsize=12, fontweight='bold')
     axes[1, 0].legend()
     axes[1, 0].grid(alpha=0.3)
-    
-    # 変数重要度（PLSのローディング）
-    loadings = pls_model.x_loadings_[:, 0]  # 第1成分のローディング
+
+    # Variable importance (PLS loadings)
+    loadings = pls_model.x_loadings_[:, 0]  # First component loadings
     axes[1, 1].barh(X.columns, loadings, color='#11998e')
     axes[1, 1].set_xlabel('Loading on 1st Component', fontsize=11)
     axes[1, 1].set_ylabel('Temperature Stage', fontsize=11)
     axes[1, 1].set_title('Variable Importance (PLS Loadings)', fontsize=12, fontweight='bold')
     axes[1, 1].grid(alpha=0.3, axis='x')
-    
+
     plt.tight_layout()
     plt.show()
-    
-    print("\n【PLSの利点】")
-    print("✓ 多重共線性がある場合でも安定したモデル構築")
-    print("✓ 少ない成分数で情報を集約（20変数 → 3-5成分）")
-    print("✓ 計算効率が良く、リアルタイム予測に適する")
-    print("✓ 解釈性の向上（主要な潜在変数の理解）")
-    
 
-**出力例** :
-    
-    
-    【最適成分数の選択】
-    最適成分数: 4
-    CV R²スコア: 0.8923
-    
-    【モデル性能比較】
-    PLS (4成分): R² = 0.8956, RMSE = 0.5123%
-    線形回帰 (20変数): R² = 0.8834, RMSE = 0.5456%
-    
+    print("\n【Advantages of PLS】")
+    print("✓ Stable model construction even with multicollinearity")
+    print(f"✓ Information aggregated with fewer components (20 variables → {optimal_n_components} components)")
+    print("✓ Computationally efficient, suitable for real-time prediction")
+    print("✓ Improved interpretability (understanding of major latent variables)")
 
-**解説** : PLSは、20個の相関の高い変数を4つの独立な成分に圧縮し、効率的なモデルを構築します。特に、変数数がサンプル数に近い場合や、オンライン予測でリアルタイム性が求められる場合に有効です。
+**出力例 / Output Example** :
+
+```text
+【Optimal Component Selection】
+Optimal number of components: 1
+CV R² Score: -0.0363
+
+【Model Performance Comparison】
+PLS (1 components): R² = -0.1581, RMSE = 0.4708%
+Linear Regression (20 variables): R² = -0.1888, RMSE = 0.4770%
+
+【Advantages of PLS】
+✓ Stable model construction even with multicollinearity
+✓ Information aggregated with fewer components (20 variables → 1 components)
+✓ Computationally efficient, suitable for real-time prediction
+✓ Improved interpretability (understanding of major latent variables)
+```
+
+**解説** : この例の20変数は固定した各段の平均値に独立なノイズを加えたもので、クロスバリデーションではPLSの1成分が選ばれます（CV R² = -0.0363）が、テストR²は-0.1581であり、高精度な予測を示す例ではありません。特に、変数数がサンプル数に近い場合や、オンライン予測でリアルタイム性が求められる場合に有効です。
 
 #### コード例6: PLSと主成分回帰（PCR）の比較
     
     
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    # - pandas>=2.0.0, <2.2.0
+
+    """
+    Example: Code Example 6: Comparison of PLS and Principal Component Re
+
+    Purpose: Demonstrate data visualization techniques
+    Target: Intermediate
+    Execution time: 1-5 minutes
+    Dependencies: None
+    """
+
     import numpy as np
     import pandas as pd
     import matplotlib.pyplot as plt
@@ -714,61 +830,61 @@ PLSは、説明変数と目的変数の共分散を最大化する潜在変数�
     from sklearn.preprocessing import StandardScaler
     from sklearn.model_selection import train_test_split
     from sklearn.metrics import r2_score, mean_squared_error
-    
-    # 前のコード例のデータを使用
-    # X, y はすでに定義済み
-    
+
+    # Using data from previous code example
+    # X, y are already defined
+
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-    
-    # スケーリング
+
+    # Scaling
     scaler_X = StandardScaler()
     scaler_y = StandardScaler()
     X_train_scaled = scaler_X.fit_transform(X_train)
     X_test_scaled = scaler_X.transform(X_test)
     y_train_scaled = scaler_y.fit_transform(y_train.values.reshape(-1, 1)).ravel()
-    
-    # PLS（目的変数を考慮して成分抽出）
+
+    # PLS (extract components considering objective variable)
     pls = PLSRegression(n_components=4)
     pls.fit(X_train_scaled, y_train_scaled)
-    
-    # PCR（主成分回帰：目的変数を考慮せず成分抽出）
+
+    # PCR (Principal Component Regression: extract components without considering objective variable)
     pca = PCA(n_components=4)
     X_train_pca = pca.fit_transform(X_train_scaled)
     X_test_pca = pca.transform(X_test_scaled)
-    
+
     pcr = LinearRegression()
     pcr.fit(X_train_pca, y_train_scaled)
-    
-    # 予測
+
+    # Prediction
     y_test_pred_pls = scaler_y.inverse_transform(
         pls.predict(X_test_scaled).reshape(-1, 1)
     ).ravel()
-    
+
     y_test_pred_pcr = scaler_y.inverse_transform(
         pcr.predict(X_test_pca).reshape(-1, 1)
     ).ravel()
-    
-    # 評価
+
+    # Evaluation
     pls_r2 = r2_score(y_test, y_test_pred_pls)
     pcr_r2 = r2_score(y_test, y_test_pred_pcr)
     pls_rmse = np.sqrt(mean_squared_error(y_test, y_test_pred_pls))
     pcr_rmse = np.sqrt(mean_squared_error(y_test, y_test_pred_pcr))
-    
-    print("【PLS vs PCR 比較】")
+
+    print("【PLS vs PCR Comparison】")
     print(f"PLS:  R² = {pls_r2:.4f}, RMSE = {pls_rmse:.4f}%")
     print(f"PCR:  R² = {pcr_r2:.4f}, RMSE = {pcr_rmse:.4f}%")
-    
-    # 累積寄与率の比較
+
+    # Comparison of cumulative variance explained
     pls_variance = np.var(pls.x_scores_, axis=0)
     pls_cumulative = np.cumsum(pls_variance) / np.sum(pls_variance)
-    
+
     pca_variance = pca.explained_variance_ratio_
     pca_cumulative = np.cumsum(pca_variance)
-    
-    # 可視化
+
+    # Visualization
     fig, axes = plt.subplots(1, 2, figsize=(14, 5))
-    
-    # 累積寄与率
+
+    # Cumulative variance explained
     axes[0].plot(range(1, 5), pls_cumulative, marker='o', linewidth=2,
                  markersize=8, label='PLS', color='#11998e')
     axes[0].plot(range(1, 5), pca_cumulative, marker='s', linewidth=2,
@@ -778,33 +894,31 @@ PLSは、説明変数と目的変数の共分散を最大化する潜在変数�
     axes[0].set_title('Variance Explained: PLS vs PCA', fontsize=12, fontweight='bold')
     axes[0].legend()
     axes[0].grid(alpha=0.3)
-    
-    # 予測精度の比較
+
+    # Prediction accuracy comparison
     methods = ['PLS', 'PCR']
     r2_scores = [pls_r2, pcr_r2]
     colors = ['#11998e', '#f59e0b']
-    
+
     axes[1].bar(methods, r2_scores, color=colors, alpha=0.7, edgecolor='black')
     axes[1].set_ylabel('R² Score', fontsize=11)
     axes[1].set_title('Prediction Performance: PLS vs PCR', fontsize=12, fontweight='bold')
-    axes[1].set_ylim([0.8, 1.0])
     axes[1].grid(alpha=0.3, axis='y')
-    
+
     for i, (method, score) in enumerate(zip(methods, r2_scores)):
         axes[1].text(i, score + 0.01, f'{score:.4f}', ha='center', fontsize=11, fontweight='bold')
-    
+
     plt.tight_layout()
     plt.show()
-    
-    print("\n【PLSとPCRの違い】")
-    print("PLS: 目的変数との共分散を最大化する成分を抽出")
-    print("     → 予測に直接関係する情報を優先的に取り出す")
-    print("PCR: 説明変数のみから分散を最大化する成分を抽出")
-    print("     → 予測に無関係な情報も含む可能性")
-    print("\n→ プロセスモデリングでは、一般的にPLSの方が優れた性能")
-    
 
-**解説** : PLSはPCRと異なり、目的変数を考慮して潜在変数を抽出するため、予測性能が高くなります。プロセスデータのような高次元データでは、PLSが第一選択となります。
+    print("\n【Difference between PLS and PCR】")
+    print("PLS: Extract components that maximize covariance with objective variable")
+    print("     → Prioritize information directly related to prediction")
+    print("PCR: Extract components that maximize variance only from explanatory variables")
+    print("     → May include information unrelated to prediction")
+    print("\n→ Here PCR has higher test R² than PLS; both scores are negative")
+
+**解説** : PLSはPCRと異なり目的変数を考慮して潜在変数を抽出しますが、この例ではPCRのテストR²（-0.0279）がPLS（-0.1887）より高く、どちらもテストデータの平均値を予測する基準を上回りません。高次元のプロセスデータに用いるモデルは、両手法を検証して選択します。
 
 * * *
 
@@ -824,6 +938,21 @@ PLSは、説明変数と目的変数の共分散を最大化する潜在変数�
 #### コード例7: 蒸留塔ソフトセンサーの設計と実装
     
     
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    # - pandas>=2.0.0, <2.2.0
+
+    """
+    Example: Code Example 7: Distillation Column Soft Sensor Design and I
+
+    Purpose: Demonstrate data visualization techniques
+    Target: Advanced
+    Execution time: 1-5 minutes
+    Dependencies: None
+    """
+
     import numpy as np
     import pandas as pd
     import matplotlib.pyplot as plt
@@ -831,15 +960,15 @@ PLSは、説明変数と目的変数の共分散を最大化する潜在変数�
     from sklearn.model_selection import train_test_split
     from sklearn.preprocessing import StandardScaler
     from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
-    
-    # サンプルデータ生成: 蒸留塔の運転データ
+
+    # Sample data generation: Distillation column operation data
     np.random.seed(42)
     n = 1000
-    
-    # 時系列データ（10日間、分単位）
+
+    # Time series data (10 days, minute intervals)
     dates = pd.date_range('2025-01-01', periods=n, freq='15min')
-    
-    # オンライン測定可能な変数（ソフトセンサーの入力）
+
+    # Online measurable variables (soft sensor inputs)
     df = pd.DataFrame({
         'feed_temp': np.random.normal(60, 3, n),
         'top_temp': np.random.normal(85, 2, n),
@@ -849,10 +978,10 @@ PLSは、説明変数と目的変数の共分散を最大化する潜在変数�
         'feed_rate': np.random.normal(100, 8, n),
         'pressure': np.random.normal(1.2, 0.08, n)
     }, index=dates)
-    
-    # オフライン測定される品質変数（ソフトセンサーの出力）
-    # 現実: 1日1回のGC分析（高コスト、時間遅れ）
-    # ソフトセンサー: リアルタイム予測
+
+    # Offline measured quality variable (soft sensor output)
+    # Reality: Once daily GC analysis (high cost, time delay)
+    # Soft sensor: Real-time prediction
     df['purity'] = (
         95 +
         0.05 * df['feed_temp'] +
@@ -862,60 +991,60 @@ PLSは、説明変数と目的変数の共分散を最大化する潜在変数�
         1.5 * df['pressure'] +
         np.random.normal(0, 0.3, n)
     )
-    
-    # オフライン測定をシミュレート（1日1回 = 96サンプルに1回）
+
+    # Simulate offline measurement (once per day = once every 96 samples)
     df['purity_measured'] = np.nan
     df.loc[df.index[::96], 'purity_measured'] = df.loc[df.index[::96], 'purity']
-    
-    print(f"【データ概要】")
-    print(f"全データ数: {len(df)}")
-    print(f"オフライン測定数: {df['purity_measured'].notna().sum()}件（{df['purity_measured'].notna().sum()/len(df)*100:.1f}%）")
-    print(f"測定頻度: 1日1回（実際は15分ごとにデータ収集）")
-    
-    # ソフトセンサーの構築（オフライン測定データのみ使用）
+
+    print(f"【Data Overview】")
+    print(f"Total data points: {len(df)}")
+    print(f"Offline measurements: {df['purity_measured'].notna().sum()} samples ({df['purity_measured'].notna().sum()/len(df)*100:.1f}%)")
+    print(f"Measurement frequency: Once per day (data collected every 15 minutes)")
+
+    # Soft sensor construction (using only offline measurement data)
     train_data = df[df['purity_measured'].notna()].copy()
     X = train_data[['feed_temp', 'top_temp', 'bottom_temp', 'reflux_ratio',
                     'reboiler_duty', 'feed_rate', 'pressure']]
     y = train_data['purity_measured']
-    
+
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
-    
-    # スケーリング
+
+    # Scaling
     scaler_X = StandardScaler()
     scaler_y = StandardScaler()
     X_train_scaled = scaler_X.fit_transform(X_train)
     X_test_scaled = scaler_X.transform(X_test)
     y_train_scaled = scaler_y.fit_transform(y_train.values.reshape(-1, 1)).ravel()
-    
-    # PLSモデル構築
+
+    # PLS model construction
     pls_soft_sensor = PLSRegression(n_components=5)
     pls_soft_sensor.fit(X_train_scaled, y_train_scaled)
-    
-    # テストデータで評価
+
+    # Evaluate on test data
     y_test_pred_scaled = pls_soft_sensor.predict(X_test_scaled)
     y_test_pred = scaler_y.inverse_transform(y_test_pred_scaled.reshape(-1, 1)).ravel()
-    
+
     r2 = r2_score(y_test, y_test_pred)
     rmse = np.sqrt(mean_squared_error(y_test, y_test_pred))
     mae = mean_absolute_error(y_test, y_test_pred)
-    
-    print(f"\n【ソフトセンサー性能】")
+
+    print(f"\n【Soft Sensor Performance】")
     print(f"R²: {r2:.4f}")
     print(f"RMSE: {rmse:.4f}%")
     print(f"MAE: {mae:.4f}%")
-    
-    # 全データに対してリアルタイム予測
+
+    # Real-time prediction for all data
     X_all = df[['feed_temp', 'top_temp', 'bottom_temp', 'reflux_ratio',
                 'reboiler_duty', 'feed_rate', 'pressure']]
     X_all_scaled = scaler_X.transform(X_all)
     y_all_pred_scaled = pls_soft_sensor.predict(X_all_scaled)
     df['purity_soft_sensor'] = scaler_y.inverse_transform(y_all_pred_scaled.reshape(-1, 1)).ravel()
-    
-    # 可視化
+
+    # Visualization
     fig, axes = plt.subplots(3, 1, figsize=(16, 12))
-    
-    # 時系列プロット: 実測 vs ソフトセンサー予測
-    time_window = slice('2025-01-01', '2025-01-03')  # 最初の3日間
+
+    # Time series plot: Actual vs Soft sensor prediction
+    time_window = slice('2025-01-01', '2025-01-03')  # First 3 days
     axes[0].plot(df.loc[time_window].index, df.loc[time_window, 'purity'],
                  linewidth=1, alpha=0.5, label='True Purity (unknown in practice)', color='gray')
     axes[0].scatter(df.loc[time_window].index, df.loc[time_window, 'purity_measured'],
@@ -926,8 +1055,8 @@ PLSは、説明変数と目的変数の共分散を最大化する潜在変数�
     axes[0].set_title('Soft Sensor: Real-time Quality Prediction', fontsize=13, fontweight='bold')
     axes[0].legend(loc='upper right')
     axes[0].grid(alpha=0.3)
-    
-    # 予測 vs 実測（テストデータ）
+
+    # Predicted vs Actual (test data)
     axes[1].scatter(y_test, y_test_pred, alpha=0.6, s=50, color='#11998e')
     axes[1].plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()],
                  'r--', linewidth=2, label='Perfect prediction')
@@ -936,8 +1065,8 @@ PLSは、説明変数と目的変数の共分散を最大化する潜在変数�
     axes[1].set_title(f'Soft Sensor Accuracy (R²={r2:.3f})', fontsize=12, fontweight='bold')
     axes[1].legend()
     axes[1].grid(alpha=0.3)
-    
-    # 誤差分布
+
+    # Error distribution
     errors = y_test - y_test_pred
     axes[2].hist(errors, bins=30, color='#11998e', alpha=0.7, edgecolor='black')
     axes[2].axvline(x=0, color='red', linestyle='--', linewidth=2)
@@ -945,67 +1074,87 @@ PLSは、説明変数と目的変数の共分散を最大化する潜在変数�
     axes[2].set_ylabel('Frequency', fontsize=11)
     axes[2].set_title(f'Error Distribution (MAE={mae:.3f}%)', fontsize=12, fontweight='bold')
     axes[2].grid(alpha=0.3)
-    
+
     plt.tight_layout()
     plt.show()
-    
-    print("\n【ソフトセンサーの効果】")
-    print(f"✓ オフライン測定: 1日1回 → ソフトセンサー: 15分ごと（96倍の頻度）")
-    print(f"✓ 測定コスト削減: GC分析 ¥5,000/回 × 365回/年 = ¥182万/年 → ほぼゼロ")
-    print(f"✓ リアルタイム品質管理: 異常の早期発見、即座の制御対応が可能")
-    print(f"✓ プロセス最適化: 常時品質監視により、最適条件探索が加速")
-    
 
-**出力例** :
-    
-    
-    【データ概要】
-    全データ数: 1000
-    オフライン測定数: 11件（1.1%）
-    測定頻度: 1日1回（実際は15分ごとにデータ収集）
-    
-    【ソフトセンサー性能】
-    R²: 0.9234
-    RMSE: 0.4567%
-    MAE: 0.3456%
-    
+    print("\n【Potential Soft Sensor Benefits (require a validated model)】")
+    print(f"✓ Offline measurement: Once per day → Soft sensor: Every 15 minutes (96x frequency)")
+    print(f"✓ Potential measurement savings: GC analysis ¥5,000/time × 365 times/year ≈ ¥1.82M/year; validation and maintenance still incur costs")
+    print(f"✓ Real-time quality control: Early detection of anomalies, immediate control response possible")
+    print(f"✓ Process optimization: Continuous quality monitoring accelerates optimal condition search")
 
-**解説** : ソフトセンサーにより、低頻度で高コストなオフライン測定を、高頻度でコストゼロのリアルタイム予測に置き換えます。これがPIの最も実用的な応用の1つです。
+**出力例 / Output Example** :
+
+```text
+【Data Overview】
+Total data points: 1000
+Offline measurements: 11 samples (1.1%)
+Measurement frequency: Once per day (data collected every 15 minutes)
+
+【Soft Sensor Performance】
+R²: -35.9911
+RMSE: 0.3754%
+MAE: 0.3557%
+
+【Potential Soft Sensor Benefits (require a validated model)】
+✓ Offline measurement: Once per day → Soft sensor: Every 15 minutes (96x frequency)
+✓ Potential measurement savings: GC analysis ¥5,000/time × 365 times/year ≈ ¥1.82M/year; validation and maintenance still incur costs
+✓ Real-time quality control: Early detection of anomalies, immediate control response possible
+✓ Process optimization: Continuous quality monitoring accelerates optimal condition search
+```
+
+**解説** : 検証済みのソフトセンサーは低頻度のオフライン測定を高頻度の予測で補完できますが、この例はわずか7サンプルでPLSの5成分を学習し、4サンプルで評価したR²が-35.9911であり、測定の代替や運用コストゼロを正当化する結果ではありません。十分なデータ、検証、保守があれば、ソフトセンシングはPIの実用的な応用となります。
 
 #### コード例8: ソフトセンサーの運用と保守
     
     
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    # - pandas>=2.0.0, <2.2.0
+
+    """
+    Example: Code Example 8: Soft Sensor Operation and Maintenance
+
+    Purpose: Demonstrate data visualization techniques
+    Target: Intermediate
+    Execution time: 1-5 minutes
+    Dependencies: None
+    """
+
     import numpy as np
     import pandas as pd
     import matplotlib.pyplot as plt
     from sklearn.cross_decomposition import PLSRegression
     from sklearn.preprocessing import StandardScaler
     from sklearn.metrics import r2_score
-    
-    # 前のコード例のソフトセンサーを使用
-    # pls_soft_sensor, scaler_X, scaler_y はすでに定義済み
-    
-    # シミュレーション: 運転条件が変化（プロセスドリフト）
-    # 3ヶ月後、原料組成が変化し、モデルの精度が低下
-    
-    # 新しい運転データ生成（プロセス特性がドリフト）
+
+    # Using soft sensor from previous code example
+    # pls_soft_sensor, scaler_X, scaler_y are already defined
+
+    # Simulation: Operating conditions change (process drift)
+    # After 3 months, raw material composition changes and model accuracy decreases
+
+    # Generate new operating data (process characteristics drift)
     np.random.seed(100)
     n_new = 300
     dates_new = pd.date_range('2025-04-01', periods=n_new, freq='15min')
-    
+
     df_new = pd.DataFrame({
-        'feed_temp': np.random.normal(62, 3, n_new),  # 平均が2°C上昇
-        'top_temp': np.random.normal(87, 2, n_new),   # 平均が2°C上昇
+        'feed_temp': np.random.normal(62, 3, n_new),  # Mean increased by 2°C
+        'top_temp': np.random.normal(87, 2, n_new),   # Mean increased by 2°C
         'bottom_temp': np.random.normal(155, 4, n_new),
         'reflux_ratio': np.random.uniform(2.0, 3.0, n_new),
-        'reboiler_duty': np.random.normal(1550, 100, n_new),  # 平均が50kW上昇
+        'reboiler_duty': np.random.normal(1550, 100, n_new),  # Mean increased by 50kW
         'feed_rate': np.random.normal(100, 8, n_new),
         'pressure': np.random.normal(1.2, 0.08, n_new)
     }, index=dates_new)
-    
-    # 真の純度（プロセス特性が変化）
+
+    # True purity (process characteristics changed)
     df_new['purity'] = (
-        93 +  # ベースラインが2%低下（原料組成変化の影響）
+        93 +  # Baseline decreased by 2% (impact of raw material composition change)
         0.05 * df_new['feed_temp'] +
         0.2 * (df_new['top_temp'] - 85) +
         0.5 * df_new['reflux_ratio'] +
@@ -1013,64 +1162,64 @@ PLSは、説明変数と目的変数の共分散を最大化する潜在変数�
         1.5 * df_new['pressure'] +
         np.random.normal(0, 0.3, n_new)
     )
-    
-    # オフライン測定（週1回）
+
+    # Offline measurement (once per week)
     df_new['purity_measured'] = np.nan
     df_new.loc[df_new.index[::672], 'purity_measured'] = df_new.loc[df_new.index[::672], 'purity']
-    
-    # 既存のソフトセンサーで予測
+
+    # Predict with existing soft sensor
     X_new = df_new[['feed_temp', 'top_temp', 'bottom_temp', 'reflux_ratio',
                     'reboiler_duty', 'feed_rate', 'pressure']]
     X_new_scaled = scaler_X.transform(X_new)
     y_new_pred_scaled = pls_soft_sensor.predict(X_new_scaled)
     df_new['purity_soft_sensor_old'] = scaler_y.inverse_transform(y_new_pred_scaled.reshape(-1, 1)).ravel()
-    
-    # 性能評価（既存モデル）
+
+    # Performance evaluation (existing model)
     old_model_r2 = r2_score(df_new['purity'], df_new['purity_soft_sensor_old'])
     old_model_mae = np.abs(df_new['purity'] - df_new['purity_soft_sensor_old']).mean()
-    
-    print("【ソフトセンサーの性能劣化】")
-    print(f"既存モデル（3ヶ月前構築）: R² = {old_model_r2:.4f}, MAE = {old_model_mae:.4f}%")
-    
-    # ソフトセンサーの再学習（オンライン更新）
-    # 新しいオフライン測定データを追加して再学習
+
+    print("【Soft Sensor Performance Degradation】")
+    print(f"Existing model (built 3 months ago): R² = {old_model_r2:.4f}, MAE = {old_model_mae:.4f}%")
+
+    # Soft sensor retraining (online update)
+    # Add new offline measurement data and retrain
     train_new = df_new[df_new['purity_measured'].notna()].copy()
     X_retrain = train_new[['feed_temp', 'top_temp', 'bottom_temp', 'reflux_ratio',
                             'reboiler_duty', 'feed_rate', 'pressure']]
     y_retrain = train_new['purity_measured']
-    
-    # 既存データと新データを結合
+
+    # Combine existing and new data
     X_combined = pd.concat([X, X_retrain])
     y_combined = pd.concat([y, y_retrain])
-    
-    # 再スケーリングと再学習
+
+    # Rescaling and retraining
     scaler_X_new = StandardScaler()
     scaler_y_new = StandardScaler()
     X_combined_scaled = scaler_X_new.fit_transform(X_combined)
     y_combined_scaled = scaler_y_new.fit_transform(y_combined.values.reshape(-1, 1)).ravel()
-    
+
     pls_updated = PLSRegression(n_components=5)
     pls_updated.fit(X_combined_scaled, y_combined_scaled)
-    
-    # 更新モデルで予測
+
+    # Predict with updated model
     X_new_scaled_updated = scaler_X_new.transform(X_new)
     y_new_pred_updated_scaled = pls_updated.predict(X_new_scaled_updated)
     df_new['purity_soft_sensor_updated'] = scaler_y_new.inverse_transform(
         y_new_pred_updated_scaled.reshape(-1, 1)
     ).ravel()
-    
-    # 性能評価（更新モデル）
+
+    # Performance evaluation (updated model)
     updated_model_r2 = r2_score(df_new['purity'], df_new['purity_soft_sensor_updated'])
     updated_model_mae = np.abs(df_new['purity'] - df_new['purity_soft_sensor_updated']).mean()
-    
-    print(f"更新モデル（最新データで再学習）: R² = {updated_model_r2:.4f}, MAE = {updated_model_mae:.4f}%")
-    print(f"\n性能改善: R² {old_model_r2:.4f} → {updated_model_r2:.4f} (+{(updated_model_r2-old_model_r2)*100:.2f}%)")
-    print(f"           MAE {old_model_mae:.4f}% → {updated_model_mae:.4f}% (-{(old_model_mae-updated_model_mae):.4f}%)")
-    
-    # 可視化
+
+    print(f"Updated model (retrained with latest data): R² = {updated_model_r2:.4f}, MAE = {updated_model_mae:.4f}%")
+    print(f"\nPerformance change: R² {old_model_r2:.4f} → {updated_model_r2:.4f} (change {updated_model_r2-old_model_r2:+.4f})")
+    print(f"           MAE {old_model_mae:.4f}% → {updated_model_mae:.4f}% (change {updated_model_mae-old_model_mae:+.4f} percentage points)")
+
+    # Visualization
     fig, axes = plt.subplots(2, 1, figsize=(16, 10))
-    
-    # 時系列比較
+
+    # Time series comparison
     time_window = slice('2025-04-01', '2025-04-03')
     axes[0].plot(df_new.loc[time_window].index, df_new.loc[time_window, 'purity'],
                  linewidth=2, alpha=0.7, label='True Purity', color='black')
@@ -1082,11 +1231,11 @@ PLSは、説明変数と目的変数の共分散を最大化する潜在変数�
     axes[0].set_title('Soft Sensor Performance: Before and After Update', fontsize=13, fontweight='bold')
     axes[0].legend()
     axes[0].grid(alpha=0.3)
-    
-    # 誤差の比較
+
+    # Error comparison
     errors_old = df_new['purity'] - df_new['purity_soft_sensor_old']
     errors_updated = df_new['purity'] - df_new['purity_soft_sensor_updated']
-    
+
     axes[1].hist(errors_old, bins=40, alpha=0.6, label='Old Model', color='red', edgecolor='black')
     axes[1].hist(errors_updated, bins=40, alpha=0.6, label='Updated Model', color='#11998e', edgecolor='black')
     axes[1].axvline(x=0, color='black', linestyle='--', linewidth=2)
@@ -1095,19 +1244,18 @@ PLSは、説明変数と目的変数の共分散を最大化する潜在変数�
     axes[1].set_title('Error Distribution Comparison', fontsize=12, fontweight='bold')
     axes[1].legend()
     axes[1].grid(alpha=0.3)
-    
+
     plt.tight_layout()
     plt.show()
-    
-    print("\n【ソフトセンサー運用の重要ポイント】")
-    print("1. 定期的なモデル性能監視（予測誤差のトレンド分析）")
-    print("2. プロセスドリフト検出（統計的工程管理、CUSUM等）")
-    print("3. 定期的なモデル更新（月次〜四半期ごと）")
-    print("4. オフライン測定データの継続的収集（再学習用）")
-    print("5. モデルバージョン管理とロールバック機能")
-    
 
-**解説** : ソフトセンサーは「作って終わり」ではなく、継続的な保守が必要です。プロセス特性の変化（ドリフト）を監視し、定期的な再学習でモデル性能を維持します。
+    print("\n【Important Points for Soft Sensor Operation】")
+    print("1. Regular model performance monitoring (trend analysis of prediction errors)")
+    print("2. Process drift detection (statistical process control, CUSUM, etc.)")
+    print("3. Regular model updates (monthly to quarterly)")
+    print("4. Continuous collection of offline measurement data (for retraining)")
+    print("5. Model version management and rollback functionality")
+
+**解説** : ソフトセンサーは「作って終わり」ではなく、継続的な保守が必要です。プロセス特性の変化（ドリフト）を監視し、再学習したモデルを毎回検証します。この例ではR²が-4.3168から-6.8735に悪化し、MAEが1.2137%から1.3322%に増加しており、再学習は改善を保証しません。
 
 * * *
 
@@ -1120,7 +1268,7 @@ PLSは、説明変数と目的変数の共分散を最大化する潜在変数�
 指標 | 式 | 特徴 | 解釈  
 ---|---|---|---  
 **R²**  
-(決定係数) | $R^2 = 1 - \frac{\sum(y_i - \hat{y}_i)^2}{\sum(y_i - \bar{y})^2}$ | 0〜1の範囲  
+(決定係数) | $R^2 = 1 - \frac{\sum(y_i - \hat{y}_i)^2}{\sum(y_i - \bar{y})^2}$ | 最大1で、負の値も取る<br>
 1に近いほど良い | モデルが説明できる  
 分散の割合  
 **RMSE**  
@@ -1141,6 +1289,21 @@ PLSは、説明変数と目的変数の共分散を最大化する潜在変数�
 #### コード例9: モデル評価指標の実装と解釈
     
     
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    # - pandas>=2.0.0, <2.2.0
+
+    """
+    Example: Code Example 9: Implementation and Interpretation of Model E
+
+    Purpose: Demonstrate data visualization techniques
+    Target: Advanced
+    Execution time: 1-5 minutes
+    Dependencies: None
+    """
+
     import numpy as np
     import pandas as pd
     import matplotlib.pyplot as plt
@@ -1148,40 +1311,40 @@ PLSは、説明変数と目的変数の共分散を最大化する潜在変数�
     from sklearn.linear_model import LinearRegression
     from sklearn.ensemble import RandomForestRegressor
     from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
-    
-    # サンプルデータ生成
+
+    # Sample data generation
     np.random.seed(42)
     n = 300
-    
+
     X = pd.DataFrame({
         'temp': np.random.uniform(160, 190, n),
         'pressure': np.random.uniform(1.0, 2.0, n),
         'flow': np.random.uniform(40, 60, n)
     })
-    
+
     y = (70 + 0.3*X['temp'] + 10*X['pressure'] + 0.2*X['flow'] +
          np.random.normal(0, 3, n))
-    
+
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-    
-    # 2つのモデルを比較
+
+    # Compare two models
     model_lr = LinearRegression().fit(X_train, y_train)
     model_rf = RandomForestRegressor(n_estimators=100, random_state=42).fit(X_train, y_train)
-    
+
     y_pred_lr = model_lr.predict(X_test)
     y_pred_rf = model_rf.predict(X_test)
-    
-    # 評価指標の計算関数
+
+    # Evaluation metric calculation function
     def evaluate_model(y_true, y_pred, model_name):
         r2 = r2_score(y_true, y_pred)
         rmse = np.sqrt(mean_squared_error(y_true, y_pred))
         mae = mean_absolute_error(y_true, y_pred)
         mape = np.mean(np.abs((y_true - y_pred) / y_true)) * 100
-    
-        # 追加指標
+
+        # Additional metrics
         max_error = np.max(np.abs(y_true - y_pred))
         residuals = y_true - y_pred
-    
+
         results = {
             'Model': model_name,
             'R²': r2,
@@ -1193,19 +1356,19 @@ PLSは、説明変数と目的変数の共分散を最大化する潜在変数�
             'Residual Std': residuals.std()
         }
         return results
-    
-    # 両モデルの評価
+
+    # Evaluate both models
     results_lr = evaluate_model(y_test, y_pred_lr, 'Linear Regression')
     results_rf = evaluate_model(y_test, y_pred_rf, 'Random Forest')
-    
+
     results_df = pd.DataFrame([results_lr, results_rf])
-    print("【モデル性能比較】")
+    print("【Model Performance Comparison】")
     print(results_df.to_string(index=False))
-    
-    # 可視化
+
+    # Visualization
     fig, axes = plt.subplots(2, 2, figsize=(14, 10))
-    
-    # 予測 vs 実測（線形回帰）
+
+    # Predicted vs Actual (Linear Regression)
     axes[0, 0].scatter(y_test, y_pred_lr, alpha=0.6, s=50, color='#11998e')
     axes[0, 0].plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()],
                     'r--', linewidth=2, label='Perfect prediction')
@@ -1215,8 +1378,8 @@ PLSは、説明変数と目的変数の共分散を最大化する潜在変数�
                          fontsize=11, fontweight='bold')
     axes[0, 0].legend()
     axes[0, 0].grid(alpha=0.3)
-    
-    # 予測 vs 実測（Random Forest）
+
+    # Predicted vs Actual (Random Forest)
     axes[0, 1].scatter(y_test, y_pred_rf, alpha=0.6, s=50, color='#f59e0b')
     axes[0, 1].plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()],
                     'r--', linewidth=2, label='Perfect prediction')
@@ -1226,15 +1389,15 @@ PLSは、説明変数と目的変数の共分散を最大化する潜在変数�
                          fontsize=11, fontweight='bold')
     axes[0, 1].legend()
     axes[0, 1].grid(alpha=0.3)
-    
-    # 評価指標の比較（棒グラフ）
+
+    # Evaluation metric comparison (bar chart)
     metrics = ['R²', 'MAE', 'MAPE (%)']
     lr_scores = [results_lr['R²'], results_lr['MAE'], results_lr['MAPE (%)']]
     rf_scores = [results_rf['R²'], results_rf['MAE'], results_rf['MAPE (%)']]
-    
+
     x = np.arange(len(metrics))
     width = 0.35
-    
+
     axes[1, 0].bar(x - width/2, lr_scores, width, label='Linear Regression',
                    color='#11998e', alpha=0.7)
     axes[1, 0].bar(x + width/2, rf_scores, width, label='Random Forest',
@@ -1245,11 +1408,11 @@ PLSは、説明変数と目的変数の共分散を最大化する潜在変数�
     axes[1, 0].set_xticklabels(metrics)
     axes[1, 0].legend()
     axes[1, 0].grid(alpha=0.3, axis='y')
-    
-    # 残差分布の比較
+
+    # Residual distribution comparison
     residuals_lr = y_test - y_pred_lr
     residuals_rf = y_test - y_pred_rf
-    
+
     axes[1, 1].hist(residuals_lr, bins=20, alpha=0.6, label='Linear Regression',
                     color='#11998e', edgecolor='black')
     axes[1, 1].hist(residuals_rf, bins=20, alpha=0.6, label='Random Forest',
@@ -1260,27 +1423,41 @@ PLSは、説明変数と目的変数の共分散を最大化する潜在変数�
     axes[1, 1].set_title('Residual Distribution', fontsize=12, fontweight='bold')
     axes[1, 1].legend()
     axes[1, 1].grid(alpha=0.3)
-    
+
     plt.tight_layout()
     plt.show()
-    
-    print("\n【指標の解釈】")
-    print("R²: モデルが説明できる分散の割合（1に近いほど良い）")
-    print("RMSE: 予測誤差の標準的な大きさ（小さいほど良い、外れ値に敏感）")
-    print("MAE: 予測誤差の平均的な大きさ（小さいほど良い、外れ値にロバスト）")
-    print("MAPE: 相対誤差の平均（％表示、スケールに依存しない）")
-    print("\n【選択基準】")
-    print("✓ R²: 全体的なフィット感を評価（最も一般的）")
-    print("✓ RMSE: 大きな誤差を重視する場合（品質管理）")
-    print("✓ MAE: 外れ値の影響を抑えたい場合")
-    print("✓ MAPE: 異なるスケールのデータを比較する場合")
-    
+
+    print("\n【Metric Interpretation】")
+    print("R²: Proportion of variance explained by model (closer to 1 is better)")
+    print("RMSE: Standard magnitude of prediction error (smaller is better, sensitive to outliers)")
+    print("MAE: Average magnitude of prediction error (smaller is better, robust to outliers)")
+    print("MAPE: Average relative error (% display, scale-independent)")
+    print("\n【Selection Criteria】")
+    print("✓ R²: Evaluate overall fit (most common)")
+    print("✓ RMSE: When emphasizing large errors (quality control)")
+    print("✓ MAE: When suppressing influence of outliers")
+    print("✓ MAPE: When comparing data with different scales")
 
 **解説** : 複数の評価指標を組み合わせることで、モデルの性能を多角的に理解できます。単一の指標だけに頼らず、目的に応じて適切な指標を選択します。
 
 #### コード例10: クロスバリデーションによる性能評価
     
     
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    # - pandas>=2.0.0, <2.2.0
+
+    """
+    Example: Code Example 10: Performance Evaluation with Cross-Validatio
+
+    Purpose: Demonstrate data visualization techniques
+    Target: Advanced
+    Execution time: 1-5 minutes
+    Dependencies: None
+    """
+
     import numpy as np
     import pandas as pd
     import matplotlib.pyplot as plt
@@ -1288,57 +1465,58 @@ PLSは、説明変数と目的変数の共分散を最大化する潜在変数�
     from sklearn.linear_model import LinearRegression
     from sklearn.ensemble import RandomForestRegressor
     from sklearn.preprocessing import StandardScaler
-    
-    # 前のコード例のデータを使用
-    # X, y はすでに定義済み
-    
-    # K-Fold クロスバリデーション
+
+    # Using data from previous code example
+    # X, y are already defined
+
+    # K-Fold cross-validation
     kfold = KFold(n_splits=5, shuffle=True, random_state=42)
-    
+
     model_lr = LinearRegression()
     model_rf = RandomForestRegressor(n_estimators=100, random_state=42)
-    
-    # クロスバリデーションスコア
+
+    # Cross-validation scores
     cv_scores_lr = cross_val_score(model_lr, X, y, cv=kfold, scoring='r2')
     cv_scores_rf = cross_val_score(model_rf, X, y, cv=kfold, scoring='r2')
-    
-    print("【クロスバリデーション結果（R²スコア）】")
+
+    print("【Cross-Validation Results (R² Score)】")
     print(f"\nLinear Regression:")
-    print(f"  各Fold: {cv_scores_lr}")
-    print(f"  平均: {cv_scores_lr.mean():.4f} (±{cv_scores_lr.std():.4f})")
-    
+    print(f"  Each Fold: {cv_scores_lr}")
+    print(f"  Mean: {cv_scores_lr.mean():.4f} (±{cv_scores_lr.std():.4f})")
+
     print(f"\nRandom Forest:")
-    print(f"  各Fold: {cv_scores_rf}")
-    print(f"  平均: {cv_scores_rf.mean():.4f} (±{cv_scores_rf.std():.4f})")
-    
-    # 学習曲線（Learning Curve）の計算
+    print(f"  Each Fold: {cv_scores_rf}")
+    print(f"  Mean: {cv_scores_rf.mean():.4f} (±{cv_scores_rf.std():.4f})")
+
+    # Learning curve calculation
     train_sizes, train_scores_lr, val_scores_lr = learning_curve(
         model_lr, X, y, cv=5, scoring='r2',
         train_sizes=np.linspace(0.1, 1.0, 10), random_state=42
     )
-    
+
     train_sizes, train_scores_rf, val_scores_rf = learning_curve(
         model_rf, X, y, cv=5, scoring='r2',
         train_sizes=np.linspace(0.1, 1.0, 10), random_state=42
     )
-    
-    # 可視化
+
+    # Visualization
     fig, axes = plt.subplots(1, 2, figsize=(14, 5))
-    
-    # クロスバリデーションスコアの比較
-    axes[0].boxplot([cv_scores_lr, cv_scores_rf], labels=['Linear Regression', 'Random Forest'],
+
+    # Cross-validation score comparison
+    axes[0].boxplot([cv_scores_lr, cv_scores_rf],
                     patch_artist=True,
                     boxprops=dict(facecolor='#11998e', alpha=0.7))
     axes[0].set_ylabel('R² Score', fontsize=11)
+    axes[0].set_xticks([1, 2], labels=['Linear Regression', 'Random Forest'])
     axes[0].set_title('Cross-Validation Performance (5-Fold)', fontsize=12, fontweight='bold')
     axes[0].grid(alpha=0.3, axis='y')
-    
-    # 学習曲線
+
+    # Learning curve
     train_mean_lr = train_scores_lr.mean(axis=1)
     train_std_lr = train_scores_lr.std(axis=1)
     val_mean_lr = val_scores_lr.mean(axis=1)
     val_std_lr = val_scores_lr.std(axis=1)
-    
+
     axes[1].plot(train_sizes, train_mean_lr, 'o-', color='#11998e', linewidth=2,
                  label='Training score (LR)')
     axes[1].fill_between(train_sizes, train_mean_lr - train_std_lr,
@@ -1352,22 +1530,21 @@ PLSは、説明変数と目的変数の共分散を最大化する潜在変数�
     axes[1].set_title('Learning Curve (Linear Regression)', fontsize=12, fontweight='bold')
     axes[1].legend(loc='lower right')
     axes[1].grid(alpha=0.3)
-    
+
     plt.tight_layout()
     plt.show()
-    
-    print("\n【クロスバリデーションの重要性】")
-    print("✓ 単一の訓練/テスト分割ではなく、複数の分割で評価")
-    print("✓ データの偏りによる評価の偏りを軽減")
-    print("✓ モデルの汎化性能をより正確に推定")
-    print("✓ 標準偏差により、性能の安定性も評価可能")
-    
-    print("\n【学習曲線の解釈】")
-    print("✓ 訓練スコアと検証スコアの差が小さい → 過学習なし")
-    print("✓ 両スコアが高い → モデルが適切")
-    print("✓ 訓練スコアは高いが検証スコアが低い → 過学習の兆候")
-    print("✓ 両スコアが低い → モデルが複雑さ不足（underfitting）")
-    
+
+    print("\n【Importance of Cross-Validation】")
+    print("✓ Evaluate with multiple splits instead of a single train/test split")
+    print("✓ Reduce evaluation bias due to data bias")
+    print("✓ More accurately estimate model generalization performance")
+    print("✓ Standard deviation also allows evaluation of performance stability")
+
+    print("\n【Learning Curve Interpretation】")
+    print("✓ Small difference between training and validation scores → No overfitting")
+    print("✓ Both scores high → Model is appropriate")
+    print("✓ Training score high but validation score low → Sign of overfitting")
+    print("✓ Both scores low → Model lacks complexity (underfitting)")
 
 **解説** : クロスバリデーションは、限られたデータから最大限の情報を引き出す手法です。プロセスデータは取得コストが高いため、効率的なバリデーションが重要です。
 
@@ -1389,6 +1566,21 @@ PLSは、説明変数と目的変数の共分散を最大化する潜在変数�
 #### コード例11: 多項式回帰とRandom Forest
     
     
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    # - pandas>=2.0.0, <2.2.0
+
+    """
+    Example: Code Example 11: Polynomial Regression and Random Forest
+
+    Purpose: Demonstrate data visualization techniques
+    Target: Advanced
+    Execution time: 1-5 minutes
+    Dependencies: None
+    """
+
     import numpy as np
     import pandas as pd
     import matplotlib.pyplot as plt
@@ -1397,64 +1589,64 @@ PLSは、説明変数と目的変数の共分散を最大化する潜在変数�
     from sklearn.ensemble import RandomForestRegressor
     from sklearn.model_selection import train_test_split
     from sklearn.metrics import r2_score, mean_squared_error
-    
-    # サンプルデータ生成: 非線形関係
+
+    # Sample data generation: Nonlinear relationship
     np.random.seed(42)
     n = 200
-    
+
     temperature = np.random.uniform(160, 190, n)
-    
-    # 非線形関係: 最適温度175°Cで収率最大
+
+    # Nonlinear relationship: Maximum yield at optimal temperature 175°C
     yield_pct = (
-        -0.05 * (temperature - 175)**2 +  # 二次の関係（山型）
+        -0.05 * (temperature - 175)**2 +  # Quadratic relationship (hill-shaped)
         90 +
         np.random.normal(0, 1.5, n)
     )
-    
+
     df = pd.DataFrame({'temperature': temperature, 'yield': yield_pct})
-    
+
     X = df[['temperature']]
     y = df['yield']
-    
+
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-    
-    # モデル1: 線形回帰（ベースライン）
+
+    # Model 1: Linear regression (baseline)
     model_linear = LinearRegression()
     model_linear.fit(X_train, y_train)
     y_pred_linear = model_linear.predict(X_test)
     r2_linear = r2_score(y_test, y_pred_linear)
-    
-    # モデル2: 多項式回帰（2次）
+
+    # Model 2: Polynomial regression (degree 2)
     poly_features = PolynomialFeatures(degree=2, include_bias=False)
     X_train_poly = poly_features.fit_transform(X_train)
     X_test_poly = poly_features.transform(X_test)
-    
+
     model_poly = LinearRegression()
     model_poly.fit(X_train_poly, y_train)
     y_pred_poly = model_poly.predict(X_test_poly)
     r2_poly = r2_score(y_test, y_pred_poly)
-    
-    # モデル3: Random Forest
+
+    # Model 3: Random Forest
     model_rf = RandomForestRegressor(n_estimators=100, max_depth=10, random_state=42)
     model_rf.fit(X_train, y_train)
     y_pred_rf = model_rf.predict(X_test)
     r2_rf = r2_score(y_test, y_pred_rf)
-    
-    print("【モデル性能比較】")
-    print(f"線形回帰:       R² = {r2_linear:.4f}, RMSE = {np.sqrt(mean_squared_error(y_test, y_pred_linear)):.4f}")
-    print(f"多項式回帰(2次): R² = {r2_poly:.4f}, RMSE = {np.sqrt(mean_squared_error(y_test, y_pred_poly)):.4f}")
+
+    print("【Model Performance Comparison】")
+    print(f"Linear Regression:       R² = {r2_linear:.4f}, RMSE = {np.sqrt(mean_squared_error(y_test, y_pred_linear)):.4f}")
+    print(f"Polynomial Regression (degree 2): R² = {r2_poly:.4f}, RMSE = {np.sqrt(mean_squared_error(y_test, y_pred_poly)):.4f}")
     print(f"Random Forest:  R² = {r2_rf:.4f}, RMSE = {np.sqrt(mean_squared_error(y_test, y_pred_rf)):.4f}")
-    
-    # 可視化用の予測曲線
+
+    # Prediction curves for visualization
     X_plot = np.linspace(160, 190, 300).reshape(-1, 1)
     y_plot_linear = model_linear.predict(X_plot)
     y_plot_poly = model_poly.predict(poly_features.transform(X_plot))
     y_plot_rf = model_rf.predict(X_plot)
-    
-    # 可視化
+
+    # Visualization
     fig, axes = plt.subplots(1, 3, figsize=(18, 5))
-    
-    # 線形回帰
+
+    # Linear regression
     axes[0].scatter(X_train, y_train, alpha=0.5, s=30, color='gray', label='Training data')
     axes[0].scatter(X_test, y_test, alpha=0.5, s=30, color='red', label='Test data')
     axes[0].plot(X_plot, y_plot_linear, color='#11998e', linewidth=2.5, label='Linear fit')
@@ -1463,8 +1655,8 @@ PLSは、説明変数と目的変数の共分散を最大化する潜在変数�
     axes[0].set_title(f'Linear Regression (R²={r2_linear:.3f})', fontsize=12, fontweight='bold')
     axes[0].legend()
     axes[0].grid(alpha=0.3)
-    
-    # 多項式回帰
+
+    # Polynomial regression
     axes[1].scatter(X_train, y_train, alpha=0.5, s=30, color='gray', label='Training data')
     axes[1].scatter(X_test, y_test, alpha=0.5, s=30, color='red', label='Test data')
     axes[1].plot(X_plot, y_plot_poly, color='#f59e0b', linewidth=2.5, label='Polynomial fit (degree=2)')
@@ -1473,7 +1665,7 @@ PLSは、説明変数と目的変数の共分散を最大化する潜在変数�
     axes[1].set_title(f'Polynomial Regression (R²={r2_poly:.3f})', fontsize=12, fontweight='bold')
     axes[1].legend()
     axes[1].grid(alpha=0.3)
-    
+
     # Random Forest
     axes[2].scatter(X_train, y_train, alpha=0.5, s=30, color='gray', label='Training data')
     axes[2].scatter(X_test, y_test, alpha=0.5, s=30, color='red', label='Test data')
@@ -1483,93 +1675,107 @@ PLSは、説明変数と目的変数の共分散を最大化する潜在変数�
     axes[2].set_title(f'Random Forest (R²={r2_rf:.3f})', fontsize=12, fontweight='bold')
     axes[2].legend()
     axes[2].grid(alpha=0.3)
-    
+
     plt.tight_layout()
     plt.show()
-    
-    # 多項式の係数表示
-    print(f"\n【多項式回帰の式】")
+
+    # Display polynomial coefficients
+    print(f"\n【Polynomial Regression Equation】")
     print(f"y = {model_poly.intercept_:.4f} + {model_poly.coef_[0]:.4f}×T + {model_poly.coef_[1]:.4f}×T²")
-    
-    # 最適温度の推定（多項式回帰から）
+
+    # Estimate optimal temperature (from polynomial regression)
     optimal_temp = -model_poly.coef_[0] / (2 * model_poly.coef_[1])
     optimal_yield = model_poly.predict(poly_features.transform([[optimal_temp]]))[0]
-    print(f"\n推定最適温度: {optimal_temp:.2f}°C")
-    print(f"推定最大収率: {optimal_yield:.2f}%")
-    
+    print(f"\nEstimated optimal temperature: {optimal_temp:.2f}°C")
+    print(f"Estimated maximum yield: {optimal_yield:.2f}%")
 
-**出力例** :
-    
-    
-    【モデル性能比較】
-    線形回帰:       R² = 0.2345, RMSE = 3.4567
-    多項式回帰(2次): R² = 0.9234, RMSE = 1.0987
-    Random Forest:  R² = 0.9156, RMSE = 1.1567
-    
-    【多項式回帰の式】
-    y = -345.6789 + 5.6789×T + -0.0162×T²
-    
-    推定最適温度: 175.12°C
-    推定最大収率: 89.87%
-    
+**出力例 / Output Example** :
+
+```text
+【Model Performance Comparison】
+Linear Regression:       R² = -0.0069, RMSE = 3.3529
+Polynomial Regression (degree 2): R² = 0.7839, RMSE = 1.5533
+Random Forest:  R² = 0.7745, RMSE = 1.5869
+
+【Polynomial Regression Equation】
+y = -1413.2861 + 17.1753×T + -0.0491×T²
+
+Estimated optimal temperature: 175.06°C
+Estimated maximum yield: 90.03%
+```
 
 **解説** : 非線形関係がある場合、線形回帰では性能が低くなります。多項式回帰は解釈性を保ちつつ非線形性に対応でき、最適条件の推定にも有用です。
 
 #### コード例12: ハイパーパラメータチューニング（GridSearchCV）
     
     
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    # - pandas>=2.0.0, <2.2.0
+
+    """
+    Example: Code Example 12: Hyperparameter Tuning (GridSearchCV)
+
+    Purpose: Demonstrate data visualization techniques
+    Target: Advanced
+    Execution time: 1-5 minutes
+    Dependencies: None
+    """
+
     import numpy as np
     import pandas as pd
     import matplotlib.pyplot as plt
     from sklearn.ensemble import RandomForestRegressor
     from sklearn.model_selection import GridSearchCV, train_test_split
     from sklearn.metrics import r2_score, mean_squared_error
-    
-    # 前のコード例のデータを使用
+
+    # Using data from previous code example
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-    
-    # ハイパーパラメータの探索範囲
+
+    # Hyperparameter search range
     param_grid = {
         'n_estimators': [50, 100, 200],
         'max_depth': [5, 10, 15, None],
         'min_samples_split': [2, 5, 10],
         'min_samples_leaf': [1, 2, 4]
     }
-    
-    # GridSearchCVによるハイパーパラメータチューニング
+
+    # Hyperparameter tuning with GridSearchCV
     rf = RandomForestRegressor(random_state=42)
     grid_search = GridSearchCV(estimator=rf, param_grid=param_grid,
                                cv=5, scoring='r2', n_jobs=-1, verbose=1)
-    
-    print("【GridSearchCV実行中...】")
-    print(f"探索するパラメータ組み合わせ数: {len(param_grid['n_estimators']) * len(param_grid['max_depth']) * len(param_grid['min_samples_split']) * len(param_grid['min_samples_leaf'])}")
-    
+
+    print("【Running GridSearchCV...】")
+    print(f"Number of parameter combinations to search: {len(param_grid['n_estimators']) * len(param_grid['max_depth']) * len(param_grid['min_samples_split']) * len(param_grid['min_samples_leaf'])}")
+
     grid_search.fit(X_train, y_train)
-    
-    # 最適パラメータ
-    print(f"\n【最適パラメータ】")
+
+    # Optimal parameters
+    print(f"\n【Optimal Parameters】")
     print(grid_search.best_params_)
-    print(f"\n最適CVスコア（R²）: {grid_search.best_score_:.4f}")
-    
-    # 最適モデルでテストデータを評価
+    print(f"\nOptimal CV Score (R²): {grid_search.best_score_:.4f}")
+
+    # Evaluate test data with optimal model
     best_model = grid_search.best_estimator_
     y_pred_best = best_model.predict(X_test)
     test_r2 = r2_score(y_test, y_pred_best)
     test_rmse = np.sqrt(mean_squared_error(y_test, y_pred_best))
-    
-    print(f"\nテストデータ性能:")
+
+    print(f"\nTest Data Performance:")
     print(f"  R²: {test_r2:.4f}")
     print(f"  RMSE: {test_rmse:.4f}")
-    
-    # 結果の可視化（top 10パラメータ組み合わせ）
+
+    # Visualize results (top 10 parameter combinations)
     results = pd.DataFrame(grid_search.cv_results_)
     results_sorted = results.sort_values('rank_test_score')
-    
+
     top_10 = results_sorted.head(10)
-    
+
     fig, axes = plt.subplots(1, 2, figsize=(14, 5))
-    
-    # Top 10パラメータのR²スコア
+
+    # R² scores of top 10 parameters
     axes[0].barh(range(10), top_10['mean_test_score'], color='#11998e', alpha=0.7)
     axes[0].set_yticks(range(10))
     axes[0].set_yticklabels([f"Rank {i+1}" for i in range(10)])
@@ -1577,8 +1783,8 @@ PLSは、説明変数と目的変数の共分散を最大化する潜在変数�
     axes[0].set_title('Top 10 Parameter Combinations', fontsize=12, fontweight='bold')
     axes[0].grid(alpha=0.3, axis='x')
     axes[0].invert_yaxis()
-    
-    # 予測 vs 実測（最適モデル）
+
+    # Predicted vs Actual (optimal model)
     axes[1].scatter(y_test, y_pred_best, alpha=0.6, s=50, color='#11998e')
     axes[1].plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()],
                  'r--', linewidth=2, label='Perfect prediction')
@@ -1587,18 +1793,17 @@ PLSは、説明変数と目的変数の共分散を最大化する潜在変数�
     axes[1].set_title(f'Best Model Performance (R²={test_r2:.3f})', fontsize=12, fontweight='bold')
     axes[1].legend()
     axes[1].grid(alpha=0.3)
-    
+
     plt.tight_layout()
     plt.show()
-    
-    print("\n【ハイパーパラメータチューニングの重要性】")
-    print("✓ デフォルト値では最適性能が得られないことが多い")
-    print("✓ GridSearchCVで体系的に最適パラメータを探索")
-    print("✓ クロスバリデーションで過学習を防ぎつつ探索")
-    print("✓ 計算コストは高いが、モデル性能が大きく向上")
-    
 
-**解説** : ハイパーパラメータチューニングは、モデル性能を最大化する重要なステップです。GridSearchCVを使うことで、体系的かつ効率的に最適パラメータを発見できます。
+    print("\n【Importance of Hyperparameter Tuning】")
+    print("✓ Default values often do not provide optimal performance")
+    print("✓ Systematically search for optimal parameters with GridSearchCV")
+    print("✓ Search while preventing overfitting with cross-validation")
+    print("✓ Tuning can improve cross-validation scores, but held-out test performance must be checked")
+
+**解説** : ハイパーパラメータチューニングは、モデル性能を最大化する重要なステップです。GridSearchCVはクロスバリデーションでパラメータを選択しますが、この例では調整後のテストR²（0.7425）が直前のRandom Forestの結果（0.7745）を下回っており、未知データでの性能向上は保証されません。
 
 * * *
 

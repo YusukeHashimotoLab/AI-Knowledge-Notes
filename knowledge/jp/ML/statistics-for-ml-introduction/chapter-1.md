@@ -95,57 +95,58 @@ NumPyとSciPyを使って記述統計量を計算してみましょう。
     import numpy as np
     from scipy import stats
     
-    # サンプルデータ: 学生の試験成績
+    # Sample data: Student test scores
     scores = np.array([65, 70, 72, 75, 78, 80, 82, 85, 88, 95, 98])
     
-    # 中心傾向の指標
+    # Measures of central tendency
     mean = np.mean(scores)
     median = np.median(scores)
     mode_result = stats.mode(scores, keepdims=True)
     mode = mode_result.mode[0] if len(mode_result.mode) > 0 else None
     
-    print(f"平均（Mean）: {mean:.2f}")
-    print(f"中央値（Median）: {median:.2f}")
-    print(f"最頻値（Mode）: {mode}")
+    print(f"Mean: {mean:.2f}")
+    print(f"Median: {median:.2f}")
+    print(f"Mode: {mode}")
     
-    # 散らばりの指標
-    variance = np.var(scores)  # 母集団分散
-    std_dev = np.std(scores)   # 母集団標準偏差
-    sample_variance = np.var(scores, ddof=1)  # 標本分散（不偏推定量）
-    sample_std = np.std(scores, ddof=1)       # 標本標準偏差
+    # Measures of spread
+    variance = np.var(scores)  # Population variance
+    std_dev = np.std(scores)   # Population standard deviation
+    sample_variance = np.var(scores, ddof=1)  # Sample variance (unbiased estimator)
+    sample_std = np.std(scores, ddof=1)       # Sample standard deviation
     
-    print(f"\n母集団分散: {variance:.2f}")
-    print(f"母集団標準偏差: {std_dev:.2f}")
-    print(f"標本分散: {sample_variance:.2f}")
-    print(f"標本標準偏差: {sample_std:.2f}")
+    print(f"\nPopulation Variance: {variance:.2f}")
+    print(f"Population Standard Deviation: {std_dev:.2f}")
+    print(f"Sample Variance: {sample_variance:.2f}")
+    print(f"Sample Standard Deviation: {sample_std:.2f}")
     
-    # 四分位数
+    # Quartiles
     q1 = np.percentile(scores, 25)
-    q2 = np.percentile(scores, 50)  # 中央値
+    q2 = np.percentile(scores, 50)  # Median
     q3 = np.percentile(scores, 75)
     iqr = q3 - q1
     
-    print(f"\n第1四分位数（Q1）: {q1:.2f}")
-    print(f"第2四分位数（Q2）: {q2:.2f}")
-    print(f"第3四分位数（Q3）: {q3:.2f}")
-    print(f"四分位範囲（IQR）: {iqr:.2f}")
+    print(f"\nFirst Quartile (Q1): {q1:.2f}")
+    print(f"Second Quartile (Q2): {q2:.2f}")
+    print(f"Third Quartile (Q3): {q3:.2f}")
+    print(f"Interquartile Range (IQR): {iqr:.2f}")
 
-**実行結果:**
-    
-    
-    平均（Mean）: 80.73
-    中央値（Median）: 80.00
-    最頻値（Mode）: 65
-    
-    母集団分散: 103.29
-    母集団標準偏差: 10.16
-    標本分散: 113.62
-    標本標準偏差: 10.66
-    
-    第1四分位数（Q1）: 73.50
-    第2四分位数（Q2）: 80.00
-    第3四分位数（Q3）: 88.00
-    四分位範囲（IQR）: 14.50
+**実行結果（Output）:**
+
+```text
+Mean: 80.73
+Median: 80.00
+Mode: 65
+
+Population Variance: 95.83
+Population Standard Deviation: 9.79
+Sample Variance: 105.42
+Sample Standard Deviation: 10.27
+
+First Quartile (Q1): 73.50
+Second Quartile (Q2): 80.00
+Third Quartile (Q3): 86.50
+Interquartile Range (IQR): 13.00
+```
 
 ## 2\. データの可視化
 
@@ -159,18 +160,18 @@ NumPyとSciPyを使って記述統計量を計算してみましょう。
     import matplotlib.pyplot as plt
     import numpy as np
     
-    # 正規分布に従うサンプルデータを生成
+    # Generate sample data following a normal distribution
     np.random.seed(42)
     data = np.random.normal(loc=70, scale=10, size=1000)
     
-    # ヒストグラムを描画
+    # Draw histogram
     plt.figure(figsize=(10, 6))
     plt.hist(data, bins=30, edgecolor='black', alpha=0.7, color='skyblue')
-    plt.axvline(np.mean(data), color='red', linestyle='--', linewidth=2, label=f'平均: {np.mean(data):.2f}')
-    plt.axvline(np.median(data), color='green', linestyle='--', linewidth=2, label=f'中央値: {np.median(data):.2f}')
-    plt.xlabel('値', fontsize=12)
-    plt.ylabel('頻度', fontsize=12)
-    plt.title('ヒストグラム：データの分布', fontsize=14)
+    plt.axvline(np.mean(data), color='red', linestyle='--', linewidth=2, label=f'Mean: {np.mean(data):.2f}')
+    plt.axvline(np.median(data), color='green', linestyle='--', linewidth=2, label=f'Median: {np.median(data):.2f}')
+    plt.xlabel('Value', fontsize=12)
+    plt.ylabel('Frequency', fontsize=12)
+    plt.title('Histogram: Data Distribution', fontsize=14)
     plt.legend()
     plt.grid(axis='y', alpha=0.3)
     plt.show()
@@ -183,7 +184,7 @@ NumPyとSciPyを使って記述統計量を計算してみましょう。
     import matplotlib.pyplot as plt
     import numpy as np
     
-    # 複数グループのデータ
+    # Multiple group data
     np.random.seed(42)
     group_a = np.random.normal(70, 10, 100)
     group_b = np.random.normal(75, 8, 100)
@@ -191,18 +192,18 @@ NumPyとSciPyを使って記述統計量を計算してみましょう。
     
     data_groups = [group_a, group_b, group_c]
     
-    # 箱ひげ図を描画
+    # Draw box plot
     plt.figure(figsize=(10, 6))
-    bp = plt.boxplot(data_groups, labels=['グループA', 'グループB', 'グループC'],
+    bp = plt.boxplot(data_groups, tick_labels=['Group A', 'Group B', 'Group C'],
                      patch_artist=True, notch=True)
     
-    # 色をカスタマイズ
+    # Customize colors
     colors = ['lightblue', 'lightgreen', 'lightcoral']
     for patch, color in zip(bp['boxes'], colors):
         patch.set_facecolor(color)
     
-    plt.ylabel('スコア', fontsize=12)
-    plt.title('箱ひげ図：グループ間の比較', fontsize=14)
+    plt.ylabel('Score', fontsize=12)
+    plt.title('Box Plot: Comparison Between Groups', fontsize=14)
     plt.grid(axis='y', alpha=0.3)
     plt.show()
 
@@ -222,22 +223,22 @@ NumPyとSciPyを使って記述統計量を計算してみましょう。
     import matplotlib.pyplot as plt
     import numpy as np
     
-    # 相関のあるデータを生成
+    # Generate correlated data
     np.random.seed(42)
     x = np.random.normal(50, 10, 100)
-    y = 2 * x + np.random.normal(0, 10, 100)  # yはxと正の相関
+    y = 2 * x + np.random.normal(0, 10, 100)  # y has positive correlation with x
     
-    # 散布図を描画
+    # Draw scatter plot
     plt.figure(figsize=(10, 6))
     plt.scatter(x, y, alpha=0.6, edgecolors='black', s=50)
-    plt.xlabel('変数 X', fontsize=12)
-    plt.ylabel('変数 Y', fontsize=12)
-    plt.title('散布図：2変数間の関係', fontsize=14)
+    plt.xlabel('Variable X', fontsize=12)
+    plt.ylabel('Variable Y', fontsize=12)
+    plt.title('Scatter Plot: Relationship Between Two Variables', fontsize=14)
     plt.grid(alpha=0.3)
     
-    # 相関係数を計算して表示
+    # Calculate and display correlation coefficient
     correlation = np.corrcoef(x, y)[0, 1]
-    plt.text(0.05, 0.95, f'相関係数: {correlation:.3f}',
+    plt.text(0.05, 0.95, f'Correlation: {correlation:.3f}',
              transform=plt.gca().transAxes, fontsize=12,
              verticalalignment='top', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
     plt.show()
@@ -325,35 +326,35 @@ $$P(\text{病気}|\text{陽性}) = \frac{0.99 \times 0.01}{0.0594} \approx 0.167
     
     def bayes_theorem(p_a, p_b_given_a, p_b_given_not_a):
         """
-        ベイズの定理を計算
+        Calculate Bayes' theorem
     
         Parameters:
         -----------
         p_a : float
-            事前確率 P(A)
+            Prior probability P(A)
         p_b_given_a : float
-            尤度 P(B|A)
+            Likelihood P(B|A)
         p_b_given_not_a : float
             P(B|not A)
     
         Returns:
         --------
         float
-            事後確率 P(A|B)
+            Posterior probability P(A|B)
         """
-        # 全確率の法則で P(B) を計算
+        # Calculate P(B) using law of total probability
         p_not_a = 1 - p_a
         p_b = p_b_given_a * p_a + p_b_given_not_a * p_not_a
     
-        # ベイズの定理で P(A|B) を計算
+        # Calculate P(A|B) using Bayes' theorem
         p_a_given_b = (p_b_given_a * p_a) / p_b
     
         return p_a_given_b, p_b
     
-    # 医療診断の例
-    p_disease = 0.01  # 病気の事前確率（有病率）
-    p_positive_given_disease = 0.99  # 感度（真陽性率）
-    p_positive_given_healthy = 0.05  # 偽陽性率
+    # Medical diagnosis example
+    p_disease = 0.01  # Prior probability of disease (prevalence)
+    p_positive_given_disease = 0.99  # Sensitivity (true positive rate)
+    p_positive_given_healthy = 0.05  # False positive rate
     
     p_disease_given_positive, p_positive = bayes_theorem(
         p_disease,
@@ -361,36 +362,37 @@ $$P(\text{病気}|\text{陽性}) = \frac{0.99 \times 0.01}{0.0594} \approx 0.167
         p_positive_given_healthy
     )
     
-    print("=== 医療診断におけるベイズの定理 ===")
-    print(f"病気の有病率: {p_disease * 100:.1f}%")
-    print(f"検査の感度: {p_positive_given_disease * 100:.1f}%")
-    print(f"偽陽性率: {p_positive_given_healthy * 100:.1f}%")
-    print(f"\n陽性判定が出る確率: {p_positive * 100:.2f}%")
-    print(f"陽性と判定されたとき実際に病気である確率: {p_disease_given_positive * 100:.2f}%")
+    print("=== Bayes' Theorem in Medical Diagnosis ===")
+    print(f"Disease prevalence: {p_disease * 100:.1f}%")
+    print(f"Test sensitivity: {p_positive_given_disease * 100:.1f}%")
+    print(f"False positive rate: {p_positive_given_healthy * 100:.1f}%")
+    print(f"\nProbability of positive result: {p_positive * 100:.2f}%")
+    print(f"Probability of actually having disease when positive: {p_disease_given_positive * 100:.2f}%")
     
-    # 感度を変えて比較
-    print("\n=== 感度を変化させた場合の比較 ===")
+    # Compare with varying sensitivity
+    print("\n=== Comparison with Varying Sensitivity ===")
     sensitivities = [0.90, 0.95, 0.99, 0.999]
     for sens in sensitivities:
         prob, _ = bayes_theorem(p_disease, sens, p_positive_given_healthy)
-        print(f"感度 {sens*100:.1f}%: 陽性時の病気確率 = {prob*100:.2f}%")
+        print(f"Sensitivity {sens*100:.1f}%: Disease probability when positive = {prob*100:.2f}%")
 
-**実行結果:**
-    
-    
-    === 医療診断におけるベイズの定理 ===
-    病気の有病率: 1.0%
-    検査の感度: 99.0%
-    偽陽性率: 5.0%
-    
-    陽性判定が出る確率: 5.94%
-    陽性と判定されたとき実際に病気である確率: 16.64%
-    
-    === 感度を変化させた場合の比較 ===
-    感度 90.0%: 陽性時の病気確率 = 15.38%
-    感度 95.0%: 陽性時の病気確率 = 16.10%
-    感度 99.0%: 陽性時の病気確率 = 16.64%
-    感度 99.9%: 陽性時の病気確率 = 16.72%
+**実行結果（Output）:**
+
+```text
+=== Bayes' Theorem in Medical Diagnosis ===
+Disease prevalence: 1.0%
+Test sensitivity: 99.0%
+False positive rate: 5.0%
+
+Probability of positive result: 5.94%
+Probability of actually having disease when positive: 16.67%
+
+=== Comparison with Varying Sensitivity ===
+Sensitivity 90.0%: Disease probability when positive = 15.38%
+Sensitivity 95.0%: Disease probability when positive = 16.10%
+Sensitivity 99.0%: Disease probability when positive = 16.67%
+Sensitivity 99.9%: Disease probability when positive = 16.79%
+```
 
 ## 4\. 期待値と分散
 
@@ -436,32 +438,34 @@ $$\sigma = \sqrt{\text{Var}(X)}$$
     import numpy as np
     import matplotlib.pyplot as plt
     
-    # サイコロを振る実験の例
+    np.random.seed(42)
+
+    # Example of dice roll experiment
     def dice_expectation():
-        """サイコロの期待値を計算"""
+        """Calculate expected value of dice roll"""
         outcomes = np.array([1, 2, 3, 4, 5, 6])
         probabilities = np.array([1/6] * 6)
     
-        # 期待値の計算
+        # Calculate expected value
         expectation = np.sum(outcomes * probabilities)
     
-        # 分散の計算
+        # Calculate variance
         variance = np.sum((outcomes - expectation)**2 * probabilities)
         std_dev = np.sqrt(variance)
     
-        print("=== サイコロの期待値と分散 ===")
-        print(f"期待値 E[X]: {expectation:.4f}")
-        print(f"分散 Var(X): {variance:.4f}")
-        print(f"標準偏差 σ: {std_dev:.4f}")
+        print("=== Expected Value and Variance of Dice Roll ===")
+        print(f"Expected value E[X]: {expectation:.4f}")
+        print(f"Variance Var(X): {variance:.4f}")
+        print(f"Standard deviation σ: {std_dev:.4f}")
     
-        # 可視化
+        # Visualization
         plt.figure(figsize=(10, 6))
         plt.bar(outcomes, probabilities, edgecolor='black', alpha=0.7, color='skyblue')
         plt.axvline(expectation, color='red', linestyle='--', linewidth=2,
-                    label=f'期待値: {expectation:.2f}')
-        plt.xlabel('出目', fontsize=12)
-        plt.ylabel('確率', fontsize=12)
-        plt.title('サイコロの確率分布', fontsize=14)
+                    label=f'Expected value: {expectation:.2f}')
+        plt.xlabel('Outcome', fontsize=12)
+        plt.ylabel('Probability', fontsize=12)
+        plt.title('Probability Distribution of Dice Roll', fontsize=14)
         plt.legend()
         plt.grid(axis='y', alpha=0.3)
         plt.xticks(outcomes)
@@ -469,8 +473,8 @@ $$\sigma = \sqrt{\text{Var}(X)}$$
     
     dice_expectation()
     
-    # シミュレーションによる検証
-    print("\n=== シミュレーションによる検証 ===")
+    # Verification by simulation
+    print("\n=== Verification by Simulation ===")
     n_trials = 10000
     dice_rolls = np.random.randint(1, 7, n_trials)
     
@@ -478,13 +482,13 @@ $$\sigma = \sqrt{\text{Var}(X)}$$
     empirical_variance = np.var(dice_rolls)
     empirical_std = np.std(dice_rolls)
     
-    print(f"シミュレーション回数: {n_trials}")
-    print(f"経験的平均: {empirical_mean:.4f}")
-    print(f"経験的分散: {empirical_variance:.4f}")
-    print(f"経験的標準偏差: {empirical_std:.4f}")
-    print(f"\n理論値との差:")
-    print(f"平均の差: {abs(empirical_mean - 3.5):.4f}")
-    print(f"分散の差: {abs(empirical_variance - 35/12):.4f}")
+    print(f"Number of simulations: {n_trials}")
+    print(f"Empirical mean: {empirical_mean:.4f}")
+    print(f"Empirical variance: {empirical_variance:.4f}")
+    print(f"Empirical standard deviation: {empirical_std:.4f}")
+    print(f"\nDifference from theoretical values:")
+    print(f"Difference in mean: {abs(empirical_mean - 3.5):.4f}")
+    print(f"Difference in variance: {abs(empirical_variance - 35/12):.4f}")
 
 ## 5\. まとめと次のステップ
 
@@ -530,10 +534,10 @@ $$\sigma = \sqrt{\text{Var}(X)}$$
     variance = np.var(data, ddof=1)
     std_dev = np.std(data, ddof=1)
     
-    print(f"平均: {mean}")
-    print(f"中央値: {median}")
-    print(f"分散: {variance:.2f}")
-    print(f"標準偏差: {std_dev:.2f}")
+    print(f"Mean: {mean}")
+    print(f"Median: {median}")
+    print(f"Variance: {variance:.2f}")
+    print(f"Standard deviation: {std_dev:.2f}")
 
 **問題2：ベイズの定理の応用**
 
@@ -546,13 +550,13 @@ $$\sigma = \sqrt{\text{Var}(X)}$$
         p_spam_given_free = (p_free_given_spam * p_spam) / p_free
         return p_spam_given_free
     
-    # パラメータ
+    # Parameters
     p_spam = 0.10
     p_free_given_spam = 0.80
     p_free_given_normal = 0.05
     
     result = spam_filter_bayes(p_spam, p_free_given_spam, p_free_given_normal)
-    print(f"「無料」を含むメールがスパムである確率: {result * 100:.2f}%")
+    print(f"Probability that email containing 'free' is spam: {result * 100:.2f}%")
 
 **問題3：期待値の計算**
 
@@ -561,18 +565,18 @@ $$\sigma = \sqrt{\text{Var}(X)}$$
     
     import numpy as np
     
-    # 結果と確率
+    # Outcomes and probabilities
     outcomes = np.array([5000, 10000, 0])
     probabilities = np.array([0.10, 0.05, 0.85])
     
-    # 期待値の計算
+    # Calculate expected value
     expected_value = np.sum(outcomes * probabilities)
-    net_expected_value = expected_value - 1000  # チケット代を引く
+    net_expected_value = expected_value - 1000  # Subtract ticket cost
     
-    print(f"期待値: {expected_value:.2f}円")
-    print(f"正味期待値（チケット代を引いた後）: {net_expected_value:.2f}円")
+    print(f"Expected value: {expected_value:.2f} yen")
+    print(f"Net expected value (after ticket cost): {net_expected_value:.2f} yen")
     
     if net_expected_value > 0:
-        print("期待値的にはプレイする価値があります")
+        print("It is worth playing in terms of expected value")
     else:
-        print("期待値的にはプレイする価値がありません")
+        print("It is not worth playing in terms of expected value")

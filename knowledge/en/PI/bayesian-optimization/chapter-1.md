@@ -19,80 +19,82 @@ In process industries, there are many "black-box" problems where the relationshi
 
 ### Example 1: Formulation of Black-Box Problem (Chemical Reactor)
 
-We define a problem that optimizes three parameters: temperature, pressure, and catalyst concentration, assuming a polymerization reaction process.
+We define a problem that optimizes three parameters: temperature, pressure, and catalyst concentration, assuming a polymerization reaction process. The two evaluations below compare initial and reference conditions; the reference point is not the optimum. The catalyst term increases with concentration, so the noise-free optimum lies at the upper bound C = 1.0 mol/L. We add `np.random.seed(42)` to make the observation noise reproducible.
     
     
     import numpy as np
     import matplotlib.pyplot as plt
     from matplotlib import cm
-    
+
+    np.random.seed(42)
+
     # ===================================
     # Example 1: Black-box optimization problem for chemical reactor
     # ===================================
-    
+
     class ChemicalReactor:
         """Chemical reactor black-box simulator
-    
+
         Parameters:
             - Temperature (T): 300-400 K
             - Pressure (P): 1-5 bar
             - Catalyst concentration (C): 0.1-1.0 mol/L
-    
+
         Objective: Maximize yield
         """
-    
+
         def __init__(self, noise_level=0.02):
             self.noise_level = noise_level
             self.bounds = np.array([[300, 400], [1, 5], [0.1, 1.0]])
             self.dim_names = ['Temperature (K)', 'Pressure (bar)', 'Catalyst (mol/L)']
-            self.optimal_x = np.array([350, 3.0, 0.5])  # True optimal solution
-    
+            self.reference_x = np.array([350, 3.0, 0.5])  # Reference conditions, not the optimum
+
         def evaluate(self, x):
             """Calculate yield (equivalent to actual experiment/simulation)
-    
+
             Args:
                 x: [temperature, pressure, catalyst concentration]
-    
+
             Returns:
                 yield: Yield [0-1] + noise
             """
             T, P, C = x
-    
+
             # Temperature dependency (Arrhenius type)
             T_opt = 350
             temp_factor = np.exp(-((T - T_opt) / 30)**2)
-    
+
             # Pressure dependency (parabolic type)
             P_opt = 3.0
             pressure_factor = 1 - 0.3 * ((P - P_opt) / 2)**2
-    
+
             # Catalyst concentration dependency (Langmuir type)
             catalyst_factor = C / (0.2 + C)
-    
+
             # Interaction term (synergistic effect of temperature and pressure)
             interaction = 0.1 * np.sin((T - 300) / 50 * np.pi) * (P - 1) / 4
-    
+
             # Yield calculation
             yield_val = 0.85 * temp_factor * pressure_factor * catalyst_factor + interaction
-    
+
             # Add noise (measurement error)
             noise = np.random.normal(0, self.noise_level)
-    
+
             return float(np.clip(yield_val + noise, 0, 1))
-    
+
         def plot_landscape(self, fixed_catalyst=0.5):
             """Visualize objective function (catalyst concentration fixed)"""
             T_range = np.linspace(300, 400, 50)
             P_range = np.linspace(1, 5, 50)
             T_grid, P_grid = np.meshgrid(T_range, P_range)
-    
+
             Y_grid = np.zeros_like(T_grid)
             for i in range(len(T_range)):
                 for j in range(len(P_range)):
                     Y_grid[j, i] = self.evaluate([T_grid[j, i], P_grid[j, i], fixed_catalyst])
-    
+
             fig = plt.figure(figsize=(10, 4))
-    
+
             # 3D surface
             ax1 = fig.add_subplot(121, projection='3d')
             surf = ax1.plot_surface(T_grid, P_grid, Y_grid, cmap=cm.viridis, alpha=0.8)
@@ -100,7 +102,7 @@ We define a problem that optimizes three parameters: temperature, pressure, and 
             ax1.set_ylabel('Pressure (bar)')
             ax1.set_zlabel('Yield')
             ax1.set_title('Chemical Reactor Response Surface')
-    
+
             # Contour
             ax2 = fig.add_subplot(122)
             contour = ax2.contourf(T_grid, P_grid, Y_grid, levels=20, cmap='viridis')
@@ -108,40 +110,40 @@ We define a problem that optimizes three parameters: temperature, pressure, and 
             ax2.set_ylabel('Pressure (bar)')
             ax2.set_title('Yield Contour (Catalyst=0.5 mol/L)')
             plt.colorbar(contour, ax=ax2, label='Yield')
-    
+
             plt.tight_layout()
             return fig
-    
+
     # Usage example
     reactor = ChemicalReactor(noise_level=0.02)
-    
+
     # Evaluate at initial conditions
     x_initial = np.array([320, 2.0, 0.3])
     yield_initial = reactor.evaluate(x_initial)
     print(f"Initial conditions: T={x_initial[0]}K, P={x_initial[1]}bar, C={x_initial[2]}mol/L")
     print(f"Initial yield: {yield_initial:.3f}")
-    
-    # Evaluate near optimal conditions
-    x_optimal = np.array([350, 3.0, 0.5])
-    yield_optimal = reactor.evaluate(x_optimal)
-    print(f"\nOptimal conditions: T={x_optimal[0]}K, P={x_optimal[1]}bar, C={x_optimal[2]}mol/L")
-    print(f"Optimal yield: {yield_optimal:.3f}")
-    
+
+    # Evaluate reference conditions
+    x_reference = np.array([350, 3.0, 0.5])
+    yield_reference = reactor.evaluate(x_reference)
+    print(f"\nReference conditions: T={x_reference[0]}K, P={x_reference[1]}bar, C={x_reference[2]}mol/L")
+    print(f"Reference yield: {yield_reference:.3f}")
+
     # Visualization
     fig = reactor.plot_landscape()
     plt.show()
     
 
 **Example output:**  
-Initial conditions: T=320K, P=2.0bar, C=0.3mol/L  
-Initial yield: 0.523  
+Initial conditions: T=320.0K, P=2.0bar, C=0.3mol/L  
+Initial yield: 0.207  
   
-Optimal conditions: T=350K, P=3.0bar, C=0.5mol/L  
-Optimal yield: 0.887 
+Reference conditions: T=350.0K, P=3.0bar, C=0.5mol/L  
+Reference yield: 0.604  
 
 **💡 Practical Implications**
 
-For problems with such complex response surfaces, traditional grid search or random search are inefficient. Bayesian optimization is a powerful method that can reach optimal solutions with fewer evaluations.
+The seeded evaluations give yields of 0.207 and 0.604 at the initial and reference conditions; this two-point comparison does not establish optimization efficiency, although Bayesian optimization can help when evaluations are expensive.
 
 ## 1.2 Sequential Design Strategy
 
@@ -149,57 +151,112 @@ The core of Bayesian optimization lies in "Sequential Design". By leveraging pre
 
 ### Example 2: Sequential Design vs Random Sampling
 
-We demonstrate how optimization performance greatly differs depending on strategy, even with the same number of evaluations.
+We compare GP-EI sequential design with random sampling using exactly 13 objective evaluations each (3 initial points plus 10 proposals for GP-EI). Both use `default_rng(42)`; acquisition search uses only the fitted GP, and the true-function curves are evaluated separately for visualization.
     
     
+    import warnings
+
     import numpy as np
+    from scipy.optimize import minimize
+    from scipy.stats import norm
+    from sklearn.exceptions import ConvergenceWarning
+    from sklearn.gaussian_process import GaussianProcessRegressor
+    from sklearn.gaussian_process.kernels import RBF, ConstantKernel, WhiteKernel
+
+
+    def make_gp(noise: float = 1e-4, d: int = 1, min_length_scale: float = 1e-2) -> GaussianProcessRegressor:
+        kernel = (ConstantKernel(1.0, (1e-2, 1e2))
+                  * RBF(length_scale=np.ones(d) * 0.2, length_scale_bounds=(min_length_scale, 1e1))
+                  + WhiteKernel(noise, (1e-6, 1e-1)))
+        return GaussianProcessRegressor(kernel=kernel, normalize_y=True, n_restarts_optimizer=3, random_state=0)
+
+
+    def scale(X, bounds) -> np.ndarray:
+        b = np.asarray(bounds, dtype=float)
+        return (np.asarray(X, dtype=float) - b[:, 0]) / (b[:, 1] - b[:, 0])
+
+
+    def unscale(U, bounds) -> np.ndarray:
+        b = np.asarray(bounds, dtype=float)
+        return b[:, 0] + np.asarray(U, dtype=float) * (b[:, 1] - b[:, 0])
+
+
+    def expected_improvement(mu, sigma, best, xi=0.01) -> np.ndarray:
+        mu, sigma = np.asarray(mu, dtype=float), np.asarray(sigma, dtype=float)
+        imp = mu - best - xi
+        out = np.maximum(imp, 0.0)  # sigma == 0: the improvement is certain (or certainly absent)
+        pos = sigma > 1e-12
+        z = imp[pos] / sigma[pos]
+        out[pos] = imp[pos] * norm.cdf(z) + sigma[pos] * norm.pdf(z)
+        return out
+
+
+    def ucb(mu, sigma, kappa) -> np.ndarray:
+        return np.asarray(mu, dtype=float) + kappa * np.asarray(sigma, dtype=float)
+
+
+    def _fit(X, Y, bounds, gp_kwargs: dict | None = None) -> GaussianProcessRegressor:
+        X = np.atleast_2d(np.asarray(X, dtype=float))
+        gp = make_gp(d=X.shape[1], **(gp_kwargs or {}))
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", ConvergenceWarning)
+            gp.fit(scale(X, bounds), np.asarray(Y, dtype=float))
+        return gp
+
+
+    def _acq(gp, U, best, acq, kappa):
+        mu, sd = gp.predict(np.atleast_2d(U), return_std=True)
+        return expected_improvement(mu, sd, best) if acq == "ei" else ucb(mu, sd, kappa)
+
+
+    def propose(gp, bounds, best, acq: str, rng, kappa=2.0, n_candidates=2000) -> np.ndarray:
+        """Maximise the acquisition: n_candidates uniform points in the unit cube, then the best 5
+        refined with L-BFGS-B. Returns the proposal in original units."""
+        bounds = np.asarray(bounds, dtype=float); d = len(bounds)
+        U = rng.random((n_candidates, d))
+        a = _acq(gp, U, best, acq, kappa)
+        starts = U[np.argsort(-a, kind="stable")[:5]]
+        best_u, best_a = starts[0], a[np.argsort(-a, kind="stable")[0]]
+        for u0 in starts:
+            res = minimize(lambda u: -_acq(gp, u, best, acq, kappa)[0], u0, method="L-BFGS-B", bounds=[(0.0, 1.0)] * d)
+            if -res.fun > best_a:
+                best_u, best_a = np.clip(res.x, 0.0, 1.0), -res.fun
+        return unscale(best_u, bounds)
+
+
     import matplotlib.pyplot as plt
-    
+
     # ===================================
     # Example 2: Demonstration of sequential design strategy
     # ===================================
-    
+
     def simple_objective(x):
         """1D test function (analytical solution available)"""
         return -(x - 3)**2 * np.sin(5 * x) + 2
-    
+
     class SequentialDesigner:
         """Optimization by sequential design"""
-    
+
         def __init__(self, objective_func, bounds, n_initial=3):
             self.objective = objective_func
             self.bounds = bounds
             self.X_observed = []
             self.Y_observed = []
-    
-            # Initial points (Latin Hypercube Sampling)
-            np.random.seed(42)
+
+            # Initial points (uniform random sampling)
+            self.rng = np.random.default_rng(42)
             for _ in range(n_initial):
-                x = np.random.uniform(bounds[0], bounds[1])
+                x = self.rng.uniform(bounds[0], bounds[1])
                 y = objective_func(x)
                 self.X_observed.append(x)
                 self.Y_observed.append(y)
-    
+
         def select_next_point(self):
-            """Select next evaluation point (simplified version: balance of exploration and exploitation)"""
-            # Generate candidate points
-            candidates = np.linspace(self.bounds[0], self.bounds[1], 100)
-    
-            # Distance from observed points (exploration)
-            min_distances = []
-            for c in candidates:
-                distances = [abs(c - x) for x in self.X_observed]
-                min_distances.append(min(distances))
-    
-            # Expected improvement from current best value (exploitation)
-            best_y = max(self.Y_observed)
-            improvements = [max(0, self.objective(c) - best_y) for c in candidates]
-    
-            # Score calculation (60% exploration + 40% exploitation)
-            scores = 0.6 * np.array(min_distances) + 0.4 * np.array(improvements)
-    
-            return candidates[np.argmax(scores)]
-    
+            """Maximize GP expected improvement without evaluating the objective."""
+            bounds = np.asarray([self.bounds], dtype=float)
+            gp = _fit(np.asarray(self.X_observed).reshape(-1, 1), self.Y_observed, bounds)
+            return propose(gp, bounds, max(self.Y_observed), "ei", self.rng)[0]
+
         def optimize(self, n_iterations=10):
             """Execute optimization"""
             for i in range(n_iterations):
@@ -207,37 +264,37 @@ We demonstrate how optimization performance greatly differs depending on strateg
                 y_next = self.objective(x_next)
                 self.X_observed.append(x_next)
                 self.Y_observed.append(y_next)
-    
+
                 current_best = max(self.Y_observed)
                 print(f"Iteration {i+1}: x={x_next:.2f}, y={y_next:.3f}, best={current_best:.3f}")
-    
+
             return self.X_observed, self.Y_observed
-    
+
     # Comparison experiment
     bounds = [0, 5]
     n_total = 13  # 3 initial points + 10 additional points
-    
+
     # 1. Sequential design
     print("=== Sequential Design ===")
     seq_designer = SequentialDesigner(simple_objective, bounds, n_initial=3)
     X_seq, Y_seq = seq_designer.optimize(n_iterations=10)
-    
+
     # 2. Random sampling
     print("\n=== Random Sampling ===")
-    np.random.seed(42)
-    X_random = np.random.uniform(bounds[0], bounds[1], n_total)
+    rng = np.random.default_rng(42)
+    X_random = rng.uniform(bounds[0], bounds[1], n_total)
     Y_random = [simple_objective(x) for x in X_random]
     for i, (x, y) in enumerate(zip(X_random, Y_random), 1):
         current_best = max(Y_random[:i])
         print(f"Sample {i}: x={x:.2f}, y={y:.3f}, best={current_best:.3f}")
-    
+
     # Visualization
     fig, axes = plt.subplots(1, 2, figsize=(14, 5))
-    
+
     # True function
     x_true = np.linspace(0, 5, 200)
     y_true = simple_objective(x_true)
-    
+
     # Sequential design
     axes[0].plot(x_true, y_true, 'k-', linewidth=2, label='True function', alpha=0.7)
     axes[0].scatter(X_seq, Y_seq, c=range(len(X_seq)), cmap='viridis',
@@ -249,7 +306,7 @@ We demonstrate how optimization performance greatly differs depending on strateg
     axes[0].set_title('Sequential Design (Best: {:.3f})'.format(max(Y_seq)))
     axes[0].legend()
     axes[0].grid(alpha=0.3)
-    
+
     # Random sampling
     axes[1].plot(x_true, y_true, 'k-', linewidth=2, label='True function', alpha=0.7)
     axes[1].scatter(X_random, Y_random, c=range(len(X_random)), cmap='plasma',
@@ -261,14 +318,14 @@ We demonstrate how optimization performance greatly differs depending on strateg
     axes[1].set_title('Random Sampling (Best: {:.3f})'.format(max(Y_random)))
     axes[1].legend()
     axes[1].grid(alpha=0.3)
-    
+
     plt.tight_layout()
     plt.show()
-    
+
     # Convergence comparison
     best_seq = [max(Y_seq[:i+1]) for i in range(len(Y_seq))]
     best_random = [max(Y_random[:i+1]) for i in range(len(Y_random))]
-    
+
     plt.figure(figsize=(8, 5))
     plt.plot(best_seq, 'o-', linewidth=2, markersize=8, label='Sequential Design')
     plt.plot(best_random, 's-', linewidth=2, markersize=8, label='Random Sampling')
@@ -280,12 +337,35 @@ We demonstrate how optimization performance greatly differs depending on strateg
     plt.show()
     
 
-**Example output (sequential design final result):**  
-Iteration 10: x=2.89, y=2.847, best=2.847  
-**Random sampling final result:**  
-Sample 13: x=1.23, y=0.456, best=2.312  
+**Example output:**  
+=== Sequential Design ===  
+Iteration 1: x=1.16, y=3.587, best=3.587  
+Iteration 2: x=0.00, y=2.000, best=3.587  
+Iteration 3: x=1.43, y=0.122, best=3.587  
+Iteration 4: x=1.14, y=3.980, best=3.980  
+Iteration 5: x=1.07, y=5.048, best=5.048  
+Iteration 6: x=0.86, y=6.202, best=6.202  
+Iteration 7: x=0.90, y=6.312, best=6.312  
+Iteration 8: x=3.00, y=2.000, best=6.312  
+Iteration 9: x=5.00, y=2.529, best=6.312  
+Iteration 10: x=3.43, y=2.187, best=6.312  
   
-**Improvement rate: 23% improvement (same number of evaluations)**
+=== Random Sampling ===  
+Sample 1: x=3.87, y=1.638, best=1.638  
+Sample 2: x=2.19, y=2.649, best=2.649  
+Sample 3: x=4.29, y=1.160, best=2.649  
+Sample 4: x=3.49, y=2.234, best=2.649  
+Sample 5: x=0.47, y=-2.531, best=2.649  
+Sample 6: x=4.88, y=4.384, best=4.384  
+Sample 7: x=3.81, y=1.884, best=4.384  
+Sample 8: x=3.93, y=1.378, best=4.384  
+Sample 9: x=0.64, y=2.341, best=4.384  
+Sample 10: x=2.25, y=2.540, best=4.384  
+Sample 11: x=1.85, y=1.797, best=4.384  
+Sample 12: x=4.63, y=4.466, best=4.466  
+Sample 13: x=3.22, y=2.018, best=4.466  
+
+**In this seeded run, GP-EI reaches 6.312 versus 4.466 for random sampling, a 41.3% improvement with the same 13-evaluation budget.**
 
 ## 1.3 Exploration-Exploitation Trade-off
 
@@ -296,65 +376,93 @@ The most important concept in Bayesian optimization is the balance between "Expl
 
 ### Example 3: Visualization of Exploration vs Exploitation
 
-We visually understand the impact of different balances on optimization.
+We visualize a fitted Gaussian process posterior and UCB = mean + α × standard deviation, using inputs scaled to [0, 1]. We add `np.random.seed(42)` for the observation noise; exploitation selects x = 0.90, maximum uncertainty selects x = 10.00, and UCB selects x = 0.30 (α = 0.5) or x = 0.00 (α = 1.5).
     
     
+    import warnings
+
     import numpy as np
-    import matplotlib.pyplot as plt
+    from scipy.optimize import minimize
     from scipy.stats import norm
-    
+    from sklearn.exceptions import ConvergenceWarning
+    from sklearn.gaussian_process import GaussianProcessRegressor
+    from sklearn.gaussian_process.kernels import RBF, ConstantKernel, WhiteKernel
+
+
+    def make_gp(noise: float = 1e-4, d: int = 1, min_length_scale: float = 1e-2) -> GaussianProcessRegressor:
+        kernel = (ConstantKernel(1.0, (1e-2, 1e2))
+                  * RBF(length_scale=np.ones(d) * 0.2, length_scale_bounds=(min_length_scale, 1e1))
+                  + WhiteKernel(noise, (1e-6, 1e-1)))
+        return GaussianProcessRegressor(kernel=kernel, normalize_y=True, n_restarts_optimizer=3, random_state=0)
+
+
+    def scale(X, bounds) -> np.ndarray:
+        b = np.asarray(bounds, dtype=float)
+        return (np.asarray(X, dtype=float) - b[:, 0]) / (b[:, 1] - b[:, 0])
+
+
+    def unscale(U, bounds) -> np.ndarray:
+        b = np.asarray(bounds, dtype=float)
+        return b[:, 0] + np.asarray(U, dtype=float) * (b[:, 1] - b[:, 0])
+
+
+    def _fit(X, Y, bounds, gp_kwargs: dict | None = None) -> GaussianProcessRegressor:
+        X = np.atleast_2d(np.asarray(X, dtype=float))
+        gp = make_gp(d=X.shape[1], **(gp_kwargs or {}))
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", ConvergenceWarning)
+            gp.fit(scale(X, bounds), np.asarray(Y, dtype=float))
+        return gp
+
+
+    import matplotlib.pyplot as plt
+
+    np.random.seed(42)
+
     # ===================================
     # Example 3: Exploration-Exploitation Trade-off
     # ===================================
-    
+
     class ExplorationExploitationDemo:
         """Visualize exploration-exploitation balance"""
-    
+
         def __init__(self):
             # Sample function: has multiple local optima
             self.x_range = np.linspace(0, 10, 200)
             self.true_func = lambda x: np.sin(x) + 0.3 * np.sin(3*x) + 0.5 * np.cos(5*x)
-    
+
             # Observed points (5 points)
             self.X_obs = np.array([1.0, 3.0, 4.5, 7.0, 9.0])
             self.Y_obs = self.true_func(self.X_obs) + np.random.normal(0, 0.1, len(self.X_obs))
-    
+
         def predict_with_uncertainty(self, x):
-            """Simple prediction mean and uncertainty (Gaussian process approximation)"""
-            # Distance-based weighted average
-            weights = np.exp(-((self.X_obs[:, None] - x) / 1.0)**2)
-            weights = weights / (weights.sum(axis=0) + 1e-10)
-    
-            mean = (weights.T @ self.Y_obs)
-    
-            # Uncertainty (depends on distance from observed points)
-            min_dist = np.min(np.abs(self.X_obs[:, None] - x), axis=0)
-            uncertainty = 0.5 * (1 - np.exp(-min_dist / 2.0))
-    
-            return mean, uncertainty
-    
+            """Gaussian process posterior mean and standard deviation."""
+            bounds = np.array([[0.0, 10.0]])
+            gp = _fit(self.X_obs.reshape(-1, 1), self.Y_obs, bounds)
+            return gp.predict(scale(np.asarray(x).reshape(-1, 1), bounds), return_std=True)
+
         def exploitation_strategy(self):
             """Exploitation strategy: Select point with maximum predicted mean"""
             mean, _ = self.predict_with_uncertainty(self.x_range)
             return self.x_range[np.argmax(mean)]
-    
+
         def exploration_strategy(self):
             """Exploration strategy: Select point with maximum uncertainty"""
             _, uncertainty = self.predict_with_uncertainty(self.x_range)
             return self.x_range[np.argmax(uncertainty)]
-    
+
         def balanced_strategy(self, alpha=0.5):
             """Balanced strategy: UCB (Upper Confidence Bound)"""
             mean, uncertainty = self.predict_with_uncertainty(self.x_range)
             ucb = mean + alpha * uncertainty
             return self.x_range[np.argmax(ucb)]
-    
+
         def visualize(self):
             """Visualization"""
             mean, uncertainty = self.predict_with_uncertainty(self.x_range)
-    
+
             fig, axes = plt.subplots(2, 2, figsize=(14, 10))
-    
+
             # (1) True function and prediction
             ax = axes[0, 0]
             ax.plot(self.x_range, self.true_func(self.x_range), 'k--',
@@ -369,7 +477,7 @@ We visually understand the impact of different balances on optimization.
             ax.set_title('Model Prediction with Uncertainty')
             ax.legend()
             ax.grid(alpha=0.3)
-    
+
             # (2) Exploitation strategy
             ax = axes[0, 1]
             x_exploit = self.exploitation_strategy()
@@ -382,7 +490,7 @@ We visually understand the impact of different balances on optimization.
             ax.set_title('Exploitation Strategy: Maximize Mean')
             ax.legend()
             ax.grid(alpha=0.3)
-    
+
             # (3) Exploration strategy
             ax = axes[1, 0]
             x_explore = self.exploration_strategy()
@@ -396,7 +504,7 @@ We visually understand the impact of different balances on optimization.
             ax.set_title('Exploration Strategy: Maximize Uncertainty')
             ax.legend()
             ax.grid(alpha=0.3)
-    
+
             # (4) Balanced strategy (UCB)
             ax = axes[1, 1]
             alpha = 1.5
@@ -413,28 +521,29 @@ We visually understand the impact of different balances on optimization.
             ax.set_title('Balanced Strategy: UCB = Mean + α × Uncertainty')
             ax.legend()
             ax.grid(alpha=0.3)
-    
+
             plt.tight_layout()
             return fig
-    
+
     # Execution
     demo = ExplorationExploitationDemo()
-    
+
     print("=== Exploration vs Exploitation ===")
     print(f"Exploitation (best predicted point): x = {demo.exploitation_strategy():.2f}")
     print(f"Exploration (maximum uncertainty): x = {demo.exploration_strategy():.2f}")
     print(f"Balanced (UCB, α=0.5): x = {demo.balanced_strategy(alpha=0.5):.2f}")
     print(f"Balanced (UCB, α=1.5): x = {demo.balanced_strategy(alpha=1.5):.2f}")
-    
+
     fig = demo.visualize()
     plt.show()
     
 
 **Example output:**  
-Exploitation (best predicted point): x = 3.05  
-Exploration (maximum uncertainty): x = 5.52  
-Balanced (UCB, α=0.5): x = 3.81  
-Balanced (UCB, α=1.5): x = 5.27 
+=== Exploration vs Exploitation ===  
+Exploitation (best predicted point): x = 0.90  
+Exploration (maximum uncertainty): x = 10.00  
+Balanced (UCB, α=0.5): x = 0.30  
+Balanced (UCB, α=1.5): x = 0.00  
 
 **⚠️ Practical Considerations**
 
@@ -458,22 +567,22 @@ We understand the overall flow with a minimal implementation.
     import matplotlib.pyplot as plt
     from scipy.stats import norm
     from scipy.optimize import minimize
-    
+
     # ===================================
     # Example 4: Simple Bayesian Optimization Loop
     # ===================================
-    
+
     class SimpleBayesianOptimization:
         """Simple Bayesian optimization (1D)"""
-    
+
         def __init__(self, objective_func, bounds, noise_std=0.01):
             self.objective = objective_func
             self.bounds = bounds
             self.noise_std = noise_std
-    
+
             self.X_obs = []
             self.Y_obs = []
-    
+
             # Initial sampling (3 points)
             np.random.seed(42)
             for _ in range(3):
@@ -481,58 +590,60 @@ We understand the overall flow with a minimal implementation.
                 y = self.evaluate(x)
                 self.X_obs.append(x)
                 self.Y_obs.append(y)
-    
+
         def evaluate(self, x):
             """Evaluate objective function (with noise)"""
             return self.objective(x) + np.random.normal(0, self.noise_std)
-    
+
         def gaussian_kernel(self, x1, x2, length_scale=0.5):
             """RBF kernel"""
             return np.exp(-0.5 * ((x1 - x2) / length_scale)**2)
-    
+
         def predict(self, x_test):
             """Prediction by Gaussian process (simplified version)"""
             X_obs_array = np.array(self.X_obs).reshape(-1, 1)
             Y_obs_array = np.array(self.Y_obs).reshape(-1, 1)
             x_test_array = np.array(x_test).reshape(-1, 1)
-    
+
             # Kernel matrix
             K = np.zeros((len(self.X_obs), len(self.X_obs)))
             for i in range(len(self.X_obs)):
                 for j in range(len(self.X_obs)):
                     K[i, j] = self.gaussian_kernel(self.X_obs[i], self.X_obs[j])
-    
+
             # Add noise term
             K += self.noise_std**2 * np.eye(len(self.X_obs))
-    
+
             # Kernel with test point
             k_star = np.array([self.gaussian_kernel(self.X_obs[i], x_test)
                               for i in range(len(self.X_obs))])
-    
+
             # Predicted mean
             K_inv = np.linalg.inv(K)
             mean = k_star.T @ K_inv @ Y_obs_array
-    
+
             # Predicted variance
             k_star_star = self.gaussian_kernel(x_test, x_test)
             variance = k_star_star - k_star.T @ K_inv @ k_star
+            if variance.ndim == 2:
+                variance = np.diag(variance)  # Marginal variance for each query point
             std = np.sqrt(np.maximum(variance, 0))
-    
+
             return mean.flatten(), std.flatten()
-    
+
         def expected_improvement(self, x):
             """Expected Improvement acquisition function"""
             mean, std = self.predict(x)
             best_y = max(self.Y_obs)
-    
+
             # EI calculation
             with np.errstate(divide='ignore', invalid='ignore'):
                 z = (mean - best_y) / (std + 1e-9)
                 ei = (mean - best_y) * norm.cdf(z) + std * norm.pdf(z)
                 ei[std == 0] = 0.0
-    
+
             return -ei  # Convert to minimization problem
-    
+
         def select_next_point(self):
             """Select next evaluation point (maximize EI)"""
             result = minimize(
@@ -542,33 +653,33 @@ We understand the overall flow with a minimal implementation.
                 method='L-BFGS-B'
             )
             return result.x[0]
-    
+
         def optimize(self, n_iterations=10, verbose=True):
             """Execute optimization"""
             for i in range(n_iterations):
                 # Select next point
                 x_next = self.select_next_point()
                 y_next = self.evaluate(x_next)
-    
+
                 # Update data
                 self.X_obs.append(x_next)
                 self.Y_obs.append(y_next)
-    
+
                 current_best = max(self.Y_obs)
                 if verbose:
                     print(f"Iter {i+1}: x={x_next:.3f}, y={y_next:.3f}, best={current_best:.3f}")
-    
+
             best_idx = np.argmax(self.Y_obs)
             return self.X_obs[best_idx], self.Y_obs[best_idx]
-    
+
         def plot_progress(self):
             """Visualize optimization progress"""
             x_plot = np.linspace(self.bounds[0], self.bounds[1], 200)
             y_true = [self.objective(x) for x in x_plot]
             mean, std = self.predict(x_plot)
-    
+
             fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 8))
-    
+
             # Surrogate model
             ax1.plot(x_plot, y_true, 'k--', linewidth=2, label='True function', alpha=0.7)
             ax1.plot(x_plot, mean, 'b-', linewidth=2, label='GP mean')
@@ -584,9 +695,9 @@ We understand the overall flow with a minimal implementation.
             ax1.set_title('Gaussian Process Surrogate Model')
             ax1.legend()
             ax1.grid(alpha=0.3)
-    
+
             # Acquisition function
-            ei_values = [-self.expected_improvement(x) for x in x_plot]
+            ei_values = -self.expected_improvement(x_plot)
             ax2.plot(x_plot, ei_values, 'g-', linewidth=2, label='Expected Improvement')
             ax2.fill_between(x_plot, 0, ei_values, alpha=0.3, color='green')
             ax2.axvline(self.X_obs[-1], color='red', linestyle='--',
@@ -596,144 +707,191 @@ We understand the overall flow with a minimal implementation.
             ax2.set_title('Acquisition Function (Expected Improvement)')
             ax2.legend()
             ax2.grid(alpha=0.3)
-    
+
             plt.tight_layout()
             return fig
-    
+
     # Test function
     def test_function(x):
         return -(x - 2.5)**2 * np.sin(10 * x) + 3
-    
+
     # Execution
     print("=== Simple Bayesian Optimization ===\n")
     bo = SimpleBayesianOptimization(test_function, bounds=[0, 5], noise_std=0.05)
     x_best, y_best = bo.optimize(n_iterations=12, verbose=True)
-    
+
     print(f"\n=== Final Result ===")
     print(f"Best x: {x_best:.4f}")
     print(f"Best y: {y_best:.4f}")
-    
+
     fig = bo.plot_progress()
     plt.show()
     
 
 **Example output:**  
-Iter 1: x=2.876, y=3.234, best=3.234  
-Iter 2: x=2.451, y=3.589, best=3.589  
-...  
-Iter 12: x=2.503, y=3.612, best=3.612  
+=== Simple Bayesian Optimization ===  
   
-Best x: 2.5030  
-Best y: 3.612 
+Iter 1: x=2.058, y=2.858, best=2.993  
+Iter 2: x=0.000, y=2.971, best=2.993  
+Iter 3: x=0.917, y=2.343, best=2.993  
+Iter 4: x=1.331, y=1.941, best=2.993  
+Iter 5: x=1.456, y=2.055, best=2.993  
+Iter 6: x=4.405, y=2.732, best=2.993  
+Iter 7: x=1.966, y=2.756, best=2.993  
+Iter 8: x=2.280, y=3.004, best=3.004  
+Iter 9: x=2.787, y=2.998, best=3.004  
+Iter 10: x=2.663, y=2.980, best=3.004  
+Iter 11: x=0.853, y=0.851, best=3.004  
+Iter 12: x=0.325, y=3.494, best=3.494  
+  
+=== Final Result ===  
+Best x: 0.3253  
+Best y: 3.4938  
 
 ## 1.5 Comparison: BO vs Grid Search vs Random Search
 
-We quantitatively evaluate the superiority of Bayesian optimization.
+We compare the best values reached by three methods on the same Branin problem and evaluation budget.
 
 ### Example 5: Performance Comparison of Three Methods
     
     
+    import warnings
+
     import numpy as np
-    import matplotlib.pyplot as plt
     from scipy.optimize import minimize
     from scipy.stats import norm
-    
+    from sklearn.exceptions import ConvergenceWarning
+    from sklearn.gaussian_process import GaussianProcessRegressor
+    from sklearn.gaussian_process.kernels import RBF, ConstantKernel, WhiteKernel
+
+
+    def make_gp(noise: float = 1e-4, d: int = 1, min_length_scale: float = 1e-2) -> GaussianProcessRegressor:
+        kernel = (ConstantKernel(1.0, (1e-2, 1e2))
+                  * RBF(length_scale=np.ones(d) * 0.2, length_scale_bounds=(min_length_scale, 1e1))
+                  + WhiteKernel(noise, (1e-6, 1e-1)))
+        return GaussianProcessRegressor(kernel=kernel, normalize_y=True, n_restarts_optimizer=3, random_state=0)
+
+
+    def scale(X, bounds) -> np.ndarray:
+        b = np.asarray(bounds, dtype=float)
+        return (np.asarray(X, dtype=float) - b[:, 0]) / (b[:, 1] - b[:, 0])
+
+
+    def unscale(U, bounds) -> np.ndarray:
+        b = np.asarray(bounds, dtype=float)
+        return b[:, 0] + np.asarray(U, dtype=float) * (b[:, 1] - b[:, 0])
+
+
+    def expected_improvement(mu, sigma, best, xi=0.01) -> np.ndarray:
+        mu, sigma = np.asarray(mu, dtype=float), np.asarray(sigma, dtype=float)
+        imp = mu - best - xi
+        out = np.maximum(imp, 0.0)  # sigma == 0: the improvement is certain (or certainly absent)
+        pos = sigma > 1e-12
+        z = imp[pos] / sigma[pos]
+        out[pos] = imp[pos] * norm.cdf(z) + sigma[pos] * norm.pdf(z)
+        return out
+
+
+    def ucb(mu, sigma, kappa) -> np.ndarray:
+        return np.asarray(mu, dtype=float) + kappa * np.asarray(sigma, dtype=float)
+
+
+    def _fit(X, Y, bounds, gp_kwargs: dict | None = None) -> GaussianProcessRegressor:
+        X = np.atleast_2d(np.asarray(X, dtype=float))
+        gp = make_gp(d=X.shape[1], **(gp_kwargs or {}))
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", ConvergenceWarning)
+            gp.fit(scale(X, bounds), np.asarray(Y, dtype=float))
+        return gp
+
+
+    def _acq(gp, U, best, acq, kappa):
+        mu, sd = gp.predict(np.atleast_2d(U), return_std=True)
+        return expected_improvement(mu, sd, best) if acq == "ei" else ucb(mu, sd, kappa)
+
+
+    def propose(gp, bounds, best, acq: str, rng, kappa=2.0, n_candidates=2000) -> np.ndarray:
+        """Maximise the acquisition: n_candidates uniform points in the unit cube, then the best 5
+        refined with L-BFGS-B. Returns the proposal in original units."""
+        bounds = np.asarray(bounds, dtype=float); d = len(bounds)
+        U = rng.random((n_candidates, d))
+        a = _acq(gp, U, best, acq, kappa)
+        starts = U[np.argsort(-a, kind="stable")[:5]]
+        best_u, best_a = starts[0], a[np.argsort(-a, kind="stable")[0]]
+        for u0 in starts:
+            res = minimize(lambda u: -_acq(gp, u, best, acq, kappa)[0], u0, method="L-BFGS-B", bounds=[(0.0, 1.0)] * d)
+            if -res.fun > best_a:
+                best_u, best_a = np.clip(res.x, 0.0, 1.0), -res.fun
+        return unscale(best_u, bounds)
+
+
+    import matplotlib.pyplot as plt
+
     # ===================================
     # Example 5: BO vs Grid Search vs Random Search
     # ===================================
-    
+
     # Test function (2D)
     def branin_function(x):
         """Branin function (global optimization benchmark)"""
         x1, x2 = x[0], x[1]
         a, b, c = 1, 5.1/(4*np.pi**2), 5/np.pi
         r, s, t = 6, 10, 1/(8*np.pi)
-    
+
         term1 = a * (x2 - b*x1**2 + c*x1 - r)**2
         term2 = s * (1 - t) * np.cos(x1)
         term3 = s
-    
+
         return -(term1 + term2 + term3)  # Convert to maximization problem
-    
+
     class OptimizationComparison:
         """Comparison experiment of three methods"""
-    
+
         def __init__(self, objective, bounds, budget=30):
             self.objective = objective
             self.bounds = np.array(bounds)  # [[x1_min, x1_max], [x2_min, x2_max]]
             self.budget = budget
             self.dim = len(bounds)
-    
+
         def grid_search(self):
             """Grid search"""
             n_per_dim = int(np.ceil(self.budget ** (1/self.dim)))
-    
+
             grid_1d = [np.linspace(b[0], b[1], n_per_dim) for b in self.bounds]
             grid = np.meshgrid(*grid_1d)
-    
+
             X_grid = np.column_stack([g.ravel() for g in grid])[:self.budget]
             Y_grid = [self.objective(x) for x in X_grid]
-    
+
             return X_grid, Y_grid
-    
+
         def random_search(self, seed=42):
             """Random search"""
-            np.random.seed(seed)
-            X_random = np.random.uniform(
+            rng = np.random.default_rng(seed)
+            X_random = rng.uniform(
                 self.bounds[:, 0], self.bounds[:, 1],
                 size=(self.budget, self.dim)
             )
             Y_random = [self.objective(x) for x in X_random]
-    
+
             return X_random, Y_random
-    
+
         def bayesian_optimization(self, seed=42):
-            """Bayesian optimization (simplified version)"""
-            np.random.seed(seed)
-    
-            # Initial samples (5 points)
+            """Gaussian process optimization with expected improvement."""
+            rng = np.random.default_rng(seed)
             n_init = 5
-            X = np.random.uniform(self.bounds[:, 0], self.bounds[:, 1],
-                                 size=(n_init, self.dim))
+            X = unscale(rng.random((n_init, self.dim)), self.bounds)
             Y = [self.objective(x) for x in X]
-    
-            # Sequential optimization
+
             for _ in range(self.budget - n_init):
-                # Simple GP prediction
-                def gp_mean_std(x_test):
-                    distances = np.linalg.norm(X - x_test, axis=1)
-                    weights = np.exp(-distances**2 / 2.0)
-                    weights = weights / (weights.sum() + 1e-10)
-    
-                    mean = weights @ Y
-                    std = 1.0 * np.exp(-np.min(distances) / 1.5)
-    
-                    return mean, std
-    
-                # EI acquisition function
-                def neg_ei(x):
-                    mean, std = gp_mean_std(x)
-                    best_y = max(Y)
-                    z = (mean - best_y) / (std + 1e-9)
-                    ei = (mean - best_y) * norm.cdf(z) + std * norm.pdf(z)
-                    return -ei
-    
-                # Next point selection
-                result = minimize(
-                    neg_ei,
-                    x0=np.random.uniform(self.bounds[:, 0], self.bounds[:, 1]),
-                    bounds=self.bounds,
-                    method='L-BFGS-B'
-                )
-    
-                x_next = result.x
+                gp = _fit(X, Y, self.bounds)
+                x_next = propose(gp, self.bounds, max(Y), "ei", rng)
                 y_next = self.objective(x_next)
-    
                 X = np.vstack([X, x_next])
                 Y.append(y_next)
-    
+
             return X, Y
-    
+
         def compare(self, n_trials=5):
             """Compare average performance over multiple trials"""
             results = {
@@ -741,132 +899,162 @@ We quantitatively evaluate the superiority of Bayesian optimization.
                 'Random Search': [],
                 'Bayesian Optimization': []
             }
-    
+
             for trial in range(n_trials):
                 print(f"\n=== Trial {trial + 1}/{n_trials} ===")
-    
+
                 # Grid Search
                 X_grid, Y_grid = self.grid_search()
                 best_grid = [max(Y_grid[:i+1]) for i in range(len(Y_grid))]
                 results['Grid Search'].append(best_grid)
                 print(f"Grid Search best: {max(Y_grid):.4f}")
-    
+
                 # Random Search
                 X_rand, Y_rand = self.random_search(seed=trial)
                 best_rand = [max(Y_rand[:i+1]) for i in range(len(Y_rand))]
                 results['Random Search'].append(best_rand)
                 print(f"Random Search best: {max(Y_rand):.4f}")
-    
+
                 # Bayesian Optimization
                 X_bo, Y_bo = self.bayesian_optimization(seed=trial)
                 best_bo = [max(Y_bo[:i+1]) for i in range(len(Y_bo))]
                 results['Bayesian Optimization'].append(best_bo)
                 print(f"Bayesian Optimization best: {max(Y_bo):.4f}")
-    
+
             return results
-    
+
         def plot_comparison(self, results):
             """Visualize comparison results"""
             fig, ax = plt.subplots(figsize=(10, 6))
-    
+
             colors = {'Grid Search': 'blue', 'Random Search': 'orange',
                      'Bayesian Optimization': 'green'}
-    
+
             for method, trials in results.items():
                 trials_array = np.array(trials)
                 mean_curve = trials_array.mean(axis=0)
                 std_curve = trials_array.std(axis=0)
-    
+
                 x_axis = np.arange(1, len(mean_curve) + 1)
                 ax.plot(x_axis, mean_curve, linewidth=2.5, label=method,
                        color=colors[method], marker='o', markersize=4)
                 ax.fill_between(x_axis, mean_curve - std_curve, mean_curve + std_curve,
                                alpha=0.2, color=colors[method])
-    
+
             ax.set_xlabel('Number of Evaluations', fontsize=12)
             ax.set_ylabel('Best Objective Value Found', fontsize=12)
             ax.set_title('Optimization Performance Comparison (Mean ± Std over 5 trials)',
                         fontsize=13, fontweight='bold')
             ax.legend(fontsize=11)
             ax.grid(alpha=0.3)
-    
+
             return fig
-    
+
     # Run experiment
     bounds = [[-5, 10], [0, 15]]  # Domain of Branin function
     comparison = OptimizationComparison(branin_function, bounds, budget=30)
-    
+
     print("Running optimization comparison...")
     results = comparison.compare(n_trials=5)
-    
+
     # Final performance summary
     print("\n=== Final Performance Summary ===")
     for method, trials in results.items():
         final_values = [trial[-1] for trial in trials]
         print(f"{method:25s}: {np.mean(final_values):.4f} ± {np.std(final_values):.4f}")
-    
+
     fig = comparison.plot_comparison(results)
     plt.show()
     
 
-**Example output (final performance summary):**  
-Grid Search : -12.345 ± 2.134  
-Random Search : -8.912 ± 1.567  
-Bayesian Optimization : -3.456 ± 0.823  
+**Example output:**  
+Running optimization comparison...  
   
-**All three methods were given the same budget of 30 evaluations** , so this compares the quality of the best value found within that budget, not speed. These objective values are negative (the Branin function is negated for maximization), so their **ratios carry no meaning** — compare the remaining **gap to the optimum** instead. The best attainable value on these bounds is about -0.40:
+=== Trial 1/5 ===  
+Grid Search best: -1.9431  
+Random Search best: -1.6409  
+Bayesian Optimization best: -0.4049  
+  
+=== Trial 2/5 ===  
+Grid Search best: -1.9431  
+Random Search best: -1.7697  
+Bayesian Optimization best: -0.3980  
+  
+=== Trial 3/5 ===  
+Grid Search best: -1.9431  
+Random Search best: -0.8426  
+Bayesian Optimization best: -0.3981  
+  
+=== Trial 4/5 ===  
+Grid Search best: -1.9431  
+Random Search best: -5.0113  
+Bayesian Optimization best: -0.3980  
+  
+=== Trial 5/5 ===  
+Grid Search best: -1.9431  
+Random Search best: -2.7390  
+Bayesian Optimization best: -0.3984  
+  
+=== Final Performance Summary ===  
+Grid Search              : -1.9431 ± 0.0000  
+Random Search            : -2.4007 ± 1.4375  
+Bayesian Optimization    : -0.3995 ± 0.0027  
+
+**All three methods were given the same budget of 30 evaluations** , so this compares the quality of the best value found within that budget, not speed. These objective values are negative (the Branin function is negated for maximization), so their **ratios carry no meaning** — compare the remaining **gap to the optimum** instead. The best attainable value on these bounds is approximately -0.397887; the table uses that value to compute gaps from the mean best values across five trials:
 
 Method | Best found in 30 evaluations | Remaining gap to the optimum  
 ---|---|---  
-Grid Search | -12.345 | 11.95  
-Random Search | -8.912 | 8.51  
-Bayesian Optimization | -3.456 | 3.06  
+Grid Search | -1.9431 | 1.5452  
+Random Search | -2.4007 | 2.0028  
+Bayesian Optimization | -0.3995 | 0.0016  
   
 **✅ Advantages of Bayesian Optimization**
 
-  * **Evaluation efficiency** : On the same 30-evaluation budget, BO closes about 74% of the gap that grid search still leaves open, and about 64% of the gap left by random search
-  * **How the budget scales** : Grid search can only afford `ceil(30**(1/2)) = 6` points per dimension here (a 6×6 lattice truncated to 30 points); halving the grid spacing in 2D would cost 4× the evaluations, whereas BO spends each additional evaluation where its model says the information gain is largest
-  * **Robustness** : Small standard deviation across the 5 trials (stable performance)
+  * **Evaluation efficiency** : Across these five seeded trials with 30 evaluations each, GP-EI has the best mean result, closing about 99.9% of the gap left by grid search and about 99.9% of the gap left by random search
+  * **How the budget scales** : Grid search can only afford `ceil(30**(1/2)) = 6` points per dimension here (a 6×6 lattice truncated to 30 points); halving the grid spacing in 2D would cost 4× the evaluations, whereas GP-EI spends each additional evaluation where its fitted model predicts the greatest expected improvement
+  * **Robustness** : The GP-EI final-value standard deviation is 0.0027 across these five trials; this indicates stability in this experiment, not a general guarantee
 
 ## 1.6 Convergence Analysis and Iteration Tracking
 
 We quantitatively evaluate optimization progress and learn methods for convergence determination.
 
 ### Example 6: Convergence Diagnostic Tool
+
+This diagnostic example retains a separate distance-weighted heuristic search history, rather than a GP posterior. The true optimum is not supplied: 3.62 was not a valid optimum for this objective, so `true_optimum=None` omits the optimality gap. The run finds 7.006472 but does not satisfy the stopping rule; its largest improvement is at iteration 16 (Δy = 3.494641).
     
     
     import numpy as np
     import matplotlib.pyplot as plt
-    
+
     # ===================================
     # Example 6: Convergence analysis and iteration tracking
     # ===================================
-    
+
     class ConvergenceAnalyzer:
         """Analyze convergence of Bayesian optimization"""
-    
+
         def __init__(self, X_history, Y_history, true_optimum=None):
             self.X_history = np.array(X_history)
             self.Y_history = np.array(Y_history)
             self.true_optimum = true_optimum
             self.n_iter = len(Y_history)
-    
+
         def compute_metrics(self):
             """Calculate convergence metrics"""
             # Cumulative best value
             cumulative_best = [max(self.Y_history[:i+1]) for i in range(self.n_iter)]
-    
+
             # Improvement (progress at each iteration)
             improvements = [0]
             for i in range(1, self.n_iter):
                 improvements.append(max(0, cumulative_best[i] - cumulative_best[i-1]))
-    
+
             # Optimality gap (if true optimum is known)
             if self.true_optimum is not None:
                 optimality_gap = [self.true_optimum - cb for cb in cumulative_best]
             else:
                 optimality_gap = None
-    
+
             # Convergence rate (standard deviation of recent 5 improvements)
             convergence_rate = []
             window = 5
@@ -876,33 +1064,33 @@ We quantitatively evaluate optimization progress and learn methods for convergen
                 else:
                     recent_improvements = improvements[i-window+1:i+1]
                     convergence_rate.append(np.std(recent_improvements))
-    
+
             return {
                 'cumulative_best': cumulative_best,
                 'improvements': improvements,
                 'optimality_gap': optimality_gap,
                 'convergence_rate': convergence_rate
             }
-    
+
         def is_converged(self, tolerance=1e-3, patience=5):
             """Convergence determination"""
             metrics = self.compute_metrics()
             improvements = metrics['improvements']
-    
+
             # Improvement is less than tolerance for recent patience iterations
             if len(improvements) < patience:
                 return False
-    
+
             recent_improvements = improvements[-patience:]
             return all(imp < tolerance for imp in recent_improvements)
-    
+
         def plot_diagnostics(self):
             """Diagnostic plots"""
             metrics = self.compute_metrics()
-    
+
             fig, axes = plt.subplots(2, 2, figsize=(14, 10))
             iterations = np.arange(1, self.n_iter + 1)
-    
+
             # (1) Transition of cumulative best value
             ax = axes[0, 0]
             ax.plot(iterations, metrics['cumulative_best'], 'b-', linewidth=2, marker='o')
@@ -914,7 +1102,7 @@ We quantitatively evaluate optimization progress and learn methods for convergen
             ax.set_ylabel('Best Value Found')
             ax.set_title('Convergence: Cumulative Best')
             ax.grid(alpha=0.3)
-    
+
             # (2) Improvement at each iteration
             ax = axes[0, 1]
             ax.bar(iterations, metrics['improvements'], color='green', alpha=0.7)
@@ -922,7 +1110,7 @@ We quantitatively evaluate optimization progress and learn methods for convergen
             ax.set_ylabel('Improvement')
             ax.set_title('Improvement per Iteration')
             ax.grid(alpha=0.3, axis='y')
-    
+
             # (3) Optimality gap (log scale)
             ax = axes[1, 0]
             if metrics['optimality_gap'] is not None:
@@ -938,7 +1126,7 @@ We quantitatively evaluate optimization progress and learn methods for convergen
                        ha='center', va='center', fontsize=14)
                 ax.set_xticks([])
                 ax.set_yticks([])
-    
+
             # (4) Convergence rate (variability of improvements)
             ax = axes[1, 1]
             valid_idx = ~np.isnan(metrics['convergence_rate'])
@@ -951,97 +1139,96 @@ We quantitatively evaluate optimization progress and learn methods for convergen
             ax.set_title('Convergence Rate Indicator')
             ax.legend()
             ax.grid(alpha=0.3)
-    
+
             plt.tight_layout()
             return fig
-    
+
         def print_summary(self):
             """Summary report"""
             metrics = self.compute_metrics()
-    
+
             print("=== Convergence Analysis Summary ===")
             print(f"Total iterations: {self.n_iter}")
             print(f"Best value found: {max(self.Y_history):.6f}")
             print(f"Final improvement: {metrics['improvements'][-1]:.6f}")
-    
+
             if self.true_optimum is not None:
                 final_gap = self.true_optimum - max(self.Y_history)
                 print(f"True optimum: {self.true_optimum:.6f}")
                 print(f"Optimality gap: {final_gap:.6f} ({final_gap/self.true_optimum*100:.2f}%)")
-    
+
             converged = self.is_converged()
             print(f"Converged: {'Yes' if converged else 'No'}")
-    
+
             # Iteration with maximum improvement
             max_imp_iter = np.argmax(metrics['improvements'])
             print(f"Largest improvement at iteration: {max_imp_iter + 1} "
                   f"(Δy = {metrics['improvements'][max_imp_iter]:.6f})")
-    
-    # Demo execution (using results from Example 4)
+
+    # Demo execution (same objective as Example 4, separate noisy history)
     np.random.seed(42)
-    
+
     def test_func(x):
         return -(x - 2.5)**2 * np.sin(10 * x) + 3
-    
+
     # Run BO and obtain history
     from scipy.stats import norm
     from scipy.optimize import minimize
-    
+
     X_hist, Y_hist = [], []
     bounds = [0, 5]
-    
+
     # Initial sampling
     for _ in range(3):
         x = np.random.uniform(bounds[0], bounds[1])
         X_hist.append(x)
         Y_hist.append(test_func(x) + np.random.normal(0, 0.02))
-    
+
     # Sequential optimization (15 iterations)
     for iteration in range(15):
-        # Simple GP prediction
+        # Distance-weighted heuristic prediction (not a GP posterior)
         def gp_predict(x_test):
             dists = np.abs(np.array(X_hist) - x_test)
             weights = np.exp(-dists**2 / 0.5)
             mean = weights @ Y_hist / (weights.sum() + 1e-10)
             std = 0.5 * (1 - np.exp(-np.min(dists) / 1.0))
             return mean, std
-    
+
         # EI acquisition function
         def neg_ei(x):
             mean, std = gp_predict(x)
             z = (mean - max(Y_hist)) / (std + 1e-9)
             ei = (mean - max(Y_hist)) * norm.cdf(z) + std * norm.pdf(z)
             return -ei
-    
+
         # Next point selection
         res = minimize(neg_ei, x0=np.random.uniform(bounds[0], bounds[1]),
                       bounds=[bounds], method='L-BFGS-B')
-    
+
         x_next = res.x[0]
         y_next = test_func(x_next) + np.random.normal(0, 0.02)
-    
+
         X_hist.append(x_next)
         Y_hist.append(y_next)
-    
+
     # Convergence analysis
-    analyzer = ConvergenceAnalyzer(X_hist, Y_hist, true_optimum=3.62)
+    analyzer = ConvergenceAnalyzer(X_hist, Y_hist, true_optimum=None)
     analyzer.print_summary()
     fig = analyzer.plot_diagnostics()
     plt.show()
     
 
 **Example output:**  
+=== Convergence Analysis Summary ===  
 Total iterations: 18  
-Best value found: 3.608521  
+Best value found: 7.006472  
 Final improvement: 0.000000  
-True optimum: 3.620000  
-Optimality gap: 0.011479 (0.32%)  
-Converged: Yes  
-Largest improvement at iteration: 6 (Δy = 0.234567) 
+Converged: No  
+Largest improvement at iteration: 16 (Δy = 3.494641)  
 
 ## 1.7 Practical Example of Hyperparameter Tuning
 
-We implement hyperparameter tuning of machine learning models as a representative application of Bayesian optimization.
+Hyperparameter tuning is an application of Bayesian optimization; this compact example retains a distance-weighted heuristic surrogate with an EI-style selection rule, so it does not implement the GP posterior used in Examples 2, 3, and 5. Both random forests use `n_jobs=1` to keep tree averaging and the resulting search deterministic.
 
 ### Example 7: Hyperparameter Optimization of Random Forest
     
@@ -1053,39 +1240,39 @@ We implement hyperparameter tuning of machine learning models as a representativ
     from sklearn.datasets import make_regression
     from scipy.stats import norm
     from scipy.optimize import minimize
-    
+
     # ===================================
     # Example 7: Hyperparameter tuning
     # ===================================
-    
+
     # Generate sample dataset (assuming sensor data from chemical process)
     np.random.seed(42)
     X_data, y_data = make_regression(n_samples=200, n_features=10, noise=10, random_state=42)
-    
+
     class HyperparameterOptimizer:
-        """Bayesian optimization of Random Forest hyperparameters"""
-    
+        """EI-style search of Random Forest hyperparameters with a heuristic surrogate"""
+
         def __init__(self, X_train, y_train):
             self.X_train = X_train
             self.y_train = y_train
-    
+
             # Three hyperparameters to optimize
             self.param_bounds = {
                 'n_estimators': [10, 200],      # Number of decision trees
                 'max_depth': [3, 20],            # Maximum depth
                 'min_samples_split': [2, 20]     # Minimum samples for split
             }
-    
+
             self.X_obs = []
             self.Y_obs = []
-    
+
             # Initial random sampling (5 points)
             for _ in range(5):
                 params = self._sample_random_params()
                 score = self._evaluate(params)
                 self.X_obs.append(params)
                 self.Y_obs.append(score)
-    
+
         def _sample_random_params(self):
             """Randomly sample hyperparameters"""
             return [
@@ -1096,56 +1283,56 @@ We implement hyperparameter tuning of machine learning models as a representativ
                 np.random.randint(self.param_bounds['min_samples_split'][0],
                                 self.param_bounds['min_samples_split'][1] + 1)
             ]
-    
+
         def _evaluate(self, params):
             """Evaluate hyperparameter performance (5-fold CV)"""
             n_est, max_d, min_split = [int(p) for p in params]
-    
+
             model = RandomForestRegressor(
                 n_estimators=n_est,
                 max_depth=max_d,
                 min_samples_split=min_split,
                 random_state=42,
-                n_jobs=-1
+                n_jobs=1
             )
-    
+
             # Cross-validation R² score
             scores = cross_val_score(model, self.X_train, self.y_train,
                                     cv=5, scoring='r2')
             return scores.mean()
-    
+
         def _gp_predict(self, params_test):
-            """Simple Gaussian process prediction"""
+            """Distance-weighted heuristic prediction (not a GP posterior)"""
             X_obs_array = np.array(self.X_obs)
             params_array = np.array(params_test).reshape(1, -1)
-    
+
             # Normalization
             X_obs_norm = (X_obs_array - X_obs_array.mean(axis=0)) / (X_obs_array.std(axis=0) + 1e-10)
             params_norm = (params_array - X_obs_array.mean(axis=0)) / (X_obs_array.std(axis=0) + 1e-10)
-    
+
             # Distance-based weights
             dists = np.linalg.norm(X_obs_norm - params_norm, axis=1)
             weights = np.exp(-dists**2 / 2.0)
-    
+
             mean = weights @ self.Y_obs / (weights.sum() + 1e-10)
             std = 0.2 * (1 - np.exp(-np.min(dists) / 1.5))
-    
+
             return mean, std
-    
+
         def _expected_improvement(self, params):
             """EI acquisition function"""
             mean, std = self._gp_predict(params)
             best_y = max(self.Y_obs)
-    
+
             z = (mean - best_y) / (std + 1e-9)
             ei = (mean - best_y) * norm.cdf(z) + std * norm.pdf(z)
-    
+
             return -ei  # Minimization problem
-    
+
         def optimize(self, n_iterations=15):
-            """Execute Bayesian optimization"""
+            """Execute the heuristic EI-style search"""
             print("=== Hyperparameter Optimization ===\n")
-    
+
             for i in range(n_iterations):
                 # Select next hyperparameters
                 bounds_array = [
@@ -1153,44 +1340,44 @@ We implement hyperparameter tuning of machine learning models as a representativ
                     self.param_bounds['max_depth'],
                     self.param_bounds['min_samples_split']
                 ]
-    
+
                 result = minimize(
                     self._expected_improvement,
                     x0=self._sample_random_params(),
                     bounds=bounds_array,
                     method='L-BFGS-B'
                 )
-    
+
                 params_next = [int(p) for p in result.x]
                 score_next = self._evaluate(params_next)
-    
+
                 self.X_obs.append(params_next)
                 self.Y_obs.append(score_next)
-    
+
                 current_best = max(self.Y_obs)
                 print(f"Iter {i+1}: n_est={params_next[0]}, max_depth={params_next[1]}, "
                       f"min_split={params_next[2]} → R²={score_next:.4f} (best={current_best:.4f})")
-    
+
             # Best parameters
             best_idx = np.argmax(self.Y_obs)
             best_params = self.X_obs[best_idx]
             best_score = self.Y_obs[best_idx]
-    
+
             print(f"\n=== Best Hyperparameters ===")
             print(f"n_estimators: {best_params[0]}")
             print(f"max_depth: {best_params[1]}")
             print(f"min_samples_split: {best_params[2]}")
             print(f"Best R² score: {best_score:.4f}")
-    
+
             return best_params, best_score
-    
+
         def plot_optimization_history(self):
             """Visualize optimization history"""
             fig, axes = plt.subplots(2, 2, figsize=(14, 10))
-    
+
             iterations = np.arange(1, len(self.Y_obs) + 1)
             cumulative_best = [max(self.Y_obs[:i+1]) for i in range(len(self.Y_obs))]
-    
+
             # (1) Transition of R² score
             ax = axes[0, 0]
             ax.plot(iterations, self.Y_obs, 'o-', linewidth=2, markersize=8,
@@ -1202,7 +1389,7 @@ We implement hyperparameter tuning of machine learning models as a representativ
             ax.set_title('Optimization Progress')
             ax.legend()
             ax.grid(alpha=0.3)
-    
+
             # (2) Exploration trajectory of n_estimators
             ax = axes[0, 1]
             n_estimators = [x[0] for x in self.X_obs]
@@ -1213,7 +1400,7 @@ We implement hyperparameter tuning of machine learning models as a representativ
             ax.set_title('Parameter Exploration: n_estimators')
             plt.colorbar(scatter, ax=ax, label='R² Score')
             ax.grid(alpha=0.3)
-    
+
             # (3) Exploration trajectory of max_depth
             ax = axes[1, 0]
             max_depth = [x[1] for x in self.X_obs]
@@ -1224,7 +1411,7 @@ We implement hyperparameter tuning of machine learning models as a representativ
             ax.set_title('Parameter Exploration: max_depth')
             plt.colorbar(scatter, ax=ax, label='R² Score')
             ax.grid(alpha=0.3)
-    
+
             # (4) Parameter space exploration (2D projection: n_estimators vs max_depth)
             ax = axes[1, 1]
             scatter = ax.scatter(n_estimators, max_depth, c=self.Y_obs,
@@ -1239,20 +1426,20 @@ We implement hyperparameter tuning of machine learning models as a representativ
             plt.colorbar(scatter, ax=ax, label='R² Score')
             ax.legend()
             ax.grid(alpha=0.3)
-    
+
             plt.tight_layout()
             return fig
-    
+
     # Execution
     optimizer = HyperparameterOptimizer(X_data, y_data)
     best_params, best_score = optimizer.optimize(n_iterations=15)
-    
+
     fig = optimizer.plot_optimization_history()
     plt.show()
-    
+
     # Comparison with baseline
     print("\n=== Comparison with Default Parameters ===")
-    default_model = RandomForestRegressor(random_state=42, n_jobs=-1)
+    default_model = RandomForestRegressor(random_state=42, n_jobs=1)
     default_score = cross_val_score(default_model, X_data, y_data, cv=5, scoring='r2').mean()
     print(f"Default R² score: {default_score:.4f}")
     print(f"Optimized R² score: {best_score:.4f}")
@@ -1260,17 +1447,36 @@ We implement hyperparameter tuning of machine learning models as a representativ
     
 
 **Example output:**  
-Iter 15: n_est=142, max_depth=18, min_split=2 → R²=0.9234 (best=0.9234)  
+=== Hyperparameter Optimization ===  
   
-Best Hyperparameters:  
-n_estimators: 142  
-max_depth: 18  
+Iter 1: n_est=185, max_depth=16, min_split=20 → R²=0.6402 (best=0.7324)  
+Iter 2: n_est=10, max_depth=20, min_split=2 → R²=0.6670 (best=0.7324)  
+Iter 3: n_est=50, max_depth=20, min_split=10 → R²=0.6945 (best=0.7324)  
+Iter 4: n_est=10, max_depth=20, min_split=20 → R²=0.5485 (best=0.7324)  
+Iter 5: n_est=161, max_depth=9, min_split=12 → R²=0.7046 (best=0.7324)  
+Iter 6: n_est=10, max_depth=5, min_split=9 → R²=0.6190 (best=0.7324)  
+Iter 7: n_est=200, max_depth=20, min_split=2 → R²=0.7397 (best=0.7397)  
+Iter 8: n_est=98, max_depth=15, min_split=19 → R²=0.6435 (best=0.7397)  
+Iter 9: n_est=16, max_depth=3, min_split=19 → R²=0.5038 (best=0.7397)  
+Iter 10: n_est=200, max_depth=3, min_split=20 → R²=0.5538 (best=0.7397)  
+Iter 11: n_est=10, max_depth=12, min_split=2 → R²=0.6664 (best=0.7397)  
+Iter 12: n_est=90, max_depth=3, min_split=11 → R²=0.5750 (best=0.7397)  
+Iter 13: n_est=118, max_depth=20, min_split=2 → R²=0.7381 (best=0.7397)  
+Iter 14: n_est=200, max_depth=10, min_split=2 → R²=0.7368 (best=0.7397)  
+Iter 15: n_est=67, max_depth=15, min_split=10 → R²=0.7061 (best=0.7397)  
+  
+=== Best Hyperparameters ===  
+n_estimators: 200  
+max_depth: 20  
 min_samples_split: 2  
-Best R² score: 0.9234  
+Best R² score: 0.7397  
   
-Default R² score: 0.8567  
-Optimized R² score: 0.9234  
-Improvement: 7.78% 
+=== Comparison with Default Parameters ===  
+Default R² score: 0.7368  
+Optimized R² score: 0.7397  
+Improvement: 0.40%  
+
+The best parameters in this run are `n_estimators=200`, `max_depth=20`, and `min_samples_split=2`: mean cross-validation R² rises from 0.7368 to 0.7397, a small 0.40% relative gain on these folds, not an independently validated test-set improvement.
 
 **💡 Practical Applications**
 

@@ -18,7 +18,6 @@ created_at: 2026-08-23
     height="315"
     src="https://www.youtube.com/embed/lfGMREF-V-c?start=1495"
     title="Chemical Engineering Fluid Mechanics Ch.3: Laminar, Turbulent, and the Reynolds Number"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>
@@ -30,7 +29,7 @@ created_at: 2026-08-23
 
 # Chapter 3: Laminar, Turbulent, and the Reynolds Number
 
-Chapter 2 balanced mechanical energy along a streamline and left one term deliberately vague: the friction loss. Before that loss can be given a number, the flow must be classified — and the classification rests on a single dimensionless group.
+Chapter 2 balanced mechanical energy along a streamline and left one term deliberately vague: the friction loss. Before that loss can be given a number, the flow must be classified — and for ordinary pipe flow that classification rests mainly on a single dimensionless group.
 
 **Two Regimes, One Dimensionless Group**
 
@@ -52,7 +51,7 @@ By completing this chapter, you will be able to:
 
 ## 3.1 Reynolds' Experiment
 
-In 1883 Osborne Reynolds ran water from a tank through a straight glass pipe and injected a fine jet of dye on the centerline. At low flow rates the dye drew a **straight, sharp thread** the whole length of the pipe: the water was moving in orderly layers that slid past one another without exchanging material sideways.
+In 1883 Osborne Reynolds ran water from a tank through a straight glass pipe and injected a fine jet of dye on the centerline. At low flow rates the dye drew a **straight, sharp thread** the whole length of the pipe: the water was moving in orderly layers that slid past one another with no appreciable transverse bulk mixing, though molecular diffusion still carried material slowly between them.
 
 Opening the valve further changed nothing — until, quite abruptly, it changed everything. Past a certain flow rate the thread wavered, broke up, and **dispersed across the whole cross-section within a few pipe diameters**. He had not blurred one regime into the other; he had crossed a threshold between two qualitatively different states of motion.
 
@@ -67,15 +66,15 @@ flowchart TB
     D --> E["One dimensionless group controls it: Re"]
 ```
 
-The decisive result came next. He repeated the experiment with different diameters, different temperatures — which change the viscosity — and different liquids, and the velocity at which the thread broke up moved around wildly. Yet when those four variables were combined into a **single dimensionless group**, transition always occurred near the same value of it. That number now carries his name.
+The decisive result came next. He repeated the experiment with different diameters, different temperatures — which change the viscosity — and different liquids, and the velocity at which the thread broke up moved around wildly. Yet when those four variables were combined into a **single dimensionless group**, transition clustered near the same value of it. What Reynolds had found was the governing scaling; where transition is actually observed still depends on disturbances, inlet conditions, and the state of the rig. That number now carries his name.
 
 ## 3.2 The Reynolds Number
 
 $$ Re = \frac{\rho v D}{\mu} $$
 
-where $\rho$ is density (kg/m³), $v$ the average velocity (m/s), $D$ the pipe inside diameter (m), and $\mu$ the dynamic viscosity (Pa·s). The group is a **ratio of inertial to viscous forces**: the numerator measures the fluid's tendency to keep doing what it is doing, the denominator its ability to damp a disturbance by internal friction. When viscosity wins, perturbations die and the layers stay ordered; when inertia wins, a perturbation feeds on the flow's own momentum, grows, and order collapses.
+where $\rho$ is density (kg/m³), $v$ the average velocity (m/s), $D$ the pipe inside diameter (m), and $\mu$ the dynamic viscosity (Pa·s). The group is a **ratio of inertial to viscous forces**: the numerator measures the fluid's tendency to keep doing what it is doing, the denominator its ability to damp a disturbance by internal friction. When viscosity wins, perturbations die and the layers stay ordered; when inertia wins, a sufficiently large perturbation can feed on the flow's own momentum, grow, and sustain disorder.
 
-Checking once that $Re$ is genuinely **dimensionless** is worthwhile, since that is what lets one threshold serve both a laboratory tube and a refinery line. Using Pa·s = kg/(m·s):
+Checking once that $Re$ is genuinely **dimensionless** is worthwhile, since that is what lets one threshold be carried between a laboratory tube and a refinery line — provided their geometry, boundary conditions, and disturbances are comparable too. Using Pa·s = kg/(m·s):
 
 $$ [Re] = \frac{(\text{kg/m}^3)(\text{m/s})(\text{m})}{\text{kg/(m}\cdot\text{s)}} = \frac{\text{kg/(m}\cdot\text{s)}}{\text{kg/(m}\cdot\text{s)}} = 1 $$
 
@@ -87,19 +86,19 @@ For **flow inside a circular pipe**, the standard textbook guideline is:
 | About **2,100 – 4,000** | **Transitional** | Intermittent, unpredictable, avoided in design |
 | Above about **4,000** | **Turbulent** | Fully chaotic, strong cross-mixing |
 
-These are engineering guidelines, not physical constants — the lower value is quoted variously as 2,100 or 2,300, and laminar flow has been sustained far past it in exceptionally smooth, vibration-free rigs. Designers avoid sizing lines into the transitional band, where flow can flicker between regimes.
+These are engineering guidelines, not physical constants — the lower value is quoted variously as 2,100 or 2,300, and laminar flow has been sustained far past it in exceptionally smooth, vibration-free rigs. Designers usually avoid sizing lines into the transitional band, where flow can flicker between regimes and the performance correlations are least reliable.
 
 **Worked example 1 — water**, $\rho = 998$ kg/m³, $\mu = 0.001$ Pa·s, $v = 2$ m/s, $D = 0.05$ m:
 
 $$ Re = \frac{998 \times 2 \times 0.05}{0.001} = 99{,}800 \approx 1.0 \times 10^5 $$
 
-Turbulent, 25 times above the threshold — the industrial norm. Water-like fluids at ordinary velocities in ordinary pipes are turbulent, and making them otherwise takes deliberate effort.
+Turbulent, 25 times above the threshold — the industrial norm. Water-like fluids at moderate velocities in process pipes of ordinary size are turbulent; laminar water flow needs a low rate or a small passage.
 
 **Worked example 2 — a viscous oil**, $\rho = 900$ kg/m³, $\mu = 0.1$ Pa·s (a hundred times water), $v = 0.5$ m/s, $D = 0.05$ m:
 
 $$ Re = \frac{900 \times 0.5 \times 0.05}{0.1} = 225 $$
 
-Laminar, and not marginally so. Heavy oils, syrups, polymer melts, and concentrated slurries live here permanently.
+Laminar, and not marginally so. Highly viscous streams — heavy oils, syrups, polymer melts, concentrated slurries — commonly operate in this regime, but no material is laminar by identity: the regime has to be worked out from the actual velocity, diameter, temperature, and rheology.
 
 ```python
 def reynolds(rho, v, D, mu):
@@ -151,21 +150,21 @@ for name, rho, mu in FLUIDS:
 #   glycerol      2.0   0.10          252  laminar
 ```
 
-Water is turbulent in every row, even at a leisurely 0.5 m/s. Air is turbulent in most rows *despite* a kinematic viscosity about 15 times water's ($\nu_{\text{air}} \approx 1.5 \times 10^{-5}$ m²/s against $1.0 \times 10^{-6}$ m²/s), because air is about 832 times less dense but only about 56 times less viscous — **the ratio $\mu/\rho$, the kinematic viscosity, is what really decides**, and air's is the larger. That larger $\nu$ is exactly why air, alone in the table above, drops into the laminar row at 0.5 m/s. And light oil lands in the transitional band at the larger diameter: exactly what a designer avoids.
+Water is turbulent in every row, even at a leisurely 0.5 m/s. Air is turbulent in most rows *despite* a kinematic viscosity about 15 times water's ($\nu_{\text{air}} \approx 1.5 \times 10^{-5}$ m²/s against $1.0 \times 10^{-6}$ m²/s), because air is about 832 times less dense but only about 56 times less viscous — **at the same velocity and diameter it is the ratio $\mu/\rho$, the kinematic viscosity, that decides the difference between two fluids**, and air's is the larger. That larger $\nu$ is exactly why air, unlike water, drops into the laminar row at 0.5 m/s — the viscous fluids in the table are laminar there as well, for the same reason applied more strongly. And light oil lands in the transitional band at the larger diameter: exactly what a designer avoids.
 
 ## 3.3 Life in Laminar Flow
 
-Here the fluid moves as concentric cylindrical shells sliding over one another, molecules crossing between shells only by slow diffusion. The wall holds its adjacent layer at zero velocity (the **no-slip condition**), each layer drags on the next through viscosity, and the result is a **parabolic velocity profile**: zero at the wall, maximum on the axis. For a circular pipe the centerline velocity is exactly **twice the average** — stated here without derivation. Centerline fluid therefore reaches the outlet in half the average time while fluid near the wall crawls, giving a laminar tubular reactor a wide spread of residence times.
+Here the fluid moves as concentric cylindrical shells sliding over one another, molecules crossing between shells only by slow diffusion. The wall holds its adjacent layer at zero velocity (the **no-slip condition**), each layer drags on the next through viscosity, and for steady, fully developed Newtonian flow in a straight circular pipe the result is a **parabolic velocity profile**: zero at the wall, maximum on the axis. Under those same conditions the centerline velocity is exactly **twice the average** — stated here without derivation. Centerline fluid therefore reaches the outlet in half the average time while fluid near the wall crawls, giving a laminar tubular reactor a wide spread of residence times.
 
 The pressure drop sustaining laminar pipe flow is the **Hagen–Poiseuille equation**:
 
 $$ \Delta P = \frac{32\,\mu\,L\,v}{D^2} $$
 
-with $L$ the pipe length. Note what is absent: density, and roughness. Laminar friction is pure viscous shear. **The equation is valid in the laminar regime only** — applying it to turbulent flow is a common error, and it under-predicts badly.
+with $L$ the pipe length, for steady, fully developed, incompressible Newtonian flow in a straight circular pipe of constant viscosity, and with $\Delta P$ the *frictional* pressure drop over that developed length. Note what is absent: density, and roughness — ordinary small wall roughness is simply neglected in this ideal relation. Laminar friction is pure viscous shear. **The equation is valid in the laminar regime only** — applying it to turbulent flow is a common error, and it under-predicts badly.
 
 ### Why Small Pipes Are Brutally Expensive
 
-The $D^2$ looks like a modest penalty for narrowing a pipe, but it understates the truth, because the real comparison is at **fixed volumetric flow rate** $Q$, not fixed velocity. The same $Q$ through a smaller pipe means faster fluid:
+The $D^2$ looks like a modest penalty for narrowing a pipe, but it understates the truth, because the comparison a design duty actually imposes is at **fixed volumetric flow rate** $Q$, not fixed velocity. The same $Q$ through a smaller pipe means faster fluid:
 
 $$ v = \frac{Q}{A} = \frac{4Q}{\pi D^2} \quad \Rightarrow \quad v \propto D^{-2} $$
 
@@ -173,13 +172,13 @@ Substituting, the two effects compound:
 
 $$ \Delta P = \frac{32\mu L}{D^2}\cdot\frac{4Q}{\pi D^2} = \frac{128\,\mu\,L\,Q}{\pi\,D^4} \quad \Rightarrow \quad \Delta P \propto \frac{Q}{D^4} $$
 
-**Halving the diameter at fixed flow rate multiplies velocity by 4 and pressure drop by $2^4 = 16$**; cutting it to one third multiplies $\Delta P$ by 81. Pumping power is $\Delta P \times Q$, so operating cost follows the same fourth power. Keep the basis straight: at fixed *velocity* the formula gives only $D^{-2}$, a factor of 4 — quoting that instead of 16 is the mistake to avoid, and it comes from forgetting that a narrower pipe also runs faster.
+**Provided both pipes remain fully developed and laminar, halving the diameter at fixed flow rate multiplies velocity by 4 and pressure drop by $2^4 = 16$**; cutting it to one third multiplies $\Delta P$ by 81. Narrowing the pipe raises $Re$, so that condition has to be rechecked, not assumed. Hydraulic power is $\Delta P \times Q$, so the friction-related power follows the same fourth power; what it costs additionally depends on pump and motor efficiency, running hours, and tariffs. Keep the basis straight: at fixed *velocity* the formula gives only $D^{-2}$, a factor of 4 — quoting that instead of 16 is the mistake to avoid, and it comes from forgetting that a narrower pipe also runs faster.
 
-This fourth-power law is why capital-versus-operating trade-offs in piping are so lopsided, why fouling that halves a tube's bore is a catastrophe rather than a nuisance, and — outside the plant — why arterial narrowing is so dangerous.
+This fourth-power law is why capital-versus-operating trade-offs in *laminar* piping are so lopsided — turbulent systems are lopsided too, but by their own friction relation, worked out in Chapter 4 — and why fouling that halves a tube's bore raises its resistance so severely. Outside the plant it is a useful qualitative analogy for the danger of arterial narrowing, though a real stenosis is not a long, rigid, steady Poiseuille tube.
 
 ## 3.4 Life in Turbulent Flow
 
-Turbulent flow contains **eddies**: swirling fluid parcels across a wide range of sizes, the large ones drawing energy from the mean flow and breaking into smaller ones until viscosity dissipates it as heat. At any fixed point the velocity fluctuates continuously about a mean. Eddies transport momentum across the pipe far more effectively than molecular viscosity can, so the mean profile is **flattened**: nearly uniform across the core, the whole velocity change compressed into a thin layer near the wall. The centerline exceeds the average by only about 20% ($v_{max}/v_{avg} \approx 1.2$), against the factor of 2 in laminar flow.
+Turbulent flow contains **eddies**: swirling fluid parcels across a wide range of sizes, the large ones drawing energy from the mean flow and breaking into smaller ones until viscosity dissipates it as heat. At any fixed point the velocity fluctuates continuously about a mean. Through most of the pipe interior, eddies transport momentum far more effectively than molecular viscosity can — though viscosity still dominates in the thin layer right at the no-slip wall — so the mean profile is **flattened**: nearly uniform across the core, with much the steepest velocity gradients near the wall. For a developed turbulent profile the centerline typically exceeds the average by only about 20% ($v_{max}/v_{avg} \approx 1.2$, varying with Reynolds number and roughness), against the factor of 2 in laminar flow.
 
 | | **Laminar** | **Turbulent** |
 |---|---|---|
@@ -187,16 +186,16 @@ Turbulent flow contains **eddies**: swirling fluid parcels across a wide range o
 | **Motion** | Ordered sliding layers | Eddies across many scales |
 | **Profile** | Parabolic, $v_{max} = 2 v_{avg}$ | Flat core, $v_{max} \approx 1.2\,v_{avg}$ |
 | **Radial mixing** | Molecular diffusion only | Vigorous eddy transport |
-| **Wall roughness** | Irrelevant | Strongly relevant |
+| **Wall roughness** | Neglected in the ideal relation | Important once large relative to the near-wall viscous scale |
 | **Friction** | $\Delta P \propto v$ | $\Delta P$ roughly $\propto v^{1.8-2}$ |
 
-Industry mostly runs turbulent by choice. **Mixing** needs cross-stream transport, and laminar flow has essentially none. **Heat transfer** at a wall depends on how fast wall fluid is swept into the bulk, and eddies do this orders of magnitude faster than conduction — which is why heat-transfer coefficients jump on crossing the transition (the subject of our [Chemical Engineering Heat Transfer](../chemical-engineering-heat-transfer/index.html) series). **Mass transfer** — dissolution, absorption, extraction — obeys the same logic in [Chemical Engineering Mass Transfer and Separation](../chemical-engineering-mass-transfer/index.html). Turbulence is what makes process equipment compact. The price is friction: turbulent pressure drop rises roughly with the square of velocity rather than linearly, so the pumping bill grows faster than throughput. Chapter 4 puts a number on it.
+Many industrial flows are turbulent, and designers exploit what that brings. **Mixing** needs cross-stream transport, and simple straight-pipe laminar flow has essentially none. **Heat transfer** still crosses the wall itself by molecular conduction, but turbulence carries heat away from the near-wall region far faster than conduction alone, cutting the thermal resistance — which is why heat-transfer coefficients generally rise as turbulent transport develops (the subject of our [Chemical Engineering Heat Transfer](../chemical-engineering-heat-transfer/index.html) series). **Mass transfer** — dissolution, absorption, extraction — obeys the same logic in [Chemical Engineering Mass Transfer and Separation](../chemical-engineering-mass-transfer/index.html). Turbulence is one of the main reasons transfer equipment can be built compact. The price is friction: turbulent pressure drop rises roughly with the square of velocity rather than linearly, so the pumping bill grows faster than throughput. Chapter 4 puts a number on it.
 
-Laminar flow keeps genuine niches. **Microfluidics** runs at $Re$ of order 1 or below, where two streams flow side by side in a channel and mix only by diffusion — a nuisance to engineer around, or a feature to exploit in a diffusion-based assay. **Highly viscous fluids** — polymer melts, greases, food pastes — cannot reach turbulence at any practical velocity, so they must be moved laminarly and mixed mechanically. **Laminar-flow reactors** and coating operations use the ordered profile deliberately.
+Laminar flow keeps genuine niches. Many conventional **microfluidic** devices run at $Re$ of order 1 or below, where in a simple coflow channel — one with no transverse mixing structures — two streams flow side by side and mix only by diffusion, a nuisance to engineer around or a feature to exploit in a diffusion-based assay. **Highly viscous fluids** — polymer melts, greases, food pastes — cannot practically be driven turbulent under their processing conditions, so they must be moved laminarly and mixed mechanically. **Laminar-flow reactors** and coating operations use the ordered profile deliberately.
 
 ## 3.5 Beyond Pipes
 
-Nothing in the reasoning behind $Re$ is specific to a pipe. The group compares inertia with viscosity, and forming it needs only a **characteristic length** and velocity appropriate to the geometry. What does *not* transfer is the numerical threshold, because "the" length is defined differently in each case.
+Nothing in the reasoning behind $Re$ is specific to a pipe. The group compares inertia with viscosity, and forming it needs only a **characteristic length** and velocity appropriate to the geometry. What does *not* transfer is the numerical threshold: both the choice of "the" length and the underlying transition physics — the base flow, its instability mechanism, the boundaries, the disturbances — differ from case to case.
 
 | Geometry | Reynolds number | Characteristic length | Rough regime guideline |
 |---|---|---|---|
@@ -206,17 +205,17 @@ Nothing in the reasoning behind $Re$ is specific to a pipe. The group compares i
 | **Flow past a particle** | $\rho v d_p/\mu$ | Particle diameter $d_p$ | Stokes' law valid below ~0.1–1 |
 | **Flat plate boundary layer** | $\rho v x/\mu$ | Distance $x$ from the leading edge | Transition near ~5 × 10⁵ |
 
-The particle row connects back to Chapter 1. Terminal settling velocity came from Stokes' law, and Stokes' law is a **low-Reynolds-number result** — it assumes viscosity so dominant that inertia drops out entirely. Always check the particle $Re$ after computing a settling velocity; above about 1 the answer is invalid and a drag-coefficient correlation is needed. And always state which $Re$ you mean: "Re = 500" describes a firmly laminar pipe flow and a well-mixed turbulent stirred tank at the same time.
+The particle row connects back to Chapter 1. Terminal settling velocity came from Stokes' law, and Stokes' law is a **low-Reynolds-number result** — it assumes viscosity so dominant that inertia drops out entirely. Always check the particle $Re$ after computing a settling velocity; the error grows continuously as $Re$ approaches 1, so strict accuracy needs $Re \ll 1$ and anything near or above unity calls for a drag-coefficient correlation. And always state which $Re$ you mean: "Re = 500" describes a firmly laminar pipe flow and, in a conventional stirred tank, an intermediate or transitional condition — well short of the ~10,000 the table above puts turbulence beyond, and no guarantee on its own that the tank is well mixed.
 
 ## 3.6 Chapter Summary
 
 - Reynolds' 1883 dye experiment showed **two distinct regimes**, not a gradual blur: a straight dye thread (**laminar**) breaking up abruptly into full-pipe dispersion (**turbulent**)
-- One dimensionless group sets the transition: $Re = \rho v D/\mu$, the ratio of **inertial to viscous forces**. All units cancel, which is why one threshold serves laboratory and plant alike
+- One dimensionless group is the principal guide to the transition: $Re = \rho v D/\mu$, the ratio of **inertial to viscous forces**. All units cancel, which is why one threshold can be carried from laboratory to plant when geometry and disturbances are comparable
 - Pipe guideline: **laminar below about 2,100**, **fully turbulent above about 4,000**, transitional between — a band designers avoid
 - Water ($998$, $0.001$, 2 m/s, 0.05 m) gives $Re = 99{,}800 \approx 1.0\times10^5$, turbulent and typical; a viscous oil ($900$, $0.1$, 0.5 m/s, 0.05 m) gives $Re = 225$, laminar
 - Laminar flow has a **parabolic profile**, $v_{max} = 2v_{avg}$, and obeys **Hagen–Poiseuille** $\Delta P = 32\mu L v/D^2$ — no density, no roughness, laminar regime only
-- At **fixed volumetric flow rate** $v \propto D^{-2}$, so $\Delta P = 128\mu L Q/(\pi D^4) \propto D^{-4}$: **halving the diameter multiplies pressure drop by 16**, not by 4
-- Turbulence flattens the profile ($v_{max} \approx 1.2 v_{avg}$) and mixes vigorously; industry runs turbulent because **mixing, heat transfer, and mass transfer** all improve, and pays in friction. Laminar niches: microfluidics, viscous polymers, laminar-flow reactors
+- At **fixed volumetric flow rate** $v \propto D^{-2}$, so $\Delta P = 128\mu L Q/(\pi D^4) \propto D^{-4}$ as long as both pipes stay laminar: **halving the diameter multiplies pressure drop by 16**, not by 4
+- Turbulence flattens the profile ($v_{max} \approx 1.2 v_{avg}$ for a typical developed profile) and mixes vigorously; many industrial lines run turbulent because **mixing, heat transfer, and mass transfer** all improve, and pay in friction. Laminar niches: microfluidics, viscous polymers, laminar-flow reactors
 - $Re$ generalizes through a **characteristic length** — impeller or particle diameter, distance along a plate — but each geometry has its own threshold, so always say which $Re$ you mean
 
 **Next chapter**: knowing a flow is turbulent does not yet say what it costs to push. **Pipe Flow and Pressure Drop** ([Chapter 4](chapter-4.html)) introduces the friction factor, the Moody diagram, and the Darcy–Weisbach equation, turning the regime label into the number Chapter 2's mechanical energy balance was missing.
@@ -225,12 +224,12 @@ The particle row connects back to Chapter 1. Terminal settling velocity came fro
 
 1. **Conceptual — why one number suffices**: Reynolds' transition velocity moved around when he changed diameter or warmed the water, yet transition always occurred near the same $\rho v D/\mu$. (a) What does warming a liquid do to the transition velocity? (b) A pilot unit uses a 10 mm tube, the full-scale unit a 100 mm pipe, both with water: how must velocity change to match $Re$? (c) Why is dimensionlessness essential here?
    *Hint*: for liquids, viscosity falls as temperature rises; then hold $\rho v D/\mu$ constant while changing $D$.
-   *Answer*: (a) Heating **lowers** $\mu$, raising $Re$ at any given velocity, so the critical $Re$ arrives at a **lower** velocity — the transition velocity **falls**. This is exactly why velocity alone cannot characterize the transition. (b) With $\rho$ and $\mu$ fixed, constant $Re$ requires constant $vD$, so a tenfold larger diameter needs a **tenfold lower velocity** (2 m/s becomes 0.2 m/s). (c) A dimensionless group has no built-in scale, so its value carries no memory of whether the rig is millimeters or meters across. "Transition at 0.3 m/s" would hold only for that one pipe, fluid, and temperature.
+   *Answer*: (a) Heating **lowers** $\mu$, raising $Re$ at any given velocity, so the critical $Re$ arrives at a **lower** velocity — the transition velocity **falls**. This is exactly why velocity alone cannot characterize the transition. (b) With $\rho$ and $\mu$ fixed, constant $Re$ requires constant $vD$, so a tenfold larger diameter needs a **tenfold lower velocity** (2 m/s becomes 0.2 m/s). (c) A dimensionless group carries no units, so its value says nothing about whether the rig is millimeters or meters across; matching it matches the inertia–viscosity balance, which is what the regime depends on, provided the other similarity requirements are met too. "Transition at 0.3 m/s" would hold only for that one pipe, fluid, and temperature.
 
 2. **Quantitative — a glycerol-like fluid**: A fluid with $\rho = 1260$ kg/m³ and $\mu = 1.0$ Pa·s flows at $v = 1$ m/s through a pipe of $D = 0.08$ m. (a) Compute $Re$ and classify the flow. (b) What velocity would reach $Re = 2{,}100$? (c) What does that imply for viscous fluids in process piping? (d) For a 20 m length, find $\Delta P$ at 1 m/s.
    *Hint*: apply $Re = \rho v D/\mu$, then invert for $v$. For (d), confirm the regime before choosing the equation.
-   *Answer*: (a) $Re = 1260 \times 1 \times 0.08/1.0 = 100.8 \approx \mathbf{101}$ — **laminar**, over 20 times below the threshold. (b) $v = Re\,\mu/(\rho D) = 2100 \times 1.0/(1260 \times 0.08) = 2100/100.8 = \mathbf{20.8}$ **m/s**. (c) Impractical: liquid lines are designed around 1–3 m/s, and 20.8 m/s would mean enormous pressure drop, erosion, and noise. **Viscous fluids essentially never go turbulent in pipes** — they must be designed as permanently laminar systems, with mixing and heat transfer supplied by something other than turbulence. (d) Laminar, so Hagen–Poiseuille applies: $\Delta P = 32 \times 1.0 \times 20 \times 1/(0.08)^2 = 640/0.0064 = \mathbf{100{,}000}$ **Pa = 1.0 bar** over just 20 m.
+   *Answer*: (a) $Re = 1260 \times 1 \times 0.08/1.0 = 100.8 \approx \mathbf{101}$ — **laminar**, over 20 times below the threshold. (b) $v = Re\,\mu/(\rho D) = 2100 \times 1.0/(1260 \times 0.08) = 2100/100.8 = \mathbf{20.8}$ **m/s**. (c) Impractical: process-liquid lines are commonly sized around 1–3 m/s, and 20.8 m/s would mean enormous pressure drop, with erosion and noise as service-dependent concerns on top. **Fluids this viscous rarely reach turbulence in process piping** — they must be designed as permanently laminar systems, with mixing and heat transfer supplied by something other than turbulence. (d) Laminar, so Hagen–Poiseuille applies: $\Delta P = 32 \times 1.0 \times 20 \times 1/(0.08)^2 = 640/0.0064 = \mathbf{100{,}000}$ **Pa = 1.0 bar** over just 20 m.
 
 3. **Discussion — a proposed pipe change**: To cut capital cost, a colleague proposes replacing a 50 mm laminar oil line with a 25 mm line at the **same volumetric flow rate**, arguing that since $\Delta P = 32\mu L v/D^2$, quartering the area merely quadruples the pressure drop. (a) Identify the error. (b) Give the correct factor. (c) Does the regime change? (d) What happens to pumping power?
    *Hint*: velocity is not the same in the two pipes. Work out $v(D)$ at fixed $Q$ before substituting.
-   *Answer*: (a) They held **velocity** constant, but the specification fixes **volumetric flow rate**. At fixed $Q$, $v = 4Q/(\pi D^2) \propto D^{-2}$, so halving $D$ multiplies velocity by **4** — which must be carried into the formula too. (b) Combining both effects, $\Delta P = 128\mu L Q/(\pi D^4) \propto D^{-4}$: halving the diameter multiplies pressure drop by $2^4 = \mathbf{16}$, four times worse than claimed. (c) With $v$ up 4× and $D$ down 2×, $Re$ is **doubled**. From a firmly laminar line it will usually still be laminar, but check: if the new $Re$ lands between 2,100 and 4,000 the line sits in the transitional band and Hagen–Poiseuille no longer applies. (d) Power is $\Delta P \times Q$, so at fixed $Q$ it also rises **16-fold**. The pipe saving is one-time capital; the penalty is on the electricity bill every hour the plant runs, and the existing pump is unlikely to hold 16 times the head in reserve.
+   *Answer*: (a) They held **velocity** constant, but the specification fixes **volumetric flow rate**. At fixed $Q$, $v = 4Q/(\pi D^2) \propto D^{-2}$, so halving $D$ multiplies velocity by **4** — which must be carried into the formula too. (b) Combining both effects, $\Delta P = 128\mu L Q/(\pi D^4) \propto D^{-4}$: halving the diameter multiplies pressure drop by $2^4 = \mathbf{16}$, four times worse than claimed. (c) With $v$ up 4× and $D$ down 2×, $Re$ is **doubled**. Whether the line is still laminar depends on where it started, so classify the new value explicitly: if it lands between 2,100 and 4,000 the line sits in the transitional band and Hagen–Poiseuille no longer applies. (d) Hydraulic power is $\Delta P \times Q$, so *if both flows remain laminar* it rises **16-fold** at fixed $Q$; if part (c) has pushed the smaller line out of the laminar regime, that multiplier no longer holds and the turbulent friction relation of Chapter 4 must be used instead, and the electrical power additionally depends on pump and motor efficiency. Either way the pipe saving is one-time capital while the penalty lands on the electricity bill every hour the plant runs, and the existing pump is unlikely to hold that much head in reserve.

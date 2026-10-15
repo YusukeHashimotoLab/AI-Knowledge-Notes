@@ -18,7 +18,6 @@ created_at: 2026-08-23
     height="315"
     src="https://www.youtube.com/embed/tGOpNey5U9E?start=1412"
     title="Chemical Engineering Thermodynamics Ch.3: Phase Equilibrium"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>
@@ -60,7 +59,7 @@ flowchart TB
     G --> C["Chemical: chemical potential of EVERY species equal in both phases"]
 ```
 
-The first two are intuitive: a hot spot would drive heat flow, a pressure difference would move the interface. The third does the real work. For every species $i$:
+The first two are intuitive: a hot spot would drive heat flow, and an unbalanced pressure force would move the interface — pressure equality is the flat-interface, negligible-capillary, negligible-hydrostatic case, since a curved interface can hold a pressure difference against surface tension. The third does the real work. For every species $i$:
 
 $$ \mu_i^{\,L} = \mu_i^{\,V} \qquad\Longleftrightarrow\qquad f_i^{\,L} = f_i^{\,V} $$
 
@@ -74,7 +73,7 @@ Before computing anything, it pays to know how many variables you may specify. T
 
 $$ F = C - \pi + 2 \qquad (\pi = \text{number of phases}) $$
 
-with $C$ the number of species, $\pi$ the number of phases in equilibrium — written $\pi$ rather than $P$ so it cannot be confused with pressure — and $F$ the number of intensive variables (temperature, pressure, compositions) that may be fixed freely. Three worked counts:
+with $C$ the number of **independent components** — equal to the species count for the non-reacting mixtures used here, but not in general — $\pi$ the number of phases in equilibrium — written $\pi$ rather than $P$ so it cannot be confused with pressure — and $F$ the number of intensive variables (temperature, pressure, compositions) that may be fixed freely. Three worked counts:
 
 | System | C | π | F | Consequence |
 |---|---|---|---|---|
@@ -86,7 +85,7 @@ The first row explains the pressure cooker: raise P and the boiling T must follo
 
 ## 3.2 Pure-Component Vapor Pressure
 
-All of vapor-liquid equilibrium is anchored on one pure-component property: the **saturation vapor pressure** $P_i^{sat}(T)$, the pressure at which pure $i$ boils at temperature $T$. It rises steeply — roughly exponentially — with temperature, because the fraction of molecules energetic enough to escape is governed by a Boltzmann factor, much like the Arrhenius term in kinetics. Water exerts about 0.023 atm at 20 °C, 1 atm at 100 °C, nearly 5 atm at 150 °C. The **normal boiling point** is the temperature at which $P^{sat} = 1$ atm.
+For the subcritical, low-pressure mixtures treated in this chapter, vapor-liquid equilibrium is anchored on one pure-component property: the **saturation vapor pressure** $P_i^{sat}(T)$, the pressure at which pure $i$ boils at temperature $T$. (Supercritical components and dissolved gases need a different reference state or an equation of state, as Chapter 5 shows.) It rises steeply — roughly exponentially — with temperature, a dependence set quantitatively by the Clausius-Clapeyron relation; the picture of a Boltzmann factor governing the fraction of molecules energetic enough to escape, much like the Arrhenius term in kinetics, is a useful intuition rather than a derivation. Water exerts about 0.023 atm at 20 °C, 1 atm at 100 °C, nearly 5 atm at 150 °C. The **normal boiling point** is the temperature at which $P^{sat} = 1$ atm.
 
 The standard engineering correlation is the **Antoine equation**:
 
@@ -96,7 +95,7 @@ with $A$, $B$, $C$ fitted per compound. Two cautions matter more than the consta
 
 ## 3.3 Raoult's Law and the Ideal Solution
 
-The simplest useful model assumes a molecule cannot tell its neighbors apart — an A-B interaction has the average energy of A-A and B-B. Such an **ideal solution** obeys **Raoult's law**:
+The simplest useful model assumes a molecule cannot tell its neighbors apart — an A-B interaction has the average energy of A-A and B-B. That picture is an approximation, not a definition: an **ideal solution** is properly defined by unit activity coefficients in the pure-liquid standard state (§3.4). With an ideal vapor as well, and with Poynting and saturation-fugacity corrections neglected — the low-pressure case assumed throughout this chapter — it obeys **Raoult's law**:
 
 $$ y_i \, P = x_i \, P_i^{sat}(T) $$
 
@@ -104,7 +103,7 @@ The partial pressure a species exerts above the mixture is its pure vapor pressu
 
 $$ P = \sum_i x_i P_i^{sat}(T) $$
 
-Raoult's law works well for chemically similar species — benzene and toluene, hexane and heptane. It fails badly when polarity or hydrogen bonding differs; ethanol-water is the canonical failure, treated in Section 3.4.
+Raoult's law works well for chemically similar species — benzene and toluene, hexane and heptane. Differing polarity or association can produce substantial deviations that have to be evaluated rather than assumed small; ethanol-water is the canonical failure, treated in Section 3.4.
 
 ### Relative Volatility
 
@@ -112,7 +111,7 @@ Distillation design compresses the equilibrium relation into one number, the **r
 
 $$ \alpha = \frac{y_1/x_1}{y_2/x_2} = \frac{P_1^{sat}}{P_2^{sat}} \quad \text{(ideal solution)} $$
 
-If $\alpha = 1$ the phases have identical composition and distillation is impossible; the larger $\alpha$, the fewer stages needed. For an ideal binary it collapses the equilibrium curve to one expression:
+The right-hand reduction to the $P^{sat}$ ratio needs the full low-pressure ideal model above; note too that at fixed pressure the temperature varies along the column, so that ratio is a *local* relative volatility, and treating it as constant is a further approximation. Where $\alpha = 1$ the phases have identical composition and an equilibrium stage delivers no separation at that state — which is what an azeotrope makes impossible to cross at fixed pressure, though not what makes separation impossible at other compositions or by other means. The larger $\alpha$, the fewer stages needed. For an ideal binary the relation collapses the equilibrium curve to one expression:
 
 $$ y_1 = \frac{\alpha x_1}{1 + (\alpha - 1) x_1} $$
 
@@ -164,7 +163,7 @@ Two features matter. The bubble pressure is **linear** in $x_1$ — the signatur
 
 ## 3.4 Deviations and Activity Coefficients
 
-Real mixtures are not ideal. The fix is a correction on the liquid side, the **activity coefficient** $\gamma_i$:
+Real mixtures are not ideal. The general requirement is still equality of liquid and vapor fugacities; at low pressure it is enough to correct the liquid side with an **activity coefficient** $\gamma_i$ (at higher pressure the vapor fugacity coefficient and a liquid pressure correction are needed too, as Chapter 5 shows):
 
 $$ y_i \, P = \gamma_i \, x_i \, P_i^{sat}(T) $$
 
@@ -172,28 +171,28 @@ By construction $\gamma_i \to 1$ as the solution becomes ideal, and as species $
 
 | Deviation | $\gamma$ | Molecular cause | Consequence |
 |---|---|---|---|
-| **Positive** | > 1 | Unlike molecules attract each other less than like ones — they "push each other out" | Higher pressure than Raoult predicts; can form a **minimum-boiling azeotrope** |
-| **Negative** | < 1 | Unlike molecules attract more strongly (hydrogen bonding, complexes) | Lower pressure than Raoult predicts; can form a maximum-boiling azeotrope |
+| **Positive** | > 1 | Commonly, unlike molecules attract each other less than like ones — they "push each other out"; the sign is set by the excess Gibbs energy, entropic effects included | Higher pressure than Raoult predicts; can form a **minimum-boiling azeotrope** |
+| **Negative** | < 1 | Commonly, unlike molecules attract more strongly (hydrogen bonding, complexes) | Lower pressure than Raoult predicts; can form a maximum-boiling azeotrope |
 
-Ethanol-water is the textbook positive deviation: an ethanol molecule disrupts water's hydrogen-bond network, so both species escape more readily than an ideal model allows and $\gamma > 1$ for both.
+Ethanol-water is the textbook positive deviation: measurements give $\gamma > 1$ for both species, usually read as an ethanol molecule disrupting water's hydrogen-bond network so that both escape more readily than an ideal model allows — a simplified interpretation, since ethanol-water hydrogen bonds form as well and entropic effects compete.
 
 ### The Azeotrope
 
-When the deviation is strong enough, the enrichment $y_1 - x_1$ falls to zero at some intermediate composition:
+When the deviation varies with composition strongly enough to drive the relative volatility to one on the relevant equilibrium branch, the enrichment $y_1 - x_1$ falls to zero at some intermediate composition:
 
 $$ y_1 = x_1 \qquad\Longrightarrow\qquad \alpha = 1 $$
 
 This is an **azeotrope**, a hard wall. The vapor leaving a stage matches the liquid on it, so an extra stage accomplishes nothing — no reflux ratio and no column height gets past it. Ethanol-water forms a minimum-boiling azeotrope at 1 atm near **95.6 wt% ethanol** (about 89 mol%), boiling at roughly 78.2 °C, slightly *below* pure ethanol's boiling point. It is the limit flagged in Chapter 1 of the Introduction series, and why ordinary distillation of a fermentation broth stops just short of 96 wt%.
 
-Industry gets past it by changing the thermodynamics, not the column:
+Industry gets past it by changing the equilibrium conditions, or by introducing a different separation mechanism:
 
-- **Pressure-swing distillation** — the azeotropic composition shifts with pressure, so two columns at different pressures step around it.
+- **Pressure-swing distillation** — where the azeotropic composition shifts enough, and in a usable direction, with pressure, two columns at different pressures can step around it.
 - **Extractive distillation** — a high-boiling entrainer (an added separating agent) such as ethylene glycol alters the activity coefficients enough to break the azeotrope.
-- **Molecular sieves** — 3A zeolite adsorbs water and passes ethanol, sidestepping equilibrium altogether; the standard route to fuel-grade anhydrous ethanol.
+- **Molecular sieves** — 3A zeolite adsorbs water and passes ethanol, bypassing the vapor-liquid azeotropic limit through selective adsorption (adsorption has its own equilibrium, which is what the regeneration step works against); the standard route to fuel-grade anhydrous ethanol.
 
 ## 3.5 T-x-y Diagrams and the Lever Rule
 
-At fixed pressure the phase rule left a binary mixture one free specification, and the **T-x-y diagram** plots the result: temperature against composition, with two curves spanning the two pure boiling points — for benzene-toluene at 1 atm, from benzene's 80.1 °C up to toluene's 110.6 °C.
+At fixed pressure the phase rule left a binary mixture one free specification, and the **T-x-y diagram** plots the result: temperature against composition. For a fully miscible, non-azeotropic binary such as benzene-toluene at 1 atm, the two curves span the two pure boiling points — from benzene's 80.1 °C up to toluene's 110.6 °C. An azeotropic system is the exception described in §3.4: its extremum lies outside that interval, the ethanol-water minimum-boiling azeotrope boiling below either pure component.
 
 - The lower **bubble-point curve**: the temperature at which a liquid of composition $x_1$ first boils.
 - The upper **dew-point curve**: the temperature at which a vapor of composition $y_1$ first condenses.
@@ -203,7 +202,7 @@ The horizontal line joining that pair at a given temperature is the **tie line**
 
 $$ \frac{n^{V}}{n^{L}} = \frac{z_1 - x_1}{y_1 - z_1} $$
 
-The phase lying *closer* to the overall composition is the more abundant one — the tie line behaves like a balance beam with the feed point as its fulcrum. That single relation is the entire content of a flash-drum calculation.
+The phase lying *closer* to the overall composition is the more abundant one — the tie line behaves like a balance beam with the feed point as its fulcrum. That relation completes the phase split of a binary flash once temperature, pressure, overall composition, and the two equilibrium end compositions are known; a flash calculation in general also has to solve the phase-equilibrium relations for those end compositions, along with the material balances, the operating specification, and often an energy balance.
 
 *(The video version of this chapter shows a rendered T-x-y diagram with its tie line.)*
 
@@ -215,9 +214,9 @@ The phase lying *closer* to the overall composition is the more abundant one —
 - **Raoult's law** $y_i P = x_i P_i^{sat}$ describes ideal solutions of similar species; the bubble pressure is linear in composition
 - **Relative volatility** $\alpha = P_1^{sat}/P_2^{sat}$ is the parameter distillation design runs on; benzene-toluene at 90 °C gives $\alpha = 2.48$ (rounding to 2.5), and the McCabe–Thiele construction in Chapter 4 of the Introduction series is built on exactly this kind of equilibrium curve
 - **Activity coefficients** $\gamma_i$ correct Raoult's law for real mixtures; positive deviations can produce **azeotropes**, where $y = x$, $\alpha = 1$, and ordinary distillation stops — ethanol-water near 95.6 wt% ethanol being the classic case
-- The **T-x-y diagram**, its tie lines, and the **lever rule** turn all of this into a flash calculation readable off a graph
+- The **T-x-y diagram**, its tie lines, and the **lever rule** turn all of this into a binary flash readable off a graph, once the equilibrium relations have supplied the tie-line ends
 
-**Next chapter**: the same Gibbs criterion, applied to species that convert into one another rather than merely change phase, gives **chemical equilibrium** — the equilibrium constant, its temperature dependence, and the thermodynamic ceiling on any reactor's conversion.
+**Next chapter**: the same Gibbs criterion, applied to species that convert into one another rather than merely change phase, gives **chemical equilibrium** — the equilibrium constant, its temperature dependence, and the conversion ceiling for a specified reactor model and set of operating constraints.
 
 ## Exercises
 
@@ -229,6 +228,6 @@ The phase lying *closer* to the overall composition is the more abundant one —
    *Hint*: P = x₁P₁sat + x₂P₂sat, then y₁ = x₁P₁sat / P.
    *Answer*: P = 0.6 × 1.34 + 0.4 × 0.54 = 0.804 + 0.216 = **1.020 atm**; y₁ = 0.804 / 1.020 = **0.788**. The enrichment y₁ − x₁ = 0.188 is smaller than the 0.223 at x₁ = 0.4 even though α = 2.48 is unchanged — enrichment per stage peaks mid-range, which is why the final approach to high purity costs disproportionately many stages. Note also that the bubble pressure now exceeds 1 atm: at 90 °C this mixture boils under atmospheric pressure while the x₁ = 0.4 mixture does not.
 
-3. **Discussion — beating the azeotrope**: A fuel-ethanol plant reaches 95 wt% ethanol overhead, but the specification is 99.5 wt%. An engineer proposes twenty more trays and a higher reflux ratio. Explain why this fails, and give at least two workable alternatives with their mechanisms.
+3. **Discussion — beating the azeotrope**: A fuel-ethanol plant reaches 95 wt% ethanol overhead, but the specification is 99.5 wt%. An engineer proposes twenty more trays and a higher reflux ratio. Explain why this cannot reach the specification, and give at least two workable alternatives with their mechanisms.
    *Hint*: What is α at 95.6 wt% ethanol, and what does a McCabe–Thiele staircase do where the equilibrium curve meets the 45° line?
-   *Answer*: At about 95.6 wt% (roughly 89 mol%) ethanol the mixture azeotropes: y = x and α = 1. The equilibrium curve touches the 45° line, so the staircase steps shrink to nothing — no finite stage count crosses the azeotropic pinch (where the equilibrium curve touches the 45° line), and reflux only moves the operating lines. Extra trays buy capital and energy, nothing else. Alternatives: (1) **molecular sieve dehydration**, where a 3A zeolite bed adsorbs water by size and passes ethanol, bypassing vapor-liquid equilibrium entirely — the standard industrial route; (2) **extractive distillation** with an entrainer such as ethylene glycol, which shifts the activity coefficients so α no longer reaches 1; (3) **pressure-swing distillation**, coupling two columns at different pressures to exploit the movement of the azeotropic composition with pressure.
+   *Answer*: At about 95.6 wt% (roughly 89 mol%) ethanol the mixture azeotropes: y = x and α = 1. The equilibrium curve touches the 45° line, so the staircase steps shrink to nothing — no finite stage count crosses the azeotropic pinch (where the equilibrium curve touches the 45° line), and reflux only moves the operating lines. From 95 wt% the extra trays are not useless — they can push the overhead closer to the 95.6 wt% azeotrope, and more stages can lower the reflux needed for a given attainable separation — but no stage count or reflux ratio reaches the specified 99.5 wt% on the other side of it. Alternatives: (1) **molecular sieve dehydration**, where a 3A zeolite bed adsorbs water by size and passes ethanol, bypassing the vapor-liquid azeotropic limit — the standard industrial route; (2) **extractive distillation** with an entrainer such as ethylene glycol, which shifts the activity coefficients so α no longer reaches 1; (3) **pressure-swing distillation**, coupling two columns at different pressures to exploit the movement of the azeotropic composition with pressure — workable only if the ethanol-water azeotrope proves sufficiently pressure-sensitive over a practical pressure pair, which has to be checked against VLE data rather than assumed.

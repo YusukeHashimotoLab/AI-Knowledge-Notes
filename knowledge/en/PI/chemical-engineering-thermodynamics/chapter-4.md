@@ -18,7 +18,6 @@ created_at: 2026-08-23
     height="315"
     src="https://www.youtube.com/embed/tGOpNey5U9E?start=2150"
     title="Chemical Engineering Thermodynamics Ch.4: Chemical Equilibrium"
-    frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen>
   </iframe>
@@ -30,7 +29,7 @@ created_at: 2026-08-23
 
 # Chapter 4: Chemical Equilibrium
 
-Chapter 3 asked how matter distributes itself between phases. This chapter asks the analogous question for reactions: given a feed and a set of conditions, **how far can the reaction go before it stops** — and what can an engineer do about the answer.
+Chapter 3 asked how matter distributes itself between phases. This chapter asks the analogous question for reactions: given a feed and a set of conditions, **how far can the reaction go before net conversion stops at equilibrium** — and what can an engineer do about the answer.
 
 **How Far Can a Reaction Go?**
 
@@ -51,7 +50,7 @@ By completing this chapter, you will be able to:
 
 ## 4.1 Two Different Questions
 
-A reaction is described by two independent questions, and confusing them is the most common error in introductory reaction engineering.
+A reaction is described by two distinct — though thermodynamically related — questions, and confusing them is a common error in introductory reaction engineering.
 
 **Kinetics asks: how fast?** That is the subject of the companion series *Chemical Engineering Introduction*, Chapter 2 — rate laws, the Arrhenius equation, reactor sizing. Kinetics governs the *path* and the *time* required.
 
@@ -61,9 +60,9 @@ That last point deserves a blunt statement, because it is a classic misconceptio
 
 > **A catalyst cannot change the equilibrium composition. It only accelerates the approach to it.**
 
-The reason is structural. A catalyst lowers the activation energy of the forward reaction, but a catalyst is not consumed, so it must lower the reverse activation energy by exactly the same amount. Both rates rise by the same factor and the ratio at which they balance — the equilibrium constant — is unchanged. Thermodynamically, $K$ is fixed by $\Delta G^\circ$, a difference between reactant and product states; the catalyst appears in neither.
+The reason is structural. A catalyst lowers the activation energy of the forward reaction, and since it is not consumed, the reactant and product states it connects are unchanged; detailed balance then requires the reverse reaction to be accelerated in step, so the ratio at which the two balance — the equilibrium constant — is unchanged. (In the simplest single-transition-state picture both barriers drop by the same amount and both rates rise by the same factor; real multi-step catalytic mechanisms can show different apparent activation energies while still preserving $K$.) Thermodynamically, $K$ is fixed by $\Delta G^\circ$, a difference between reactant and product states; the catalyst appears in neither.
 
-The practical consequence: if a reactor is stuck at 30% conversion because equilibrium says 30%, a better catalyst buys nothing. Only temperature, pressure, composition, or removal of product can move that ceiling.
+The practical consequence: if a reactor is stuck at 30% conversion because equilibrium says 30%, a better catalyst cannot raise that conversion at the same conditions — though it may still shrink the reactor, improve selectivity, or allow a more favourable operating temperature. Only temperature, pressure, composition, or removal of product moves the ceiling itself.
 
 ```mermaid
 flowchart TB
@@ -79,34 +78,34 @@ At constant temperature and pressure a reacting mixture moves toward minimum Gib
 
 $$ \Delta G^\circ = -RT \ln K \qquad \Longleftrightarrow \qquad K = \exp\!\left(\frac{-\Delta G^\circ}{RT}\right) $$
 
-$K$ is a ratio of **activities** of products to reactants, each raised to its stoichiometric coefficient, evaluated at equilibrium. For an ideal gas mixture the activity is the partial pressure divided by the standard pressure (1 bar), so $K$ is built from partial-pressure ratios and is dimensionless. For an ideal solution it is built from mole fractions or concentrations relative to a standard state. Chapter 5 shows how equations of state supply fugacity corrections that replace the word "ideal" here; everything in this chapter assumes ideal-gas behavior.
+$K$ is a ratio of **activities** of products to reactants, each raised to its stoichiometric coefficient, evaluated at equilibrium. For an ideal gas mixture the activity is the partial pressure divided by the standard pressure (1 bar), so $K$ is built from partial-pressure ratios and is dimensionless. For an ideal solution it is built from mole fractions or concentrations relative to a standard state. Chapter 5 shows how equations of state supply fugacity corrections that replace the word "ideal" here; the worked gas-phase calculations in this chapter take the ideal-gas route, equating each species' fugacity with its partial pressure.
 
 **Worked mini-example.** A reaction has $\Delta G^\circ = -20$ kJ/mol at 298 K.
 
 $$ K = \exp\!\left(\frac{20000}{8.314 \times 298}\right) = \exp(8.07) \approx 3.2 \times 10^{3} $$
 
-So $K \approx 3200$: at equilibrium, products dominate overwhelmingly. Now note what the exponential does. A shift of only 5.7 kJ/mol in $\Delta G^\circ$ — a rounding error by the standards of chemical intuition — multiplies or divides $K$ by ten at room temperature. **Modest changes in $\Delta G^\circ$ swing $K$ by orders of magnitude.** This is why equilibrium calculations are unforgiving of sloppy thermodynamic data, and why a reaction that "should work" on paper sometimes has an equilibrium constant of $10^{-6}$.
+So $K \approx 3200$: the standard-state thermodynamics favour the products strongly, though the actual equilibrium composition still has to be computed from the stoichiometry, the feed, and the pressure. Now note what the exponential does. A shift of only 5.7 kJ/mol in $\Delta G^\circ$ — a modest chemical energy difference — multiplies or divides $K$ by ten at room temperature. **Modest changes in $\Delta G^\circ$ swing $K$ by orders of magnitude.** This is why equilibrium calculations are unforgiving of sloppy thermodynamic data, and why a reaction that "should work" on paper sometimes has an equilibrium constant of $10^{-6}$.
 
 | $\Delta G^\circ$ | $K$ | Equilibrium position |
 |---|---|---|
-| Strongly negative (≲ −20 kJ/mol) | $K \gg 1$ | Essentially complete |
+| Strongly negative (≲ −20 kJ/mol) | $K \gg 1$ | Products strongly favoured; conversion needs a material balance |
 | Negative | $K > 1$ | Products favored |
-| Zero | $K = 1$ | Comparable amounts |
+| Zero | $K = 1$ | Equilibrium activity product is one |
 | Positive | $K < 1$ | Reactants favored |
-| Strongly positive (≳ +20 kJ/mol) | $K \ll 1$ | Barely proceeds unaided |
+| Strongly positive (≳ +20 kJ/mol) | $K \ll 1$ | Standard-state reaction strongly unfavourable |
 
-One caution: $\Delta G^\circ$ is the *standard-state* value. The actual driving force depends on the real composition, so a reaction with $K < 1$ still proceeds usefully if the products are kept scarce — a point we return to in Exercise 2.
+One caution, which the table's shorthand must not override: $\Delta G^\circ$ is the *standard-state* value, and there is no universal Gibbs-energy threshold for "complete" or "negligible" reaction. The actual driving force depends on the real composition, so a reaction with $K < 1$ still proceeds usefully if the products are kept scarce — a point we return to in Exercise 2.
 
 ## 4.3 Temperature Dependence: the van 't Hoff Equation
 
-$K$ is fixed at a given temperature, but it is a strong function of temperature. The **van 't Hoff equation** states:
+$K$ is fixed at a given temperature, and can depend strongly on it — the more strongly, the larger the reaction enthalpy. The **van 't Hoff equation** states:
 
 $$ \frac{d(\ln K)}{dT} = \frac{\Delta H^\circ}{R T^{2}} $$
 
 The sign of $\Delta H^\circ$ decides everything, because $R T^2$ is always positive:
 
-- **Exothermic** ($\Delta H^\circ < 0$): $\ln K$ **decreases** as $T$ rises — the attainable conversion falls with temperature.
-- **Endothermic** ($\Delta H^\circ > 0$): $\ln K$ **increases** as $T$ rises — heat helps.
+- **Exothermic** ($\Delta H^\circ < 0$): $\ln K$ **decreases** as $T$ rises — and, for a single reaction at fixed pressure and feed with unchanged phases, the attainable conversion falls with temperature.
+- **Endothermic** ($\Delta H^\circ > 0$): $\ln K$ **increases** as $T$ rises — heat helps, under the same conditions.
 
 This is the thermodynamic root of the statement in *Chemical Engineering Introduction* Chapter 2 that raising the temperature of an exothermic reaction *lowers* its equilibrium conversion. It is not a special case or an empirical oddity; it follows directly from the sign of $\Delta H^\circ$ in the equation above.
 
@@ -147,11 +146,11 @@ print(f"\nK(300 K)/K(800 K) = {K_vant_hoff(300)/K_vant_hoff(800):.2e}")
 # K(300 K)/K(800 K) = 1.03e+10
 ```
 
-Over 300 → 800 K, $K$ collapses by about **ten orders of magnitude**. A reaction that is thermodynamically near-complete at room temperature is thermodynamically hopeless at 800 K. (The constant-$\Delta H^\circ$ assumption makes these values approximate — real $\Delta H^\circ$ drifts with temperature — but the trend and its magnitude are right.)
+Over 300 → 800 K, $K$ collapses by about **ten orders of magnitude**. A reaction with a very large standard-state $K$ at room temperature has a far less favourable one at 800 K. That does not make it hopeless: as §4.4 and §4.5 show, raising the pressure and separating the product with recycle can still turn a small equilibrium conversion into a useful process — which is exactly what ammonia synthesis does. (The constant-$\Delta H^\circ$ assumption makes these values approximate — real $\Delta H^\circ$ drifts with temperature — but the trend and its magnitude are right.)
 
 ## 4.4 Pressure and Composition Effects
 
-**Le Chatelier's principle**, qualitatively: a system at equilibrium responds to a disturbance in the direction that partially opposes it. Compress it and it shifts toward fewer molecules; heat it and it shifts in the endothermic direction.
+**Le Chatelier's principle**, qualitatively: a system at equilibrium responds to a disturbance in the direction that partially opposes it. Compress an ideal-gas reacting mixture isothermally and it shifts toward the side with fewer moles of gas; heat it and it shifts in the endothermic direction.
 
 The quantitative version for gases runs through the change in mole number, $\Delta n$ = (moles of gaseous product) − (moles of gaseous reactant). $K$ itself depends only on temperature, but the *mole-fraction* composition that satisfies it depends on total pressure whenever $\Delta n \neq 0$:
 
@@ -159,13 +158,13 @@ The quantitative version for gases runs through the change in mole number, $\Del
 - $\Delta n > 0$: higher pressure lowers conversion
 - $\Delta n = 0$: pressure has no effect on the equilibrium composition
 
-**Inerts** act in the opposite direction to compression. Adding nitrogen or steam that takes no part in the reaction lowers every partial pressure at fixed total pressure, which shifts a $\Delta n < 0$ reaction backward. This is exactly why recycle loops need a purge: inerts that accumulate dilute the reactor feed and eat into equilibrium conversion as well as rate.
+**Inerts** act in the opposite direction to compression. Adding nitrogen or steam that takes no part in the reaction lowers every partial pressure at fixed *total pressure*, which shifts a $\Delta n < 0$ reaction backward. (At fixed volume an ideal inert changes nothing, and at fixed pressure a $\Delta n > 0$ reaction is shifted forward.) It is also why an accumulating inert matters in a recycle loop: the material balance alone requires an outlet for anything that enters and does not leave, and the dilution then costs equilibrium conversion as well as rate.
 
 ### Case study: ammonia synthesis
 
 $$ \mathrm{N_2} + 3\,\mathrm{H_2} \rightleftharpoons 2\,\mathrm{NH_3}, \qquad \Delta n = 2 - 4 = -2, \qquad \Delta H^\circ \approx -92\ \text{kJ per mol N}_2 $$
 
-Thermodynamics gives an unambiguous prescription: $\Delta n < 0$ says **high pressure**, and $\Delta H^\circ < 0$ says **low temperature**. Kinetics gives the opposite instruction on temperature — the N≡N triple bond is so strong that at low temperature nothing happens at a useful rate, catalyst or not.
+Thermodynamics gives an unambiguous prescription: $\Delta n < 0$ says **high pressure**, and $\Delta H^\circ < 0$ says **low temperature**. Kinetics gives the opposite instruction on temperature — in conventional thermal synthesis over conventional iron catalysts, the N≡N triple bond is so strong that nothing happens at a useful rate at low temperature.
 
 The historic resolution is the **Haber–Bosch compromise**: an iron-based catalyst, with typical textbook operating ranges of roughly **400–500 °C** and **150–300 bar**. The temperature is high enough for an acceptable rate and low enough that $K$ has not collapsed entirely; the pressure is then pushed up to claw back what the temperature cost. Even so, single-pass conversion is modest — typically quoted in the **15–20%** range. The remaining 80% or so of unconverted synthesis gas is separated (ammonia is condensed out) and **recycled**, which is precisely the recycle structure introduced in *Chemical Engineering Introduction* Chapter 1: a reactor with unremarkable single-pass conversion delivers near-complete overall conversion because nothing is thrown away except a small purge.
 
@@ -175,32 +174,32 @@ Equilibrium sets the ceiling; kinetics sets how quickly a reactor approaches it.
 
 **Adiabatic exothermic beds fight themselves.** With no heat removal, the temperature rises as conversion rises, and rising temperature drives $K$ down — so the bed approaches a moving, falling ceiling. The standard answer is a **multi-bed reactor with interstage cooling**: react until the temperature approaches the equilibrium limit, cool the stream, react again. Each cooling step restores headroom.
 
-**Equilibrium-limited reactions motivate product removal.** If the product is continuously taken out, the mixture can never reach equilibrium and the reaction keeps running — the basis of **reactive distillation** (product boiled off as it forms, standard for esterifications) and **membrane reactors** (hydrogen permeating out of a reforming or dehydrogenation bed).
+**Equilibrium-limited reactions motivate product removal.** Sufficient selective removal of a product maintains a forward driving force for as long as reactants remain — the basis of **reactive distillation** (reaction and distillative separation in one shell, the product leaving overhead or as bottoms according to its volatility; standard for esterifications) and **membrane reactors** (hydrogen permeating out of a reforming or dehydrogenation bed).
 
-**Excess reactant is the cheap version of the same idea.** Feeding one reactant in large excess shifts the attainable conversion of the other, at the cost of a bigger separation and recycle duty downstream — the recurring trade in process design.
+**Excess reactant is an alternative route to the same end.** Feeding one reactant in large excess shifts the attainable conversion of the other, at the cost of a bigger separation and recycle duty downstream — the recurring trade in process design, and whether it is the cheaper option has to be worked out case by case.
 
 ## 4.6 Chapter Summary
 
-- Kinetics answers **how fast**, thermodynamics answers **how far**; the two limits are independent
-- A **catalyst cannot move an equilibrium** — it accelerates forward and reverse reactions equally, and $K$ depends only on $\Delta G^\circ$
+- Kinetics answers **how fast**, thermodynamics answers **how far**; the two questions are distinct, but a thermodynamically consistent rate law must reproduce the equilibrium the thermodynamics sets
+- A **catalyst cannot move an equilibrium** — it accelerates the approach to it while preserving detailed balance, and $K$ depends only on $\Delta G^\circ$
 - $\Delta G^\circ = -RT \ln K$; $\Delta G^\circ < 0 \Rightarrow K > 1$, and because the relation is exponential, small changes in $\Delta G^\circ$ swing $K$ by orders of magnitude ($\Delta G^\circ = -20$ kJ/mol at 298 K gives $K \approx 3200$)
-- **van 't Hoff**, $d(\ln K)/dT = \Delta H^\circ/RT^2$: exothermic reactions lose equilibrium conversion as temperature rises; endothermic reactions gain it
-- Pressure shifts gas-phase equilibrium toward the side with **fewer moles** ($\Delta n < 0$); inerts dilute and shift it back
+- **van 't Hoff**, $d(\ln K)/dT = \Delta H^\circ/RT^2$: for a single reaction at fixed pressure and feed, exothermic reactions lose equilibrium conversion as temperature rises; endothermic reactions gain it
+- Raising pressure by isothermal compression shifts gas-phase equilibrium toward the side with **fewer moles** ($\Delta n < 0$); inerts added at fixed total pressure dilute and shift a $\Delta n < 0$ reaction back
 - **Haber–Bosch** is the textbook compromise: thermodynamics wants cold and compressed, kinetics wants hot, so a typical plant runs ~400–500 °C and ~150–300 bar with ~15–20% single-pass conversion and heavy recycle
 - Equilibrium shapes hardware: **interstage cooling** for adiabatic exotherms, **reactive distillation** and **membrane reactors** to remove product and outrun the ceiling
 
-**Next chapter**: every equilibrium constant, partial pressure, and mole balance in this chapter assumed **ideal-gas behavior**. At 200 bar — the very condition ammonia synthesis demands — that assumption is simply wrong. Chapter 5 introduces real fluids and the equations of state that supply the fugacity corrections making these calculations trustworthy at industrial pressures.
+**Next chapter**: the definition of $K$ through activities, and the mole balances, hold whether or not a gas is ideal — but the worked gas-phase calculations in this chapter took the ideal-gas route, replacing each fugacity with a partial pressure. At typical ammonia-synthesis pressures, around 200 bar, accurate equilibrium calculations generally require fugacity corrections instead. Chapter 5 introduces real fluids and the equations of state that supply them.
 
 ## Exercises
 
 1. **Conceptual — why a catalyst cannot change equilibrium**: An engineer reports that a new catalyst raised conversion in a packed bed from 45% to 62%, and concludes that the catalyst "shifted the equilibrium." Explain why that conclusion cannot be right, and give the correct explanation for the observation.
    *Hint*: What does $K$ depend on? What does a catalyst do to the forward and reverse rates?
-   *Answer*: $K$ is fixed by $\Delta G^\circ$, a difference between the standard states of reactants and products; a catalyst is consumed by neither, so it cannot alter $K$. Mechanistically, lowering the activation barrier speeds the forward and reverse reactions by the **same factor**, leaving the ratio at which they balance unchanged. The correct explanation is that the old reactor was **kinetically limited** — not reaching equilibrium in the available residence time — and the faster catalyst moved the outlet closer to the same, unchanged ceiling. Diagnostic: at true equilibrium, extra residence time or extra catalyst gives no further conversion.
+   *Answer*: $K$ is fixed by $\Delta G^\circ$, a difference between the standard states of reactants and products; a catalyst is consumed by neither, so it cannot alter $K$. Mechanistically, lowering the activation barrier speeds the forward and reverse reactions by the **same factor**, leaving the ratio at which they balance unchanged. If temperature, pressure, feed, and residence time were otherwise unchanged, the expected explanation is that the old reactor was **kinetically limited** — not reaching equilibrium in the available residence time — and the faster catalyst moved the outlet closer to the same, unchanged ceiling. Diagnostic: at true equilibrium, extra residence time or extra catalyst gives no further conversion.
 
 2. **Quantitative — a small equilibrium constant**: A gas-phase reaction has $\Delta G^\circ = +10$ kJ/mol at 298 K. (a) Compute $K$. (b) Is the reaction industrially useless?
    *Hint*: $K = \exp(-\Delta G^\circ / RT)$, with $\Delta G^\circ$ in J/mol and $R = 8.314$ J mol⁻¹ K⁻¹. For (b), think about what the standard state assumes about composition.
-   *Answer*: (a) $-10000/(8.314 \times 298) = -4.036$, so $K = \exp(-4.036) \approx \mathbf{0.018}$ — reactants are strongly favored at standard conditions. (b) **No, not useless.** $K$ fixes the equilibrium *ratio*, not an absolute prohibition. Two standard remedies apply: **remove the product** as it forms (reactive distillation, membrane reactor), so the mixture never reaches equilibrium; or **feed one reactant in large excess**, driving the other to higher conversion. Esterifications are the classic case — $K$ of order 1 or below, yet near-complete conversion of the limiting reactant. The cost is downstream: both remedies enlarge the separation and recycle sections.
+   *Answer*: (a) $-10000/(8.314 \times 298) = -4.036$, so $K = \exp(-4.036) \approx \mathbf{0.018}$ — the forward reaction has an unfavourable standard Gibbs energy and $K < 1$; what the actual equilibrium mixture looks like still depends on the stoichiometry, the feed, and the pressure. (b) **No, not useless.** $K$ fixes the equilibrium *ratio*, not an absolute prohibition. Two standard remedies apply: **remove the product** as it forms (reactive distillation, membrane reactor), so the mixture never reaches equilibrium; or **feed one reactant in large excess**, driving the other to higher conversion. Esterifications are the classic case — $K$ of order 1 or below, yet near-complete conversion of the limiting reactant. The cost is downstream: both remedies change the separation and recycle duties, and how much equipment they add depends on how the process is integrated — reactive distillation can combine two operations rather than adding one.
 
 3. **Discussion — the Haber–Bosch compromise**: Ammonia synthesis is exothermic ($\Delta H^\circ \approx -92$ kJ/mol N₂) with $\Delta n = -2$, yet plants run hot at roughly 400–500 °C. (a) State what pure thermodynamics would prescribe and why it is not followed. (b) Explain how the plant recovers the conversion lost to temperature. (c) Why must the recycle loop carry a purge?
    *Hint*: Use the sign of $\Delta H^\circ$ with van 't Hoff, the sign of $\Delta n$ with Le Chatelier, and recall what inerts do to partial pressures.
-   *Answer*: (a) van 't Hoff with $\Delta H^\circ < 0$ says $K$ falls as $T$ rises, so thermodynamics prescribes the **lowest possible temperature**. It is not followed because the N≡N bond makes the rate negligible when cold — even an iron catalyst cannot deliver a useful rate at ambient temperature. Temperature is therefore set by kinetics. (b) Since $\Delta n = -2$, **raising the total pressure** (typically 150–300 bar) shifts the equilibrium composition toward ammonia, partially recovering what the high temperature cost. Single-pass conversion is still only about 15–20%, so ammonia is condensed out and the unconverted N₂ and H₂ are **recycled**, giving high overall conversion from a modest per-pass one. (c) Inerts in the feed (typically argon and methane) neither react nor leave with the liquid ammonia, so the loop is their only home and they accumulate without limit. Because $\Delta n < 0$, they lower the N₂ and H₂ partial pressures and push the equilibrium backward as well as slowing the rate — so a small **purge** holds the inert level steady, at the cost of losing some reactant with it.
+   *Answer*: (a) van 't Hoff with $\Delta H^\circ < 0$ says $K$ falls as $T$ rises, so thermodynamics prescribes the **lowest possible temperature**. It is not followed because the N≡N bond makes the rate negligible when cold — an iron catalyst cannot deliver a useful rate at ambient temperature. Kinetics therefore rules out the thermodynamically best temperature, and the operating temperature is chosen as a compromise between rate and equilibrium, alongside catalyst stability, heat management, and economics. (b) Since $\Delta n = -2$, **raising the total pressure** (typically 150–300 bar) shifts the equilibrium composition toward ammonia, partially recovering what the high temperature cost. Single-pass conversion is still only about 15–20%, so ammonia is condensed out and the unconverted N₂ and H₂ are **recycled**, giving high overall conversion from a modest per-pass one. (c) Inerts in the feed (typically argon and methane) do not react, and condensing the ammonia removes too little of them to matter — they have a finite solubility in liquid ammonia, but not enough of an outlet to balance what comes in with the feed. Without another removal route, no steady loop composition can be maintained. Because $\Delta n < 0$, they lower the N₂ and H₂ partial pressures and push the equilibrium backward as well as slowing the rate — so a small **purge** holds the inert level steady, at the cost of losing some reactant with it.

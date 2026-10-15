@@ -367,7 +367,7 @@
 <p><strong>Reading Time</strong>: 20-25 minutes <strong>Code Examples</strong>: 1 <strong>Exercises</strong>: 3</p>
 <hr />
 <h2>3.1 Why Control?</h2>
-<p>Chapter 1's balances assumed steady state — nothing changing with time. That is a convenient fiction. A real plant never holds steady by itself: <strong>feed composition drifts</strong>, <strong>ambient conditions change</strong>, <strong>catalysts deactivate</strong>, exchangers foul, and <strong>demand changes</strong> week to week. Left alone, a process wanders from its design point. <strong>Process control</strong> measures what the plant is doing and continuously adjusts it back. Its objectives rank in this priority order, highest first:</p>
+<p>Chapter 1's balances assumed steady state — nothing changing with time. That is a convenient fiction. A real plant is disturbed continually: <strong>feed composition drifts</strong>, <strong>ambient conditions change</strong>, <strong>catalysts deactivate</strong>, exchangers foul, and <strong>demand changes</strong> week to week. Even an intrinsically stable process settles wherever those disturbances leave it, which is generally not the design point. <strong>Process control</strong> measures what the plant is doing and continuously adjusts it back. Its objectives are conventionally prioritized in this order, highest first — safety and mandatory operating constraints taking precedence over economic optimization, though several can bind at the same time:</p>
 <table>
 <thead>
 <tr>
@@ -386,7 +386,7 @@
 </tr>
 <tr>
 <td><strong>Equipment protection</strong></td>
-<td>Avoid cavitation (vapor bubbles collapsing in pumps), compressor surge (violent flow reversal), thermal shock</td>
+<td>Avoid cavitation (vapor bubbles collapsing in pumps), compressor surge (unstable oscillation of compressor flow and pressure, which can include flow reversal), thermal shock</td>
 </tr>
 <tr>
 <td><strong>Product quality</strong></td>
@@ -398,11 +398,11 @@
 </tr>
 </tbody>
 </table>
-<p>When objectives conflict, a control system gives up profit before it gives up safety.</p>
+<p>When objectives conflict, a properly designed control and protection system gives up profit before it gives up safety. That is a design requirement met through architecture, constraints, interlocks, and protective functions — not an automatic property of any control system.</p>
 <h3>The motivating example: an exothermic reactor</h3>
-<p>Chapter 2 gave a rule of thumb from the Arrhenius equation — a 10 °C rise roughly <strong>doubles the reaction rate</strong> (2–4× for typical activation energies). Put an exothermic reaction in a cooled reactor: a temperature rise speeds the reaction, which releases heat faster, which raises the temperature further. Jacket cooling, meanwhile, grows only in rough proportion to the temperature difference. So near any given operating point the question is which of the two rises faster with temperature. If heat generation rises with temperature faster than heat removal does, the balance tips: the temperature accelerates away instead of settling. That is <strong>thermal runaway</strong>. Whether it can happen is not decided by the chemistry alone — it depends on the design and on the operating point chosen, which is exactly what makes exothermic reactors demanding to design (Chapter 4) and to control (this chapter).</p>
+<p>Chapter 2 gave a rule of thumb from the Arrhenius equation — near room temperature a 10 °C rise roughly <strong>doubles the rate constant</strong> (2–4× for the activation energies tabulated there). Put an exothermic reaction in a cooled reactor: a temperature rise speeds the reaction, which releases heat faster, which raises the temperature further. Jacket cooling, meanwhile, grows only in rough proportion to the temperature difference. So near any given operating point the question is which of the two rises faster with temperature. In a simplified single-state thermal balance, if heat generation rises with temperature faster than heat removal does, that point is locally unstable: the temperature moves away from it instead of settling, which is the route to <strong>thermal runaway</strong>. The full reactor dynamics — concentration, jacket, and flow as well as temperature — have to be checked before a point is judged safe or unsafe. Whether it can happen is not decided by the chemistry alone — it depends on the design and on the operating point chosen, which is exactly what makes exothermic reactors demanding to design (Chapter 4) and to control (this chapter).</p>
 <h2>3.2 The Feedback Loop</h2>
-<p>A <strong>sensor</strong> measures the controlled variable. A <strong>controller</strong> compares it with the <strong>setpoint</strong> and computes the <strong>error</strong>. An <strong>actuator</strong> — almost always a <strong>control valve</strong> — changes a manipulated variable such as cooling-water or steam flow. The process responds, and the cycle repeats.</p>
+<p>A <strong>sensor</strong> measures the controlled variable. A <strong>controller</strong> compares it with the <strong>setpoint</strong> and computes the <strong>error</strong>. A <strong>final control element</strong> — often an actuated <strong>control valve</strong>, though variable-speed drives, electric heaters, and dampers are also widespread — changes a manipulated variable such as cooling-water or steam flow. The process responds, and the cycle repeats.</p>
 <div class="mermaid">
 flowchart LR
     SP["Setpoint"] --> C["Controller"]
@@ -414,11 +414,11 @@ flowchart LR
     S --> C
 </div>
 
-<p>The disturbance enters the process directly, not through the controller. This gives feedback two jobs: <strong>disturbance rejection</strong> (setpoint fixed, loop fights off upsets — what most loops do most of the time) and <strong>setpoint tracking</strong> (the target moves during a rate or grade change). Feedback has one defining limitation: <strong>the controller acts only after the error exists.</strong> It cannot prevent an upset, only correct it — the gap feedforward (Section 3.5) attacks.</p>
+<p>The disturbance enters the process directly, not through the controller. This gives feedback two jobs: <strong>disturbance rejection</strong> (setpoint fixed, loop fights off upsets — what most loops do most of the time) and <strong>setpoint tracking</strong> (the target moves during a rate or grade change). Feedback has one defining limitation: <strong>it cannot begin correcting an unmeasured disturbance until that disturbance shows up in the measurement.</strong> It generally reacts after the upset has moved the controlled variable rather than heading it off — the gap feedforward (Section 3.5) attacks.</p>
 <h3>The 80/20 reality</h3>
-<p>A large plant may run several thousand loops, and the overwhelming majority are simple <strong>single-input, single-output (SISO) feedback loops</strong>: one measurement, one setpoint, one valve. Multivariable schemes get the conference papers, but plants run on ordinary flow, level, pressure, and temperature loops, and the final control element is a control valve in nearly all of them. Valves also carry the <strong>fail-safe</strong> philosophy: each moves to a safe position if instrument air is lost.</p>
+<p>A large plant may run several thousand loops, and the overwhelming majority are simple <strong>single-input, single-output (SISO) feedback loops</strong>: one controlled output, one setpoint, one manipulated input. Multivariable schemes get the conference papers, but plants run on ordinary flow, level, pressure, and temperature loops, and a control valve is the final control element in many of them. Valves also carry the <strong>fail-safe</strong> philosophy — but the failure action is a design choice made service by service: a valve can be specified to fail open, fail closed, or fail in place, and which of those is safe depends on the actuator and on what losing that valve would do to the process.</p>
 <h2>3.3 PID Control</h2>
-<p>The workhorse of industry is the <strong>PID controller</strong>: surveys of industrial practice consistently find that the great majority of plant loops are PID-type, and that most run as <strong>PI</strong>, with derivative switched off. PID computes its output from the error <em>e = setpoint − measurement</em> using three terms — the <strong>present, past, and future</strong> of the error:</p>
+<p>The workhorse of industry is the <strong>PID controller</strong>: the great majority of plant loops are PID-type, and most run as <strong>PI</strong>, with derivative switched off. PID computes its output from the error <em>e = setpoint − measurement</em> using three terms — responding to the <strong>current error, the accumulated error, and the error trend</strong>:</p>
 <table>
 <thead>
 <tr>
@@ -436,28 +436,28 @@ flowchart LR
 <tr>
 <td><strong>I</strong> (integral)</td>
 <td>Accumulated <em>past</em> error</td>
-<td>Pushes until the error is zero</td>
+<td>Keeps changing its contribution while error persists</td>
 </tr>
 <tr>
 <td><strong>D</strong> (derivative)</td>
-<td>The <em>trend</em>, i.e. the future</td>
-<td>Reacts to the rate of change</td>
+<td>The <em>trend</em></td>
+<td>Reacts to the current rate of change</td>
 </tr>
 </tbody>
 </table>
 <p>In the standard (ISA) form:</p>
 <p>$$ u(t) = K_c \left[ e(t) + \frac{1}{\tau_I} \int e\,dt + \tau_D \frac{de}{dt} \right] $$</p>
 <p>where <strong>Kc</strong> is the controller gain, <strong>τI</strong> the integral (reset) time, and <strong>τD</strong> the derivative time. Read ∫ e dt as the running total of past error and de/dt as how fast the error is currently changing — you never need to evaluate either by hand; the controller does it for you.</p>
-<p><strong>P alone leaves offset</strong> because it produces an output only when there <em>is</em> an error: remove the error and you remove the signal holding the valve open, so a steady gap remains. <strong>I removes it</strong> because the integral keeps accumulating while any error remains, then holds that value as the new steady output — which is why virtually every industrial loop has integral action. <strong>D is often off</strong> because differentiating a noisy measurement hammers the valve; it earns its place mainly on slow temperature loops.</p>
+<p><strong>P alone generally leaves offset</strong> in a self-regulating process: a proportional controller moves its output away from a fixed bias only in proportion to the error, so whenever the output required at the target differs from that bias, a steady gap remains. <strong>I removes it</strong> because the integral keeps accumulating while any error remains, then holds that value as the new steady output — which is why integral action is used in most industrial loops, especially where steady offset is unacceptable. It drives a constant offset to zero when the closed loop is stable, the target is reachable, and the actuator has the authority to get there. <strong>D is often off</strong> because differentiating a noisy measurement hammers the valve; it earns its place mainly on slow temperature loops.</p>
 <p>The simulation below puts a PI controller on a first-order process (time constant 5 min) and steps the setpoint at <em>t</em> = 0:</p>
 <pre><code class="language-python"># PI control of a first-order process, integrated with explicit Euler
 tau, K = 5.0, 1.0        # process: time constant 5 min, steady-state gain 1
 Kc, tauI = 2.0, 5.0      # PI tuning (lambda/IMC rule, explained in Section 3.4; lambda = 2.5 min)
-dt, t\_end = 0.01, 30.0   # Euler step must be much smaller than tau
+dt, t_end = 0.01, 30.0   # Euler step must be much smaller than tau
 setpoint = 1.0           # unit step in setpoint applied at t = 0
 
 y, integral = 0.0, 0.0   # process output, and running integral of the error
-for step in range(int(t\_end / dt)):
+for step in range(int(t_end / dt)):
     t = step * dt
     e = setpoint - y                    # where I want it minus where it is
     integral += e * dt                  # accumulated past error
@@ -474,12 +474,12 @@ for step in range(int(t\_end / dt)):
 # t = 20.0 min   y = 1.000   u = 1.000
 # t = 25.0 min   y = 1.000   u = 1.000
 </code></pre>
-<p>The output reaches the setpoint <strong>exactly</strong> — integral action doing its job. Delete the <code>integral / tauI</code> term to make it P-only and the output stalls at 0.667: a 33% offset.</p>
+<p>The output converges on the setpoint with no steady-state offset, reaching it <strong>to the three decimals printed</strong> — integral action doing its job. Read the trace carefully: each line pairs the time at the <em>start</em> of the step with the output <em>after</em> that step's update, so the first row is not the initial process state. Delete the <code>integral / tauI</code> term to make it P-only and the output stalls at 0.667: a 33% offset.</p>
 <h2>3.4 Process Dynamics: Why Control is Hard</h2>
-<p>If processes responded instantly, control would be trivial. Two effects prevent that.</p>
+<p>If processes responded instantly, control would lose much of its difficulty — though uncertainty, nonlinearity, interaction, noise, and constraints would remain. Two of the most common sources of dynamic difficulty are these.</p>
 <p><strong>Inertia (time constant, τ).</strong> A stirred tank full of liquid has thermal mass; open the steam valve and the temperature climbs gradually. A first-order process covers about 63% of its change in one time constant and is essentially finished after four or five.</p>
-<p><strong>Dead time (θ).</strong> After the valve moves, <em>nothing happens at all</em> for a while — fluid must travel down a pipe, a composition change must reach the analyzer. During this <strong>transport delay</strong> the controller is blind, pushing on stale information; push too hard and the correction that finally arrives is far too large, so the loop oscillates.</p>
-<p>Combining the two gives the <strong>first-order-plus-dead-time (FOPDT)</strong> model, the universal approximate description of an industrial loop: three numbers from a step test — gain <em>K</em>, time constant <em>τ</em>, dead time <em>θ</em>. The key rule of thumb is the <strong>dead-time ratio θ/τ</strong>:</p>
+<p><strong>Dead time (θ).</strong> After the valve moves, <em>nothing happens at the measured output</em> for a while — fluid must travel down a pipe, a composition change must reach the analyzer. During this <strong>transport delay</strong> the controller is blind, pushing on stale information; push too hard and the correction that finally arrives is far too large, so the loop oscillates.</p>
+<p>Combining the two gives the <strong>first-order-plus-dead-time (FOPDT)</strong> model, a common low-order approximation for many self-regulating process responses: three numbers from a step test — gain <em>K</em>, time constant <em>τ</em>, dead time <em>θ</em>. The key rule of thumb is the <strong>dead-time ratio θ/τ</strong>:</p>
 <table>
 <thead>
 <tr>
@@ -491,8 +491,8 @@ for step in range(int(t\_end / dt)):
 <tbody>
 <tr>
 <td>&lt; 0.1</td>
-<td>Easy — tune aggressively</td>
-<td>Flow, level loops</td>
+<td>Often permits faster tuning</td>
+<td>Many flow loops</td>
 </tr>
 <tr>
 <td>0.1 – 1</td>
@@ -506,44 +506,46 @@ for step in range(int(t\_end / dt)):
 </tr>
 </tbody>
 </table>
+<p>How fast a loop can actually be tuned also depends on measurement noise, actuator limits, unmodelled dynamics, and interactions; and integrating processes — many level loops among them — have no finite self-regulating time constant, so the ratio does not apply to them directly.</p>
 <p><strong>The larger the dead-time ratio, the more sluggish the controller must be</strong> — you cannot correct information you do not yet have.</p>
 <p><strong>Ziegler and Nichols published the classic tuning heuristics in 1942</strong>, deriving <em>Kc</em>, <em>τI</em>, and <em>τD</em> from a simple plant test; they remain the standard entry point. Their settings are aggressive and tend to oscillate, so modern practice prefers gentler model-based rules — <strong>lambda tuning</strong> or <strong>IMC (Internal Model Control) tuning</strong> — where the engineer sets the closed-loop response speed directly, as with the <code>Kc = 2</code>, <code>τI = 5</code> above.</p>
 <h2>3.5 Beyond Single Loops</h2>
-<p>Three simple structures handle most of what a single loop cannot.</p>
-<p><strong>Cascade control</strong> nests one loop inside another. On a jacketed reactor, a <em>master</em> controller on reactor temperature does not move the valve — it sets the <strong>setpoint of a slave controller</strong> on jacket temperature, which does. The fast inner loop absorbs cooling-water disturbances before they reach the reactor, and works when the inner loop is much faster than the outer one.</p>
-<p><strong>Feedforward control</strong> measures the <em>disturbance itself</em> and acts before its effect appears: if the feed to a heater turns colder, feedforward raises the steam flow the moment the cold feed is detected, rather than waiting for the outlet temperature to fall. It needs a disturbance model and is never perfect, so it is always paired with feedback.</p>
-<p><strong>Ratio control</strong> holds one flow in fixed proportion to another — classically <strong>fuel/air ratio</strong> on a fired heater, where air tracks fuel to keep combustion complete and safe.</p>
-<p>Above the loops sits the plant-wide layer: a <strong>DCS (distributed control system)</strong> executes thousands of loops, drives operator graphics, and runs the <strong>alarm system</strong>. Above it, <strong>Advanced Process Control (APC)</strong> — usually <strong>Model Predictive Control (MPC)</strong> — optimizes many interacting variables at once under constraints using a dynamic model, issuing setpoints down to the PID loops, which is what lets a plant run deliberately close to a constraint. This layer exists because loops interact: the <strong>recycle streams</strong> of Chapter 1 carry disturbances from the back of the plant round to the front again, so an upset corrected in one unit can return later through the recycle — one reason plant-wide control is more than the sum of its individual loops. For depth, see the <strong>Introduction to Process Monitoring and Control</strong> and <strong>Process Informatics Introduction</strong> series.</p>
+<p>Three simple structures address several common limitations of a single loop.</p>
+<p><strong>Cascade control</strong> nests one loop inside another. On a jacketed reactor, a <em>master</em> controller on reactor temperature does not move the valve — it sets the <strong>setpoint of a slave controller</strong> on jacket temperature, which does. The fast inner loop reduces the effect of cooling-water disturbances before they significantly change reactor temperature, and works when the inner loop is much faster than the outer one.</p>
+<p><strong>Feedforward control</strong> measures the <em>disturbance itself</em> and acts before its effect appears: if the feed to a heater turns colder, feedforward raises the steam flow the moment the cold feed is detected, rather than waiting for the outlet temperature to fall. It needs a measurement of the disturbance and a model, and in practice both are imperfect, so it is usually paired with feedback.</p>
+<p><strong>Ratio control</strong> holds one flow in fixed proportion to another — classically <strong>fuel/air ratio</strong> on a fired heater, where air tracks fuel to support efficient combustion. Safe fired-heater operation needs more than the ratio itself: suitable air margins, cross-limiting, sequencing, and burner safeguards.</p>
+<p>Those loops are hosted by the plant-wide platform: a <strong>DCS (distributed control system)</strong> executes thousands of regulatory loops, drives operator graphics, and runs the <strong>alarm system</strong>. Above them, <strong>Advanced Process Control (APC)</strong> — usually <strong>Model Predictive Control (MPC)</strong> — optimizes many interacting variables at once under constraints using a dynamic model, issuing setpoints down to the PID loops, which is what lets a plant run deliberately close to a constraint. This layer exists because loops interact: the <strong>recycle streams</strong> of Chapter 1 carry disturbances from the back of the plant round to the front again, so an upset corrected in one unit can return later through the recycle — one reason plant-wide control is more than the sum of its individual loops. For depth, see the <strong>Introduction to Process Monitoring and Control</strong> and <strong>Process Informatics Introduction</strong> series.</p>
 <h2>3.6 Chapter Summary</h2>
 <ul>
-<li>A plant does not hold steady on its own, and an exothermic reactor can run away if heat generation outpaces removal; control objectives rank safety → environment → equipment → quality → profit</li>
+<li>A plant does not hold steady on its own, and an exothermic reactor can run away when heat generation rises with temperature faster than heat removal does, leaving the operating point unstabilized; control objectives are conventionally ranked safety → environment → equipment → quality → profit</li>
 <li>The feedback loop — sensor → controller → valve → process — rejects disturbances and tracks setpoints; most loops are SISO and end in a control valve</li>
-<li>PID reads the present (P), past (I), and future (D) of the error: P alone leaves offset, I removes it, D amplifies noise — so most loops run as PI</li>
-<li>Dead time, more than inertia, sets a loop's speed limit; FOPDT and θ/τ are the standard model, Ziegler–Nichols (1942) the classic tuning heuristic</li>
-<li>Cascade, feedforward, and ratio control extend the single loop; DCS and MPC sit above them</li>
+<li>PID reads the current error (P), the accumulated error (I), and the error trend (D): P alone generally leaves offset in a self-regulating process, I removes it, D amplifies noise — so most loops run as PI</li>
+<li>Dead time is often the main limit on a loop's achievable speed, alongside other process and actuator dynamics; FOPDT is the common self-regulating process model and θ/τ a useful tuning indicator, with Ziegler–Nichols (1942) the classic tuning heuristic</li>
+<li>Cascade, feedforward, and ratio control extend the single loop; the DCS hosts those loops and MPC supplies setpoints to them</li>
 </ul>
-<p><strong>Next chapter</strong>: process design — and the link runs both ways, because <strong>a well-designed process is an easy-to-control process.</strong></p>
+<p><strong>Next chapter</strong>: process design — and the link runs both ways, because <strong>good process design accounts for controllability and avoids unnecessary control difficulty.</strong></p>
 <h2>Exercises</h2>
 <ol>
 <li>
 <p><strong>Conceptual</strong>: A control valve admits cooling water to an exothermic reactor's jacket. On loss of instrument air, should it fail open or fail closed, and which Section 3.1 objectives does that trade off?
    <em>Hint</em>: ask what happens if cooling stops, then apply the priority ranking.
-   <em>Answer</em>: <strong>Fail open</strong>. Losing air means losing control, and an uncooled exothermic reactor heads toward runaway. This serves <strong>safety</strong> and <strong>equipment protection</strong> at the cost of <strong>product quality</strong> and <strong>profit</strong> — overcooling ruins the batch, the correct trade.</p>
+   <em>Answer</em>: <strong>Fail open</strong>, for this assumed pneumatic actuator without backup: losing air prevents normal valve positioning, and loss of cooling can cause dangerous heating or runaway in an exothermic reactor. This serves <strong>safety</strong> and <strong>equipment protection</strong> at the cost of <strong>product quality</strong> and <strong>profit</strong> — overcooling may cut productivity or spoil the batch, and that is the correct trade.</p>
 </li>
 <li>
 <p><strong>Quantitative</strong>: For the code example (<em>K</em> = 1, setpoint step 1.0), a P-only controller settles at <em>y</em> = <em>Kc</em>·<em>K</em> / (1 + <em>Kc</em>·<em>K</em>) with zero bias. Compute the offset for <em>Kc</em> = 2 and <em>Kc</em> = 9. Why is raising the gain not the practical fix?
    <em>Hint</em>: the offset is the gap between setpoint and settled value.
-   <em>Answer</em>: <em>Kc</em> = 2 gives <em>y</em> = 0.667, offset <strong>0.333</strong>; <em>Kc</em> = 9 gives <em>y</em> = 0.900, offset <strong>0.100</strong>. Offset shrinks with gain but never vanishes, and on a real process with dead time a high-gain loop turns oscillatory and eventually unstable. <strong>Integral action</strong> removes it at modest gain.</p>
+   <em>Answer</em>: <em>Kc</em> = 2 gives <em>y</em> = 0.667, offset <strong>0.333</strong>; <em>Kc</em> = 9 gives <em>y</em> = 0.900, offset <strong>0.100</strong>. Offset shrinks with gain but never vanishes, and on a real process with dead time a high-gain loop turns oscillatory and eventually unstable. Appropriately tuned <strong>integral action</strong> removes the constant steady offset without a large proportional gain, provided the closed loop is stable and the target is reachable.</p>
 </li>
 <li>
 <p><strong>Discussion</strong>: Loop A has <em>τ</em> = 20 min, <em>θ</em> = 1 min; Loop B has <em>τ</em> = 4 min, <em>θ</em> = 4 min. Compute θ/τ — which is harder to tune tightly? For a reactor whose main upset is a cooling-water temperature swing, would you add cascade or feedforward?
    <em>Hint</em>: use the θ/τ table, then ask whether a fast inner loop already sees the disturbance.
-   <em>Answer</em>: Loop A: θ/τ = 0.05 (easy). Loop B: θ/τ = 1.0 — blind for a full time constant, so it must be detuned, making it <strong>much harder</strong>. For the cooling-water upset, <strong>cascade</strong> is the natural choice: a jacket-temperature slave sees the swing almost immediately and corrects it before reactor temperature moves. Feedforward is a valid supplement, but it needs a disturbance model.</p>
+   <em>Answer</em>: Loop A: θ/τ = 0.05 (easy). Loop B: θ/τ = 1.0 — blind for a full time constant, so it must be detuned, making it <strong>much harder</strong>. For the cooling-water upset, <strong>cascade</strong> is the natural choice provided the jacket measurement responds early enough and the inner loop can act much faster than the reactor loop: the jacket-temperature slave then detects and attenuates the swing before reactor temperature deviates substantially. Feedforward is a valid supplement, but it needs a disturbance model.</p>
 </li>
 </ol><div class="navigation">
     <a href="index.html" class="nav-button">Back to Series Index</a>
     <a href="chapter-4.html" class="nav-button">Next Chapter →</a>
 </div>
+
     </main>
 
     <footer>

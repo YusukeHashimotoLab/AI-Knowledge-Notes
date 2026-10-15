@@ -92,7 +92,7 @@ To work with time series data, first set up a `DatetimeIndex`. This makes time-b
     print(f"Number of records: {len(subset)}")
     
     # Extract data for a specific day
-    day1 = df['2025-01-01']
+    day1 = df.loc['2025-01-01']
     print(f"\nNumber of records for 2025-01-01: {len(day1)}")
     
     # Time period filtering (9:00-17:00 for all days)
@@ -110,18 +110,54 @@ To work with time series data, first set up a `DatetimeIndex`. This makes time-b
     
 
 **Output Example** :
-    
-    
-    Basic DataFrame Information:
-    <class 'pandas.core.frame.DataFrame'>
-    DatetimeIndex: 4320 entries, 2025-01-01 00:00:00 to 2025-01-03 23:59:00
-    Freq: min
-    Data columns (total 3 columns):
-    ...
-    
-    Number of records for 2025-01-01: 1440
-    Number of records during business hours: 1440
-    
+
+```text
+Basic DataFrame Information:
+<class 'pandas.core.frame.DataFrame'>
+DatetimeIndex: 4320 entries, 2025-01-01 00:00:00 to 2025-01-03 23:59:00
+Data columns (total 3 columns):
+ #   Column       Non-Null Count  Dtype
+---  ------       --------------  -----
+ 0   temperature  4320 non-null   float64
+ 1   pressure     4320 non-null   float64
+ 2   flow_rate    4320 non-null   float64
+dtypes: float64(3)
+memory usage: 135.0 KB
+None
+
+First 5 rows:
+                     temperature  pressure  flow_rate
+timestamp
+2025-01-01 00:00:00    85.745071  1.199006  54.851135
+2025-01-01 00:01:00    84.801330  1.194637  47.688726
+2025-01-01 00:02:00    85.988986  1.261014  53.430085
+2025-01-01 00:03:00    87.310724  1.146166  50.554576
+2025-01-01 00:04:00    84.683675  1.161874  50.756585
+
+Data from 2025-01-01 12:00 to 13:00:
+                     temperature  pressure  flow_rate
+timestamp
+2025-01-01 12:00:00    85.461703  1.224955  54.271862
+2025-01-01 12:01:00    82.426021  1.115386  54.241309
+2025-01-01 12:02:00    82.960269  1.191481  49.912482
+2025-01-01 12:03:00    86.088717  1.159359  50.417959
+2025-01-01 12:04:00    85.221393  1.241403  53.332733
+Number of records: 61
+
+Number of records for 2025-01-01: 1440
+
+Number of records during business hours: 1443
+
+Daily Statistics:
+           temperature                       ...  pressure  flow_rate
+                  mean       std        min  ...       std       mean           sum
+timestamp                                    ...
+2025-01-01   85.059766  2.005376  78.664007  ...  0.049050  49.999686  71999.547697
+2025-01-02   85.039841  2.029739  79.071002  ...  0.052078  49.904699  71862.766038
+2025-01-03   84.943501  2.123821  78.841984  ...  0.052231  50.015225  72021.924583
+
+[3 rows x 8 columns]
+```
 
 **Explanation** : Using `DatetimeIndex` enables intuitive time-based slicing and aggregation. Extracting specific time periods and calculating daily/weekly statistics for process data becomes straightforward.
 
@@ -221,12 +257,53 @@ Sensor data is often recorded at second intervals, but minute or hourly data may
     
 
 **Output Example** :
-    
-    
-    Original data: 17,280 records (5-second intervals)
-    1-minute average: 1,440 records (8.3%)
-    5-minute average: 288 records (1.67%)
-    
+
+```text
+Original data: 17280 records (5-second intervals)
+                     temperature
+2025-01-01 00:00:00   175.248357
+2025-01-01 00:00:05   174.930868
+2025-01-01 00:00:10   175.323844
+2025-01-01 00:00:15   175.761515
+2025-01-01 00:00:20   174.882923
+
+1-minute average: 1440 records
+                     temperature
+2025-01-01 00:00:00   175.147978
+2025-01-01 00:01:00   174.704384
+2025-01-01 00:02:00   174.903332
+2025-01-01 00:03:00   174.833711
+2025-01-01 00:04:00   175.023958
+
+5-minute aggregation: 288 records
+                    temperature
+                           mean       std         min         max
+2025-01-01 00:00:00  174.922673  0.454261  174.020165  175.926139
+2025-01-01 00:05:00  174.998158  0.471682  173.690127  176.231621
+2025-01-01 00:10:00  175.045957  0.498052  174.196258  176.360085
+2025-01-01 00:15:00  175.028407  0.518181  173.987429  176.926366
+2025-01-01 00:20:00  174.990933  0.522220  173.379366  176.066517
+
+Hourly aggregation: 24 records
+                    temperature
+                           mean       std count
+2025-01-01 00:00:00  174.994950  0.493165   720
+2025-01-01 01:00:00  175.044894  0.493246   720
+2025-01-01 02:00:00  175.013703  0.492465   720
+2025-01-01 03:00:00  175.012857  0.485290   720
+2025-01-01 04:00:00  175.000094  0.530220   720
+2025-01-01 05:00:00  174.962240  0.495909   720
+2025-01-01 06:00:00  174.994513  0.498281   720
+2025-01-01 07:00:00  174.977928  0.482791   720
+2025-01-01 08:00:00  174.975696  0.514387   720
+2025-01-01 09:00:00  174.990110  0.527364   720
+
+
+Data Size Comparison:
+Original data (5s): 17,280 records
+1-minute average: 1,440 records (8.3%)
+5-minute average: 288 records (1.67%)
+```
 
 **Explanation** : Resampling reduces data volume while reducing noise. Selecting the appropriate time granularity based on analysis objectives optimizes the balance between computational efficiency and information content.
 
@@ -329,18 +406,29 @@ Sensor data is often recorded at second intervals, but minute or hourly data may
     
 
 **Output Example** :
-    
-    
-    Rolling Statistics Summary:
-           rolling_mean_60  rolling_std_60  deviation
-    count      1381.000000     1381.000000  1381.000000
-    mean        174.952379        1.998624     0.004892
-    std           2.885820        0.289455     2.019341
-    min         170.256432        1.187654    -6.234521
-    max         180.134567        3.456789     5.987654
-    
-    Anomaly data points: 12 records (0.83%)
-    
+
+```text
+Rolling Statistics Summary:
+       rolling_mean_60  rolling_std_60    deviation
+count      1381.000000     1381.000000  1381.000000
+mean        175.079631        1.975941     0.223317
+std           2.834735        0.163323     1.964661
+min         169.740273        1.383536    -6.407692
+25%         172.708022        1.869136    -1.105379
+50%         174.814646        1.985401     0.235690
+75%         177.576527        2.085680     1.462422
+max         180.329194        2.384197     7.566088
+
+Anomaly data points: 62 records (4.31%)
+                     temperature  rolling_mean_10  ...  rolling_max  rolling_min
+2025-01-01 01:14:00   165.274756       171.045531  ...   173.919984   165.274756
+2025-01-01 01:53:00   175.711752       171.366960  ...   175.711752   165.274756
+2025-01-01 02:05:00   175.249570       171.507640  ...   175.711752   165.274756
+2025-01-01 02:59:00   176.684258       171.929577  ...   176.684258   167.771830
+2025-01-01 03:29:00   179.157860       172.648432  ...   179.157860   168.283718
+
+[5 rows x 7 columns]
+```
 
 **Explanation** : Rolling statistics form the foundation for process trend identification, stability monitoring, and anomaly detection. The window size should be adjusted according to the process time constant.
 
@@ -468,24 +556,25 @@ Type | Description | Example | Recommended Approach
     
 
 **Output Example** :
-    
-    
-    Missing Value Check:
-    temperature    50
-    pressure        7
-    flow_rate       0
-    dtype: int64
-    
-    Missing Rate:
-    temperature    10.0
-    pressure        1.4
-    flow_rate       0.0
-    
-    Missing Check After Imputation:
-    Linear interpolation: 0
-    Spline interpolation: 0
-    KNN imputation: 0
-    
+
+```text
+Missing Value Check:
+temperature    50
+pressure        7
+flow_rate       0
+dtype: int64
+
+Missing Rate:
+temperature    10.0
+pressure        1.4
+flow_rate       0.0
+dtype: float64
+
+Missing Check After Imputation:
+Linear interpolation: 0
+Spline interpolation: 0
+KNN imputation: 0
+```
 
 **Explanation** : For process data, linear interpolation or spline interpolation considering time series properties is effective. KNN imputation is also an excellent choice when multivariate correlations are strong. For long consecutive missing periods, consider deletion rather than imputation.
 
@@ -589,9 +678,10 @@ Outliers occur due to various causes including measurement errors, sensor failur
     # Box plot
     box_data = [df[~df['outlier_iqr']]['temperature'],
                 df[df['outlier_iqr']]['temperature']]
-    axes[1, 1].boxplot(box_data, labels=['Normal', 'Outliers'], patch_artist=True,
+    axes[1, 1].boxplot(box_data, patch_artist=True,
                        boxprops=dict(facecolor='#11998e', alpha=0.7))
     axes[1, 1].set_ylabel('Temperature (°C)')
+    axes[1, 1].set_xticks([1, 2], ['Normal', 'Outliers'])
     axes[1, 1].set_title('Box Plot: Normal vs Outliers (IQR method)')
     axes[1, 1].grid(alpha=0.3)
     
@@ -704,18 +794,41 @@ Outliers occur due to various causes including measurement errors, sensor failur
     
 
 **Output Example** :
-    
-    
-    Isolation Forest Detection Results:
-    Detected outliers: 50 records (5.00%)
-    
-    Top 5 Most Anomalous Data Points:
-         temperature  pressure  anomaly_score
-    990    189.234567  1.823456      -0.234567
-    991    190.123456  1.834567      -0.223456
-    995    188.987654  1.812345      -0.219876
-    ...
-    
+
+```text
+Isolation Forest Detection Results:
+Detected outliers: 50 records (5.00%)
+
+Top 5 Most Anomalous Data Points:
+     temperature  pressure  anomaly_score
+977   170.152241  0.998899      -0.774414
+990   190.416766  1.844188      -0.774336
+992   189.505645  1.854502      -0.768594
+995   189.437799  1.847886      -0.766517
+975   171.220919  0.942783      -0.766424
+
+Normal Data Statistics:
+       temperature    pressure
+count   950.000000  950.000000
+mean    175.092547    1.505337
+std       1.877916    0.049534
+min     170.396158    1.362307
+25%     173.793169    1.473577
+50%     175.093417    1.503446
+75%     176.307244    1.538584
+max     181.157762    1.662240
+
+Outlier Statistics:
+       temperature   pressure
+count    50.000000  50.000000
+mean    180.214889   1.403165
+std      10.030184   0.268729
+min     168.517465   0.839360
+25%     171.900104   1.344497
+50%     174.942445   1.413490
+75%     189.488684   1.568950
+max     197.887529   1.854502
+```
 
 **Explanation** : Isolation Forest excels at detecting outliers in multivariate data. It can capture anomalies in variable relationships that univariate statistical methods cannot detect. Very effective for process data anomaly detection.
 
@@ -854,21 +967,43 @@ Scaling** | $x' = \frac{x - Q_{med}}{Q_{75} - Q_{25}}$ | Robust to outliers | Wh
     
 
 **Output Example** :
-    
-    
-    Original Data Statistics:
-           temperature    pressure   flow_rate
-    count   500.000000  500.000000  500.000000
-    mean    176.543210    1.534567   50.123456
-    std       7.234567    0.267890   10.234567
-    min     165.123456    0.987654   25.678901
-    max     225.678901    3.123456   75.432109
-    
-    【Recommendations】
-    ✓ Min-Max: When outliers are few and [0,1] range is needed (e.g., neural networks)
-    ✓ Standard: When distribution is close to normal and outliers are few (e.g., linear regression, SVM)
-    ✓ Robust: When outliers are many and robust preprocessing is needed (real process data)
-    
+
+```text
+Original Data Statistics:
+       temperature    pressure   flow_rate
+count   500.000000  500.000000  500.000000
+mean    176.134190    1.521365   51.084845
+std       8.605454    0.235102   10.102463
+min     158.793663    0.960623   21.037446
+25%     171.672148    1.384816   43.975704
+50%     175.311276    1.509661   51.198058
+75%     178.430518    1.637094   57.547384
+max     233.435708    2.950565   76.016831
+
+Post-Scaling Statistics (Temperature):
+       temperature_minmax  temperature_standard  temperature_robust
+count          500.000000          5.000000e+02          500.000000
+mean             0.232316         -2.685852e-15            0.121762
+std              0.115290          1.001002e+00            1.273303
+min              0.000000         -2.017080e+00           -2.444023
+25%              0.172537         -5.190325e-01           -0.538462
+50%              0.221291         -9.572285e-02            0.000000
+75%              0.263080          2.671129e-01            0.461538
+max              1.000000          6.665413e+00            8.600363
+
+Scale Values for Data Points with Outliers (480-495):
+     temperature  temperature_minmax  temperature_standard  temperature_robust
+480   224.360412            0.878416              5.609759            7.257539
+481   220.222298            0.822976              5.128406            6.645245
+482   216.967768            0.779374              4.749833            6.163689
+483   226.017318            0.900614              5.802493            7.502703
+484   221.218246            0.836319              5.244257            6.792610
+
+【Recommendations】
+✓ Min-Max: When outliers are few and [0,1] range is needed (e.g., neural networks)
+✓ Standard: When distribution is close to normal and outliers are few (e.g., linear regression, SVM)
+✓ Robust: When outliers are many and robust preprocessing is needed (real process data)
+```
 
 **Explanation** : Since process data often contains outliers, Robust Scaling is the safest choice. However, select the appropriate method based on model type and objectives.
 
@@ -1273,23 +1408,23 @@ Appropriate visualization is essential for understanding the essence of data. Le
     
 
 **Output Example** :
-    
-    
-    Interactive dashboard saved to 'process_monitoring_dashboard.html'.
-    
-    【Dashboard Features】
-    ✓ Zoom: Drag to zoom in, double-click to reset
-    ✓ Pan: Shift + drag to move
-    ✓ Hover: Mouse over data points for details
-    ✓ Time range selection: Buttons at top for 1h/6h/12h/all periods
-    ✓ Saved as HTML file, viewable in browser
-    
-    Temperature anomalies: 31 records
-    Occurrence time: 2025-01-01 08:00:00 - 2025-01-01 08:15:00
-    
-    Purity anomalies: 41 records
-    Occurrence time: 2025-01-01 16:00:00 - 2025-01-01 16:20:00
-    
+
+```text
+Interactive dashboard saved to 'process_monitoring_dashboard.html'.
+
+【Dashboard Features】
+✓ Zoom: Drag to zoom in, double-click to reset
+✓ Pan: Shift + drag to move
+✓ Hover: Mouse over data points for details
+✓ Time range selection: Buttons at top for 1h/6h/12h/all periods
+✓ Saved as HTML file, viewable in browser
+
+Temperature anomalies: 164 records
+Occurrence time: 2025-01-01 00:56:30 - 2025-01-01 13:27:30
+
+Purity anomalies: 91 records
+Occurrence time: 2025-01-01 00:03:00 - 2025-01-01 23:43:00
+```
 
 **Explanation** : Interactive dashboards using Plotly are ideal for reporting to process engineers and managers. They can be saved as HTML files and viewed by anyone in a browser, making them highly practical.
 
