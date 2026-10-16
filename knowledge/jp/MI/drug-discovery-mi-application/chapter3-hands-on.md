@@ -3378,8 +3378,6 @@ print("GNNのデメリット:") print(" ✗ 訓練に時間がかかる（GPUほ
 
 # === PyTorch Geometricを使ったGNN実装（コンセプト）===
 
-# 
-
 # 1\. データ準備:
 
 # \- 分子をSMILESから読み込み
@@ -3387,8 +3385,6 @@ print("GNNのデメリット:") print(" ✗ 訓練に時間がかかる（GPUほ
 # \- グラフ表現に変換（ノード特徴、エッジインデックス）
 
 # \- torch_geometric.data.Dataオブジェクト化
-
-# 
 
 # 2\. モデル定義:
 
@@ -3398,8 +3394,6 @@ print("GNNのデメリット:") print(" ✗ 訓練に時間がかかる（GPUほ
 
 # \- 全結合層で予測
 
-# 
-
 # 3\. 訓練:
 
 # \- DataLoaderでミニバッチ処理
@@ -3408,13 +3402,9 @@ print("GNNのデメリット:") print(" ✗ 訓練に時間がかかる（GPUほ
 
 # \- Adam optimizer
 
-# 
-
 # 4\. 評価:
 
 # \- テストセットで性能評価（R², MAE, ROC-AUC等）
-
-# 
 
 # 実際のプロジェクトで使用すべきGNNライブラリ:
 
@@ -3423,8 +3413,6 @@ print("GNNのデメリット:") print(" ✗ 訓練に時間がかかる（GPUほ
 # \- DGL (Deep Graph Library): https://www.dgl.ai/
 
 # \- ChemBERTa (Transformers): Hugging Face
-
-# 
 
 # 優れた性能を示すGNNモデル:
 
@@ -3436,8 +3424,6 @@ print("GNNのデメリット:") print(" ✗ 訓練に時間がかかる（GPUほ
 
 # \- SchNet, DimeNet++（3D情報利用）
 
-# 
-
 # GNNのメリット:
 
 # ✓ 分子の構造情報を直接学習
@@ -3447,8 +3433,6 @@ print("GNNのデメリット:") print(" ✗ 訓練に時間がかかる（GPUほ
 # ✓ End-to-end学習（特徴設計不要）
 
 # ✓ 転移学習・事前学習モデル利用可能
-
-# 
 
 # GNNのデメリット:
 
