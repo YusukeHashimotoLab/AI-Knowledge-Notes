@@ -30,6 +30,8 @@ Covered here:
   - the backslash escapes the sources rely on: ``\\``, ``\*``, ``\_``, ``\|``
   - raw HTML, tables, block quotes, lists, link/image attributes, ``\$`` and
     dollar amounts around prose
+  - a generated chapter loads its locale's keyboard-scrollers.js exactly once,
+    with ``<script defer>`` right before ``</body>``, by a src that resolves
 
 The tool under test lives in ``../tools`` relative to this file; everything is
 anchored on ``__file__`` (never ``Path.cwd()``) so the suite passes both from
@@ -48,6 +50,7 @@ test suite still runs in environments that only need the scripts/ dependencies.
 
 import re
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -58,9 +61,10 @@ if str(_TOOLS_DIR) not in sys.path:
 
 try:  # pragma: no cover - environment dependent
     from convert_md_to_html import convert_markdown_to_html
+    from convert_md_to_html import LOCALES, convert_chapter
     _IMPORT_ERROR = None
 except ImportError as exc:  # markdown / yaml not installed
-    convert_markdown_to_html = None
+    convert_markdown_to_html = convert_chapter = LOCALES = None
     _IMPORT_ERROR = exc
 
 
@@ -406,6 +410,29 @@ class TestNotMath(unittest.TestCase):
 
     def test_text_that_looks_like_a_placeholder(self):
         self.assertIn('<code>mathstashtoken000000x</code>', _html('`mathstashtoken000000x` and $x$'))
+
+
+@_skip
+class TestKeyboardScrollerScript(unittest.TestCase):
+    """Every generated page loads its locale's keyboard-scrollers.js (the script
+    that gives boxes which scroll on their own a Tab stop): once, deferred, right
+    before </body>, by a relative src that reaches the file."""
+
+    TAG_RE = re.compile(r'<script defer src="([^"]+)"></script>\n</body>\n</html>\n$')
+
+    def test_generated_chapter_loads_the_script(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            for lang in ('en', 'jp'):
+                series = Path(tmp) / 'knowledge' / lang / 'MI' / 'demo-series'
+                series.mkdir(parents=True)
+                (series / 'chapter-1.md').write_text('---\ntitle: T\n---\n\n# T\n\nText.\n', encoding='utf-8')
+                self.assertTrue(convert_chapter(series, 'chapter-1.md', LOCALES[lang]))
+                html = (series / 'chapter-1.html').read_text(encoding='utf-8')
+                m = self.TAG_RE.search(html)
+                self.assertIsNotNone(m, html[-300:])
+                self.assertEqual(html.count('keyboard-scrollers.js'), 1)
+                self.assertEqual((series / m.group(1)).resolve(),
+                                 (Path(tmp) / 'knowledge' / lang / 'assets' / 'js' / 'keyboard-scrollers.js').resolve())
 
 
 @_skip

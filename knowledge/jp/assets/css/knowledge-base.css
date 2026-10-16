@@ -1490,3 +1490,91 @@ summary {                                  /* NEW selector */
     font-weight: 600;                      /* B 48.4%  (433/433) */
     cursor: pointer;                       /* B 48.4%  (433/433) */
 }
+
+/* ========================================
+   19. Narrow-viewport overflow guards
+   ========================================
+   Active on screens up to 768 CSS px wide. That is phones, but also desktop
+   windows made that narrow and desktop views zoomed in far enough (zoom
+   shrinks the viewport in CSS px), so these rules do change what some desktop
+   users see. `screen` keeps them out of print: a printed page is narrower than
+   768px with ordinary margins, and on paper a scroller would cut its content off.
+
+   Audit (2026-10, all 1,832 knowledge pages at a 390px viewport): 880 pages
+   scrolled sideways. Causes, in pages (a page can have several): display math
+   492, tables 426, video iframes 140, long inline formulas 122 (not handled
+   here: inline math cannot scroll on its own), long unbreakable words such as
+   URLs and inline code 87, pre blocks 2. Each rule below makes such a block
+   scroll sideways on its own, or lets a long word in running text break, so
+   that the page itself stays as wide as the screen.
+
+   Pages that keep all their CSS in an inline <style> element (they do not link
+   this sheet) carry a copy of this block; scripts/check_narrow_viewport_css.py
+   checks that the copies and both locale sheets agree.
+
+   - Display math scrolls sideways. With overflow-x: auto, overflow-y cannot stay
+     `visible` (it computes to `auto`, so a box whose content reaches past its top
+     or bottom edge would scroll vertically as well); it is set to `hidden`.
+     Glyph ink can overhang the MathJax/KaTeX box, so the padding moves the clip
+     edges away from it (0.25em above and below, 2px left and right). Measured
+     at 390px over all 7,729 display equations: no glyph ink is cut at any edge
+     of a box that does not scroll; scrolled to either end, 2 of the 1,798
+     equations that scroll lose one 1px column of anti-aliased ink at their
+     right end.
+   - A box that scrolls must be reachable from the keyboard: every knowledge
+     page loads assets/js/keyboard-scrollers.js, which gives each box that
+     overflows a Tab stop (browsers such as Safari do not stop on one by
+     themselves). The rule after the block (all widths) draws the focus ring of
+     such a box inside its edge, where neither the page edge nor a scrolling
+     parent cuts it off.
+   - mjx-assistive-mml is MathJax's visually hidden MathML copy; unconstrained it
+     can extend a few px past the right edge of the page.
+   - overflow-wrap: break-word lets a word that does not fit on a line break
+     inside the word (it does not change min-content widths, so table columns
+     and flex items keep their sizes). It is inherited, so it is turned back off
+     for preformatted code and output containers, which scroll sideways instead
+     (their line breaks stay exactly as they were), and for diagrams and math.
+   ======================================== */
+
+@media screen and (max-width: 768px) {
+    mjx-container[display="true"],
+    .katex-display {
+        overflow-x: auto;
+        overflow-y: hidden;
+        padding: 0.25em 2px;
+    }
+
+    mjx-assistive-mml {
+        max-width: 100%;
+    }
+
+    body {
+        overflow-wrap: break-word;
+    }
+
+    pre,
+    .code-block,
+    .code-example,
+    .code-container,
+    .output,
+    .output-box {
+        overflow-wrap: normal;
+        overflow-x: auto;
+    }
+
+    .mermaid,
+    mjx-container,
+    .katex {
+        overflow-wrap: normal;
+    }
+}
+
+/* Keyboard focus on a box that scrolls (section 19): the ring is drawn inside
+   the box, so the page edge or a scrolling parent cannot cut it off. Only the
+   offset changes; the ring itself and when it shows (:focus-visible) stay the
+   browser's. */
+[data-kbd-scroll]:focus-visible,
+pre[tabindex]:focus-visible,
+mjx-container[display="true"]:focus-visible {
+    outline-offset: -3px;
+}

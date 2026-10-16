@@ -176,6 +176,7 @@ HTML_FOOTER_TEMPLATE = '''
         <p><strong>{label_license}</strong>: Creative Commons BY 4.0</p>
         <p>© 2025 AI Terakoya. All rights reserved.</p>
     </footer>
+<script defer src="{js_src}"></script>
 </body>
 </html>
 '''
@@ -194,6 +195,21 @@ def shared_css_href(series_path: Path) -> str:
     lang_root = series_path.parent.parent          # knowledge/<lang>
     return os.path.relpath(
         lang_root / 'assets' / 'css' / 'knowledge-base.css', series_path
+    ).replace(os.sep, '/')
+
+
+def shared_js_href(series_path: Path) -> str:
+    """Relative src from a series directory to the locale's keyboard-scrollers.js.
+
+    The script (``knowledge/<lang>/assets/js/keyboard-scrollers.js``) gives every
+    box that scrolls on its own (wide tables, code, display math) a Tab stop so
+    keyboard users can scroll it; every knowledge page loads it with
+    ``<script defer>`` right before ``</body>``. Derived from ``series_path`` for
+    the same reason as ``shared_css_href``.
+    """
+    lang_root = series_path.parent.parent          # knowledge/<lang>
+    return os.path.relpath(
+        lang_root / 'assets' / 'js' / 'keyboard-scrollers.js', series_path
     ).replace(os.sep, '/')
 
 
@@ -714,6 +730,7 @@ def convert_chapter(series_path: Path, chapter_file: str, loc: Dict) -> bool:
         html += body_html
         html += nav_html
         html += HTML_FOOTER_TEMPLATE.format(
+            js_src=shared_js_href(series_path),
             version=frontmatter.get('version', '1.0'),
             created_at=frontmatter.get('created_at', loc['default_created_at']),
             supervisor=loc['supervisor'],

@@ -131,6 +131,12 @@ def convert_html_to_markdown(html_content: str) -> Tuple[Dict, str]:
     for tag in soup.find_all('div', class_='navigation'):
         tag.decompose()
 
+    # Every page loads assets/js/keyboard-scrollers.js right before </body>. It is
+    # not content: html2text already drops <script>, but a page without
+    # <main class="container"> is converted from <body>, so remove it explicitly.
+    for tag in soup.find_all('script', src=re.compile(r'(^|/)keyboard-scrollers\.js$')):
+        tag.decompose()
+
     # Get main content
     main = soup.find('main', class_='container')
     if not main:
