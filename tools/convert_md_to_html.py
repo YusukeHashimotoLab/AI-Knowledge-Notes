@@ -24,6 +24,8 @@ from pathlib import Path
 from typing import Dict, Tuple, List, Optional
 import markdown
 from markdown.extensions import Extension
+from markdown import util
+from markdown.inlinepatterns import InlineProcessor
 from markdown.preprocessors import Preprocessor
 
 # Configure logging
@@ -206,32 +208,21 @@ def dojo_body_class(series_path: Path) -> str:
     return 'dojo-' + series_path.parent.name.lower()
 
 
-class MathPreprocessor(Preprocessor):
-    r"""Preprocessor to protect math blocks from Markdown emphasis processing.
+class MathUnderscorePreprocessor(Preprocessor):
+    r"""Escape ``_`` inside ``$...$`` / ``$$...$$`` as the previous converter did.
 
-    Underscores inside LaTeX math must not be seen by Markdown's emphasis
-    parser, so they are escaped to ``\_`` before the block/inline parsers run.
-    Two rules keep that escaping confined to actual math:
+    This is the previous converter's MathPreprocessor, kept so that a ``$...$``
+    span that MathInlineProcessor decides is *not* math (dollar amounts around
+    prose, links or tags) reaches Markdown exactly as before, underscores
+    escaped. For real math the ``\_`` it adds is turned back into ``_`` by
+    MathInlineProcessor's legacy escapes, so the TeX is unchanged.
 
-    1. A line that opens ``$$`` *and* closes it again on the same line is a
-       *self-contained* display equation, e.g. ``$$ S = QK^T $$`` or
-       ``$$\oint_C f(z) dz = 0$$ where $f(z)$ is analytic``. Its equation body is
-       protected, any trailing prose is treated as prose, and the "inside display
-       math" state is NOT flipped - the previous implementation toggled the flag
-       once for such a line and never back, so every following line (prose *and*
-       code) was treated as math and had its underscores escaped, corrupting
-       Python examples in the output. Only a line with a single, unmatched ``$$``
-       opens a multi-line display block.
-    2. Fenced code blocks are skipped entirely. This preprocessor is registered
-       at priority 200 while ``fenced_code`` registers its own preprocessor at
-       priority 25, so the fences are still raw Markdown lines here and would
-       otherwise be math-processed.
-    3. A blank line ends an open display block. Markdown would split a ``$$``
-       block containing a blank line into separate paragraphs (which MathJax
-       cannot render anyway), so this costs nothing for valid content and keeps a
-       truncated equation in the source - e.g. ``$$ P(y_t | y_{`` with the rest
-       of the line lost - from putting the remainder of the document into math
-       mode.
+    Unlike before it runs at priority 10, after fenced code and raw HTML blocks
+    have been set aside by Markdown, and it skips single-line code spans, so
+    those are never altered. It works line by line and cannot tell an indented
+    code block (or code in a block quote, or a code span spread over lines)
+    from a list paragraph, so there it behaves exactly as before: "_" inside a
+    "$...$" gets a backslash. Use fenced code for code that contains "$".
     """
 
     # Fenced code block delimiter: three or more backticks or tildes, optionally
@@ -249,9 +240,21 @@ class MathPreprocessor(Preprocessor):
         """Escape underscores so Markdown does not read them as emphasis."""
         return text.replace('_', r'\_')
 
+    CODE_SPAN_RE = re.compile(r'(`+)(?:.+?)(?<!`)\1(?!`)')
+
     @classmethod
     def _protect_inline_math(cls, text: str) -> str:
-        """Escape underscores inside inline ``$...$`` / ``$$...$$`` spans only."""
+        """Escape underscores inside inline ``$...$`` spans, skipping code spans."""
+        out, pos = [], 0
+        for code in cls.CODE_SPAN_RE.finditer(text):
+            out.append(cls._protect_math_spans(text[pos:code.start()]))
+            out.append(code.group(0))
+            pos = code.end()
+        out.append(cls._protect_math_spans(text[pos:]))
+        return ''.join(out)
+
+    @classmethod
+    def _protect_math_spans(cls, text: str) -> str:
         parts = cls.INLINE_MATH_RE.split(text)
         protected_parts = []
         for part in parts:
@@ -344,6 +347,165 @@ class MathPreprocessor(Preprocessor):
         return new_lines
 
 
+class MathInlineProcessor(InlineProcessor):
+    r"""Keep LaTeX math away from Markdown's inline processing.
+
+    Registered just after code spans (backtick, 190) and before backslash escapes
+    (escape, 180), so it only ever sees text that Markdown treats as prose:
+    fenced and indented code, code spans and raw HTML blocks never reach it.
+    Each math span is stored in ``md.htmlStash`` and put back after rendering,
+    so emphasis, links, attr_list and the like cannot touch it.
+
+    Recognised spans (newlines allowed, as long as they stay in one paragraph):
+      * ``$$...$$`` and ``$...$`` (``\$`` is a literal dollar, never a delimiter);
+      * ``\\[...\\]`` and ``\\(...\\)`` - the Markdown-escaped spelling of the TeX
+        delimiters, emitted as ``\[...\]`` and ``\(...\)``;
+      * ``\begin{env}...\end{env}`` (or ``\\begin``) outside any delimiter.
+
+    Inside a span four backslash escapes keep the meaning Markdown gave them,
+    because existing sources rely on it: ``\\`` is one backslash (``\\{`` gives
+    ``\{``, ``\\\\`` gives ``\\``), and ``\*``, ``\_`` and ``\|`` give ``*``, ``_``
+    and ``|``. Every other backslash is TeX and is kept as written (``\{``,
+    ``\!``, ``\,``), and a bare ``*`` or ``_`` is just a character. In ``$...$``
+    MathUnderscorePreprocessor has already turned every ``_`` into ``\_``, so a
+    bare ``_`` comes out as ``_`` and a written ``\_`` stays ``\_`` (as in
+    ``\text{avg\_dev}``), exactly as before.
+
+    Not math, and left to Markdown as before: a candidate that would swallow a
+    code span or anything else Markdown has already set aside, one that
+    overlaps an inline HTML tag or autolink (``<a href="$x$">``), a ``$...$``
+    that runs out of a link label (``[price $5](url) and $6``), and a ``$...$``
+    with no TeX command that contains ``[`` or ``<`` or other Markdown
+    structure (``**`` outside braces, an escaped list dash, a run of words) -
+    the prose between two dollar amounts. So math with no TeX command that uses
+    ``[`` or ``<`` (``$[A^*][B]$``, ``$a<b$``) is processed as before; put a TeX
+    command in it (``\lbrack``, ``\lt``, ``\mathrm{..}``) to protect it.
+    Single-backslash ``\(`` and ``\[`` are not delimiters in Markdown text, as
+    before (raw HTML, where they do work, is never touched).
+
+    Not handled (same as the previous converter): a ``|`` inside math in a table
+    cell still splits the cell, so write it as ``\|`` there; and lines inside a
+    multi-line equation that look like Markdown blocks (``- ``, ``# ``, ``1. ``)
+    are parsed as blocks before this processor runs.
+    """
+
+    MATH_RE = (
+        r'(?P<dd>(?<!\\)\$\$(?P<dd_body>(?:\\.|[^$\\])+?)\$\$)'
+        r'|(?P<bsdisp>\\\\\[(?P<bsdisp_body>[\s\S]+?)\\\\\])'
+        r'|(?P<bsinl>\\\\\((?P<bsinl_body>[\s\S]+?)\\\\\))'
+        r'|(?P<env>(?<!\\)\\{1,2}begin\{(?P<envname>[A-Za-z]+\*?)\}'
+        r'[\s\S]+?\\{1,2}end\{(?P=envname)\})'
+        r'|(?P<d>(?<!\\)\$(?P<d_body>(?:\\.|[^$\\])+?)\$)'
+    )
+    LEGACY_ESCAPE_RE = re.compile(r'\\([\\*_|])')
+    TEX_COMMAND_RE = re.compile(r'\\[A-Za-z]')
+    PROSE_SPAN_RE = re.compile(
+        r'(?<![{^])\*\*(?!\})|\\- |[A-Za-z]{3,} [A-Za-z]{3,} [A-Za-z]{3,} [A-Za-z]{3,}'
+        r'|[぀-ヿ一-鿿]{6,}'
+    )
+    # In a $...$ span with no TeX command, "[" or "<" means Markdown link or
+    # HTML syntax (inline, reference or shortcut links, autolinks, tags) lies
+    # between two dollar amounts, so the span is left to Markdown.
+    MARKDOWN_SYNTAX_RE = re.compile(r'[\[<]')
+    # An HTML tag as the HTML grammar has it (name, then attributes, then '>'),
+    # so an inequality such as "a<b, c>d" is not a tag.
+    HTML_TAG_RE = re.compile(
+        r'<(?:/[A-Za-z][A-Za-z0-9-]*\s*'
+        r'|[A-Za-z][A-Za-z0-9-]*(?:\s+[A-Za-z_:][-A-Za-z0-9_:.]*'
+        r'(?:\s*=\s*(?:"[^"]*"|\'[^\']*\'|[^\s"\'=<>`]+))?)*\s*/?)>'
+        r'|<!--[\s\S]*?-->'
+        # Markdown autolinks are not HTML but must not be swallowed either.
+        r'|<(?:[A-Za-z][A-Za-z0-9+.-]*:[^<>\s]*|(?:mailto:)?[^<>\s!]+@[^<>\s@]+)>'
+    )
+
+    def __init__(self, md=None):
+        super().__init__(self.MATH_RE, md)
+
+    @staticmethod
+    def escape_html(tex: str) -> str:
+        """Escape for HTML text and attribute values alike (``alt``/``title``).
+
+        An existing entity such as ``&lt;`` is left alone, as Markdown leaves it.
+        """
+        tex = re.sub(r'&(?!#?[A-Za-z0-9]+;)', '&amp;', tex)
+        return tex.replace('<', '&lt;').replace('>', '&gt;').replace('"', '&quot;')
+
+    def _touches_html_tag(self, data: str, start: int, end: int) -> bool:
+        """True when the span and an inline HTML tag overlap at all.
+
+        Covers ``<a href="$x$">`` (the span is in an attribute value),
+        ``$5 <a href="/x">link</a> $6`` (it would swallow real tags) and
+        ``$5 <span title='$6 tax'>`` (it would end inside a tag).
+        """
+        for tag in self.HTML_TAG_RE.finditer(data):
+            if tag.start() >= end:
+                break
+            if tag.end() > start:
+                return True
+        return False
+
+    def _crosses_link_label(self, data: str, start: int, body_at: int, end: int) -> bool:
+        """True when the span runs out of a link label opened before it.
+
+        "[price $5](url) and $6", "[price $5] [ref] and $6" and a shortcut
+        reference "[price $5] and $6" (with "[price $5]: /url" defined): a ``[``
+        opened earlier in the paragraph closes inside the span and what follows
+        that ``]`` is link syntax, or the label is a defined reference. A
+        half-open interval in a link label, "[$(0,1]$ intro](i.html)", is math.
+        """
+        opens = []
+        i = 0
+        while i < start:
+            ch = data[i]
+            if ch == '\\':
+                i += 2
+                continue
+            if ch == '[':
+                opens.append(i)
+            elif ch == ']' and opens:
+                opens.pop()
+            i += 1
+        if not opens:
+            return False
+        depth, i = 0, body_at
+        while i < end:
+            ch = data[i]
+            if ch == '\\':
+                i += 2
+                continue
+            depth += (ch == '[') - (ch == ']')
+            if depth < 0:
+                after = data[i + 1:]
+                if re.match(r'\(|\s?\[', after):
+                    return True
+                label = re.sub(r'\s+', ' ', data[opens[-1] + 1:i]).strip().lower()
+                return label in self.md.references
+            i += 1
+        return False
+
+    def handleMatch(self, m, data):
+        if util.STX in m.group(0) or self._touches_html_tag(data, m.start(0), m.end(0)):
+            # The candidate swallows something Markdown already set aside (a code
+            # span), sits in an attribute value or spans inline HTML: not math.
+            return None, None, None
+        if m.group('d') is not None:
+            body = m.group('d_body')
+            if self._crosses_link_label(data, m.start(0), m.start('d_body'), m.end(0)):
+                return None, None, None  # "[cost $5](url) ... $6": link text, not math
+            if not self.TEX_COMMAND_RE.search(body) and (
+                    self.PROSE_SPAN_RE.search(body) or self.MARKDOWN_SYNTAX_RE.search(body)):
+                return None, None, None  # dollar amounts around prose, a link or a tag
+            tex = m.group('d')
+        elif m.group('bsdisp') is not None:
+            tex = '\\[' + m.group('bsdisp_body') + '\\]'
+        elif m.group('bsinl') is not None:
+            tex = '\\(' + m.group('bsinl_body') + '\\)'
+        else:
+            tex = m.group(0)
+        tex = self.LEGACY_ESCAPE_RE.sub(r'\1', tex)
+        return self.md.htmlStash.store(self.escape_html(tex)), m.start(0), m.end(0)
+
+
 class MermaidPreprocessor(Preprocessor):
     """Preprocessor to convert Mermaid code blocks to div.mermaid."""
 
@@ -380,11 +542,16 @@ class MermaidPreprocessor(Preprocessor):
 
 
 class MathExtension(Extension):
-    """Extension to protect math blocks from Markdown emphasis."""
+    """Extension that keeps LaTeX math away from Markdown processing."""
 
     def extendMarkdown(self, md):
-        """Register the MathPreprocessor with high priority."""
-        md.preprocessors.register(MathPreprocessor(md), 'math', 200)
+        """Register MathInlineProcessor between code spans (190) and escapes (180).
+
+        MathUnderscorePreprocessor runs last among the preprocessors (10), after
+        fenced code (25) and raw HTML blocks (20) are set aside.
+        """
+        md.preprocessors.register(MathUnderscorePreprocessor(md), 'math_underscore', 10)
+        md.inlinePatterns.register(MathInlineProcessor(md), 'math', 185)
 
 
 class MermaidExtension(Extension):
