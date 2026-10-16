@@ -323,6 +323,9 @@
             body { overflow-wrap: break-word }
             pre, .code-block, .code-example, .code-container, .output, .output-box { overflow-wrap: normal; overflow-x: auto }
             .mermaid, mjx-container, .katex { overflow-wrap: normal }
+            .table-scroll { overflow-x: auto; position: relative }
+            .table-scroll { margin-top: 0; margin-bottom: var(--spacing-md, 1.5rem) }
+            .table-scroll > table { margin-top: 0 !important; margin-bottom: 0 !important }
             .video-container iframe { max-width: 100%; height: auto; aspect-ratio: 16 / 9 }
         }
         [data-kbd-scroll]:focus-visible, pre[tabindex]:focus-visible, mjx-container[display="true"]:focus-visible { outline-offset: -3px }
@@ -381,7 +384,7 @@
 <hr />
 <h2>3.1 Why Control?</h2>
 <p>Chapter 1's balances assumed steady state — nothing changing with time. That is a convenient fiction. A real plant is disturbed continually: <strong>feed composition drifts</strong>, <strong>ambient conditions change</strong>, <strong>catalysts deactivate</strong>, exchangers foul, and <strong>demand changes</strong> week to week. Even an intrinsically stable process settles wherever those disturbances leave it, which is generally not the design point. <strong>Process control</strong> measures what the plant is doing and continuously adjusts it back. Its objectives are conventionally prioritized in this order, highest first — safety and mandatory operating constraints taking precedence over economic optimization, though several can bind at the same time:</p>
-<table>
+<div class="table-scroll"><table>
 <thead>
 <tr>
 <th>Objective</th>
@@ -410,7 +413,7 @@
 <td>Run near the limiting constraint</td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <p>When objectives conflict, a properly designed control and protection system gives up profit before it gives up safety. That is a design requirement met through architecture, constraints, interlocks, and protective functions — not an automatic property of any control system.</p>
 <h3>The motivating example: an exothermic reactor</h3>
 <p>Chapter 2 gave a rule of thumb from the Arrhenius equation — near room temperature a 10 °C rise roughly <strong>doubles the rate constant</strong> (2–4× for the activation energies tabulated there). Put an exothermic reaction in a cooled reactor: a temperature rise speeds the reaction, which releases heat faster, which raises the temperature further. Jacket cooling, meanwhile, grows only in rough proportion to the temperature difference. So near any given operating point the question is which of the two rises faster with temperature. In a simplified single-state thermal balance, if heat generation rises with temperature faster than heat removal does, that point is locally unstable: the temperature moves away from it instead of settling, which is the route to <strong>thermal runaway</strong>. The full reactor dynamics — concentration, jacket, and flow as well as temperature — have to be checked before a point is judged safe or unsafe. Whether it can happen is not decided by the chemistry alone — it depends on the design and on the operating point chosen, which is exactly what makes exothermic reactors demanding to design (Chapter 4) and to control (this chapter).</p>
@@ -432,7 +435,7 @@ flowchart LR
 <p>A large plant may run several thousand loops, and the overwhelming majority are simple <strong>single-input, single-output (SISO) feedback loops</strong>: one controlled output, one setpoint, one manipulated input. Multivariable schemes get the conference papers, but plants run on ordinary flow, level, pressure, and temperature loops, and a control valve is the final control element in many of them. Valves also carry the <strong>fail-safe</strong> philosophy — but the failure action is a design choice made service by service: a valve can be specified to fail open, fail closed, or fail in place, and which of those is safe depends on the actuator and on what losing that valve would do to the process.</p>
 <h2>3.3 PID Control</h2>
 <p>The workhorse of industry is the <strong>PID controller</strong>: the great majority of plant loops are PID-type, and most run as <strong>PI</strong>, with derivative switched off. PID computes its output from the error <em>e = setpoint − measurement</em> using three terms — responding to the <strong>current error, the accumulated error, and the error trend</strong>:</p>
-<table>
+<div class="table-scroll"><table>
 <thead>
 <tr>
 <th>Term</th>
@@ -457,7 +460,7 @@ flowchart LR
 <td>Reacts to the current rate of change</td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <p>In the standard (ISA) form:</p>
 <p>$$ u(t) = K_c \left[ e(t) + \frac{1}{\tau_I} \int e\,dt + \tau_D \frac{de}{dt} \right] $$</p>
 <p>where <strong>Kc</strong> is the controller gain, <strong>τI</strong> the integral (reset) time, and <strong>τD</strong> the derivative time. Read ∫ e dt as the running total of past error and de/dt as how fast the error is currently changing — you never need to evaluate either by hand; the controller does it for you.</p>
@@ -493,7 +496,7 @@ for step in range(int(t_end / dt)):
 <p><strong>Inertia (time constant, τ).</strong> A stirred tank full of liquid has thermal mass; open the steam valve and the temperature climbs gradually. A first-order process covers about 63% of its change in one time constant and is essentially finished after four or five.</p>
 <p><strong>Dead time (θ).</strong> After the valve moves, <em>nothing happens at the measured output</em> for a while — fluid must travel down a pipe, a composition change must reach the analyzer. During this <strong>transport delay</strong> the controller is blind, pushing on stale information; push too hard and the correction that finally arrives is far too large, so the loop oscillates.</p>
 <p>Combining the two gives the <strong>first-order-plus-dead-time (FOPDT)</strong> model, a common low-order approximation for many self-regulating process responses: three numbers from a step test — gain <em>K</em>, time constant <em>τ</em>, dead time <em>θ</em>. The key rule of thumb is the <strong>dead-time ratio θ/τ</strong>:</p>
-<table>
+<div class="table-scroll"><table>
 <thead>
 <tr>
 <th>θ/τ</th>
@@ -518,7 +521,7 @@ for step in range(int(t_end / dt)):
 <td>Analyzer composition loops</td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <p>How fast a loop can actually be tuned also depends on measurement noise, actuator limits, unmodelled dynamics, and interactions; and integrating processes — many level loops among them — have no finite self-regulating time constant, so the ratio does not apply to them directly.</p>
 <p><strong>The larger the dead-time ratio, the more sluggish the controller must be</strong> — you cannot correct information you do not yet have.</p>
 <p><strong>Ziegler and Nichols published the classic tuning heuristics in 1942</strong>, deriving <em>Kc</em>, <em>τI</em>, and <em>τD</em> from a simple plant test; they remain the standard entry point. Their settings are aggressive and tend to oscillate, so modern practice prefers gentler model-based rules — <strong>lambda tuning</strong> or <strong>IMC (Internal Model Control) tuning</strong> — where the engineer sets the closed-loop response speed directly, as with the <code>Kc = 2</code>, <code>τI = 5</code> above.</p>

@@ -177,7 +177,7 @@ Qubit count for representative active spaces:
 <h3>Why not just use DFT?</h3>
 <p>Density functional theory computes ground-state properties from the electron density rather than the wavefunction, at a cost that scales roughly as $O(M^3)$ instead of exponentially. It is, by an enormous margin, the most successful method in computational materials science, and for most of the periodic table it is the right tool.</p>
 <p>Its failures are systematic and well characterized:</p>
-<table>
+<div class="table-scroll"><table>
 <thead>
 <tr>
 <th>Regime</th>
@@ -217,12 +217,12 @@ Qubit count for representative active spaces:
 <td>The ground state is not close to any single determinant. Conventional BCS superconductors are the opposite case — a mean-field state, well described by DFT plus Eliashberg theory</td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <p>The common thread is <strong>static (strong) correlation</strong>: the exact ground state is a superposition of several determinants with comparable weight, and no single-reference method — DFT, Hartree-Fock, coupled cluster with a single reference — can represent it. This is precisely the regime where a quantum computer's ability to hold a general superposition is, in principle, the right tool.</p>
 <p>It is worth being blunt about the practical consequence: the useful target for quantum computing is not "replace DFT". It is "supply the strongly correlated fragment that DFT gets wrong", typically an active space of a few dozen orbitals embedded in a much larger DFT or classical-correlation treatment. Everything in this chapter is aimed at that fragment.</p>
 <h3>The classical competition is not standing still</h3>
 <p>Any assessment of quantum advantage has to compare against the best classical method, not against full CI:</p>
-<table>
+<div class="table-scroll"><table>
 <thead>
 <tr>
 <th>Method</th>
@@ -263,7 +263,7 @@ Qubit count for representative active spaces:
 <td>High entanglement, contraction is hard</td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <p>The honest statement of the opportunity is narrow: quantum computing is a candidate for problems that are simultaneously <strong>strongly correlated</strong> (so DFT and CCSD(T) fail), <strong>too entangled for tensor networks</strong> (so DMRG fails), and <strong>sign-problem-afflicted</strong> (so quantum Monte Carlo fails). That intersection is real — the doped 2D Hubbard model and several transition-metal active spaces sit in it — but it is much smaller than the phrase "quantum computers will simulate chemistry" suggests.</p>
 <hr />
 <h2>4.2 Second Quantization and Fermions</h2>
@@ -311,7 +311,7 @@ Qubit count for representative active spaces:
 <p>$$ \hat{c}_p^\dagger \hat{c}_q + \hat{c}_q^\dagger \hat{c}_p = \frac{1}{2}\left(X_p Z_{p+1}\cdots Z_{q-1} X_q + Y_p Z_{p+1} \cdots Z_{q-1} Y_q\right) $$</p>
 <p>A term that was local in the fermionic language — two orbitals — has become a Pauli string acting on $q - p + 1$ qubits. The <strong>Pauli weight</strong> grows linearly with the orbital distance. On hardware with limited connectivity, each such string costs a CNOT ladder proportional to its weight, so the mapping's non-locality translates directly into circuit depth.</p>
 <p>This is the motivation for alternatives:</p>
-<table>
+<div class="table-scroll"><table>
 <thead>
 <tr>
 <th>Mapping</th>
@@ -352,7 +352,7 @@ Qubit count for representative active spaces:
 <td>Extra qubits buy locality for lattice models</td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <p>For the four-mode systems in this chapter, Jordan-Wigner costs nothing — the longest string spans four qubits either way — and it is by far the clearest to implement and verify. For a 100-orbital calculation the $O(\log M)$ mappings matter.</p>
 <h3>Implementation</h3>
 <p>The code below is the toolbox for the rest of the chapter. It represents an operator as a dictionary mapping Pauli strings to coefficients, implements the Pauli algebra (multiplication with phases, addition with cancellation), builds the Jordan-Wigner images of $\hat{c}_p$, $\hat{c}_p^\dagger$, $\hat{n}_p$ and hopping terms, and provides a matrix realization for exact diagonalization.</p>
@@ -616,7 +616,7 @@ Consistency check: the mapped number operator on a basis state
 <h3>Two ways to simulate</h3>
 <p><strong>Analog quantum simulation</strong> engineers a physical system whose Hamiltonian <em>is</em> (approximately) the target Hamiltonian, and then simply lets it evolve. Cold atoms in optical lattices realize Hubbard models; trapped-ion crystals realize long-range Ising and Heisenberg models; superconducting circuit arrays realize Bose-Hubbard physics. There is no gate compilation, no Trotter error, and coherence requirements are much milder — but the device simulates the Hamiltonian it happens to have, and calibrating and validating it is hard.</p>
 <p><strong>Digital quantum simulation</strong> compiles the target evolution into a universal gate set. It can represent any Hamiltonian, and it is compatible with error correction, which is decisive in the long run. Its cost is depth.</p>
-<table>
+<div class="table-scroll"><table>
 <thead>
 <tr>
 <th>Aspect</th>
@@ -656,7 +656,7 @@ Consistency check: the mapped number operator on a basis state
 <td>Circuit-level, testable</td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <h3>Trotterization</h3>
 <p>Digital simulation of $e^{-i\hat{H}t}$ needs $\hat{H} = \sum_j \hat{H}_j$ split into pieces we can exponentiate. The pieces do not commute, so the naive product is wrong; the first-order Lie-Trotter formula controls the error:</p>
 <p>$$ e^{-i\hat{H}t} = \left(\prod_j e^{-i\hat{H}_j t/r}\right)^r + O\!\left(\frac{t^2}{r}\right) $$</p>
@@ -801,7 +801,7 @@ Extrapolated gate cost of a phase-estimation run
 <p>Two algorithms dominate ground-state estimation, and they occupy opposite ends of the hardware spectrum.</p>
 <p><strong>Quantum phase estimation</strong> prepares a trial state with nonzero overlap $\lvert \langle \psi_{\text{trial}} \vert \psi_0 \rangle \rvert^2 = p_0$ with the ground state, applies controlled powers of $e^{-i\hat{H}t}$, and reads the phase from an inverse Fourier transform. It returns an eigenvalue to precision $\varepsilon$ with circuit depth $O(1/\varepsilon)$ and success probability $p_0$. Its precision does not degrade with more measurement — it is a <em>deterministic</em> eigenvalue extraction, up to the overlap issue.</p>
 <p><strong>The variational quantum eigensolver</strong> (Chapter 3) prepares a parameterized state, measures $\langle \hat{H} \rangle$, and lets a classical optimizer minimize it. Depth is set by the ansatz, not by the required precision, which is why it fits current hardware. The price is paid in measurements and in the ansatz's ability to represent the true ground state.</p>
-<table>
+<div class="table-scroll"><table>
 <thead>
 <tr>
 <th>Property</th>
@@ -851,7 +851,7 @@ Extrapolated gate cost of a phase-estimation run
 <td>NISQ</td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <p>The last row of that table is the single most important line in this chapter. The two algorithms are not competitors for the same machine; they are answers to two different machines. VQE gives a <strong>variational upper bound</strong>: if the ansatz cannot represent the ground state, the answer is wrong in a known direction but by an unknown amount. QPE gives an eigenvalue, but needs depth that only a fault-tolerant machine can supply. Chapter 5 quantifies exactly how far current error rates are from that depth.</p>
 <hr />
 <h2>4.5 Target Problems in Materials Science</h2>
@@ -864,7 +864,7 @@ Extrapolated gate cost of a phase-estimation run
 <li><strong>Scientifically decisive</strong> — the answer must change a decision, not merely add a data point.</li>
 </ol>
 <p>Very few problems satisfy all four today. Ranking honestly:</p>
-<table>
+<div class="table-scroll"><table>
 <thead>
 <tr>
 <th>Target</th>
@@ -939,7 +939,7 @@ Extrapolated gate cost of a phase-estimation run
 <td>Not addressable by an active-space calculation</td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <p>Two remarks on this table. First, the celebrated targets (FeMoco, high-$T_c$) are precisely the ones that need fault tolerance; the targets that fit current machines are precisely the ones classical methods already solve. This gap is the central fact of the field, and it is why Chapter 5 exists. Second, "genuine candidate" for the doped 2D Hubbard model is a statement about the <em>problem</em>, not about a timeline: it is classically open and physically important, which makes it the right thing to prepare for.</p>
 <h3>The model Hamiltonians</h3>
 <p>Three models cover most of the near-term literature, and we will build two of them in Section 4.6.</p>

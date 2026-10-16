@@ -32,6 +32,11 @@ Covered here:
     dollar amounts around prose
   - a generated chapter loads its locale's keyboard-scrollers.js exactly once,
     with ``<script defer>`` right before ``</body>``, by a src that resolves
+  - every outermost table comes out wrapped in ``<div class="table-scroll">``
+    (Markdown and raw-HTML tables, in lists and ``<details>``, adjacent tables,
+    other wrapper divs), nested tables and ``<table>`` text in code, comments
+    and scripts are left alone, a table already alone in a ``table-scroll`` div
+    is recognised however that div is formatted, and wrapping twice adds nothing
 
 The tool under test lives in ``../tools`` relative to this file; everything is
 anchored on ``__file__`` (never ``Path.cwd()``) so the suite passes both from
@@ -60,11 +65,11 @@ if str(_TOOLS_DIR) not in sys.path:
     sys.path.insert(0, str(_TOOLS_DIR))
 
 try:  # pragma: no cover - environment dependent
-    from convert_md_to_html import convert_markdown_to_html
+    from convert_md_to_html import convert_markdown_to_html, wrap_tables
     from convert_md_to_html import LOCALES, convert_chapter
     _IMPORT_ERROR = None
 except ImportError as exc:  # markdown / yaml not installed
-    convert_markdown_to_html = convert_chapter = LOCALES = None
+    convert_markdown_to_html = wrap_tables = convert_chapter = LOCALES = None
     _IMPORT_ERROR = exc
 
 
@@ -410,6 +415,126 @@ class TestNotMath(unittest.TestCase):
 
     def test_text_that_looks_like_a_placeholder(self):
         self.assertIn('<code>mathstashtoken000000x</code>', _html('`mathstashtoken000000x` and $x$'))
+
+
+@_skip
+class TestTableScrollWrapper(unittest.TestCase):
+    """Outermost tables are wrapped in <div class="table-scroll"> (knowledge-base.css
+    section 19 lets that div scroll on narrow screens); nothing else changes."""
+
+    OPEN, CLOSE = '<div class="table-scroll">', '</div>'
+
+    def assertWrapped(self, html, n):
+        """``html`` has n real tables, each directly inside its own wrapper."""
+        self.assertEqual(html.count('<table'), n, html)
+        self.assertEqual(html.count(self.OPEN + '<table'), n, html)
+        self.assertEqual(html.count('</table>' + self.CLOSE), n, html)
+
+    def assertOnlyWrapperAdded(self, before, after):
+        self.assertEqual(after.replace(self.OPEN + '<table', '<table').replace('</table>' + self.CLOSE, '</table>'), before)
+
+    def test_markdown_table(self):
+        html = _html('| a | b |\n|---|---|\n| 1 | 2 |\n')
+        self.assertWrapped(html, 1)
+        self.assertTrue(html.startswith(self.OPEN + '<table>\n<thead>'))
+        self.assertTrue(html.endswith('</tbody>\n</table>' + self.CLOSE))
+
+    def test_table_inside_a_list_item(self):
+        html = _html('- item\n\n    | a | b |\n    |---|---|\n    | 1 | 2 |\n')
+        self.assertWrapped(html, 1)
+        self.assertIn('<li>\n<p>item</p>\n' + self.OPEN + '<table>', html)
+
+    def test_raw_html_table(self):
+        block = '<table class="data"><tr><th>x</th></tr><tr><td>$a_1$</td></tr></table>'
+        html = _html('Text.\n\n' + block + '\n\nMore.\n')
+        self.assertWrapped(html, 1)
+        self.assertIn(self.OPEN + block + self.CLOSE, html)
+
+    def test_two_adjacent_tables(self):
+        html = _html('| a |\n|---|\n| 1 |\n\n| b |\n|---|\n| 2 |\n')
+        self.assertWrapped(html, 2)
+        self.assertIn('</table>' + self.CLOSE + '\n' + self.OPEN + '<table>', html)
+
+    def test_table_inside_details(self):
+        html = _html('<details>\n<summary>S</summary>\n<table><tr><td>1</td></tr></table>\n</details>\n')
+        self.assertWrapped(html, 1)
+        self.assertEqual(html, '<details>\n<summary>S</summary>\n' + self.OPEN
+                         + '<table><tr><td>1</td></tr></table>' + self.CLOSE + '\n</details>')
+
+    def test_existing_wrapper_div_gets_the_wrapper_inside_it(self):
+        html = _html('<div class="comparison-table">\n<table><tr><td>1</td></tr></table>\n</div>\n')
+        self.assertWrapped(html, 1)
+        self.assertIn('<div class="comparison-table">\n' + self.OPEN + '<table>', html)
+
+    def test_nested_table_is_not_wrapped(self):
+        html = _html('<table><tr><td><table><tr><td>in</td></tr></table></td></tr></table>\n')
+        self.assertEqual(html.count('<table'), 2)
+        self.assertEqual(html, self.OPEN + '<table><tr><td><table><tr><td>in</td></tr></table></td></tr></table>' + self.CLOSE)
+
+    def test_table_in_fenced_code_is_text(self):
+        html = _html('```html\n<table><tr><td>1</td></tr></table>\n```\n')
+        self.assertNotIn('<table', html)
+        self.assertIn('&lt;table&gt;', html)
+        self.assertNotIn('table-scroll', html)
+
+    def test_table_text_in_code_span_comment_and_script(self):
+        md = ('Use `<table>` here.\n\n<!-- <table><tr><td>x</td></tr></table> -->\n\n'
+              '<script>var s = "<table><tr><td>y</td></tr></table>";</script>\n\n| real |\n|---|\n| 1 |\n')
+        html = _html(md)
+        self.assertIn('<!-- <table><tr><td>x</td></tr></table> -->', html)
+        self.assertIn('var s = "<table><tr><td>y</td></tr></table>";', html)
+        self.assertEqual(html.count(self.OPEN), 1)
+        self.assertIn(self.OPEN + '<table>\n<thead>\n<tr>\n<th>real</th>', html)
+
+    def test_wrapping_twice_adds_nothing(self):
+        once = _html('| a |\n|---|\n| 1 |\n\n<table><tr><td>2</td></tr></table>\n')
+        self.assertWrapped(once, 2)
+        self.assertEqual(wrap_tables(once), once)
+        self.assertEqual(wrap_tables(wrap_tables(once)), once)
+
+    def test_existing_wrapper_is_recognised_whatever_its_formatting(self):
+        table = '<table><tr><td>x</td></tr></table>'
+        for wrapped in [
+            '<div class="table-scroll">\n' + table + '\n</div>',
+            '<div class="table-scroll">\n    ' + table + '\n  </div>',
+            '<div id="t1" class="table-scroll">' + table + '</div>',
+            '<div class="wide table-scroll note">' + table + '</div>',
+            "<div class='table-scroll'>" + table + '</div>',
+            '<DIV CLASS="table-scroll">' + table + '</DIV>',
+            '<div class="table-scroll"><!-- data: 2024 -->\n' + table + '\n<!-- end --></div>',
+        ]:
+            with self.subTest(wrapped=wrapped):
+                page = '<p>a</p>\n' + wrapped + '\n<p>b</p>'
+                self.assertEqual(page.count('<table'), 1)
+                self.assertEqual(wrap_tables(page), page)
+
+    def test_table_scroll_div_with_other_content_still_gets_a_wrapper(self):
+        table = '<table><tr><td>x</td></tr></table>'
+        for inner in ['<p>Note</p>\n' + table, table + '\n<p>Note</p>', 'text ' + table]:
+            with self.subTest(inner=inner):
+                page = '<div class="table-scroll">' + inner + '</div>'
+                self.assertEqual(wrap_tables(page),
+                                 page.replace(table, self.OPEN + table + self.CLOSE))
+        # a div that only has a similar class name is not a wrapper either
+        page = '<div class="table-scroller">' + table + '</div>'
+        self.assertEqual(wrap_tables(page), page.replace(table, self.OPEN + table + self.CLOSE))
+
+    def test_only_the_wrapper_is_inserted(self):
+        page = ('<!DOCTYPE html>\n<html><head><style>table { width: 100% }</style></head><body>\n'
+                '<p>a</p><TABLE border="1"><tr><td>x</td></tr></TABLE >\n<pre><code>&lt;table&gt;</code></pre>\n'
+                '<table/><tr><td>y</td></tr></table></body></html>\n')
+        after = wrap_tables(page)
+        self.assertEqual(after.count(self.OPEN), 2)
+        self.assertIn(self.OPEN + '<TABLE border="1"><tr><td>x</td></tr></TABLE >' + self.CLOSE, after)
+        self.assertEqual(after.replace(self.OPEN, '').replace('</TABLE >' + self.CLOSE, '</TABLE >')
+                         .replace('</table>' + self.CLOSE, '</table>'), page)
+
+    def test_unclosed_table_is_left_alone(self):
+        self.assertEqual(wrap_tables('<p>x</p><table><tr><td>1</td></tr>'), '<p>x</p><table><tr><td>1</td></tr>')
+
+    def test_page_without_tables_is_unchanged(self):
+        md = '# T\n\nSome *text* with $x_1$ and `code`.\n'
+        self.assertNotIn('table', _html(md))
 
 
 @_skip

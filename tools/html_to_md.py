@@ -154,6 +154,12 @@ def convert_html_to_markdown(html_content: str) -> Tuple[Dict, str]:
         code_block.string = f"```mermaid\n{mermaid_text}\n```"
         mermaid_div.replace_with(code_block)
 
+    # Every outermost table sits in <div class="table-scroll"> (added by
+    # convert_md_to_html.wrap_tables so it can scroll on narrow screens). Drop the
+    # wrapper so the Markdown is exactly what the table alone gives.
+    for wrapper in main.select('div.table-scroll'):
+        wrapper.unwrap()
+
     # Configure html2text converter
     h = html2text.HTML2Text()
     h.body_width = 0  # Don't wrap lines

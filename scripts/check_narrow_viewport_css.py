@@ -52,7 +52,12 @@ MEDIA = "@media screen and (max-width: 768px)"
 # Rules of the sheet's block that the inline copies state differently: they
 # depend on values the sheet sets elsewhere and the inline-style pages set
 # themselves. {sheet rule: inline rule}
-SHEET_TO_INLINE: dict[str, str] = {}
+SHEET_TO_INLINE: dict[str, str] = {
+    # the table margins: section 7 of the sheet vs. the table rule most
+    # inline-style pages carry (margin-bottom: var(--spacing-md), no top margin)
+    ".table-scroll { margin-top: 1.5rem; margin-bottom: var(--spacing-md) }":
+        ".table-scroll { margin-top: 0; margin-bottom: var(--spacing-md, 1.5rem) }",
+}
 
 # Rules only the inline copies have: the sheet provides them elsewhere (the
 # sheet sizes .video-container itself, section 17; inline-style pages do not).
