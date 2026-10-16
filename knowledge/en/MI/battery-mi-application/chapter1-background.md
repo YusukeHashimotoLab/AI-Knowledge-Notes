@@ -112,7 +112,7 @@ This chapter covers the fundamentals of Fundamentals of Battery Materials and th
 
 **Challenge 4: Safety Enhancement** \- Risks: Thermal runaway, fire \- Causes: Internal short circuit, overcharging, mechanical damage \- Countermeasures: Solid electrolyte, flame-retardant electrolyte, protection circuits
 
-**Challenge 5: Cost Reduction** \- Current: $150/kWh (2024) \- Target: $50/kWh (EVs equivalent to gasoline vehicles) \- High-cost factors: Co and Li (2022 peak prices of about $40,000/t and $15,000/t; both have since fallen and remain volatile)
+**Challenge 5: Cost Reduction** \- Current: \$150/kWh (2024) \- Target: \$50/kWh (EVs equivalent to gasoline vehicles) \- High-cost factors: Co and Li (2022 peak prices of about \$40,000/t and \$15,000/t; both have since fallen and remain volatile)
 
 **Challenge 6: Supply Chain** \- Co dependence: Congo produces 60% (geopolitical risk) \- Li dependence: Australia and Chile produce 80% \- Solutions: Na-ion batteries, recycling
 
@@ -252,7 +252,7 @@ This chapter covers the fundamentals of Fundamentals of Battery Materials and th
 
   3. **Role of MI:** \- Capacity/voltage prediction (seconds) \- Cycle degradation prediction (80% testing period reduction) \- New material discovery (70% experiment reduction) \- Charging protocol optimization
 
-  4. **Industry impact:** \- Market size: $50B (2024) → $120B (2030) \- CO2 reduction through EV adoption: 500 million tons/year \- Major companies: CATL, Panasonic, Toyota, Tesla
+  4. **Industry impact:** \- Market size: \$50B (2024) → \$120B (2030) \- CO2 reduction through EV adoption: 500 million tons/year \- Major companies: CATL, Panasonic, Toyota, Tesla
 
 ### Next Steps
 

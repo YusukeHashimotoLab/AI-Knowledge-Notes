@@ -1552,7 +1552,7 @@ We use Active Learning to efficiently search the catalyst candidate space and di
 
 In this chapter, we learned about the application of Materials Informatics (MI) and AI in catalyst design.
 
-**Key Achievements** : 1\. **Development Time Reduction** : 10-20 years → 1-3 years (70-85% reduction) 2\. **Experiment Reduction** : 5,000-10,000 trials → 50-500 trials (90-99% reduction) 3\. **Success Rate Improvement** : 1-5% → 10-20% (2-4x increase) 4\. **Cost Reduction** : $500M-2B → $50M-300M (70-85% reduction)
+**Key Achievements** : 1\. **Development Time Reduction** : 10-20 years → 1-3 years (70-85% reduction) 2\. **Experiment Reduction** : 5,000-10,000 trials → 50-500 trials (90-99% reduction) 3\. **Success Rate Improvement** : 1-5% → 10-20% (2-4x increase) 4\. **Cost Reduction** : \$500M-2B → \$50M-300M (70-85% reduction)
 
 **Technical Elements** : \- **Descriptor Design** : Electronic states, surface properties, geometric structures \- **Reaction Mechanism Prediction** : DFT + machine learning \- **High-Throughput Experimentation Integration** : Robotic automated synthesis and evaluation \- **Transfer Learning** : Leveraging knowledge from similar reactions \- **Active Learning** : Efficient search strategies
 

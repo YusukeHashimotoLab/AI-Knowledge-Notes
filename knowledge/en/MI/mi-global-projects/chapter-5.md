@@ -509,7 +509,7 @@ $$ CAGR = \left(\frac{V_{final}}{V_{initial}}\right)^{\frac{1}{n}} - 1 = \left(\
 
 $$ V_{2030} = 800 \times (1.104)^5 = 800 \times 1.64 = \$1.31B \text{ annually} $$
 
-**Interpretation:** If current trends continue, annual MI investment will exceed $1.3 billion by 2030, with cumulative investment since 2011 reaching approximately $15 billion.
+**Interpretation:** If current trends continue, annual MI investment will exceed \$1.3 billion by 2030, with cumulative investment since 2011 reaching approximately \$15 billion.
 
 Exercise 3: Strategic Comparison Hard
 

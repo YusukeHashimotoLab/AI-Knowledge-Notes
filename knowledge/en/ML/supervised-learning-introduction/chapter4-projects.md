@@ -1124,7 +1124,7 @@ TN (Correctly predicted retain) | 910 | 878
   1. **Cost savings** : Additional $2,800 reduction
   2. **Fewer missed churners** : 15 fewer (106→91 people)
   3. **Customer retention** : Preventing churn has long-term value
-  4. **Risk avoidance** : Cost of missed churn ($500) > Cost of false positive ($100)
+  4. **Risk avoidance** : Cost of missed churn (\$500) > Cost of false positive (\$100)
 
 **Reasons to choose threshold 0.4** :
 

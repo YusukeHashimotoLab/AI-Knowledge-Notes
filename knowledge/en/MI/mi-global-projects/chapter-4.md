@@ -548,7 +548,7 @@ Exercise 2: Investment Analysis Medium
 **Per-capita calculations:**
 
   * China: 400B yuan / 1.4B people = ~286 yuan/person (~$40 USD)
-  * Singapore: S$25B / 5.9M people = ~S$4,237/person (~$3,100 USD)
+  * Singapore: S\$25B / 5.9M people = ~S\$4,237/person (~\$3,100 USD)
 
 **Analysis:**
 

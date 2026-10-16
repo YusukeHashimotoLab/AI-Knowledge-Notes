@@ -991,7 +991,7 @@ Quantify social loss using Taguchi's quality loss function.
     ✅ Robust design can significantly reduce social loss
     
 
-**Interpretation** : Through robust design, loss per unit product was reduced from $3.50 to $0.07, a 98% reduction. With annual production of 100,000 units, social loss can be reduced by approximately $343,000.
+**Interpretation** : Through robust design, loss per unit product was reduced from \$3.50 to \$0.07, a 98% reduction. With annual production of 100,000 units, social loss can be reduced by approximately \$343,000.
 
 * * *
 

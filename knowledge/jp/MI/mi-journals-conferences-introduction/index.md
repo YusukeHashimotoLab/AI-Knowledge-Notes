@@ -165,9 +165,9 @@ Q9: 学生・若手研究者向けの支援制度はある？
 
 **A** : 多くの学会で支援制度があります。  
 **MRS（Materials Research Society）** :  
-\- Student Registration（学生参加費割引 $100-150）  
-\- Student Poster Award（優秀ポスター賞 $500）  
-\- Arthur Nowick Scholarship（博士課程学生 $2,000）  
+\- Student Registration（学生参加費割引 \$100-150）  
+\- Student Poster Award（優秀ポスター賞 \$500）  
+\- Arthur Nowick Scholarship（博士課程学生 \$2,000）  
 **日本材料学会** :  
 \- 学生会員（年会費 2,000円、一般の1/5）  
 \- 学生優秀発表賞（年次大会で表彰）  

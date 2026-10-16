@@ -89,11 +89,11 @@ VPP splits into three main approaches according to how the light is delivered. T
 Approach | Light source / drawing | Speed | What sets the resolution | Cost range  
 ---|---|---|---|---  
 **SLA**  
-(Stereolithography) | UV laser (355 nm) point-scanned by a galvanometer mirror | Slow (point by point) | Laser spot diameter (50-150 μm) | Medium-high ($3,000-$250,000)  
+(Stereolithography) | UV laser (355 nm) point-scanned by a galvanometer mirror | Slow (point by point) | Laser spot diameter (50-150 μm) | Medium-high (\$3,000-\$250,000)  
 **DLP**  
-(Digital Light Processing) | A DMD (micro-mirror array) projects a pattern, exposing the whole area at once | Fast (whole layer at once) | Projector pixel size | Medium ($500-$50,000)  
+(Digital Light Processing) | A DMD (micro-mirror array) projects a pattern, exposing the whole area at once | Fast (whole layer at once) | Projector pixel size | Medium (\$500-\$50,000)  
 **LCD-MSLA**  
-(Masked SLA) | A UV-LED backlight plus an LCD mask exposes the whole area at once | Fast (whole layer at once) | LCD panel pixel size | Low ($200-$1,000)  
+(Masked SLA) | A UV-LED backlight plus an LCD mask exposes the whole area at once | Fast (whole layer at once) | LCD panel pixel size | Low (\$200-\$1,000)  
   
 Because SLA scans point by point, its build time scales with "area × number of layers," but it can focus the laser very finely, making it suitable for large, high-precision builds. DLP and LCD expose an entire layer at once, so **build time does not change no matter how many parts you place on that layer** — the reason they are prized in dental mass production. The trade-off is that resolution is fixed by the pixel size, so widening the build area makes each pixel coarser.
 
@@ -366,7 +366,7 @@ Precision / surface quality | Very high (Ra < 5 μm, XY 25-100 μm) | Moderate (
 Mechanical strength | Medium-low (resin, improved by post-curing) | High (metals rival forged material, 500-1200 MPa)  
 Supports | Required (to hold the resin's weight) | SLS none, SLM required (heat removal, stress)  
 Post-processing | Wash → dry → post-cure | Depowder → stress-relief anneal → support removal → finishing  
-Machine cost range | $200-$250,000 | $100,000-$1,500,000 (metal)  
+Machine cost range | \$200-\$250,000 | \$100,000-\$1,500,000 (metal)  
   
 Put very simply, the division of labor is **"VPP when looks and precision are paramount, PBF (metal) when strength and function are paramount."** That said, real projects tangle up material availability, certification, cost, and quantity, so use this table as a starting point and select from all seven processes of Chapter 1.
 
@@ -437,7 +437,7 @@ For each of the three cases below, choose the most suitable VPP approach (SLA / 
 Show answer
 
   1. **DLP** : because area exposure means build time does not change no matter how many parts are on a layer, ideal for mass production.
-  2. **LCD-MSLA** : the lowest cost ($200-$1,000) with precision sufficient for personal use.
+  2. **LCD-MSLA** : the lowest cost (\$200-\$1,000) with precision sufficient for personal use.
   3. **SLA** : laser point-scanning keeps resolution from dropping as the build area grows, ideal for large and high-precision work (DLP/LCD pixels become coarse when scaled up).
 
 Q2: Calculating cure depth

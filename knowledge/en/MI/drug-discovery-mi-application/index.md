@@ -77,9 +77,9 @@ This series is a 4-chapter educational content designed to teach you how to appl
      * **Challenge 3** : Optimization of formulation design (solubility, stability, controlled release)
 
   1. **Industrial Impact of AI Drug Discovery**
-     * Market size: $2T (2024) → $3T (2030 forecast)
+     * Market size: \$2T (2024) → \$3T (2030 forecast)
      * Development time reduction: 10-15 years → 3-5 years
-     * Cost reduction: $2.6B → $500M-$1B
+     * Cost reduction: \$2.6B → \$500M-\$1B
      * AI drug discovery startups: Exscientia, Insilico Medicine, Atomwise
 
   1. **History of MI in Drug Discovery**
@@ -260,7 +260,7 @@ This series is a 4-chapter educational content designed to teach you how to appl
 
   * Technology: Generative Chemistry (GAN), Reinforcement Learning
   * Results: Phase I reached in 18 months (conventional 3-5 years)
-  * Cost: $2.6M (conventional $100M+)
+  * Cost: \$2.6M (conventional \$100M+)
   * Target: TNIK kinase inhibitor
   * Publication: Zhavoronkov et al. (2019), *Nature Biotechnology*
 
@@ -299,7 +299,7 @@ This series is a 4-chapter educational content designed to teach you how to appl
 
 **AI Drug Discovery Startups:**
 
-  * **Exscientia** : Raised $525M, market cap $2.4B (IPO 2021); merged into Recursion, November 2024
+  * **Exscientia** : Raised \$525M, market cap \$2.4B (IPO 2021); merged into Recursion, November 2024
   * **Insilico Medicine** : Raised $400M, 30+ pipeline
   * **Recursion Pharmaceuticals** : Raised $500M, robotic laboratory
   * **Schrodinger** : Raised $532M, computational chemistry platform

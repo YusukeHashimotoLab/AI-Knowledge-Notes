@@ -1631,7 +1631,7 @@ AI drug discovery is an interdisciplinary field where people with diverse backgr
     VP of AI / Chief Data Scientist
     
 
-**Salary Range (US)** : \- Junior: $100k-150k \- Senior: $150k-250k \- Lead/Principal: $250k-400k \- VP/Chief: $400k-700k+
+**Salary Range (US)** : \- Junior: \$100k-150k \- Senior: \$150k-250k \- Lead/Principal: \$250k-400k \- VP/Chief: \$400k-700k+
 
 * * *
 
@@ -1653,7 +1653,7 @@ AI drug discovery is an interdisciplinary field where people with diverse backgr
     Principal Scientist / Director of Cheminformatics
     
 
-**Salary Range (US)** : \- Scientist: $80k-120k \- Senior: $120k-180k \- Principal/Director: $180k-300k
+**Salary Range (US)** : \- Scientist: \$80k-120k \- Senior: \$120k-180k \- Principal/Director: \$180k-300k
 
 * * *
 
@@ -1665,7 +1665,7 @@ AI drug discovery is an interdisciplinary field where people with diverse backgr
 
 **Recommended Background** : \- Theoretical chemistry \- Physical chemistry \- Computational science
 
-**Salary Range (US)** : \- Computational Chemist: $90k-140k \- Senior: $140k-200k \- Principal: $200k-300k
+**Salary Range (US)** : \- Computational Chemist: \$90k-140k \- Senior: \$140k-200k \- Principal: \$200k-300k
 
 * * *
 
@@ -1677,7 +1677,7 @@ AI drug discovery is an interdisciplinary field where people with diverse backgr
 
 **Recommended Background** : \- Biology \- Biochemistry \- Genetics
 
-**Salary Range (US)** : \- Bioinformatician: $80k-130k \- Senior: $130k-190k \- Principal: $190k-280k
+**Salary Range (US)** : \- Bioinformatician: \$80k-130k \- Senior: \$130k-190k \- Principal: \$190k-280k
 
 * * *
 
@@ -1703,7 +1703,7 @@ AI drug discovery is an interdisciplinary field where people with diverse backgr
     VP of Research / Chief Scientific Officer
     
 
-**Salary Range (US)** : \- Research Scientist: $120k-180k \- Senior: $180k-260k \- Principal: $260k-400k \- VP/CSO: $400k-800k+
+**Salary Range (US)** : \- Research Scientist: \$120k-180k \- Senior: \$180k-260k \- Principal: \$260k-400k \- VP/CSO: \$400k-800k+
 
 * * *
 
@@ -1843,7 +1843,7 @@ AI drug discovery is an interdisciplinary field where people with diverse backgr
 
 **Future Forecast (2030)** :
 
-  1. **Increased AI-Designed Drug Approvals** \- 10-20 AI-designed drugs expected to be approved by 2030 \- Development period: 10-15 years → shortened to 5-7 years \- Development cost: ~$2.6 billion → reduced to < $1 billion
+  1. **Increased AI-Designed Drug Approvals** \- 10-20 AI-designed drugs expected to be approved by 2030 \- Development period: 10-15 years → shortened to 5-7 years \- Development cost: ~\$2.6 billion → reduced to < \$1 billion
 
   2. **Fully Automated Drug Discovery Labs** \- AI generates hypotheses, robots conduct experiments, automatic feedback \- Humans focus on strategic decisions and oversight
 

@@ -99,7 +99,7 @@ Attribute | Details
 Full Name | Designing Materials to Revolutionize and Engineer our Future  
 Duration | 2012 - Present  
 FY2024-2025 Budget | $72.5 million  
-Typical Award Size | $1.5 - $2.0 million over 4 years  
+Typical Award Size | \$1.5 - \$2.0 million over 4 years  
 Award Duration | 4 years (renewable)  
 Official Website | <https://www.nsf.gov/funding/opportunities/dmref>  
   
@@ -499,7 +499,7 @@ Exercise 3: Funding Analysis Medium
 **Calculation:**
 
   * MGI cumulative: $1 billion over 13 years (2011-2024)
-  * MGI annual average: $1B / 13 = ~$77 million/year
+  * MGI annual average: \$1B / 13 = ~\$77 million/year
   * DMREF FY2024-25: $72.5 million/year
 
 **Analysis:**

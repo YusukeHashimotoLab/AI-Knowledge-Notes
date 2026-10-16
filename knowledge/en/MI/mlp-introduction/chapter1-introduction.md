@@ -990,7 +990,7 @@ Misconception that "MLP faster than DFT, so laptop sufficient"
 
 **Cost estimate example** :
 
-  * **Cloud GPU** : AWS p3.2xlarge (V100 GPU) = $3/hour × 20 hours = $60/model
+  * **Cloud GPU** : AWS p3.2xlarge (V100 GPU) = \$3/hour × 20 hours = \$60/model
   * **Own GPU** : RTX 4090 = ¥300,000 (initial investment, amortizable across multiple projects)
 
 **Pitfall 5: Reality of paper reproduction**

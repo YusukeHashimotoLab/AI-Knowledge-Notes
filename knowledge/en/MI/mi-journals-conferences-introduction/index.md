@@ -153,9 +153,9 @@ Q9: Are there support programs for students and early-career researchers?
 
 **A** : Many conferences have support programs.  
 **MRS (Materials Research Society)** :  
-\- Student Registration (discounted student participation fee $100-150)  
-\- Student Poster Award (outstanding poster award $500)  
-\- Arthur Nowick Scholarship (doctoral students $2,000)  
+\- Student Registration (discounted student participation fee \$100-150)  
+\- Student Poster Award (outstanding poster award \$500)  
+\- Arthur Nowick Scholarship (doctoral students \$2,000)  
 **Society of Materials Science Japan** :  
 \- Student Membership (annual fee 2,000 yen, 1/5 of regular)  
 \- Student Outstanding Presentation Award (recognition at annual meeting)  

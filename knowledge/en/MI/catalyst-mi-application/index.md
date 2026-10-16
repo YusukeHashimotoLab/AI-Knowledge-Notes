@@ -102,7 +102,7 @@ This series is a comprehensive 4-chapter educational content for learning how to
 
   * **Impact on Catalyst Industry**
 
-\- Market size: $40B (2024) → $60B (2030 projection)
+\- Market size: \$40B (2024) → \$60B (2030 projection)
 
 \- Major fields: petroleum refining, chemical manufacturing, environmental catalysts, energy conversion
 

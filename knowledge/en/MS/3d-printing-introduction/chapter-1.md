@@ -50,7 +50,7 @@ Additive Manufacturing (AM) is **"a process that builds objects by adding materi
 
 The AM market is growing rapidly. According to the Wohlers Report 2023:
 
-  * Global AM market size: $18.3B (2023) → $83.9B forecast (2030, CAGR 23.5%)
+  * Global AM market size: \$18.3B (2023) → \$83.9B forecast (2030, CAGR 23.5%)
   * Application breakdown: prototyping (38%), tooling (27%), end-use parts (35%)
   * Leading industries: aerospace (26%), medical (21%), automotive (18%), consumer goods (15%)
   * Material share: polymers (55%), metals (35%), ceramics (7%), others (3%)
@@ -175,7 +175,7 @@ Process: filament → heated nozzle (190–260°C) → melt extrusion → coolin
 
 **Characteristics:**
 
-  * **Low cost** : Machine price $200–$5,000 (desktop), $10,000–$100,000 (industrial)
+  * **Low cost** : Machine price \$200–\$5,000 (desktop), \$10,000–\$100,000 (industrial)
   * **Material variety** : PLA, ABS, PETG, nylon, PC, carbon-fiber composites, PEEK (high performance)
   * **Build speed** : 20–150 mm³/s (moderate), layer height 0.1–0.4 mm
   * **Precision** : ±0.2–0.5 mm (desktop), ±0.1 mm (industrial)
@@ -206,7 +206,7 @@ Process: UV irradiation → photopolymerization reaction → solidification → 
 
   1. **SLA (Stereolithography)** : A UV laser (355 nm) is scanned by galvanometer mirrors to cure pointwise. High precision but slow.
   2. **DLP (Digital Light Processing)** : A projector exposes the entire plane at once. Fast, but resolution depends on the projector pixel count (Full HD: 1920×1080).
-  3. **LCD-MSLA (Masked SLA)** : Uses an LCD mask; similar to DLP but lower cost (many desktop machines at $200–$1,000).
+  3. **LCD-MSLA (Masked SLA)** : Uses an LCD mask; similar to DLP but lower cost (many desktop machines at \$200–\$1,000).
 
 **Characteristics:**
 
@@ -240,7 +240,7 @@ Process: spread powder → laser/electron-beam scan → melting/sintering → so
   * **High strength** : Melting and re-solidification yield mechanical properties comparable to forged material (tensile strength 500–1200 MPa)
   * **Complex-shape capability** : Overhangs can be built without supports (powder provides support)
   * **Material variety** : Ti alloys, Al alloys, stainless steels, Ni superalloys, Co-Cr alloys, nylon
-  * **High cost** : Machine price $200,000–$1,500,000, material cost $50–$500/kg
+  * **High cost** : Machine price \$200,000–\$1,500,000, material cost \$50–\$500/kg
   * **Post-processing** : Support removal, heat treatment (stress relief), surface finishing (blasting, polishing)
 
 **Application examples:**
@@ -260,7 +260,7 @@ Process: spread powder → laser/electron-beam scan → melting/sintering → so
   * **Multi-material** : Multiple materials and colors can be used within a single build
   * **Full-color building** : More than 10 million colors via combinations of CMYK resins
   * **Surface quality** : Extremely smooth (almost no layer lines)
-  * **High cost** : Machine $50,000–$300,000, material cost $200–$600/kg
+  * **High cost** : Machine \$50,000–\$300,000, material cost \$200–\$600/kg
   * **Material constraint** : Photocurable resins only, moderate mechanical properties
 
 **Application examples:** Medical anatomical models (soft and hard tissue reproduced with different materials), full-color architectural models, design verification models

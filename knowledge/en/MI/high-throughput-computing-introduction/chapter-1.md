@@ -90,7 +90,7 @@ In 2011, the Obama administration announced the **Materials Genome Initiative (M
 
 **Goals** : \- **Halve** new material development time (20 years → 10 years) \- **Closed loop** of computational science and experiments \- **Public resource** databases and computational infrastructure
 
-**Budget** : $100M in first year, $250M over 10 years
+**Budget** : \$100M in first year, \$250M over 10 years
 
 **Outcomes** (2011-2021): \- Materials Project: DFT calculations for **140,000 materials** \- AFLOW: Automated analysis of **3,500,000 crystal structures** \- Development period: Actually achieved **30-50% reduction**
 
@@ -439,13 +439,13 @@ Software licenses | $300,000/year | 1 year | $300,000
 **Total cost** |  |  | **$890,000**  
 **Duration** |  |  | **6 months**  
   
-**Reduction effects** : \- Cost reduction: **89%** ($80.8M → $0.89M) \- Time reduction: **75%** (2 years → 6 months)
+**Reduction effects** : \- Cost reduction: **89%** (\$80.8M → \$0.89M) \- Time reduction: **75%** (2 years → 6 months)
 
 ### ROI (Return on Investment) Calculation
 
-**Initial investment** : \- Environment setup: $50,000 \- Personnel training: $30,000 \- **Total** : $80,000
+**Initial investment** : \- Environment setup: \$50,000 \- Personnel training: \$30,000 \- **Total** : $80,000
 
-**Annual savings** (for 1,000 materials/year): \- Experimental cost reduction: $80M/year \- Personnel cost reduction: $240,000/year \- **Total** : $80.24M/year
+**Annual savings** (for 1,000 materials/year): \- Experimental cost reduction: \$80M/year \- Personnel cost reduction: \$240,000/year \- **Total** : $80.24M/year
 
 **ROI** :
     
@@ -607,7 +607,7 @@ To complete in 6 months (180 days, 24 hours operation):
               ≈ 28 nodes (48 cores/node)
     
 
-**2. Workflow design** \- **Tool**: FireWorks + Atomate \- Reason: Materials Project track record, VASP integration \- **Job Scheduler**: SLURM \- **Database**: MongoDB **3. Data management** \- Calculation data: 100MB per material → 1TB total \- Database: Metadata 10GB \- Backup: 2TB (redundancy) **4. Cost estimate** **Option A: Cloud (AWS)** | Item | Unit price | Quantity | Total | |----|------|-----|------| | EC2 (c5.12xlarge, 48 cores) | $2.04/hour | 28 nodes × 4,320 hours | $247,000 | | Storage (EBS) | $0.10/GB/month | 2TB × 6 months | $1,200 | | Data transfer | $0.09/GB | 500GB | $45 | | **Total** | | | **$248,245** | **Option B: On-premise HPC usage** | Item | Unit price | Quantity | Total | |----|------|-----|------| | HPC usage fee | $0.1/CPU hour | 5.76M CPU hours | $576,000 | | Personnel costs | $80,000/year | 1 person × 0.5 year | $40,000 | | Software | $300,000/year | 0.5 year | $150,000 | | **Total** | | | **$766,000** | **Recommendation**: Option B (On-premise HPC) \- Within budget ($2,000,000) \- Utilize university HPC clusters \- Invest surplus budget in experimental validation 
+**2. Workflow design** \- **Tool**: FireWorks + Atomate \- Reason: Materials Project track record, VASP integration \- **Job Scheduler**: SLURM \- **Database**: MongoDB **3. Data management** \- Calculation data: 100MB per material → 1TB total \- Database: Metadata 10GB \- Backup: 2TB (redundancy) **4. Cost estimate** **Option A: Cloud (AWS)** | Item | Unit price | Quantity | Total | |----|------|-----|------| | EC2 (c5.12xlarge, 48 cores) | \$2.04/hour | 28 nodes × 4,320 hours | \$247,000 | | Storage (EBS) | \$0.10/GB/month | 2TB × 6 months | \$1,200 | | Data transfer | \$0.09/GB | 500GB | \$45 | | **Total** | | | **\$248,245** | **Option B: On-premise HPC usage** | Item | Unit price | Quantity | Total | |----|------|-----|------| | HPC usage fee | \$0.1/CPU hour | 5.76M CPU hours | \$576,000 | | Personnel costs | \$80,000/year | 1 person × 0.5 year | \$40,000 | | Software | \$300,000/year | 0.5 year | \$150,000 | | **Total** | | | **\$766,000** | **Recommendation**: Option B (On-premise HPC) \- Within budget (\$2,000,000) \- Utilize university HPC clusters \- Invest surplus budget in experimental validation 
 
 * * *
 

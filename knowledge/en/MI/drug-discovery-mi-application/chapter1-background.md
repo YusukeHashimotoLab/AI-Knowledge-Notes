@@ -122,7 +122,7 @@ Developing new drugs is one of the most important scientific challenges in prote
 
 **Time Problem** : \- Average 12 years (Target identification → FDA approval) \- Too slow to improve 5-year survival rates for cancer patients \- Too slow for pandemic response (COVID-19: vaccine development 1 year)
 
-**Cost Problem** : \- $2.6B/drug (2020 estimate, Tufts Center survey) \- Breakdown: \- Preclinical: $500M \- Clinical trials: $1.4B \- Failure costs: $700M (amortization of past failed projects)
+**Cost Problem** : \- \$2.6B/drug (2020 estimate, Tufts Center survey) \- Breakdown: \- Preclinical: \$500M \- Clinical trials: \$1.4B \- Failure costs: \$700M (amortization of past failed projects)
 
 **Economic Impact** : \- Rising drug prices (to recover development costs) \- Stagnation in orphan drug (rare disease therapeutics) development \- Dependence on generic drugs
 
@@ -286,7 +286,7 @@ The integration of Materials Informatics (MI) with AI/machine learning can overc
 
   5. **Toxicity** : \- hERG inhibition (cardiotoxicity) (ROC-AUC = 0.85-0.95) \- Hepatotoxicity (ROC-AUC = 0.75-0.85) \- Mutagenicity (Ames test) (ROC-AUC = 0.80-0.90)
 
-**Advantages** : \- Timing: Early in lead discovery (days) \- Cost: $0 (computational only) vs $10K-100K/compound (experimental) \- Throughput: Millions of compounds/day vs 10-100 compounds/week (experimental)
+**Advantages** : \- Timing: Early in lead discovery (days) \- Cost: \$0 (computational only) vs \$10K-100K/compound (experimental) \- Throughput: Millions of compounds/day vs 10-100 compounds/week (experimental)
 
 **Real Example** : Insilico Medicine (IPF therapeutics) \- ADMET prediction: 50,000 candidate molecules \- Time: 1 week \- Result: Narrowed down to 100 compounds (500x reduction) \- Experimental validation: 85% prediction accuracy (85 compounds actually met ADMET criteria)
 
@@ -337,7 +337,7 @@ The integration of Materials Informatics (MI) with AI/machine learning can overc
 
 **Rapid Growth of AI Drug Discovery Market** (approximate market-research estimates; sources vary widely) : \- **Early 2020s** : roughly $1B \- **Mid-2020s** : roughly $4-5B (estimated) \- **Early 2030s** : projected toward $15-25B \- Implied growth: roughly 30-40% CAGR, depending on the series used
 
-**Investment Trends** : \- Venture capital investment (2015-2023 cumulative): $20B+ \- AI investment by pharma giants: $5-10B/year \- M&A activity: 50+ deals from 2020-2023
+**Investment Trends** : \- Venture capital investment (2015-2023 cumulative): \$20B+ \- AI investment by pharma giants: \$5-10B/year \- M&A activity: 50+ deals from 2020-2023
 
 **Regional Trends** : 1\. **North America (50%)** : Silicon Valley + Boston (biotech clusters) 2\. **Europe (30%)** : UK, Switzerland, Germany 3\. **Asia (20%)** : China (rapid growth), Japan, South Korea
 
@@ -345,15 +345,15 @@ The integration of Materials Informatics (MI) with AI/machine learning can overc
 
 **Development Time Reduction** : \- Traditional: 10-15 years \- AI-enabled: 3-5 years (60-70% reduction) \- Examples: \- Exscientia (OCD drug DSP-1181): 12 months to a candidate (traditional 4.5 years, 73% reduction) — the candidate was discontinued after Phase I in 2021 \- Insilico Medicine (IPF drug): 18 months (traditional 3-5 years, 70% reduction)
 
-**Cost Reduction** : \- Traditional: $2.6B/drug \- AI-enabled: $500M-$1B/drug (60-80% reduction) \- Reduction areas: \- Lead discovery: $500M → $50M (90% reduction) \- Preclinical studies: $500M → $200M (60% reduction) \- Lower clinical trial failure rate: $700M failure cost reduction
+**Cost Reduction** : \- Traditional: \$2.6B/drug \- AI-enabled: \$500M-\$1B/drug (60-80% reduction) \- Reduction areas: \- Lead discovery: \$500M → \$50M (90% reduction) \- Preclinical studies: \$500M → \$200M (60% reduction) \- Lower clinical trial failure rate: \$700M failure cost reduction
 
-**ROI (Return on Investment)** : \- AI platform investment: $10-50M \- Reduction effect: $500M-$1B/drug \- ROI: 10-100x
+**ROI (Return on Investment)** : \- AI platform investment: \$10-50M \- Reduction effect: \$500M-\$1B/drug \- ROI: 10-100x
 
 ### 1.3.3 AI Drug Discovery Startup Ecosystem
 
 #### Major Players
 
-**Exscientia (UK, Oxford)** : \- Founded: 2012 \- Funding: $525M (IPO 2021, market cap $2.4B) \- Pipeline: 30+ compounds (3 in Phase I/II) \- Partners: Sanofi, Bayer, BMS \- Status: merged into Recursion Pharmaceuticals in November 2024; the figures above describe the company as an independent business
+**Exscientia (UK, Oxford)** : \- Founded: 2012 \- Funding: \$525M (IPO 2021, market cap \$2.4B) \- Pipeline: 30+ compounds (3 in Phase I/II) \- Partners: Sanofi, Bayer, BMS \- Status: merged into Recursion Pharmaceuticals in November 2024; the figures above describe the company as an independent business
 
 **Insilico Medicine (Hong Kong/USA)** : \- Founded: 2014 \- Funding: $400M \- Technology: Generative Chemistry (GAN), Reinforcement Learning \- Pipeline: 30+ compounds, 6 starting Phase I \- Partners: Pfizer, Fosun Pharma
 
@@ -402,7 +402,7 @@ The integration of Materials Informatics (MI) with AI/machine learning can overc
 
 ### 1.4.2 HTS Era (1990s-2000s)
 
-**Rise of High-Throughput Screening (HTS)** : \- **Early 1990s** : Robotics automation \- Throughput: 100,000 compounds/week \- Cost: $1/compound (traditional $100)
+**Rise of High-Throughput Screening (HTS)** : \- **Early 1990s** : Robotics automation \- Throughput: 100,000 compounds/week \- Cost: \$1/compound (traditional \$100)
 
 **Combinatorial Chemistry** : \- Technology: Parallel synthesis, solid-phase synthesis \- Productivity: 1,000-10,000 compounds/week \- Problem: "Diversity problem" (only similar compounds)
 
@@ -462,7 +462,7 @@ After completing this chapter, you will be able to explain:
 
 ### Industry Trends
 
-  * ✅ AI drug discovery market size (roughly $1B in the early 2020s → a projected $15-25B by the early 2030s; sources vary)
+  * ✅ AI drug discovery market size (roughly \$1B in the early 2020s → a projected \$15-25B by the early 2030s; sources vary)
   * ✅ Track record of 6 major startups (Exscientia, Insilico, etc.)
   * ✅ AI investment by pharma giants ($1-3B scale)
 
@@ -492,7 +492,7 @@ View Answer **Correct Answer**: Toxicity **ADMET**: \- **A**bsorption \- **D**is
 
 View Answer **Correct Answer**: Traditional 3-5 years → 18 months (1.5 years), 70-85% reduction **Calculation**: \- Reduction rate = (Traditional years - AI years) / Traditional years × 100 \- 3-year basis: (3 - 1.5) / 3 = 50% → but actually 70% up to preclinical \- 5-year basis: (5 - 1.5) / 5 = 70% 
 
-**Q4** : One market-research series puts the AI drug discovery market at $4.5B in 2024 and $25B in 2030 (other series are lower — see 1.3.1). Calculate the CAGR (Compound Annual Growth Rate) for this period.
+**Q4** : One market-research series puts the AI drug discovery market at \$4.5B in 2024 and \$25B in 2030 (other series are lower — see 1.3.1). Calculate the CAGR (Compound Annual Growth Rate) for this period.
 
 View Answer **Correct Answer**: Approximately 33% **Calculation**: CAGR = (Ending value/Starting value)^(1/years) - 1 = (25/4.5)^(1/6) - 1 = 5.56^0.167 - 1 = 1.33 - 1 = 0.33 = 33% 
 
@@ -504,7 +504,7 @@ View Answer **Correct Answer**: Approximately 8.3 × 10^46 years (over 10^36 tim
 
 **Q6** : For Exscientia's OCD drug development, lead discovery took 12 months. Compared to traditional 4.5 years, estimate the cost reduction. (Assume lead discovery phase cost is $500M)
 
-View Answer **Estimated Cost Reduction**: Over $370M **Calculation**: \- Traditional cost: $500M / 4.5 years = $111M/year \- AI-enabled: $111M × 1 year = $111M \- Reduction: $500M - $111M = $389M Even after deducting AI platform costs ($10-50M), still $300M+ reduction. 
+View Answer **Estimated Cost Reduction**: Over \$370M **Calculation**: \- Traditional cost: \$500M / 4.5 years = \$111M/year \- AI-enabled: \$111M × 1 year = \$111M \- Reduction: \$500M - \$111M = \$389M Even after deducting AI platform costs (\$10-50M), still \$300M+ reduction. 
 
 * * *
 

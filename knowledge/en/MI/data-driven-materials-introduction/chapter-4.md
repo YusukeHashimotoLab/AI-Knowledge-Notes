@@ -1492,7 +1492,7 @@ In this chapter, we learned the theory and practice of **Explainable AI (XAI)**.
   * [ ] **Salary Goals**
 
   * [ ] Japan: Junior ¥5-7M, Mid ¥10-15M, Senior ¥15-25M
-  * [ ] US: $70-90K (Junior), $130-180K (Mid), $180-300K (Senior)
+  * [ ] US: \$70-90K (Junior), \$130-180K (Mid), \$180-300K (Senior)
   * [ ] Improve salary through: Degree, papers, project success
 
   * [ ] **Skill Development Strategy**

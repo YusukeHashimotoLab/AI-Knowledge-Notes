@@ -1815,7 +1815,7 @@ Year | Achievement Goals
 
 **Task** : Vary the ratio of low-fidelity to high-fidelity data and analyze the trade-off between cost efficiency and prediction accuracy.
 
-**Experimental Setup** : | Experiment | Low-Fidelity Data | High-Fidelity Data | Total Cost | |------------|-------------------|--------------------| -----------| | 1 | 500 ($5,000) | 10 ($10,000) | $15,000 | | 2 | 300 ($3,000) | 30 ($30,000) | $33,000 | | 3 | 100 ($1,000) | 50 ($50,000) | $51,000 |
+**Experimental Setup** : | Experiment | Low-Fidelity Data | High-Fidelity Data | Total Cost | |------------|-------------------|--------------------| -----------| | 1 | 500 (\$5,000) | 10 (\$10,000) | \$15,000 | | 2 | 300 (\$3,000) | 30 (\$30,000) | \$33,000 | | 3 | 100 (\$1,000) | 50 (\$50,000) | \$51,000 |
 
 **Analysis Items** : 1\. Test data MSE for each experiment 2\. Accuracy per cost (R² / Total Cost) 3\. Optimal low-fidelity/high-fidelity ratio
 

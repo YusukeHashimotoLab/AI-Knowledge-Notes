@@ -67,7 +67,7 @@ This series is a comprehensive 4-chapter educational content designed for progre
 
   2. **Limitations of Traditional Methods**  
 \- Time: 15-20 years/material  
-\- Cost: $100k-$700k/material  
+\- Cost: \$100k-\$700k/material  
 \- Search Range: 10-100 types annually
 
   3. **Detailed Case Study: Li-ion Battery Development**  

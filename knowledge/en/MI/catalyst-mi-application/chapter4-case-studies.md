@@ -24,7 +24,7 @@ This chapter covers Catalyst MI Case Studies. You will learn essential concepts 
 
 ### 4.1.1 Background and Challenges
 
-**What is Green Hydrogen:** \- Produced by water electrolysis using renewable energy-derived electricity \- Key to achieving carbon neutrality \- Target production cost: $2/kg H₂ by 2030 (currently $5-6/kg)
+**What is Green Hydrogen:** \- Produced by water electrolysis using renewable energy-derived electricity \- Key to achieving carbon neutrality \- Target production cost: \$2/kg H₂ by 2030 (currently \$5-6/kg)
 
 **Water Electrolysis Reactions:**
     
@@ -128,7 +128,7 @@ This chapter covers Catalyst MI Case Studies. You will learn essential concepts 
 
 **Experimental Validation:** \- Synthesized MI-predicted Ni₀.₈Fe₀.₂-LDH \- Overpotential: 0.32 V @ 10 mA/cm² (predicted 0.33 V, 3% error) \- Confirmed 5,000-hour stable operation
 
-**Industrial Impact:** \- 90% catalyst cost reduction (compared to IrO₂) \- Achieved hydrogen production cost of $3.5/kg (approaching target of $2/kg)
+**Industrial Impact:** \- 90% catalyst cost reduction (compared to IrO₂) \- Achieved hydrogen production cost of \$3.5/kg (approaching target of \$2/kg)
 
 * * *
 
@@ -471,7 +471,7 @@ This chapter covers Catalyst MI Case Studies. You will learn essential concepts 
     NO + CO → 1/2 N₂ + CO₂
     
 
-**Current Status:** \- Uses Pt, Pd, Rh (expensive, supply unstable) \- Pt price: $30,000/kg, Rh: $150,000/kg \- 2-7g noble metals per vehicle
+**Current Status:** \- Uses Pt, Pd, Rh (expensive, supply unstable) \- Pt price: \$30,000/kg, Rh: \$150,000/kg \- 2-7g noble metals per vehicle
 
 **Goals:** \- 50% reduction in noble metal usage \- Low-temperature activation (<150°C) \- Maintain 150,000 km durability
 

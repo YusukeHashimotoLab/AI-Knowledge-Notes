@@ -333,7 +333,7 @@ This represents a record-breaking achievement where an AI-designed compound went
 
 #### 1\. **Partnership with Recursion Pharmaceuticals**
 
-  * **Contract Value** : $50M + milestone payments (up to $300M)
+  * **Contract Value** : \$50M + milestone payments (up to \$300M)
   * **Duration** : 2020 contract (5 years)
   * **Technology** : Image-based Drug Discovery
 
@@ -1376,7 +1376,7 @@ This represents a record-breaking achievement where an AI-designed compound went
 Metric | Traditional Method | AI Drug Discovery (Average) | Improvement  
 ---|---|---|---  
 Candidate Discovery Period | 3-5 years | 0.5-2 years | **60-85% reduction**  
-Cost | $500M-$1B | $50M-$200M | **80-90% reduction**  
+Cost | \$500M-\$1B | \$50M-\$200M | **80-90% reduction**  
 Number of Candidate Compounds | 3,000-10,000 | 100-500 | **95% reduction**  
 Hit Rate | 0.01-0.1% | 1-5% | **10-500x improvement**  
   

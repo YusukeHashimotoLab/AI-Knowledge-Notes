@@ -1616,7 +1616,7 @@ AI創薬は学際的分野であり、多様なバックグラウンドを持つ
     VP of AI / Chief Data Scientist
     
 
-**年収目安（米国）** ： \- Junior: $100k-150k \- Senior: $150k-250k \- Lead/Principal: $250k-400k \- VP/Chief: $400k-700k+
+**年収目安（米国）** ： \- Junior: \$100k-150k \- Senior: \$150k-250k \- Lead/Principal: \$250k-400k \- VP/Chief: \$400k-700k+
 
 * * *
 
@@ -1638,7 +1638,7 @@ AI創薬は学際的分野であり、多様なバックグラウンドを持つ
     Principal Scientist / Director of Cheminformatics
     
 
-**年収目安（米国）** ： \- Scientist: $80k-120k \- Senior: $120k-180k \- Principal/Director: $180k-300k
+**年収目安（米国）** ： \- Scientist: \$80k-120k \- Senior: \$120k-180k \- Principal/Director: \$180k-300k
 
 * * *
 
@@ -1650,7 +1650,7 @@ AI創薬は学際的分野であり、多様なバックグラウンドを持つ
 
 **推奨バックグラウンド** ： \- 理論化学 \- 物理化学 \- 計算科学
 
-**年収目安（米国）** ： \- Computational Chemist: $90k-140k \- Senior: $140k-200k \- Principal: $200k-300k
+**年収目安（米国）** ： \- Computational Chemist: \$90k-140k \- Senior: \$140k-200k \- Principal: \$200k-300k
 
 * * *
 
@@ -1662,7 +1662,7 @@ AI創薬は学際的分野であり、多様なバックグラウンドを持つ
 
 **推奨バックグラウンド** ： \- 生物学 \- 生化学 \- 遺伝学
 
-**年収目安（米国）** ： \- Bioinformatician: $80k-130k \- Senior: $130k-190k \- Principal: $190k-280k
+**年収目安（米国）** ： \- Bioinformatician: \$80k-130k \- Senior: \$130k-190k \- Principal: \$190k-280k
 
 * * *
 
@@ -1688,7 +1688,7 @@ AI創薬は学際的分野であり、多様なバックグラウンドを持つ
     VP of Research / Chief Scientific Officer
     
 
-**年収目安（米国）** ： \- Research Scientist: $120k-180k \- Senior: $180k-260k \- Principal: $260k-400k \- VP/CSO: $400k-800k+
+**年収目安（米国）** ： \- Research Scientist: \$120k-180k \- Senior: \$180k-260k \- Principal: \$260k-400k \- VP/CSO: \$400k-800k+
 
 * * *
 

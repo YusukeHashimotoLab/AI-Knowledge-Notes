@@ -104,7 +104,7 @@ This series is a comprehensive 4-chapter educational content designed to teach h
 
   * **Impact on the Battery Industry**
 
-\- Market size: $50B (2024) → $120B (2030 forecast)
+\- Market size: \$50B (2024) → \$120B (2030 forecast)
 
 \- Main sectors: EVs (70%), stationary energy storage (20%), IoT (10%)
 

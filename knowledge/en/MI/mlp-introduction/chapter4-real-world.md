@@ -340,7 +340,7 @@ Gallium nitride (GaN) is attracting attention as a next-generation power semicon
 \- **Yield improvement** : Wafer yield 60% → 85% (**25 point improvement**)  
 \- **Economic benefits** :  
 \- Mass production cost: 30% reduction (6-inch wafer, Conventional 100,000 yen → 70,000 yen)  
-\- Market size: GaN power semiconductor market 2025: $2 billion → 2030 prediction: $10 billion
+\- Market size: GaN power semiconductor market 2025: \$2 billion → 2030 prediction: \$10 billion
 
 **Industrial Deployment** :  
 \- **Shin-Etsu Chemical** : Started mass production under new conditions in 2024  
@@ -577,11 +577,11 @@ Chemical reactions in the atmosphere (ozone formation, aerosol formation, etc.) 
 \- Full Professor: 10-15 million yen/year (national university)
 
 **Salary** (USA):  
-\- PhD student: $30-40K (annual)  
-\- Postdoc: $50-70K  
-\- Assistant Professor: $80-120K  
-\- Associate Professor: $100-150K  
-\- Full Professor: $120-250K (top universities can exceed $300K)
+\- PhD student: \$30-40K (annual)  
+\- Postdoc: \$50-70K  
+\- Assistant Professor: \$80-120K  
+\- Associate Professor: \$100-150K  
+\- Full Professor: \$120-250K (top universities can exceed \$300K)
 
 **Required Skills** :  
 1\. **Programming** : Python (required), C++ (recommended)  
@@ -635,10 +635,10 @@ Chemical reactions in the atmosphere (ozone formation, aerosol formation, etc.) 
 \- Manager level: 15-25 million yen/year
 
 **Salary** (USA):  
-\- Entry Level (Master's): $80-100K  
-\- Mid-Level (5-10 years): $120-180K  
-\- Senior Scientist: $180-250K  
-\- Principal Scientist/Director: $250-400K
+\- Entry Level (Master's): \$80-100K  
+\- Mid-Level (5-10 years): \$120-180K  
+\- Senior Scientist: \$180-250K  
+\- Principal Scientist/Director: \$250-400K
 
 **Required Skills** :  
 1\. **MLP Implementation** : Practical experience with SchNetPack, DeePMD-kit, NequIP, MACE  
@@ -676,9 +676,9 @@ Chemical reactions in the atmosphere (ozone formation, aerosol formation, etc.) 
 
   1. **Schrödinger Inc.** (USA, founded 1990):  
 \- Business: Computational chemistry software + drug discovery (in-house pipeline)  
-\- Market cap: $8B (2024, publicly traded)  
+\- Market cap: \$8B (2024, publicly traded)  
 \- Employees: ~600 people  
-\- Features: Integrated MLP (FEP+) into drug discovery, annual revenue $200M
+\- Features: Integrated MLP (FEP+) into drug discovery, annual revenue \$200M
 
   2. **Chemify** (UK, founded 2019):  
 \- Business: Automation of chemical synthesis (Chemputer)  
@@ -693,9 +693,9 @@ Chemical reactions in the atmosphere (ozone formation, aerosol formation, etc.) 
 \- Applications: Materials screening, drug discovery
 
 **Salary + Stock Options** (USA Startup):  
-\- Founding member (CTO): $150-200K + 5-15% equity  
-\- Principal investigator (early member): $120-180K + 0.5-2% equity  
-\- Mid-stage hire (5-10th employee): $100-150K + 0.1-0.5% equity
+\- Founding member (CTO): \$150-200K + 5-15% equity  
+\- Principal investigator (early member): \$120-180K + 0.5-2% equity  
+\- Mid-stage hire (5-10th employee): \$100-150K + 0.1-0.5% equity
 
 **Returns upon Success** :  
 \- IPO market cap $1B assumption, 5% equity holding → **$50M (~7 billion yen)**  

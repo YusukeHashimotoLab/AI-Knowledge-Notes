@@ -892,7 +892,7 @@ Lead Optimization | 2-3 years | 1-1.5 years | 50%
 Preclinical | 1-2 years | 0.5-1 year | 50%  
 **Total** | **6-10 years** | **2.5-4.5 years** | **60-70%**  
   
-**Cost Reduction:** \- Virtual Screening: $500M → $50M (90% reduction) \- ADMET failure reduction: $200M → $50M (75% reduction) \- Experimental number reduction: 1,000 experiments → 100 experiments (90% reduction)
+**Cost Reduction:** \- Virtual Screening: \$500M → \$50M (90% reduction) \- ADMET failure reduction: \$200M → \$50M (75% reduction) \- Experimental number reduction: 1,000 experiments → 100 experiments (90% reduction)
 
 * * *
 

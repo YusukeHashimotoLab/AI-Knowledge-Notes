@@ -52,7 +52,7 @@ Aspect | Open Access (OA) | Traditional Publishing
 ---|---|---  
 **Reader Access** | Free for all | Subscription or purchase required  
 **Author Costs** | Article Processing Charges (APC)  
-Typical: $1,000-$5,000 | Usually free  
+Typical: \$1,000-\$5,000 | Usually free  
 (Some journals charge page fees)  
 **Copyright** | Often retained by author  
 Creative Commons licenses | Typically transferred to publisher  
@@ -929,7 +929,7 @@ Show Solution
 
 #### Exercise 6 (Medium): Open Access vs Traditional Selection
 
-Compare Open Access (OA) and Traditional publishing for a research lab that publishes 8 papers annually. The OA route costs $3,500 per article, while Traditional requires $5,000 annual subscription plus $400 page charges for 30% of papers. Which is more economical over 5 years? Consider both cost and accessibility. 
+Compare Open Access (OA) and Traditional publishing for a research lab that publishes 8 papers annually. The OA route costs \$3,500 per article, while Traditional requires \$5,000 annual subscription plus \$400 page charges for 30% of papers. Which is more economical over 5 years? Consider both cost and accessibility. 
 
 Show Solution
 
@@ -937,13 +937,13 @@ Show Solution
 
 **Open Access:**
 
-  * Cost per year: $3,500 × 8 = $28,000
+  * Cost per year: \$3,500 × 8 = \$28,000
   * Total 5-year cost: $28,000 × 5 = **$140,000**
 
 **Traditional:**
 
   * Subscription per year: $5,000
-  * Page charges: $400 × 8 × 0.30 = $960
+  * Page charges: \$400 × 8 × 0.30 = \$960
   * Annual total: $5,960
   * Total 5-year cost: $5,960 × 5 = **$29,800**
 

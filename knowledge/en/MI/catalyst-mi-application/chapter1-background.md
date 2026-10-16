@@ -300,7 +300,7 @@ Achievements: \- Transition state exploration time: 1/10 to 1/100 \- Discovery o
 
 ### 1.5.1 Market Size and Growth
 
-**Global Catalyst Market** : \- 2024: Approximately $40 billion \- 2030 forecast: Approximately $60 billion \- Compound Annual Growth Rate (CAGR): Approximately 6-7%
+**Global Catalyst Market** : \- 2024: Approximately \$40 billion \- 2030 forecast: Approximately \$60 billion \- Compound Annual Growth Rate (CAGR): Approximately 6-7%
 
 **Market Share by Sector** : 1\. **Petroleum refining** : 35% (catalytic cracking, reforming) 2\. **Chemical manufacturing** : 30% (ethylene, propylene) 3\. **Environmental catalysts** : 20% (automotive exhaust, deNOx) 4\. **Energy conversion** : 15% (fuel cells, hydrogen production)
 
@@ -378,7 +378,7 @@ In this chapter, we learned from the fundamentals of catalysts to industry trend
 
   3. **Contribution of MI** : \- Prediction of activity and selectivity (ML) \- Efficient exploration by Bayesian optimization \- DFT + ML integration \- 50-85% reduction in development period
 
-  4. **Industrial Impact** : \- Market size $40B → $60B (2030) \- Key to achieving carbon neutrality \- Active investment by major companies
+  4. **Industrial Impact** : \- Market size \$40B → \$60B (2030) \- Key to achieving carbon neutrality \- Active investment by major companies
 
 ### Next Steps
 
